@@ -1,10 +1,8 @@
 ﻿using System;
 using Swordfish;
-using OpenTK;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
-using System.Drawing;
 
 namespace waywardbeyond
 {

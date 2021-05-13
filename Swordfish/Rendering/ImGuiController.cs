@@ -143,7 +143,7 @@ namespace Swordfish.Rendering
             _fontTexture.SetMagFilter(TextureMagFilter.Linear);
             _fontTexture.SetMinFilter(TextureMinFilter.Linear);
 
-            io.Fonts.SetTexID((IntPtr)_fontTexture.GLTexture);
+            io.Fonts.SetTexID((IntPtr)_fontTexture.Handle);
 
             io.Fonts.ClearTexData();
         }

@@ -14,16 +14,26 @@ namespace waywardbeyond
     public class Game : GameWindow
     {
         private ImGuiController guiController;
-
         private Shader shader;
-        private float[] vertices = {
-            -0.5f, -0.5f, 0.0f, //Bottom-left vertex
-            0.5f, -0.5f, 0.0f, //Bottom-right vertex
-            0.0f,  0.5f, 0.0f  //Top vertex
+        private Texture texture;
+
+        float[] vertices =
+        {
+            //Position              Color           UV
+            0.5f,  0.5f, 0.0f,      1f, 0f, 0f,     1.0f, 1.0f, // top right
+            0.5f, -0.5f, 0.0f,      0f, 1f, 0f,     1.0f, 0.0f, // bottom right
+            -0.5f, -0.5f, 0.0f,     0f, 0f, 1f,     0.0f, 0.0f, // bottom left
+            -0.5f,  0.5f, 0.0f,     1f, 1f, 0f,     0.0f, 1.0f  // top left
         };
 
-        int VertexBufferObject;
-        int VertexArrayObject;
+        private uint[] indices = {  // note that we start from 0!
+            0, 1, 3,   // first triangle
+            1, 2, 3    // second triangle
+        };
+
+        private int ElementBufferObject;
+        private int VertexBufferObject;
+        private int VertexArrayObject;
 
         public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -53,27 +63,39 @@ namespace waywardbeyond
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
-            //  Setup buffer
-            VertexBufferObject = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
-
-            //  Send vertices to buffer
-            //  Dynamic draw for data that like to change a lot
-            //  Stream for constant
-            //  Static for rare/never
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
-
-            //  Setup VAO
-            VertexArrayObject = GL.GenVertexArray();
-            GL.BindVertexArray(VertexArrayObject);
-
             //  Shaders
             shader = new Shader("shaders/test.vert", "shaders/test.frag", "Test");
             shader.Use();
 
-            //  Tell openGL how to interpret vertex data
-            GL.VertexAttribPointer(shader.GetAttribLocation("aPosition"), 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(shader.GetAttribLocation("aPosition"));
+            //  Setup vertex buffer
+            VertexBufferObject = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, VertexBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * sizeof(float), vertices, BufferUsageHint.StaticDraw);
+
+            //  Setup VAO and tell openGL how to interpret vertex data
+            VertexArrayObject = GL.GenVertexArray();
+            GL.BindVertexArray(VertexArrayObject);
+
+            int attrib = shader.GetAttribLocation("in_position");
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 8 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(attrib);
+
+            attrib = shader.GetAttribLocation("in_color");
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 8 * sizeof(float), 3 * sizeof(float));
+            GL.EnableVertexAttribArray(attrib);
+
+            attrib = shader.GetAttribLocation("in_uv");
+            GL.VertexAttribPointer(attrib, 2, VertexAttribPointerType.Float, false, 8 * sizeof(float), 6 * sizeof(float));
+            GL.EnableVertexAttribArray(attrib);
+
+            //  Setup element buffer
+            ElementBufferObject = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
+            GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
+
+            texture = Texture.LoadFromFile("resources/textures/metal_01.png", "atlas_0");
+            texture.Use(TextureUnit.Texture0);
+            shader.SetInt("texture0", 0);
 
             base.OnLoad();
         }
@@ -81,11 +103,13 @@ namespace waywardbeyond
         protected override void OnUnload()
         {
             //  Unbind resources
+            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
             GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
             GL.UseProgram(0);
 
             // Delete resources
+            GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteBuffer(VertexBufferObject);
             GL.DeleteVertexArray(VertexArrayObject);
             GL.DeleteProgram(shader.Handle);
@@ -100,12 +124,13 @@ namespace waywardbeyond
         {
             GL.Clear(ClearBufferMask.ColorBufferBit);
 
-            //  Use the shaders and bind the VAO
             shader.Use();
+            texture.Use(TextureUnit.Texture0);
+
             GL.BindVertexArray(VertexArrayObject);
 
-            //  Draw the vertices
-            GL.DrawArrays(PrimitiveType.Triangles, 0, 3);
+            //  Draw triangles
+            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
             //  GUI
             guiController.Update(this, (float)e.Time);
