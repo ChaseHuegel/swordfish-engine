@@ -2,9 +2,9 @@
 out vec4 FragColor;
 
 in vec4 color;
-in vec2 uv;
+in vec3 uv;
 
-uniform sampler2D texture0;
+uniform sampler2DArray texture0;
 
 void main()
 {

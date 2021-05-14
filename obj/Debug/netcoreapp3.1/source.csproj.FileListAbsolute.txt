@@ -38,3 +38,5 @@ E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\runtimes\win-x86\nativ
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\runtimes\win\lib\netcoreapp3.0\Microsoft.Win32.SystemEvents.dll
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\runtimes\unix\lib\netcoreapp3.0\System.Drawing.Common.dll
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\runtimes\win\lib\netcoreapp3.0\System.Drawing.Common.dll
+E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\shaders\testArray.frag
+E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\shaders\testArray.vert

@@ -1,6 +1,7 @@
 ﻿using System;
 using ImGuiNET;
 using OpenTK;
+using OpenTK.Mathematics;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
@@ -8,6 +9,7 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Rendering;
+using Swordfish.Rendering.Shapes;
 
 namespace waywardbeyond
 {
@@ -16,20 +18,15 @@ namespace waywardbeyond
         private ImGuiController guiController;
         private Shader shader;
         private Texture texture;
+        private Texture2DArray textureArray;
 
-        float[] vertices =
-        {
-            //Position              Color           UV
-            0.5f,  0.5f, 0.0f,      1f, 0f, 0f,     1.0f, 1.0f, // top right
-            0.5f, -0.5f, 0.0f,      0f, 1f, 0f,     1.0f, 0.0f, // bottom right
-            -0.5f, -0.5f, 0.0f,     0f, 0f, 1f,     0.0f, 0.0f, // bottom left
-            -0.5f,  0.5f, 0.0f,     1f, 1f, 0f,     0.0f, 1.0f  // top left
-        };
+        private Matrix4 view;
+        private Matrix4 projection;
 
-        private uint[] indices = {  // note that we start from 0!
-            0, 1, 3,   // first triangle
-            1, 2, 3    // second triangle
-        };
+        private float degrees;
+
+        private float[] vertices;
+        private uint[] indices;
 
         private int ElementBufferObject;
         private int VertexBufferObject;
@@ -62,9 +59,14 @@ namespace waywardbeyond
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.Enable(EnableCap.DepthTest);
+
+            MeshData mesh = (new Cube()).GetRawData();
+            vertices = mesh.vertices;
+            indices = mesh.triangles;
 
             //  Shaders
-            shader = new Shader("shaders/test.vert", "shaders/test.frag", "Test");
+            shader = new Shader("shaders/testArray.vert", "shaders/testArray.frag", "Test");
             shader.Use();
 
             //  Setup vertex buffer
@@ -77,15 +79,15 @@ namespace waywardbeyond
             GL.BindVertexArray(VertexArrayObject);
 
             int attrib = shader.GetAttribLocation("in_position");
-            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 8 * sizeof(float), 0);
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 0);
             GL.EnableVertexAttribArray(attrib);
 
             attrib = shader.GetAttribLocation("in_color");
-            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 8 * sizeof(float), 3 * sizeof(float));
+            GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);
 
             attrib = shader.GetAttribLocation("in_uv");
-            GL.VertexAttribPointer(attrib, 2, VertexAttribPointerType.Float, false, 8 * sizeof(float), 6 * sizeof(float));
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 10 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);
 
             //  Setup element buffer
@@ -93,9 +95,22 @@ namespace waywardbeyond
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, ElementBufferObject);
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
-            texture = Texture.LoadFromFile("resources/textures/metal_01.png", "atlas_0");
-            texture.Use(TextureUnit.Texture0);
+            //  Textures
+            // texture = Texture.LoadFromFile("resources/textures/metal_01.png", "atlas_0");
+            // texture.SetMinFilter(TextureMinFilter.Nearest);
+            // texture.SetMagFilter(TextureMagFilter.Nearest);
+            // texture.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
+            // texture.Use(TextureUnit.Texture0);
+            textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", 16, 16, "blocks");
+            textureArray.SetMinFilter(TextureMinFilter.Nearest);
+            textureArray.SetMagFilter(TextureMagFilter.Nearest);
+            textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
+            textureArray.Use(TextureUnit.Texture0);
+
             shader.SetInt("texture0", 0);
+
+            view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(70.0f), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
 
             base.OnLoad();
         }
@@ -122,19 +137,31 @@ namespace waywardbeyond
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             shader.Use();
-            texture.Use(TextureUnit.Texture0);
+            textureArray.Use(TextureUnit.Texture0);
+
+            //  Translate
+            degrees += (float)(16 * e.Time);
+            Matrix4 transform =
+                Matrix4.Identity
+                * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(degrees))
+                * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(degrees));
+
+            shader.SetMatrix4("transform", transform);
+            shader.SetMatrix4("view", view);
+            shader.SetMatrix4("projection", projection);
 
             GL.BindVertexArray(VertexArrayObject);
 
             //  Draw triangles
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            // GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
 
             //  GUI
             guiController.Update(this, (float)e.Time);
-            ImGui.ShowDemoWindow();
+            // ImGui.ShowDemoWindow();
             guiController.Render();
 
             Context.SwapBuffers();

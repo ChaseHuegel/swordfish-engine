@@ -1,10 +1,10 @@
 #version 330 core
 in vec3 in_position;
 in vec4 in_color;
-in vec2 in_uv;
+in vec3 in_uv;
 
 out vec4 color;
-out vec2 uv;
+out vec3 uv;
 
 uniform mat4 transform;
 uniform mat4 view;

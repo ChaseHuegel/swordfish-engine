@@ -25,7 +25,7 @@ namespace Swordfish.Rendering
 
         static Texture()
         {
-            MaxAniso = GL.GetFloat(MAX_TEXTURE_MAX_ANISOTROPY);
+            MaxAniso = GL.GetFloat((GetPName)0x84FF);
         }
 
         public readonly string Name;
