@@ -8,15 +8,23 @@ using System.IO;
 
 namespace Swordfish.Rendering
 {
+    public enum TextureCoordinate
+    {
+        S = TextureParameterName.TextureWrapS,
+        T = TextureParameterName.TextureWrapT,
+        R = TextureParameterName.TextureWrapR
+    }
+
     public class Texture2D
     {
         public readonly string Name;
         public readonly int Handle;
+        public readonly byte MipmapLevels;
 
         public static readonly float MaxAniso;
         static Texture2D() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
 
-        public static Texture2D LoadFromFile(string path, string name = "New Texture 2D")
+        public static Texture2D LoadFromFile(string path, string name, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
 
@@ -31,18 +39,33 @@ namespace Swordfish.Rendering
 
             image.UnlockBits(data);
 
-            GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+            if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
-            return new Texture2D(handle, name);
+            return new Texture2D(handle, name, image.Width, image.Height, generateMipmaps);
         }
 
-        public Texture2D(int handle, string name = "New Texture2D")
+        public Texture2D(int handle, string name, int width, int height, bool generateMipmaps = true)
         {
+            MipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
             Handle = handle;
             Name = name;
         }
 
-        public void Use(TextureUnit unit)
+        public Texture2D(string name, int width, int height, IntPtr data, bool generateMipmaps = true)
+        {
+            MipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+            Name = name;
+
+            GL.CreateTextures(TextureTarget.Texture2D, 1, out Handle);
+            GL.TextureStorage2D(Handle, MipmapLevels, SizedInternalFormat.Rgba8, width, height);
+            GL.TextureSubImage2D(Handle, 0, 0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
+
+            if (generateMipmaps) GL.GenerateTextureMipmap(Handle);
+
+            GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, MipmapLevels - 1);
+        }
+
+        public virtual void Use(TextureUnit unit)
         {
             GL.ActiveTexture(unit);
             GL.BindTexture(TextureTarget.Texture2D, Handle);

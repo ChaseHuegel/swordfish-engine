@@ -13,11 +13,12 @@ namespace Swordfish.Rendering
     {
         public readonly string Name;
         public readonly int Handle;
+        public readonly byte MipmapLevels;
 
         public static readonly float MaxAniso;
         static Texture2DArray() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
 
-        public static Texture2DArray LoadFromFolder(string path, int width, int height, string name = "New Texture 2D")
+        public static Texture2DArray CreateFromFolder(string path, string name, int width, int height, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
 
@@ -51,13 +52,15 @@ namespace Swordfish.Rendering
                 image.UnlockBits(data);
             }
 
-            GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
+            if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
 
-            return new Texture2DArray(handle, name);
+            return new Texture2DArray(handle, name, width, height, generateMipmaps);
         }
 
-        public Texture2DArray(int handle, string name = "New Texture2D")
+        public Texture2DArray(int handle, string name, int width, int height, bool generateMipmaps = true)
         {
+            MipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+
             Handle = handle;
             Name = name;
         }

@@ -17,7 +17,6 @@ namespace waywardbeyond
     {
         private ImGuiController guiController;
         private Shader shader;
-        private Texture texture;
         private Texture2DArray textureArray;
 
         private Matrix4 view;
@@ -31,6 +30,11 @@ namespace waywardbeyond
         private int ElementBufferObject;
         private int VertexBufferObject;
         private int VertexArrayObject;
+
+        private float FOV = 70f;
+        private float zoom = 3f;
+
+        private float DeltaTime;
 
         public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -59,7 +63,6 @@ namespace waywardbeyond
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-            GL.Enable(EnableCap.DepthTest);
 
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;
@@ -101,7 +104,7 @@ namespace waywardbeyond
             // texture.SetMagFilter(TextureMagFilter.Nearest);
             // texture.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
             // texture.Use(TextureUnit.Texture0);
-            textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", 16, 16, "blocks");
+            textureArray = Texture2DArray.CreateFromFolder("resources/textures/block/", "blocks", 16, 16);
             textureArray.SetMinFilter(TextureMinFilter.Nearest);
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
             textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
@@ -109,8 +112,8 @@ namespace waywardbeyond
 
             shader.SetInt("texture0", 0);
 
-            view = Matrix4.CreateTranslation(0.0f, 0.0f, -3.0f);
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(70.0f), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
+            view = Matrix4.CreateTranslation(0.0f, 0.0f, -zoom);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
 
             base.OnLoad();
         }
@@ -137,7 +140,13 @@ namespace waywardbeyond
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            //  Update delta time
+            DeltaTime = (float)e.Time;
+
+            //  Clear the buffer, enable depth testing, enable backface culling
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Enable(EnableCap.DepthTest);
+            GL.Enable(EnableCap.CullFace);
 
             shader.Use();
             textureArray.Use(TextureUnit.Texture0);
@@ -149,21 +158,26 @@ namespace waywardbeyond
                 * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(degrees))
                 * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(degrees));
 
+            view = Matrix4.CreateTranslation(0.0f, 0.0f, -zoom);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
+
             shader.SetMatrix4("transform", transform);
             shader.SetMatrix4("view", view);
             shader.SetMatrix4("projection", projection);
 
-            GL.BindVertexArray(VertexArrayObject);
-
             //  Draw triangles
+            GL.BindVertexArray(VertexArrayObject);
             GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
-            // GL.DrawArrays(PrimitiveType.Triangles, 0, 36);
 
-            //  GUI
+            //  Draw GUI elements
+            //  Disable depth testing for this pass
+            GL.Disable(EnableCap.DepthTest);
+
             guiController.Update(this, (float)e.Time);
-            // ImGui.ShowDemoWindow();
+            ImGui.ShowDemoWindow();
             guiController.Render();
 
+            //  End render, swap buffers
             Context.SwapBuffers();
             base.OnRenderFrame(e);
         }
@@ -185,6 +199,8 @@ namespace waywardbeyond
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
+
+            zoom += -12f * e.Offset.Y * DeltaTime;
 
             guiController.MouseScroll(e.Offset);
         }
