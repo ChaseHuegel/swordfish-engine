@@ -19,8 +19,9 @@ namespace waywardbeyond
         private Shader shader;
         private Texture2DArray textureArray;
 
-        private Matrix4 view;
         private Matrix4 projection;
+        private Camera camera;
+        private float cameraSpeed = 12f;
 
         private float degrees;
 
@@ -31,10 +32,7 @@ namespace waywardbeyond
         private int VertexBufferObject;
         private int VertexArrayObject;
 
-        private float FOV = 70f;
-        private float zoom = 3f;
-
-        private float DeltaTime;
+        public float DeltaTime = 0f;
 
         public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
@@ -43,12 +41,31 @@ namespace waywardbeyond
         // This function runs on every update frame.
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            // Check if the Escape button is currently being pressed.
+            //  Don't update if the window isn't in focus
+            if (!IsFocused) return;
+
             if (KeyboardState.IsKeyDown(Keys.Escape))
-            {
-                // If it is, close the window.
                 Close();
-            }
+
+            if (KeyboardState.IsKeyDown(Keys.W))
+                camera.transform.position += camera.transform.forward * cameraSpeed * (float)e.Time;
+            if (KeyboardState.IsKeyDown(Keys.S))
+                camera.transform.position -= camera.transform.forward * cameraSpeed * (float)e.Time;
+
+            if (KeyboardState.IsKeyDown(Keys.A))
+                camera.transform.position += camera.transform.right * cameraSpeed * (float)e.Time;
+            if (KeyboardState.IsKeyDown(Keys.D))
+                camera.transform.position -= camera.transform.right * cameraSpeed * (float)e.Time;
+
+            if (KeyboardState.IsKeyDown(Keys.Space))
+                camera.transform.position += camera.transform.up * cameraSpeed * (float)e.Time;
+            if (KeyboardState.IsKeyDown(Keys.LeftControl))
+                camera.transform.position -= camera.transform.up * cameraSpeed * (float)e.Time;
+
+            if (KeyboardState.IsKeyPressed(Keys.C))
+                camera.FOV = 15f;
+            else if (KeyboardState.IsKeyReleased(Keys.C))
+                camera.FOV = 70f;
 
             base.OnUpdateFrame(e);
         }
@@ -61,6 +78,7 @@ namespace waywardbeyond
             Debug.Log($"    {GL.GetString(StringName.Renderer)}");
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
+            camera = new Camera();
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -112,9 +130,6 @@ namespace waywardbeyond
 
             shader.SetInt("texture0", 0);
 
-            view = Matrix4.CreateTranslation(0.0f, 0.0f, -zoom);
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
-
             base.OnLoad();
         }
 
@@ -140,7 +155,7 @@ namespace waywardbeyond
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
-            //  Update delta time
+            //  Keep delta time updated for access outside events
             DeltaTime = (float)e.Time;
 
             //  Clear the buffer, enable depth testing, enable backface culling
@@ -158,11 +173,11 @@ namespace waywardbeyond
                 * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(degrees))
                 * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(degrees));
 
-            view = Matrix4.CreateTranslation(0.0f, 0.0f, -zoom);
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
+            camera.Update();
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
 
             shader.SetMatrix4("transform", transform);
-            shader.SetMatrix4("view", view);
+            shader.SetMatrix4("view", camera.view);
             shader.SetMatrix4("projection", projection);
 
             //  Draw triangles
@@ -199,8 +214,6 @@ namespace waywardbeyond
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
-
-            zoom += -12f * e.Offset.Y * DeltaTime;
 
             guiController.MouseScroll(e.Offset);
         }
