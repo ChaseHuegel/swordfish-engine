@@ -10,6 +10,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
+using System.Drawing.Drawing2D;
 
 namespace waywardbeyond
 {
@@ -117,11 +118,6 @@ namespace waywardbeyond
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
             //  Textures
-            // texture = Texture.LoadFromFile("resources/textures/metal_01.png", "atlas_0");
-            // texture.SetMinFilter(TextureMinFilter.Nearest);
-            // texture.SetMagFilter(TextureMagFilter.Nearest);
-            // texture.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
-            // texture.Use(TextureUnit.Texture0);
             textureArray = Texture2DArray.CreateFromFolder("resources/textures/block/", "blocks", 16, 16);
             textureArray.SetMinFilter(TextureMinFilter.Nearest);
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
@@ -172,6 +168,7 @@ namespace waywardbeyond
                 Matrix4.Identity
                 * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(degrees))
                 * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(degrees));
+            transform *= Matrix4.CreateTranslation(0f, 0f, -3f);
 
             camera.Update();
             projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
