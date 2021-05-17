@@ -28,6 +28,8 @@ namespace Swordfish.Rendering
         {
             int handle = GL.GenTexture();
 
+            Debug.Log($"Loading texture '{name}' from '{path}'");
+
             Bitmap image = new Bitmap(path);
 
             GL.BindTexture(TextureTarget.Texture2D, handle);
@@ -40,6 +42,8 @@ namespace Swordfish.Rendering
             image.UnlockBits(data);
 
             if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+            Debug.Log($"    Texture '{name}' loaded");
 
             return new Texture2D(handle, name, image.Width, image.Height, generateMipmaps);
         }
@@ -61,6 +65,8 @@ namespace Swordfish.Rendering
             GL.TextureSubImage2D(Handle, 0, 0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
 
             if (generateMipmaps) GL.GenerateTextureMipmap(Handle);
+
+            Debug.Log($"Created texture '{name}'");
 
             GL.TextureParameter(Handle, TextureParameterName.TextureMaxLevel, MipmapLevels - 1);
         }

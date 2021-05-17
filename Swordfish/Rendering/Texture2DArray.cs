@@ -21,8 +21,9 @@ namespace Swordfish.Rendering
         public static Texture2DArray CreateFromFolder(string path, string name, int width, int height, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
-
             int numOfLayers = 0;
+
+            Debug.Log($"Loading texture array '{name}' from '{path}'");
 
             List<Bitmap> images = new List<Bitmap>();
             DirectoryInfo directory = new DirectoryInfo(path);
@@ -31,15 +32,20 @@ namespace Swordfish.Rendering
                 //  TODO make sure this is a valid texture
                 images.Add(new Bitmap(file.FullName));
 
+                Debug.Log($"    Found texture '{file.Name}' at {numOfLayers}");
+
                 //  Increase # of layers if this was a valid texture
                 numOfLayers++;
             }
+
+            Debug.Log($"    Texture array layers: {numOfLayers}");
 
             GL.BindTexture(TextureTarget.Texture2DArray, handle);
 
             GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, numOfLayers, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
 
+            Debug.Log($"Building texture array '{name}'");
             for (int i = 0; i < images.Count; i++)
             {
                 Bitmap image = images[i];
@@ -53,6 +59,8 @@ namespace Swordfish.Rendering
             }
 
             if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
+
+            Debug.Log($"Texture array '{name}' loaded");
 
             return new Texture2DArray(handle, name, width, height, generateMipmaps);
         }
