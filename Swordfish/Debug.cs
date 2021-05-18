@@ -1,4 +1,7 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Swordfish
@@ -10,7 +13,7 @@ namespace Swordfish
         ERROR
     }
 
-    public static class Debug
+    public class Debug : Singleton<Debug>
     {
         public static void Log(string message, LogType type = LogType.INFO) { Log(message, "", type); }
         public static void Log(string message, string title, LogType type = LogType.INFO)
@@ -18,12 +21,59 @@ namespace Swordfish
             Console.WriteLine($"{DateTime.Now} [{type.ToString()}] {title}: " + message);
         }
 
+        private static void GLErrorCallback(DebugSource source, DebugType type, int id, DebugSeverity severity, int length, IntPtr message, IntPtr userParam)
+        {
+            Debug.Log(
+                source == DebugSource.DebugSourceApplication ?
+                $"openGL - {message.ToString()}" :
+                $"openGL - {message.ToString()}\n\tid:{id} severity:{severity} type:{type} source:{source}\n"
+                );
+        }
+
+        public static bool HasCapabilities(int major, int minor, params string[] extensions)
+        {
+            var openGlVersionString = GL.GetString(StringName.Version);
+            Version openGlVersion = new Version(openGlVersionString.Split(' ')[0]);
+            return openGlVersion >= new Version(major, minor) || HasExtensions(extensions);
+        }
+
+        public static bool HasExtensions(params string[] extensions)
+        {
+            var extensionsString = GL.GetString(StringName.Extensions);
+            List<string> supportedExtensions = extensionsString.Split(' ').ToList<string>();
+            foreach (var extension in extensions)
+                if (!supportedExtensions.Contains(extension))
+                    return false;
+            return true;
+        }
+
+        public static bool HasGLOutput()
+        {
+            return Instance.hasGLOutput;
+        }
+
         public static void TryLogGLError(string title)
         {
-            var error = GL.GetError();
+            ErrorCode error = GL.GetError();
             if (error != ErrorCode.NoError)
             {
-                Debug.Log(error.ToString(), title, LogType.ERROR);
+                Debug.Log(error.ToString(), $"OpenGL - {title}", LogType.ERROR);
+            }
+        }
+
+        public bool hasGLOutput;
+        private DebugProc glErrorDelegate;
+        public Debug()
+        {
+            Debug.Log("Logger initialized.");
+
+            if (hasGLOutput = HasCapabilities(4, 3, "GL_KHR_debug") == false)
+                Debug.Log("OpenGL debug output is unavailable.", LogType.WARNING);
+            else
+            {
+                glErrorDelegate = new DebugProc(GLErrorCallback);
+                GL.DebugMessageCallback(glErrorDelegate, IntPtr.Zero);
+                Debug.Log("    Created OpenGL debug context.");
             }
         }
     }

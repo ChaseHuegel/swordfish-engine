@@ -74,6 +74,13 @@ namespace waywardbeyond
         //  Runs when window first opens
         protected override void OnLoad()
         {
+            Debug.CreateContext();
+
+            Debug.Log($"Started {this.Title}");
+            Debug.Log("Settings");
+            Debug.Log($"    Framelimit {this.RenderFrequency}");
+            Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless");
+
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
             Debug.Log($"    {GL.GetString(StringName.Vendor)}");
             Debug.Log($"    {GL.GetString(StringName.Renderer)}");
@@ -188,6 +195,9 @@ namespace waywardbeyond
             guiController.Update(this, (float)e.Time);
             ImGui.ShowDemoWindow();
             guiController.Render();
+
+            //  Grab GL errors
+            Debug.TryLogGLError("OpenGL");
 
             //  End render, swap buffers
             Context.SwapBuffers();

@@ -1,5 +1,7 @@
 ﻿using System;
 using Swordfish;
+using OpenTK;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
@@ -15,11 +17,6 @@ namespace waywardbeyond
         {
             OpenTK.Windowing.Desktop.Monitors.TryGetMonitorInfo(0, out MonitorInfo monitor);
             Vector2i size = new Vector2i(monitor.HorizontalResolution, monitor.VerticalResolution);
-
-            Debug.Log($"Started {TITLE}");
-            Debug.Log("Settings");
-            Debug.Log($"    Framelimit {FRAMELIMIT}");
-            Debug.Log($"    Resolution {size.X} x {size.Y} borderless");
 
             var nativeWindowSettings = new NativeWindowSettings()
             {
