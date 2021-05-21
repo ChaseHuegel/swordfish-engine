@@ -82,8 +82,8 @@ namespace waywardbeyond
             Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless");
 
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"    {GL.GetString(StringName.Vendor)}");
-            Debug.Log($"    {GL.GetString(StringName.Renderer)}");
+            Debug.Log($"    Extensions found: {OGL.GetSupportedExtensions().Count}");
+            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera();
@@ -196,7 +196,7 @@ namespace waywardbeyond
             ImGui.ShowDemoWindow();
             guiController.Render();
 
-            //  Grab GL errors
+            //  Manual fallback to grab GL errors if debug output is unavailable
             Debug.TryLogGLError("OpenGL");
 
             //  End render, swap buffers

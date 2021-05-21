@@ -54,6 +54,8 @@ namespace Swordfish.Rendering
 
             ImGui.NewFrame();
             _frameBegun = true;
+
+             Debug.TryLogGLError("ImGuiController");
         }
 
         public void WindowResized(int width, int height)
@@ -69,13 +71,13 @@ namespace Swordfish.Rendering
 
         public void CreateDeviceResources()
         {
-            Util.CreateVertexArray("ImGui", out _vertexArray);
+            OGL.CreateVertexArray("ImGui", out _vertexArray);
 
             _vertexBufferSize = 10000;
             _indexBufferSize = 2000;
 
-            Util.CreateVertexBuffer("ImGui", out _vertexBuffer);
-            Util.CreateElementBuffer("ImGui", out _indexBuffer);
+            OGL.CreateVertexBuffer("ImGui", out _vertexBuffer);
+            OGL.CreateElementBuffer("ImGui", out _indexBuffer);
             GL.NamedBufferData(_vertexBuffer, _vertexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.NamedBufferData(_indexBuffer, _indexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
 

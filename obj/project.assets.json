@@ -627,7 +627,7 @@
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v3.1": [
       "ImGui.NET >= 1.78.0",
-      "OpenTK >= 4.6.3",
+      "OpenTK >= *",
       "System.Drawing.Common >= 5.0.2"
     ]
   },
@@ -681,7 +681,7 @@
           },
           "OpenTK": {
             "target": "Package",
-            "version": "[4.6.3, )"
+            "version": "[*, )"
           },
           "System.Drawing.Common": {
             "target": "Package",

@@ -1,11 +1,23 @@
-using System.Diagnostics;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Swordfish.Rendering
 {
-    static class Util
+    static class OGL
     {
+        public static List<string> GetSupportedExtensions()
+        {
+            List<string> extensions = new List<string>();
+            GL.GetInteger(GetPName.NumExtensions, out int count);
+
+            for (int i = 0; i < count; i++)
+                extensions.Add(GL.GetString(StringNameIndexed.Extensions, i));
+
+            return extensions;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void LabelObject(ObjectLabelIdentifier objLabelIdent, int glObject, string name)
         {
