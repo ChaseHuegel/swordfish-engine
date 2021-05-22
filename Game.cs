@@ -24,6 +24,8 @@ namespace waywardbeyond
         private Camera camera;
         private float cameraSpeed = 12f;
 
+        private bool debug = false;
+
         private float degrees;
 
         private float[] vertices;
@@ -44,6 +46,9 @@ namespace waywardbeyond
         {
             //  Don't update if the window isn't in focus
             if (!IsFocused) return;
+
+            if (KeyboardState.IsKeyPressed(Keys.GraveAccent))
+                debug = !debug;
 
             if (KeyboardState.IsKeyDown(Keys.Escape))
                 Close();
@@ -74,7 +79,7 @@ namespace waywardbeyond
         //  Runs when window first opens
         protected override void OnLoad()
         {
-            Debug.CreateContext();
+            Console.SetOut(Debug.GetWriter());
 
             Debug.Log($"Started {this.Title}");
             Debug.Log("Settings");
@@ -82,7 +87,7 @@ namespace waywardbeyond
             Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless");
 
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"    Extensions found: {OGL.GetSupportedExtensions().Count}");
+            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}");
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
@@ -191,9 +196,10 @@ namespace waywardbeyond
             //  Draw GUI elements
             //  Disable depth testing for this pass
             GL.Disable(EnableCap.DepthTest);
-
             guiController.Update(this, (float)e.Time);
-            ImGui.ShowDemoWindow();
+
+            if (debug) Debug.ShowDebugGui();
+
             guiController.Render();
 
             //  Manual fallback to grab GL errors if debug output is unavailable

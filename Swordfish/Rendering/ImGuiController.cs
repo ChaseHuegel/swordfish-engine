@@ -71,13 +71,13 @@ namespace Swordfish.Rendering
 
         public void CreateDeviceResources()
         {
-            OGL.CreateVertexArray("ImGui", out _vertexArray);
+            GLHelper.CreateVertexArray("ImGui", out _vertexArray);
 
             _vertexBufferSize = 10000;
             _indexBufferSize = 2000;
 
-            OGL.CreateVertexBuffer("ImGui", out _vertexBuffer);
-            OGL.CreateElementBuffer("ImGui", out _indexBuffer);
+            GLHelper.CreateVertexBuffer("ImGui", out _vertexBuffer);
+            GLHelper.CreateElementBuffer("ImGui", out _indexBuffer);
             GL.NamedBufferData(_vertexBuffer, _vertexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
             GL.NamedBufferData(_indexBuffer, _indexBufferSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
 

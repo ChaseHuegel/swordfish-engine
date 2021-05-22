@@ -1,12 +1,20 @@
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Desktop;
 
 namespace Swordfish.Rendering
 {
-    static class OGL
+    static class GLHelper
     {
+        public static MonitorInfo GetPrimaryDisplay() { return GetDisplay(0); }
+        public static MonitorInfo GetDisplay(int index)
+        {
+            OpenTK.Windowing.Desktop.Monitors.TryGetMonitorInfo(index, out MonitorInfo monitor);
+            return monitor;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static List<string> GetSupportedExtensions()
         {
             List<string> extensions = new List<string>();

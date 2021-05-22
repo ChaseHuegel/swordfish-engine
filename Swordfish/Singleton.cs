@@ -1,24 +1,43 @@
 using System;
+using System.Reflection;
 
 namespace Swordfish
 {
-    public class Singleton<T> where T : new()
+    public class Singleton<T> where T : class
     {
         private static T instance;
-        protected static T Instance
+        private static object initLock = new object();
+
+        public static T Instance
         {
             get
             {
                 if (instance == null)
-                    instance = new T();
+                    CreateInstance();
 
                 return instance;
             }
         }
 
-        public static void CreateContext()
+        private static void CreateInstance()
         {
-            instance = new T();
+            lock (initLock)
+            {
+                if (instance == null)
+                {
+                    Type t = typeof(T);
+
+                    ConstructorInfo[] ctors = t.GetConstructors();
+                    if (ctors.Length > 0)
+                    {
+                        throw new InvalidOperationException(
+                                $"{t.Name} has at least one accesible ctor making it impossible to enforce singleton behaviour"
+                            );
+                    }
+
+                    instance = (T)Activator.CreateInstance(t, true);
+                }
+            }
         }
     }
 }

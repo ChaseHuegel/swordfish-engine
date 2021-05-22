@@ -38,14 +38,14 @@ namespace Swordfish.Rendering
                 numOfLayers++;
             }
 
-            Debug.Log($"    Texture array layers: {numOfLayers}");
+            Debug.Log($"    ...Texture array layers: {numOfLayers}");
 
             GL.BindTexture(TextureTarget.Texture2DArray, handle);
 
             GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, numOfLayers, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
 
-            Debug.Log($"Building texture array '{name}'");
+            Debug.Log($"...Building texture array '{name}'");
             for (int i = 0; i < images.Count; i++)
             {
                 Bitmap image = images[i];

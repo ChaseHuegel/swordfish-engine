@@ -5,17 +5,22 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
+using Swordfish.Rendering;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using System.Globalization;
 
 namespace waywardbeyond
 {
-    class Program
+    class Application
     {
         private const string TITLE = "Wayward Beyond";
         private const int FRAMELIMIT = 60;
 
+        public static Game MainWindow;
+
         static void Main(string[] args)
         {
-            OpenTK.Windowing.Desktop.Monitors.TryGetMonitorInfo(0, out MonitorInfo monitor);
+            MonitorInfo monitor = GLHelper.GetPrimaryDisplay();
             Vector2i size = new Vector2i(monitor.HorizontalResolution, monitor.VerticalResolution);
 
             var nativeWindowSettings = new NativeWindowSettings()
@@ -25,10 +30,11 @@ namespace waywardbeyond
                 WindowBorder = WindowBorder.Hidden
             };
 
-            using (var window = new Game(GameWindowSettings.Default, nativeWindowSettings))
+            using (Game game = new Game(GameWindowSettings.Default, nativeWindowSettings))
             {
-                window.RenderFrequency = FRAMELIMIT;
-                window.Run();
+                MainWindow = game;
+                game.RenderFrequency = FRAMELIMIT;
+                game.Run();
             }
         }
     }
