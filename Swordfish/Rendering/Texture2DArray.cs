@@ -1,11 +1,12 @@
 using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using OpenTK.Graphics.OpenGL4;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 using Swordfish;
-using System.IO;
-using System.Collections.Generic;
+using Swordfish.Util;
 
 namespace Swordfish.Rendering
 {
@@ -18,34 +19,54 @@ namespace Swordfish.Rendering
         public static readonly float MaxAniso;
         static Texture2DArray() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
 
-        public static Texture2DArray CreateFromFolder(string path, string name, int width, int height, bool generateMipmaps = true)
+        private static bool IsValidBitmap(Bitmap bitmap)
+        {
+            return bitmap.Width == bitmap.Height;
+        }
+
+        public static Texture2DArray CreateFromFolder(string path, string name, int width = 0, int height = 0, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
             int numOfLayers = 0;
+            bool useLargestRes = (width <= 0 || height <= 0);
 
             Debug.Log($"Loading texture array '{name}' from '{path}'");
 
+            Bitmap bitmap;
             List<Bitmap> images = new List<Bitmap>();
             DirectoryInfo directory = new DirectoryInfo(path);
+
+            //  Find all valid textures
             foreach (FileInfo file in directory.GetFiles("*.png"))
             {
-                //  TODO make sure this is a valid texture
-                images.Add(new Bitmap(file.FullName));
+                bitmap = new Bitmap(file.FullName);
 
+                //  Check the bitmap is a valid texture
+                if (!IsValidBitmap(bitmap)) continue;
+
+                images.Add(bitmap);
                 Debug.Log($"    Found texture '{file.Name}' at {numOfLayers}");
+
+                //  Use the largest res if there wasn't one set
+                if (useLargestRes && bitmap.Width > width)
+                    height = width = bitmap.Width;
 
                 //  Increase # of layers if this was a valid texture
                 numOfLayers++;
             }
+            Debug.Log($"    ...layers: {numOfLayers}");
 
-            Debug.Log($"    ...Texture array layers: {numOfLayers}");
+            //  Resize any images that aren't using the correct res
+            Debug.Log($"    ...using resolution {width}x{height}");
+            for (int i = 0; i < images.Count; i++)
+                if (images[i].Width != width)
+                    images[i] = Gfx.ResizeBitmap(images[i], width, height);
 
+            Debug.Log($"...Building texture array '{name}'");
             GL.BindTexture(TextureTarget.Texture2DArray, handle);
-
             GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, numOfLayers, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
 
-            Debug.Log($"...Building texture array '{name}'");
             for (int i = 0; i < images.Count; i++)
             {
                 Bitmap image = images[i];

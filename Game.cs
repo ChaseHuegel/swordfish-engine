@@ -130,7 +130,7 @@ namespace waywardbeyond
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
             //  Textures
-            textureArray = Texture2DArray.CreateFromFolder("resources/textures/block/", "blocks", 16, 16);
+            textureArray = Texture2DArray.CreateFromFolder("resources/textures/block/", "blocks");
             textureArray.SetMinFilter(TextureMinFilter.Nearest);
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
             textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
