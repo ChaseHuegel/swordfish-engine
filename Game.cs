@@ -21,6 +21,8 @@ namespace waywardbeyond
         private Shader shader;
         private Texture2DArray textureArray;
 
+        private Transform testCube;
+
         private Matrix4 projection;
         private Camera camera;
         private float cameraSpeed = 12f;
@@ -111,6 +113,7 @@ namespace waywardbeyond
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
             camera = new Camera();
+            testCube = new Transform();
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -205,7 +208,7 @@ namespace waywardbeyond
             camera.Update();
             projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
 
-            shader.SetMatrix4("transform", transform);
+            shader.SetMatrix4("transform", testCube.GetMatrix());
             shader.SetMatrix4("view", camera.view);
             shader.SetMatrix4("projection", projection);
 

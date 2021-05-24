@@ -80,6 +80,8 @@ namespace Swordfish
             sinX = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.X));
             sinY = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.Y - 90));
 
+            //  This is not the right way to roll but its functional
+
             roll = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z);
 
             _forward.X = cosY * cosX;
@@ -90,6 +92,15 @@ namespace Swordfish
 
             _right = Vector3.Cross(roll * Vector3.UnitY, _forward).Normalized();
             _up = Vector3.Cross(_forward, _right).Normalized();
+        }
+
+        public Matrix4 GetMatrix()
+        {
+            return Matrix4.Identity
+                * Matrix4.CreateRotationZ(rotation.X)
+                * Matrix4.CreateRotationY(rotation.Y)
+                * Matrix4.CreateRotationZ(rotation.Z)
+                * Matrix4.CreateTranslation(position);
         }
 
         public Transform(Transform parent = null)
