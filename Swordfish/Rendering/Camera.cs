@@ -10,6 +10,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
+using System.Drawing.Drawing2D;
 
 namespace Swordfish.Rendering
 {

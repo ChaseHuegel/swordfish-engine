@@ -11,6 +11,7 @@ using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using System.Drawing.Drawing2D;
+using System.Security.Cryptography;
 
 namespace waywardbeyond
 {
@@ -68,10 +69,28 @@ namespace waywardbeyond
             if (KeyboardState.IsKeyDown(Keys.LeftControl))
                 camera.transform.position -= camera.transform.up * cameraSpeed * (float)e.Time;
 
+            if (KeyboardState.IsKeyDown(Keys.E))
+                camera.transform.rotation.Z += 2 * (float)e.Time;
+            if (KeyboardState.IsKeyDown(Keys.Q))
+                camera.transform.rotation.Z -= 2 * (float)e.Time;
+
             if (KeyboardState.IsKeyPressed(Keys.C))
                 camera.FOV = 15f;
             else if (KeyboardState.IsKeyReleased(Keys.C))
                 camera.FOV = 70f;
+
+            if (KeyboardState.IsKeyPressed(Keys.Tab))
+            {
+                this.CursorGrabbed = !this.CursorGrabbed;
+                if (!this.CursorGrabbed)
+                    this.CursorVisible = true;
+            }
+
+            if (this.CursorGrabbed)
+            {
+                camera.transform.rotation.Y += this.MouseState.Delta.X * 0.05f;
+                camera.transform.rotation.X += this.MouseState.Delta.Y * -0.05f;
+            }
 
             base.OnUpdateFrame(e);
         }
@@ -178,8 +197,9 @@ namespace waywardbeyond
             degrees += (float)(16 * e.Time);
             Matrix4 transform =
                 Matrix4.Identity
-                * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(degrees))
-                * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(degrees));
+                * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(0))
+                * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(0))
+                * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(0));
             transform *= Matrix4.CreateTranslation(0f, 0f, -3f);
 
             camera.Update();
