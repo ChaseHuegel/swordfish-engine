@@ -21,17 +21,18 @@ namespace Swordfish.Rendering
 
         public float FOV;
 
-        public Camera(float fov = 70f)
+        public Camera(Vector3 position, Quaternion rotation, float fov = 70f)
         {
             this.FOV = fov;
-            this.transform = new Transform();
+            this.transform = new Transform(position, rotation);
 
             UpdateView();
         }
 
         public void UpdateView()
         {
-            view = Matrix4.LookAt(transform.position, transform.position + transform.forward, transform.up);
+            // view = Matrix4.LookAt(transform.position, transform.position + transform.forward, transform.up);
+            view = Matrix4.CreateTranslation(transform.position) * Matrix4.CreateFromQuaternion(transform.rotation);
         }
 
         public void Update()

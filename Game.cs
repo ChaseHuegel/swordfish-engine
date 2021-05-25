@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using ImGuiNET;
 using OpenTK;
 using OpenTK.Mathematics;
@@ -22,14 +23,13 @@ namespace waywardbeyond
         private Texture2DArray textureArray;
 
         private Transform testCube;
+        private List<Transform> cubes;
 
         private Matrix4 projection;
         private Camera camera;
         private float cameraSpeed = 12f;
 
         private bool debug = false;
-
-        private float degrees;
 
         private float[] vertices;
         private uint[] indices;
@@ -72,14 +72,19 @@ namespace waywardbeyond
                 camera.transform.position -= camera.transform.up * cameraSpeed * (float)e.Time;
 
             if (KeyboardState.IsKeyDown(Keys.E))
-                camera.transform.rotation.Z += 2 * (float)e.Time;
+                camera.transform.Rotate(Vector3.UnitZ, 40 * (float)e.Time);
             if (KeyboardState.IsKeyDown(Keys.Q))
-                camera.transform.rotation.Z -= 2 * (float)e.Time;
+                camera.transform.Rotate(Vector3.UnitZ, -40 * (float)e.Time);
 
             if (KeyboardState.IsKeyPressed(Keys.C))
                 camera.FOV = 15f;
             else if (KeyboardState.IsKeyReleased(Keys.C))
                 camera.FOV = 70f;
+
+            if (KeyboardState.IsKeyPressed(Keys.LeftShift))
+                cameraSpeed *= 7f;
+            else if (KeyboardState.IsKeyReleased(Keys.LeftShift))
+                cameraSpeed /= 7f;
 
             if (KeyboardState.IsKeyPressed(Keys.Tab))
             {
@@ -90,8 +95,8 @@ namespace waywardbeyond
 
             if (this.CursorGrabbed)
             {
-                camera.transform.rotation.Y += this.MouseState.Delta.X * 0.05f;
-                camera.transform.rotation.X += this.MouseState.Delta.Y * -0.05f;
+                camera.transform.Rotate(Vector3.UnitY, this.MouseState.Delta.X * 0.05f);
+                camera.transform.Rotate(Vector3.UnitX, this.MouseState.Delta.Y * 0.05f);
             }
 
             base.OnUpdateFrame(e);
@@ -112,8 +117,20 @@ namespace waywardbeyond
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
-            camera = new Camera();
+            camera = new Camera(Vector3.UnitZ, Quaternion.Identity);
             testCube = new Transform();
+
+            Random rand = new Random();
+
+            cubes = new List<Transform>();
+            for (int i = 0; i < 10; i++)
+                cubes.Add(
+                    new Transform
+                    (
+                        new Vector3( rand.Next(-10, 10), rand.Next(-10, 10), rand.Next(-10, 10) ),
+                        new Quaternion(rand.Next(360), rand.Next(360), rand.Next(360))
+                    )
+                );
 
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
@@ -196,25 +213,21 @@ namespace waywardbeyond
             shader.Use();
             textureArray.Use(TextureUnit.Texture0);
 
-            //  Translate
-            degrees += (float)(16 * e.Time);
-            Matrix4 transform =
-                Matrix4.Identity
-                * Matrix4.CreateRotationX(MathHelper.DegreesToRadians(0))
-                * Matrix4.CreateRotationY(MathHelper.DegreesToRadians(0))
-                * Matrix4.CreateRotationZ(MathHelper.DegreesToRadians(0));
-            transform *= Matrix4.CreateTranslation(0f, 0f, -3f);
-
             camera.Update();
-            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.FOV), (float)Size.X / (float)Size.Y, 0.1f, 100.0f);
+            projection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(camera.FOV), (float)Size.X / (float)Size.Y, 0.1f, 10000.0f);
 
-            shader.SetMatrix4("transform", testCube.GetMatrix());
             shader.SetMatrix4("view", camera.view);
             shader.SetMatrix4("projection", projection);
 
-            //  Draw triangles
+            //  Make a draw call per object
+            //  TODO: batching
             GL.BindVertexArray(VertexArrayObject);
-            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            foreach (Transform transform in cubes)
+            {
+                shader.SetMatrix4("transform", transform.GetMatrix());
+
+                GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            }
 
             //  Draw GUI elements
             //  Disable depth testing for this pass

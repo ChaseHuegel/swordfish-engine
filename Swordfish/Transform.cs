@@ -1,6 +1,4 @@
 using System;
-using System.Drawing.Drawing2D;
-using OpenTK.Graphics.ES11;
 using OpenTK.Mathematics;
 
 namespace Swordfish
@@ -32,11 +30,9 @@ namespace Swordfish
             }
         }
 
-        public Vector3 rotation;
-        private Vector3 lastRotation;
-        private Quaternion roll;
+        public Quaternion rotation;
+        private Quaternion lastRotation;
 
-        private float cosX, cosY, sinX, sinY;
         private Vector3 _forward = new Vector3(0f, 0f, -1f);
         public Vector3 forward {
             get
@@ -67,39 +63,48 @@ namespace Swordfish
         private void TryUpdateDirections()
         {
             //  Only update directions if rotation has changed
-            if (rotation != lastRotation)
+            // if (rotation != lastRotation)
                 UpdateDirections();
 
             lastRotation = rotation;
         }
 
+        // private float cosX, cosY, sinX, sinY;
         private void UpdateDirections()
         {
-            cosY = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.Y - 90));
-            cosX = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.X));
-            sinX = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.X));
-            sinY = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.Y - 90));
+            // cosY = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.Y - 90));
+            // cosX = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.X));
+            // sinX = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.X));
+            // sinY = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.Y - 90));
 
-            //  This is not the right way to roll but its functional
+            // roll = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z);
+            // _forward.X = cosY * cosX;
+            // _forward.Y = sinX;
+            // _forward.Z = sinY * cosX;
+            // _forward = roll * _forward;
+            // _forward.Normalize();
 
-            roll = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z);
+            // _right = Vector3.Cross(Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z) * Vector3.UnitY, _forward).Normalized();
+            // _up = Vector3.Cross(_forward, _right).Normalized();
 
-            _forward.X = cosY * cosX;
-            _forward.Y = sinX;
-            _forward.Z = sinY * cosX;
-            _forward = roll * _forward;
-            _forward.Normalize();
+            _forward.X = 2f * (rotation.X * rotation.Z + rotation.W + rotation.Y);
+            _forward.Y = 2f * (rotation.Y * rotation.Z - rotation.W + rotation.X);
+            _forward.Z = 1f - 2f * (rotation.X * rotation.X + rotation.Y * rotation.Y);
 
-            _right = Vector3.Cross(roll * Vector3.UnitY, _forward).Normalized();
-            _up = Vector3.Cross(_forward, _right).Normalized();
+            _right = rotation * Vector3.UnitX;
+            _up = rotation * -Vector3.UnitY;
+        }
+
+        public void Rotate(Vector3 axis, float angle)
+        {
+            rotation = rotation * Quaternion.FromAxisAngle(rotation * axis, MathHelper.DegreesToRadians(angle));
+            UpdateDirections();
         }
 
         public Matrix4 GetMatrix()
         {
             return Matrix4.Identity
-                * Matrix4.CreateRotationZ(rotation.X)
-                * Matrix4.CreateRotationY(rotation.Y)
-                * Matrix4.CreateRotationZ(rotation.Z)
+                * Matrix4.CreateFromQuaternion(rotation)
                 * Matrix4.CreateTranslation(position);
         }
 
@@ -107,12 +112,12 @@ namespace Swordfish
         {
             this.parent = parent;
             this.position = new Vector3(0f, 0f, 0f);
-            this.rotation = new Vector3(0f, 0f, 0f);
+            this.rotation = Quaternion.Identity;
 
             UpdateDirections();
         }
 
-        public Transform(Vector3 position, Vector3 rotation, Transform parent = null)
+        public Transform(Vector3 position, Quaternion rotation, Transform parent = null)
         {
             this.parent = parent;
             this.position = position;
