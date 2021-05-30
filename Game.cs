@@ -47,6 +47,10 @@ namespace waywardbeyond
         // This function runs on every update frame.
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
+            foreach (Transform transform in cubes)
+                transform.Rotate(Vector3.UnitY, 40 * (float)e.Time);
+                    // .Translate(transform.forward * (float)e.Time );
+
             //  Don't update if the window isn't in focus
             if (!IsFocused) return;
 
@@ -117,7 +121,7 @@ namespace waywardbeyond
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
             guiController = new ImGuiController(ClientSize.X, ClientSize.Y);
-            camera = new Camera(Vector3.UnitZ, Quaternion.Identity);
+            camera = new Camera(Vector3.UnitZ, Vector3.Zero);
             testCube = new Transform();
 
             Random rand = new Random();
@@ -128,7 +132,7 @@ namespace waywardbeyond
                     new Transform
                     (
                         new Vector3( rand.Next(-10, 10), rand.Next(-10, 10), rand.Next(-10, 10) ),
-                        new Quaternion(rand.Next(360), rand.Next(360), rand.Next(360))
+                        new Vector3(rand.Next(360), rand.Next(360), rand.Next(360))
                     )
                 );
 

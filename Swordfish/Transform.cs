@@ -1,4 +1,3 @@
-using System;
 using OpenTK.Mathematics;
 
 namespace Swordfish
@@ -30,8 +29,9 @@ namespace Swordfish
             }
         }
 
-        public Quaternion rotation;
-        private Quaternion lastRotation;
+        public Quaternion orientation;
+        public Vector3 rotation;
+        private Vector3 lastRotation;
 
         private Vector3 _forward = new Vector3(0f, 0f, -1f);
         public Vector3 forward {
@@ -77,51 +77,60 @@ namespace Swordfish
             // sinX = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.X));
             // sinY = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.Y - 90));
 
-            // roll = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z);
             // _forward.X = cosY * cosX;
             // _forward.Y = sinX;
             // _forward.Z = sinY * cosX;
-            // _forward = roll * _forward;
+            // _forward = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z) * _forward;
             // _forward.Normalize();
 
             // _right = Vector3.Cross(Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z) * Vector3.UnitY, _forward).Normalized();
             // _up = Vector3.Cross(_forward, _right).Normalized();
 
-            _forward.X = 2f * (rotation.X * rotation.Z + rotation.W + rotation.Y);
-            _forward.Y = 2f * (rotation.Y * rotation.Z - rotation.W + rotation.X);
-            _forward.Z = 1f - 2f * (rotation.X * rotation.X + rotation.Y * rotation.Y);
-
-            _right = rotation * Vector3.UnitX;
-            _up = rotation * -Vector3.UnitY;
+            _forward = Vector3.Transform(-Vector3.UnitZ, orientation).Normalized();
+            _right = Vector3.Transform(-Vector3.UnitX, orientation).Normalized();
+            _up = Vector3.Transform(Vector3.UnitY, orientation).Normalized();
         }
 
-        public void Rotate(Vector3 axis, float angle)
+        public Transform Translate(Vector3 vector)
         {
-            rotation = rotation * Quaternion.FromAxisAngle(rotation * axis, MathHelper.DegreesToRadians(angle));
+            position += vector;
+            return this;
+        }
+
+        public Transform Rotate(Vector3 axis, float angle)
+        {
+            orientation = Quaternion.FromAxisAngle(axis, MathHelper.DegreesToRadians(angle)) * orientation;
             UpdateDirections();
+
+            return this;
+        }
+
+        public Matrix4 GetInverseMatrix()
+        {
+            return Matrix4.CreateTranslation(position * -1) * Matrix4.CreateFromQuaternion(orientation);
         }
 
         public Matrix4 GetMatrix()
         {
-            return Matrix4.Identity
-                * Matrix4.CreateFromQuaternion(rotation)
-                * Matrix4.CreateTranslation(position);
+            return Matrix4.CreateFromQuaternion(orientation) * Matrix4.CreateTranslation(position);
         }
 
         public Transform(Transform parent = null)
         {
             this.parent = parent;
             this.position = new Vector3(0f, 0f, 0f);
-            this.rotation = Quaternion.Identity;
+            this.rotation = new Vector3(0f, 0f, 0f);
+            this.orientation = Quaternion.Identity;
 
             UpdateDirections();
         }
 
-        public Transform(Vector3 position, Quaternion rotation, Transform parent = null)
+        public Transform(Vector3 position, Vector3 rotation, Transform parent = null)
         {
             this.parent = parent;
             this.position = position;
             this.rotation = rotation;
+            this.orientation = Quaternion.FromEulerAngles(rotation);
 
             UpdateDirections();
         }
