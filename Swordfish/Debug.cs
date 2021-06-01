@@ -133,6 +133,8 @@ namespace Swordfish
         protected bool hasGLOutput;
         private DebugProc glErrorDelegate;
 
+        public static bool Enabled = false;
+
         private Debug()
         {
             Debug.Log("Logger initialized.");

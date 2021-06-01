@@ -13,17 +13,27 @@ using System.ComponentModel;
 
 namespace Swordfish
 {
-    class Engine
+    public class Engine
     {
+        public static float DeltaTime = 0f;
+
         public static WindowContext MainWindow;
         public static RenderContext Renderer;
         public static PhysicsContext Physics;
         public static CoreSettings Settings;
 
-        static void Main(string[] args)
+        public static Action StartCallback;
+        public static Action StopCallback;
+        public static Action ShutdownCallback;
+        public static Action UpdateCallback;
+        public static Action PreRenderCallback;
+        public static Action PostRenderCallback;
+        public static Action GuiCallback;
+
+        public static void Initialize()
         {
-            MonitorInfo monitor = GLHelper.GetPrimaryDisplay();
-            Vector2i size = new Vector2i(monitor.HorizontalResolution, monitor.VerticalResolution);
+            MonitorInfo screen = GLHelper.GetPrimaryDisplay();
+            Vector2i screenSize = new Vector2i(screen.HorizontalResolution, screen.VerticalResolution);
 
             Renderer = new RenderContext();
             Physics = new PhysicsContext();
@@ -31,9 +41,9 @@ namespace Swordfish
 
             var nativeWindowSettings = new NativeWindowSettings()
             {
-                Size = size,
                 Title = Settings.WINDOW_TITLE,
-                WindowBorder = Settings.WINDOW_BORDER
+                Size = Settings.WINDOW_FULLSCREEN ? screenSize : Settings.WINDOW_SIZE,
+                WindowBorder = Settings.WINDOW_FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed
             };
 
             using (WindowContext window = new WindowContext(GameWindowSettings.Default, nativeWindowSettings))
@@ -42,6 +52,12 @@ namespace Swordfish
                 window.RenderFrequency = Settings.FRAMELIMIT;
                 window.Run();
             }
+        }
+
+        public static void Shutdown()
+        {
+            MainWindow.Close();
+            ShutdownCallback?.Invoke();
         }
     }
 }
