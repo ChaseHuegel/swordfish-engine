@@ -63,32 +63,22 @@ namespace Swordfish
         private void TryUpdateDirections()
         {
             //  Only update directions if rotation has changed
-            // if (rotation != lastRotation)
+            if (rotation != lastRotation)
                 UpdateDirections();
 
             lastRotation = rotation;
         }
 
-        // private float cosX, cosY, sinX, sinY;
         private void UpdateDirections()
         {
-            // cosY = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.Y - 90));
-            // cosX = (float)Math.Cos(MathHelper.DegreesToRadians(rotation.X));
-            // sinX = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.X));
-            // sinY = (float)Math.Sin(MathHelper.DegreesToRadians(rotation.Y - 90));
 
-            // _forward.X = cosY * cosX;
-            // _forward.Y = sinX;
-            // _forward.Z = sinY * cosX;
-            // _forward = Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z) * _forward;
-            // _forward.Normalize();
+            _forward = Vector3.Transform(-Vector3.UnitZ, orientation);
+            _right = Vector3.Transform(-Vector3.UnitX, orientation);
+            _up = Vector3.Transform(Vector3.UnitY, orientation);
 
-            // _right = Vector3.Cross(Quaternion.FromAxisAngle(Vector3.UnitZ, -rotation.Z) * Vector3.UnitY, _forward).Normalized();
-            // _up = Vector3.Cross(_forward, _right).Normalized();
-
-            _forward = Vector3.Transform(-Vector3.UnitZ, orientation).Normalized();
-            _right = Vector3.Transform(-Vector3.UnitX, orientation).Normalized();
-            _up = Vector3.Transform(Vector3.UnitY, orientation).Normalized();
+            //  Pull direction from the matrix? more performant?
+            // Matrix4 mat = Matrix4.CreateFromQuaternion(orientation);
+            // _forward = mat.Row2.Xyz;
         }
 
         public Transform Translate(Vector3 vector)
@@ -99,15 +89,10 @@ namespace Swordfish
 
         public Transform Rotate(Vector3 axis, float angle)
         {
-            orientation = Quaternion.FromAxisAngle(axis, MathHelper.DegreesToRadians(angle)) * orientation;
+            orientation = Quaternion.FromAxisAngle(orientation * axis, MathHelper.DegreesToRadians(-angle)) * orientation;
             UpdateDirections();
 
             return this;
-        }
-
-        public Matrix4 GetInverseMatrix()
-        {
-            return Matrix4.CreateTranslation(position * -1) * Matrix4.CreateFromQuaternion(orientation);
         }
 
         public Matrix4 GetMatrix()

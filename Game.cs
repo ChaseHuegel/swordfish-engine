@@ -34,6 +34,12 @@ namespace waywardbeyond
         private float[] vertices;
         private uint[] indices;
 
+        public List<Line> lines;
+        private Shader lineShader;
+        private float[] lineVerts;
+        private int LineBufferObject;
+        private int LineArrayObject;
+
         private int ElementBufferObject;
         private int VertexBufferObject;
         private int VertexArrayObject;
@@ -48,8 +54,10 @@ namespace waywardbeyond
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             foreach (Transform transform in cubes)
+            {
                 transform.Rotate(Vector3.UnitY, 40 * (float)e.Time);
-                    // .Translate(transform.forward * (float)e.Time );
+                // transform.Translate(transform.up * (float)e.Time);
+            }
 
             //  Don't update if the window isn't in focus
             if (!IsFocused) return;
@@ -102,6 +110,9 @@ namespace waywardbeyond
                 camera.transform.Rotate(Vector3.UnitY, this.MouseState.Delta.X * 0.05f);
                 camera.transform.Rotate(Vector3.UnitX, this.MouseState.Delta.Y * 0.05f);
             }
+
+            if (KeyboardState.IsKeyPressed(Keys.F1))
+                Debug.Log($"Camera dir: {camera.transform.forward}");
 
             base.OnUpdateFrame(e);
         }
@@ -178,8 +189,21 @@ namespace waywardbeyond
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
             textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
             textureArray.Use(TextureUnit.Texture0);
-
             shader.SetInt("texture0", 0);
+
+            //  Setup line buffer and VAO
+            lines = new List<Line>();
+            lineShader = new Shader("shaders/lines.vert", "shaders/lines.frag", "Lines");
+            lineShader.Use();
+
+            LineBufferObject = GL.GenBuffer();
+            GL.BindBuffer(BufferTarget.ArrayBuffer, LineBufferObject);
+            GL.BufferData(BufferTarget.ArrayBuffer, 6 * sizeof(float), lineVerts, BufferUsageHint.StaticDraw);
+            LineArrayObject = GL.GenVertexArray();
+            GL.BindVertexArray(LineArrayObject);
+            attrib = shader.GetAttribLocation("in_position");
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 3 * sizeof(float), 0);
+            GL.EnableVertexAttribArray(attrib);
 
             base.OnLoad();
         }
@@ -196,10 +220,14 @@ namespace waywardbeyond
             GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteBuffer(VertexBufferObject);
             GL.DeleteVertexArray(VertexArrayObject);
+            GL.DeleteBuffer(LineBufferObject);
+            GL.DeleteVertexArray(LineArrayObject);
             GL.DeleteProgram(shader.Handle);
+            GL.DeleteProgram(lineShader.Handle);
 
             //  Dispose shaders
             shader.Dispose();
+            lineShader.Dispose();
 
             base.OnUnload();
         }
@@ -231,6 +259,27 @@ namespace waywardbeyond
                 shader.SetMatrix4("transform", transform.GetMatrix());
 
                 GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            }
+
+            //  Draw queued lines
+            if (lines.Count > 0)
+            {
+                lineShader.Use();
+                lineShader.SetMatrix4("view", camera.view);
+                lineShader.SetMatrix4("projection", projection);
+                GL.BindVertexArray(LineArrayObject);
+                foreach (Line line in lines)
+                {
+                    lineShader.SetMatrix4("transform", line.matrix);
+
+                    lineVerts = new float[] {
+                            line.start.X, line.start.Y, line.start.Z,
+                            line.end.X, line.end.Y, line.end.Z
+                        };
+
+                    GL.DrawArrays(PrimitiveType.Lines, 0, lineVerts.Length);
+                }
+                lines.Clear();  // clear line queue
             }
 
             //  Draw GUI elements

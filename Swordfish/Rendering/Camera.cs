@@ -19,7 +19,7 @@ namespace Swordfish.Rendering
 
         public void UpdateView()
         {
-            view = transform.GetInverseMatrix();
+            view = transform.GetMatrix().Inverted();
         }
 
         public void Update()

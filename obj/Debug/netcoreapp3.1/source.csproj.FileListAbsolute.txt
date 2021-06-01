@@ -64,3 +64,5 @@ E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\resources\textures\blo
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\resources\textures\metal_01.png
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\resources\textures\metal_01_e.png
 E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\resources\textures\metal_01_m.png
+E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\shaders\lines.frag
+E:\Projects\Wayward Beyond\source\bin\Debug\netcoreapp3.1\shaders\lines.vert
