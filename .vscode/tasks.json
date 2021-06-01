@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/waywardbeyond/waywardbeyond.csproj",
+                "${workspaceFolder}/swordfish/source.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "run",
-                "${workspaceFolder}/waywardbeyond/waywardbeyond.csproj",
+                "${workspaceFolder}/swordfish/source.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -35,7 +35,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/waywardbeyond/waywardbeyond.csproj",
+                "${workspaceFolder}/swordfish/source.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -48,7 +48,7 @@
             "args": [
                 "watch",
                 "run",
-                "${workspaceFolder}/waywardbeyond/waywardbeyond.csproj",
+                "${workspaceFolder}/swordfish/source.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],

@@ -638,11 +638,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "e:\\Projects\\Wayward Beyond\\source\\source.csproj",
+      "projectUniqueName": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\source.csproj",
       "projectName": "source",
-      "projectPath": "e:\\Projects\\Wayward Beyond\\source\\source.csproj",
+      "projectPath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\source.csproj",
       "packagesPath": "C:\\Users\\Chase\\.nuget\\packages\\",
-      "outputPath": "e:\\Projects\\Wayward Beyond\\source\\obj\\",
+      "outputPath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

@@ -10,9 +10,9 @@
             "request": "launch",
             "preLaunchTask": "build",
             // If you have changed target frameworks, make sure to update the program path.
-            "program": "${workspaceFolder}/waywardbeyond/bin/Debug/net5.0/waywardbeyond.dll",
+            "program": "${workspaceFolder}/swordfish/bin/Debug/net5.0/source.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/waywardbeyond",
+            "cwd": "${workspaceFolder}/source",
             // For more information about the 'console' field, see https://aka.ms/VSCode-CS-LaunchJson-Console
             "console": "internalConsole",
             "stopAtEntry": false
