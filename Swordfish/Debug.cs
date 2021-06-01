@@ -10,7 +10,6 @@ using OpenTK.Graphics.OpenGL4;
 using Swordfish.Rendering;
 using ImGuiNET;
 using OpenTK.Windowing.Desktop;
-using waywardbeyond;
 
 namespace Swordfish
 {
@@ -110,7 +109,7 @@ namespace Swordfish
         {
             MonitorInfo display = GLHelper.GetPrimaryDisplay();
             ImGui.SetNextWindowPos(new Vector2(0, 0));
-            ImGui.SetNextWindowSize( new Vector2(Application.MainWindow.ClientSize.X, Application.MainWindow.ClientSize.Y * 0.2f) );
+            ImGui.SetNextWindowSize( new Vector2(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y * 0.2f) );
 
             ImGui.Begin("Debug", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove);
                 ImGui.BeginChild("scrollview", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar);

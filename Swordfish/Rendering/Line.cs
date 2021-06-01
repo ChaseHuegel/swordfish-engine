@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using waywardbeyond;
 
 namespace Swordfish.Rendering
 {
@@ -20,7 +19,6 @@ namespace Swordfish.Rendering
 
         public static void Draw(Vector3 start, Vector3 end)
         {
-            Application.MainWindow.lines.Add(new Line(start, end));
         }
     }
 }

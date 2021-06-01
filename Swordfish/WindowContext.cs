@@ -11,12 +11,11 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
-using System.Drawing.Drawing2D;
-using System.Security.Cryptography;
+using Swordfish.Rendering.UI;
 
-namespace waywardbeyond
+namespace Swordfish
 {
-    public class Game : GameWindow
+    public class WindowContext : GameWindow
     {
         private ImGuiController guiController;
         private Shader shader;
@@ -46,7 +45,7 @@ namespace waywardbeyond
 
         public float DeltaTime = 0f;
 
-        public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
+        public WindowContext(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
         }
 

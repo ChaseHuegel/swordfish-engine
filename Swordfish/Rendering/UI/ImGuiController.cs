@@ -8,12 +8,8 @@ using OpenTK.Windowing.Common.Input;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-namespace Swordfish.Rendering
+namespace Swordfish.Rendering.UI
 {
-    /// <summary>
-    /// A modified version of Veldrid.ImGui's ImGuiRenderer.
-    /// Manages input for ImGui and handles rendering ImGui's DrawLists with Veldrid.
-    /// </summary>
     public class ImGuiController : IDisposable
     {
         private bool _frameBegun;
@@ -32,9 +28,6 @@ namespace Swordfish.Rendering
 
         private System.Numerics.Vector2 _scaleFactor = System.Numerics.Vector2.One;
 
-        /// <summary>
-        /// Constructs a new ImGuiController.
-        /// </summary>
         public ImGuiController(int width, int height)
         {
             _windowWidth = width;
@@ -383,9 +376,6 @@ namespace Swordfish.Rendering
             GL.Disable(EnableCap.ScissorTest);
         }
 
-        /// <summary>
-        /// Frees all graphics resources used by the renderer.
-        /// </summary>
         public void Dispose()
         {
             _fontTexture.Dispose();
