@@ -28,10 +28,6 @@ namespace Swordfish
             Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}");
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
-            Icon
-            Image img = new Image();
-            Icon = new OpenTK.Windowing.Common.Input.WindowIcon();
-
             Engine.Renderer.Load();
             Engine.StartCallback?.Invoke();
 
