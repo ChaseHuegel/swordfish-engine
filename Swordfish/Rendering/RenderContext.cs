@@ -143,6 +143,7 @@ namespace Swordfish.Rendering
             GL.Disable(EnableCap.DepthTest);
             GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
                 if (Debug.Enabled) Debug.ShowDebugGui();
+                else if (Debug.Stats) Debug.ShowStatsGui();
 
                 //  Invoke callback
                 Engine.GuiCallback?.Invoke();

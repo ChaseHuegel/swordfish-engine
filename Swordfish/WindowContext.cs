@@ -6,11 +6,16 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish.Rendering;
 using Image = OpenTK.Windowing.Common.Input.Image;
 using System.Drawing;
+using System.Reflection.Metadata.Ecma335;
 
 namespace Swordfish
 {
     public class WindowContext : GameWindow
     {
+        private float[] frameTimes = new float[60];
+        private int frameTimeIndex = 0;
+        private float frameTimer = 0f;
+
         public WindowContext(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) : base(gameWindowSettings, nativeWindowSettings)
         {
         }
@@ -45,6 +50,24 @@ namespace Swordfish
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
             Engine.DeltaTime = (float)e.Time;
+            Engine.Frame++;
+
+            //  TODO: Very quick and dirty
+            frameTimer += Engine.DeltaTime;
+            if (frameTimer >= 1f/frameTimes.Length)
+            {
+                frameTimer = 0f;
+
+                frameTimes[frameTimeIndex] = Engine.DeltaTime;
+                frameTimeIndex++;
+                if (frameTimeIndex >= frameTimes.Length)
+                    frameTimeIndex = 0;
+
+                Engine.FrameTime = 0f;
+                foreach (float timing in frameTimes)
+                    Engine.FrameTime += timing;
+                Engine.FrameTime /= frameTimes.Length;
+            }
 
             //  Don't update if the window isn't in focus
             if (!IsFocused) return;

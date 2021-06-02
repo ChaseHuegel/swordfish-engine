@@ -15,7 +15,9 @@ namespace Swordfish
 {
     public class Engine
     {
+        public static float FrameTime = 0f;
         public static float DeltaTime = 0f;
+        public static int Frame = 0;
 
         public static WindowContext MainWindow;
         public static RenderContext Renderer;

@@ -105,10 +105,21 @@ namespace Swordfish
             }
         }
 
+        public static void ShowStatsGui()
+        {
+            ImGui.SetNextWindowPos(Vector2.Zero);
+            ImGui.Begin("Stats", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.AlwaysAutoResize);
+                ImGui.Text($"Frametime: { (Engine.FrameTime*1000f).ToString("0.##") } ms");
+            ImGui.End();
+        }
+
         public static void ShowDebugGui()
         {
             MonitorInfo display = GLHelper.GetPrimaryDisplay();
-            ImGui.SetNextWindowPos(new Vector2(0, 0));
+
+            ShowStatsGui();
+
+            ImGui.SetNextWindowPos(new Vector2(0, Engine.MainWindow.ClientSize.Y - Engine.MainWindow.ClientSize.Y * 0.2f));
             ImGui.SetNextWindowSize( new Vector2(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y * 0.2f) );
 
             ImGui.Begin("Debug", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove);
@@ -134,6 +145,7 @@ namespace Swordfish
         private DebugProc glErrorDelegate;
 
         public static bool Enabled = false;
+        public static bool Stats = false;
 
         private Debug()
         {

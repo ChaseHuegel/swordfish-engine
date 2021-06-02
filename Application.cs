@@ -29,14 +29,16 @@ public class Application
 
     private void Start()
     {
+        Debug.Stats = true;
+
         Random rand = new Random();
 
         cubes = new List<Transform>();
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 1000; i++)
             cubes.Add(
                 new Transform
                 (
-                    new Vector3( rand.Next(-10, 10), rand.Next(-10, 10), rand.Next(-10, 10) ),
+                    new Vector3( rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100) ),
                     new Vector3(rand.Next(360), rand.Next(360), rand.Next(360))
                 )
             );
@@ -56,6 +58,9 @@ public class Application
 
         if (Input.IsKeyPressed(Keys.GraveAccent))
             Debug.Enabled = !Debug.Enabled;
+
+        if (Input.IsKeyPressed(Keys.F1))
+            Debug.Stats = !Debug.Stats;
 
         if (Input.IsKeyDown(Keys.Escape))
             Engine.Shutdown();
