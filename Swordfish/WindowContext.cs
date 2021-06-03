@@ -34,7 +34,7 @@ namespace Swordfish
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
 
             Engine.Renderer.Load();
-            Engine.StartCallback?.Invoke();
+            Engine.Start();
 
             base.OnLoad();
         }
@@ -81,7 +81,7 @@ namespace Swordfish
                 OnResize(new ResizeEventArgs(ClientSize));
             }
 
-            Engine.UpdateCallback?.Invoke();
+            Engine.Step();
 
             base.OnUpdateFrame(e);
         }

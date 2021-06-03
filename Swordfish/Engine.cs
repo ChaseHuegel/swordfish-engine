@@ -10,6 +10,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Globalization;
 using Swordfish.Physics;
 using System.ComponentModel;
+using Swordfish.ECS;
 
 namespace Swordfish
 {
@@ -19,6 +20,7 @@ namespace Swordfish
         public static float DeltaTime = 0f;
         public static int Frame = 0;
 
+        public static EcsContext ECS;
         public static WindowContext MainWindow;
         public static RenderContext Renderer;
         public static PhysicsContext Physics;
@@ -56,10 +58,27 @@ namespace Swordfish
             }
         }
 
+        public static void Start()
+        {
+            ECS = new EcsContext();
+            ECS.Start();
+
+            StartCallback?.Invoke();
+        }
+
+        public static void Step()
+        {
+            ECS.Step();
+
+            UpdateCallback?.Invoke();
+        }
+
         public static void Shutdown()
         {
-            MainWindow.Close();
+            ECS.Shutdown();
+
             ShutdownCallback?.Invoke();
+            MainWindow.Close();
         }
     }
 }
