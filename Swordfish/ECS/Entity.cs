@@ -5,7 +5,7 @@ namespace Swordfish.ECS
     public class Entity
     {
         public readonly ECSContext Context;
-        public readonly int? UID;
+        public readonly int UID;
         public readonly string Name;
         public readonly string Tag;
 
@@ -21,10 +21,22 @@ namespace Swordfish.ECS
             Tag = tag;
             Context = context;
 
-            UID = Context?.CreateEntityUID();
-
-            if (Context == null) Debug.Log("entity created without context!", "ECS", LogType.ERROR);
-            if (UID == null) Debug.Log("null entity UID!", "ECS", LogType.ERROR);
+            if (Context != null)
+                UID = Context.CreateEntityUID();
+            else
+                Debug.Log("entity created without context!", "ECS", LogType.ERROR);
         }
+
+        //  Equals overrides
+        public override bool Equals(System.Object obj)
+        {
+            Entity entity = obj as Entity;
+
+            if (entity == null) return false;
+
+            return entity.UID.Equals(this.UID);
+        }
+
+        public override int GetHashCode() => UID.GetHashCode();
     }
 }

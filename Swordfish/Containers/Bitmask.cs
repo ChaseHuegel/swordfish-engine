@@ -116,14 +116,12 @@ namespace Swordfish.Containers
             return a.bits.Equals(b.bits);
         }
 
+        //  Equals overrides
         public override bool Equals(System.Object obj)
         {
             Bitmask bitmask = obj as Bitmask;
 
-            if (bitmask == null)
-            {
-                return false;
-            }
+            if (bitmask == null) return false;
 
             return bitmask.bits.Equals(this.bits);
         }
