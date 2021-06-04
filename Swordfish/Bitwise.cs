@@ -5,6 +5,14 @@ namespace Swordfish
 
 public class Bit
 {
+    public static void Flip(ref int value, int index)
+    {
+        if (IsSet(value, index))
+            Set(ref value, index);
+        else
+            Clear(ref value, index);
+    }
+
     public static void Set(ref int value, int index) { value = 1 << index; }
     public static void Clear(ref int value, int index) { value = ~(1 << index); }
 
@@ -17,6 +25,22 @@ public class Bit
 public class BitMask
 {
     public int bits;
+    public readonly int Length = 32;
+
+    public int Ones {
+        get
+        {
+            int v = 0;
+            for (int i = 0; i < Length; i++)
+                if (IsSet(i)) v++;
+
+            return v;
+        }
+    }
+
+    public int Zeros {
+        get => Length - Ones;
+    }
 
     public BitMask(int bits = 0)
     {
@@ -35,8 +59,14 @@ public class BitMask
         return this;
     }
 
+    public void Flip(int index) => Bit.Flip(ref bits, index);
     public bool IsSet(int index) => Bit.IsSet(bits, index);
     public bool Compare(BitMask x, int index) => Bit.Compare(bits, x.bits, index);
+
+    public bool this[int index]
+    {
+        get => IsSet(index);
+    }
 
     public static implicit operator BitMask(int mask)
     {
@@ -50,6 +80,8 @@ public class BitMask
 
     public static bool operator!= (BitMask a, BitMask b)
     {
+        if (b == null) return false;
+
         for (int i = 0; i < 32; i++)
             if (Bit.Compare(a, b, i))
                 return true;
@@ -59,6 +91,8 @@ public class BitMask
 
     public static bool operator== (BitMask a, BitMask b)
     {
+        if (b == null) return false;
+
         for (int i = 0; i < 32; i++)
             if (!Bit.Compare(a, b, i))
                 return false;

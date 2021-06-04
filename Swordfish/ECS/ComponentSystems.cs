@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 namespace Swordfish.ECS
 {
@@ -25,7 +26,7 @@ namespace Swordfish.ECS
             {
                 attribute = (ComponentSystemAttribute)Attribute.GetCustomAttribute(type, typeof(ComponentSystemAttribute));
 
-                if (attribute != null && type.GetInterfaces().Contains(typeof(IComponentSystem)))
+                if (attribute != null)//type.GetInterfaces().Contains(typeof(ComponentSystem)))
                 {
                     Register(type);
 
@@ -51,7 +52,7 @@ namespace Swordfish.ECS
         }
 
         public EcsContext Context;
-        private HashSet<IComponentSystem> systems = new HashSet<IComponentSystem>();
+        private HashSet<ComponentSystem> systems = new HashSet<ComponentSystem>();
 
         public ComponentSystems(EcsContext Context)
         {
@@ -59,7 +60,13 @@ namespace Swordfish.ECS
 
             //  Create systems from registered systems
             foreach (Type type in systemTypes)
-                systems.Add( (IComponentSystem)Activator.CreateInstance(type) );
+            {
+                ComponentSystem sys = (ComponentSystem)Activator.CreateInstance(type);
+                systemMasks.TryGetValue(type, out BitMask mask);
+                sys.AssignFilter(mask);
+
+                systems.Add(sys);
+            }
         }
 
         /// <summary>
@@ -67,7 +74,7 @@ namespace Swordfish.ECS
         /// </summary>
         public void Start()
         {
-            foreach (IComponentSystem s in systems)
+            foreach (ComponentSystem s in systems)
                 s.Start();
         }
 
@@ -76,7 +83,7 @@ namespace Swordfish.ECS
         /// </summary>
         public void Update()
         {
-            foreach (IComponentSystem s in systems)
+            foreach (ComponentSystem s in systems)
                 s.Update();
         }
 
@@ -85,7 +92,7 @@ namespace Swordfish.ECS
         /// </summary>
         public void Destroy()
         {
-            foreach (IComponentSystem s in systems)
+            foreach (ComponentSystem s in systems)
                 s.Destroy();
         }
     }

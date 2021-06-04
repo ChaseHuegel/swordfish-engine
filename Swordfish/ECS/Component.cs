@@ -9,6 +9,7 @@ namespace Swordfish.ECS
     {
         private static ConcurrentDictionary<Type, ushort> componentToId = new ConcurrentDictionary<Type, ushort>();
         private static ushort currentId = 0;
+        public static int Count;
 
         /// <summary>
         /// Register valid component types
@@ -38,6 +39,7 @@ namespace Swordfish.ECS
         {
             componentToId.TryAdd(type, currentId);
             currentId++;
+            Count = currentId;
 
             return (ushort)(currentId-1);
         }
@@ -53,6 +55,19 @@ namespace Swordfish.ECS
                 return value;
 
             return Register(typeof(T));
+        }
+
+        /// <summary>
+        /// Get id of component type T or registers if not present
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns>component id</returns>
+        public static ushort Get(Type t)
+        {
+            if (componentToId.TryGetValue(t, out ushort value))
+                return value;
+
+            return Register(t);
         }
 
         /// <summary>

@@ -11,6 +11,8 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
+using System.Collections.Concurrent;
+using Swordfish.ECS;
 
 namespace Swordfish.Rendering
 {
@@ -25,6 +27,7 @@ namespace Swordfish.Rendering
 
         //  TODO render components
         private HashSet<Transform> renderObjects;
+        private HashSet<Entity> entities;
 
         private float[] vertices;
         private uint[] indices;
@@ -33,7 +36,8 @@ namespace Swordfish.Rendering
         private int VertexBufferObject;
         private int VertexArrayObject;
 
-        public void Push(Transform transform) => renderObjects.Add(transform);
+        public bool Push(Transform transform) => renderObjects.Add(transform);
+        public bool Push(Entity entity) => entities.Add(entity);
 
         public void Load()
         {
@@ -43,6 +47,7 @@ namespace Swordfish.Rendering
             camera = new Camera(Vector3.UnitZ, Vector3.Zero);
 
             renderObjects = new HashSet<Transform>();
+            entities = new HashSet<Entity>();
 
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;
@@ -131,12 +136,28 @@ namespace Swordfish.Rendering
             //  TODO: batching
             //  TODO: this just draws cubes currently
             GL.BindVertexArray(VertexArrayObject);
-            foreach (Transform transform in renderObjects)
-            {
-                shader.SetMatrix4("transform", transform.GetMatrix());
 
-                GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            Matrix4 transformMatrix;
+
+            foreach (Entity entity in entities)
+            {
+                if (entity.HasComponents(typeof(ECSTest.PositionComponent), typeof(ECSTest.RotationComponent), typeof(ECSTest.RenderComponent)))
+                {
+                    transformMatrix = Matrix4.CreateFromQuaternion(entity.GetData<ECSTest.RotationComponent>().orientation)
+                                    * Matrix4.CreateTranslation(entity.GetData<ECSTest.PositionComponent>().position);
+
+                    shader.SetMatrix4("transform", transformMatrix);
+
+                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                }
             }
+
+            // foreach (Transform transform in renderObjects)
+            // {
+            //     shader.SetMatrix4("transform", transform.GetMatrix());
+
+            //     GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            // }
 
             //  Draw GUI elements
             //  Disable depth testing for this pass

@@ -42,6 +42,7 @@ namespace Swordfish
         }
 
         public List<string> GetLines() => lines;
+        public List<string> GetLines(int count) => lines.GetRange(Math.Max(lines.Count-count-1, 0), lines.Count-Math.Max(lines.Count-count-1, 0));
     }
 
     public class Debug : Singleton<Debug>
@@ -126,7 +127,7 @@ namespace Swordfish
                 ImGui.BeginChild("scrollview", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar);
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
-                    foreach (string line in Instance.writer.GetLines())
+                    foreach (string line in Instance.writer.GetLines(100))
                         ImGui.TextWrapped(line);
                 ImGui.PopStyleVar();
 

@@ -27,6 +27,7 @@ namespace source
             Engine.Initialize();
         }
 
+        public Random rand = new Random();
         public float cameraSpeed = 12f;
         public List<Transform> cubes;
 
@@ -34,36 +35,49 @@ namespace source
         {
             Debug.Stats = true;
 
-            Random rand = new Random();
-
-            cubes = new List<Transform>();
-            for (int i = 0; i < 1000; i++)
-                cubes.Add(
-                    new Transform
-                    (
-                        new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)),
-                        new Vector3(rand.Next(360), rand.Next(360), rand.Next(360))
-                    )
-                );
+            // cubes = new List<Transform>();
+            // for (int i = 0; i < 10000; i++)
+            //     cubes.Add(
+            //         new Transform
+            //         (
+            //             new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)),
+            //             new Vector3(rand.Next(360), rand.Next(360), rand.Next(360))
+            //         )
+            //     );
 
             //  Temporary until render components are implemented
-            foreach (Transform transform in cubes)
-                Engine.Renderer.Push(transform);
+            // foreach (Transform transform in cubes)
+            //     Engine.Renderer.Push(transform);
 
-            //  ECS testing
-            Entity entity = new Entity();
-            entity.SetData<ECSTest.TransformComponent>(new ECSTest.TransformComponent() { position = Vector3.Zero });
+            // Entity entity2 = new Entity();
+            // entity2.SetData<ECSTest.PositionComponent>(new ECSTest.PositionComponent() { position = Vector3.Zero });
+            // entity2.SetData<ECSTest.RotationComponent>(new ECSTest.RotationComponent() { orientation = Quaternion.Identity });
+            // entity2.SetData<ECSTest.RenderComponent>(new ECSTest.RenderComponent());
+            // Engine.ECS.PushEntity(entity2);
 
-            Engine.ECS.PushEntity(entity);
+            CreateEntityCubes(10000);
+        }
+
+        public void CreateEntityCubes(int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                Entity entity2 = new Entity();
+                entity2.SetData<ECSTest.PositionComponent>(new ECSTest.PositionComponent() { position = new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)) });
+                entity2.SetData<ECSTest.RotationComponent>(new ECSTest.RotationComponent() { orientation = Quaternion.Identity });
+                entity2.SetData<ECSTest.RenderComponent>(new ECSTest.RenderComponent());
+
+                Engine.ECS.PushEntity(entity2);
+            }
         }
 
         private void Update()
         {
-            foreach (Transform transform in cubes)
-            {
-                transform.Rotate(Vector3.UnitY, 40 * Engine.DeltaTime);
-                // transform.Translate(transform.up * Engine.DeltaTime;
-            }
+            // foreach (Transform transform in cubes)
+            // {
+            //     transform.Rotate(Vector3.UnitY, 40 * Engine.DeltaTime);
+            //     // transform.Translate(transform.up * Engine.DeltaTime;
+            // }
 
             if (Input.IsKeyPressed(Keys.GraveAccent))
                 Debug.Enabled = !Debug.Enabled;
@@ -73,6 +87,9 @@ namespace source
 
             if (Input.IsKeyDown(Keys.Escape))
                 Engine.Shutdown();
+
+            if (Input.IsKeyPressed(Keys.F2))
+                CreateEntityCubes(500);
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * Engine.DeltaTime;
