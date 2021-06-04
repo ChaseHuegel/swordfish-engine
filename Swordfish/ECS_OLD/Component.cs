@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace Swordfish.ECS
+namespace Swordfish.ECS_OLD
 {
     public class Component
     {

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 
-namespace Swordfish.ECS
+namespace Swordfish.ECS_OLD
 {
     public class ComponentSystems
     {

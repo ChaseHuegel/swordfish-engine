@@ -8,11 +8,11 @@ namespace Swordfish.ECS
     [System.AttributeUsage(System.AttributeTargets.Class)]
     public class ComponentSystemAttribute : Attribute
     {
-        public Type[] mask = null;
+        public Type[] filter = null;
 
-        public ComponentSystemAttribute(params Type[] mask)
+        public ComponentSystemAttribute(params Type[] filter)
         {
-            this.mask = mask;
+            this.filter = filter;
         }
     }
 }

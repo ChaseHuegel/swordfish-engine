@@ -1,15 +1,15 @@
-using System.Collections.Generic;
 using System;
+using Swordfish.Containers;
 
 namespace Swordfish.ECS
 {
     public class ComponentSystem
     {
-        public static BitMask filter;
-        public void AssignFilter(BitMask mask) => filter = mask;
+        public static Bitmask64 filter;
+        public void AssignFilter(Bitmask64 mask) => filter = mask;
 
-        public virtual void Start() {}
-        public virtual void Destroy() {}
-        public virtual void Update() {}
+        public virtual void OnCreate() {}
+        public virtual void OnDestroy() {}
+        public virtual void OnUpdate() {}
     }
 }

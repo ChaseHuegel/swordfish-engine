@@ -12,7 +12,7 @@ using Swordfish;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
 using System.Collections.Concurrent;
-using Swordfish.ECS;
+using Swordfish.ECS_OLD;
 
 namespace Swordfish.Rendering
 {
@@ -137,20 +137,19 @@ namespace Swordfish.Rendering
             //  TODO: this just draws cubes currently
             GL.BindVertexArray(VertexArrayObject);
 
-            Matrix4 transformMatrix;
+            // Matrix4 transformMatrix;
+            // foreach (Entity entity in entities)
+            // {
+            //     if (entity.HasComponents(typeof(ECSTest.PositionComponent), typeof(ECSTest.RotationComponent), typeof(ECSTest.RenderComponent)))
+            //     {
+            //         transformMatrix = Matrix4.CreateFromQuaternion(entity.GetData<ECSTest.RotationComponent>().orientation)
+            //                         * Matrix4.CreateTranslation(entity.GetData<ECSTest.PositionComponent>().position);
 
-            foreach (Entity entity in entities)
-            {
-                if (entity.HasComponents(typeof(ECSTest.PositionComponent), typeof(ECSTest.RotationComponent), typeof(ECSTest.RenderComponent)))
-                {
-                    transformMatrix = Matrix4.CreateFromQuaternion(entity.GetData<ECSTest.RotationComponent>().orientation)
-                                    * Matrix4.CreateTranslation(entity.GetData<ECSTest.PositionComponent>().position);
+            //         shader.SetMatrix4("transform", transformMatrix);
 
-                    shader.SetMatrix4("transform", transformMatrix);
-
-                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
-                }
-            }
+            //         GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            //     }
+            // }
 
             // foreach (Transform transform in renderObjects)
             // {

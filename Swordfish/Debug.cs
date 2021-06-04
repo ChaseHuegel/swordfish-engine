@@ -111,6 +111,7 @@ namespace Swordfish
             ImGui.SetNextWindowPos(Vector2.Zero);
             ImGui.Begin("Stats", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.AlwaysAutoResize);
                 ImGui.Text($"Frametime: { (Engine.FrameTime*1000f).ToString("0.##") } ms");
+                ImGui.Text($"Entities: {Engine.ECS.EntityCount}");
             ImGui.End();
         }
 

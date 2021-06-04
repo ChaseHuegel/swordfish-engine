@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using OpenTK.Mathematics;
 using Swordfish;
-using Swordfish.ECS;
+using Swordfish.ECS_OLD;
 using Swordfish.Rendering;
 
 public class ECSTest

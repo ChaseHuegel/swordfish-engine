@@ -12,7 +12,7 @@ using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
-using Swordfish.ECS;
+using Swordfish.ECS_OLD;
 
 namespace source
 {
@@ -55,7 +55,7 @@ namespace source
             // entity2.SetData<ECSTest.RenderComponent>(new ECSTest.RenderComponent());
             // Engine.ECS.PushEntity(entity2);
 
-            CreateEntityCubes(10000);
+            CreateEntityCubes(1000);
         }
 
         public void CreateEntityCubes(int count)

@@ -10,7 +10,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Globalization;
 using Swordfish.Physics;
 using System.ComponentModel;
-using Swordfish.ECS;
+using Swordfish.ECS_OLD;
 
 namespace Swordfish
 {
