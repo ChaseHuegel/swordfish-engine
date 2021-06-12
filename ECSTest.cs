@@ -2,19 +2,19 @@ using System;
 using System.Globalization;
 using OpenTK.Mathematics;
 using Swordfish;
-using Swordfish.ECS_OLD;
+using Swordfish.ECS;
 using Swordfish.Rendering;
 
-public class ECSTest
+namespace ECSTest
 {
     [Component]
-    public struct PositionComponent
+    struct PositionComponent
     {
         public Vector3 position;
     }
 
     [Component]
-    public struct RotationComponent
+    struct RotationComponent
     {
         public Quaternion orientation;
         public Vector3 forward;
@@ -34,57 +34,45 @@ public class ECSTest
     }
 
     [Component]
-    public struct RenderComponent
+    struct RenderComponent
     {
         public Mesh mesh;
     }
 
     [ComponentSystem(typeof(PositionComponent))]
-    public class MoveSystem : ComponentSystem
+    public class GravitySystem : ComponentSystem
     {
-        public override void Start()
+        public override void OnStart() {}
+        public override void OnShutdown() {}
+
+        public override void OnUpdate()
         {
-
-        }
-
-        public override void Destroy()
-        {
-
-        }
-
-        public override void Update()
-        {
-
+            foreach (Entity entity in entities)
+            {
+                Engine.ECS.Do<PositionComponent>(entity, x =>
+                {
+                    x.position -= Vector3.UnitY * Engine.DeltaTime;
+                    return x;
+                });
+            }
         }
     }
 
-    [ComponentSystem(typeof(PositionComponent), typeof(RotationComponent), typeof(RenderComponent))]
-    public class RenderSystem : ComponentSystem
+    [ComponentSystem(typeof(RotationComponent))]
+    public class RotateSystem : ComponentSystem
     {
-        Entity[] entities;
+        public override void OnStart() {}
+        public override void OnShutdown() {}
 
-        public override void Start()
+        public override void OnUpdate()
         {
-            entities = Engine.ECS.GetEntitiesWith(typeof(PositionComponent), typeof(RotationComponent), typeof(RenderComponent));
-
-            foreach (Entity e in entities)
-                Engine.Renderer.Push(e);
-        }
-
-        public override void Destroy()
-        {
-
-        }
-
-        public override void Update()
-        {
-            entities = Engine.ECS.GetEntitiesWith(typeof(PositionComponent), typeof(RotationComponent), typeof(RenderComponent));
-
-            foreach (Entity e in entities)
+            foreach (Entity entity in entities)
             {
-                e.SetData<RotationComponent>(
-                    e.GetData<RotationComponent>().Rotate(Vector3.UnitY, 40 * Engine.DeltaTime)
-                );
+                Engine.ECS.Do<RotationComponent>(entity, x =>
+                {
+                    x.Rotate(Vector3.UnitY, 45 * Engine.DeltaTime);
+                    return x;
+                });
             }
         }
     }

@@ -97,9 +97,6 @@ namespace Swordfish.Rendering
 
                 uniformLocations.Add(key, location);
             }
-
-            GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
-            Debug.Log($"Loaded shader '{name}', vertex attr supported: {maxAttributeCount}");
         }
 
         public void Use()

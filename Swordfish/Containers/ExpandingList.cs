@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Runtime.CompilerServices;
 
 namespace Swordfish.Containers
@@ -7,14 +8,14 @@ namespace Swordfish.Containers
     /// Represents a non-shrinking typed list
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ExpandingList<T>
+    public class ExpandingList<T> : IEnumerable
     {
+        private T[] array = new T[1];
+
         /// <summary>
         /// Number of indices in the list
         /// </summary>
         public int Count = 0;
-
-        private T[] array = new T[1];
 
         /// <summary>
         /// Try adding an element to the list, ignoring duplicates
@@ -55,7 +56,8 @@ namespace Swordfish.Containers
         public bool Contains(T value)
         {
             foreach (T entry in array)
-                if (entry.Equals(value)) return true;
+                if (entry != null && entry.Equals(value))
+                    return true;
 
             return false;
         }
@@ -65,6 +67,49 @@ namespace Swordfish.Containers
         {
             get => array[index];
             set => array[index] = value;
+        }
+
+        //  Enumerator
+        IEnumerator IEnumerable.GetEnumerator() => (IEnumerator)GetEnumerator();
+        public ExpandingListEnum GetEnumerator() => new ExpandingListEnum(array);
+
+        public class ExpandingListEnum : IEnumerator
+        {
+            private T[] array = new T[1];
+            private int position = -1;
+
+            public ExpandingListEnum(T[] array)
+            {
+                this.array = array;
+            }
+
+            public bool MoveNext()
+            {
+                position++;
+                return position < array.Length;
+            }
+
+            public void Reset()
+            {
+                position = -1;
+            }
+
+            object IEnumerator.Current
+            {
+                get => Current;
+            }
+
+            public T Current
+            {
+                get
+                {
+                    try { return array[position]; }
+                    catch (IndexOutOfRangeException)
+                    {
+                        throw new InvalidOperationException();
+                    }
+                }
+            }
         }
     }
 }

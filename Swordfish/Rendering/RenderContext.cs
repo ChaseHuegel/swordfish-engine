@@ -12,7 +12,7 @@ using Swordfish;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
 using System.Collections.Concurrent;
-using Swordfish.ECS_OLD;
+using Swordfish.ECS;
 
 namespace Swordfish.Rendering
 {
@@ -25,9 +25,7 @@ namespace Swordfish.Rendering
         private Matrix4 projection;
         private Camera camera;
 
-        //  TODO render components
-        private HashSet<Transform> renderObjects;
-        private HashSet<Entity> entities;
+        private Entity[] entities;
 
         private float[] vertices;
         private uint[] indices;
@@ -36,18 +34,18 @@ namespace Swordfish.Rendering
         private int VertexBufferObject;
         private int VertexArrayObject;
 
-        public bool Push(Transform transform) => renderObjects.Add(transform);
-        public bool Push(Entity entity) => entities.Add(entity);
-
         public void Load()
         {
+            Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
+            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
+            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}");
+            GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
+            Debug.Log($"    Shader vertex attr supported: {maxAttributeCount}");
+
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
             camera = new Camera(Vector3.UnitZ, Vector3.Zero);
-
-            renderObjects = new HashSet<Transform>();
-            entities = new HashSet<Entity>();
 
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;
@@ -137,19 +135,19 @@ namespace Swordfish.Rendering
             //  TODO: this just draws cubes currently
             GL.BindVertexArray(VertexArrayObject);
 
-            // Matrix4 transformMatrix;
-            // foreach (Entity entity in entities)
-            // {
-            //     if (entity.HasComponents(typeof(ECSTest.PositionComponent), typeof(ECSTest.RotationComponent), typeof(ECSTest.RenderComponent)))
-            //     {
-            //         transformMatrix = Matrix4.CreateFromQuaternion(entity.GetData<ECSTest.RotationComponent>().orientation)
-            //                         * Matrix4.CreateTranslation(entity.GetData<ECSTest.PositionComponent>().position);
+            Matrix4 transformMatrix;
 
-            //         shader.SetMatrix4("transform", transformMatrix);
+            //  TODO render component system
+            entities = Engine.ECS.Pull(typeof(ECSTest.PositionComponent), typeof(ECSTest.RotationComponent), typeof(ECSTest.RenderComponent));
+            foreach (Entity entity in entities)
+            {
+                transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<ECSTest.RotationComponent>(entity).orientation)
+                                    * Matrix4.CreateTranslation(Engine.ECS.Get<ECSTest.PositionComponent>(entity).position);
 
-            //         GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
-            //     }
-            // }
+                shader.SetMatrix4("transform", transformMatrix);
+
+                GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+            }
 
             // foreach (Transform transform in renderObjects)
             // {

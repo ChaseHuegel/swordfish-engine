@@ -10,7 +10,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System.Globalization;
 using Swordfish.Physics;
 using System.ComponentModel;
-using Swordfish.ECS_OLD;
+using Swordfish.ECS;
 
 namespace Swordfish
 {
@@ -20,7 +20,7 @@ namespace Swordfish
         public static float DeltaTime = 0f;
         public static int Frame = 0;
 
-        public static EcsContext ECS;
+        public static ECSContext ECS;
         public static WindowContext MainWindow;
         public static RenderContext Renderer;
         public static PhysicsContext Physics;
@@ -39,9 +39,10 @@ namespace Swordfish
             MonitorInfo screen = GLHelper.GetPrimaryDisplay();
             Vector2i screenSize = new Vector2i(screen.HorizontalResolution, screen.VerticalResolution);
 
+            Settings = new CoreSettings();
             Renderer = new RenderContext();
             Physics = new PhysicsContext();
-            Settings = new CoreSettings();
+            ECS = new ECSContext();
 
             var nativeWindowSettings = new NativeWindowSettings()
             {
@@ -60,7 +61,6 @@ namespace Swordfish
 
         public static void Start()
         {
-            ECS = new EcsContext();
             ECS.Start();
 
             StartCallback?.Invoke();

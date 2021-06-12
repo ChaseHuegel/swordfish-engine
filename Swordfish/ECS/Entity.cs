@@ -6,25 +6,23 @@ namespace Swordfish.ECS
     {
         public readonly ECSContext Context;
         public readonly int UID;
-        public readonly string Name;
-        public readonly string Tag;
+        public string Name;
+        public string Tag;
 
         /// <summary>
         /// Create an entity with name and tag in provided context
         /// </summary>
-        /// <param name="name"></param>
-        /// <param name="tag"></param>
-        /// <param name="context"></param>
-        internal Entity(ECSContext context, string name = "", string tag = "")
+        /// <param name="name">Defaults to the entity UID</param>
+        /// <param name="tag">Used to group entities</param>
+        /// <param name="context">The context this entity exists in</param>
+        internal Entity(ECSContext context, string name = "", string tag = "", int uid = -1)
         {
-            Name = name;
+            //  Name should be created from the UID if not provided
+            Name = name != "" ? name : uid.ToString();
+
             Tag = tag;
             Context = context;
-
-            if (Context != null)
-                UID = Context.CreateEntityUID();
-            else
-                Debug.Log("entity created without context!", "ECS", LogType.ERROR);
+            UID = uid;
         }
 
         //  Equals overrides
@@ -34,7 +32,8 @@ namespace Swordfish.ECS
 
             if (entity == null) return false;
 
-            return entity.UID.Equals(this.UID);
+            //  Entities are identified by UID and context, not reference
+            return entity.UID.Equals(this.UID) && entity.Context.Equals(this.Context);
         }
 
         public override int GetHashCode() => UID.GetHashCode();

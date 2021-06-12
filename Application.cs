@@ -12,7 +12,8 @@ using Swordfish;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
-using Swordfish.ECS_OLD;
+using Swordfish.ECS;
+using ECSTest;
 
 namespace source
 {
@@ -35,50 +36,24 @@ namespace source
         {
             Debug.Stats = true;
 
-            // cubes = new List<Transform>();
-            // for (int i = 0; i < 10000; i++)
-            //     cubes.Add(
-            //         new Transform
-            //         (
-            //             new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)),
-            //             new Vector3(rand.Next(360), rand.Next(360), rand.Next(360))
-            //         )
-            //     );
-
-            //  Temporary until render components are implemented
-            // foreach (Transform transform in cubes)
-            //     Engine.Renderer.Push(transform);
-
-            // Entity entity2 = new Entity();
-            // entity2.SetData<ECSTest.PositionComponent>(new ECSTest.PositionComponent() { position = Vector3.Zero });
-            // entity2.SetData<ECSTest.RotationComponent>(new ECSTest.RotationComponent() { orientation = Quaternion.Identity });
-            // entity2.SetData<ECSTest.RenderComponent>(new ECSTest.RenderComponent());
-            // Engine.ECS.PushEntity(entity2);
-
             CreateEntityCubes(1000);
         }
 
         public void CreateEntityCubes(int count)
         {
+            Entity entity;
             for (int i = 0; i < count; i++)
             {
-                Entity entity2 = new Entity();
-                entity2.SetData<ECSTest.PositionComponent>(new ECSTest.PositionComponent() { position = new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)) });
-                entity2.SetData<ECSTest.RotationComponent>(new ECSTest.RotationComponent() { orientation = Quaternion.Identity });
-                entity2.SetData<ECSTest.RenderComponent>(new ECSTest.RenderComponent());
+                entity = Engine.ECS.CreateEntity();
 
-                Engine.ECS.PushEntity(entity2);
+                Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
+                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)) })
+                    .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(rand.Next(360), rand.Next(360), rand.Next(360)) });
             }
         }
 
         private void Update()
         {
-            // foreach (Transform transform in cubes)
-            // {
-            //     transform.Rotate(Vector3.UnitY, 40 * Engine.DeltaTime);
-            //     // transform.Translate(transform.up * Engine.DeltaTime;
-            // }
-
             if (Input.IsKeyPressed(Keys.GraveAccent))
                 Debug.Enabled = !Debug.Enabled;
 
@@ -89,7 +64,7 @@ namespace source
                 Engine.Shutdown();
 
             if (Input.IsKeyPressed(Keys.F2))
-                CreateEntityCubes(500);
+                CreateEntityCubes(1000);
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * Engine.DeltaTime;

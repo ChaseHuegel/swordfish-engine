@@ -29,11 +29,8 @@ namespace Swordfish
             Debug.Log($"    Framelimit {this.RenderFrequency}");
             Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless");
 
-            Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}");
-            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
-
             Engine.Renderer.Load();
+
             Engine.Start();
 
             base.OnLoad();
