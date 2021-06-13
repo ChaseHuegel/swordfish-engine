@@ -38,7 +38,7 @@ namespace Swordfish.Rendering
         /// Push all entities to context that should be rendered each frame
         /// </summary>
         /// <param name="entities"></param>
-        public void PushEntities(Entity[] entities) => this.entities = entities;
+        internal void PushEntities(Entity[] entities) => this.entities = entities;
 
         /// <summary>
         /// Load the renderer
