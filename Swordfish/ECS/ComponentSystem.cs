@@ -21,7 +21,11 @@ namespace Swordfish.ECS
         }
 
         protected Entity[] entities = new Entity[0];
-        internal void PullEntities() => entities = Engine.ECS.Pull(filter);
+        internal void PullEntities()
+        {
+            entities = Engine.ECS.Pull(filter);
+            OnEntityUpdate();
+        }
 
         /// <summary>
         /// Check if the system has a type in its filter
@@ -36,6 +40,7 @@ namespace Swordfish.ECS
             return false;
         }
 
+        public virtual void OnEntityUpdate() {}
         public virtual void OnStart() {}
         public virtual void OnShutdown() {}
         public virtual void OnUpdate() {}
