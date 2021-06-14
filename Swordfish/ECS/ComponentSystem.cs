@@ -40,9 +40,23 @@ namespace Swordfish.ECS
             return false;
         }
 
+        /// <summary>
+        /// Check if the system has any types in its filter
+        /// </summary>
+        /// <param name="type"></param>
+        /// <returns>true if type is filtered; otherwise false</returns>
+        public bool IsFiltering(Type[] types)
+        {
+            foreach (Type t in filter)
+                foreach (Type t2 in types)
+                    if (t == t2) return true;
+
+            return false;
+        }
+
         public virtual void OnEntityUpdate() {}
         public virtual void OnStart() {}
         public virtual void OnShutdown() {}
-        public virtual void OnUpdate() {}
+        public virtual void OnUpdate(float deltaTime) {}
     }
 }

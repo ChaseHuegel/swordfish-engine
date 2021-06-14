@@ -5,6 +5,11 @@ using Swordfish.Containers;
 using Swordfish.Delegates;
 using System;
 using OpenTK.Mathematics;
+using Swordfish.Threading;
+using System.IO;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Swordfish.ECS
 {
@@ -13,44 +18,91 @@ namespace Swordfish.ECS
         public int EntityCount { get => _entityCount; }
         private int _entityCount = 0;
 
-        private ExpandingList<Entity> _entities = new ExpandingList<Entity>();
+        private Queue<int> _recycledIDs;
+        private ConcurrentBag<Entity> _awaitingDestroy;
 
         //  TODO create a preallocated chunk storage type for components
-        private Dictionary<Type, ExpandingList<object>> _components = new Dictionary<Type, ExpandingList<object>>();
+        private ConcurrentDictionary<Type, ExpandingList<object>> _components;
+        private ExpandingList<Entity> _entities;
+        private HashSet<ComponentSystem> _systems;
 
-        private HashSet<ComponentSystem> _systems = new HashSet<ComponentSystem>();
+        public float ThreadTime = 0f;
+        private float[] ecsTimes = new float[6];
+        private int ecsTimeIndex = 0;
+        private float ecsTimer = 0f;
 
-        private Queue<int> _recycledIDs = new Queue<int>();
+        public readonly ThreadWorker Thread;
 
         public ECSContext()
         {
             _entities = new ExpandingList<Entity>();
-            _components = new Dictionary<Type, ExpandingList<object>>();
+            _components = new ConcurrentDictionary<Type, ExpandingList<object>>();
             _systems = new HashSet<ComponentSystem>();
             _recycledIDs = new Queue<int>();
+            _awaitingDestroy = new ConcurrentBag<Entity>();
 
-            Register();
-
-            foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
-                Debug.Log($"{pair.Key.ToString()} > {pair.Value}");
+            Thread = new ThreadWorker(ThreadStep, false, "ECS");
         }
 
         public void Start()
         {
+            //  Register components and systems
+            Register();
+
             foreach (ComponentSystem system in _systems)
                 system.OnStart();
+
+            Thread.Start();
         }
 
         public void Step()
         {
+
+        }
+
+        public void ThreadStep()
+        {
+            //  Destroy marked entities
+            foreach (Entity entity in _awaitingDestroy)
+                Destroy(entity);
+            _awaitingDestroy.Clear();
+
+            //  Update systems
             foreach (ComponentSystem system in _systems)
-                system.OnUpdate();
+                system.OnUpdate(Thread.DeltaTime);
+
+            //  TODO: Very quick and dirty stable timing
+            ecsTimer += Thread.DeltaTime;
+            ecsTimes[ecsTimeIndex] = Thread.DeltaTime;
+            ecsTimeIndex++;
+            if (ecsTimeIndex >= ecsTimes.Length)
+                ecsTimeIndex = 0;
+            if (ecsTimer >= 1f/ecsTimes.Length)
+            {
+                ecsTimer = 0f;
+
+                float highest = 0f;
+                float lowest = 9999f;
+                ThreadTime = 0f;
+                foreach (float timing in ecsTimes)
+                {
+                    ThreadTime += timing;
+                    if (timing <= lowest) lowest = timing;
+                    if (timing >= highest) highest = timing;
+                }
+
+                ThreadTime -= lowest;
+                ThreadTime -= highest;
+                ThreadTime /= (ecsTimes.Length - 2);
+            }
         }
 
         public void Shutdown()
         {
             foreach (ComponentSystem system in _systems)
                 system.OnShutdown();
+
+            Thread.Stop();
         }
 
         /// <summary>
@@ -134,19 +186,30 @@ namespace Swordfish.ECS
         /// <returns>true if the push was sucessful; otherwise false if entity is already present in context</returns>
         public bool Push(Entity entity)
         {
-            //  Attempt adding the entity
+            //  Push to a recycled slot if available
+            if (entity.UID < _entities.Count && _entities[entity.UID] == null)
+            {
+                _entities[entity.UID] = entity;
+
+                //  Clear component data
+                foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
+                    if (_components.TryGetValue(pair.Key, out ExpandingList<object> data))
+                        data[entity.UID] = null;
+
+                return true;
+            }
+
+            //  ...Otherwise attempt pushing to the list
             if (_entities.TryAdd(entity))
             {
-                //  Add an slot for the entity to every component
+                //  Add component data
                 foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
                     if (_components.TryGetValue(pair.Key, out ExpandingList<object> data))
                         data.Add(null);
 
-                //  Successfully pushed
                 return true;
             }
 
-            //  Failed to push
             return false;
         }
 
@@ -191,7 +254,12 @@ namespace Swordfish.ECS
         public T Get<T>(Entity entity) where T : struct
         {
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
-                return (T)data[entity.UID];
+            {
+                if (data[entity.UID] == null)
+                    return default(T);
+                else
+                    return (T)data[entity.UID];
+            }
 
             return default(T);
         }
@@ -221,23 +289,46 @@ namespace Swordfish.ECS
         }
 
         /// <summary>
-        /// Remove an entity
+        /// Mark an entity to be removed from context
         /// </summary>
         /// <param name="entity"></param>
         /// <returns>entity builder</returns>
         public ECSContext DestroyEntity(Entity entity)
         {
+            _awaitingDestroy.Add(entity);
+
+            return this;
+        }
+
+        /// <summary>
+        /// Remove an entity from context
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <returns>entity builder</returns>
+        private ECSContext Destroy(Entity entity)
+        {
+            //  Recycle the UID
+            _recycledIDs.Enqueue(entity.UID);
+
             //  Release the entity
             _entities[entity.UID] = null;
             _entityCount--;
 
             //  Release component data
+            List<Type> components = new List<Type>();
             foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
+            {
                 if (_components.TryGetValue(pair.Key, out ExpandingList<object> data))
+                {
                     data[entity.UID] = null;
+                    components.Add(pair.Key);   //  Collect a list of all components this entity had
+                }
+            }
 
-            //  Recycle the UID
-            _recycledIDs.Enqueue(entity.UID);
+            //  Tell all systems with this entity's components to update matching entities
+            foreach (ComponentSystem system in _systems)
+                if (system.IsFiltering(components.ToArray()))
+                    system.PullEntities();
 
             return this;
         }
@@ -324,9 +415,9 @@ namespace Swordfish.ECS
             T component;
 
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
-                component = (T)data[entity.UID];
+                component = data[entity.UID] != null ? (T)data[entity.UID] : default(T);
             else
-                component = default(T);
+                return this;
 
             data[entity.UID] = action(component);
 

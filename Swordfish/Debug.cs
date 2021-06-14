@@ -38,7 +38,9 @@ namespace Swordfish
         public override void WriteLine(string value)
         {
             lines.Add(value);
-            original.WriteLine(value);
+
+            //  Only write to original writer if this isn't a release build
+            if (!Engine.Settings.IS_RELEASE) original.WriteLine(value);
         }
 
         public List<string> GetLines() => lines;
@@ -110,8 +112,12 @@ namespace Swordfish
         {
             ImGui.SetNextWindowPos(Vector2.Zero);
             ImGui.Begin("Stats", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.AlwaysAutoResize);
-                ImGui.Text($"Frametime: { (Engine.FrameTime*1000f).ToString("0.##") } ms");
+                ImGui.Text($"FPS: {Engine.MainWindow.FPS}");
+                ImGui.Text($"Frame: {Engine.Frame}");
                 ImGui.Text($"Entities: {Engine.ECS.EntityCount}");
+
+                ImGui.Text($"T - Main: { (Engine.FrameTime*1000f).ToString("0.##") } ms");
+                ImGui.Text($"T - ECS: { (Engine.ECS.ThreadTime*1000f).ToString("0.##") } ms");
             ImGui.End();
         }
 
@@ -140,6 +146,11 @@ namespace Swordfish
             ImGui.End();
         }
 
+        public static void Dump()
+        {
+            File.WriteAllLines("debug.log", GetWriter().GetLines());
+        }
+
         protected LogWriter writer = new LogWriter(Console.Out);
         public static LogWriter GetWriter() { return Instance.writer; }
 
@@ -161,8 +172,6 @@ namespace Swordfish
                 GL.DebugMessageCallback(glErrorDelegate, IntPtr.Zero);
                 Debug.Log("...Created OpenGL debug context");
             }
-
-            Debug.TryLogGLError("DebugContext");
         }
     }
 }

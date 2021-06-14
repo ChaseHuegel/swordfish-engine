@@ -38,7 +38,7 @@ namespace Swordfish.Rendering
         /// Push all entities to context that should be rendered each frame
         /// </summary>
         /// <param name="entities"></param>
-        internal void PushEntities(Entity[] entities) => this.entities = entities;
+        internal void Push(Entity[] entities) => this.entities = entities;
 
         /// <summary>
         /// Load the renderer
@@ -55,6 +55,8 @@ namespace Swordfish.Rendering
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
             camera = new Camera(Vector3.UnitZ, Vector3.Zero);
+
+            entities = new Entity[0];
 
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;

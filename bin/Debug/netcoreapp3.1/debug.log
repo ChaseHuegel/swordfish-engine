@@ -1,0 +1,48 @@
+6/13/2021 9:25:40 PM [INFO] : Started Swordfish Engine
+6/13/2021 9:25:40 PM [INFO] : Settings
+6/13/2021 9:25:40 PM [INFO] :     Framelimit 60
+6/13/2021 9:25:40 PM [INFO] :     Resolution 1024 x 768 borderless
+6/13/2021 9:25:40 PM [INFO] : OpenGL v3.3.0 NVIDIA 456.71
+6/13/2021 9:25:40 PM [INFO] :     NVIDIA Corporation GeForce GTX 970/PCIe/SSE2
+6/13/2021 9:25:40 PM [INFO] :     Extensions found: 383
+6/13/2021 9:25:40 PM [INFO] :     Shader vertex attr supported: 16
+6/13/2021 9:25:40 PM [INFO] : Created texture 'ImGui Text Atlas'
+6/13/2021 9:25:40 PM [INFO] : Loading texture array 'blocks' from 'resources/textures/block/'
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'caution_panel.png' at 0
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'control_buttons.png' at 1
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'control_buttons_2.png' at 2
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'control_console.png' at 3
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'control_panel.png' at 4
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'control_slider.png' at 5
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'core.png' at 6
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_console.png' at 7
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_control.png' at 8
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_monitor.png' at 9
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_panel.png' at 10
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_panel_2.png' at 11
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_panel_3.png' at 12
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_panel_4.png' at 13
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'display_screen.png' at 14
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'ice.png' at 15
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'light_panel.png' at 16
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'metal_grate.png' at 17
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'metal_panel.png' at 18
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'metal_porthole.png' at 19
+6/13/2021 9:25:40 PM [INFO] :     Found texture 'rock.png' at 20
+6/13/2021 9:25:40 PM [INFO] :     ...layers: 21
+6/13/2021 9:25:40 PM [INFO] :     ...using resolution 16x16
+6/13/2021 9:25:40 PM [INFO] : ...Building texture array 'blocks'
+6/13/2021 9:25:40 PM [INFO] : Texture array 'blocks' loaded
+6/13/2021 9:25:40 PM [INFO] : Registering ECS components...
+6/13/2021 9:25:40 PM [INFO] :     Registered 'Swordfish.ECS.PositionComponent'
+6/13/2021 9:25:40 PM [INFO] :     Registered 'Swordfish.ECS.RenderComponent'
+6/13/2021 9:25:40 PM [INFO] :     Registered 'Swordfish.ECS.RotationComponent'
+6/13/2021 9:25:40 PM [INFO] : Registering ECS systems...
+6/13/2021 9:25:40 PM [INFO] :     Registered 'Swordfish.ECS.RenderSystem'
+6/13/2021 9:25:40 PM [INFO] :     Registered 'ECSTest.GravitySystem'
+6/13/2021 9:25:40 PM [INFO] :     Registered 'ECSTest.RotateSystem'
+6/13/2021 9:25:40 PM [INFO] Threading: Started thread 'ECS'
+6/13/2021 9:25:43 PM [INFO] : Resized dear imgui vertex buffer to new size 46240
+6/13/2021 9:25:43 PM [INFO] : Resized dear imgui index buffer to new size 6936
+6/13/2021 9:25:44 PM [INFO] : Resized dear imgui vertex buffer to new size 69360
+6/13/2021 9:25:44 PM [INFO] : Resized dear imgui index buffer to new size 10404

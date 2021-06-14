@@ -1,30 +1,26 @@
 ﻿using System;
-using Swordfish;
-using OpenTK;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
 using Swordfish.Rendering;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using System.Globalization;
 using Swordfish.Physics;
-using System.ComponentModel;
 using Swordfish.ECS;
 
 namespace Swordfish
 {
     public class Engine
     {
-        public static float FrameTime = 0f;
         public static float DeltaTime = 0f;
+        public static float ECSTime = 0f;
+        public static float FrameTime = 0f;
         public static int Frame = 0;
 
-        public static ECSContext ECS;
         public static WindowContext MainWindow;
         public static RenderContext Renderer;
         public static PhysicsContext Physics;
         public static CoreSettings Settings;
+        public static ECSContext ECS;
+        public static Random Random;
 
         public static Action StartCallback;
         public static Action StopCallback;
@@ -43,6 +39,7 @@ namespace Swordfish
             Renderer = new RenderContext();
             Physics = new PhysicsContext();
             ECS = new ECSContext();
+            Random = new Random();
 
             var nativeWindowSettings = new NativeWindowSettings()
             {
@@ -57,6 +54,9 @@ namespace Swordfish
                 window.RenderFrequency = Settings.FRAMELIMIT;
                 window.Run();
             }
+
+            //  Dump the log if this isn't a release build
+            if (!Engine.Settings.IS_RELEASE) Debug.Dump();
         }
 
         public static void Start()

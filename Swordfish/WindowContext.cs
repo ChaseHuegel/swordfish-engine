@@ -7,12 +7,15 @@ using Swordfish.Rendering;
 using Image = OpenTK.Windowing.Common.Input.Image;
 using System.Drawing;
 using System.Reflection.Metadata.Ecma335;
+using System.Threading;
 
 namespace Swordfish
 {
     public class WindowContext : GameWindow
     {
-        private float[] frameTimes = new float[60];
+        public int FPS { get; private set; }
+
+        private float[] frameTimes = new float[6];
         private int frameTimeIndex = 0;
         private float frameTimer = 0f;
 
@@ -49,22 +52,35 @@ namespace Swordfish
             Engine.DeltaTime = (float)e.Time;
             Engine.Frame++;
 
-            //  TODO: Very quick and dirty
+            //  TODO: Very quick and dirty stable timing
             frameTimer += Engine.DeltaTime;
+            frameTimes[frameTimeIndex] = Engine.DeltaTime;
+            frameTimeIndex++;
+            if (frameTimeIndex >= frameTimes.Length)
+                frameTimeIndex = 0;
             if (frameTimer >= 1f/frameTimes.Length)
             {
                 frameTimer = 0f;
 
-                frameTimes[frameTimeIndex] = Engine.DeltaTime;
-                frameTimeIndex++;
-                if (frameTimeIndex >= frameTimes.Length)
-                    frameTimeIndex = 0;
-
+                float highest = 0f;
+                float lowest = 9999f;
                 Engine.FrameTime = 0f;
                 foreach (float timing in frameTimes)
+                {
                     Engine.FrameTime += timing;
-                Engine.FrameTime /= frameTimes.Length;
+                    if (timing <= lowest) lowest = timing;
+                    if (timing >= highest) highest = timing;
+                }
+
+                Engine.FrameTime -= lowest;
+                Engine.FrameTime -= highest;
+                Engine.FrameTime /= (frameTimes.Length - 2);
             }
+
+            //  Calculate FPS and cap it by the window's FPS cap
+            FPS = (int)(1f / Engine.FrameTime);
+            if (Engine.MainWindow.RenderFrequency > 0 && FPS > Engine.MainWindow.RenderFrequency)
+                FPS = (int)Engine.MainWindow.RenderFrequency;
 
             //  Don't update if the window isn't in focus
             if (!IsFocused) return;

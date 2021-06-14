@@ -28,15 +28,13 @@ namespace source
             Engine.Initialize();
         }
 
-        public Random rand = new Random();
         public float cameraSpeed = 12f;
-        public List<Transform> cubes;
 
         private void Start()
         {
             Debug.Stats = true;
 
-            CreateEntityCubes(1000);
+            // CreateEntityCubes(1000);
         }
 
         public void CreateEntityCubes(int count)
@@ -47,8 +45,8 @@ namespace source
                 entity = Engine.ECS.CreateEntity();
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
-                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(rand.Next(-100, 100), rand.Next(-100, 100), rand.Next(-100, 100)) })
-                    .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(rand.Next(360), rand.Next(360), rand.Next(360)) });
+                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), Engine.Random.Next(40, 50), Engine.Random.Next(-100, 100)) })
+                    .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
             }
         }
 
@@ -63,8 +61,8 @@ namespace source
             if (Input.IsKeyDown(Keys.Escape))
                 Engine.Shutdown();
 
-            if (Input.IsKeyPressed(Keys.F2))
-                CreateEntityCubes(1000);
+            if (Input.IsKeyDown(Keys.F2))
+                CreateEntityCubes(1);
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * Engine.DeltaTime;
