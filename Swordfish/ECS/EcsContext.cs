@@ -10,6 +10,7 @@ using System.IO;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace Swordfish.ECS
 {
@@ -314,20 +315,15 @@ namespace Swordfish.ECS
             _entities[entity.UID] = null;
             Interlocked.Decrement(ref _entityCount);
 
-            //  Release component data
-            List<Type> components = new List<Type>();
+            //  Collect a list of all components this entity had
+            List<Type> destroyedComponents = new List<Type>();
             foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
-            {
-                if (_components.TryGetValue(pair.Key, out ExpandingList<object> data))
-                {
-                    data[entity.UID] = null;
-                    components.Add(pair.Key);   //  Collect a list of all components this entity had
-                }
-            }
+                if (_components.TryGetValue(pair.Key, out ExpandingList<object> data) && data[entity.UID] != null)
+                    destroyedComponents.Add(pair.Key);
 
-            //  Tell all systems with this entity's components to update matching entities
+            //  Tell all systems with this entity's components to do a fresh pull
             foreach (ComponentSystem system in _systems)
-                if (system.IsFiltering(components.ToArray()))
+                if (system.IsFiltering(destroyedComponents.ToArray()))
                     system.PullEntities();
 
             return this;

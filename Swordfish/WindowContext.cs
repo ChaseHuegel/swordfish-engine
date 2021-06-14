@@ -85,8 +85,14 @@ namespace Swordfish
             //  Allow fullscreen toggle with ALT+ENTER
             if (Input.IsKeyPressed(Keys.Enter) && Input.IsKeyDown(Keys.LeftAlt))
             {
+                //  Toggle fullscreen
                 Engine.Settings.WINDOW_FULLSCREEN = !Engine.Settings.WINDOW_FULLSCREEN;
+
+                //  Update state
                 WindowState = Engine.Settings.WINDOW_FULLSCREEN ? WindowState.Fullscreen : WindowState.Normal;
+
+                //  Update window size
+                Engine.Settings.WINDOW_SIZE = ClientSize;
 
                 OnResize(new ResizeEventArgs(ClientSize));
             }
