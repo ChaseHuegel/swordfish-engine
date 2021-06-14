@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 namespace Swordfish.Containers
 {
     /// <summary>
-    /// Represents a non-shrinking typed list
+    /// Represents a thread-safe non-shrinking typed list
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class ConcurrentExpanding<T> : IEnumerable
