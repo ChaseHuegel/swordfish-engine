@@ -29,12 +29,11 @@ namespace source
         }
 
         public float cameraSpeed = 12f;
+        public bool raining = true;
 
         private void Start()
         {
             Debug.Stats = true;
-
-            // CreateEntityCubes(1000);
         }
 
         public void CreateEntityCubes(int count)
@@ -53,6 +52,9 @@ namespace source
 
         private void Update()
         {
+            if (raining)
+                CreateEntityCubes(1);
+
             if (Input.IsKeyPressed(Keys.GraveAccent))
                 Debug.Enabled = !Debug.Enabled;
 
@@ -62,8 +64,8 @@ namespace source
             if (Input.IsKeyDown(Keys.Escape))
                 Engine.Shutdown();
 
-            if (Input.IsKeyDown(Keys.F2))
-                CreateEntityCubes(1);
+            if (Input.IsKeyPressed(Keys.F2))
+                raining = !raining;
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * Engine.DeltaTime;
