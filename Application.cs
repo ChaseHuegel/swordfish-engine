@@ -43,6 +43,7 @@ namespace source
             for (int i = 0; i < count; i++)
             {
                 entity = Engine.ECS.CreateEntity();
+                if (entity == null) continue;
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
                     .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), Engine.Random.Next(40, 50), Engine.Random.Next(-100, 100)) })
