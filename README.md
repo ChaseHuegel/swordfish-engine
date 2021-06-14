@@ -15,7 +15,7 @@ Below are timing results, delta time is the time between frames or updates to th
 
 * ~6ms on Main (single thread)
 * ~1ms on Main ~2ms on ECS (dual threaded)
-* Rendering accounts for ~0.1ms on Main 
+* Rendering accounts for ~0.1ms on Main (unbatched draw calls)
 * CPU: AMD Ryzen 5 3600X
 * GPU: GeForce GTX 970
 
