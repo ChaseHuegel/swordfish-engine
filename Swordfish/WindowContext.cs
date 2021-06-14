@@ -82,9 +82,6 @@ namespace Swordfish
             if (Engine.MainWindow.RenderFrequency > 0 && FPS > Engine.MainWindow.RenderFrequency)
                 FPS = (int)Engine.MainWindow.RenderFrequency;
 
-            //  Don't update if the window isn't in focus
-            if (!IsFocused) return;
-
             //  Allow fullscreen toggle with ALT+ENTER
             if (Input.IsKeyPressed(Keys.Enter) && Input.IsKeyDown(Keys.LeftAlt))
             {
