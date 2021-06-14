@@ -8,7 +8,7 @@ ImGui.NET (ImGui C# wrapper) https://github.com/mellinoe/ImGui.NET
 ## Updates
 
 ### 6/14/2021
-Multithreading! ECS runs on its own thread, giving a major performance increase. Also a rain demo to test a large amounts of entities acted on by 3 systems (Render, Gravity, Rotate). In particular this stress tests entity creation and destruction stability, reliability, and performance. There is a relability issue to be fixed (recycled entities can overlap create-destroy calls). Create-destroy calls are also expensive due to updating ComponentSystem caches being unoptimized, however multithreading has given a net-positive to performance by spreading those calls between threads.
+Multithreading and a simple profiler! ECS runs on its own thread, giving a major performance increase. Also a rain demo to test a large amounts of entities acted on by 3 systems (Render, Gravity, Rotate). In particular this stress tests entity creation and destruction stability, reliability, and performance. There is a relability issue to be fixed (recycled entities can overlap create-destroy calls). Create-destroy calls are also expensive due to updating ComponentSystem caches being unoptimized, however multithreading has given a net-positive to performance by spreading those calls between threads.
 
 #### Delta Time
 Below are timing results, delta time is the time between frames or updates to the thread. For reference, 60FPS is equivalent to 16.67ms. There are ~3k entities alive at any given time, with ~1k create and ~1k destroy calls per second. A great start!
@@ -19,7 +19,7 @@ Below are timing results, delta time is the time between frames or updates to th
 * CPU: AMD Ryzen 5 3600X
 * GPU: GeForce GTX 970
 
-https://user-images.githubusercontent.com/14932139/121899754-b70a7580-ccf2-11eb-8f1b-55c6f0b40a68.mp4
+https://user-images.githubusercontent.com/14932139/121935331-512fe500-cd16-11eb-9daa-636be21132cf.mp4
 
 
 ### 6/12/2021
