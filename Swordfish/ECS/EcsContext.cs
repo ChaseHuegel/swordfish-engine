@@ -276,7 +276,7 @@ namespace Swordfish.ECS
 
             //  Try pushing to context
             if (Push(entity))
-                _entityCount++;
+                Interlocked.Increment(ref _entityCount);
             //  Otherwise recycle
             else
             {
@@ -312,7 +312,7 @@ namespace Swordfish.ECS
 
             //  Release the entity
             _entities[entity.UID] = null;
-            _entityCount--;
+            Interlocked.Decrement(ref _entityCount);
 
             //  Release component data
             List<Type> components = new List<Type>();
