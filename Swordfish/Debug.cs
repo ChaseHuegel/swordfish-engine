@@ -39,10 +39,14 @@ namespace Swordfish
 
         public override void WriteLine(string value)
         {
+            if (value == null) return;
+
             lines.Add(value);
 
-            //  Only write to original writer if this isn't a release build
-            if (!Engine.Settings.IS_RELEASE) original.WriteLine(value);
+            //  Only push to original writer if this is a debug build
+            #if DEBUG
+                original?.WriteLine(value);
+            #endif
         }
 
         public List<string> GetLines() => lines;
@@ -51,13 +55,19 @@ namespace Swordfish
 
     public class Debug : Singleton<Debug>
     {
-        public static void Log(string message, LogType type = LogType.INFO) { Log(message, "", type); }
+        public static void Log(string message, LogType type = LogType.INFO) => Log(message, "", type);
 
         public static void Log(string message, string title, LogType type = LogType.INFO, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null,string debugTagging = "")
+            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null, string debugTagging = "")
         {
             if (type == LogType.ERROR || type == LogType.WARNING)
-                debugTagging = "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
+            {
+                //  Tag on a trace to the error
+                debugTagging += "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
+
+                // Flag that the debugger has errors
+                HasErrors = true;
+            }
 
             Console.WriteLine($"[{type.ToString()}] {title}: {message}{debugTagging}");
             // Console.WriteLine($"{DateTime.Now} [{type.ToString()}] {title}: {message}{debugTagging}");
@@ -96,9 +106,16 @@ namespace Swordfish
             return true;
         }
 
-        public static bool HasGLOutput()
+        public static void TryCreateGLOutput()
         {
-            return Instance.hasGLOutput;
+            if (Instance.hasGLOutput = HasCapabilities(4, 3, "GL_KHR_debug") == false)
+                Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used");
+            else
+            {
+                Instance.glErrorDelegate = new DebugProc(GLErrorCallback);
+                GL.DebugMessageCallback(Instance.glErrorDelegate, IntPtr.Zero);
+                Debug.Log("...Created OpenGL debug output");
+            }
         }
 
         public static void TryLogGLError(string title,
@@ -130,7 +147,7 @@ namespace Swordfish
                                     ref profile[0], profile.Length, 0,
                                     "T - ECS",
                                     0f, 16f,
-                                    new Vector2(Engine.Settings.WINDOW_SIZE.X*0.45f, Engine.Settings.WINDOW_SIZE.X*0.05f)
+                                    new Vector2(Engine.Settings.Window.SIZE.X*0.45f, Engine.Settings.Window.SIZE.X*0.05f)
                                 );
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
@@ -147,11 +164,11 @@ namespace Swordfish
                                     ref profile[0], profile.Length, 0,
                                     "T - Main",
                                     0f, 16f,
-                                    new Vector2(Engine.Settings.WINDOW_SIZE.X*0.45f, Engine.Settings.WINDOW_SIZE.X*0.05f)
+                                    new Vector2(Engine.Settings.Window.SIZE.X*0.45f, Engine.Settings.Window.SIZE.X*0.05f)
                                 );
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
-                ImGui.SetWindowPos(new Vector2(0f, Engine.Settings.WINDOW_SIZE.Y - ImGui.GetWindowHeight()));
+                ImGui.SetWindowPos(new Vector2(0f, Engine.Settings.Window.SIZE.Y - ImGui.GetWindowHeight()));
             ImGui.End();
         }
 
@@ -196,11 +213,6 @@ namespace Swordfish
             ImGui.End();
         }
 
-        public static void Dump()
-        {
-            File.WriteAllLines("debug.log", GetWriter().GetLines());
-        }
-
         //  Internal profile timings storage
         protected Queue ecsProfile;
         protected Queue mainProfile;
@@ -221,7 +233,7 @@ namespace Swordfish
             {
                 profile = new Queue();
 
-                for (int i = 0; i < Engine.Settings.PROFILE_LENGTH; i++)
+                for (int i = 0; i < Engine.Settings.Profiler.HISTORY; i++)
                     profile.Enqueue(0f);
             }
 
@@ -252,27 +264,30 @@ namespace Swordfish
             timings = profile.Cast<float>().ToArray();
         }
 
-        protected LogWriter writer = new LogWriter(Console.Out);
-        public static LogWriter GetWriter() { return Instance.writer; }
+        public static void Initialize() => CreateInstance();
+        public static void Dump() => File.WriteAllLines("debug.log", GetWriter().GetLines());
+
+        public static LogWriter GetWriter() => Instance.writer;
+        public static bool HasGLOutput() => Instance.hasGLOutput;
+
+        public static bool HasErrors { get; private set; }
+        public static bool Enabled = false;
+        public static bool Stats = false;
+
+        protected LogWriter writer;
 
         protected bool hasGLOutput;
         private DebugProc glErrorDelegate;
 
-        public static bool Enabled = false;
-        public static bool Stats = false;
-
         private Debug()
         {
-            Debug.Log("Logger initialized.");
+            //  Create a writer that mirrors to the console
+            writer = new LogWriter(Console.Out);
 
-            if (hasGLOutput = HasCapabilities(4, 3, "GL_KHR_debug") == false)
-                Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used");
-            else
-            {
-                glErrorDelegate = new DebugProc(GLErrorCallback);
-                GL.DebugMessageCallback(glErrorDelegate, IntPtr.Zero);
-                Debug.Log("...Created OpenGL debug context");
-            }
+            //  Set the Console output to the Debug writer
+            Console.SetOut(writer);
+
+            Log("Logger initialized");
         }
     }
 }

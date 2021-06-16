@@ -19,7 +19,7 @@ namespace Swordfish
             }
         }
 
-        private static void CreateInstance()
+        protected static void CreateInstance()
         {
             lock (initLock)
             {

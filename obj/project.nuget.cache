@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "eUGbxM4NTDZNJ0PvHKRZLXZXOBjMygRhX6Z39KLB7Jhj26I4HUWNFd4fDC9fYdwpezHf/YXmkIeuBLgi8u12ew==",
+  "dgSpecHash": "G62p1CNdQR9ygtP+OEMdkVPQEM61aI2d149R4+rUaa3+TTTtolALkBqqXcHs3wlODi9oRAIeDnXv5yCkJPyAow==",
   "success": true,
   "projectFilePath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\source.csproj",
   "expectedPackageFiles": [
@@ -18,6 +18,7 @@
     "C:\\Users\\Chase\\.nuget\\packages\\opentk.windowing.common\\4.6.4\\opentk.windowing.common.4.6.4.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\opentk.windowing.desktop\\4.6.4\\opentk.windowing.desktop.4.6.4.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\opentk.windowing.graphicslibraryframework\\4.6.4\\opentk.windowing.graphicslibraryframework.4.6.4.nupkg.sha512",
+    "C:\\Users\\Chase\\.nuget\\packages\\samboy063.tomlet\\1.3.3\\samboy063.tomlet.1.3.3.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\system.buffers\\4.4.0\\system.buffers.4.4.0.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\system.drawing.common\\5.0.2\\system.drawing.common.5.0.2.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\system.numerics.vectors\\4.4.0\\system.numerics.vectors.4.4.0.nupkg.sha512",

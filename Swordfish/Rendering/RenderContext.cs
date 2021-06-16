@@ -51,6 +51,8 @@ namespace Swordfish.Rendering
             GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
             Debug.Log($"    Shader vertex attr supported: {maxAttributeCount}");
 
+            Debug.TryCreateGLOutput();
+
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
@@ -140,8 +142,8 @@ namespace Swordfish.Rendering
             projection = Matrix4.CreatePerspectiveFieldOfView(
                     MathHelper.DegreesToRadians(camera.FOV),
                     (float)Engine.MainWindow.ClientSize.X / (float)Engine.MainWindow.ClientSize.Y,
-                    Engine.Settings.CLIP_NEAR,
-                    Engine.Settings.CLIP_FAR
+                    Engine.Settings.Renderer.CLIP_NEAR,
+                    Engine.Settings.Renderer.CLIP_FAR
                 );
 
             shader.SetMatrix4("view", camera.view);

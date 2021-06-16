@@ -1,0 +1,15 @@
+[Window]
+TITLE = "Swordfish Engine"
+FULLSCREEN = false
+WIDTH = 1024
+HEIGHT = 768
+
+[Profiler]
+HISTORY = 300
+
+[Renderer]
+FRAMECAP = 60
+VSYNC = "Adaptive"
+CLIP_NEAR = 0.1
+CLIP_FAR = 1000
+

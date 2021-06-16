@@ -3,6 +3,8 @@ OpenTK (OpenGL C# wrapper) https://github.com/opentk/opentk
 
 ImGui.NET (ImGui C# wrapper) https://github.com/mellinoe/ImGui.NET
 
+Tomlet (TOML file format for C#) https://github.com/SamboyCoding/Tomlet
+
 ----------------------------------
 
 ## Updates

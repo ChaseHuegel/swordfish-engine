@@ -5,6 +5,8 @@ using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
 using Swordfish.Rendering;
 using Swordfish.Physics;
 using Swordfish.ECS;
+using source;
+using OpenTK.Windowing.Common;
 
 namespace Swordfish
 {
@@ -14,6 +16,8 @@ namespace Swordfish
         public static float ECSTime = 0f;
         public static float FrameTime = 0f;
         public static int Frame = 0;
+
+        private static bool IsSafeShutdown = false;
 
         public static WindowContext MainWindow;
         public static RenderContext Renderer;
@@ -32,31 +36,37 @@ namespace Swordfish
 
         public static void Initialize()
         {
-            MonitorInfo screen = GLHelper.GetPrimaryDisplay();
-            Vector2i screenSize = new Vector2i(screen.HorizontalResolution, screen.VerticalResolution);
+            Debug.Initialize();
 
-            Settings = new CoreSettings();
+            //  Load engine settings
+            Settings = CoreSettings.LoadConfig("swordfish.toml");
+
+            //  Initialize all engine members
             Renderer = new RenderContext();
             Physics = new PhysicsContext();
             ECS = new ECSContext();
             Random = new Random();
 
+            MonitorInfo screen = GLHelper.GetPrimaryDisplay();
+            Vector2i screenSize = new Vector2i(screen.HorizontalResolution, screen.VerticalResolution);
+
             var nativeWindowSettings = new NativeWindowSettings()
             {
-                Title = Settings.WINDOW_TITLE,
-                Size = Settings.WINDOW_FULLSCREEN ? screenSize : Settings.WINDOW_SIZE,
-                WindowBorder = Settings.WINDOW_FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed
+                Title = Settings.Window.TITLE,
+                Size = Settings.Window.FULLSCREEN ? screenSize : Settings.Window.SIZE,
+                WindowBorder = Settings.Window.FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed
             };
 
             using (WindowContext window = new WindowContext(GameWindowSettings.Default, nativeWindowSettings))
             {
                 MainWindow = window;
-                window.RenderFrequency = Settings.FRAMELIMIT;
+                window.RenderFrequency = Settings.Renderer.FRAMECAP;
+                window.VSync = Settings.Renderer.VSYNC;
                 window.Run();
             }
 
-            //  Dump the log if this isn't a release build
-            if (!Engine.Settings.IS_RELEASE) Debug.Dump();
+            //  Attempt to dump the log
+            TryDumpLog();
         }
 
         public static void Start()
@@ -75,10 +85,36 @@ namespace Swordfish
 
         public static void Shutdown()
         {
-            ECS.Shutdown();
+            MainWindow.Close();
 
             ShutdownCallback?.Invoke();
-            MainWindow.Close();
+            ECS.Shutdown();
+
+            IsSafeShutdown = true;
+        }
+
+        private static void TryDumpLog()
+        {
+            //  If this is a safe shutdown...
+            if (IsSafeShutdown)
+            {
+                //  Dump the log if this this is a debug build OR any errors were detected
+                #if DEBUG
+                    Debug.Dump();
+                #else
+                    if (Debug.HasErrors) Debug.Dump();
+                #endif
+            }
+            //  ...otherwise an unsafe shutdown
+            else
+            {
+                //  Notify and dump the log
+                Debug.Log("Unexpected shutdown! Did it crash?");
+                Debug.Dump();
+
+                //  Perform shutdown steps
+                Shutdown();
+            }
         }
     }
 }

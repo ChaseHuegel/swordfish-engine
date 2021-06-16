@@ -25,8 +25,6 @@ namespace Swordfish
 
         protected override void OnLoad()
         {
-            Console.SetOut(Debug.GetWriter());
-
             Debug.Log($"Started {this.Title}");
             Debug.Log("Settings");
             Debug.Log($"    Framelimit {this.RenderFrequency}");
@@ -86,13 +84,13 @@ namespace Swordfish
             if (Input.IsKeyPressed(Keys.Enter) && Input.IsKeyDown(Keys.LeftAlt))
             {
                 //  Toggle fullscreen
-                Engine.Settings.WINDOW_FULLSCREEN = !Engine.Settings.WINDOW_FULLSCREEN;
+                Engine.Settings.Window.FULLSCREEN = !Engine.Settings.Window.FULLSCREEN;
 
                 //  Update state
-                WindowState = Engine.Settings.WINDOW_FULLSCREEN ? WindowState.Fullscreen : WindowState.Normal;
+                WindowState = Engine.Settings.Window.FULLSCREEN ? WindowState.Fullscreen : WindowState.Normal;
 
                 //  Update window size
-                Engine.Settings.WINDOW_SIZE = ClientSize;
+                Engine.Settings.Window.SIZE = ClientSize;
 
                 OnResize(new ResizeEventArgs(ClientSize));
             }

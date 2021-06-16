@@ -1,3 +1,9 @@
+[INFO] : Logger initialized
+[INFO] : Loading core config from 'swordfish.toml' ...
+[ERROR] : Could not find file 'E:\Projects\Wayward Beyond\swordfish-engine\swordfish.toml'.
+      at line 58 (Log) in E:\Projects\Wayward Beyond\swordfish-engine\Swordfish\Debug.cs
+[INFO] : ...Created file from default at 'swordfish.toml'
+[INFO] : Loaded core config.
 [INFO] : Started Swordfish Engine
 [INFO] : Settings
 [INFO] :     Framelimit 60
@@ -6,6 +12,7 @@
 [INFO] :     NVIDIA Corporation GeForce GTX 970/PCIe/SSE2
 [INFO] :     Extensions found: 383
 [INFO] :     Shader vertex attr supported: 16
+[INFO] : ...Created OpenGL debug output
 [INFO] : Created texture 'ImGui Text Atlas'
 [INFO] : Loading texture array 'blocks' from 'resources/textures/block/'
 [INFO] :     Found texture 'caution_panel.png' at 0
@@ -44,7 +51,7 @@
 [INFO] Threading: Started thread 'ECS'
 [INFO] : Resized dear imgui vertex buffer to new size 25200
 [INFO] : Resized dear imgui index buffer to new size 3780
-[INFO] : Resized dear imgui vertex buffer to new size 51680
-[INFO] : Resized dear imgui index buffer to new size 7752
-[INFO] : Resized dear imgui vertex buffer to new size 77520
-[INFO] : Resized dear imgui index buffer to new size 11628
+[INFO] : Resized dear imgui vertex buffer to new size 51760
+[INFO] : Resized dear imgui index buffer to new size 7764
+[INFO] : Resized dear imgui vertex buffer to new size 77640
+[INFO] : Resized dear imgui index buffer to new size 11646
