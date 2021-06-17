@@ -1,7 +1,7 @@
 using System;
-using System.Threading;
 using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace Swordfish.Containers
 {

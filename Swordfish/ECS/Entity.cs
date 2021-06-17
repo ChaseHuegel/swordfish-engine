@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.ECS
 {
     public class Entity

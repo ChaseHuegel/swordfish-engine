@@ -1,18 +1,10 @@
-using System;
-using System.Collections.Generic;
-using ImGuiNET;
-using OpenTK;
-using OpenTK.Mathematics;
-using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using Swordfish;
+using OpenTK.Mathematics;
+
+using Swordfish.Diagnostics;
+using Swordfish.ECS;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
-using System.Collections.Concurrent;
-using Swordfish.ECS;
 
 namespace Swordfish.Rendering
 {
@@ -169,10 +161,14 @@ namespace Swordfish.Rendering
             //  Disable depth testing for this pass
             GL.Disable(EnableCap.DepthTest);
             GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
-                if (Debug.Enabled) Debug.ShowDebugGui();
-                else if (Debug.Stats) Debug.ShowStatsGui();
 
-                //  Invoke callback
+                //  Try presenting debug
+                if (Debug.Enabled) Debug.ShowGui();
+
+                //  Try presenting the console
+                if (Debug.Console) Logger.ShowGui();
+
+                //  Invoke GUI callback
                 Engine.GuiCallback?.Invoke();
             GuiController.Render();
         }

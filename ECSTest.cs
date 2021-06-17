@@ -1,11 +1,7 @@
-using System;
-using System.Globalization;
-using System.Text;
-using System.Threading;
 using OpenTK.Mathematics;
+
 using Swordfish;
 using Swordfish.ECS;
-using Swordfish.Rendering;
 
 namespace ECSTest
 {

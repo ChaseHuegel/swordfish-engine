@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.Delegates
 {
     /// <summary>

@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 
@@ -12,6 +14,27 @@ namespace Swordfish.Rendering
         {
             OpenTK.Windowing.Desktop.Monitors.TryGetMonitorInfo(index, out MonitorInfo monitor);
             return monitor;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool HasCapabilities(int major, int minor, params string[] extensions)
+        {
+            string versionString = GL.GetString(StringName.Version);
+            Version version = new Version(versionString.Split(' ')[0]);
+
+            return version >= new Version(major, minor) || HasExtensions(extensions);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool HasExtensions(params string[] extensions)
+        {
+            List<string> supportedExtensions = GetSupportedExtensions();
+
+            foreach (var extension in extensions)
+                if (!supportedExtensions.Contains(extension))
+                    return false;
+
+            return true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

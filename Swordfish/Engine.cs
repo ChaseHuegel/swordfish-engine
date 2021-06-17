@@ -1,10 +1,14 @@
 ﻿using System;
+
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
-using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
-using Swordfish.Rendering;
-using Swordfish.Physics;
+
+using Swordfish.Diagnostics;
 using Swordfish.ECS;
+using Swordfish.Physics;
+using Swordfish.Rendering;
+
+using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
 
 namespace Swordfish
 {
@@ -22,6 +26,10 @@ namespace Swordfish
         public static PhysicsContext Physics;
         public static CoreSettings Settings;
         public static ECSContext ECS;
+
+        /// <summary>
+        /// A static instance of System.Random that should only be used in the Main thread
+        /// </summary>
         public static Random Random;
 
         public static Action StartCallback;
@@ -34,8 +42,6 @@ namespace Swordfish
 
         public static void Initialize()
         {
-            Debug.Initialize();
-
             //  Load engine settings
             Settings = CoreSettings.LoadConfig("swordfish.toml");
 

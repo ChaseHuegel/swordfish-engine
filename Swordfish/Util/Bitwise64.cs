@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.Util
 {
     public class Bitwise64

@@ -1,14 +1,12 @@
-using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Runtime.CompilerServices;
-using System.Threading;
-using OpenTK.Mathematics;
+using System.Text;
+
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
+
+using Debug = Swordfish.Diagnostics.Debug;
 
 namespace Swordfish.Rendering
 {

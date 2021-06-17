@@ -1,13 +1,9 @@
-﻿using System;
-using OpenTK.Graphics.OpenGL4;
+﻿using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Swordfish.Rendering;
-using Image = OpenTK.Windowing.Common.Input.Image;
-using System.Drawing;
-using System.Reflection.Metadata.Ecma335;
-using System.Threading;
+
+using Swordfish.Diagnostics;
 
 namespace Swordfish
 {
@@ -104,7 +100,7 @@ namespace Swordfish
             Engine.PostRenderCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryLogGLError("OpenGL");
+            Debug.TryCollectGLError("OpenGL");
 
             Context.SwapBuffers();
             base.OnRenderFrame(e);

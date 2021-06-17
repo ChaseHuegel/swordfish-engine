@@ -1,9 +1,11 @@
-using Tomlet;
-using OpenTK.Mathematics;
-using System.IO;
-using Tomlet.Models;
 using System;
+using System.IO;
+
 using OpenTK.Windowing.Common;
+
+using Swordfish.Diagnostics;
+
+using Tomlet;
 
 namespace Swordfish
 {

@@ -1,8 +1,4 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using OpenTK.Mathematics;
-using Swordfish;
 
 namespace Swordfish.Rendering
 {

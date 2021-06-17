@@ -1,5 +1,4 @@
 using System;
-using Swordfish.Containers;
 
 namespace Swordfish.ECS
 {

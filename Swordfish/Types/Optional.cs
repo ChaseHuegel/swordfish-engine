@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Swordfish
+﻿namespace Swordfish
 {
     //  Represents an optional field
     public struct Optional<T>

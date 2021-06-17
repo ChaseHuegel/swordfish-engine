@@ -1,12 +1,15 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.IO;
+
 using OpenTK.Graphics.OpenGL4;
-using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
-using Swordfish;
+
+using Swordfish.Diagnostics;
 using Swordfish.Util;
+
+using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace Swordfish.Rendering
 {

@@ -1,19 +1,16 @@
-using System;
-using System.Collections.Generic;
 using ImGuiNET;
-using OpenTK;
+
 using OpenTK.Mathematics;
-using OpenTK.Graphics;
-using OpenTK.Graphics.OpenGL4;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
+
 using Swordfish;
+using Swordfish.Diagnostics;
+using Swordfish.ECS;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
-using Swordfish.ECS;
-using ECSTest;
+
+using Vector2 = System.Numerics.Vector2;
 
 namespace source
 {
@@ -22,19 +19,17 @@ namespace source
         static void Main(string[] args)
         {
             Application game = new Application();
+
             Engine.StartCallback = game.Start;
             Engine.UpdateCallback = game.Update;
+            Engine.GuiCallback = game.ShowGui;
 
             Engine.Initialize();
         }
 
         public float cameraSpeed = 12f;
         public bool raining = true;
-
-        private void Start()
-        {
-            Debug.Stats = true;
-        }
+        public bool showControls = true;
 
         public void CreateEntityCubes(int count)
         {
@@ -50,21 +45,65 @@ namespace source
             }
         }
 
+        private void Start()
+        {
+            Debug.Enabled = true;
+        }
+
+        private void ShowGui()
+        {
+            if (showControls)
+            {
+                ImGui.SetNextWindowPos(new Vector2(0, 120));
+                ImGui.Begin("Controls", WindowFlagPresets.FLAT);
+                    ImGui.Text($"Console ~");
+                    ImGui.Text($"Controls F1");
+                    ImGui.Text($"Debug F2");
+                    ImGui.Text($"- Stats F3");
+                    ImGui.Text($"- Profiler F4");
+
+                    ImGui.Separator();
+
+                    ImGui.Text($"Speed+ SHIFT");
+                    ImGui.Text($"Move WASD");
+                    ImGui.Text($"Up SPACE");
+                    ImGui.Text($"Down CTRL");
+                    ImGui.Text($"Roll QE");
+                    ImGui.Text($"MouseLook TAB");
+                    ImGui.Text($"Zoom C");
+
+                    ImGui.Separator();
+
+                    ImGui.Text($"Cube Rain F5");
+                    ImGui.Text($"Exit ESC");
+                ImGui.End();
+            }
+        }
+
         private void Update()
         {
             if (raining)
                 CreateEntityCubes(1);
 
-            if (Input.IsKeyPressed(Keys.GraveAccent))
-                Debug.Enabled = !Debug.Enabled;
-
-            if (Input.IsKeyPressed(Keys.F1))
-                Debug.Stats = !Debug.Stats;
-
             if (Input.IsKeyDown(Keys.Escape))
                 Engine.Shutdown();
 
+            if (Input.IsKeyPressed(Keys.F1))
+                showControls = !showControls;
+
+            if (Input.IsKeyPressed(Keys.GraveAccent))
+                Debug.Console = !Debug.Console;
+
             if (Input.IsKeyPressed(Keys.F2))
+                Debug.Enabled = !Debug.Enabled;
+
+            if (Input.IsKeyPressed(Keys.F3))
+                Debug.Stats = !Debug.Stats;
+
+            if (Input.IsKeyPressed(Keys.F4))
+                Debug.Profiling = !Debug.Profiling;
+
+            if (Input.IsKeyPressed(Keys.F5))
                 raining = !raining;
 
             if (Input.IsKeyDown(Keys.W))

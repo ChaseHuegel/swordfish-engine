@@ -1,16 +1,13 @@
-using System.Reflection;
-using System.Collections.Generic;
-using Swordfish.Rendering;
-using Swordfish.Containers;
-using Swordfish.Delegates;
 using System;
-using OpenTK.Mathematics;
-using Swordfish.Threading;
-using System.IO;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Reflection;
 using System.Threading;
-using System.Threading.Tasks;
-using System.Diagnostics;
+
+using Swordfish.Containers;
+using Swordfish.Diagnostics;
+using Swordfish.Delegates;
+using Swordfish.Threading;
 
 namespace Swordfish.ECS
 {
