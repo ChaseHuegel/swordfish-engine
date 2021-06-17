@@ -5,8 +5,6 @@ using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
 using Swordfish.Rendering;
 using Swordfish.Physics;
 using Swordfish.ECS;
-using source;
-using OpenTK.Windowing.Common;
 
 namespace Swordfish
 {
@@ -53,15 +51,16 @@ namespace Swordfish
             var nativeWindowSettings = new NativeWindowSettings()
             {
                 Title = Settings.Window.TITLE,
-                Size = Settings.Window.FULLSCREEN ? screenSize : Settings.Window.SIZE,
+                Size = Settings.Window.FULLSCREEN ? screenSize : new Vector2i(Settings.Window.WIDTH, Settings.Window.HEIGHT),
                 WindowBorder = Settings.Window.FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed
             };
 
             using (WindowContext window = new WindowContext(GameWindowSettings.Default, nativeWindowSettings))
             {
                 MainWindow = window;
-                window.RenderFrequency = Settings.Renderer.FRAMECAP;
-                window.VSync = Settings.Renderer.VSYNC;
+                window.RenderFrequency = Settings.Window.FRAMELIMIT;
+                window.UpdateFrequency = Settings.Window.UPDATELIMIT;
+                window.VSync = Settings.Window.VSYNC;
                 window.Run();
             }
 
@@ -88,6 +87,7 @@ namespace Swordfish
             MainWindow.Close();
 
             ShutdownCallback?.Invoke();
+
             ECS.Shutdown();
 
             IsSafeShutdown = true;

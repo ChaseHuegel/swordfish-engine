@@ -147,7 +147,7 @@ namespace Swordfish
                                     ref profile[0], profile.Length, 0,
                                     "T - ECS",
                                     0f, 16f,
-                                    new Vector2(Engine.Settings.Window.SIZE.X*0.45f, Engine.Settings.Window.SIZE.X*0.05f)
+                                    new Vector2(Engine.Settings.Window.WIDTH*0.45f, Engine.Settings.Window.WIDTH*0.05f)
                                 );
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
@@ -164,11 +164,11 @@ namespace Swordfish
                                     ref profile[0], profile.Length, 0,
                                     "T - Main",
                                     0f, 16f,
-                                    new Vector2(Engine.Settings.Window.SIZE.X*0.45f, Engine.Settings.Window.SIZE.X*0.05f)
+                                    new Vector2(Engine.Settings.Window.WIDTH*0.45f, Engine.Settings.Window.WIDTH*0.05f)
                                 );
                 ImGui.PopStyleColor();
                 ImGui.PopStyleColor();
-                ImGui.SetWindowPos(new Vector2(0f, Engine.Settings.Window.SIZE.Y - ImGui.GetWindowHeight()));
+                ImGui.SetWindowPos(new Vector2(0f, Engine.Settings.Window.HEIGHT - ImGui.GetWindowHeight()));
             ImGui.End();
         }
 
@@ -194,8 +194,8 @@ namespace Swordfish
 
             ShowStatsGui();
 
-            ImGui.SetNextWindowPos(new Vector2(0, Engine.MainWindow.ClientSize.Y - Engine.MainWindow.ClientSize.Y * 0.2f));
-            ImGui.SetNextWindowSize( new Vector2(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y * 0.2f) );
+            ImGui.SetNextWindowPos(new Vector2(0, Engine.Settings.Window.HEIGHT - Engine.Settings.Window.HEIGHT * 0.2f));
+            ImGui.SetNextWindowSize( new Vector2(Engine.Settings.Window.WIDTH, Engine.Settings.Window.HEIGHT * 0.2f) );
 
             ImGui.Begin("Debug", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove);
                 ImGui.BeginChild("scrollview", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar);

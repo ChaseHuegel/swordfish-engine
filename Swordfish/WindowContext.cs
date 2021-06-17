@@ -89,9 +89,6 @@ namespace Swordfish
                 //  Update state
                 WindowState = Engine.Settings.Window.FULLSCREEN ? WindowState.Fullscreen : WindowState.Normal;
 
-                //  Update window size
-                Engine.Settings.Window.SIZE = ClientSize;
-
                 OnResize(new ResizeEventArgs(ClientSize));
             }
 
@@ -117,6 +114,10 @@ namespace Swordfish
         {
             GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
             Engine.Renderer.GuiController.WindowResized(ClientSize.X, ClientSize.Y);
+
+            //  Update size in settings
+            Engine.Settings.Window.WIDTH = ClientSize.X;
+            Engine.Settings.Window.HEIGHT = ClientSize.Y;
 
             base.OnResize(e);
         }

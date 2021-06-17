@@ -18,25 +18,9 @@ namespace Swordfish
             public int WIDTH = 1024;
             public int HEIGHT = 768;
 
-            [NonSerialized]
-            private Vector2i _size;
-            public Vector2i SIZE
-            {
-                get
-                {
-                    if (_size == null || _size == Vector2i.Zero)
-                        _size = new Vector2i(WIDTH, HEIGHT);
-
-                    return _size;
-                }
-                set
-                {
-                    WIDTH = value.X;
-                    HEIGHT = value.Y;
-                    _size.X = value.X;
-                    _size.Y = value.Y;
-                }
-            }
+            public int FRAMELIMIT = 120;
+            public int UPDATELIMIT = 0;
+            public VSyncMode VSYNC = VSyncMode.Off;
         }
 
         public ProfilerSettings Profiler = new ProfilerSettings();
@@ -48,8 +32,6 @@ namespace Swordfish
         public RendererSettings Renderer = new RendererSettings();
         public class RendererSettings
         {
-            public int FRAMECAP = 60;
-            public VSyncMode VSYNC = VSyncMode.Adaptive;
             public float CLIP_NEAR = 0.1f;
             public float CLIP_FAR = 1000f;
         }
