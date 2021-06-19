@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -6,7 +7,7 @@ using System.Text;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
-using Debug = Swordfish.Diagnostics.Debug;
+using Swordfish.Diagnostics;
 
 namespace Swordfish.Rendering
 {
@@ -17,39 +18,32 @@ namespace Swordfish.Rendering
 
         private readonly Dictionary<string, int> uniformLocations = new Dictionary<string, int>();
 
-        public Shader(string vertexPath, string fragmentPath, string name = "New Shader")
+        public Shader(string vertex, string fragment, string name = "New Shader")
         {
             Name = name;
 
             //  Handles
             int VertexShader, FragmentShader;
+            string VertexShaderSource, FragmentShaderSource;
 
             //  Attempt to load vert shader from file, otherwise load from string
-            string VertexShaderSource;
             try
             {
-                using (StreamReader reader = new StreamReader(vertexPath, Encoding.UTF8))
-                {
-                    VertexShaderSource = reader.ReadToEnd();
-                }
+                VertexShaderSource = File.ReadAllText(vertex);
             }
             catch
             {
-                VertexShaderSource = vertexPath;
+                VertexShaderSource = vertex;
             }
 
             //  Attempt to load frag shader from file, otherwise load from string
-            string FragmentShaderSource;
             try
             {
-                using (StreamReader reader = new StreamReader(fragmentPath, Encoding.UTF8))
-                {
-                    FragmentShaderSource = reader.ReadToEnd();
-                }
+                FragmentShaderSource = File.ReadAllText(vertex);
             }
             catch
             {
-                FragmentShaderSource = fragmentPath;
+                FragmentShaderSource = fragment;
             }
 
             //  Generate and bind
