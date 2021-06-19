@@ -77,14 +77,13 @@ namespace Swordfish
         public static void Start()
         {
             ECS.Start();
+            Physics.Start();
 
             StartCallback?.Invoke();
         }
 
         public static void Step()
         {
-            ECS.Step();
-
             UpdateCallback?.Invoke();
         }
 
@@ -95,6 +94,7 @@ namespace Swordfish
             ShutdownCallback?.Invoke();
 
             ECS.Shutdown();
+            Physics.Shutdown();
 
             IsSafeShutdown = true;
         }

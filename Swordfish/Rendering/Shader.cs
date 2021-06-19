@@ -1,8 +1,6 @@
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -39,7 +37,7 @@ namespace Swordfish.Rendering
             //  Attempt to load frag shader from file, otherwise load from string
             try
             {
-                FragmentShaderSource = File.ReadAllText(vertex);
+                FragmentShaderSource = File.ReadAllText(fragment);
             }
             catch
             {

@@ -25,9 +25,9 @@ namespace Swordfish.ECS
         private HashSet<ComponentSystem> _systems;
 
         public float ThreadTime = 0f;
-        private float[] ecsTimes = new float[6];
-        private int ecsTimeIndex = 0;
-        private float ecsTimer = 0f;
+        private float[] times = new float[6];
+        private int timeIndex = 0;
+        private float timer = 0f;
 
         public readonly ThreadWorker Thread;
 
@@ -39,7 +39,7 @@ namespace Swordfish.ECS
             _recycledIDs = new Queue<int>();
             _awaitingDestroy = new ConcurrentBag<Entity>();
 
-            Thread = new ThreadWorker(ThreadStep, false, "ECS");
+            Thread = new ThreadWorker(Step, false, "ECS");
         }
 
         public void Start()
@@ -53,12 +53,15 @@ namespace Swordfish.ECS
             Thread.Start();
         }
 
-        public void Step()
+        public void Shutdown()
         {
+            foreach (ComponentSystem system in _systems)
+                system.OnShutdown();
 
+            Thread.Stop();
         }
 
-        public void ThreadStep()
+        public void Step(float deltaTime)
         {
             //  Destroy marked entities
             foreach (Entity entity in _awaitingDestroy)
@@ -67,22 +70,22 @@ namespace Swordfish.ECS
 
             //  Update systems
             foreach (ComponentSystem system in _systems)
-                system.OnUpdate(Thread.DeltaTime);
+                system.OnUpdate(deltaTime);
 
             //  TODO: Very quick and dirty stable timing
-            ecsTimer += Thread.DeltaTime;
-            ecsTimes[ecsTimeIndex] = Thread.DeltaTime;
-            ecsTimeIndex++;
-            if (ecsTimeIndex >= ecsTimes.Length)
-                ecsTimeIndex = 0;
-            if (ecsTimer >= 1f/ecsTimes.Length)
+            timer += deltaTime;
+            times[timeIndex] = deltaTime;
+            timeIndex++;
+            if (timeIndex >= times.Length)
+                timeIndex = 0;
+            if (timer >= 1f/times.Length)
             {
-                ecsTimer = 0f;
+                timer = 0f;
 
                 float highest = 0f;
                 float lowest = 9999f;
                 ThreadTime = 0f;
-                foreach (float timing in ecsTimes)
+                foreach (float timing in times)
                 {
                     ThreadTime += timing;
                     if (timing <= lowest) lowest = timing;
@@ -91,16 +94,8 @@ namespace Swordfish.ECS
 
                 ThreadTime -= lowest;
                 ThreadTime -= highest;
-                ThreadTime /= (ecsTimes.Length - 2);
+                ThreadTime /= (times.Length - 2);
             }
-        }
-
-        public void Shutdown()
-        {
-            foreach (ComponentSystem system in _systems)
-                system.OnShutdown();
-
-            Thread.Stop();
         }
 
         /// <summary>
@@ -238,6 +233,38 @@ namespace Swordfish.ECS
 
                 if (matches == components.Length)
                     foundEntities.Add(entity);
+            }
+
+            return foundEntities.ToArray();
+        }
+
+        /// <summary>
+        /// Finds pointers to entities with provided components
+        /// </summary>
+        /// <param name="components"></param>
+        /// <returns>array of matching entity pointers; otherwise null if no entities are found</returns>
+        public int[] PullPtr(params Type[] components)
+        {
+            List<int> foundEntities = new List<int>();
+
+            //  ! Slow brute force method of finding matching components
+            int matches = 0;
+            foreach (Entity entity in _entities)
+            {
+                if (entity == null) continue;
+
+                matches = 0;
+                foreach (Type type in components)
+                {
+                    if (_components.TryGetValue(type, out ExpandingList<object> data))
+                    {
+                        if (data[entity.UID] != null)
+                            matches++;
+                    }
+                }
+
+                if (matches == components.Length)
+                    foundEntities.Add(entity.UID);
             }
 
             return foundEntities.ToArray();

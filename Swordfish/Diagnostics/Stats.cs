@@ -27,6 +27,7 @@ namespace Swordfish.Diagnostics
 
                 ImGui.Text($"T - Main: { (Engine.FrameTime*1000f).ToString("0.##") } ms");
                 ImGui.Text($"T - ECS: { (Engine.ECS.ThreadTime*1000f).ToString("0.##") } ms");
+                ImGui.Text($"T - Physics: { (Engine.Physics.ThreadTime*1000f).ToString("0.##") } ms");
             ImGui.End();
         }
     }

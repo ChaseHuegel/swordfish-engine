@@ -38,6 +38,12 @@ namespace Swordfish
             public float CLIP_FAR = 1000f;
         }
 
+        public PhysicsSettings Physics = new PhysicsSettings();
+        public class PhysicsSettings
+        {
+            public float FIXED_TIMESTEP = 0.016f;
+        }
+
         public CoreSettings() {}
 
         /// <summary>

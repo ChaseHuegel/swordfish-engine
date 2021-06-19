@@ -19,10 +19,10 @@ namespace Swordfish.ECS
             return system.GetType() == this.GetType();
         }
 
-        protected Entity[] entities = new Entity[0];
+        protected int[] entities = new int[0];
         internal void PullEntities()
         {
-            entities = Engine.ECS.Pull(filter);
+            entities = Engine.ECS.PullPtr(filter);
             OnEntityUpdate();
         }
 

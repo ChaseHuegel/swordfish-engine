@@ -12,12 +12,12 @@ namespace Swordfish.Threading
 		private volatile bool pause = false;
 
 		private Thread thread = null;
-		private Action handle;
+		private Action<float> handle;
 
 		private Stopwatch stopwatch = new Stopwatch();
         public float DeltaTime { get; private set; }
 
-        public ThreadWorker(Action handle, bool runOnce = false, string name = "")
+        public ThreadWorker(Action<float> handle, bool runOnce = false, string name = "")
 		{
 			this.handle = handle;
 
@@ -73,7 +73,7 @@ namespace Swordfish.Threading
 
 		private void Handle()
 		{
-			handle();
+			handle(1f);
 			Kill();
 		}
 
@@ -89,7 +89,7 @@ namespace Swordfish.Threading
 					if (handle == null) Kill();
 
                     stopwatch.Restart();
-                    handle();
+                    handle(DeltaTime);
 
                     DeltaTime = (float)stopwatch.ElapsedTicks / Stopwatch.Frequency;
                 }

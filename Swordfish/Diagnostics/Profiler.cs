@@ -11,20 +11,24 @@ namespace Swordfish.Diagnostics
     public static class Profiler
     {
         //  Internal profiler's storage
-        private static Queue ecsProfile;
         private static Queue mainProfile;
+        private static Queue ecsProfile;
+        private static Queue physicsProfile;
 
         static Profiler()
         {
             Debug.Log("Profiler initialized");
 
-            ecsProfile = new Queue();
-            for (int i = 0; i < Engine.Settings.Profiler.HISTORY; i++)
-                ecsProfile.Enqueue(0f);
-
             mainProfile = new Queue();
+            ecsProfile = new Queue();
+            physicsProfile = new Queue();
+
             for (int i = 0; i < Engine.Settings.Profiler.HISTORY; i++)
+            {
                 mainProfile.Enqueue(0f);
+                ecsProfile.Enqueue(0f);
+                physicsProfile.Enqueue(0f);
+            }
         }
 
         /// <summary>
@@ -89,7 +93,7 @@ namespace Swordfish.Diagnostics
                                 + $"L: {(lowest).ToString("0.##")}\n"
                                 + $"H: {(highest).ToString("0.##")}",
                                 ref profile[0], profile.Length, 0,
-                                "T - ECS",
+                                name,
                                 0f, 16f,
                                 new Vector2(Engine.Settings.Window.WIDTH*0.45f, Engine.Settings.Window.WIDTH*0.05f)
                             );
@@ -106,6 +110,10 @@ namespace Swordfish.Diagnostics
                 //  Profile data
                 float highest, lowest, average;
                 float[] profile;
+
+                //  Profile and present Physics
+                Collect(ref physicsProfile, Engine.Physics.Thread.DeltaTime, ImGui.IsWindowHovered(),out highest, out lowest, out average, out profile);
+                Present("T - Physics", 0f, 16f, profile, highest, lowest, average);
 
                 //  Profile and present ECS
                 Collect(ref ecsProfile, Engine.ECS.Thread.DeltaTime, ImGui.IsWindowHovered(),out highest, out lowest, out average, out profile);

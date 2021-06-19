@@ -40,6 +40,8 @@ namespace source
                 if (entity == null) continue;
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
+                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(10, 100)/20f })
+                    .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 1f })
                     .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), Engine.Random.Next(40, 50), Engine.Random.Next(-100, 100)) })
                     .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
             }

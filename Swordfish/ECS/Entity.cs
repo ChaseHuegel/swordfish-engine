@@ -23,6 +23,10 @@ namespace Swordfish.ECS
             UID = uid;
         }
 
+        //  Casting int to entity and entity to int
+        public static implicit operator Entity(int ptr) => new Entity(null, "", "", ptr);
+        public static implicit operator int(Entity entity) => entity.UID;
+
         //  Equals overrides
         public override bool Equals(System.Object obj)
         {
