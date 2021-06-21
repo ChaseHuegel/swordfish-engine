@@ -1,3 +1,4 @@
+using System.Reflection;
 using OpenTK.Mathematics;
 
 using Swordfish.ECS;
@@ -47,7 +48,7 @@ namespace Swordfish.Physics
             accumulator += deltaTime;
             while (accumulator >= Engine.Settings.Physics.FIXED_TIMESTEP)
             {
-                Simulate(accumulator);
+                Simulate(accumulator * Engine.Timescale);
                 accumulator -= Engine.Settings.Physics.FIXED_TIMESTEP;
             }
 
@@ -81,56 +82,111 @@ namespace Swordfish.Physics
         {
             foreach (int entity in entities)
             {
-                //  Process a physics response for this entity
-                ProcessResponse(entity);
+                //  Process a discrete collision response for this entity
+                bool hit = ProcessResponse(entity);
 
-                //  Apply velocity and gravity
-                Engine.ECS.Do<PositionComponent>(entity, x =>
-                {
-                    x.position.Y -= 9.8f / Engine.ECS.Get<RigidbodyComponent>(entity).resistance * deltaTime;
-                    x.position += Engine.ECS.Get<RigidbodyComponent>(entity).velocity / (Engine.ECS.Get<RigidbodyComponent>(entity).mass/10f) * deltaTime;
-
-                    return x;
-                });
-
-                //  Apply drag to velocity
+                //  Apply rigidbody behavior
                 Engine.ECS.Do<RigidbodyComponent>(entity, x =>
                 {
-                    float drag = (9.8f + Engine.ECS.Get<RigidbodyComponent>(entity).drag) * deltaTime;
+                    //  Use surface friction if there is a collision; otherwise use air resistance
+                    float friction = (hit ? x.friction : x.resistance);
+
+                    //  Values are inversely proportional and ranged 0-1 for user readability
+                    //  We must flip the value and keep in range 0-1 to use for operations
+                    //  example:
+                    //      value=0 is flipped to 1, there is no friction, gravity is 1:1
+                    //      value=1 is flipped to 0, there is complete friction, gravity does not act
+                    friction = 1f / (1f - friction);
+
+                    //  Apply gravity if friction is not 0
+                    if (friction != 0f) x.velocity.Y -= (1f * deltaTime) / (friction * deltaTime);
+
+                    //  Apply drag to velocity
+                    float drag = x.drag * deltaTime;
 
                     x.velocity.X += x.velocity.X < 0 ? drag : -drag;
                     x.velocity.Y += x.velocity.Y < 0 ? drag : -drag;
                     x.velocity.Z += x.velocity.Z < 0 ? drag : -drag;
 
+                    //  Clamping velocity below a threshold to prevent micro movement
                     if (x.velocity.LengthFast <= 0.1f)
                         x.velocity = Vector3.Zero;
+
+                    return x;
+                });
+
+                //  Apply velocity
+                Engine.ECS.Do<PositionComponent>(entity, x =>
+                {
+                    x.position += Engine.ECS.Get<RigidbodyComponent>(entity).velocity * deltaTime;
 
                     return x;
                 });
             }
         }
 
-        private void ProcessResponse(int entity)
+        private bool ProcessResponse(int entity)
         {
-            //  Bounce off the floor y=0
-            if (Engine.ECS.Get<PositionComponent>(entity).position.Y < 0f)
+            //  ! Test against a 50 radius sphere at y = -50
+            CollisionInfo collision = Phys.FastOverlapSphere(
+                Engine.ECS.Get<PositionComponent>(entity).position,
+                Engine.ECS.Get<CollisionComponent>(entity).size,
+                new Vector3(0, -50, 0),
+                50f
+            );
+
+            //  If there is a collision...
+            if (collision != null)
             {
-                //  Clamp y to the floor
+                //  Step the entity back to the contact point
                 Engine.ECS.Do<PositionComponent>(entity, x =>
                 {
-                    x.position.Y = 0;
+                    x.position = collision.Contacts[0];
 
                     return x;
                 });
 
-                //  Apply upward velocity = down force to create bounce
+                //  Collision response; bounce off the collision
                 Engine.ECS.Do<RigidbodyComponent>(entity, x =>
                 {
-                    x.velocity = Vector3.UnitY * 9.8f / Engine.ECS.Get<RigidbodyComponent>(entity).resistance;
+                    float friction = 1f / (1f - x.friction);
+                    float restitution = 1f / (1f - x.restitution);
+                    if (friction != 0 && restitution != 0) x.velocity = collision.Normal * x.velocity.Length / friction / restitution;
 
                     return x;
                 });
+
+                //  There was a collision
+                return true;
             }
+
+            //  Bounce off the world floor
+            if (Engine.ECS.Get<PositionComponent>(entity).position.Y < -300f)
+            {
+                //  Clamp y to the world floor
+                Engine.ECS.Do<PositionComponent>(entity, x =>
+                {
+                    x.position.Y = -300f;
+
+                    return x;
+                });
+
+                //  Collision response; bounce off the collision
+                Engine.ECS.Do<RigidbodyComponent>(entity, x =>
+                {
+                    float friction = 1f / (1f - x.friction);
+                    float restitution = 1f / (1f - x.restitution);
+                    if (friction != 0 && restitution != 0) x.velocity.Y = -x.velocity.Y / friction / restitution;
+
+                    return x;
+                });
+
+                //  There was a collision
+                return true;
+            }
+
+            //  No collision
+            return false;
         }
     }
 }

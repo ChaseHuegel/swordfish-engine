@@ -10,6 +10,7 @@ namespace Swordfish
     public class WindowContext : GameWindow
     {
         public int FPS { get; private set; }
+        public float DeltaTime { get; private set; }
 
         private float[] frameTimes = new float[6];
         private int frameTimeIndex = 0;
@@ -43,12 +44,13 @@ namespace Swordfish
 
         protected override void OnUpdateFrame(FrameEventArgs e)
         {
-            Engine.DeltaTime = (float)e.Time;
+            DeltaTime = (float)e.Time;
+            Engine.DeltaTime = DeltaTime;
             Engine.Frame++;
 
             //  TODO: Very quick and dirty stable timing
-            frameTimer += Engine.DeltaTime;
-            frameTimes[frameTimeIndex] = Engine.DeltaTime;
+            frameTimer += DeltaTime;
+            frameTimes[frameTimeIndex] = DeltaTime;
             frameTimeIndex++;
             if (frameTimeIndex >= frameTimes.Length)
                 frameTimeIndex = 0;
@@ -75,6 +77,9 @@ namespace Swordfish
             FPS = (int)(1f / Engine.FrameTime);
             if (Engine.MainWindow.RenderFrequency > 0 && FPS > Engine.MainWindow.RenderFrequency)
                 FPS = (int)Engine.MainWindow.RenderFrequency;
+
+            //  Apply timescale
+            Engine.DeltaTime *= Engine.Timescale;
 
             //  Allow fullscreen toggle with ALT+ENTER
             if (Input.IsKeyPressed(Keys.Enter) && Input.IsKeyDown(Keys.LeftAlt))

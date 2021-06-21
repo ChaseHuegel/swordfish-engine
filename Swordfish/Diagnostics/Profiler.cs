@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Linq;
 using System.Numerics;
@@ -116,7 +117,12 @@ namespace Swordfish.Diagnostics
             ImGui.Begin("Profiler", WindowFlagPresets.FLAT);
                 //  Allow scrolling zoom profiler history in/out
                 if (ImGui.IsWindowHovered() && ImGui.GetIO().MouseWheel != 0)
-                    Engine.Settings.Profiler.HISTORY += (int)(ImGui.GetIO().MouseWheel * 10);
+                {
+                    Engine.Settings.Profiler.HISTORY = Math.Clamp(
+                            Engine.Settings.Profiler.HISTORY - (int)(ImGui.GetIO().MouseWheel * 10),
+                            60, 2000
+                        );
+                }
 
                 //  Profile data
                 float highest, lowest, average;
@@ -131,7 +137,7 @@ namespace Swordfish.Diagnostics
                 Present("T - ECS", 0f, 16f, profile, highest, lowest, average);
 
                 //  Profile and present Main
-                Collect(ref mainProfile, Engine.DeltaTime, ImGui.IsWindowHovered(), out highest, out lowest, out average, out profile);
+                Collect(ref mainProfile, Engine.MainWindow.DeltaTime, ImGui.IsWindowHovered(), out highest, out lowest, out average, out profile);
                 Present("T - Main", 0f, 16f, profile, highest, lowest, average);
 
             ImGui.SetWindowPos(new Vector2(0f, Engine.Settings.Window.HEIGHT - ImGui.GetWindowHeight()));

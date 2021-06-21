@@ -14,6 +14,13 @@ namespace Swordfish
 {
     public class Engine
     {
+        private static float _timescale = 1f;
+        public static float Timescale
+        {
+            get => _timescale;
+            set => _timescale = Math.Clamp(value, 0f, 100f);
+        }
+
         public static float DeltaTime = 0f;
         public static float ECSTime = 0f;
         public static float FrameTime = 0f;

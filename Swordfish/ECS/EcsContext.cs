@@ -63,6 +63,9 @@ namespace Swordfish.ECS
 
         public void Step(float deltaTime)
         {
+            //  Apply timescale
+            deltaTime *= Engine.Timescale;
+
             //  Destroy marked entities
             foreach (Entity entity in _awaitingDestroy)
                 Destroy(entity);
