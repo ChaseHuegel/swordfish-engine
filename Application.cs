@@ -28,7 +28,7 @@ namespace source
         }
 
         public float cameraSpeed = 12f;
-        public bool raining = true;
+        public bool raining = false;
         public bool showControls = true;
 
         public void CreateEntityCubes(int count)
@@ -40,9 +40,9 @@ namespace source
                 if (entity == null) continue;
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
-                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(10, 100)/20f })
+                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), resistance = 1, drag = 1, velocity = Vector3.Zero })
                     .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 1f })
-                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), Engine.Random.Next(40, 50), Engine.Random.Next(-100, 100)) })
+                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 10, Engine.Random.Next(-100, 100)) })
                     .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
             }
         }
@@ -77,6 +77,7 @@ namespace source
                     ImGui.Separator();
 
                     ImGui.Text($"Cube Rain F5");
+                    ImGui.Text($"Spawn Cubes F6");
                     ImGui.Text($"Exit ESC");
                 ImGui.End();
             }
@@ -107,6 +108,9 @@ namespace source
 
             if (Input.IsKeyPressed(Keys.F5))
                 raining = !raining;
+
+            if (Input.IsKeyPressed(Keys.F6))
+                CreateEntityCubes(1000);
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * Engine.DeltaTime;

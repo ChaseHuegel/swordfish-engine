@@ -34,8 +34,8 @@ namespace Swordfish.ECS
 
             if (entity == null) return false;
 
-            //  Entities are identified by UID and context, not reference
-            return entity.UID.Equals(this.UID) && entity.Context.Equals(this.Context);
+            //  Entities are identified by UID and context (if existing), not reference
+            return entity.UID.Equals(this.UID) && (entity.Context == null || entity.Context.Equals(this.Context));
         }
 
         public override int GetHashCode() => UID.GetHashCode();

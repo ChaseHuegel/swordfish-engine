@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-
 namespace Swordfish.ECS
 {
     [ComponentSystem(typeof(RigidbodyComponent), typeof(CollisionComponent), typeof(PositionComponent), typeof(RotationComponent))]

@@ -48,7 +48,7 @@ namespace Swordfish.Rendering
             GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
-            camera = new Camera(Vector3.UnitZ, Vector3.Zero);
+            camera = new Camera(Vector3.Zero, Vector3.Zero);
 
             entities = new int[0];
 

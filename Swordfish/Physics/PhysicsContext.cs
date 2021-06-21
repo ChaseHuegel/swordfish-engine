@@ -1,9 +1,7 @@
-using System.Reflection.Metadata;
 using OpenTK.Mathematics;
-using Swordfish.Diagnostics;
+
 using Swordfish.ECS;
 using Swordfish.Threading;
-using Swordfish.Util;
 
 namespace Swordfish.Physics
 {
@@ -45,8 +43,8 @@ namespace Swordfish.Physics
 
         private void Step(float deltaTime)
         {
+            //  Fixed timestep
             accumulator += deltaTime;
-
             while (accumulator >= Engine.Settings.Physics.FIXED_TIMESTEP)
             {
                 Simulate(accumulator);
@@ -83,15 +81,55 @@ namespace Swordfish.Physics
         {
             foreach (int entity in entities)
             {
+                //  Process a physics response for this entity
+                ProcessResponse(entity);
+
+                //  Apply velocity and gravity
                 Engine.ECS.Do<PositionComponent>(entity, x =>
                 {
-                    x.position -= 9.8f * Vector3.UnitY * deltaTime * Engine.ECS.Get<RigidbodyComponent>(entity).mass;
+                    x.position.Y -= 9.8f / Engine.ECS.Get<RigidbodyComponent>(entity).resistance * deltaTime;
+                    x.position += Engine.ECS.Get<RigidbodyComponent>(entity).velocity / (Engine.ECS.Get<RigidbodyComponent>(entity).mass/10f) * deltaTime;
 
                     return x;
                 });
 
-                if (Engine.ECS.Get<PositionComponent>(entity).position.Y < 0)
-                    Engine.ECS.DestroyEntity(entity);
+                //  Apply drag to velocity
+                Engine.ECS.Do<RigidbodyComponent>(entity, x =>
+                {
+                    float drag = (9.8f + Engine.ECS.Get<RigidbodyComponent>(entity).drag) * deltaTime;
+
+                    x.velocity.X += x.velocity.X < 0 ? drag : -drag;
+                    x.velocity.Y += x.velocity.Y < 0 ? drag : -drag;
+                    x.velocity.Z += x.velocity.Z < 0 ? drag : -drag;
+
+                    if (x.velocity.LengthFast <= 0.1f)
+                        x.velocity = Vector3.Zero;
+
+                    return x;
+                });
+            }
+        }
+
+        private void ProcessResponse(int entity)
+        {
+            //  Bounce off the floor y=0
+            if (Engine.ECS.Get<PositionComponent>(entity).position.Y < 0f)
+            {
+                //  Clamp y to the floor
+                Engine.ECS.Do<PositionComponent>(entity, x =>
+                {
+                    x.position.Y = 0;
+
+                    return x;
+                });
+
+                //  Apply upward velocity = down force to create bounce
+                Engine.ECS.Do<RigidbodyComponent>(entity, x =>
+                {
+                    x.velocity = Vector3.UnitY * 9.8f / Engine.ECS.Get<RigidbodyComponent>(entity).resistance;
+
+                    return x;
+                });
             }
         }
     }
