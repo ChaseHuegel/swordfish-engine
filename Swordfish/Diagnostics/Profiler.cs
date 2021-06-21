@@ -15,6 +15,11 @@ namespace Swordfish.Diagnostics
         private static Queue ecsProfile;
         private static Queue physicsProfile;
 
+        /// <summary>
+        /// Dummy method to force construction of the static class
+        /// </summary>
+        public static void Initialize() { }
+
         static Profiler()
         {
             Debug.Log("Profiler initialized");
@@ -22,13 +27,6 @@ namespace Swordfish.Diagnostics
             mainProfile = new Queue();
             ecsProfile = new Queue();
             physicsProfile = new Queue();
-
-            for (int i = 0; i < Engine.Settings.Profiler.HISTORY; i++)
-            {
-                mainProfile.Enqueue(0f);
-                ecsProfile.Enqueue(0f);
-                physicsProfile.Enqueue(0f);
-            }
         }
 
         /// <summary>
@@ -46,6 +44,15 @@ namespace Swordfish.Diagnostics
         /// <param name="timings"></param>
         public static void Collect(ref Queue profile, float currentTime, bool paused, out float highest, out float lowest, out float average, out float[] timings)
         {
+            //  Make certain the profile is within bounds
+            if (profile.Count != Engine.Settings.Profiler.HISTORY)
+            {
+                while (profile.Count < Engine.Settings.Profiler.HISTORY)
+                    profile.Enqueue(0f);
+                while (profile.Count > Engine.Settings.Profiler.HISTORY)
+                    profile.Dequeue();
+            }
+
             //  Step through the profile if collection isn't paused
             if (!paused)
             {
@@ -107,6 +114,10 @@ namespace Swordfish.Diagnostics
         public static void ShowGui()
         {
             ImGui.Begin("Profiler", WindowFlagPresets.FLAT);
+                //  Allow scrolling zoom profiler history in/out
+                if (ImGui.IsWindowHovered() && ImGui.GetIO().MouseWheel != 0)
+                    Engine.Settings.Profiler.HISTORY += (int)(ImGui.GetIO().MouseWheel * 10);
+
                 //  Profile data
                 float highest, lowest, average;
                 float[] profile;

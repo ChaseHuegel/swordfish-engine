@@ -1,4 +1,6 @@
 [INFO] : Logger initialized
+[INFO] : Statistics initialized
+[INFO] : Profiler initialized
 [INFO] : Debugger initialized
 [INFO] : Loading core config from 'swordfish.toml' ...
 [INFO] : Loaded core config.
@@ -50,11 +52,7 @@
 [INFO] :     Registered 'ECSTest.RotateSystem'
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
-[INFO] : Statistics initialized
-[INFO] : Profiler initialized
 [INFO] : Resized dear imgui vertex buffer to new size 25280
 [INFO] : Resized dear imgui index buffer to new size 3792
-[INFO] : Resized dear imgui vertex buffer to new size 76800
-[INFO] : Resized dear imgui index buffer to new size 11520
-[INFO] : Resized dear imgui vertex buffer to new size 115200
-[INFO] : Resized dear imgui index buffer to new size 17280
+[INFO] : Resized dear imgui vertex buffer to new size 76720
+[INFO] : Resized dear imgui index buffer to new size 11508

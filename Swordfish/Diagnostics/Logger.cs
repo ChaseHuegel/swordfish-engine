@@ -26,6 +26,11 @@ namespace Swordfish.Diagnostics
 
         public static LogWriter Writer { get; private set; }
 
+        /// <summary>
+        /// Dummy method to force construction of the static class
+        /// </summary>
+        public static void Initialize() { }
+
         static Logger()
         {
             //  Create a writer that mirrors to the console

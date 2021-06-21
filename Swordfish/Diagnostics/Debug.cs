@@ -10,8 +10,17 @@ namespace Swordfish.Diagnostics
 {
     public static class Debug
     {
+        /// <summary>
+        /// Dummy method to force construction of the static class
+        /// </summary>
+        public static void Initialize() { }
+
         static Debug()
         {
+            Logger.Initialize();
+            Statistics.Initialize();
+            Profiler.Initialize();
+
             Log("Debugger initialized");
         }
 
