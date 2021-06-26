@@ -56,11 +56,23 @@ namespace source
                 if (entity == null) continue;
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
-                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), friction = 0f, restitution = 0.5f, resistance = 0f, drag = 3f, velocity = Vector3.Zero })
-                    .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 1f })
-                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 10, Engine.Random.Next(-100, 100)) })
+                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 0f, velocity = Vector3.Zero })
+                    .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
+                    .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 50, Engine.Random.Next(-100, 100)) })
                     .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
             }
+        }
+
+        public void Shoot()
+        {
+            Entity entity = Engine.ECS.CreateEntity();
+            if (entity == null) return;
+
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
+                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 100, mass = Engine.Random.Next(2, 10), restitution = 0.5f, drag = 3f })
+                .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = Camera.Main.transform.position + Camera.Main.transform.forward })
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
         }
 
         private void Start()
@@ -132,11 +144,14 @@ namespace source
             if (Input.IsKeyPressed(Keys.F6))
                 CreateEntityCubes(1000);
 
-            if (Input.IsKeyPressed(Keys.Equal))
-                Engine.Timescale += 0.1f;
+            if (Input.IsMousePressed(0))
+                Shoot();
 
-            if (Input.IsKeyPressed(Keys.Minus))
-                Engine.Timescale -= 0.1f;
+            if (Input.IsKeyDown(Keys.Equal))
+                Engine.Timescale += 0.5f * delta;
+
+            if (Input.IsKeyDown(Keys.Minus))
+                Engine.Timescale -= 0.5f * delta;
 
             if (Input.IsKeyDown(Keys.W))
                 Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * delta;

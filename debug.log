@@ -47,6 +47,7 @@
 [INFO] :     Registered 'Swordfish.ECS.RigidbodyComponent'
 [INFO] :     Registered 'Swordfish.ECS.RotationComponent'
 [INFO] : Registering ECS systems...
+[INFO] :     Registered 'Swordfish.ECS.CollisionSystem'
 [INFO] :     Registered 'Swordfish.ECS.PhysicsSystem'
 [INFO] :     Registered 'Swordfish.ECS.RenderSystem'
 [INFO] :     Registered 'source.RotateSystem'
@@ -54,7 +55,5 @@
 [INFO] Threading: Started thread 'Physics'
 [INFO] : Resized dear imgui vertex buffer to new size 25280
 [INFO] : Resized dear imgui index buffer to new size 3792
-[INFO] : Resized dear imgui vertex buffer to new size 76720
-[INFO] : Resized dear imgui index buffer to new size 11508
-[INFO] : Resized dear imgui vertex buffer to new size 115080
-[INFO] : Resized dear imgui index buffer to new size 17262
+[INFO] : Resized dear imgui vertex buffer to new size 76640
+[INFO] : Resized dear imgui index buffer to new size 11496
