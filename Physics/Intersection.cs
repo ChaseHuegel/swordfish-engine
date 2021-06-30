@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.CompilerServices;
 
 using OpenTK.Mathematics;
 
@@ -91,17 +92,21 @@ namespace Swordfish.Physics
         /// <param name="center2"></param>
         /// <param name="radius2"></param>
         /// <returns>true if the spheres can collide; otherwise false</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool SweepSphereToSphere(Vector3 center1, float radius1, Vector3 center2, float radius2)
         {
             float range = radius1 + radius2;
+
             float overlapX = Math.Abs(center1.X - center2.X);
+            if (overlapX > range) return false;
+
             float overlapY = Math.Abs(center1.Y - center2.Y);
+            if (overlapY > range) return false;
+
             float overlapZ = Math.Abs(center1.Z - center2.Z);
+            if (overlapZ > range) return false;
 
             //  Boundings must overlap on all 3 axis to be a possible collision
-            if (overlapX > range || overlapY > range || overlapZ > range)
-                return false;
-
             return true;
         }
     }

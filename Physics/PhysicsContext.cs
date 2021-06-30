@@ -1,7 +1,10 @@
+using System.Collections.Generic;
+
 using OpenTK.Mathematics;
 
 using Swordfish.ECS;
 using Swordfish.Threading;
+using Swordfish.Types;
 
 namespace Swordfish.Physics
 {
@@ -10,14 +13,24 @@ namespace Swordfish.Physics
         private int[] bodies;
         private int[] colliders;
 
+        private SphereTree<int> collisionTree;
+
         private float accumulator = 0f;
 
         public readonly ThreadWorker Thread;
+
+        public float WorldSize = 0;
+        public int ColliderCount = 0;
+        public int BroadCollisions = 0;
+        public int NarrowCollisions = 0;
 
         public PhysicsContext()
         {
             bodies = new int[0];
             colliders = new int[0];
+
+            collisionTree = new SphereTree<int>(Vector3.Zero, 1000f, 10f);
+            WorldSize = collisionTree.Size;
 
             Thread = new ThreadWorker(Step, false, "Physics");
         }
@@ -58,7 +71,7 @@ namespace Swordfish.Physics
         public void Simulate(float deltaTime, bool stepThru = false)
         {
             //  Handle collisions
-            ProcessCollisions(deltaTime, stepThru);
+            ProcessCollisions();
 
             foreach (int entity in bodies)
             {
@@ -86,21 +99,36 @@ namespace Swordfish.Physics
             }
         }
 
-        public void ProcessCollisions(float deltaTime, bool stepThru = false)
+        public void ProcessCollisions()
         {
-            //  Shorthand
-            int entity, other;
+            //  Clear the collision tree
+            collisionTree.Clear();
 
-            //  Check every entity pair only once
+            //  Push every entity with collision to the tree
             for (int x = 0; x < colliders.Length; x++)
-            {
-                entity = colliders[x];
+                collisionTree.TryAdd(colliders[x], Engine.ECS.Get<PositionComponent>(colliders[x]).position, Engine.ECS.Get<CollisionComponent>(colliders[x]).size);
 
-                for (int y = x; y < colliders.Length; ++y)
+            //  Broadphase; test the tree with an inaccurate sweep
+            List<SphereTreeObjectPair<int>> collisions = new List<SphereTreeObjectPair<int>>();
+            collisionTree.SweepForCollisions(collisions);
+
+            //  Narrowphase; accurately test all colliding pairs
+            int hits = 0;
+            foreach (SphereTreeObjectPair<int> pair in collisions)
+            {
+                if (Intersection.SphereToSphere(
+                    Engine.ECS.Get<PositionComponent>(pair.A).position, Engine.ECS.Get<CollisionComponent>(pair.A).size,
+                    Engine.ECS.Get<PositionComponent>(pair.B).position, Engine.ECS.Get<CollisionComponent>(pair.B).size
+                ))
                 {
-                    other = colliders[y];
+                    //  We have a collision
+                    hits++;
                 }
             }
+
+            ColliderCount = collisionTree.Count;
+            BroadCollisions = collisions.Count;
+            NarrowCollisions = hits;
         }
     }
 }

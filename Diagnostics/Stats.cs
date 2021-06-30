@@ -30,6 +30,11 @@ namespace Swordfish.Diagnostics
                 ImGui.Text($"Frame: {Engine.Frame}");
                 ImGui.Text($"Timescale: {Engine.Timescale.ToString("0.##")}");
                 ImGui.Text($"Entities: {Engine.ECS.EntityCount}");
+                ImGui.Text($"Physics");
+                    ImGui.Text($"   world: {Engine.Physics.WorldSize}");
+                    ImGui.Text($"   colliders: {Engine.Physics.ColliderCount}");
+                    ImGui.Text($"   broad hits: {Engine.Physics.BroadCollisions}");
+                    ImGui.Text($"   narrow hits: {Engine.Physics.NarrowCollisions}");
             ImGui.End();
         }
     }

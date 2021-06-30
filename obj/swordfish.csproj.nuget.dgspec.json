@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "e:\\Projects\\Wayward Beyond\\swordfish-engine\\swordfish.csproj": {}
+    "E:\\Projects\\Wayward Beyond\\swordfish-engine\\Swordfish.csproj": {}
   },
   "projects": {
-    "e:\\Projects\\Wayward Beyond\\swordfish-engine\\swordfish.csproj": {
+    "E:\\Projects\\Wayward Beyond\\swordfish-engine\\Swordfish.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "e:\\Projects\\Wayward Beyond\\swordfish-engine\\swordfish.csproj",
-        "projectName": "swordfish",
-        "projectPath": "e:\\Projects\\Wayward Beyond\\swordfish-engine\\swordfish.csproj",
+        "projectUniqueName": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\Swordfish.csproj",
+        "projectName": "Swordfish",
+        "projectPath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\Swordfish.csproj",
         "packagesPath": "C:\\Users\\Chase\\.nuget\\packages\\",
-        "outputPath": "e:\\Projects\\Wayward Beyond\\swordfish-engine\\obj\\",
+        "outputPath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
