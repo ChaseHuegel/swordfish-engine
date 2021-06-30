@@ -109,5 +109,23 @@ namespace Swordfish.Physics
             //  Boundings must overlap on all 3 axis to be a possible collision
             return true;
         }
+
+        /// <summary>
+        /// Perform a bounding-to-point collision check
+        /// </summary>
+        /// <param name="center"></param>
+        /// <param name="size"></param>
+        /// <param name="point"></param>
+        /// <returns>true if there is a collision; otherwise false</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool BoundingToPoint(Vector3 center, float size, Vector3 point)
+        {
+            if (Math.Abs(center.X - point.X) > size) return false;
+            if (Math.Abs(center.Y - point.Y) > size) return false;
+            if (Math.Abs(center.Z - point.Z) > size) return false;
+
+            //  Boundings must overlap on all 3 axis to be a possible collision
+            return true;
+        }
     }
 }

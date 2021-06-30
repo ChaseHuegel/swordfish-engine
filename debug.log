@@ -53,8 +53,8 @@
 [INFO] :     Registered 'source.RotateSystem'
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
-[INFO] : Resized dear imgui vertex buffer to new size 25440
-[INFO] : Resized dear imgui index buffer to new size 3816
+[INFO] : Resized dear imgui vertex buffer to new size 25280
+[INFO] : Resized dear imgui index buffer to new size 3792
 [INFO] : Resized dear imgui vertex buffer to new size 76800
 [INFO] : Resized dear imgui index buffer to new size 11520
 [INFO] : Resized dear imgui vertex buffer to new size 115200

@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 
 using Swordfish.Diagnostics;
 using Swordfish.ECS;
+using Swordfish.Physics;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
 
@@ -25,6 +26,8 @@ namespace Swordfish.Rendering
         private int ElementBufferObject;
         private int VertexBufferObject;
         private int VertexArrayObject;
+
+        public int DrawCalls = 0;
 
         /// <summary>
         /// Push all entities to context that should be rendered each frame
@@ -146,15 +149,22 @@ namespace Swordfish.Rendering
             //  TODO: this just draws cubes currently
             GL.BindVertexArray(VertexArrayObject);
 
+            DrawCalls = 0;
             Matrix4 transformMatrix;
             foreach (Entity entity in entities)
             {
+                //  Greedily cull draw calls beyond the far clip plane
+                if (!Intersection.BoundingToPoint(camera.transform.position, Engine.Settings.Renderer.CLIP_FAR, Engine.ECS.Get<PositionComponent>(entity).position))
+                    continue;
+
                 transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
                                     * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
 
                 shader.SetMatrix4("transform", transformMatrix);
 
                 GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+
+                DrawCalls++;
             }
 
             //  Draw GUI elements

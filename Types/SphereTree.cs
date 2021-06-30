@@ -7,7 +7,7 @@ using Swordfish.Diagnostics;
 namespace Swordfish.Types
 {
     /// <summary>
-    /// A dynamically sizing Octree made up of spherical nodes for detection collision or overlapping objects
+    /// An octree made up of spherical nodes for detection collision or overlapping objects
     /// </summary>
     /// <typeparam name="T">type of objects stored in the tree</typeparam>
     public class SphereTree<T>
