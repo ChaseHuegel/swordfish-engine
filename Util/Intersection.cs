@@ -2,25 +2,26 @@ using System;
 using System.Runtime.CompilerServices;
 
 using OpenTK.Mathematics;
+using Swordfish.Types;
 
-namespace Swordfish.Physics
+namespace Swordfish.Util
 {
     public static class Intersection
     {
         /// <summary>
-        /// Perform a sphere-to-boundry collision check
+        /// Perform a sphere-to-plane collision check
         /// </summary>
         /// <param name="center"></param>
         /// <param name="radius"></param>
         /// <param name="normal"></param>
         /// <param name="depth"></param>
-        /// <returns>true if the sphere is crossing the boundry; otherwise false</returns>
-        public static bool SphereToBoundry(Vector3 center, float radius, Vector3 normal, float depth)
+        /// <returns>true if the sphere is crossing the plane; otherwise false</returns>
+        public static bool SphereToPlane(Vector3 center, float radius, Vector3 normal, Vector3 origin)
         {
-            Vector3 contactPoint = center - (normal * radius);
-            Vector3 projectedPoint = contactPoint * normal;
+            Vector3 relative = center - origin;
+            float distance = Vector3.Dot(relative, normal);
 
-            return Vector3.Dot(projectedPoint, normal) <= depth;
+            return Vector3.Dot(relative, normal) + distance + radius <= 0;
         }
 
         /// <summary>
@@ -125,6 +126,36 @@ namespace Swordfish.Physics
             if (Math.Abs(center.Z - point.Z) > size) return false;
 
             //  Boundings must overlap on all 3 axis to be a possible collision
+            return true;
+        }
+
+        /// <summary>
+        /// Perform a plane-to-point collision check
+        /// </summary>
+        /// <param name="normal"></param>
+        /// <param name="origin"></param>
+        /// <param name="point"></param>
+        /// <returns>true if the point is crossing the plane; otherwise false</returns>
+        public static bool PlaneToPoint(Vector3 normal, Vector3 origin, Vector3 point)
+        {
+            Vector3 relative = point - origin;
+            float distance = Vector3.Dot(relative, normal);
+
+            return Vector3.Dot(relative, normal) + distance <= 0;
+        }
+
+        /// <summary>
+        /// Perform a frustrum-to-point collision check
+        /// </summary>
+        /// <param name="planes"></param>
+        /// <param name="point"></param>
+        /// <returns>true if the frustrum contains the point; otherwise false</returns>
+        public static bool FrustrumToPoint(Plane[] planes, Vector3 point)
+        {
+            foreach (Plane plane in planes)
+                if (PlaneToPoint(plane.Normal, plane.Origin, point))
+                    return false;
+
             return true;
         }
     }

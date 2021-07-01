@@ -2,9 +2,10 @@ using System.Collections.Generic;
 
 using OpenTK.Mathematics;
 
+using Swordfish.Containers;
 using Swordfish.ECS;
 using Swordfish.Threading;
-using Swordfish.Types;
+using Swordfish.Util;
 
 namespace Swordfish.Physics
 {

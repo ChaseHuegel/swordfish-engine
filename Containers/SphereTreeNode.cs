@@ -3,9 +3,9 @@ using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 using Swordfish.Diagnostics;
-using Swordfish.Physics;
+using Swordfish.Util;
 
-namespace Swordfish.Types
+namespace Swordfish.Containers
 {
     /// <summary>
     /// A pair of type T objects that are intersecting in the SphereTree

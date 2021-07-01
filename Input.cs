@@ -12,6 +12,8 @@ namespace Swordfish
         public static bool IsMousePressed(int button) => Engine.MainWindow.IsMouseButtonPressed((MouseButton)button);
         public static bool IsMouseReleased(int button) => Engine.MainWindow.IsMouseButtonReleased((MouseButton)button);
 
+        public static float GetMouseScroll() => Engine.MainWindow.MouseState.ScrollDelta.Y;
+
         public static bool CursorGrabbed
         {
             get { return Engine.MainWindow.CursorGrabbed; }

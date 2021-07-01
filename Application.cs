@@ -144,7 +144,7 @@ namespace source
             if (Input.IsKeyPressed(Keys.F6))
                 CreateEntityCubes(1000);
 
-            if (Input.IsMousePressed(0))
+            if (Input.IsMousePressed(0) && !ImGui.IsAnyItemHovered())
                 Shoot();
 
             if (Input.IsKeyDown(Keys.Equal))

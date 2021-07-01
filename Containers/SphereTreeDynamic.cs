@@ -4,13 +4,13 @@ using OpenTK.Mathematics;
 
 using Swordfish.Diagnostics;
 
-namespace Swordfish.Types
+namespace Swordfish.Containers
 {
     /// <summary>
-    /// An octree made up of spherical nodes for detection collision or overlapping objects
+    /// A dynamically sizing Octree made up of spherical nodes for detection collision or overlapping objects
     /// </summary>
     /// <typeparam name="T">type of objects stored in the tree</typeparam>
-    public class SphereTree<T>
+    public class SphereTreeDynamic<T>
     {
         /// <summary>
         /// The number of objects stored in the tree
@@ -43,7 +43,7 @@ namespace Swordfish.Types
         /// <param name="pos">initial position of the tree</param>
         /// <param name="size">initial size of the tree</param>
         /// <param name="minSize">minimum size of nodes</param>
-        public SphereTree(Vector3 pos, float size, float minSize)
+        public SphereTreeDynamic(Vector3 pos, float size, float minSize)
         {
             if (minSize > size)
             {
@@ -64,7 +64,22 @@ namespace Swordfish.Types
         /// <returns>true if object was added; otherwise false</returns>
         public bool TryAdd(T obj, Vector3 pos, float size)
         {
-            if (!root.TryAdd(obj, pos, size)) return false;
+            int resizeAttempts = 0;
+
+            //  Try adding the object, growing the tree on failed attempts
+            while ( !root.TryAdd(obj, pos, size) )
+            {
+                //  ! TODO Dynamic sizing causing stack overflow when redistributing objects
+                GrowTree(pos - root.position);
+                resizeAttempts++;
+
+                //  Limit # of resize attempts to prevent an unreasonable stack
+                if (resizeAttempts > 8)
+                {
+                    Debug.Log($"SphereTree add failed, unable to grow the tree large enough after {resizeAttempts} attempts", LogType.ERROR);
+                    return false;
+                }
+            }
 
             //  Object was added
             Count++;

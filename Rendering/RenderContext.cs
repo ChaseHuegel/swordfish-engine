@@ -1,11 +1,14 @@
+using System;
+using ImGuiNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
+using source;
 using Swordfish.Diagnostics;
 using Swordfish.ECS;
-using Swordfish.Physics;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
+using Swordfish.Types;
+using Swordfish.Util;
 
 namespace Swordfish.Rendering
 {
@@ -153,9 +156,28 @@ namespace Swordfish.Rendering
             Matrix4 transformMatrix;
             foreach (Entity entity in entities)
             {
+                Vector3 point = Engine.ECS.Get<PositionComponent>(entity).position;
+                Vector3 origin = camera.transform.position - camera.transform.forward;
+
                 //  Greedily cull draw calls beyond the far clip plane
-                if (!Intersection.BoundingToPoint(camera.transform.position, Engine.Settings.Renderer.CLIP_FAR, Engine.ECS.Get<PositionComponent>(entity).position))
+                if (!Intersection.BoundingToPoint(origin, Engine.Settings.Renderer.CLIP_FAR, point))
                     continue;
+
+                Plane[] planes = Plane.BuildViewFrustrum(
+                        origin,
+                        camera.transform.forward,
+                        camera.transform.up,
+                        camera.transform.right,
+                        camera.FOV,
+                        Engine.Settings.Renderer.CLIP_NEAR,
+                        Engine.Settings.Renderer.CLIP_FAR
+                    );
+
+                //  Frustrum culling
+                if (!Intersection.FrustrumToPoint(planes, point))
+                    continue;
+
+                //  Not culled... draw the entity
 
                 transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
                                     * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);

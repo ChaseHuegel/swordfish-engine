@@ -1,5 +1,5 @@
 using Xunit;
-using Swordfish.Physics;
+using Swordfish.Util;
 using OpenTK.Mathematics;
 
 namespace SwordfishTests
@@ -9,9 +9,9 @@ namespace SwordfishTests
         [Fact]
         public void SphereToBoundryIsColliding()
         {
-            bool colliding = Intersection.SphereToBoundry(
+            bool colliding = Intersection.SphereToPlane(
                 new Vector3(0f, 0f, 0f), 0.5f,
-                new Vector3(0f, 1f, 0f), 0f
+                new Vector3(0f, 1f, 0f), Vector3.Zero
             );
 
             Assert.True(colliding);
@@ -20,9 +20,9 @@ namespace SwordfishTests
         [Fact]
         public void SphereToBoundryIsNotColliding()
         {
-            bool colliding = Intersection.SphereToBoundry(
+            bool colliding = Intersection.SphereToPlane(
                 new Vector3(10f, 1f, -7f), 0.5f,
-                new Vector3(0f, 1f, 0f), 0f
+                new Vector3(0f, 1f, 0f), Vector3.Zero
             );
 
             Assert.False(colliding);

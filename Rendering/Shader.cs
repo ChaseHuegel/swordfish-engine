@@ -133,6 +133,24 @@ namespace Swordfish.Rendering
             GL.Uniform1(uniformLocations[name], data);
         }
 
+        public void SetVec2(string name, Vector3 data)
+        {
+            GL.UseProgram(Handle);
+            GL.Uniform2(uniformLocations[name], data.X, data.Y);
+        }
+
+        public void SetVec3(string name, Vector3 data)
+        {
+            GL.UseProgram(Handle);
+            GL.Uniform3(uniformLocations[name], data.X, data.Y, data.Z);
+        }
+
+        public void SetVec4(string name, Vector4 data)
+        {
+            GL.UseProgram(Handle);
+            GL.Uniform4(uniformLocations[name], data.X, data.Y, data.Z, data.W);
+        }
+
         public void SetMatrix4(string name, Matrix4 data)
         {
             GL.UseProgram(Handle);
