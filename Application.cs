@@ -56,7 +56,7 @@ namespace source
                 if (entity == null) continue;
 
                 Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
-                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 0f, velocity = Vector3.Zero })
+                    .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                     .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                     .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 50, Engine.Random.Next(-100, 100)) })
                     .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
@@ -69,7 +69,7 @@ namespace source
             if (entity == null) return;
 
             Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
-                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 100, mass = Engine.Random.Next(2, 10), restitution = 0.5f, drag = 3f })
+                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = Camera.Main.transform.position + Camera.Main.transform.forward })
                 .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });

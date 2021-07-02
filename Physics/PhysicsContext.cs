@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 using OpenTK.Mathematics;
@@ -13,6 +14,9 @@ namespace Swordfish.Physics
     {
         private int[] bodies;
         private int[] colliders;
+
+        private int[] bodyCache;
+        private int[] colliderCache;
 
         private SphereTree<int> collisionTree;
 
@@ -71,16 +75,26 @@ namespace Swordfish.Physics
 
         public void Simulate(float deltaTime, bool stepThru = false)
         {
-            //  Handle collisions
+            //  ! Cache the entities
+            //  ! Excessive accessing of the arrays at the same time they
+            //  ! are being pushed can cause infinite loops due to the threading
+            //  TODO Locking the arrays for thread safety is slow for how often they are accessed
+            //  TODO Caching works well but having to remember to do it is accident-prone
+            bodyCache = bodies;
+            colliderCache = colliders;
+
             ProcessCollisions();
 
-            foreach (int entity in bodies)
+            foreach (int entity in bodyCache)
             {
                 //  Apply rigidbody behavior
                 Engine.ECS.Do<RigidbodyComponent>(entity, x =>
                 {
-                    //  Apply drag to velocity
+                    //  Apply drag to velocity at a rate of m/s
                     x.velocity *= 1f - (x.drag * deltaTime);
+
+                    //  Decay impulse so that it takes place over the period of 1s
+                    x.impulse *= 1f - deltaTime;
 
                     //  Clamp velocity below a threshold to prevent micro movement
                     if (x.velocity.LengthFast <= deltaTime)
@@ -92,44 +106,115 @@ namespace Swordfish.Physics
                 //  Apply velocity
                 Engine.ECS.Do<PositionComponent>(entity, x =>
                 {
-                    x.position += Engine.ECS.Get<RigidbodyComponent>(entity).velocity * deltaTime;
-                    x.position.Y -= 9.8f * deltaTime;
+                    x.position += deltaTime *
+                    (
+                        Engine.ECS.Get<RigidbodyComponent>(entity).velocity
+                        + Engine.ECS.Get<RigidbodyComponent>(entity).acceleration
+                        + Engine.ECS.Get<RigidbodyComponent>(entity).impulse
+                    );
+
+                    //  Gravity
+                    //  TODO gravity should be defined either by context or rigidbody not hardcoded
+                    x.position.Y -= 9.8f * deltaTime * (1f - Engine.ECS.Get<RigidbodyComponent>(entity).resistance);
 
                     return x;
                 });
             }
         }
 
+        //  TODO tidy up and break into pieces, this is a dirty proof of concept
         public void ProcessCollisions()
         {
             //  Clear the collision tree
             collisionTree.Clear();
 
             //  Push every entity with collision to the tree
-            for (int x = 0; x < colliders.Length; x++)
-                collisionTree.TryAdd(colliders[x], Engine.ECS.Get<PositionComponent>(colliders[x]).position, Engine.ECS.Get<CollisionComponent>(colliders[x]).size);
+            foreach (int collider in colliderCache)
+                collisionTree.TryAdd(collider, Engine.ECS.Get<PositionComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size);
 
-            //  Broadphase; test the tree with an inaccurate sweep
+            //  Broadphase; test the tree with an inaccurate and fast sweep
             List<SphereTreeObjectPair<int>> collisions = new List<SphereTreeObjectPair<int>>();
             collisionTree.SweepForCollisions(collisions);
 
+            List<int> hitEntities = new List<int>();
+            List<int> broadHits = new List<int>();
+
             //  Narrowphase; accurately test all colliding pairs
-            int hits = 0;
             foreach (SphereTreeObjectPair<int> pair in collisions)
             {
+                broadHits.Add(pair.A);
+                broadHits.Add(pair.B);
+
                 if (Intersection.SphereToSphere(
                     Engine.ECS.Get<PositionComponent>(pair.A).position, Engine.ECS.Get<CollisionComponent>(pair.A).size,
                     Engine.ECS.Get<PositionComponent>(pair.B).position, Engine.ECS.Get<CollisionComponent>(pair.B).size
                 ))
                 {
                     //  We have a collision
-                    hits++;
+                    hitEntities.Add(pair.A);
+                    hitEntities.Add(pair.B);
+
+                    Vector3 relativeVector = Engine.ECS.Get<PositionComponent>(pair.A).position - Engine.ECS.Get<PositionComponent>(pair.B).position;
+
+                    //  Get penetration depth
+                    float depth = Vector3.Dot(relativeVector, relativeVector) - (Engine.ECS.Get<CollisionComponent>(pair.A).size + Engine.ECS.Get<CollisionComponent>(pair.B).size);
+                    depth = Math.Abs(depth);
+
+                    //  The collision normal
+                    Vector3 normal = relativeVector.Normalized();
+
+                    //  Mass of A/B and B/A
+                    float massFactorA = Engine.ECS.Get<RigidbodyComponent>(pair.A).mass / Engine.ECS.Get<RigidbodyComponent>(pair.B).mass;
+                    float massFactorB = Engine.ECS.Get<RigidbodyComponent>(pair.B).mass / Engine.ECS.Get<RigidbodyComponent>(pair.A).mass;
+
+                    //  Force of the collision is the magnitude of the relative velocity of the objects
+                    float force = (Engine.ECS.Get<RigidbodyComponent>(pair.A).velocity - Engine.ECS.Get<RigidbodyComponent>(pair.B).velocity).Length;
+
+                    //  temporary, skin should be defined by the object
+                    float colliderSkin = 0.01f;
+                    float solverModifier = 0.5f;
+
+                    // ******  Physics solver ****** //
+                    Engine.ECS.Do<RigidbodyComponent>(pair.A, x =>
+                    {
+                        x.velocity += normal * force * x.restitution * solverModifier / massFactorA;
+                        return x;
+                    });
+
+                    Engine.ECS.Do<RigidbodyComponent>(pair.B, x =>
+                    {
+                        x.velocity += -normal * force * x.restitution * solverModifier / massFactorB;
+                        return x;
+                    });
+
+                    // ******  Position solver ****** //
+                    Engine.ECS.Do<PositionComponent>(pair.A, x =>
+                    {
+                        x.position += normal * (depth + colliderSkin) * solverModifier / massFactorA;
+                        return x;
+                    });
+
+                    Engine.ECS.Do<PositionComponent>(pair.B, x =>
+                    {
+                        x.position += -normal * (depth + colliderSkin) * solverModifier / massFactorA;
+                        return x;
+                    });
                 }
             }
 
+            //  Update collision flags for debugging
+            foreach (int entity in colliderCache)
+                Engine.ECS.Do<CollisionComponent>(entity, x =>
+                {
+                    x.colliding = hitEntities.Contains(entity);
+                    x.broadHit = broadHits.Contains(entity);
+                    return x;
+                });
+
+            //  Counters for debugging
             ColliderCount = collisionTree.Count;
             BroadCollisions = collisions.Count;
-            NarrowCollisions = hits;
+            NarrowCollisions = hitEntities.Count / 2;
         }
     }
 }

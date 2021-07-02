@@ -4,5 +4,7 @@ namespace Swordfish.ECS
     public struct CollisionComponent
     {
         public float size;
+        public bool colliding;
+        public bool broadHit;
     }
 }

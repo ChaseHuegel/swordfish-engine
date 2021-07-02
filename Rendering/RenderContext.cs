@@ -184,6 +184,14 @@ namespace Swordfish.Rendering
 
                 shader.SetMatrix4("transform", transformMatrix);
 
+                //  TODO temporary physics visual debug
+                if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
+                    shader.SetVec4("tint", Color.Red);
+                else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
+                    shader.SetVec4("tint", Color.Blue);
+                else
+                    shader.SetVec4("tint", Color.White);
+
                 GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
 
                 DrawCalls++;

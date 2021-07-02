@@ -24,6 +24,11 @@ namespace Swordfish.Containers
     internal class SphereTreeNode<T>
     {
         /// <summary>
+        /// Maximum number of objects stored per node
+        /// </summary>
+        private const int MAX_OBJECTS = 8;
+
+        /// <summary>
         /// This node's children nodes
         /// </summary>
         private SphereTreeNode<T>[] children = null;
@@ -254,7 +259,7 @@ namespace Swordfish.Containers
             if (HasChildren)
             {
                 //  If we haven't removed the object, check the children
-                for (int i = 0; !wasRemoved && i < 8; i++)
+                for (int i = 0; !wasRemoved && i < MAX_OBJECTS; i++)
                     wasRemoved = children[i].TryRemove(obj);
 
                 //  Try consuming children if the object was removed
@@ -292,7 +297,7 @@ namespace Swordfish.Containers
         private void Add(T obj, Vector3 pos, float size)
         {
             //  If this node isn't filled with objects or children would be too small
-            if (objects.Count < 8 || (this.size * 0.5f) < minSize)
+            if (objects.Count < MAX_OBJECTS || (this.size * 0.5f) < minSize)
             {
                 //  Add the object at this level
                 objects.Add(
@@ -438,7 +443,7 @@ namespace Swordfish.Containers
             }
 
             //  If too many objects, don't consume
-            if (numOfObjects > 8)
+            if (numOfObjects > MAX_OBJECTS)
                 return false;
             //  ...Otherwise, consume the children and their objects
             else
