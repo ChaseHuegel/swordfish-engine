@@ -53,15 +53,8 @@
 [INFO] :     Registered 'source.RotateSystem'
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
-[INFO] : Loading texture array 'Rifle' from 'resources/textures/'
-[INFO] :     Found texture 'metal_01.png' at 0
-[INFO] :     Found texture 'metal_01_e.png' at 1
-[INFO] :     Found texture 'metal_01_m.png' at 2
-[INFO] :     Found texture 'rifle.png' at 3
-[INFO] :     ...layers: 4
-[INFO] :     ...using resolution 256x256
-[INFO] : ...Building texture array 'Rifle'
-[INFO] : Texture array 'Rifle' loaded
+[INFO] : Loading texture 'Rifle' from 'resources/textures/rifle.png'
+[INFO] :     Texture 'Rifle' loaded
 [INFO] : Loading model 'westchester' from 'resources/models/rifle.obj'
 [INFO] :     Model 'westchester' loaded
 [INFO] : Resized dear imgui vertex buffer to new size 25280

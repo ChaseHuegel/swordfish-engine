@@ -6,6 +6,8 @@ namespace Swordfish.Rendering.Shapes
     {
         public Cube()
         {
+            Name = "Cube";
+
             origin = new Vector3(-0.5f, -0.5f, -0.5f);
 
             triangles = new uint[] {

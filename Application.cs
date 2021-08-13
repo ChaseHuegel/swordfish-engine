@@ -80,9 +80,9 @@ namespace source
         {
             Debug.Enabled = true;
 
-            Shader shader = new Shader("shaders/testArray.vert", "shaders/testArray.frag", "Rifle");
+            Shader shader = new Shader("shaders/test.vert", "shaders/test.frag", "Rifle");
 
-            Texture2DArray tex = Texture2DArray.CreateFromFolder("resources/textures/", "Rifle");
+            Texture2D tex = Texture2D.CreateFromFile("resources/textures/rifle.png", "Rifle");
             tex.SetMinFilter(TextureMinFilter.Nearest);
             tex.SetMagFilter(TextureMagFilter.Nearest);
             tex.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);

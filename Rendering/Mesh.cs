@@ -21,8 +21,8 @@ namespace Swordfish.Rendering
 
     public class Mesh
     {
-        public string name = "";
-        public bool doublesided = true;
+        public string Name = "";
+        public bool DoubleSided = true;
 
         public Vector3 origin = Vector3.Zero;
 
@@ -69,6 +69,36 @@ namespace Swordfish.Rendering
             return new MeshData(triangles, raw);
         }
 
+        public string ExportToOBJ(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Debug.Log($"Directory'{path}' not found, creating it...");
+                Directory.CreateDirectory(path);
+            }
+
+            using (StreamWriter stream = File.CreateText($"{path}{Name}.obj"))
+            {
+                stream.WriteLine("# Swordfish Engine exported OBJ");
+                stream.WriteLine("# https://github.com/ChaseHuegel/swordfish-engine ");
+                stream.WriteLine($"o {Name}");
+
+                foreach (Vector3 vec in vertices)
+                    stream.WriteLine($"v {vec.X} {vec.Y} {vec.Z}");
+
+                foreach (Vector3 vec in uv)
+                    stream.WriteLine($"vt {vec.X} {vec.Y} {vec.Z}");
+
+                foreach (Vector3 vec in normals)
+                    stream.WriteLine($"vn {vec.X} {vec.Y} {vec.Z}");
+
+                foreach (uint index in triangles)
+                    stream.WriteLine($"f {index}/{1}/{1}");
+            }
+
+            return path;
+        }
+
         public static Mesh LoadFromFile(string path, string name)
         {
             List<uint> t = new List<uint>();
@@ -107,7 +137,7 @@ namespace Swordfish.Rendering
 
                         //  UV, account for 2d and 3d UV coords
                         case "vt":
-                            u.Add(new Vector3( float.Parse(entries[1]), float.Parse(entries[2]), 1f ));
+                            u.Add(new Vector3( float.Parse(entries[1]), float.Parse(entries[2]), entries.Count < 4 ? 0f : float.Parse(entries[3]) ));
                         break;
 
                         //  Normals
@@ -143,7 +173,7 @@ namespace Swordfish.Rendering
 
             //  Build the mesh
             Mesh mesh = new Mesh();
-            mesh.name = name;
+            mesh.Name = name;
             mesh.triangles = t.ToArray();
             mesh.vertices = v.ToArray();
             mesh.normals = n.ToArray();
@@ -191,7 +221,7 @@ namespace Swordfish.Rendering
 
         public void Render()
         {
-            if (doublesided)
+            if (DoubleSided)
                 GL.Disable(EnableCap.CullFace);
             else
                 GL.Enable(EnableCap.CullFace);
