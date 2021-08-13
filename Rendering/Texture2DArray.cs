@@ -13,15 +13,8 @@ using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace Swordfish.Rendering
 {
-    public class Texture2DArray
+    public class Texture2DArray : Texture
     {
-        public readonly string Name;
-        public readonly int Handle;
-        public readonly byte MipmapLevels;
-
-        public static readonly float MaxAniso;
-        static Texture2DArray() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
-
         private static bool IsValidBitmap(Bitmap bitmap)
         {
             return bitmap.Width == bitmap.Height;
@@ -91,49 +84,16 @@ namespace Swordfish.Rendering
 
         public Texture2DArray(int handle, string name, int width, int height, bool generateMipmaps = true)
         {
-            MipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+            mipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
-            Handle = handle;
-            Name = name;
+            base.handle = handle;
+            base.name = name;
         }
 
-        public void Use(TextureUnit unit)
+        public override void Use(TextureUnit unit)
         {
             GL.ActiveTexture(unit);
-            GL.BindTexture(TextureTarget.Texture2DArray, Handle);
-        }
-
-        public void SetMinFilter(TextureMinFilter filter)
-        {
-            GL.TextureParameter(Handle, TextureParameterName.TextureMinFilter, (int)filter);
-        }
-
-        public void SetMagFilter(TextureMagFilter filter)
-        {
-            GL.TextureParameter(Handle, TextureParameterName.TextureMagFilter, (int)filter);
-        }
-
-        public void SetAnisotropy(float level)
-        {
-            const TextureParameterName TEXTURE_MAX_ANISOTROPY = (TextureParameterName)0x84FE;
-            GL.TextureParameter(Handle, TEXTURE_MAX_ANISOTROPY, Math.Clamp(level, 1, MaxAniso));
-        }
-
-        public void SetLod(int @base, int min, int max)
-        {
-            GL.TextureParameter(Handle, TextureParameterName.TextureLodBias, @base);
-            GL.TextureParameter(Handle, TextureParameterName.TextureMinLod, min);
-            GL.TextureParameter(Handle, TextureParameterName.TextureMaxLod, max);
-        }
-
-        public void SetWrap(TextureCoordinate coord, TextureWrapMode mode)
-        {
-            GL.TextureParameter(Handle, (TextureParameterName)coord, (int)mode);
-        }
-
-        public void Dispose()
-        {
-            GL.DeleteTexture(Handle);
+            GL.BindTexture(TextureTarget.Texture2DArray, handle);
         }
     }
 }

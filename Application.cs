@@ -1,5 +1,6 @@
 using ImGuiNET;
 
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -55,7 +56,7 @@ namespace source
                 entity = Engine.ECS.CreateEntity();
                 if (entity == null) continue;
 
-                Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
+                Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = null })
                     .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                     .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                     .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 50, Engine.Random.Next(-100, 100)) })
@@ -68,7 +69,7 @@ namespace source
             Entity entity = Engine.ECS.CreateEntity();
             if (entity == null) return;
 
-            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = new Cube() })
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = null })
                 .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = Camera.Main.transform.position + Camera.Main.transform.forward })
@@ -78,6 +79,23 @@ namespace source
         private void Start()
         {
             Debug.Enabled = true;
+
+            Shader shader = new Shader("shaders/testArray.vert", "shaders/testArray.frag", "Rifle");
+
+            Texture2DArray tex = Texture2DArray.CreateFromFolder("resources/textures/", "Rifle");
+            tex.SetMinFilter(TextureMinFilter.Nearest);
+            tex.SetMagFilter(TextureMagFilter.Nearest);
+            tex.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
+
+            Mesh rifle = Mesh.LoadFromFile("resources/models/rifle.obj", "westchester");
+            rifle.Bind(shader, tex);
+
+            Entity entity = Engine.ECS.CreateEntity();
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = rifle })
+                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
+                .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = Vector3.Zero })
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
         }
 
         private void ShowGui()

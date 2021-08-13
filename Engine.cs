@@ -77,7 +77,7 @@ namespace Swordfish
                 window.Run();
             }
 
-            //  Attempt to dump the log
+            //  Attempt to dump the log when the engine stops running
             TryDumpLog();
         }
 

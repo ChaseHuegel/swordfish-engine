@@ -97,8 +97,6 @@ namespace Swordfish.Rendering
             textureArray.SetMinFilter(TextureMinFilter.Nearest);
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
             textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
-            textureArray.Use(TextureUnit.Texture0);
-            shader.SetInt("texture0", 0);
         }
 
         /// <summary>
@@ -130,10 +128,6 @@ namespace Swordfish.Rendering
             //  Clear the buffer, enable depth testing, enable backface culling
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.DepthTest);
-            GL.Enable(EnableCap.CullFace);
-
-            shader.Use();
-            textureArray.Use(TextureUnit.Texture0);
 
             camera.Update();
 
@@ -144,13 +138,8 @@ namespace Swordfish.Rendering
                     Engine.Settings.Renderer.CLIP_FAR
                 );
 
-            shader.SetMatrix4("view", camera.view);
-            shader.SetMatrix4("projection", projection);
-
             //  Make a draw call per object
             //  TODO: batching
-            //  TODO: this just draws cubes currently
-            GL.BindVertexArray(VertexArrayObject);
 
             DrawCalls = 0;
             Matrix4 transformMatrix;
@@ -182,19 +171,38 @@ namespace Swordfish.Rendering
                 transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
                                     * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
 
-                shader.SetMatrix4("transform", transformMatrix);
-
-                //  TODO temporary physics visual debug
-                if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
-                    shader.SetVec4("tint", Color.Red);
-                else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
-                    shader.SetVec4("tint", Color.Blue);
+                Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
+                if (mesh != null)
+                {
+                    mesh.GetShader().SetMatrix4("view", camera.view);
+                    mesh.GetShader().SetMatrix4("projection", projection);
+                    mesh.GetShader().SetMatrix4("transform", transformMatrix);
+                    mesh.Render();
+                }
                 else
-                    shader.SetVec4("tint", Color.White);
+                {
+                    shader.SetMatrix4("view", camera.view);
+                    shader.SetMatrix4("projection", projection);
+                    shader.SetMatrix4("transform", transformMatrix);
 
-                GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                    shader.Use();
+                    textureArray.Use(TextureUnit.Texture0);
+
+                    GL.BindVertexArray(VertexArrayObject);
+
+                    //  TODO temporary physics visual debug
+                    if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
+                        shader.SetVec4("tint", Color.Red);
+                    else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
+                        shader.SetVec4("tint", Color.Blue);
+                    else
+                        shader.SetVec4("tint", Color.White);
+
+                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                }
 
                 DrawCalls++;
+                GL.BindVertexArray(0);
             }
 
             //  Draw GUI elements

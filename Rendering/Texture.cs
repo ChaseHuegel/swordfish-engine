@@ -1,0 +1,66 @@
+using System;
+
+using OpenTK.Graphics.OpenGL4;
+
+namespace Swordfish.Rendering
+{
+    public enum TextureCoordinate
+    {
+        S = TextureParameterName.TextureWrapS,
+        T = TextureParameterName.TextureWrapT,
+        R = TextureParameterName.TextureWrapR
+    }
+
+    public class Texture
+    {
+        protected string name;
+        protected int handle;
+        protected byte mipmapLevels;
+
+        public string GetName() => name;
+        public int GetHandle() => handle;
+        public byte GetMipmapLevels() => mipmapLevels;
+
+        public static readonly float MaxAniso;
+        static Texture() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
+
+        public virtual void Use(TextureUnit unit)
+        {
+            GL.ActiveTexture(unit);
+            GL.BindTexture(TextureTarget.Texture2D, handle);
+        }
+
+        public virtual void SetMinFilter(TextureMinFilter filter)
+        {
+            GL.TextureParameter(handle, TextureParameterName.TextureMinFilter, (int)filter);
+        }
+
+        public virtual void SetMagFilter(TextureMagFilter filter)
+        {
+            GL.TextureParameter(handle, TextureParameterName.TextureMagFilter, (int)filter);
+        }
+
+        public virtual void SetAnisotropy(float level)
+        {
+            const TextureParameterName TEXTURE_MAX_ANISOTROPY = (TextureParameterName)0x84FE;
+            GL.TextureParameter(handle, TEXTURE_MAX_ANISOTROPY, Math.Clamp(level, 1, MaxAniso));
+        }
+
+        public virtual void SetLod(int @base, int min, int max)
+        {
+            GL.TextureParameter(handle, TextureParameterName.TextureLodBias, @base);
+            GL.TextureParameter(handle, TextureParameterName.TextureMinLod, min);
+            GL.TextureParameter(handle, TextureParameterName.TextureMaxLod, max);
+        }
+
+        public virtual void SetWrap(TextureCoordinate coord, TextureWrapMode mode)
+        {
+            GL.TextureParameter(handle, (TextureParameterName)coord, (int)mode);
+        }
+
+        public virtual void Dispose()
+        {
+            GL.DeleteTexture(handle);
+        }
+    }
+}
