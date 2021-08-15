@@ -20,7 +20,7 @@ namespace Swordfish.Rendering
             return bitmap.Width == bitmap.Height;
         }
 
-        public static Texture2DArray CreateFromFolder(string path, string name, int width = 0, int height = 0, bool generateMipmaps = true)
+        public static Texture2DArray LoadFromFolder(string path, string name, int width = 0, int height = 0, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
             int numOfLayers = 0;
@@ -66,6 +66,7 @@ namespace Swordfish.Rendering
             for (int i = 0; i < images.Count; i++)
             {
                 Bitmap image = images[i];
+                image.RotateFlip(RotateFlipType.RotateNoneFlipY);
 
                 BitmapData data = image.LockBits(new System.Drawing.Rectangle(0, 0, image.Width, image.Height),
                     ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);

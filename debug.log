@@ -53,11 +53,13 @@
 [INFO] :     Registered 'source.RotateSystem'
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
-[INFO] : Loading texture 'Rifle' from 'resources/textures/rifle.png'
-[INFO] :     Texture 'Rifle' loaded
-[INFO] : Loading model 'westchester' from 'resources/models/rifle.obj'
+[INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
 [INFO] :     Model 'westchester' loaded
+[INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
+[INFO] :     Texture 'westchester' loaded
 [INFO] : Resized dear imgui vertex buffer to new size 25280
 [INFO] : Resized dear imgui index buffer to new size 3792
 [INFO] : Resized dear imgui vertex buffer to new size 76800
 [INFO] : Resized dear imgui index buffer to new size 11520
+[INFO] : Resized dear imgui vertex buffer to new size 115200
+[INFO] : Resized dear imgui index buffer to new size 17280

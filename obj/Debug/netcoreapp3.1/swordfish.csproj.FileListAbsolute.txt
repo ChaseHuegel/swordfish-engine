@@ -71,6 +71,7 @@ E:\Projects\Wayward Beyond\swordfish-engine\obj\Debug\netcoreapp3.1\swordfish.cs
 E:\Projects\Wayward Beyond\swordfish-engine\obj\Debug\netcoreapp3.1\swordfish.dll
 E:\Projects\Wayward Beyond\swordfish-engine\obj\Debug\netcoreapp3.1\swordfish.pdb
 E:\Projects\Wayward Beyond\swordfish-engine\obj\Debug\netcoreapp3.1\swordfish.genruntimeconfig.cache
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\Rifle.obj
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\rifle.png
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\.obj
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\Cube.obj
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\westchester.obj
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\test.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\westchester.png

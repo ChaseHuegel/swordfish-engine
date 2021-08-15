@@ -80,15 +80,17 @@ namespace source
         {
             Debug.Enabled = true;
 
-            Shader shader = new Shader("shaders/test.vert", "shaders/test.frag", "Rifle");
+            Mesh rifle = Mesh.LoadFromFile("resources/models/westchester.obj", "westchester");
+            Shader shader = Shader.LoadFromFile("shaders/test.vert", "shaders/test.frag", "westchester");
+            Texture2D tex = Texture2D.LoadFromFile("resources/textures/westchester.png", "westchester");
 
-            Texture2D tex = Texture2D.CreateFromFile("resources/textures/rifle.png", "Rifle");
             tex.SetMinFilter(TextureMinFilter.Nearest);
             tex.SetMagFilter(TextureMagFilter.Nearest);
             tex.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
 
-            Mesh rifle = Mesh.LoadFromFile("resources/models/rifle.obj", "westchester");
-            rifle.Bind(shader, tex);
+            rifle.Shader = shader;
+            rifle.Texture = tex;
+            rifle.Bind();
 
             Entity entity = Engine.ECS.CreateEntity();
             Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = rifle })

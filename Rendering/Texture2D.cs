@@ -12,13 +12,14 @@ namespace Swordfish.Rendering
 {
     public class Texture2D : Texture
     {
-        public static Texture2D CreateFromFile(string path, string name, bool generateMipmaps = true)
+        public static Texture2D LoadFromFile(string path, string name, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
 
             Debug.Log($"Loading texture '{name}' from '{path}'");
 
             Bitmap image = new Bitmap(path);
+            image.RotateFlip(RotateFlipType.RotateNoneFlipY);
 
             GL.BindTexture(TextureTarget.Texture2D, handle);
             BitmapData data = image.LockBits(new System.Drawing.Rectangle(0, 0, image.Width, image.Height),

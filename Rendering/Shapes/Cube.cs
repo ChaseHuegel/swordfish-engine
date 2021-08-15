@@ -8,7 +8,7 @@ namespace Swordfish.Rendering.Shapes
         {
             Name = "Cube";
 
-            origin = new Vector3(-0.5f, -0.5f, -0.5f);
+            Origin = new Vector3(-0.5f, -0.5f, -0.5f);
 
             triangles = new uint[] {
                 //  Top
@@ -127,35 +127,35 @@ namespace Swordfish.Rendering.Shapes
             };
 
             uv = new Vector3[] {
-                new Vector3(0f, 0f, 0),
-                new Vector3(1f, 0f, 0),
-                new Vector3(1f, 1f, 0),
                 new Vector3(0f, 1f, 0),
+                new Vector3(1f, 1f, 0),
+                new Vector3(1f, 0f, 0),
+                new Vector3(0f, 0f, 0),
 
-                new Vector3(0f, 0f, 1),
-                new Vector3(1f, 0f, 1),
-                new Vector3(1f, 1f, 1),
                 new Vector3(0f, 1f, 1),
+                new Vector3(1f, 1f, 1),
+                new Vector3(1f, 0f, 1),
+                new Vector3(0f, 0f, 1),
 
-                new Vector3(0f, 0f, 2),
-                new Vector3(1f, 0f, 2),
-                new Vector3(1f, 1f, 2),
                 new Vector3(0f, 1f, 2),
+                new Vector3(1f, 1f, 2),
+                new Vector3(1f, 0f, 2),
+                new Vector3(0f, 0f, 2),
 
-                new Vector3(0f, 0f, 3),
-                new Vector3(1f, 0f, 3),
-                new Vector3(1f, 1f, 3),
                 new Vector3(0f, 1f, 3),
+                new Vector3(1f, 1f, 3),
+                new Vector3(1f, 0f, 3),
+                new Vector3(0f, 0f, 3),
 
-                new Vector3(0f, 0f, 4),
-                new Vector3(1f, 0f, 4),
-                new Vector3(1f, 1f, 4),
                 new Vector3(0f, 1f, 4),
+                new Vector3(1f, 1f, 4),
+                new Vector3(1f, 0f, 4),
+                new Vector3(0f, 0f, 4),
 
-                new Vector3(0f, 0f, 5),
-                new Vector3(1f, 0f, 5),
-                new Vector3(1f, 1f, 5),
                 new Vector3(0f, 1f, 5),
+                new Vector3(1f, 1f, 5),
+                new Vector3(1f, 0f, 5),
+                new Vector3(0f, 0f, 5),
             };
         }
     }

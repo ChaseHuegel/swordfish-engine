@@ -16,65 +16,61 @@ namespace Swordfish.Rendering
 
         private readonly Dictionary<string, int> uniformLocations = new Dictionary<string, int>();
 
-        public Shader(string vertex, string fragment, string name = "New Shader")
+        public static Shader LoadFromFile(string vertexPath, string fragmentPath, string name = "New Shader")
+        {
+            if (!File.Exists(vertexPath))
+			{
+				Debug.Log($"Unable to load shader '{name}', vertex source not found at '{vertexPath}'", LogType.ERROR);
+                return null;
+            }
+
+            if (!File.Exists(fragmentPath))
+			{
+				Debug.Log($"Unable to load shader '{name}', fragment source not found at '{fragmentPath}'", LogType.ERROR);
+                return null;
+            }
+
+            return new Shader(File.ReadAllText(vertexPath), File.ReadAllText(fragmentPath), name);
+        }
+
+        public Shader(string vertexSource, string fragmentSource, string name = "New Shader")
         {
             Name = name;
 
             //  Handles
-            int VertexShader, FragmentShader;
-            string VertexShaderSource, FragmentShaderSource;
-
-            //  Attempt to load vert shader from file, otherwise load from string
-            try
-            {
-                VertexShaderSource = File.ReadAllText(vertex);
-            }
-            catch
-            {
-                VertexShaderSource = vertex;
-            }
-
-            //  Attempt to load frag shader from file, otherwise load from string
-            try
-            {
-                FragmentShaderSource = File.ReadAllText(fragment);
-            }
-            catch
-            {
-                FragmentShaderSource = fragment;
-            }
+            int vertexShader, fragmentShader;
 
             //  Generate and bind
-            VertexShader = GL.CreateShader(ShaderType.VertexShader);
-            GL.ShaderSource(VertexShader, VertexShaderSource);
+            vertexShader = GL.CreateShader(ShaderType.VertexShader);
+            GL.ShaderSource(vertexShader, vertexSource);
 
-            FragmentShader = GL.CreateShader(ShaderType.FragmentShader);
-            GL.ShaderSource(FragmentShader, FragmentShaderSource);
+            fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
+            GL.ShaderSource(fragmentShader, fragmentSource);
 
             //  Compile and error checking
-            GL.CompileShader(VertexShader);
-            string infoLogVert = GL.GetShaderInfoLog(VertexShader);
+            GL.CompileShader(vertexShader);
+            string infoLogVert = GL.GetShaderInfoLog(vertexShader);
             if (infoLogVert != System.String.Empty)
                 Debug.Log(infoLogVert);
 
-            GL.CompileShader(FragmentShader);
-            string infoLogFrag = GL.GetShaderInfoLog(FragmentShader);
+            GL.CompileShader(fragmentShader);
+            string infoLogFrag = GL.GetShaderInfoLog(fragmentShader);
             if (infoLogFrag != System.String.Empty)
                 Debug.Log(infoLogFrag);
 
             //  Link to program that can be used
             Handle = GL.CreateProgram();
 
-            GL.AttachShader(Handle, VertexShader);
-            GL.AttachShader(Handle, FragmentShader);
+            GL.AttachShader(Handle, vertexShader);
+            GL.AttachShader(Handle, fragmentShader);
 
             GL.LinkProgram(Handle);
 
             //  Cleanup
-            GL.DetachShader(Handle, VertexShader);
-            GL.DetachShader(Handle, FragmentShader);
-            GL.DeleteShader(FragmentShader);
-            GL.DeleteShader(VertexShader);
+            GL.DetachShader(Handle, vertexShader);
+            GL.DetachShader(Handle, fragmentShader);
+            GL.DeleteShader(fragmentShader);
+            GL.DeleteShader(vertexShader);
 
             // Get all uniforms
             GL.GetProgram(Handle, GetProgramParameterName.ActiveUniforms, out var numberOfUniforms);

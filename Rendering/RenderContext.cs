@@ -63,7 +63,7 @@ namespace Swordfish.Rendering
             indices = mesh.triangles;
 
             //  Shaders
-            shader = new Shader("shaders/testArray.vert", "shaders/testArray.frag", "Test");
+            shader = Shader.LoadFromFile("shaders/testArray.vert", "shaders/testArray.frag", "TestArray");
             shader.Use();
 
             //  Setup vertex buffer
@@ -93,7 +93,7 @@ namespace Swordfish.Rendering
             GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * sizeof(uint), indices, BufferUsageHint.StaticDraw);
 
             //  Textures
-            textureArray = Texture2DArray.CreateFromFolder("resources/textures/block/", "blocks");
+            textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", "blocks");
             textureArray.SetMinFilter(TextureMinFilter.Nearest);
             textureArray.SetMagFilter(TextureMagFilter.Nearest);
             textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
@@ -174,9 +174,9 @@ namespace Swordfish.Rendering
                 Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
                 if (mesh != null)
                 {
-                    mesh.GetShader().SetMatrix4("view", camera.view);
-                    mesh.GetShader().SetMatrix4("projection", projection);
-                    mesh.GetShader().SetMatrix4("transform", transformMatrix);
+                    mesh.Shader.SetMatrix4("view", camera.view);
+                    mesh.Shader.SetMatrix4("projection", projection);
+                    mesh.Shader.SetMatrix4("transform", transformMatrix);
                     mesh.Render();
                 }
                 else
