@@ -9,4 +9,7 @@ uniform sampler2D texture0;
 void main()
 {
     FragColor = color * texture(texture0, uv);
+
+    if (FragColor.a == 0)
+        discard;
 }

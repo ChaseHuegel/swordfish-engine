@@ -3,6 +3,9 @@
 [INFO] : Profiler initialized
 [INFO] : Debugger initialized
 [INFO] : Loading core config from 'swordfish.toml' ...
+[ERROR] : Could not find file 'E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\swordfish.toml'.
+      at line 67 (LoadConfig) in E:\Projects\Wayward Beyond\swordfish-engine\CoreSettings.cs
+[INFO] : ...Created file from default at 'swordfish.toml'
 [INFO] : Loaded core config.
 [INFO] : Started Swordfish Engine
 [INFO] : Settings
@@ -40,34 +43,25 @@
 [INFO] :     ...using resolution 16x16
 [INFO] : ...Building texture array 'blocks'
 [INFO] : Registering ECS components...
-[INFO] :     Registered 'Swordfish.ECS.BillboardComponent'
 [INFO] :     Registered 'Swordfish.ECS.CollisionComponent'
 [INFO] :     Registered 'Swordfish.ECS.PositionComponent'
 [INFO] :     Registered 'Swordfish.ECS.RenderComponent'
 [INFO] :     Registered 'Swordfish.ECS.RigidbodyComponent'
 [INFO] :     Registered 'Swordfish.ECS.RotationComponent'
-[INFO] :     Registered 'Swordfish.ECS.TurntableComponent'
 [INFO] : Registering ECS systems...
-[INFO] :     Registered 'Swordfish.ECS.BillboardSystem'
 [INFO] :     Registered 'Swordfish.ECS.CollisionSystem'
 [INFO] :     Registered 'Swordfish.ECS.PhysicsSystem'
 [INFO] :     Registered 'Swordfish.ECS.RenderSystem'
-[INFO] :     Registered 'Swordfish.ECS.TurntableSystem'
-[INFO] Threading: Started thread 'Physics'
+[INFO] :     Registered 'source.RotateSystem'
 [INFO] Threading: Started thread 'ECS'
+[INFO] Threading: Started thread 'Physics'
 [INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
 [INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
 [INFO] : Loading model 'character' from 'resources/models/character.obj'
 [INFO] : Loading texture 'character' from 'resources/textures/character.png'
-[INFO] : Loading texture 'astronaut' from 'resources/textures/astronaut.png'
-[INFO] : Loading texture 'chort' from 'resources/textures/chort.png'
-[INFO] : Loading texture 'harold' from 'resources/textures/harold.png'
-[INFO] : Loading texture 'hubert' from 'resources/textures/hubert.png'
-[INFO] : Loading texture 'melvin' from 'resources/textures/melvin.png'
-[INFO] : Loading texture 'woman' from 'resources/textures/woman.png'
 [INFO] : Resized dear imgui vertex buffer to new size 25440
 [INFO] : Resized dear imgui index buffer to new size 3816
-[INFO] : Resized dear imgui vertex buffer to new size 76880
-[INFO] : Resized dear imgui index buffer to new size 11532
-[INFO] : Resized dear imgui vertex buffer to new size 115320
-[INFO] : Resized dear imgui index buffer to new size 17298
+[INFO] : Resized dear imgui vertex buffer to new size 77040
+[INFO] : Resized dear imgui index buffer to new size 11556
+[INFO] : Resized dear imgui vertex buffer to new size 115560
+[INFO] : Resized dear imgui index buffer to new size 17334

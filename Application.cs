@@ -15,22 +15,6 @@ using Vector2 = System.Numerics.Vector2;
 
 namespace source
 {
-    [ComponentSystem(typeof(RotationComponent))]
-    public class RotateSystem : ComponentSystem
-    {
-        public override void OnUpdate(float deltaTime)
-        {
-            foreach (Entity entity in entities)
-            {
-                Engine.ECS.Do<RotationComponent>(entity, x =>
-                {
-                    x.Rotate(Vector3.UnitY, 45 * deltaTime);
-                    return x;
-                });
-            }
-        }
-    }
-
     public class Application
     {
         static void Main(string[] args)
@@ -60,7 +44,8 @@ namespace source
                     .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                     .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                     .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(Engine.Random.Next(-100, 100), 50, Engine.Random.Next(-100, 100)) })
-                    .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) });
+                    .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.FromEulerAngles(Engine.Random.Next(360), Engine.Random.Next(360), Engine.Random.Next(360)) })
+                    .Attach<TurntableComponent>(entity, new TurntableComponent());
             }
         }
 
@@ -74,6 +59,23 @@ namespace source
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = Camera.Main.transform.position + Camera.Main.transform.forward })
                 .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
+        }
+
+        public void CreateBillboardEntity(Shader shader, Texture texture, Vector3 position, Vector3 scale)
+        {
+            Mesh mesh = new Quad();
+            mesh.Scale = scale;
+            mesh.Shader = shader;
+            mesh.Texture = texture;
+            mesh.Bind();
+
+            Entity entity = Engine.ECS.CreateEntity();
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = mesh })
+                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
+                .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = position })
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity })
+                .Attach<BillboardComponent>(entity, new BillboardComponent());
         }
 
         private void Start()
@@ -94,7 +96,8 @@ namespace source
                 .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = Vector3.Zero })
-                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity })
+                .Attach<TurntableComponent>(entity, new TurntableComponent());
 
             model = OBJ.LoadFromFile("resources/models/character.obj", "character");
             tex = Texture2D.LoadFromFile("resources/textures/character.png", "character");
@@ -108,7 +111,26 @@ namespace source
                 .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(0f, 0f, -4f) })
-                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity })
+                .Attach<TurntableComponent>(entity, new TurntableComponent());
+
+            tex = Texture2D.LoadFromFile("resources/textures/astronaut.png", "astronaut");
+            CreateBillboardEntity(shader, tex, new Vector3(4f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/chort.png", "chort");
+            CreateBillboardEntity(shader, tex, new Vector3(6f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/harold.png", "harold");
+            CreateBillboardEntity(shader, tex, new Vector3(8f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/hubert.png", "hubert");
+            CreateBillboardEntity(shader, tex, new Vector3(10f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/melvin.png", "melvin");
+            CreateBillboardEntity(shader, tex, new Vector3(12f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/woman.png", "woman");
+            CreateBillboardEntity(shader, tex, new Vector3(14f, 0f, -4f), Vector3.One * 2.5f);
         }
 
         private void ShowGui()

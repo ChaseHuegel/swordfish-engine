@@ -25,6 +25,7 @@ namespace Swordfish.Rendering
         public string Name = "";
         public bool DoubleSided = true;
         public Vector3 Origin = Vector3.Zero;
+        public Vector3 Scale = Vector3.One;
 
         public Shader Shader;
         public Texture Texture;
@@ -49,9 +50,9 @@ namespace Swordfish.Rendering
             for (int i = 0; i < vertices.Length; i++)
             {
                 row = i * 13;
-                raw[row] = vertices[i].X + Origin.X;
-                raw[row+1] = vertices[i].Y + Origin.Y;
-                raw[row+2] = vertices[i].Z + Origin.Z;
+                raw[row] = (vertices[i].X + Origin.X) * Scale.X;
+                raw[row+1] = (vertices[i].Y + Origin.Y) * Scale.Y;
+                raw[row+2] = (vertices[i].Z + Origin.Z) * Scale.Z;
 
                 raw[row+3] = colors[i].X;
                 raw[row+4] = colors[i].Y;

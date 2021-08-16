@@ -77,3 +77,9 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\te
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\westchester.png
 e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character.obj
 e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\character.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\astronaut.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\chort.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\harold.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\hubert.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\melvin.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\woman.png
