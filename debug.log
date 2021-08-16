@@ -58,7 +58,7 @@
 [INFO] : Loading texture 'character' from 'resources/textures/character.png'
 [INFO] : Resized dear imgui vertex buffer to new size 25280
 [INFO] : Resized dear imgui index buffer to new size 3792
-[INFO] : Resized dear imgui vertex buffer to new size 76720
-[INFO] : Resized dear imgui index buffer to new size 11508
-[INFO] : Resized dear imgui vertex buffer to new size 115080
-[INFO] : Resized dear imgui index buffer to new size 17262
+[INFO] : Resized dear imgui vertex buffer to new size 76800
+[INFO] : Resized dear imgui index buffer to new size 11520
+[INFO] : Resized dear imgui vertex buffer to new size 115200
+[INFO] : Resized dear imgui index buffer to new size 17280

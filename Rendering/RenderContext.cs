@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using ImGuiNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -126,6 +128,10 @@ namespace Swordfish.Rendering
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.DepthTest);
 
+            //  Alpha blending
+            GL.Enable(EnableCap.Blend);
+            GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
             camera.Update();
 
             projection = Matrix4.CreatePerspectiveFieldOfView(
@@ -135,20 +141,21 @@ namespace Swordfish.Rendering
                     Engine.Settings.Renderer.CLIP_FAR
                 );
 
-            //  Make a draw call per object
             //  TODO: batching
+            //  TODO as part of batching, only sort entities that are actually using transparency shaders
 
-            DrawCalls = 0;
-            Matrix4 transformMatrix;
+            //  Sort for transparency
+            SortedDictionary<float, Entity> sortedEntities = new SortedDictionary<float, Entity>();
             foreach (Entity entity in entities)
             {
                 Vector3 point = Engine.ECS.Get<PositionComponent>(entity).position;
                 Vector3 origin = camera.transform.position - camera.transform.forward;
 
-                //  Greedily cull draw calls beyond the far clip plane
+                //  Greedily cull entities beyond the far clip plane
                 if (!Intersection.BoundingToPoint(origin, Engine.Settings.Renderer.CLIP_FAR, point))
                     continue;
 
+                //  ...Build a frustrum for culling
                 Plane[] planes = Plane.BuildViewFrustrum(
                         origin,
                         camera.transform.forward,
@@ -159,11 +166,21 @@ namespace Swordfish.Rendering
                         Engine.Settings.Renderer.CLIP_FAR
                     );
 
-                //  Frustrum culling
+                //  Check the frustrum
                 if (!Intersection.FrustrumToPoint(planes, point))
                     continue;
 
-                //  Not culled... draw the entity
+                //  ... Not culled, sort the entity by distance
+                float distance = MathS.DistanceUnsquared(camera.transform.position, Engine.ECS.Get<PositionComponent>(entity).position);
+                sortedEntities[distance] = entity;
+            }
+
+            DrawCalls = 0;
+            Matrix4 transformMatrix;
+            foreach (KeyValuePair<float, Entity> pair in sortedEntities.Reverse())
+            {
+                //  Make a draw call per entity
+                Entity entity = pair.Value;
 
                 transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
                                     * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
