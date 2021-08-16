@@ -15,11 +15,6 @@ namespace Swordfish.Rendering
 {
     public class Texture2DArray : Texture
     {
-        private static bool IsValidBitmap(Bitmap bitmap)
-        {
-            return bitmap.Width == bitmap.Height;
-        }
-
         public static Texture2DArray LoadFromFolder(string path, string name, int width = 0, int height = 0, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
@@ -78,9 +73,12 @@ namespace Swordfish.Rendering
 
             if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2DArray);
 
-            Debug.Log($"Texture array '{name}' loaded");
-
             return new Texture2DArray(handle, name, width, height, generateMipmaps);
+        }
+
+        private static bool IsValidBitmap(Bitmap bitmap)
+        {
+            return bitmap.Width == bitmap.Height;
         }
 
         public Texture2DArray(int handle, string name, int width, int height, bool generateMipmaps = true)

@@ -75,3 +75,7 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\mo
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\westchester.obj
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\test.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\westchester.png
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character.obj
+e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\character.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\rifle.obj
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\rifle.png

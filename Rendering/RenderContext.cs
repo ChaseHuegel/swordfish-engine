@@ -94,9 +94,6 @@ namespace Swordfish.Rendering
 
             //  Textures
             textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", "blocks");
-            textureArray.SetMinFilter(TextureMinFilter.Nearest);
-            textureArray.SetMagFilter(TextureMagFilter.Nearest);
-            textureArray.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
         }
 
         /// <summary>

@@ -39,7 +39,6 @@
 [INFO] :     ...layers: 21
 [INFO] :     ...using resolution 16x16
 [INFO] : ...Building texture array 'blocks'
-[INFO] : Texture array 'blocks' loaded
 [INFO] : Registering ECS components...
 [INFO] :     Registered 'Swordfish.ECS.CollisionComponent'
 [INFO] :     Registered 'Swordfish.ECS.PositionComponent'
@@ -54,12 +53,12 @@
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
 [INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
-[INFO] :     Model 'westchester' loaded
 [INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
-[INFO] :     Texture 'westchester' loaded
+[INFO] : Loading model 'character' from 'resources/models/character.obj'
+[INFO] : Loading texture 'character' from 'resources/textures/character.png'
 [INFO] : Resized dear imgui vertex buffer to new size 25280
 [INFO] : Resized dear imgui index buffer to new size 3792
-[INFO] : Resized dear imgui vertex buffer to new size 76800
-[INFO] : Resized dear imgui index buffer to new size 11520
-[INFO] : Resized dear imgui vertex buffer to new size 115200
-[INFO] : Resized dear imgui index buffer to new size 17280
+[INFO] : Resized dear imgui vertex buffer to new size 76720
+[INFO] : Resized dear imgui index buffer to new size 11508
+[INFO] : Resized dear imgui vertex buffer to new size 115080
+[INFO] : Resized dear imgui index buffer to new size 17262

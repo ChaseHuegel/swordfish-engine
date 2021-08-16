@@ -32,8 +32,6 @@ namespace Swordfish.Rendering
 
             if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
-            Debug.Log($"    Texture '{name}' loaded");
-
             return new Texture2D(handle, name, image.Width, image.Height, generateMipmaps);
         }
 
@@ -49,7 +47,9 @@ namespace Swordfish.Rendering
             mipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
             base.name = name;
 
-            GL.CreateTextures(TextureTarget.Texture2D, 1, out handle);
+            GL.CreateTextures(TextureTarget.Texture2D, 1, out int handleOut);
+            handle = handleOut;
+
             GL.TextureStorage2D(handle, mipmapLevels, SizedInternalFormat.Rgba8, width, height);
             GL.TextureSubImage2D(handle, 0, 0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
 

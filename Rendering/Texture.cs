@@ -14,8 +14,13 @@ namespace Swordfish.Rendering
     public class Texture
     {
         protected string name;
-        protected int handle;
         protected byte mipmapLevels;
+
+        private int _handle;
+        protected int handle {
+            get => _handle;
+            set { _handle = value; Initialize(); }
+        }
 
         public string GetName() => name;
         public int GetHandle() => handle;
@@ -23,6 +28,14 @@ namespace Swordfish.Rendering
 
         public static readonly float MaxAniso;
         static Texture() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }
+
+        private void Initialize()
+        {
+            //  Default to pixelated filtering
+            SetMinFilter(TextureMinFilter.Nearest);
+            SetMagFilter(TextureMagFilter.Nearest);
+            SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
+        }
 
         public virtual void Use(TextureUnit unit)
         {

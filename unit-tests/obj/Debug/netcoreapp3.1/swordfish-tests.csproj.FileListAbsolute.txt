@@ -154,3 +154,11 @@ E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\obj\Debug\netcoreapp3.1\s
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\obj\Debug\netcoreapp3.1\swordfish-tests.dll
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\obj\Debug\netcoreapp3.1\swordfish-tests.pdb
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\obj\Debug\netcoreapp3.1\swordfish-tests.genruntimeconfig.cache
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\character.mtl
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\character.obj
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\character.png
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\Cube.obj
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\westchester.obj
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\character.png
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\test.png
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\westchester.png

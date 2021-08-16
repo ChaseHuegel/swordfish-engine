@@ -80,23 +80,34 @@ namespace source
         {
             Debug.Enabled = true;
 
-            Mesh rifle = Mesh.LoadFromFile("resources/models/westchester.obj", "westchester");
-            Shader shader = Shader.LoadFromFile("shaders/test.vert", "shaders/test.frag", "westchester");
+            Shader shader = Shader.LoadFromFile("shaders/test.vert", "shaders/test.frag", "default");
+
+            Mesh model = OBJ.LoadFromFile("resources/models/westchester.obj", "westchester");
             Texture2D tex = Texture2D.LoadFromFile("resources/textures/westchester.png", "westchester");
 
-            tex.SetMinFilter(TextureMinFilter.Nearest);
-            tex.SetMagFilter(TextureMagFilter.Nearest);
-            tex.SetWrap(TextureCoordinate.S, TextureWrapMode.ClampToEdge);
-
-            rifle.Shader = shader;
-            rifle.Texture = tex;
-            rifle.Bind();
+            model.Shader = shader;
+            model.Texture = tex;
+            model.Bind();
 
             Entity entity = Engine.ECS.CreateEntity();
-            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = rifle })
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = model })
                 .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
                 .Attach<PositionComponent>(entity, new PositionComponent() { position = Vector3.Zero })
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
+
+            model = OBJ.LoadFromFile("resources/models/character.obj", "character");
+            tex = Texture2D.LoadFromFile("resources/textures/character.png", "character");
+
+            model.Shader = shader;
+            model.Texture = tex;
+            model.Bind();
+
+            entity = Engine.ECS.CreateEntity();
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = model })
+                .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
+                .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(0f, 0f, -4f) })
                 .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity });
         }
 
