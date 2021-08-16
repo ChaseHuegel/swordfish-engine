@@ -95,6 +95,10 @@ namespace Swordfish.Rendering
             GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);
 
+            attrib = Shader.GetAttribLocation("in_normal");
+            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 7 * sizeof(float));
+            GL.EnableVertexAttribArray(attrib);
+
             attrib = Shader.GetAttribLocation("in_uv");
             GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 10 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);

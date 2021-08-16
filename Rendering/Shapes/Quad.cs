@@ -29,10 +29,10 @@ namespace Swordfish.Rendering.Shapes
             };
 
             normals = new Vector3[] {
-                new Vector3(0f, 0f, -1f),
-                new Vector3(0f, 0f, -1f),
-                new Vector3(0f, 0f, -1f),
-                new Vector3(0f, 0f, -1f),
+                new Vector3(0f, 0f, 1f),
+                new Vector3(0f, 0f, 1f),
+                new Vector3(0f, 0f, 1f),
+                new Vector3(0f, 0f, 1f),
             };
 
             uv = new Vector3[] {

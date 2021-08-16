@@ -152,11 +152,5 @@ namespace Swordfish.Rendering
             GL.UseProgram(Handle);
             GL.UniformMatrix4(uniformLocations[name], true, ref data);
         }
-
-        public void SetMatrix4(string name, Vector3 data)
-        {
-            GL.UseProgram(Handle);
-            GL.Uniform3(uniformLocations[name], data);
-        }
     }
 }

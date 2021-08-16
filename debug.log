@@ -53,8 +53,8 @@
 [INFO] :     Registered 'Swordfish.ECS.PhysicsSystem'
 [INFO] :     Registered 'Swordfish.ECS.RenderSystem'
 [INFO] :     Registered 'Swordfish.ECS.TurntableSystem'
-[INFO] Threading: Started thread 'Physics'
 [INFO] Threading: Started thread 'ECS'
+[INFO] Threading: Started thread 'Physics'
 [INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
 [INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
 [INFO] : Loading model 'character' from 'resources/models/character.obj'
@@ -65,9 +65,9 @@
 [INFO] : Loading texture 'hubert' from 'resources/textures/hubert.png'
 [INFO] : Loading texture 'melvin' from 'resources/textures/melvin.png'
 [INFO] : Loading texture 'woman' from 'resources/textures/woman.png'
-[INFO] : Resized dear imgui vertex buffer to new size 25440
-[INFO] : Resized dear imgui index buffer to new size 3816
-[INFO] : Resized dear imgui vertex buffer to new size 76880
-[INFO] : Resized dear imgui index buffer to new size 11532
-[INFO] : Resized dear imgui vertex buffer to new size 115320
-[INFO] : Resized dear imgui index buffer to new size 17298
+[INFO] : Resized dear imgui vertex buffer to new size 25280
+[INFO] : Resized dear imgui index buffer to new size 3792
+[INFO] : Resized dear imgui vertex buffer to new size 76800
+[INFO] : Resized dear imgui index buffer to new size 11520
+[INFO] : Resized dear imgui vertex buffer to new size 115200
+[INFO] : Resized dear imgui index buffer to new size 17280

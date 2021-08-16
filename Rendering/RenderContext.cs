@@ -85,6 +85,10 @@ namespace Swordfish.Rendering
             GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 3 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);
 
+            attrib = shader.GetAttribLocation("in_normal");
+            GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 7 * sizeof(float));
+            GL.EnableVertexAttribArray(attrib);
+
             attrib = shader.GetAttribLocation("in_uv");
             GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 10 * sizeof(float));
             GL.EnableVertexAttribArray(attrib);
@@ -191,6 +195,13 @@ namespace Swordfish.Rendering
                     mesh.Shader.SetMatrix4("view", camera.view);
                     mesh.Shader.SetMatrix4("projection", projection);
                     mesh.Shader.SetMatrix4("transform", transformMatrix);
+                    mesh.Shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
+
+                    mesh.Shader.SetVec3("globalLightDirection", new Vector3(45, 0, 0));
+                    mesh.Shader.SetVec4("globalLightColor", Color.White);
+
+                    mesh.Shader.SetFloat("ambientLightning", 0.25f);
+                    mesh.Shader.SetVec4("ambientLightColor", Color.Gray);
                     mesh.Render();
                 }
                 else
@@ -198,6 +209,13 @@ namespace Swordfish.Rendering
                     shader.SetMatrix4("view", camera.view);
                     shader.SetMatrix4("projection", projection);
                     shader.SetMatrix4("transform", transformMatrix);
+                    shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
+
+                    shader.SetVec3("globalLightDirection", new Vector3(45, 0, 0));
+                    shader.SetVec4("globalLightColor", Color.White);
+
+                    shader.SetFloat("ambientLightning", 0.25f);
+                    shader.SetVec4("ambientLightColor", Color.Gray);
 
                     shader.Use();
                     textureArray.Use(TextureUnit.Texture0);
