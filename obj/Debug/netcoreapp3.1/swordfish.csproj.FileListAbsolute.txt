@@ -1,6 +1,4 @@
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\swordfish.exe
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\lines.frag
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\lines.vert
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\test.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\test.vert
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\testArray.frag
@@ -83,3 +81,12 @@ e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\te
 e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\hubert.png
 e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\melvin.png
 e:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\woman.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr.vert
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\unlit.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\unlit.vert
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\icons\light.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\default.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\default.vert
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_array.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_array.vert

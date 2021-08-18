@@ -10,7 +10,7 @@ using Swordfish.ECS;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
-
+using Swordfish.Types;
 using Vector2 = System.Numerics.Vector2;
 
 namespace source
@@ -78,11 +78,28 @@ namespace source
                 .Attach<BillboardComponent>(entity, new BillboardComponent());
         }
 
+        public void CreatePointLightEntity(Vector3 position, Vector4 color, float intensity, float range)
+        {
+            Mesh mesh = new Quad();
+            mesh.Shader = Shaders.UNLIT.Get();
+            mesh.Texture = Icons.LIGHT.Get();
+            mesh.Bind();
+
+            Entity entity = Engine.ECS.CreateEntity();
+            Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = mesh })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = position })
+                .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity })
+                .Attach<LightComponent>(entity, new LightComponent() { color = color, intensity = intensity, range = range })
+                .Attach<BillboardComponent>(entity, new BillboardComponent());
+        }
+
         private void Start()
         {
             Debug.Enabled = true;
 
-            Shader shader = Shader.LoadFromFile("shaders/test.vert", "shaders/test.frag", "default");
+            CreatePointLightEntity(new Vector3(1f, 0f, 5f), Color.White, 10f, 10f);
+
+            Shader shader = Shaders.PBR.Get();
 
             Mesh model = OBJ.LoadFromFile("resources/models/westchester.obj", "westchester");
             Texture2D tex = Texture2D.LoadFromFile("resources/textures/westchester.png", "westchester");
@@ -110,7 +127,7 @@ namespace source
             Engine.ECS.Attach<RenderComponent>(entity, new RenderComponent() { mesh = model })
                 .Attach<RigidbodyComponent>(entity, new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero })
                 .Attach<CollisionComponent>(entity, new CollisionComponent() { size = 0.5f })
-                .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(0f, 0f, -4f) })
+                .Attach<PositionComponent>(entity, new PositionComponent() { position = new Vector3(0f, 0f, -5f) })
                 .Attach<RotationComponent>(entity, new RotationComponent() { orientation = Quaternion.Identity })
                 .Attach<TurntableComponent>(entity, new TurntableComponent());
 

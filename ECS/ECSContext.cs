@@ -274,6 +274,20 @@ namespace Swordfish.ECS
         }
 
         /// <summary>
+        /// Checks for component data on an entity
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="entity"></param>
+        /// <returns>component if it exists on entity; otherwise returns dummy default</returns>
+        public bool HasComponent<T>(Entity entity) where T : struct
+        {
+            if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
+                return data[entity.UID] != null;
+
+            return false;
+        }
+
+        /// <summary>
         /// Gets component data from an entity
         /// </summary>
         /// <typeparam name="T"></typeparam>

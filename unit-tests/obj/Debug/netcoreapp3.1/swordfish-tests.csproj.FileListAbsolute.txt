@@ -7,8 +7,6 @@ E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\t
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\xunit.runner.visualstudio.dotnetcore.testadapter.dll
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\xunit.runner.reporters.netcoreapp10.dll
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\xunit.runner.utility.netcoreapp10.dll
-E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\lines.frag
-E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\lines.vert
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\test.frag
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\test.vert
 E:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\testArray.frag
@@ -166,3 +164,12 @@ e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\r
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\hubert.png
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\melvin.png
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\textures\woman.png
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\default.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\default.vert
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\pbr.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\pbr.vert
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\pbr_array.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\pbr_array.vert
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\unlit.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\unlit.vert
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\icons\light.png

@@ -14,6 +14,20 @@
 [INFO] :     Shader vertex attr supported: 16
 [INFO] : ...Created OpenGL debug output
 [INFO] : Created texture 'ImGui Text Atlas'
+[INFO] :     Uniforms: in_fontTexture, projection_matrix
+[INFO] : Shader 'ImGui' loaded
+[INFO] : Loading shader 'default' from 'shaders/default.vert' / 'shaders/default.frag'
+[INFO] :     Uniforms: ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, texture0, tint, transform, view
+[INFO] : Shader 'default' loaded
+[INFO] : Loading shader 'unlit' from 'shaders/unlit.vert' / 'shaders/unlit.frag'
+[INFO] :     Uniforms: projection, texture0, tint, transform, view
+[INFO] : Shader 'unlit' loaded
+[INFO] : Loading shader 'pbr' from 'shaders/pbr.vert' / 'shaders/pbr.frag'
+[INFO] :     Uniforms: inversedTransform, lightColors[0], lightPositions[0], lightRanges[0], metallic, projection, roughness, texture0, transform, view, viewPosition
+[INFO] : Shader 'pbr' loaded
+[INFO] : Loading shader 'pbr array' from 'shaders/pbr_array.vert' / 'shaders/pbr_array.frag'
+[INFO] :     Uniforms: inversedTransform, lightColors[0], lightPositions[0], lightRanges[0], metallic, projection, roughness, texture0, transform, view, viewPosition
+[INFO] : Shader 'pbr array' loaded
 [INFO] : Loading texture array 'blocks' from 'resources/textures/block/'
 [INFO] :     Found texture 'caution_panel.png' at 0
 [INFO] :     Found texture 'control_buttons.png' at 1
@@ -42,6 +56,7 @@
 [INFO] : Registering ECS components...
 [INFO] :     Registered 'Swordfish.ECS.BillboardComponent'
 [INFO] :     Registered 'Swordfish.ECS.CollisionComponent'
+[INFO] :     Registered 'Swordfish.ECS.LightComponent'
 [INFO] :     Registered 'Swordfish.ECS.PositionComponent'
 [INFO] :     Registered 'Swordfish.ECS.RenderComponent'
 [INFO] :     Registered 'Swordfish.ECS.RigidbodyComponent'
@@ -50,11 +65,13 @@
 [INFO] : Registering ECS systems...
 [INFO] :     Registered 'Swordfish.ECS.BillboardSystem'
 [INFO] :     Registered 'Swordfish.ECS.CollisionSystem'
+[INFO] :     Registered 'Swordfish.ECS.LightSystem'
 [INFO] :     Registered 'Swordfish.ECS.PhysicsSystem'
 [INFO] :     Registered 'Swordfish.ECS.RenderSystem'
 [INFO] :     Registered 'Swordfish.ECS.TurntableSystem'
 [INFO] Threading: Started thread 'ECS'
 [INFO] Threading: Started thread 'Physics'
+[INFO] : Loading texture 'ico_light' from 'resources/icons/light.png'
 [INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
 [INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
 [INFO] : Loading model 'character' from 'resources/models/character.obj'
@@ -65,9 +82,15 @@
 [INFO] : Loading texture 'hubert' from 'resources/textures/hubert.png'
 [INFO] : Loading texture 'melvin' from 'resources/textures/melvin.png'
 [INFO] : Loading texture 'woman' from 'resources/textures/woman.png'
-[INFO] : Resized dear imgui vertex buffer to new size 25280
-[INFO] : Resized dear imgui index buffer to new size 3792
-[INFO] : Resized dear imgui vertex buffer to new size 76800
-[INFO] : Resized dear imgui index buffer to new size 11520
-[INFO] : Resized dear imgui vertex buffer to new size 115200
-[INFO] : Resized dear imgui index buffer to new size 17280
+[ERROR] OpenGL - Load: InvalidValue
+      at line 35 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+[ERROR] : Uniform 'ambientLightning' does not exist in the shader 'pbr'!
+      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
+[ERROR] : Uniform 'ao' does not exist in the shader 'pbr'!
+      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
+[INFO] : Resized dear imgui vertex buffer to new size 25440
+[INFO] : Resized dear imgui index buffer to new size 3816
+[INFO] : Resized dear imgui vertex buffer to new size 76960
+[INFO] : Resized dear imgui index buffer to new size 11544
+[ERROR] OpenGL - Unload: InvalidValue
+      at line 46 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

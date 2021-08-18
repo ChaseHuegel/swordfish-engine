@@ -16,6 +16,8 @@ namespace Swordfish.Rendering
 {
     public class RenderContext
     {
+        public int DrawCalls = 0;
+
         public ImGuiController GuiController;
         private Shader shader;
         private Texture2DArray textureArray;
@@ -24,6 +26,7 @@ namespace Swordfish.Rendering
         private Camera camera;
 
         private int[] entities;
+        private int[] lights;
 
         private float[] vertices;
         private uint[] indices;
@@ -32,13 +35,19 @@ namespace Swordfish.Rendering
         private int VertexBufferObject;
         private int VertexArrayObject;
 
-        public int DrawCalls = 0;
+        private const int MAX_LIGHTS = 4;
 
         /// <summary>
         /// Push all entities to context that should be rendered each frame
         /// </summary>
         /// <param name="entities"></param>
         internal void Push(int[] entities) => this.entities = entities;
+
+        /// <summary>
+        /// Push all entities that act as light sources
+        /// </summary>
+        /// <param name="entities"></param>
+        internal void PushLights(int[] entities) => this.lights = entities;
 
         /// <summary>
         /// Load the renderer
@@ -53,19 +62,20 @@ namespace Swordfish.Rendering
 
             Debug.TryCreateGLOutput();
 
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            GL.ClearColor(0.08f, 0.1f, 0.14f, 1.0f);
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
             camera = new Camera(Vector3.Zero, Vector3.Zero);
 
             entities = new int[0];
+            lights = new int[0];
 
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;
             indices = mesh.triangles;
 
             //  Shaders
-            shader = Shader.LoadFromFile("shaders/testArray.vert", "shaders/testArray.frag", "TestArray");
+            shader = Shaders.PBR_ARRAY.Get();//Shader.LoadFromFile("shaders/testArray.vert", "shaders/testArray.frag", "TestArray");
             shader.Use();
 
             //  Setup vertex buffer
@@ -186,8 +196,11 @@ namespace Swordfish.Rendering
                 //  Make a draw call per entity
                 Entity entity = pair.Value;
 
-                transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
+                if (Engine.ECS.HasComponent<RotationComponent>(entity))
+                    transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
                                     * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
+                else
+                    transformMatrix = Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
 
                 Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
                 if (mesh != null)
@@ -197,11 +210,31 @@ namespace Swordfish.Rendering
                     mesh.Shader.SetMatrix4("transform", transformMatrix);
                     mesh.Shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
 
-                    mesh.Shader.SetVec3("globalLightDirection", new Vector3(45, 0, 0));
-                    mesh.Shader.SetVec4("globalLightColor", Color.White);
+                    mesh.Shader.SetVec3("viewPosition", camera.transform.position);
 
-                    mesh.Shader.SetFloat("ambientLightning", 0.25f);
-                    mesh.Shader.SetVec4("ambientLightColor", Color.Gray);
+                    mesh.Shader.SetFloat("ambientLightning", 0.02f);
+
+                    mesh.Shader.SetFloat("ao", 1f);
+                    mesh.Shader.SetFloat("metallic", 0.5f);
+                    mesh.Shader.SetFloat("roughness", 0.5f);
+
+                    for (int i = 0; i < lights.Length; i++)
+                    {
+                        mesh.Shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                        mesh.Shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).intensity);
+                        mesh.Shader.SetFloat($"lightRanges[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).range);
+                    }
+
+                    if (lights.Length < MAX_LIGHTS)
+                    {
+                        for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                        {
+                            mesh.Shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
+                            mesh.Shader.SetVec3($"lightColors[{i}]", Color.Black.Xyz);
+                            mesh.Shader.SetFloat($"lightRanges[{i}]", 0f);
+                        }
+                    }
+
                     mesh.Render();
                 }
                 else
@@ -211,11 +244,30 @@ namespace Swordfish.Rendering
                     shader.SetMatrix4("transform", transformMatrix);
                     shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
 
-                    shader.SetVec3("globalLightDirection", new Vector3(45, 0, 0));
-                    shader.SetVec4("globalLightColor", Color.White);
+                    shader.SetVec3("viewPosition", camera.transform.position);
 
-                    shader.SetFloat("ambientLightning", 0.25f);
-                    shader.SetVec4("ambientLightColor", Color.Gray);
+                    shader.SetFloat("ambientLightning", 0.02f);
+
+                    shader.SetFloat("ao", 1f);
+                    shader.SetFloat("metallic", 0.5f);
+                    shader.SetFloat("roughness", 0.5f);
+
+                    for (int i = 0; i < lights.Length; i++)
+                    {
+                        shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                        shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).intensity);
+                        shader.SetFloat($"lightRanges[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).range);
+                    }
+
+                    if (lights.Length < MAX_LIGHTS)
+                    {
+                        for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                        {
+                            shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
+                            shader.SetVec3($"lightColors[{i}]", Color.Black.Xyz);
+                            shader.SetFloat($"lightRanges[{i}]", 0f);
+                        }
+                    }
 
                     shader.Use();
                     textureArray.Use(TextureUnit.Texture0);

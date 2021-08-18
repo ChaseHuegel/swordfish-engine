@@ -55,7 +55,7 @@ namespace Swordfish.Rendering
 
             Debug.Log($"...Building texture array '{name}'");
             GL.BindTexture(TextureTarget.Texture2DArray, handle);
-            GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.Rgba, width, height, numOfLayers, 0,
+            GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.SrgbAlpha, width, height, numOfLayers, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);
 
             for (int i = 0; i < images.Count; i++)

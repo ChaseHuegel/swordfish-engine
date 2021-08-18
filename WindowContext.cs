@@ -31,6 +31,9 @@ namespace Swordfish
 
             Engine.Start();
 
+            //  Manual fallback to grab GL errors if debug output is unavailable
+            Debug.TryCollectGLError("Load");
+
             base.OnLoad();
         }
 
@@ -38,6 +41,9 @@ namespace Swordfish
         {
             Engine.Renderer.Unload();
             Engine.StopCallback?.Invoke();
+
+            //  Manual fallback to grab GL errors if debug output is unavailable
+            Debug.TryCollectGLError("Unload");
 
             base.OnUnload();
         }
@@ -95,6 +101,9 @@ namespace Swordfish
 
             Engine.Step();
 
+            //  Manual fallback to grab GL errors if debug output is unavailable
+            Debug.TryCollectGLError("UpdateFrame");
+
             base.OnUpdateFrame(e);
         }
 
@@ -105,7 +114,7 @@ namespace Swordfish
             Engine.PostRenderCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("OpenGL");
+            Debug.TryCollectGLError("RenderFrame");
 
             Context.SwapBuffers();
             base.OnRenderFrame(e);
@@ -119,6 +128,9 @@ namespace Swordfish
             //  Update size in settings
             Engine.Settings.Window.WIDTH = ClientSize.X;
             Engine.Settings.Window.HEIGHT = ClientSize.Y;
+
+            //  Manual fallback to grab GL errors if debug output is unavailable
+            Debug.TryCollectGLError("Resize");
 
             base.OnResize(e);
         }

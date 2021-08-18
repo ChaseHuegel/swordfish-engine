@@ -18,6 +18,8 @@ namespace Swordfish.Rendering
 
         public static Shader LoadFromFile(string vertexPath, string fragmentPath, string name = "New Shader")
         {
+            Debug.Log($"Loading shader '{name}' from '{vertexPath}' / '{fragmentPath}'");
+
             if (!File.Exists(vertexPath))
 			{
 				Debug.Log($"Unable to load shader '{name}', vertex source not found at '{vertexPath}'", LogType.ERROR);
@@ -76,13 +78,17 @@ namespace Swordfish.Rendering
             GL.GetProgram(Handle, GetProgramParameterName.ActiveUniforms, out var numberOfUniforms);
             uniformLocations = new Dictionary<string, int>();
 
-            for (var i = 0; i < numberOfUniforms; i++)
+            string uniformOutput = "";
+            for (int i = 0; i < numberOfUniforms; i++)
             {
                 string key = GL.GetActiveUniform(Handle, i, out _, out _);
                 int location = GL.GetUniformLocation(Handle, key);
-
                 uniformLocations.Add(key, location);
+                uniformOutput += key + (i  == numberOfUniforms-1 ? "" : ", ");
             }
+
+            Debug.Log($"    Uniforms: {uniformOutput}");
+            Debug.Log($"Shader '{name}' loaded");
         }
 
         public void Use()
@@ -93,6 +99,11 @@ namespace Swordfish.Rendering
         public void Dispose()
         {
             GL.DeleteProgram(Handle);
+        }
+
+        public bool TryValidateUniform(string name)
+        {
+            return (GetUniformLocation(name) != -1);
         }
 
         public int GetAttribLocation(string attribName)
@@ -110,7 +121,7 @@ namespace Swordfish.Rendering
 
                 if (location == -1)
                 {
-                    Debug.Log($"The uniform '{uniform}' does not exist in the shader '{Name}'!");
+                    Debug.Log($"Uniform '{uniform}' does not exist in the shader '{Name}'!", LogType.ERROR);
                 }
             }
 
@@ -119,36 +130,42 @@ namespace Swordfish.Rendering
 
         public void SetInt(string name, int data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.Uniform1(uniformLocations[name], data);
         }
 
         public void SetFloat(string name, float data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.Uniform1(uniformLocations[name], data);
         }
 
         public void SetVec2(string name, Vector3 data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.Uniform2(uniformLocations[name], data.X, data.Y);
         }
 
         public void SetVec3(string name, Vector3 data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.Uniform3(uniformLocations[name], data.X, data.Y, data.Z);
         }
 
         public void SetVec4(string name, Vector4 data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.Uniform4(uniformLocations[name], data.X, data.Y, data.Z, data.W);
         }
 
         public void SetMatrix4(string name, Matrix4 data)
         {
+            if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);
             GL.UniformMatrix4(uniformLocations[name], true, ref data);
         }

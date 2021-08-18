@@ -2,11 +2,11 @@
 in vec3 in_position;
 in vec3 in_normal;
 in vec4 in_color;
-in vec3 in_uv;
+in vec2 in_uv;
 
-out vec4 color;
-out vec3 uv;
-out vec3 normal;
+out vec4 Color;
+out vec2 UV;
+out vec3 Normal;
 out vec3 FragPos;
 
 uniform mat4 transform;
@@ -19,10 +19,10 @@ void main()
 {
     gl_Position = vec4(in_position, 1.0) * transform * view * projection;
 
-    color = in_color * tint;
-    uv = in_uv;
+    Color = in_color * tint;
+    UV = in_uv;
 
-    normal = mat3(inversedTransform) * in_normal;
+    Normal = mat3(inversedTransform) * in_normal;
 
-    FragPos = vec3(transform * vec4(in_position, 1));
+    FragPos = vec3(vec4(in_position, 1) * transform);
 }

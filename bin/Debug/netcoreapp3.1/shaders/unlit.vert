@@ -2,12 +2,11 @@
 in vec3 in_position;
 in vec3 in_normal;
 in vec4 in_color;
-in vec3 in_uv;
+in vec2 in_uv;
 
 out vec4 color;
-out vec3 uv;
+out vec2 uv;
 out vec3 normal;
-out vec3 FragPos;
 
 uniform mat4 transform;
 uniform mat4 inversedTransform;
@@ -23,6 +22,4 @@ void main()
     uv = in_uv;
 
     normal = mat3(inversedTransform) * in_normal;
-
-    FragPos = vec3(transform * vec4(in_position, 1));
 }
