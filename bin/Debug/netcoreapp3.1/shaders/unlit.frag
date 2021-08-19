@@ -9,8 +9,7 @@ uniform sampler2D texture0;
 
 void main()
 {
-    vec3 result = pow(color.rgb * texture(texture0, uv).rgb, vec3(1.0/2.2));
-    FragColor = vec4(result, texture(texture0, uv).a);
+    FragColor = texture(texture0, uv);
 
     if (FragColor.a == 0 || FragColor.rgb == vec3(0, 0, 0))
         discard;

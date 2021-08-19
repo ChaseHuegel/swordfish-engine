@@ -122,9 +122,6 @@ void main()
     //  HDR
     color = color / (color + vec3(1.0));
 
-    //  Gamma correction
-    color = pow(color, vec3(1.0/2.2));
-
     //  Output
     FragColor = vec4(color, texture(texture0, UV).a);
 }

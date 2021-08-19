@@ -44,12 +44,6 @@ void main()
         diffuse += dVal * albedo * Color.rgb * lightColors[i] * attenuation;
     }
 
-    //  HDR
-    diffuse = diffuse / (diffuse + vec3(1.0));
-
-    //  Gamma correction
-    diffuse = pow(diffuse, vec3(1.0/2.2));
-
     vec3 result = diffuse + (diffuse * ambientLightning);
 
     FragColor = vec4(result, texture(texture0, UV).a);

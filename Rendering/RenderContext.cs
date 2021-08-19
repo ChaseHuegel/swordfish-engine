@@ -18,6 +18,13 @@ namespace Swordfish.Rendering
     {
         public int DrawCalls = 0;
 
+        private Shader postprocessing;
+        private int RenderTexture;
+        private int FrameBufferObject;
+        private int RenderBufferObject;
+
+        Vector4 clearColor = new Vector4(0.08f, 0.1f, 0.14f, 1.0f);
+
         public ImGuiController GuiController;
         private Shader shader;
         private Texture2DArray textureArray;
@@ -62,8 +69,6 @@ namespace Swordfish.Rendering
 
             Debug.TryCreateGLOutput();
 
-            GL.ClearColor(0.08f, 0.1f, 0.14f, 1.0f);
-
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
             camera = new Camera(Vector3.Zero, Vector3.Zero);
 
@@ -75,8 +80,44 @@ namespace Swordfish.Rendering
             indices = mesh.triangles;
 
             //  Shaders
-            shader = Shaders.PBR_ARRAY.Get();//Shader.LoadFromFile("shaders/testArray.vert", "shaders/testArray.frag", "TestArray");
+            shader = Shaders.PBR_ARRAY.Get();
             shader.Use();
+            postprocessing = Shaders.POSTPROCESSING.Get();
+            postprocessing.Use();
+            postprocessing.SetInt("texture0", 0);
+
+            //  Setup framebuffer
+            FrameBufferObject = GL.GenFramebuffer();
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, FrameBufferObject);
+            GL.Viewport(0, 0, Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+
+            //  Render texture
+            RenderTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, RenderTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
+                        Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, 0,
+                        PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, RenderTexture, 0);
+
+            //  Render buffer for depth and stencil
+            RenderBufferObject = GL.GenRenderbuffer();
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, RenderBufferObject);
+            GL.RenderbufferStorage(RenderbufferTarget.Renderbuffer, RenderbufferStorage.Depth24Stencil8, Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+            GL.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, RenderBufferObject);
+            GL.BindRenderbuffer(RenderbufferTarget.Renderbuffer, 0);
+
+            //  Check if framebuffer is completed
+            FramebufferErrorCode framebufferCode = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+            if (framebufferCode != FramebufferErrorCode.FramebufferComplete)
+                Debug.Log($"Framebuffer code: {framebufferCode.ToString()}", LogType.ERROR);
+            else
+                Debug.Log($"Framebuffer code: {framebufferCode.ToString()}");
+
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);   //  Bind back to default buffer
 
             //  Setup vertex buffer
             VertexBufferObject = GL.GenBuffer();
@@ -138,13 +179,23 @@ namespace Swordfish.Rendering
         /// </summary>
         public void Render()
         {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, FrameBufferObject);
+
             //  Clear the buffer, enable depth testing, enable backface culling
+            Vector4 clr = clearColor;   //  convert from linear colorspace
+            clr.X = (float)Math.Pow(clr.X, 2.2f);
+            clr.Y = (float)Math.Pow(clr.Y, 2.2f);
+            clr.Z = (float)Math.Pow(clr.Z, 2.2f);
+            GL.ClearColor(clr.X, clr.Y, clr.Z, 1f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.DepthTest);
 
             //  Alpha blending
             GL.Enable(EnableCap.Blend);
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            //  Wireframe
+            // GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 
             camera.Update();
 
@@ -289,11 +340,33 @@ namespace Swordfish.Rendering
                 GL.BindVertexArray(0);
             }
 
-            //  Draw GUI elements
             //  Disable depth testing for this pass
             GL.Disable(EnableCap.DepthTest);
-            GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
+            GL.Disable(EnableCap.CullFace);
 
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            GL.ClearColor(1f, 1f, 1f, 1.0f);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            //  Draw post processing
+            // postprocessing.Use();
+            // GL.BindVertexArray(screenVAO);
+            // GL.ActiveTexture(TextureUnit.Texture0);
+            // GL.BindTexture(TextureTarget.Texture2D, RenderTexture);
+            // GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
+
+            //  ! TODO This is extremely hacky but it got the framebuffer texture rendering
+            //  ! Cleaning up and putting together a proper implementation ASAP
+            //  ! This is also creating some openGL error for InvalidValue
+            Mesh m = new Quad();
+            m.Scale = Vector3.One * 2f;
+            m.Shader = postprocessing;
+            m.Texture = new Texture2D(RenderTexture, "", Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, false);
+            m.Bind();
+            m.Render();
+
+            //  Draw GUI elements
+            GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
                 //  Try presenting debug
                 if (Debug.Enabled) Debug.ShowGui();
 

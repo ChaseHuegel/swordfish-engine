@@ -51,7 +51,7 @@ namespace Swordfish.Rendering.UI
             ImGui.NewFrame();
             _frameBegun = true;
 
-             Debug.TryCollectGLError("ImGuiController");
+            Debug.TryCollectGLError("ImGuiController");
         }
 
         public void WindowResized(int width, int height)

@@ -74,7 +74,7 @@ namespace Swordfish.Rendering
         /// <summary>
         /// Bind this mesh to openGL data buffers
         /// </summary>
-        internal void Bind()
+        internal Mesh Bind()
         {
             MeshData data = GetRawData();
 
@@ -107,6 +107,8 @@ namespace Swordfish.Rendering
             EBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, data.triangles.Length * sizeof(uint), data.triangles, BufferUsageHint.StaticDraw);
+
+            return this;
         }
 
         /// <summary>
