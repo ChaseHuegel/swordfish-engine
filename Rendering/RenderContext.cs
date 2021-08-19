@@ -263,7 +263,7 @@ namespace Swordfish.Rendering
 
                     mesh.Shader.SetVec3("viewPosition", camera.transform.position);
 
-                    mesh.Shader.SetFloat("ambientLightning", 0.02f);
+                    mesh.Shader.SetFloat("ambientLightning", 0.03f);
 
                     mesh.Shader.SetFloat("ao", 1f);
                     mesh.Shader.SetFloat("metallic", 0.5f);
@@ -297,7 +297,7 @@ namespace Swordfish.Rendering
 
                     shader.SetVec3("viewPosition", camera.transform.position);
 
-                    shader.SetFloat("ambientLightning", 0.02f);
+                    shader.SetFloat("ambientLightning", 0.03f);
 
                     shader.SetFloat("ao", 1f);
                     shader.SetFloat("metallic", 0.5f);

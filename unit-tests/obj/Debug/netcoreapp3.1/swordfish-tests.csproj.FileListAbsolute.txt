@@ -173,3 +173,5 @@ e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\s
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\unlit.frag
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\unlit.vert
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\icons\light.png
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\postprocessing.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\postprocessing.vert

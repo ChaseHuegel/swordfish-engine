@@ -89,7 +89,6 @@ void main()
 
         float distance = length(lightPositions[i] - FragPos);
         float attenuation = lightRanges[i] / (1.0 + 0.7 * distance + 1.8 * pow(distance, 2));
-        if (attenuation < 0.0001) attenuation = 0;
         vec3 radiance = lightColors[i] * attenuation;
 
         //  Cook-Torrance BRDF
@@ -107,14 +106,14 @@ void main()
         //  Metallic surfaces have no diffuse lightning, blends linearly to non-metallic
         kD *= 1.0 - metallic;
 
-        //  Scale the light
+        //  Shading
         float NdotL = max(dot(Normal, L), 0.0);
 
         totalRadiance += (kD * albedo / PI + specular) * radiance * NdotL;
     }
 
     //  Ambient light
-    vec3 ambient = vec3(0) * albedo * ao;
+    vec3 ambient = albedo * ambientLightning * ao;
 
     //  Final color
     vec3 color = ambient + totalRadiance;
