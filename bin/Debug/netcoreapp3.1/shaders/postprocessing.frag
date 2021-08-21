@@ -5,10 +5,14 @@ in vec2 uv;
 
 uniform sampler2D texture0;
 
+float mapRange(float value, float oldMin, float oldMax, float newMin, float newMax)
+{
+    return (((value - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
+}
+
 //  -----------------------------------------------------
 //  --- Dithering on the GPU by Alex Charlton ---
 //  http://alex-charlton.com/posts/Dithering_on_the_GPU/
-
 const int indexMatrix4x4[16] = int[](0,  8,  2,  10,
                                      12, 4,  14, 6,
                                      3,  11, 1,  9,
@@ -30,11 +34,6 @@ float dither(float color)
     return (distance < d) ? closestColor : secondClosestColor;
 }
 //  -----------------------------------------------------
-
-float mapRange(float value, float oldMin, float oldMax, float newMin, float newMax)
-{
-    return (((value - oldMin) * (newMax - newMin)) / (oldMax - oldMin)) + newMin;
-}
 
 void main()
 {

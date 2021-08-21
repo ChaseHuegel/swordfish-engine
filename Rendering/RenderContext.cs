@@ -18,12 +18,15 @@ namespace Swordfish.Rendering
     {
         public int DrawCalls = 0;
 
-        private Shader postprocessing;
         private int RenderTexture;
         private int FrameBufferObject;
         private int RenderBufferObject;
 
-        Vector4 clearColor = new Vector4(0.08f, 0.1f, 0.14f, 1.0f);
+        private Mesh renderTarget;
+        private Shader postprocessing;
+
+        private Color ClearColor = new Color(0.08f, 0.1f, 0.14f, 1.0f);
+        private Color clr;
 
         public ImGuiController GuiController;
         private Shader shader;
@@ -78,6 +81,13 @@ namespace Swordfish.Rendering
             MeshData mesh = (new Cube()).GetRawData();
             vertices = mesh.vertices;
             indices = mesh.triangles;
+
+            //  convert from linear colorspace
+            clr = new Color();
+            clr.r = (float)Math.Pow(ClearColor.r, 2.2f);
+            clr.g = (float)Math.Pow(ClearColor.g, 2.2f);
+            clr.b = (float)Math.Pow(ClearColor.b, 2.2f);
+            clr.a = ClearColor.a;
 
             //  Shaders
             shader = Shaders.PBR_ARRAY.Get();
@@ -151,6 +161,13 @@ namespace Swordfish.Rendering
 
             //  Textures
             textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", "blocks");
+
+            //  Render texture
+            renderTarget = new Quad();
+            renderTarget.Scale = Vector3.One * 2f;
+            renderTarget.Shader = postprocessing;
+            renderTarget.Texture = new Texture2D(RenderTexture, "rendertexture", Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, false);
+            renderTarget.Bind();
         }
 
         /// <summary>
@@ -181,14 +198,14 @@ namespace Swordfish.Rendering
         {
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, FrameBufferObject);
 
-            //  Clear the buffer, enable depth testing, enable backface culling
-            Vector4 clr = clearColor;   //  convert from linear colorspace
-            clr.X = (float)Math.Pow(clr.X, 2.2f);
-            clr.Y = (float)Math.Pow(clr.Y, 2.2f);
-            clr.Z = (float)Math.Pow(clr.Z, 2.2f);
-            GL.ClearColor(clr.X, clr.Y, clr.Z, 1f);
+            //  Clear the buffer, enable depth testing, enable culling
+            GL.ClearColor(clr.r, clr.g, clr.b, 1f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
             GL.Enable(EnableCap.DepthTest);
+
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
 
             //  Alpha blending
             GL.Enable(EnableCap.Blend);
@@ -281,7 +298,7 @@ namespace Swordfish.Rendering
                         for (int i = lights.Length; i < MAX_LIGHTS; i++)
                         {
                             mesh.Shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
-                            mesh.Shader.SetVec3($"lightColors[{i}]", Color.Black.Xyz);
+                            mesh.Shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
                             mesh.Shader.SetFloat($"lightRanges[{i}]", 0f);
                         }
                     }
@@ -315,7 +332,7 @@ namespace Swordfish.Rendering
                         for (int i = lights.Length; i < MAX_LIGHTS; i++)
                         {
                             shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
-                            shader.SetVec3($"lightColors[{i}]", Color.Black.Xyz);
+                            shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
                             shader.SetFloat($"lightRanges[{i}]", 0f);
                         }
                     }
@@ -340,30 +357,20 @@ namespace Swordfish.Rendering
                 GL.BindVertexArray(0);
             }
 
-            //  Disable depth testing for this pass
+            //  -----------------------------------------------------
+            //  --- Second render pass for overlays ---
+
+            //  Disable depth testing and culling for this pass
             GL.Disable(EnableCap.DepthTest);
             GL.Disable(EnableCap.CullFace);
 
+            //  Bind and clear
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            GL.ClearColor(1f, 1f, 1f, 1.0f);
+            GL.ClearColor(Color.Black.r, Color.Black.g, Color.Black.b, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-            //  Draw post processing
-            // postprocessing.Use();
-            // GL.BindVertexArray(screenVAO);
-            // GL.ActiveTexture(TextureUnit.Texture0);
-            // GL.BindTexture(TextureTarget.Texture2D, RenderTexture);
-            // GL.DrawArrays(PrimitiveType.Triangles, 0, 6);
-
-            //  ! TODO This is extremely hacky but it got the framebuffer texture rendering
-            //  ! Cleaning up and putting together a proper implementation ASAP
-            //  ! This is also creating some openGL error for InvalidValue
-            Mesh m = new Quad();
-            m.Scale = Vector3.One * 2f;
-            m.Shader = postprocessing;
-            m.Texture = new Texture2D(RenderTexture, "", Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, false);
-            m.Bind();
-            m.Render();
+            //  Display the render texture onto the screen
+            renderTarget.Render();
 
             //  Draw GUI elements
             GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
@@ -376,6 +383,7 @@ namespace Swordfish.Rendering
                 //  Invoke GUI callback
                 Engine.GuiCallback?.Invoke();
             GuiController.Render();
+            //  -----------------------------------------------------
         }
     }
 }
