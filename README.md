@@ -9,6 +9,12 @@ Tomlet (TOML file format for C#) https://github.com/SamboyCoding/Tomlet
 
 ## Updates
 
+### 8/21/2021
+The biggest focus since the last update has been on the rendering side of things. The engine now supports rendering meshes, a custom written OBJ importer/exporter, transparency sorting and alpha blending, PBR and phong shading, point lights, billboards, screenshots, and post-processing with builtin dithering and gamma correction. The pipeline still has a ways to go and is low priority in favor of functionality right now but its nice to have brought the visuals up a notch.  
+
+https://user-images.githubusercontent.com/14932139/130310065-02ccc64b-377e-4b59-86ce-cb77f3490e78.mp4
+
+
 ### 7/2/2021
 Physics and collision has been implemented and runs on its own thread. There is more to be fixed and added, but the fundamentals are there. The physics engine currently uses only sphere colliders. More shapes will be supported, but the it is intended for the majority of volumes being made up of spheres. This is designed around the ideas of point clouds and Sphere Trees. This will save performance on collision checks and response by simplifying calculations and removing rotation from the equation, and at the same time allow for performance-friendly concave shapes and dynamic volumes (i.e. moving voxels)
 
