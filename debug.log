@@ -87,11 +87,13 @@
 [INFO] : Loading texture 'melvin' from 'resources/textures/melvin.png'
 [INFO] : Loading texture 'woman' from 'resources/textures/woman.png'
 [ERROR] OpenGL - Load: InvalidValue
-      at line 35 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+      at line 39 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
 [INFO] : Resized dear imgui vertex buffer to new size 25440
 [INFO] : Resized dear imgui index buffer to new size 3816
 [INFO] : Resized dear imgui vertex buffer to new size 76960
 [INFO] : Resized dear imgui index buffer to new size 11544
+[INFO] : Resized dear imgui vertex buffer to new size 115440
+[INFO] : Resized dear imgui index buffer to new size 17316
 [ERROR] : Uniform 'inversedTransform' does not exist in the shader 'unlit'!
       at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
 [ERROR] : Uniform 'viewPosition' does not exist in the shader 'unlit'!
@@ -128,5 +130,6 @@
       at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
 [ERROR] : Uniform 'lightRanges[3]' does not exist in the shader 'unlit'!
       at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] OpenGL - Unload: InvalidValue
-      at line 46 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+[INFO] : Saved screenshot 'screenshots/2021.08.21-1.png'
+[INFO] : Saved screenshot 'screenshots/2021.08.21-2.png'
+[INFO] : Unexpected shutdown! Did it crash?

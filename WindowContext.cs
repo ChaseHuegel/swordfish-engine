@@ -1,9 +1,13 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using System.Linq;
+using System.Drawing.Imaging;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Diagnostics;
+using System.IO;
+using System;
 
 namespace Swordfish
 {
@@ -97,6 +101,36 @@ namespace Swordfish
                 WindowState = Engine.Settings.Window.FULLSCREEN ? WindowState.Fullscreen : WindowState.Normal;
 
                 OnResize(new ResizeEventArgs(ClientSize));
+            }
+
+            //  Screenshot the render with F11
+            if (Input.IsKeyPressed(Keys.F11))
+            {
+                Directory.CreateDirectory("screenshots/");
+
+                //  Screenshots are formatted year.month.day-N where Nth screenshot on that date
+                string path = "screenshots/"
+                            + DateTime.Now.ToString("yyyy.MM.dd") + "-"
+                            + (Directory.GetFiles("screenshots/", $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
+                            + ".png";
+
+                Engine.Renderer.Screenshot(false).Save(path, ImageFormat.Png);
+                Debug.Log($"Saved screenshot '{path}'");
+            }
+
+            //  Screenshot the window with F12
+            if (Input.IsKeyPressed(Keys.F12))
+            {
+                Directory.CreateDirectory("screenshots/");
+
+                //  Screenshots are formatted year.month.day-N where Nth screenshot on that date
+                string path = "screenshots/"
+                            + DateTime.Now.ToString("yyyy.MM.dd") + "-"
+                            + (Directory.GetFiles("screenshots/", $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
+                            + ".png";
+
+                Engine.Renderer.Screenshot().Save(path, ImageFormat.Png);
+                Debug.Log($"Saved screenshot '{path}'");
             }
 
             Engine.Step();

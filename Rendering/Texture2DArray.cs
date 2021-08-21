@@ -7,6 +7,7 @@ using System.IO;
 using OpenTK.Graphics.OpenGL4;
 
 using Swordfish.Diagnostics;
+using Swordfish.Extensions;
 using Swordfish.Util;
 
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
@@ -51,7 +52,7 @@ namespace Swordfish.Rendering
             Debug.Log($"    ...using resolution {width}x{height}");
             for (int i = 0; i < images.Count; i++)
                 if (images[i].Width != width)
-                    images[i] = Gfx.ResizeBitmap(images[i], width, height);
+                    images[i].Resize(width, height);
 
             Debug.Log($"...Building texture array '{name}'");
             GL.BindTexture(TextureTarget.Texture2DArray, handle);

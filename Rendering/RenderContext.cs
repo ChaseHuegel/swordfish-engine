@@ -1,16 +1,20 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
 using System.Linq;
-using ImGuiNET;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using source;
 using Swordfish.Diagnostics;
 using Swordfish.ECS;
+using Swordfish.Extensions;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
 using Swordfish.Types;
 using Swordfish.Util;
+
+using Color = Swordfish.Types.Color;
+using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace Swordfish.Rendering
 {
@@ -58,6 +62,33 @@ namespace Swordfish.Rendering
         /// </summary>
         /// <param name="entities"></param>
         internal void PushLights(int[] entities) => this.lights = entities;
+
+        /// <summary>
+        /// Takes a screenshot of the entire window
+        /// <para/> Pass false to only capture the render target
+        /// </summary>
+        /// <param name="wholeScreen">true to capture the entire window; false captures the render target</param>
+        /// <returns>bitmap representing the screenshot</returns>
+        public Bitmap Screenshot(bool wholeScreen = true)
+        {
+            GL.BindFramebuffer(FramebufferTarget.Framebuffer, wholeScreen ? 0 : FrameBufferObject);
+
+            Bitmap bitmap = new Bitmap(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+            BitmapData data = bitmap.LockBits(new Rectangle(0, 0, Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y),
+                                ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            GL.ReadPixels(0, 0, Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y,
+                        PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
+
+            bitmap.UnlockBits(data);
+            bitmap.RotateFlip(RotateFlipType.RotateNoneFlipY);  //  Flip the image, openGL is upside down
+
+            //  Perform gamma correction if capturing the render target; gamma correction is normally done in post
+            if (!wholeScreen)
+                bitmap.SetGamma(2.2f);
+
+            return bitmap;
+        }
 
         /// <summary>
         /// Load the renderer
