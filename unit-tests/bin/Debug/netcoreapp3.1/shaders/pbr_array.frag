@@ -12,18 +12,16 @@ uniform vec3 viewPosition;
 
 uniform float ambientLightning = 0.1;
 
-uniform sampler2DArray texture0;
-uniform float metallic;
-uniform float roughness;
-uniform float ao;
+uniform sampler2DArray _Diffuse;
+uniform float Metallic = 0.5;
+uniform float Roughness = 0.5;
 
 uniform vec3 lightPositions[4];
 uniform vec3 lightColors[4];
-uniform float lightRanges[4];
 
-float DistributionGGX(vec3 Normal, vec3 H, float roughness)
+float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
-    float a = roughness*roughness;
+    float a = Roughness*Roughness;
     float a2 = a*a;
     float NdotH = max(dot(Normal, H), 0.0);
     float NdotH2 = NdotH*NdotH;
@@ -35,9 +33,9 @@ float DistributionGGX(vec3 Normal, vec3 H, float roughness)
     return nom / denom;
 }
 
-float GeometrySchlickGGX(float NdotV, float roughness)
+float GeometrySchlickGGX(float NdotV, float Roughness)
 {
-    float r = (roughness + 1.0);
+    float r = (Roughness + 1.0);
     float k = (r*r) / 8.0;
 
     float nom = NdotV;
@@ -46,12 +44,12 @@ float GeometrySchlickGGX(float NdotV, float roughness)
     return nom / denom;
 }
 
-float GeometrySmith(vec3 Normal, vec3 viewDir, vec3 L, float roughness)
+float GeometrySmith(vec3 Normal, vec3 viewDir, vec3 L, float Roughness)
 {
     float NdotV = max(dot(Normal, viewDir), 0.0);
     float NdotL = max(dot(Normal, L), 0.0);
-    float ggx2 = GeometrySchlickGGX(NdotV, roughness);
-    float ggx1 = GeometrySchlickGGX(NdotL, roughness);
+    float ggx2 = GeometrySchlickGGX(NdotV, Roughness);
+    float ggx1 = GeometrySchlickGGX(NdotL, Roughness);
 
     return ggx1 * ggx2;
 }
@@ -64,18 +62,20 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 void main()
 {
     //  Discard completely transparent fragments
-    if (texture(texture0, UV).a == 0)
+    if (texture(_Diffuse, UV).a == 0)
         discard;
 
     vec3 viewDir = normalize(viewPosition - FragPos);
 
     //  Sample albedo
-    vec3 albedo = texture(texture0, UV).rgb;
+    vec3 albedo = texture(_Diffuse, UV).rgb;
+
+    float occlusion = 1;
 
     //  Reflectance based on metallicness
-    //  0.04 at full plastic and albedo at full metallic
+    //  0.04 at full plastic and albedo at full Metallic
     vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, metallic);
+    F0 = mix(F0, albedo, Metallic);
 
     //  Per-light radiance calculation
     vec3 totalRadiance = vec3(0.0);
@@ -88,12 +88,12 @@ void main()
         vec3 H = normalize(viewDir + L);
 
         float distance = length(lightPositions[i] - FragPos);
-        float attenuation = lightRanges[i] / (1.0 + 0.7 * distance + 1.8 * pow(distance, 2));
+        float attenuation = 1 / (1.0 + 0.7 * distance + 1.8 * pow(distance, 2));
         vec3 radiance = lightColors[i] * attenuation;
 
         //  Cook-Torrance BRDF
-        float NDF = DistributionGGX(Normal, H, roughness);
-        float G = GeometrySmith(Normal, viewDir, L, roughness);
+        float NDF = DistributionGGX(Normal, H, Roughness);
+        float G = GeometrySmith(Normal, viewDir, L, Roughness);
         vec3 F = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
         vec3 numerator    = NDF * G * F;
@@ -103,8 +103,8 @@ void main()
         //  Energy consevation; diffuse + specular can't go over 1.0 unless light emitting
         vec3 kD = vec3(1.0) - F;
 
-        //  Metallic surfaces have no diffuse lightning, blends linearly to non-metallic
-        kD *= 1.0 - metallic;
+        //  Metallic surfaces have no diffuse lightning, blends linearly to non-Metallic
+        kD *= 1.0 - Metallic;
 
         //  Shading
         float NdotL = max(dot(Normal, L), 0.0);
@@ -113,14 +113,14 @@ void main()
     }
 
     //  Ambient light
-    vec3 ambient = albedo * ambientLightning * ao;
+    vec3 ambient = albedo * ambientLightning * occlusion;
 
     //  Final color
     vec3 color = ambient + totalRadiance;
 
     //  HDR
-    color = color / (color + vec3(1.0));
+    // color = color / (color + vec3(1.0));
 
     //  Output
-    FragColor = vec4(color, texture(texture0, UV).a);
+    FragColor = vec4(color, texture(_Diffuse, UV).a);
 }

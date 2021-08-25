@@ -30,6 +30,7 @@ namespace Swordfish.Diagnostics
                 ImGui.Text($"Frame: {Engine.Frame}");
                 ImGui.Text($"Draw calls: {Engine.Renderer.DrawCalls}");
                 ImGui.Text($"Timescale: {Engine.Timescale.ToString("0.##")}");
+                ImGui.Text($"Exposure: {Engine.Settings.Renderer.EXPOSURE.ToString("0.##")}");
                 ImGui.Text($"Entities: {Engine.ECS.EntityCount}");
                 ImGui.Text($"Physics");
                     ImGui.Text($"   world: {Engine.Physics.WorldSize}");

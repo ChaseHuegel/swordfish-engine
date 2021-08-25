@@ -37,7 +37,7 @@ namespace Swordfish.Rendering
                 if (!IsValidBitmap(bitmap)) continue;
 
                 images.Add(bitmap);
-                Debug.Log($"    Found texture '{file.Name}' at {numOfLayers}");
+                Debug.Log($"    Found texture '{file.Name}' at {numOfLayers}", LogType.NONE);
 
                 //  Use the largest res if there wasn't one set
                 if (useLargestRes && bitmap.Width > width)
@@ -46,15 +46,14 @@ namespace Swordfish.Rendering
                 //  Increase # of layers if this was a valid texture
                 numOfLayers++;
             }
-            Debug.Log($"    ...layers: {numOfLayers}");
+            Debug.Log($"    ...layers: {numOfLayers}", LogType.NONE);
 
             //  Resize any images that aren't using the correct res
-            Debug.Log($"    ...using resolution {width}x{height}");
+            Debug.Log($"    ...using resolution {width}x{height}", LogType.NONE);
             for (int i = 0; i < images.Count; i++)
                 if (images[i].Width != width)
                     images[i].Resize(width, height);
 
-            Debug.Log($"...Building texture array '{name}'");
             GL.BindTexture(TextureTarget.Texture2DArray, handle);
             GL.TexImage3D(TextureTarget.Texture2DArray, 0, PixelInternalFormat.SrgbAlpha, width, height, numOfLayers, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, IntPtr.Zero);

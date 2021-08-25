@@ -22,13 +22,7 @@ namespace Swordfish.Rendering
 
     public class Mesh
     {
-        public string Name = "";
-        public bool DoubleSided = true;
-        public Vector3 Origin = Vector3.Zero;
-        public Vector3 Scale = Vector3.One;
-
-        public Shader Shader;
-        public Texture Texture;
+        internal int VAO, VBO, EBO;
 
         public uint[] triangles;
         public Vector3[] vertices;
@@ -36,7 +30,22 @@ namespace Swordfish.Rendering
         public Vector3[] normals;
         public Vector3[] uv;
 
-        internal int VAO, VBO, EBO;
+        public string Name = "";
+        public Vector3 Origin = Vector3.Zero;
+        public Vector3 Scale = Vector3.One;
+
+        public List<Material> Materials = new List<Material>();
+        public Material Material
+        {
+            get => Materials.Count > 0 ? Materials[0] : null;
+            set
+            {
+                if (Materials.Count > 0)
+                    Materials[0] = value;
+                else
+                    Materials.Add(value);
+            }
+        }
 
         /// <summary>
         /// Translates the mesh into data for using directly with openGL
@@ -87,26 +96,52 @@ namespace Swordfish.Rendering
             VAO = GL.GenVertexArray();
             GL.BindVertexArray(VAO);
 
-            int attrib = Shader.GetAttribLocation("in_position");
-            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 0);
-            GL.EnableVertexAttribArray(attrib);
+            int attrib;
+            foreach (Material m in Materials)
+            {
+                attrib = m.Shader.GetAttribLocation("in_position");
+                GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 0);
+                GL.EnableVertexAttribArray(attrib);
 
-            attrib = Shader.GetAttribLocation("in_color");
-            GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 3 * sizeof(float));
-            GL.EnableVertexAttribArray(attrib);
+                attrib = m.Shader.GetAttribLocation("in_color");
+                GL.VertexAttribPointer(attrib, 4, VertexAttribPointerType.Float, false, 13 * sizeof(float), 3 * sizeof(float));
+                GL.EnableVertexAttribArray(attrib);
 
-            attrib = Shader.GetAttribLocation("in_normal");
-            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 7 * sizeof(float));
-            GL.EnableVertexAttribArray(attrib);
+                attrib = m.Shader.GetAttribLocation("in_normal");
+                GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 7 * sizeof(float));
+                GL.EnableVertexAttribArray(attrib);
 
-            attrib = Shader.GetAttribLocation("in_uv");
-            GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 10 * sizeof(float));
-            GL.EnableVertexAttribArray(attrib);
+                attrib = m.Shader.GetAttribLocation("in_uv");
+                GL.VertexAttribPointer(attrib, 3, VertexAttribPointerType.Float, false, 13 * sizeof(float), 10 * sizeof(float));
+                GL.EnableVertexAttribArray(attrib);
+            }
 
             //  Setup element buffer
             EBO = GL.GenBuffer();
             GL.BindBuffer(BufferTarget.ElementArrayBuffer, EBO);
             GL.BufferData(BufferTarget.ElementArrayBuffer, data.triangles.Length * sizeof(uint), data.triangles, BufferUsageHint.StaticDraw);
+
+            //  Setup materials
+            for (int i = 0; i < Materials.Count; i++)
+            {
+                Material m = Materials[i];
+
+                m.Shader.Use();
+
+                if (m.Tint != null) m.Shader.SetVec3("Tint", m.Tint.rgb);
+
+                //  Assign texture maps
+                if (m.DiffuseTexture != null)   m.Shader.SetInt("_Diffuse", 0);
+                if (m.RoughnessTexture != null) m.Shader.SetInt("_Roughness", 1);
+                if (m.MetallicTexture != null)  m.Shader.SetInt("_Metallic", 2);
+                if (m.EmissionTexture != null)  m.Shader.SetInt("_Emission", 3);
+                if (m.OcclusionTexture != null) m.Shader.SetInt("_Occlusion", 4);
+
+                //  Fallback to PBR properties where texture maps aren't used
+                if (m.RoughnessTexture == null) m.Shader.SetFloat("Roughness", m.Roughness);
+                if (m.MetallicTexture == null)  m.Shader.SetFloat("Metallic", m.Metallic);
+                if (m.EmissionTexture == null)  m.Shader.SetFloat("Emission", m.Emission);
+            }
 
             return this;
         }
@@ -117,13 +152,20 @@ namespace Swordfish.Rendering
         /// </summary>
         internal void Render()
         {
-            if (DoubleSided)
-                GL.Disable(EnableCap.CullFace);
-            else
-                GL.Enable(EnableCap.CullFace);
+            GLHelper.SetProperty(EnableCap.CullFace, Material.DoubleSided);
 
-            Shader.Use();
-            Texture.Use(TextureUnit.Texture0);
+            for (int i = 0; i < Materials.Count; i++)
+            {
+                Material m = Materials[i];
+
+                m.DiffuseTexture?.Use(TextureUnit.Texture0);
+                m.RoughnessTexture?.Use(TextureUnit.Texture1);
+                m.MetallicTexture?.Use(TextureUnit.Texture2);
+                m.EmissionTexture?.Use(TextureUnit.Texture3);
+                m.OcclusionTexture?.Use(TextureUnit.Texture4);
+
+                m.Shader.Use();
+            }
 
             GL.BindVertexArray(VAO);
             GL.DrawElements(PrimitiveType.Triangles, triangles.Length, DrawElementsType.UnsignedInt, 0);

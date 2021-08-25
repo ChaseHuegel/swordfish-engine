@@ -20,7 +20,7 @@ namespace Swordfish.Types
         /// <returns>array of 6 planes that make up the frustrum</returns>
         public static Plane[] BuildViewFrustrum(Vector3 origin, Vector3 forward, Vector3 up, Vector3 right, float fov, float near, float far)
         {
-            float fovOffset = fov * 0.66f;
+            float fovOffset = fov * 0.8f;
             Plane[] planes = new Plane[6];
 
             //  Near/far plane

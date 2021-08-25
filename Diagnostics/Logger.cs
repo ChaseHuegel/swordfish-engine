@@ -12,6 +12,7 @@ namespace Swordfish.Diagnostics
 {
     public enum LogType
     {
+        NONE,
         INFO,
         WARNING,
         ERROR
@@ -42,12 +43,14 @@ namespace Swordfish.Diagnostics
             Write("Logger initialized");
         }
 
-        public static void Write(string message, LogType type = LogType.INFO) => Write(message, "", type);
+        public static void Pad() => Console.WriteLine("");
 
-        public static void Write(string message, string title, LogType type = LogType.INFO, [CallerLineNumber] int lineNumber = 0,
+        public static void Write(string message, LogType type = LogType.INFO, bool snuff = false) => Write(message, "", type);
+
+        public static void Write(string message, string title, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null, string debugTagging = "")
         {
-            if (type == LogType.ERROR || type == LogType.WARNING)
+            if (!snuff && (type == LogType.ERROR || type == LogType.WARNING))
             {
                 //  Tag on a trace to the error
                 debugTagging += "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
@@ -56,7 +59,13 @@ namespace Swordfish.Diagnostics
                 HasErrors = true;
             }
 
-            Console.WriteLine($"[{type.ToString()}] {title}: {message}{debugTagging}");
+            if (title != string.Empty)
+                title += ": ";
+
+            if (type == LogType.NONE)
+                Console.WriteLine($"    {title}{message}{debugTagging}");
+            else
+                Console.WriteLine($"[{type.ToString()}] {title}{message}{debugTagging}");
             // Console.WriteLine($"{DateTime.Now} [{type.ToString()}] {title}: {message}{debugTagging}");
         }
 

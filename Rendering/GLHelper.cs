@@ -9,6 +9,14 @@ namespace Swordfish.Rendering
 {
     static class GLHelper
     {
+        public static void SetProperty(EnableCap property, bool value)
+        {
+            if (value)
+                GL.Disable(EnableCap.CullFace);
+            else
+                GL.Enable(EnableCap.CullFace);
+        }
+
         public static MonitorInfo GetPrimaryDisplay() { return GetDisplay(0); }
         public static MonitorInfo GetDisplay(int index)
         {

@@ -114,7 +114,7 @@ namespace Swordfish.ECS
                 if (Attribute.GetCustomAttribute(type, typeof(ComponentAttribute)) != null)
                 {
                     if (RegisterComponent(Activator.CreateInstance(type)))
-                        Debug.Log($"    Registered '{type}'");
+                        Debug.Log($"    Registered '{type}'", LogType.NONE);
                 }
             }
 
@@ -130,7 +130,7 @@ namespace Swordfish.ECS
                     system.filter = systemAttribute.filter;
 
                     if (RegisterSystem(system))
-                        Debug.Log($"    Registered '{type}'");
+                        Debug.Log($"    Registered '{type}'", LogType.NONE);
                 }
             }
         }
@@ -328,6 +328,20 @@ namespace Swordfish.ECS
             }
 
             return entity;
+        }
+
+        /// <summary>
+        /// Creates and pushes an entity to the context
+        /// </summary>
+        /// <param name="entity">the created entity; otherwise null if pushing to context failed</param>
+        /// <param name="name"></param>
+        /// <param name="tag"></param>
+        /// <returns>true if an entity was created; otherwise false</returns>
+        public bool CreateEntity(out Entity entity, string name = "", string tag = "")
+        {
+            entity = CreateEntity(name, tag);
+
+            return entity != null;
         }
 
         /// <summary>

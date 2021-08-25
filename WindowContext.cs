@@ -27,16 +27,15 @@ namespace Swordfish
         protected override void OnLoad()
         {
             Debug.Log($"Started {this.Title}");
-            Debug.Log("Settings");
-            Debug.Log($"    Framelimit {this.RenderFrequency}");
-            Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless");
+            Debug.Log($"    Framelimit {this.RenderFrequency}", LogType.NONE);
+            Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless", LogType.NONE);
 
             Engine.Renderer.Load();
 
             Engine.Start();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("Load");
+            Debug.TryCollectAllGLErrors("Load");
 
             base.OnLoad();
         }
@@ -47,7 +46,7 @@ namespace Swordfish
             Engine.StopCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("Unload");
+            Debug.TryCollectAllGLErrors("Unload");
 
             base.OnUnload();
         }

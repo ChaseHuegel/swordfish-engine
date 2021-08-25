@@ -70,15 +70,20 @@ namespace Swordfish.Diagnostics
         public static void Dump() => File.WriteAllLines("debug.log", Logger.Writer.GetLines());
 
         /// <summary>
+        /// Tell the logger to push an empty line
+        /// </summary>
+        public static void PadLog() => Logger.Pad();
+
+        /// <summary>
         /// Pushes a message to the logger of optional type
         /// Automatically collects and forwards caller info for debugging.
         /// </summary>
         /// <param name="message"></param>
         /// <param name="type"></param>
-        public static void Log(string message, LogType type = LogType.INFO, [CallerLineNumber] int lineNumber = 0,
+        public static void Log(string message, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
-            Logger.Write(message, "", type, lineNumber, caller, callerPath);
+            Logger.Write(message, "", type, snuff, lineNumber, caller, callerPath);
         }
 
         /// <summary>
@@ -92,10 +97,10 @@ namespace Swordfish.Diagnostics
         /// <param name="caller"></param>
         /// <param name="callerPath"></param>
         /// <param name="debugTagging"></param>
-        public static void Log(string message, string title, LogType type = LogType.INFO, [CallerLineNumber] int lineNumber = 0,
+        public static void Log(string message, string title, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
-            Logger.Write(message, title, type, lineNumber, caller, callerPath);
+            Logger.Write(message, title, type, snuff, lineNumber, caller, callerPath);
         }
 
         /// <summary>
@@ -113,7 +118,7 @@ namespace Swordfish.Diagnostics
             ErrorCode error = GL.GetError();
             if (error != ErrorCode.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, lineNumber, caller, callerPath);
+                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, false, lineNumber, caller, callerPath);
 
                 return true;
             }
@@ -138,7 +143,7 @@ namespace Swordfish.Diagnostics
             ErrorCode error = GL.GetError();
             while (error != ErrorCode.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, lineNumber, caller, callerPath);
+                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, false, lineNumber, caller, callerPath);
                 error = GL.GetError();
                 hadError = true;
             }
@@ -155,7 +160,7 @@ namespace Swordfish.Diagnostics
         {
             if (HasGLOutput = GLHelper.HasCapabilities(4, 3, "GL_KHR_debug") == false)
             {
-                Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used");
+                Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used", LogType.WARNING, true);
             }
             else
             {

@@ -4,7 +4,7 @@ using System.IO;
 using OpenTK.Windowing.Common;
 
 using Swordfish.Diagnostics;
-
+using Swordfish.Types;
 using Tomlet;
 
 namespace Swordfish
@@ -36,6 +36,11 @@ namespace Swordfish
         {
             public float CLIP_NEAR = 0.1f;
             public float CLIP_FAR = 1000f;
+
+            public bool WIREFRAME = false;
+
+            public float EXPOSURE = 1.0f;
+            public Color BACKGROUND_COLOR = new Color(0.08f, 0.1f, 0.14f, 1.0f);
         }
 
         public PhysicsSettings Physics = new PhysicsSettings();

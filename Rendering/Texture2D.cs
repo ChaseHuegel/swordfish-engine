@@ -38,6 +38,7 @@ namespace Swordfish.Rendering
         public Texture2D(int handle, string name, int width, int height, bool generateMipmaps = true)
         {
             mipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+
             base.handle = handle;
             base.name = name;
         }

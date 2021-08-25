@@ -6,7 +6,7 @@ namespace Swordfish.ECS
     public struct LightComponent
     {
         public Vector4 color;
-        public float intensity;
+        public float lumens;
         public float range;
     }
 }

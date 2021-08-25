@@ -8,7 +8,9 @@ namespace Swordfish.Types
         UNLIT,
         PBR,
         PBR_ARRAY,
-        POSTPROCESSING
+
+        POST,
+        BLUR
     }
 
     internal static class ShadersExtensions
@@ -17,7 +19,9 @@ namespace Swordfish.Types
         public static Shader UNLIT = Shader.LoadFromFile("shaders/unlit.vert", "shaders/unlit.frag", "unlit");
         public static Shader PBR = Shader.LoadFromFile("shaders/pbr.vert", "shaders/pbr.frag", "pbr");
         public static Shader PBR_ARRAY = Shader.LoadFromFile("shaders/pbr_array.vert", "shaders/pbr_array.frag", "pbr array");
-        public static Shader POSTPROCESSING = Shader.LoadFromFile("shaders/postprocessing.vert", "shaders/postprocessing.frag", "postprocessing");
+
+        public static Shader POST = Shader.LoadFromFile("shaders/post/post.vert", "shaders/post/post.frag", "post");
+        public static Shader BLUR = Shader.LoadFromFile("shaders/post/post.vert", "shaders/post/blur.frag", "blur");
 
         public static Shader Get(this Shaders shader)
         {
@@ -27,7 +31,8 @@ namespace Swordfish.Types
                 case Shaders.UNLIT: return UNLIT;
                 case Shaders.PBR: return PBR;
                 case Shaders.PBR_ARRAY: return PBR_ARRAY;
-                case Shaders.POSTPROCESSING: return POSTPROCESSING;
+                case Shaders.POST: return POST;
+                case Shaders.BLUR: return BLUR;
 
                 default: return null;
             }

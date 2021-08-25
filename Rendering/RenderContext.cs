@@ -23,18 +23,18 @@ namespace Swordfish.Rendering
         public int DrawCalls = 0;
 
         private int RenderTexture;
+        private int HdrTexture;
         private int FrameBufferObject;
         private int RenderBufferObject;
 
         private Mesh renderTarget;
-        private Shader postprocessing;
-
-        private Color ClearColor = new Color(0.08f, 0.1f, 0.14f, 1.0f);
-        private Color clr;
+        private float exposureChange = 0f;
+        private float lastExposure = 0f;
 
         public ImGuiController GuiController;
         private Shader shader;
         private Texture2DArray textureArray;
+        private Texture2D hdrTexture;
 
         private Matrix4 projection;
         private Camera camera;
@@ -96,10 +96,11 @@ namespace Swordfish.Rendering
         public void Load()
         {
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}");
-            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}");
+            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.NONE);
+            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}", LogType.NONE);
+
             GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
-            Debug.Log($"    Shader vertex attr supported: {maxAttributeCount}");
+            Debug.Log($"    Shader vertex attr supported: {maxAttributeCount}", LogType.NONE);
 
             Debug.TryCreateGLOutput();
 
@@ -113,19 +114,9 @@ namespace Swordfish.Rendering
             vertices = mesh.vertices;
             indices = mesh.triangles;
 
-            //  convert from linear colorspace
-            clr = new Color();
-            clr.r = (float)Math.Pow(ClearColor.r, 2.2f);
-            clr.g = (float)Math.Pow(ClearColor.g, 2.2f);
-            clr.b = (float)Math.Pow(ClearColor.b, 2.2f);
-            clr.a = ClearColor.a;
-
             //  Shaders
             shader = Shaders.PBR_ARRAY.Get();
             shader.Use();
-            postprocessing = Shaders.POSTPROCESSING.Get();
-            postprocessing.Use();
-            postprocessing.SetInt("texture0", 0);
 
             //  Setup framebuffer
             FrameBufferObject = GL.GenFramebuffer();
@@ -135,14 +126,34 @@ namespace Swordfish.Rendering
             //  Render texture
             RenderTexture = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, RenderTexture);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba,
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f,
                         Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, 0,
-                        PixelFormat.Rgba, PixelType.UnsignedByte, IntPtr.Zero);
+                        PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, RenderTexture, 0);
+
+            int mipmapLevels = (byte)Math.Floor(Math.Log(Math.Max(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y), 2));
+            GL.TextureStorage2D(RenderTexture, mipmapLevels, SizedInternalFormat.Rgba16f, Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+            GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+            GL.TextureParameter(RenderTexture, TextureParameterName.TextureMaxLevel, mipmapLevels - 1);
+
+            //  HDR render texture
+            HdrTexture = GL.GenTexture();
+            GL.BindTexture(TextureTarget.Texture2D, HdrTexture);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba16f,
+                        Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, 0,
+                        PixelFormat.Rgba, PixelType.Float, IntPtr.Zero);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, TextureTarget.Texture2D, HdrTexture, 0);
+
+            //  Use 2 color attachments
+            GL.DrawBuffers(2, new DrawBuffersEnum[] { DrawBuffersEnum.ColorAttachment0, DrawBuffersEnum.ColorAttachment1 });
 
             //  Render buffer for depth and stencil
             RenderBufferObject = GL.GenRenderbuffer();
@@ -193,11 +204,27 @@ namespace Swordfish.Rendering
             //  Textures
             textureArray = Texture2DArray.LoadFromFolder("resources/textures/block/", "blocks");
 
+            hdrTexture = new Texture2D(HdrTexture,
+                         "HDR Texture",
+                         Engine.MainWindow.ClientSize.X,
+                         Engine.MainWindow.ClientSize.Y,
+                         false);
+
             //  Render texture
             renderTarget = new Quad();
             renderTarget.Scale = Vector3.One * 2f;
-            renderTarget.Shader = postprocessing;
-            renderTarget.Texture = new Texture2D(RenderTexture, "rendertexture", Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y, false);
+
+            renderTarget.Material = new Material()
+            {
+                Name = "Render Target",
+                Shader = Shaders.POST.Get(),
+                DiffuseTexture = new Texture2D(RenderTexture,
+                                 "Render Texture",
+                                 Engine.MainWindow.ClientSize.X,
+                                 Engine.MainWindow.ClientSize.Y,
+                                 false)
+            };
+
             renderTarget.Bind();
         }
 
@@ -230,7 +257,7 @@ namespace Swordfish.Rendering
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, FrameBufferObject);
 
             //  Clear the buffer, enable depth testing, enable culling
-            GL.ClearColor(clr.r, clr.g, clr.b, 1f);
+            GL.ClearColor(0f, 0f, 0f, 0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
             GL.Enable(EnableCap.DepthTest);
@@ -243,7 +270,8 @@ namespace Swordfish.Rendering
             GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
             //  Wireframe
-            // GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            if (Engine.Settings.Renderer.WIREFRAME)
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
 
             camera.Update();
 
@@ -304,33 +332,35 @@ namespace Swordfish.Rendering
                 Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
                 if (mesh != null)
                 {
-                    mesh.Shader.SetMatrix4("view", camera.view);
-                    mesh.Shader.SetMatrix4("projection", projection);
-                    mesh.Shader.SetMatrix4("transform", transformMatrix);
-                    mesh.Shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
-
-                    mesh.Shader.SetVec3("viewPosition", camera.transform.position);
-
-                    mesh.Shader.SetFloat("ambientLightning", 0.03f);
-
-                    mesh.Shader.SetFloat("ao", 1f);
-                    mesh.Shader.SetFloat("metallic", 0.5f);
-                    mesh.Shader.SetFloat("roughness", 0.5f);
-
-                    for (int i = 0; i < lights.Length; i++)
+                    foreach (Material m in mesh.Materials)
                     {
-                        mesh.Shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
-                        mesh.Shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).intensity);
-                        mesh.Shader.SetFloat($"lightRanges[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).range);
-                    }
+                        Shader shader = m.Shader;
 
-                    if (lights.Length < MAX_LIGHTS)
-                    {
-                        for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                        shader.SetMatrix4("view", camera.view);
+                        shader.SetMatrix4("projection", projection);
+                        shader.SetMatrix4("transform", transformMatrix);
+                        shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
+
+                        shader.SetVec3("viewPosition", camera.transform.position);
+
+                        shader.SetFloat("ambientLightning", 0.03f);
+
+                        shader.SetFloat("Metallic", m.Metallic);
+                        shader.SetFloat("Roughness", m.Roughness);
+
+                        for (int i = 0; i < lights.Length; i++)
                         {
-                            mesh.Shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
-                            mesh.Shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
-                            mesh.Shader.SetFloat($"lightRanges[{i}]", 0f);
+                            shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                            shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
+                        }
+
+                        if (lights.Length < MAX_LIGHTS)
+                        {
+                            for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                            {
+                                shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
+                                shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
+                            }
                         }
                     }
 
@@ -347,15 +377,13 @@ namespace Swordfish.Rendering
 
                     shader.SetFloat("ambientLightning", 0.03f);
 
-                    shader.SetFloat("ao", 1f);
-                    shader.SetFloat("metallic", 0.5f);
-                    shader.SetFloat("roughness", 0.5f);
+                    shader.SetFloat("Metallic", 0f);
+                    shader.SetFloat("Roughness", 1f);
 
                     for (int i = 0; i < lights.Length; i++)
                     {
                         shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
-                        shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).intensity);
-                        shader.SetFloat($"lightRanges[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).range);
+                        shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
                     }
 
                     if (lights.Length < MAX_LIGHTS)
@@ -364,7 +392,6 @@ namespace Swordfish.Rendering
                         {
                             shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
                             shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
-                            shader.SetFloat($"lightRanges[{i}]", 0f);
                         }
                     }
 
@@ -388,8 +415,28 @@ namespace Swordfish.Rendering
                 GL.BindVertexArray(0);
             }
 
+            //  Read highest luminance at center of screen
+            int pixelCount = 128*128;
+            byte[] pixels = new byte[3*pixelCount];
+            GL.ReadPixels((Engine.MainWindow.ClientSize.X/2)-64, (Engine.MainWindow.ClientSize.Y/2)-64, 128, 128, PixelFormat.Rgb, PixelType.UnsignedByte, pixels);
+            float luminance = 0f;
+            for (int n = 0; n < pixelCount; n++)
+            {
+                Color c = new Color(pixels[n], pixels[n + 1], pixels[n + 2], 1f);
+
+                //  Gamma correction for better accuracy
+                c.r = (float)Math.Pow(c.r, 1f / 2.2f);
+                c.g = (float)Math.Pow(c.g, 1f / 2.2f);
+                c.b = (float)Math.Pow(c.b, 1f / 2.2f);
+
+                float lum = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
+
+                //  only consider luminance above a threshold
+                if (lum > 10f && lum > luminance) luminance = lum-10f;
+            }
+
             //  -----------------------------------------------------
-            //  --- Second render pass for overlays ---
+            //  --- Second render pass for overlays and post processing ---
 
             //  Disable depth testing and culling for this pass
             GL.Disable(EnableCap.DepthTest);
@@ -397,10 +444,45 @@ namespace Swordfish.Rendering
 
             //  Bind and clear
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            GL.ClearColor(Color.Black.r, Color.Black.g, Color.Black.b, 1.0f);
+            GL.ClearColor(0f, 0f, 0f, 1f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
+            renderTarget.Material.DiffuseTexture.Use(TextureUnit.Texture0);
+            GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
+
+            //  TODO Very messy auto exposure code
+            float e = 0;
+            float exposure = Engine.Settings.Renderer.EXPOSURE;
+            for (int i = 0; i < lights.Length; i++)
+            {
+                Vector3 relative = Engine.ECS.Get<PositionComponent>(lights[i]).position - Camera.Main.transform.position;
+                relative.NormalizeFast();
+
+                float dot = Vector3.Dot(relative, Camera.Main.transform.forward);
+
+                float distance = Vector3.Distance(Camera.Main.transform.position, Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                distance /= 70f/Camera.Main.FOV;
+
+                float facing = MathS.RangeToRange(dot, -1f, 1f, distance+1f, 1f);
+
+                float attenuation = 1f/(distance*distance);
+
+                e += Engine.ECS.Get<LightComponent>(lights[i]).lumens * (float)Math.Pow(attenuation, facing);
+            }
+            e /= lights.Length;
+            e = 10f / (e * luminance);
+            e = Math.Clamp(e, 0.2f, 1.5f);
+
+            if (lastExposure != exposure) exposureChange = 0f;
+            exposure = MathS.Slerp(exposure, e, exposureChange);
+            exposureChange += 0.02f*Engine.DeltaTime;
+            Engine.Settings.Renderer.EXPOSURE = exposure;
+            lastExposure = exposure;
+
             //  Display the render texture onto the screen
+            renderTarget.Material.Shader.SetVec4("BackgroundColor", Engine.Settings.Renderer.BACKGROUND_COLOR);
+            renderTarget.Material.Shader.SetFloat("Exposure", exposure);
+            hdrTexture.Use(TextureUnit.Texture1);
             renderTarget.Render();
 
             //  Draw GUI elements

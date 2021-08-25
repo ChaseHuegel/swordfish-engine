@@ -1,135 +1,114 @@
-[INFO] : Logger initialized
-[INFO] : Statistics initialized
-[INFO] : Profiler initialized
-[INFO] : Debugger initialized
-[INFO] : Loading core config from 'swordfish.toml' ...
-[INFO] : Loaded core config.
-[INFO] : Started Swordfish Engine
-[INFO] : Settings
-[INFO] :     Framelimit 120
-[INFO] :     Resolution 1024 x 768 borderless
-[INFO] : OpenGL v3.3.0 NVIDIA 456.71
-[INFO] :     NVIDIA Corporation GeForce GTX 970/PCIe/SSE2
-[INFO] :     Extensions found: 383
-[INFO] :     Shader vertex attr supported: 16
-[INFO] : ...Created OpenGL debug output
-[INFO] : Created texture 'ImGui Text Atlas'
-[INFO] :     Uniforms: in_fontTexture, projection_matrix
-[INFO] : Shader 'ImGui' loaded
-[INFO] : Loading shader 'default' from 'shaders/default.vert' / 'shaders/default.frag'
-[INFO] :     Uniforms: ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, texture0, tint, transform, view
-[INFO] : Shader 'default' loaded
-[INFO] : Loading shader 'unlit' from 'shaders/unlit.vert' / 'shaders/unlit.frag'
-[INFO] :     Uniforms: projection, texture0, transform, view
-[INFO] : Shader 'unlit' loaded
-[INFO] : Loading shader 'pbr' from 'shaders/pbr.vert' / 'shaders/pbr.frag'
-[INFO] :     Uniforms: ambientLightning, ao, inversedTransform, lightColors[0], lightPositions[0], lightRanges[0], metallic, projection, roughness, texture0, transform, view, viewPosition
-[INFO] : Shader 'pbr' loaded
-[INFO] : Loading shader 'pbr array' from 'shaders/pbr_array.vert' / 'shaders/pbr_array.frag'
-[INFO] :     Uniforms: ambientLightning, ao, inversedTransform, lightColors[0], lightPositions[0], lightRanges[0], metallic, projection, roughness, texture0, transform, view, viewPosition
-[INFO] : Shader 'pbr array' loaded
-[INFO] : Loading shader 'postprocessing' from 'shaders/postprocessing.vert' / 'shaders/postprocessing.frag'
-[INFO] :     Uniforms: texture0
-[INFO] : Shader 'postprocessing' loaded
-[INFO] : Framebuffer code: FramebufferComplete
-[INFO] : Loading texture array 'blocks' from 'resources/textures/block/'
-[INFO] :     Found texture 'caution_panel.png' at 0
-[INFO] :     Found texture 'control_buttons.png' at 1
-[INFO] :     Found texture 'control_buttons_2.png' at 2
-[INFO] :     Found texture 'control_console.png' at 3
-[INFO] :     Found texture 'control_panel.png' at 4
-[INFO] :     Found texture 'control_slider.png' at 5
-[INFO] :     Found texture 'core.png' at 6
-[INFO] :     Found texture 'display_console.png' at 7
-[INFO] :     Found texture 'display_control.png' at 8
-[INFO] :     Found texture 'display_monitor.png' at 9
-[INFO] :     Found texture 'display_panel.png' at 10
-[INFO] :     Found texture 'display_panel_2.png' at 11
-[INFO] :     Found texture 'display_panel_3.png' at 12
-[INFO] :     Found texture 'display_panel_4.png' at 13
-[INFO] :     Found texture 'display_screen.png' at 14
-[INFO] :     Found texture 'ice.png' at 15
-[INFO] :     Found texture 'light_panel.png' at 16
-[INFO] :     Found texture 'metal_grate.png' at 17
-[INFO] :     Found texture 'metal_panel.png' at 18
-[INFO] :     Found texture 'metal_porthole.png' at 19
-[INFO] :     Found texture 'rock.png' at 20
-[INFO] :     ...layers: 21
-[INFO] :     ...using resolution 16x16
-[INFO] : ...Building texture array 'blocks'
-[INFO] : Registering ECS components...
-[INFO] :     Registered 'Swordfish.ECS.BillboardComponent'
-[INFO] :     Registered 'Swordfish.ECS.CollisionComponent'
-[INFO] :     Registered 'Swordfish.ECS.LightComponent'
-[INFO] :     Registered 'Swordfish.ECS.PositionComponent'
-[INFO] :     Registered 'Swordfish.ECS.RenderComponent'
-[INFO] :     Registered 'Swordfish.ECS.RigidbodyComponent'
-[INFO] :     Registered 'Swordfish.ECS.RotationComponent'
-[INFO] :     Registered 'Swordfish.ECS.TurntableComponent'
-[INFO] : Registering ECS systems...
-[INFO] :     Registered 'Swordfish.ECS.BillboardSystem'
-[INFO] :     Registered 'Swordfish.ECS.CollisionSystem'
-[INFO] :     Registered 'Swordfish.ECS.LightSystem'
-[INFO] :     Registered 'Swordfish.ECS.PhysicsSystem'
-[INFO] :     Registered 'Swordfish.ECS.RenderSystem'
-[INFO] :     Registered 'Swordfish.ECS.TurntableSystem'
-[INFO] Threading: Started thread 'ECS'
+[INFO] Logger initialized
+[INFO] Statistics initialized
+[INFO] Profiler initialized
+[INFO] Debugger initialized
+[INFO] Loading core config from 'swordfish.toml' ...
+[INFO] Loaded core config.
+[INFO] Started Swordfish Engine
+        Framelimit 120
+        Resolution 1024 x 768 borderless
+[INFO] OpenGL v3.3.0 NVIDIA 456.71
+        NVIDIA Corporation GeForce GTX 970/PCIe/SSE2
+        Extensions found: 383
+        Shader vertex attr supported: 16
+[INFO] ...Created OpenGL debug output
+[INFO] Created texture 'ImGui Text Atlas'
+        Uniforms: in_fontTexture, projection_matrix
+[INFO] Loading shader 'default' from 'shaders/default.vert' / 'shaders/default.frag'
+        Uniforms: ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, texture0, tint, transform, view
+[INFO] Loading shader 'unlit' from 'shaders/unlit.vert' / 'shaders/unlit.frag'
+        Uniforms: Tint, projection, texture0, transform, view
+[INFO] Loading shader 'pbr' from 'shaders/pbr.vert' / 'shaders/pbr.frag'
+        Uniforms: Metallic, Roughness, _Diffuse, ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, transform, view, viewPosition
+[INFO] Loading shader 'pbr array' from 'shaders/pbr_array.vert' / 'shaders/pbr_array.frag'
+        Uniforms: Metallic, Roughness, _Diffuse, ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, transform, view, viewPosition
+[INFO] Loading shader 'post' from 'shaders/post/post.vert' / 'shaders/post/post.frag'
+        Uniforms: BackgroundColor, Exposure, _Diffuse
+[INFO] Loading shader 'blur' from 'shaders/post/post.vert' / 'shaders/post/blur.frag'
+        Uniforms: texture0
+[INFO] Framebuffer code: FramebufferComplete
+[INFO] Loading texture array 'blocks' from 'resources/textures/block/'
+        Found texture 'caution_panel.png' at 0
+        Found texture 'control_buttons.png' at 1
+        Found texture 'control_buttons_2.png' at 2
+        Found texture 'control_console.png' at 3
+        Found texture 'control_panel.png' at 4
+        Found texture 'control_slider.png' at 5
+        Found texture 'core.png' at 6
+        Found texture 'display_console.png' at 7
+        Found texture 'display_control.png' at 8
+        Found texture 'display_monitor.png' at 9
+        Found texture 'display_panel.png' at 10
+        Found texture 'display_panel_2.png' at 11
+        Found texture 'display_panel_3.png' at 12
+        Found texture 'display_panel_4.png' at 13
+        Found texture 'display_screen.png' at 14
+        Found texture 'ice.png' at 15
+        Found texture 'light_panel.png' at 16
+        Found texture 'metal_grate.png' at 17
+        Found texture 'metal_panel.png' at 18
+        Found texture 'metal_porthole.png' at 19
+        Found texture 'rock.png' at 20
+        ...layers: 21
+        ...using resolution 16x16
+[WARNING] Uniform 'Tint' does not exist in the shader 'post'!
+[WARNING] Uniform 'Roughness' does not exist in the shader 'post'!
+[WARNING] Uniform 'Metallic' does not exist in the shader 'post'!
+[WARNING] Uniform 'Emission' does not exist in the shader 'post'!
+[INFO] Registering ECS components...
+        Registered 'Swordfish.ECS.BillboardComponent'
+        Registered 'Swordfish.ECS.CollisionComponent'
+        Registered 'Swordfish.ECS.LightComponent'
+        Registered 'Swordfish.ECS.PositionComponent'
+        Registered 'Swordfish.ECS.RenderComponent'
+        Registered 'Swordfish.ECS.RigidbodyComponent'
+        Registered 'Swordfish.ECS.RotationComponent'
+        Registered 'Swordfish.ECS.TurntableComponent'
+[INFO] Registering ECS systems...
+        Registered 'Swordfish.ECS.BillboardSystem'
+        Registered 'Swordfish.ECS.CollisionSystem'
+        Registered 'Swordfish.ECS.LightSystem'
+        Registered 'Swordfish.ECS.PhysicsSystem'
+        Registered 'Swordfish.ECS.RenderSystem'
+        Registered 'Swordfish.ECS.TurntableSystem'
 [INFO] Threading: Started thread 'Physics'
-[INFO] : Loading texture 'ico_light' from 'resources/icons/light.png'
-[INFO] : Loading model 'westchester' from 'resources/models/westchester.obj'
-[INFO] : Loading texture 'westchester' from 'resources/textures/westchester.png'
-[INFO] : Loading model 'character' from 'resources/models/character.obj'
-[INFO] : Loading texture 'character' from 'resources/textures/character.png'
-[INFO] : Loading texture 'astronaut' from 'resources/textures/astronaut.png'
-[INFO] : Loading texture 'chort' from 'resources/textures/chort.png'
-[INFO] : Loading texture 'harold' from 'resources/textures/harold.png'
-[INFO] : Loading texture 'hubert' from 'resources/textures/hubert.png'
-[INFO] : Loading texture 'melvin' from 'resources/textures/melvin.png'
-[INFO] : Loading texture 'woman' from 'resources/textures/woman.png'
+[INFO] Threading: Started thread 'ECS'
+[INFO] Loading texture 'ico_light' from 'resources/icons/light.png'
+[WARNING] Uniform '_Diffuse' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'Roughness' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'Metallic' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'Emission' does not exist in the shader 'unlit'!
+[INFO] Loading model 'westchester' from 'resources/models/westchester.obj'
+[INFO] Loading texture 'westchester' from 'resources/textures/westchester.png'
+[WARNING] Uniform 'Tint' does not exist in the shader 'pbr'!
+[WARNING] Uniform 'Emission' does not exist in the shader 'pbr'!
+[INFO] Loading model 'character' from 'resources/models/character.obj'
+[INFO] Loading texture 'character' from 'resources/textures/character.png'
+[INFO] Loading texture 'astronaut' from 'resources/textures/astronaut.png'
+[INFO] Loading texture 'chort' from 'resources/textures/chort.png'
+[INFO] Loading texture 'harold' from 'resources/textures/harold.png'
+[INFO] Loading texture 'hubert' from 'resources/textures/hubert.png'
+[INFO] Loading texture 'melvin' from 'resources/textures/melvin.png'
+[INFO] Loading texture 'woman' from 'resources/textures/woman.png'
 [ERROR] OpenGL - Load: InvalidValue
-      at line 39 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
-[INFO] : Resized dear imgui vertex buffer to new size 25440
-[INFO] : Resized dear imgui index buffer to new size 3816
-[INFO] : Resized dear imgui vertex buffer to new size 76960
-[INFO] : Resized dear imgui index buffer to new size 11544
-[INFO] : Resized dear imgui vertex buffer to new size 115440
-[INFO] : Resized dear imgui index buffer to new size 17316
-[ERROR] : Uniform 'inversedTransform' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'viewPosition' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'ambientLightning' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'ao' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'metallic' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'roughness' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightPositions[0]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightColors[0]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightRanges[0]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightPositions[1]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightColors[1]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightRanges[1]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightPositions[2]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightColors[2]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightRanges[2]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightPositions[3]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightColors[3]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[ERROR] : Uniform 'lightRanges[3]' does not exist in the shader 'unlit'!
-      at line 124 (GetUniformLocation) in E:\Projects\Wayward Beyond\swordfish-engine\Rendering\Shader.cs
-[INFO] : Saved screenshot 'screenshots/2021.08.21-1.png'
-[INFO] : Saved screenshot 'screenshots/2021.08.21-2.png'
-[INFO] : Unexpected shutdown! Did it crash?
+      at line 38 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+[INFO] Resized dear imgui vertex buffer to new size 25280
+[INFO] Resized dear imgui index buffer to new size 3792
+[INFO] Resized dear imgui vertex buffer to new size 76800
+[INFO] Resized dear imgui index buffer to new size 11520
+[INFO] Resized dear imgui vertex buffer to new size 115200
+[INFO] Resized dear imgui index buffer to new size 17280
+[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[WARNING] Uniform 'inversedTransform' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'viewPosition' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'ambientLightning' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightPositions[0]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightColors[0]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightPositions[1]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightColors[1]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightPositions[2]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightColors[2]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightPositions[3]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'lightColors[3]' does not exist in the shader 'unlit'!
+[ERROR] OpenGL - Unload: InvalidValue
+      at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

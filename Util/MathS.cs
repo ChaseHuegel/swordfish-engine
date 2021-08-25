@@ -6,6 +6,16 @@ namespace Swordfish.Util
 {
 	public class MathS
 	{
+        public static float Lerp(float start, float end, float value)
+        {
+            return start + value * (end - start);
+        }
+
+        public static float Slerp(float start, float end, float value)
+        {
+            return (float)Math.Pow(end * Math.Pow(start, -1), value) * start;
+        }
+
         public static int GetOverflow(int value, int min, int max)
         {
             if (value < min) return value - min;

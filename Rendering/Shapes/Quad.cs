@@ -11,7 +11,7 @@ namespace Swordfish.Rendering.Shapes
             Origin = new Vector3(-0.5f, -0.5f, 0f);
 
             triangles = new uint[] {
-                0, 1, 2, 0, 2, 3,
+                2, 1, 0, 3, 2, 0
             };
 
             vertices = new Vector3[] {

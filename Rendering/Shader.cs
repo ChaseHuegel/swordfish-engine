@@ -87,8 +87,7 @@ namespace Swordfish.Rendering
                 uniformOutput += key + (i  == numberOfUniforms-1 ? "" : ", ");
             }
 
-            Debug.Log($"    Uniforms: {uniformOutput}");
-            Debug.Log($"Shader '{name}' loaded");
+            Debug.Log($"    Uniforms: {uniformOutput}", LogType.NONE);
         }
 
         public void Use()
@@ -121,7 +120,7 @@ namespace Swordfish.Rendering
 
                 if (location == -1)
                 {
-                    Debug.Log($"Uniform '{uniform}' does not exist in the shader '{Name}'!", LogType.ERROR);
+                    Debug.Log($"Uniform '{uniform}' does not exist in the shader '{Name}'!", LogType.WARNING, true);
                 }
             }
 

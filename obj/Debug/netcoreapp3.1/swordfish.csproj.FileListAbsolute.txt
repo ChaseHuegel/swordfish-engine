@@ -90,5 +90,6 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\defa
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\default.vert
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_array.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_array.vert
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\postprocessing.frag
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\postprocessing.vert
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\blur.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.frag
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.vert
