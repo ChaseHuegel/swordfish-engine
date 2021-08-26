@@ -71,8 +71,8 @@
         Registered 'Swordfish.ECS.PhysicsSystem'
         Registered 'Swordfish.ECS.RenderSystem'
         Registered 'Swordfish.ECS.TurntableSystem'
-[INFO] Threading: Started thread 'Physics'
 [INFO] Threading: Started thread 'ECS'
+[INFO] Threading: Started thread 'Physics'
 [INFO] Loading texture 'ico_light' from 'resources/icons/light.png'
 [WARNING] Uniform '_Diffuse' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'Roughness' does not exist in the shader 'unlit'!
@@ -92,13 +92,10 @@
 [INFO] Loading texture 'woman' from 'resources/textures/woman.png'
 [ERROR] OpenGL - Load: InvalidValue
       at line 38 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
-[INFO] Resized dear imgui vertex buffer to new size 25280
-[INFO] Resized dear imgui index buffer to new size 3792
+[INFO] Resized dear imgui vertex buffer to new size 25440
+[INFO] Resized dear imgui index buffer to new size 3816
 [INFO] Resized dear imgui vertex buffer to new size 76800
 [INFO] Resized dear imgui index buffer to new size 11520
-[INFO] Resized dear imgui vertex buffer to new size 115200
-[INFO] Resized dear imgui index buffer to new size 17280
-[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [WARNING] Uniform 'inversedTransform' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'viewPosition' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'ambientLightning' does not exist in the shader 'unlit'!
@@ -110,5 +107,8 @@
 [WARNING] Uniform 'lightColors[2]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightPositions[3]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightColors[3]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[INFO] Resized dear imgui vertex buffer to new size 115200
+[INFO] Resized dear imgui index buffer to new size 17280
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

@@ -331,6 +331,23 @@ namespace Swordfish.ECS
         }
 
         /// <summary>
+        /// Creates an entity with attached components, and pushes to the context
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="tag"></param>
+        /// <param name="components"></param>
+        /// <returns>the created entity; otherwise null if pushing to context failed</returns>
+        public Entity CreateEntity(string name = "", string tag = "", params object[] components)
+        {
+            Entity entity = CreateEntity(name, tag);
+
+            if (entity != null)
+                Attach(entity, components);
+
+            return entity;
+        }
+
+        /// <summary>
         /// Creates and pushes an entity to the context
         /// </summary>
         /// <param name="entity">the created entity; otherwise null if pushing to context failed</param>
@@ -340,6 +357,24 @@ namespace Swordfish.ECS
         public bool CreateEntity(out Entity entity, string name = "", string tag = "")
         {
             entity = CreateEntity(name, tag);
+
+            return entity != null;
+        }
+
+        /// <summary>
+        /// Creates an entity with attached components, and pushes to the context
+        /// </summary>
+        /// <param name="entity">the created entity; otherwise null if pushing to context failed</param>
+        /// <param name="name"></param>
+        /// <param name="tag"></param>
+        /// <param name="components"></param>
+        /// <returns>true if an entity was created; otherwise false</returns>
+        public bool CreateEntity(out Entity entity, string name = "", string tag = "", params object[] components)
+        {
+            entity = CreateEntity(name, tag);
+
+            if (entity != null)
+                Attach(entity, components);
 
             return entity != null;
         }
@@ -406,6 +441,36 @@ namespace Swordfish.ECS
                 foreach (ComponentSystem system in _systems)
                     if (system.IsFiltering(component.GetType()))
                         system.PullEntities();
+            }
+
+            return this;
+        }
+
+        /// <summary>
+        /// Attaches a collection of components to an entity
+        /// </summary>
+        /// <param name="entity"></param>
+        /// <param name="components"></param>
+        /// <returns>entity builder</returns>
+        public ECSContext Attach(Entity entity, params object[] components)
+        {
+            foreach (object component in components)
+            {
+                //  Ignore null values and anything that is not a struct
+                if (component == null || !component.GetType().IsValueType) continue;
+
+                if (!_components.ContainsKey(component.GetType()))
+                    Debug.Log($"Component of type({component.GetType().ToString()}) is not registered to context", "ECS", LogType.WARNING);
+
+                if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
+                {
+                    data[entity.UID] = component;
+
+                    //  Tell all systems with this component to update matching entities
+                    foreach (ComponentSystem system in _systems)
+                        if (system.IsFiltering(component.GetType()))
+                            system.PullEntities();
+                }
             }
 
             return this;
