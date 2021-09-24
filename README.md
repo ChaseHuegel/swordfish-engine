@@ -10,7 +10,10 @@ Tomlet (TOML file format for C#) https://github.com/SamboyCoding/Tomlet
 ## Updates
 
 ### 8/21/2021
-The biggest focus since the last update has been on the rendering side of things. The engine now supports rendering meshes, a custom written OBJ importer/exporter, transparency sorting and alpha blending, PBR and phong shading, point lights, billboards, screenshots, and post-processing with builtin dithering and gamma correction. The pipeline still has a ways to go and is low priority in favor of functionality right now but its nice to have brought the visuals up a notch. The clip includes billboards, meshes, PBR, and gamma correction (the dithering effect is not compression friendly!)
+The biggest focus since the last update has been on the rendering side of things. The engine now supports rendering meshes, a custom written OBJ importer/exporter, transparency sorting and alpha blending, PBR and phong shading, point lights, billboards, screenshots, and post-processing with builtin dithering and gamma correction. The pipeline still has a ways to go and is low priority in favor of functionality right now but its nice to have brought the visuals up a notch. One clip includes billboards, meshes, PBR, HDR, dithering, gamma correction, and eye adaption (sped up for show). The second has no HDR shading or dithering for comparison.
+
+
+https://user-images.githubusercontent.com/14932139/134615032-c38210ed-c30e-4866-a9a5-f9784e867b6f.mp4
 
 https://user-images.githubusercontent.com/14932139/130310065-02ccc64b-377e-4b59-86ce-cb77f3490e78.mp4
 
