@@ -93,3 +93,6 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\blur.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.vert
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character.mtl
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character_clothes.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\character_clothes.png

@@ -84,7 +84,9 @@ namespace source
                 {
                     Name = shader.Name,
                     Shader = shader,
-                    DiffuseTexture = texture
+                    DiffuseTexture = texture,
+                    Roughness = 1f,
+                    Metallic = 0f
                 };
 
                 mesh.Bind();
@@ -154,12 +156,14 @@ namespace source
                 );
 
             model = OBJ.LoadFromFile("resources/models/character.obj", "character");
-            tex = Texture2D.LoadFromFile("resources/textures/character.png", "character");
+            tex = Texture2D.LoadFromFile("resources/textures/character_clothes.png", "character");
             model.Material = new Material()
             {
                 Name = shader.Name,
                 Shader = shader,
-                DiffuseTexture = tex
+                DiffuseTexture = tex,
+                Roughness = 1f,
+                Metallic = 0f
             };
             model.Bind();
 
