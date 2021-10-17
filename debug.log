@@ -92,6 +92,7 @@
 [INFO] Loading texture 'woman' from 'resources/textures/woman.png'
 [ERROR] OpenGL - Load: InvalidValue
       at line 38 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+[INFO] Resized dear imgui vertex buffer to new size 15000
 [INFO] Resized dear imgui vertex buffer to new size 25280
 [INFO] Resized dear imgui index buffer to new size 3792
 [INFO] Resized dear imgui vertex buffer to new size 76800
@@ -109,6 +110,5 @@
 [WARNING] Uniform 'lightColors[2]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightPositions[3]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightColors[3]' does not exist in the shader 'unlit'!
-[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

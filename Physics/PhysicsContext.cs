@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 using Swordfish.Containers;
+using Swordfish.Diagnostics;
 using Swordfish.ECS;
 using Swordfish.Threading;
 using Swordfish.Util;
@@ -21,6 +22,7 @@ namespace Swordfish.Physics
         private SphereTree<int> collisionTree;
 
         private float accumulator = 0f;
+        private bool isWarnReady = false;
 
         public readonly ThreadWorker Thread;
 
@@ -64,8 +66,28 @@ namespace Swordfish.Physics
 
         private void Step(float deltaTime)
         {
-            //  Fixed timestep
+            //  Accumulate fixed timestep
             accumulator += deltaTime;
+
+            //  Warnings are ready ~1/second
+            if (!isWarnReady)
+                isWarnReady = (Engine.Time >= 0.9f);
+
+            // Prevent and warn hanging up
+            if (accumulator > Engine.Settings.Physics.MAX_TIMESTEP)
+            {
+                //  Only send warnings at set interval to prevent spam
+                if (isWarnReady)
+                {
+                    Debug.Log("Physics simulation took too long!", LogType.WARNING, true);
+                    isWarnReady = false;
+                }
+
+                accumulator -= Engine.Settings.Physics.MAX_TIMESTEP;
+                return;
+            }
+
+            //  Step through # of times based on delta time to ensure it is fixed
             while (accumulator >= Engine.Settings.Physics.FIXED_TIMESTEP)
             {
                 Simulate(Engine.Settings.Physics.FIXED_TIMESTEP * Engine.Timescale);

@@ -21,6 +21,10 @@ namespace Swordfish
             set => _timescale = Math.Clamp(value, 0f, 100f);
         }
 
+        public static float Time = 0f;
+        public static float PingPong = 0f;
+        private static bool Pong = false;
+
         public static float DeltaTime = 0f;
         public static float ECSTime = 0f;
         public static float FrameTime = 0f;
@@ -91,6 +95,23 @@ namespace Swordfish
 
         public static void Step()
         {
+            //  Ping pong a value between 0 and 1
+            PingPong += DeltaTime * (Pong ? -1f : 1f);
+
+            if (PingPong >= 1f)
+            {
+                PingPong = 1f - (PingPong - 1f);
+                Pong = true;
+            }
+            else if (PingPong <= 0f)
+            {
+                PingPong = -PingPong;
+                Pong = false;
+            }
+
+            //  How many seconds have passed in total
+            Time += DeltaTime;
+
             UpdateCallback?.Invoke();
         }
 

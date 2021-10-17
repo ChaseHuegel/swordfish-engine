@@ -55,7 +55,6 @@ namespace Swordfish
         {
             DeltaTime = (float)e.Time;
             Engine.DeltaTime = DeltaTime;
-            Engine.Frame++;
 
             //  TODO: Very quick and dirty stable timing
             frameTimer += DeltaTime;
@@ -142,6 +141,8 @@ namespace Swordfish
 
         protected override void OnRenderFrame(FrameEventArgs e)
         {
+            Engine.Frame++;
+
             Engine.PreRenderCallback?.Invoke();
                 Engine.Renderer.Render();
             Engine.PostRenderCallback?.Invoke();

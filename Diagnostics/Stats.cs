@@ -28,6 +28,8 @@ namespace Swordfish.Diagnostics
             ImGui.Begin("Stats", WindowFlagPresets.FLAT);
                 ImGui.Text($"FPS: {Engine.MainWindow.FPS}");
                 ImGui.Text($"Frame: {Engine.Frame}");
+                ImGui.Text($"Time: {Engine.Time.ToString("0.##")}");
+                ImGui.Text($"PingPong: {Engine.PingPong.ToString("0.##")}");
                 ImGui.Text($"Draw calls: {Engine.Renderer.DrawCalls}");
                 ImGui.Text($"Timescale: {Engine.Timescale.ToString("0.##")}");
                 ImGui.Text($"Exposure: {Engine.Settings.Renderer.EXPOSURE.ToString("0.##")}");

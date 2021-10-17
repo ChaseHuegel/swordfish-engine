@@ -47,6 +47,7 @@ namespace Swordfish
         public class PhysicsSettings
         {
             public float FIXED_TIMESTEP = 0.016f;
+            public float MAX_TIMESTEP = 0.1f;
         }
 
         public CoreSettings() {}
