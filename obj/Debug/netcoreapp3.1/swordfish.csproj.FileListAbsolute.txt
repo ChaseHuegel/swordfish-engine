@@ -96,3 +96,12 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character.mtl
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character_clothes.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\character_clothes.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\explosion.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\button UI.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\gdb-keyboard-1a.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\gdb-playstation-1a.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\gdb-switch-1a.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\gdb-xbox-1a.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\GUI.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\keys\esc.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\ui\keys\esc_a.png

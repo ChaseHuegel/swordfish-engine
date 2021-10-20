@@ -141,7 +141,7 @@ namespace Swordfish.Rendering
             GL.Uniform1(uniformLocations[name], data);
         }
 
-        public void SetVec2(string name, Vector3 data)
+        public void SetVec2(string name, Vector2 data)
         {
             if (!TryValidateUniform(name)) return;
             GL.UseProgram(Handle);

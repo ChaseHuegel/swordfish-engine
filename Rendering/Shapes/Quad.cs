@@ -36,10 +36,10 @@ namespace Swordfish.Rendering.Shapes
             };
 
             uv = new Vector3[] {
-                new Vector3(0f, 1f, 2),
-                new Vector3(1f, 1f, 2),
-                new Vector3(1f, 0f, 2),
-                new Vector3(0f, 0f, 2),
+                new Vector3(0f, 1f, 0),
+                new Vector3(1f, 1f, 0),
+                new Vector3(1f, 0f, 0),
+                new Vector3(0f, 0f, 0),
             };
         }
     }

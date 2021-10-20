@@ -2,6 +2,7 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 
+using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 
 using Swordfish.Diagnostics;
@@ -41,6 +42,8 @@ namespace Swordfish.Rendering
 
             base.handle = handle;
             base.name = name;
+
+            size = new Vector2(width, height);
         }
 
         public Texture2D(string name, int width, int height, IntPtr data, bool generateMipmaps = true)
@@ -55,6 +58,8 @@ namespace Swordfish.Rendering
             GL.TextureSubImage2D(handle, 0, 0, 0, width, height, PixelFormat.Bgra, PixelType.UnsignedByte, data);
 
             if (generateMipmaps) GL.GenerateTextureMipmap(handle);
+
+            size = new Vector2(width, height);
 
             Debug.Log($"Created texture '{name}'");
 

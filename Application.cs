@@ -1,3 +1,4 @@
+using System.IO;
 using ImGuiNET;
 
 using OpenTK.Graphics.OpenGL4;
@@ -128,6 +129,45 @@ namespace source
             }
         }
 
+        public void CreateAnimatedBoardEntity(Shader shader, Texture texture, float speed, Vector3 position, Vector3 scale)
+        {
+            if (Engine.ECS.CreateEntity(out Entity entity))
+            {
+                int frames = (int)(texture.GetSize().Y / texture.GetSize().X);
+
+                Mesh mesh = new Quad();
+                mesh.Scale = scale;
+
+                mesh.uv = new Vector3[] {
+                    new Vector3(0f, 1f/frames, 0),
+                    new Vector3(1f, 1f/frames, 0),
+                    new Vector3(1f, 0f, 0),
+                    new Vector3(0f, 0f, 0),
+                };
+
+                mesh.Material = new Material()
+                {
+                    Name = shader.Name,
+                    Shader = shader,
+                    DiffuseTexture = texture,
+                    Roughness = 1f,
+                    Metallic = 0f
+                };
+
+                mesh.Bind();
+
+                Engine.ECS.Attach(entity,
+                        new RenderComponent() { mesh = mesh },
+                        new TextureAnimationComponent() { frames = frames, speed = speed },
+                        new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                        new CollisionComponent() { size = 0.5f },
+                        new PositionComponent() { position = position },
+                        new RotationComponent() { orientation = Quaternion.Identity },
+                        new BillboardComponent()
+                    );
+            }
+        }
+
         private void Start()
         {
             Debug.Enabled = true;
@@ -193,6 +233,12 @@ namespace source
 
             tex = Texture2D.LoadFromFile("resources/textures/woman.png", "woman");
             CreateBillboardEntity(shader, tex, new Vector3(14f, 0f, -4f), Vector3.One * 2.5f);
+
+            tex = Texture2D.LoadFromFile("resources/textures/ui/keys/esc_a.png", "esc_a");
+            CreateAnimatedBoardEntity(Shaders.UNLIT.Get(), tex, 0.5f, new Vector3(-4f, 0f, -4f), Vector3.One);
+
+            tex = Texture2D.LoadFromFile("resources/textures/explosion.png", "explosion");
+            CreateAnimatedBoardEntity(Shaders.UNLIT.Get(), tex, 0.75f, new Vector3(-10f, 0f, -4f), Vector3.One * 10f);
         }
 
         private void ShowGui()

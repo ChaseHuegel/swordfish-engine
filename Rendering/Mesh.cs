@@ -30,6 +30,8 @@ namespace Swordfish.Rendering
         public Vector3[] normals;
         public Vector3[] uv;
 
+        public Vector2 uvOffset;
+
         public string Name = "";
         public Vector3 Origin = Vector3.Zero;
         public Vector3 Scale = Vector3.One;
@@ -72,8 +74,8 @@ namespace Swordfish.Rendering
                 raw[row+8] = normals[i].Y;
                 raw[row+9] = normals[i].Z;
 
-                raw[row+10] = uv[i].X;
-                raw[row+11] = uv[i].Y;
+                raw[row+10] = uv[i].X + uvOffset.X;
+                raw[row+11] = uv[i].Y + uvOffset.Y;
                 raw[row+12] = uv[i].Z;
             }
 
@@ -165,6 +167,8 @@ namespace Swordfish.Rendering
                 m.OcclusionTexture?.Use(TextureUnit.Texture4);
 
                 m.Shader.Use();
+
+                m.Shader.SetVec2("Offset", uvOffset);
             }
 
             GL.BindVertexArray(VAO);

@@ -1,5 +1,6 @@
 using System;
 
+using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 
 namespace Swordfish.Rendering
@@ -15,6 +16,7 @@ namespace Swordfish.Rendering
     {
         protected string name;
         protected byte mipmapLevels;
+        protected Vector2 size;
 
         private int _handle;
         protected int handle {
@@ -25,6 +27,7 @@ namespace Swordfish.Rendering
         public string GetName() => name;
         public int GetHandle() => handle;
         public byte GetMipmapLevels() => mipmapLevels;
+        public Vector2 GetSize() => size;
 
         public static readonly float MaxAniso;
         static Texture() { MaxAniso = GL.GetFloat((GetPName)0x84FF); }

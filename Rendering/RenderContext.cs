@@ -481,7 +481,10 @@ namespace Swordfish.Rendering
 
             //  Display the render texture onto the screen
             renderTarget.Material.Shader.SetVec4("BackgroundColor", Engine.Settings.Renderer.BACKGROUND_COLOR);
-            renderTarget.Material.Shader.SetFloat("Exposure", exposure);
+
+            //  ! Disabled auto exposure
+            // renderTarget.Material.Shader.SetFloat("Exposure", exposure);
+
             hdrTexture.Use(TextureUnit.Texture1);
             renderTarget.Render();
 

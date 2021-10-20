@@ -4,6 +4,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 
+using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
 
 using Swordfish.Diagnostics;
@@ -87,6 +88,8 @@ namespace Swordfish.Rendering
 
             base.handle = handle;
             base.name = name;
+
+            size = new Vector2(width, height);
         }
 
         public override void Use(TextureUnit unit)
