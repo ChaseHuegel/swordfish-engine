@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using ImGuiNET;
 
@@ -8,6 +9,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish;
 using Swordfish.Diagnostics;
 using Swordfish.ECS;
+using Swordfish.Extensions;
 using Swordfish.Rendering;
 using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
@@ -234,7 +236,7 @@ namespace source
             tex = Texture2D.LoadFromFile("resources/textures/woman.png", "woman");
             CreateBillboardEntity(shader, tex, new Vector3(14f, 0f, -4f), Vector3.One * 2.5f);
 
-            tex = Texture2D.LoadFromFile("resources/textures/ui/keys/esc_a.png", "esc_a");
+            tex = Texture2D.LoadFromFile("resources/icons/controls/esc_a.png", "esc_a");
             CreateAnimatedBoardEntity(Shaders.UNLIT.Get(), tex, 0.5f, new Vector3(-4f, 0f, -4f), Vector3.One);
 
             tex = Texture2D.LoadFromFile("resources/textures/explosion.png", "explosion");
@@ -245,30 +247,69 @@ namespace source
         {
             if (showControls)
             {
-                ImGui.SetNextWindowPos(new Vector2(0, 200));
+                ImGui.SetNextWindowPos(new Vector2(Engine.Settings.Window.WIDTH - 600, 0));
+                ImGui.SetNextWindowSizeConstraints(new Vector2(600, 300), new Vector2(600, 600));
                 ImGui.Begin("Controls", WindowFlagPresets.FLAT);
-                    ImGui.Text($"Console ~");
-                    ImGui.Text($"Controls F1");
-                    ImGui.Text($"Debug F2");
-                    ImGui.Text($"- Stats F3");
-                    ImGui.Text($"- Profiler F4");
-                    ImGui.Text($"Timescale + -");
+                    ImGui.Columns(3);
+                    ImGui.SetColumnOffset(1, 160);
+                    ImGui.SetColumnOffset(2, 390);
 
-                    ImGui.Separator();
+                    ImGui.Image(Keys.GraveAccent.GetIcon().GetIntPtr(), Keys.GraveAccent.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Console");
 
-                    ImGui.Text($"Speed+ SHIFT");
-                    ImGui.Text($"Move WASD");
-                    ImGui.Text($"Up SPACE");
-                    ImGui.Text($"Down CTRL");
-                    ImGui.Text($"Roll QE");
-                    ImGui.Text($"MouseLook TAB");
-                    ImGui.Text($"Zoom C");
+                    ImGui.Image(Keys.F1.GetIcon().GetIntPtr(), Keys.F1.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Controls");
 
-                    ImGui.Separator();
+                    ImGui.Image(Keys.F2.GetIcon().GetIntPtr(), Keys.F2.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Debug");
 
-                    ImGui.Text($"Cube Rain F5");
-                    ImGui.Text($"Spawn Cubes F6");
-                    ImGui.Text($"Exit ESC");
+                    ImGui.Image(Keys.F3.GetIcon().GetIntPtr(), Keys.F3.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Stats");
+
+                    ImGui.Image(Keys.F4.GetIcon().GetIntPtr(), Keys.F4.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Profiler");
+
+                    ImGui.NextColumn();
+
+                    ImGui.Image(Keys.W.GetIcon().GetIntPtr(), Keys.W.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.A.GetIcon().GetIntPtr(), Keys.A.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.S.GetIcon().GetIntPtr(), Keys.S.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.D.GetIcon().GetIntPtr(), Keys.D.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Movement");
+
+                    ImGui.Image(Keys.Space.GetIcon().GetIntPtr(), Keys.Space.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.LeftControl.GetIcon().GetIntPtr(), Keys.LeftControl.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Up/Down");
+
+                    ImGui.Image(Keys.Q.GetIcon().GetIntPtr(), Keys.Q.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.E.GetIcon().GetIntPtr(), Keys.E.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Roll");
+
+                    ImGui.Image(Keys.Tab.GetIcon().GetIntPtr(), Keys.Tab.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Mouselook");
+
+                    ImGui.Image(Keys.LeftShift.GetIcon().GetIntPtr(), Keys.LeftShift.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Speed up");
+
+                    ImGui.NextColumn();
+
+                    ImGui.Image(Keys.Equal.GetIcon().GetIntPtr(), Keys.Equal.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Image(Keys.Minus.GetIcon().GetIntPtr(), Keys.Minus.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Timescale");
+
+                    ImGui.Image(Keys.C.GetIcon().GetIntPtr(), Keys.C.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Zoom");
+
+                    ImGui.Image(Keys.F5.GetIcon().GetIntPtr(), Keys.F5.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Cube Spawner");
+
+                    ImGui.Image(Keys.F6.GetIcon().GetIntPtr(), Keys.F6.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Cube Field");
+
+                    ImGui.Image(Keys.Escape.GetIcon().GetIntPtr(), Keys.Escape.GetIcon().GetSize().ToSysVector() * 2f);
+                    ImGui.SameLine(); ImGui.Text($"Exit");
+
+                    ImGui.Columns();
                 ImGui.End();
             }
         }

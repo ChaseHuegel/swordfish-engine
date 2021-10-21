@@ -26,6 +26,7 @@ namespace Swordfish.Rendering
 
         public string GetName() => name;
         public int GetHandle() => handle;
+        public IntPtr GetIntPtr() => (IntPtr)handle;
         public byte GetMipmapLevels() => mipmapLevels;
         public Vector2 GetSize() => size;
 

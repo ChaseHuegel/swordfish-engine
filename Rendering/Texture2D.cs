@@ -11,8 +11,14 @@ using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace Swordfish.Rendering
 {
+    /// <summary>
+    /// A texture for use in openGL
+    /// <para/> UV coordinates are flipped and color corrections applied
+    /// </summary>
     public class Texture2D : Texture
     {
+        public readonly Bitmap bitmap;
+
         public static Texture2D LoadFromFile(string path, string name, bool generateMipmaps = true)
         {
             int handle = GL.GenTexture();
@@ -26,6 +32,7 @@ namespace Swordfish.Rendering
             BitmapData data = image.LockBits(new System.Drawing.Rectangle(0, 0, image.Width, image.Height),
                 ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
+            //  Use SRGBA to apply color space corrections
             GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.SrgbAlpha, data.Width, data.Height, 0,
                 PixelFormat.Bgra, PixelType.UnsignedByte, data.Scan0);
 
@@ -33,10 +40,10 @@ namespace Swordfish.Rendering
 
             if (generateMipmaps) GL.GenerateMipmap(GenerateMipmapTarget.Texture2D);
 
-            return new Texture2D(handle, name, image.Width, image.Height, generateMipmaps);
+            return new Texture2D(handle, name, image.Width, image.Height, generateMipmaps, image);
         }
 
-        public Texture2D(int handle, string name, int width, int height, bool generateMipmaps = true)
+        public Texture2D(int handle, string name, int width, int height, bool generateMipmaps = true, Bitmap bitmap = null)
         {
             mipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
@@ -44,9 +51,10 @@ namespace Swordfish.Rendering
             base.name = name;
 
             size = new Vector2(width, height);
+            this.bitmap = bitmap;
         }
 
-        public Texture2D(string name, int width, int height, IntPtr data, bool generateMipmaps = true)
+        public Texture2D(string name, int width, int height, IntPtr data, bool generateMipmaps = true, Bitmap bitmap = null)
         {
             mipmapLevels = generateMipmaps == false ? (byte)1 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
             base.name = name;
@@ -60,6 +68,7 @@ namespace Swordfish.Rendering
             if (generateMipmaps) GL.GenerateTextureMipmap(handle);
 
             size = new Vector2(width, height);
+            this.bitmap = bitmap;
 
             Debug.Log($"Created texture '{name}'");
 
