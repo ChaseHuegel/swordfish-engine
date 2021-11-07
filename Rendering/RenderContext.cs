@@ -330,7 +330,7 @@ namespace Swordfish.Rendering
                     transformMatrix = Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
 
                 Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
-                if (mesh != null)
+                if (mesh != null && mesh.Material != null)
                 {
                     foreach (Material m in mesh.Materials)
                     {
@@ -398,17 +398,22 @@ namespace Swordfish.Rendering
                     shader.Use();
                     textureArray.Use(TextureUnit.Texture0);
 
-                    GL.BindVertexArray(VertexArrayObject);
-
-                    //  TODO temporary physics visual debug
-                    if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
-                        shader.SetVec4("tint", Color.Red);
-                    else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
-                        shader.SetVec4("tint", Color.Blue);
+                    if (mesh != null)
+                        mesh.Render();
                     else
-                        shader.SetVec4("tint", Color.White);
+                    {
+                        GL.BindVertexArray(VertexArrayObject);
 
-                    GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                        //  TODO temporary physics visual debug
+                        if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
+                            shader.SetVec4("tint", Color.Red);
+                        else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
+                            shader.SetVec4("tint", Color.Blue);
+                        else
+                            shader.SetVec4("tint", Color.White);
+
+                        GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                    }
                 }
 
                 DrawCalls++;

@@ -154,21 +154,24 @@ namespace Swordfish.Rendering
         /// </summary>
         internal void Render()
         {
-            GLHelper.SetProperty(EnableCap.CullFace, Material.DoubleSided);
-
-            for (int i = 0; i < Materials.Count; i++)
+            if (Material != null)
             {
-                Material m = Materials[i];
+                GLHelper.SetProperty(EnableCap.CullFace, Material.DoubleSided);
 
-                m.DiffuseTexture?.Use(TextureUnit.Texture0);
-                m.RoughnessTexture?.Use(TextureUnit.Texture1);
-                m.MetallicTexture?.Use(TextureUnit.Texture2);
-                m.EmissionTexture?.Use(TextureUnit.Texture3);
-                m.OcclusionTexture?.Use(TextureUnit.Texture4);
+                for (int i = 0; i < Materials.Count; i++)
+                {
+                    Material m = Materials[i];
 
-                m.Shader.Use();
+                    m.DiffuseTexture?.Use(TextureUnit.Texture0);
+                    m.RoughnessTexture?.Use(TextureUnit.Texture1);
+                    m.MetallicTexture?.Use(TextureUnit.Texture2);
+                    m.EmissionTexture?.Use(TextureUnit.Texture3);
+                    m.OcclusionTexture?.Use(TextureUnit.Texture4);
 
-                m.Shader.SetVec2("Offset", uvOffset);
+                    m.Shader.Use();
+
+                    m.Shader.SetVec2("Offset", uvOffset);
+                }
             }
 
             GL.BindVertexArray(VAO);

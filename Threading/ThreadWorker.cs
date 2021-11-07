@@ -15,7 +15,11 @@ namespace Swordfish.Threading
 		private Action<float> handle;
 
 		private Stopwatch stopwatch = new Stopwatch();
+
+		public int TargetTickRate = 128;
+
         public float DeltaTime { get; private set; }
+        private float elapsedTime;
 
         public ThreadWorker(Action<float> handle, bool runOnce = false, string name = "")
 		{
@@ -34,70 +38,85 @@ namespace Swordfish.Threading
 			stop = false;
 			pause = false;
 			thread.Start();
+
+			Debug.Log($"Started thread '{thread.Name}'", "Threading");
 		}
 
 		public void Stop()
 		{
 			stop = true;
+			Debug.Log($"Stopped thread '{thread.Name}'", "Threading");
 		}
 
 		public void Restart()
 		{
 			stop = false;
 			pause = false;
-			thread.Abort();
 			thread.Start();
+
+			Debug.Log($"Restarted thread '{thread.Name}'", "Threading");
 		}
 
 		public void Pause()
 		{
 			pause = true;
+
+			Debug.Log($"Paused thread '{thread.Name}'", "Threading");
 		}
 
 		public void Unpause()
 		{
 			pause = false;
+
+			Debug.Log($"Resumed thread '{thread.Name}'", "Threading");
 		}
 
 		public void TogglePause()
 		{
-			pause = !pause;
-		}
-
-		public void Kill()
-		{
-            thread.Abort();
-			stop = true;
-			Debug.Log($"Killed thread '{thread.Name}'", "Threading");
-		}
+			if (pause)
+                Unpause();
+			else
+                Pause();
+        }
 
 		private void Handle()
 		{
 			handle(1f);
-			Kill();
+			Stop();
 		}
 
 		private void Tick()
 		{
-			Debug.Log($"Started thread '{thread.Name}'", "Threading");
-
 			while (stop == false)
 			{
 				while (pause == false && stop == false)
 				{
-					//	If handle is no longer valid, kill the thread
-					if (handle == null) Kill();
+					//	If handle is no longer valid, stop the thread
+					if (handle == null) Stop();
 
                     stopwatch.Restart();
                     handle(DeltaTime);
 
-                    DeltaTime = (float)stopwatch.ElapsedTicks / Stopwatch.Frequency;
+                    //	Limit thread by target tick rate to save resources. Rate of 0 is unlimited.
+                    if (TargetTickRate > 0)
+                    {
+						elapsedTime += DeltaTime;
+
+                        float targetTickDelta = 1f / TargetTickRate;
+
+                        if (elapsedTime < targetTickDelta)
+                            Thread.Sleep((int) ((targetTickDelta - elapsedTime) * 1000));
+						else
+							elapsedTime = 0f;
+                    }
+
+					DeltaTime = (float)stopwatch.ElapsedTicks / Stopwatch.Frequency;
                 }
 
 				Thread.Sleep(200);	//	Sleep when paused
 			}
 
-            Debug.Log($"Stopped thread '{thread.Name}'", "Threading");
+            Debug.Log($"Ended thread '{thread.Name}'", "Threading");
             //	Stopped thread safely
         }
 	}

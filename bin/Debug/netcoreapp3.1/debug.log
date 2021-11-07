@@ -7,9 +7,9 @@
 [INFO] Started Swordfish Engine
         Framelimit 120
         Resolution 1024 x 768 borderless
-[INFO] OpenGL v3.3.0 NVIDIA 456.71
-        NVIDIA Corporation GeForce GTX 970/PCIe/SSE2
-        Extensions found: 215
+[INFO] OpenGL v3.3.0 NVIDIA 471.96
+        NVIDIA Corporation NVIDIA GeForce GTX 970/PCIe/SSE2
+        Extensions found: 385
         Shader vertex attr supported: 16
 [INFO] ...Created OpenGL debug output
 [INFO] Created texture 'ImGui Text Atlas'
@@ -17,7 +17,7 @@
 [INFO] Loading shader 'default' from 'shaders/default.vert' / 'shaders/default.frag'
         Uniforms: ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, texture0, tint, transform, view
 [INFO] Loading shader 'unlit' from 'shaders/unlit.vert' / 'shaders/unlit.frag'
-        Uniforms: Tint, projection, texture0, transform, view
+        Uniforms: Offset, Tint, projection, texture0, transform, view
 [INFO] Loading shader 'pbr' from 'shaders/pbr.vert' / 'shaders/pbr.frag'
         Uniforms: Metallic, Roughness, _Diffuse, ambientLightning, inversedTransform, lightColors[0], lightPositions[0], projection, transform, view, viewPosition
 [INFO] Loading shader 'pbr array' from 'shaders/pbr_array.vert' / 'shaders/pbr_array.frag'
@@ -63,8 +63,10 @@
         Registered 'Swordfish.ECS.RenderComponent'
         Registered 'Swordfish.ECS.RigidbodyComponent'
         Registered 'Swordfish.ECS.RotationComponent'
+        Registered 'Swordfish.ECS.TextureAnimationComponent'
         Registered 'Swordfish.ECS.TurntableComponent'
 [INFO] Registering ECS systems...
+        Registered 'Swordfish.ECS.AnimationSystem'
         Registered 'Swordfish.ECS.BillboardSystem'
         Registered 'Swordfish.ECS.CollisionSystem'
         Registered 'Swordfish.ECS.LightSystem'
@@ -83,20 +85,18 @@
 [WARNING] Uniform 'Tint' does not exist in the shader 'pbr'!
 [WARNING] Uniform 'Emission' does not exist in the shader 'pbr'!
 [INFO] Loading model 'character' from 'resources/models/character.obj'
-[INFO] Loading texture 'character' from 'resources/textures/character.png'
+[INFO] Loading texture 'character' from 'resources/textures/character_clothes.png'
 [INFO] Loading texture 'astronaut' from 'resources/textures/astronaut.png'
 [INFO] Loading texture 'chort' from 'resources/textures/chort.png'
 [INFO] Loading texture 'harold' from 'resources/textures/harold.png'
 [INFO] Loading texture 'hubert' from 'resources/textures/hubert.png'
 [INFO] Loading texture 'melvin' from 'resources/textures/melvin.png'
 [INFO] Loading texture 'woman' from 'resources/textures/woman.png'
+[INFO] Loading texture 'esc_a' from 'resources/icons/controls/esc_a.png'
+[INFO] Loading texture 'explosion' from 'resources/textures/explosion.png'
 [ERROR] OpenGL - Load: InvalidValue
       at line 38 (OnLoad) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
-[INFO] Resized dear imgui vertex buffer to new size 25440
-[INFO] Resized dear imgui index buffer to new size 3816
-[INFO] Resized dear imgui vertex buffer to new size 76960
-[INFO] Resized dear imgui index buffer to new size 11544
-[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[WARNING] Uniform 'Offset' does not exist in the shader 'pbr'!
 [WARNING] Uniform 'inversedTransform' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'viewPosition' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'ambientLightning' does not exist in the shader 'unlit'!
@@ -108,5 +108,74 @@
 [WARNING] Uniform 'lightColors[2]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightPositions[3]' does not exist in the shader 'unlit'!
 [WARNING] Uniform 'lightColors[3]' does not exist in the shader 'unlit'!
+[WARNING] Uniform 'Offset' does not exist in the shader 'post'!
+[INFO] Loading image 'ico_a' from 'resources/icons/controls/a.png'
+[INFO] Loading image 'ico_b' from 'resources/icons/controls/b.png'
+[INFO] Loading image 'ico_c' from 'resources/icons/controls/c.png'
+[INFO] Loading image 'ico_d' from 'resources/icons/controls/d.png'
+[INFO] Loading image 'ico_e' from 'resources/icons/controls/e.png'
+[INFO] Loading image 'ico_f' from 'resources/icons/controls/f.png'
+[INFO] Loading image 'ico_g' from 'resources/icons/controls/g.png'
+[INFO] Loading image 'ico_h' from 'resources/icons/controls/h.png'
+[INFO] Loading image 'ico_i' from 'resources/icons/controls/i.png'
+[INFO] Loading image 'ico_j' from 'resources/icons/controls/j.png'
+[INFO] Loading image 'ico_k' from 'resources/icons/controls/k.png'
+[INFO] Loading image 'ico_l' from 'resources/icons/controls/l.png'
+[INFO] Loading image 'ico_m' from 'resources/icons/controls/m.png'
+[INFO] Loading image 'ico_n' from 'resources/icons/controls/n.png'
+[INFO] Loading image 'ico_o' from 'resources/icons/controls/o.png'
+[INFO] Loading image 'ico_p' from 'resources/icons/controls/p.png'
+[INFO] Loading image 'ico_q' from 'resources/icons/controls/q.png'
+[INFO] Loading image 'ico_r' from 'resources/icons/controls/r.png'
+[INFO] Loading image 'ico_s' from 'resources/icons/controls/s.png'
+[INFO] Loading image 'ico_t' from 'resources/icons/controls/t.png'
+[INFO] Loading image 'ico_u' from 'resources/icons/controls/u.png'
+[INFO] Loading image 'ico_v' from 'resources/icons/controls/v.png'
+[INFO] Loading image 'ico_w' from 'resources/icons/controls/w.png'
+[INFO] Loading image 'ico_x' from 'resources/icons/controls/x.png'
+[INFO] Loading image 'ico_y' from 'resources/icons/controls/y.png'
+[INFO] Loading image 'ico_z' from 'resources/icons/controls/z.png'
+[INFO] Loading image 'ico_0' from 'resources/icons/controls/0.png'
+[INFO] Loading image 'ico_1' from 'resources/icons/controls/1.png'
+[INFO] Loading image 'ico_2' from 'resources/icons/controls/2.png'
+[INFO] Loading image 'ico_3' from 'resources/icons/controls/3.png'
+[INFO] Loading image 'ico_4' from 'resources/icons/controls/4.png'
+[INFO] Loading image 'ico_5' from 'resources/icons/controls/5.png'
+[INFO] Loading image 'ico_6' from 'resources/icons/controls/6.png'
+[INFO] Loading image 'ico_7' from 'resources/icons/controls/7.png'
+[INFO] Loading image 'ico_8' from 'resources/icons/controls/8.png'
+[INFO] Loading image 'ico_9' from 'resources/icons/controls/9.png'
+[INFO] Loading image 'ico_f1' from 'resources/icons/controls/f1.png'
+[INFO] Loading image 'ico_f2' from 'resources/icons/controls/f2.png'
+[INFO] Loading image 'ico_f3' from 'resources/icons/controls/f3.png'
+[INFO] Loading image 'ico_f4' from 'resources/icons/controls/f4.png'
+[INFO] Loading image 'ico_f5' from 'resources/icons/controls/f5.png'
+[INFO] Loading image 'ico_f6' from 'resources/icons/controls/f6.png'
+[INFO] Loading image 'ico_f7' from 'resources/icons/controls/f7.png'
+[INFO] Loading image 'ico_f8' from 'resources/icons/controls/f8.png'
+[INFO] Loading image 'ico_f9' from 'resources/icons/controls/f9.png'
+[INFO] Loading image 'ico_f10' from 'resources/icons/controls/f10.png'
+[INFO] Loading image 'ico_f11' from 'resources/icons/controls/f11.png'
+[INFO] Loading image 'ico_f12' from 'resources/icons/controls/f12.png'
+[INFO] Loading image 'ico_equals' from 'resources/icons/controls/equals.png'
+[INFO] Loading image 'ico_minus' from 'resources/icons/controls/minus.png'
+[INFO] Loading image 'ico_esc' from 'resources/icons/controls/esc.png'
+[INFO] Loading image 'ico_tilde' from 'resources/icons/controls/tilde.png'
+[INFO] Loading image 'ico_tab' from 'resources/icons/controls/tab.png'
+[INFO] Loading image 'ico_space' from 'resources/icons/controls/space.png'
+[INFO] Loading image 'ico_leftshift' from 'resources/icons/controls/shift_left.png'
+[INFO] Loading image 'ico_rightshift' from 'resources/icons/controls/shift_right.png'
+[INFO] Loading image 'ico_leftctrl' from 'resources/icons/controls/ctrl_left.png'
+[INFO] Loading image 'ico_rightctrl' from 'resources/icons/controls/ctrl_right.png'
+[INFO] Loading image 'ico_leftalt' from 'resources/icons/controls/alt_left.png'
+[INFO] Loading image 'ico_rightalt' from 'resources/icons/controls/alt_right.png'
+[INFO] Resized dear imgui vertex buffer to new size 15000
+[INFO] Resized dear imgui vertex buffer to new size 25280
+[INFO] Resized dear imgui index buffer to new size 3792
+[INFO] Resized dear imgui vertex buffer to new size 76880
+[INFO] Resized dear imgui index buffer to new size 11532
+[INFO] Resized dear imgui vertex buffer to new size 115320
+[INFO] Resized dear imgui index buffer to new size 17298
+[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

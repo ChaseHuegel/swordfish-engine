@@ -170,12 +170,13 @@
 [INFO] Loading image 'ico_leftalt' from 'resources/icons/controls/alt_left.png'
 [INFO] Loading image 'ico_rightalt' from 'resources/icons/controls/alt_right.png'
 [INFO] Resized dear imgui vertex buffer to new size 15000
-[INFO] Resized dear imgui vertex buffer to new size 25440
-[INFO] Resized dear imgui index buffer to new size 3816
-[INFO] Resized dear imgui vertex buffer to new size 76960
-[INFO] Resized dear imgui index buffer to new size 11544
-[INFO] Resized dear imgui vertex buffer to new size 115440
-[INFO] Resized dear imgui index buffer to new size 17316
-[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[INFO] Resized dear imgui vertex buffer to new size 25280
+[INFO] Resized dear imgui index buffer to new size 3792
+[INFO] Resized dear imgui vertex buffer to new size 77040
+[INFO] Resized dear imgui index buffer to new size 11556
+[INFO] Resized dear imgui vertex buffer to new size 115560
+[INFO] Resized dear imgui index buffer to new size 17334
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
+[INFO] Threading: Stopped thread 'ECS'
+[INFO] Threading: Stopped thread 'Physics'

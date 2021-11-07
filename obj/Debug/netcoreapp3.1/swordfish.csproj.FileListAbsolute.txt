@@ -93,7 +93,6 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\pbr_
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\blur.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.frag
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\shaders\post\post.vert
-E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character.mtl
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character_clothes.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\character_clothes.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\textures\explosion.png
@@ -181,3 +180,6 @@ E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\ic
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\icons\controls\z.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\icons\controls\equals.png
 E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\icons\controls\minus.png
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\character_animated.gltf
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\donut.mtl
+E:\Projects\Wayward Beyond\swordfish-engine\bin\Debug\netcoreapp3.1\resources\models\donut.obj

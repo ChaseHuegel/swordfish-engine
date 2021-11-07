@@ -35,6 +35,8 @@ namespace source
         public bool raining = false;
         public bool showControls = true;
 
+        private Mesh donut1;
+
         public void CreateEntityCube(Vector3 pos, Quaternion rot)
         {
             Engine.ECS.CreateEntity("floatingCube", "",
@@ -67,7 +69,7 @@ namespace source
 
         public void Shoot()
         {
-            Engine.ECS.CreateEntity("projectileCube", "",
+            Engine.ECS.CreateEntity("projectile", "",
                     new RenderComponent() { mesh = null },
                     new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f },
                     new CollisionComponent() { size = 0.5f },
@@ -177,6 +179,16 @@ namespace source
             CreatePointLightEntity(new Vector3(1f, 0f, 5f), Color.White, 800);
 
             Shader shader = Shaders.PBR.Get();
+
+            //  ! Something wrong with the donut??
+            // donut1 = OBJ.LoadFromFile("resources/models/donut.obj", "donut1");
+            // Texture2D donutTex = Texture2D.LoadFromFile("resources/textures/test.png", "donut");
+            // donut1.Material = new Material()
+            // {
+            //     Name = shader.Name,
+            //     Shader = shader,
+            //     DiffuseTexture = donutTex,
+            // };
 
             Mesh model = OBJ.LoadFromFile("resources/models/westchester.obj", "westchester");
             Texture2D tex = Texture2D.LoadFromFile("resources/textures/westchester.png", "westchester");
