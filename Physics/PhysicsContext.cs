@@ -93,8 +93,31 @@ namespace Swordfish.Physics
                     isWarnReady = false;
                 }
 
-                accumulator -= Engine.Settings.Physics.FIXED_TIMESTEP;
-                return;
+                //  Accumulate timesteps determines how the simulation behaves when lagging
+                //  This will allow physics to run behind for a smooth, accurate experience OR stay current to the state at the cost of lagging
+                //      DO USE when you need results that are smooth and accurate
+                //          i.e. simulations, high-speed physics, replays
+                //      DO NOT use when you need results that are consistent and current
+                //          i.e. networked physics
+                //
+                //  Generally it is advised to use accumulation except when networking physics that are key to gameplay
+                //      The server performing physics simulation should run with accumulation for accuracy, while
+                //      clients should disable so their simulation is consistent with the current state
+                //      If physics is not key to your use, i.e. used for visuals, then it is recommended to use accumulation
+                //
+                //  Enabling accumulation will allow the simulation to run behind and accumulate timesteps
+                //      This causes the simulation to run behind at it's own pace instead of lagging when overloaded
+                //      Because of this, it will appear to be a smooth and lag-free simulation for the user
+                //      This maintains high accuracy at the cost of performance-dependent playback (NOT performance-dependent results)
+                //  Disabling will skip timesteps to allow the simulation to stay current
+                //      This is because it will begin skipping timesteps until it is no longer lagging, preventing overloading
+                //      This will result in visible lag to the user as they will see physics objects skipping updates
+                //      However this can cause a loss in accuracy as in-between steps are lost which MAY cause performance-dependent results
+                if (!Engine.Settings.Physics.ACCUMULATE_TIMESTEPS)
+                {
+                    accumulator -= Engine.Settings.Physics.FIXED_TIMESTEP;
+                    return;
+                }
             }
 
             //  Step through # of times based on delta time to ensure it is fixed

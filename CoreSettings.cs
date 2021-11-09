@@ -48,6 +48,7 @@ namespace Swordfish
         {
             public float FIXED_TIMESTEP = 0.016f;
             public float MAX_TIMESTEP = 0.1f;
+            public bool ACCUMULATE_TIMESTEPS = true;
         }
 
         public CoreSettings() {}
