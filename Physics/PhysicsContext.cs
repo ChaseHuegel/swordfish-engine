@@ -83,7 +83,7 @@ namespace Swordfish.Physics
                     isWarnReady = false;
                 }
 
-                accumulator -= Engine.Settings.Physics.MAX_TIMESTEP;
+                accumulator -= Engine.Settings.Physics.FIXED_TIMESTEP;
                 return;
             }
 
@@ -154,9 +154,18 @@ namespace Swordfish.Physics
             foreach (int collider in colliderCache)
                 collisionTree.TryAdd(collider, Engine.ECS.Get<PositionComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size);
 
-            //  Broadphase; test the tree with an inaccurate and fast sweep
+            //  Broadphase; test every object against the tree
+            //  TODO should only test objects which have moved
             List<SphereTreeObjectPair<int>> collisions = new List<SphereTreeObjectPair<int>>();
-            collisionTree.SweepForCollisions(collisions);
+            foreach (int collider in colliderCache)
+            {
+                List<int> hits = new List<int>();
+                collisionTree.GetColliding(Engine.ECS.Get<PositionComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size, hits);
+
+                //  Create collision pairings from all hit objects
+                foreach (int other in hits) if (collider != other)
+                        collisions.Add(new SphereTreeObjectPair<int>() { A = collider, B = other });
+            }
 
             List<int> hitEntities = new List<int>();
             List<int> broadHits = new List<int>();

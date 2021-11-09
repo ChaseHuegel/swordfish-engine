@@ -16,7 +16,7 @@ namespace Swordfish.Threading
 
 		private Stopwatch stopwatch = new Stopwatch();
 
-		public int TargetTickRate = 128;
+		public int TargetTickRate = 64;
 
         public float DeltaTime { get; private set; }
         private float elapsedTime;

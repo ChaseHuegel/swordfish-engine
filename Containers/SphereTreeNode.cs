@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
 using OpenTK.Mathematics;
 
 using Swordfish.Diagnostics;
@@ -184,17 +184,20 @@ namespace Swordfish.Containers
         /// <returns>true if there is any collisions; otherwise false</returns>
         public bool CheckForCollisions(List<SphereTreeObjectPair<T>> results)
         {
-            //  Check the objects in the node against each other
             if (HasObjects())
             {
                 for (int i = 0; i < objects.Count; i++)
-                for (int n = i + 1; n < objects.Count; n++)
                 {
                     SphereTreeObject obj = objects[i];
-                    SphereTreeObject obj2 = objects[n];
 
-                    if (Intersection.SphereToSphere(obj.position, obj.size, obj2.position, obj2.size))
-                        results.Add(new SphereTreeObjectPair<T>() { A = obj.obj, B = obj2.obj });
+                    //  Check each object in the node against each other
+                    for (int n = i + 1; n < objects.Count; n++)
+                    {
+                        SphereTreeObject obj2 = objects[n];
+
+                        if (Intersection.SphereToSphere(obj.position, obj.size, obj2.position, obj2.size))
+                            results.Add(new SphereTreeObjectPair<T>() { A = obj.obj, B = obj2.obj });
+                    }
                 }
             }
 
