@@ -172,11 +172,11 @@
 [INFO] Resized dear imgui vertex buffer to new size 15000
 [INFO] Resized dear imgui vertex buffer to new size 25280
 [INFO] Resized dear imgui index buffer to new size 3792
-[INFO] Resized dear imgui vertex buffer to new size 77280
-[INFO] Resized dear imgui index buffer to new size 11592
-[INFO] Resized dear imgui vertex buffer to new size 115920
-[INFO] Resized dear imgui index buffer to new size 17388
+[INFO] Resized dear imgui vertex buffer to new size 77520
+[INFO] Resized dear imgui index buffer to new size 11628
 [WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[INFO] Resized dear imgui vertex buffer to new size 116280
+[INFO] Resized dear imgui index buffer to new size 17442
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs
 [INFO] Threading: Stopped thread 'ECS'

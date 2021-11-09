@@ -41,7 +41,7 @@ namespace source
         {
             Engine.ECS.CreateEntity("floatingCube", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
                     new PositionComponent() { position = pos },
                     new RotationComponent() { orientation = rot },

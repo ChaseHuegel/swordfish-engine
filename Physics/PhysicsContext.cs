@@ -36,10 +36,20 @@ namespace Swordfish.Physics
             bodies = new int[0];
             colliders = new int[0];
 
-            collisionTree = new SphereTree<int>(Vector3.Zero, 1000f, 10f);
+            collisionTree = new SphereTree<int>(Vector3.Zero, 150f, 10f);
             WorldSize = collisionTree.Size;
 
             Thread = new ThreadWorker(Step, false, "Physics");
+        }
+
+        /// <summary>
+        /// Check if a position is within the bounds of the physics world
+        /// </summary>
+        /// <param name="pos">the position to check</param>
+        /// <returns>true if position is within physics boundries; otherwise false</returns>
+        public bool InBounds(Vector3 pos)
+        {
+            return Math.Abs(pos.X) <= Engine.Physics.WorldSize && Math.Abs(pos.Y) <= Engine.Physics.WorldSize && Math.Abs(pos.Z) <= Engine.Physics.WorldSize;
         }
 
         /// <summary>
@@ -64,7 +74,7 @@ namespace Swordfish.Physics
             Thread.Stop();
         }
 
-        private void Step(float deltaTime)
+        internal void Step(float deltaTime)
         {
             //  Accumulate fixed timestep
             accumulator += deltaTime;
@@ -95,7 +105,7 @@ namespace Swordfish.Physics
             }
         }
 
-        public void Simulate(float deltaTime, bool stepThru = false)
+        internal void Simulate(float deltaTime, bool stepThru = false)
         {
             //  ! Cache the entities
             //  ! Excessive accessing of the arrays at the same time they
@@ -145,7 +155,7 @@ namespace Swordfish.Physics
         }
 
         //  TODO tidy up and break into pieces, this is a dirty proof of concept
-        public void ProcessCollisions()
+        internal void ProcessCollisions()
         {
             //  Clear the collision tree
             collisionTree.Clear();

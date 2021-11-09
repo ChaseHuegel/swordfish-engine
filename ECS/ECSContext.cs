@@ -73,7 +73,7 @@ namespace Swordfish.ECS
 
             //  Update systems
             foreach (ComponentSystem system in _systems)
-                system.OnUpdate(deltaTime);
+                system.Update(deltaTime);
 
             //  TODO: Very quick and dirty stable timing
             timer += deltaTime;

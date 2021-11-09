@@ -24,7 +24,15 @@ namespace Swordfish.ECS
         internal void PullEntities()
         {
             entities = Engine.ECS.PullPtr(filter);
-            OnEntityUpdate();
+            OnPullEntities();
+        }
+
+        internal void Update(float deltaTime)
+        {
+            OnUpdate(deltaTime);
+
+            foreach (int entity in entities)
+                OnUpdateEntity(deltaTime, entity);
         }
 
         /// <summary>
@@ -54,9 +62,10 @@ namespace Swordfish.ECS
             return false;
         }
 
-        public virtual void OnEntityUpdate() {}
+        public virtual void OnPullEntities() {}
         public virtual void OnStart() {}
         public virtual void OnShutdown() {}
         public virtual void OnUpdate(float deltaTime) {}
+        public virtual void OnUpdateEntity(float deltaTime, Entity entity) {}
     }
 }
