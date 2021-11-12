@@ -9,6 +9,21 @@ Tomlet (TOML file format for C#) https://github.com/SamboyCoding/Tomlet
 
 ## Updates
 
+### 11/11/2021
+The latest updates have been smaller due to lack of time but resulted in some great fixes and progress that sets up for future changes. The big one is animation! Currently the component is primitive and infinitely loops. I'm holding out on greater functionality while I'm working on a GLTF importer for 3D keyframe animation, which will require a deeper controller. Additionally I've got plans for optimizing physics further and expanding its functionality. (i.e. parenting / compound colliders). Lastly I need to work on batching draw calls (Particle systems as a testbed??)
+
+- Return of the cube rain! Quite intensive on collision detection, and not friendly to draw calls.
+- 2D animation (TextureAnimationComponent)
+- Image2D for GUI elements
+- Default GUI elements for keys
+- Small QoL usage change for ComponentSystem
+- Physics thread has a performance watchdog and will accumulate updates instead of lagging (configurable, see PhysicsContext.cs)
+- Fix: Collisions are now reliable and wont be missed.
+- Fix: Thread.Abort() was unreliable and just plain bad practice. Using my own method to stop TheadWorkers now.
+- Fix: Threads were originally uncapped (doh!) which lead to unnecessarily high CPU usage. Now they have a configurable rate (or uncapped!). My Ryzen 5 3600X has gone from ~25% while idling in the demo to ~1% usage
+
+https://user-images.githubusercontent.com/14932139/141404519-0682a667-bf3c-42b1-8f84-61e5773f26fa.mp4
+
 ### 8/21/2021
 The biggest focus since the last update has been on the rendering side of things. The engine now supports rendering meshes, a custom written OBJ importer/exporter, transparency sorting and alpha blending, PBR and phong shading, point lights, billboards, screenshots, and post-processing with builtin dithering and gamma correction. The pipeline still has a ways to go and is low priority in favor of functionality right now but its nice to have brought the visuals up a notch. One clip includes billboards, meshes, PBR, HDR, dithering, gamma correction, and eye adaption (sped up for show). The second has no HDR shading or dithering for comparison.
 
