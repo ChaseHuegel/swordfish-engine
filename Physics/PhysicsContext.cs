@@ -197,6 +197,8 @@ namespace Swordfish.Physics
                 collisionTree.GetColliding(Engine.ECS.Get<TransformComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size, hits);
 
                 //  Create collision pairings from all hit objects
+                // TODO check for shared parents
+                // TODO check for duplicate pairs
                 foreach (int other in hits) if (collider != other)
                         collisions.Add(new SphereTreeObjectPair<int>() { A = collider, B = other });
             }
@@ -228,6 +230,7 @@ namespace Swordfish.Physics
                     //  The collision normal
                     Vector3 normal = relativeVector.Normalized();
 
+                    //  TODO combine mass of all children
                     //  Mass of A/B and B/A
                     float massFactorA = Engine.ECS.Get<RigidbodyComponent>(pair.A).mass / Engine.ECS.Get<RigidbodyComponent>(pair.B).mass;
                     float massFactorB = Engine.ECS.Get<RigidbodyComponent>(pair.B).mass / Engine.ECS.Get<RigidbodyComponent>(pair.A).mass;
@@ -239,27 +242,42 @@ namespace Swordfish.Physics
                     float colliderSkin = 0.01f;
                     float solverModifier = 0.5f;
 
+                    //  Propogate response up parent-child chain
+                    int target = pair.A;
+                    int other = pair.B;
+                    int parent;
+
+                    while ((parent = Engine.ECS.Get<TransformComponent>(target).parent) != Entity.Null)
+                        target = parent;
+
+                    while ((parent = Engine.ECS.Get<TransformComponent>(other).parent) != Entity.Null)
+                        other = parent;
+
+                    //  Ignore response between objects sharing a parent
+                    if (target == other)
+                        continue;
+
                     // ******  Physics solver ****** //
-                    Engine.ECS.Do<RigidbodyComponent>(pair.A, x =>
+                    Engine.ECS.Do<RigidbodyComponent>(target, x =>
                     {
                         x.velocity += normal * force * x.restitution * solverModifier / massFactorA;
                         return x;
                     });
 
-                    Engine.ECS.Do<RigidbodyComponent>(pair.B, x =>
+                    Engine.ECS.Do<RigidbodyComponent>(other, x =>
                     {
                         x.velocity += -normal * force * x.restitution * solverModifier / massFactorB;
                         return x;
                     });
 
                     // ******  Position solver ****** //
-                    Engine.ECS.Do<TransformComponent>(pair.A, x =>
+                    Engine.ECS.Do<TransformComponent>(target, x =>
                     {
                         x.position += normal * (depth + colliderSkin) * solverModifier / massFactorA;
                         return x;
                     });
 
-                    Engine.ECS.Do<TransformComponent>(pair.B, x =>
+                    Engine.ECS.Do<TransformComponent>(other, x =>
                     {
                         x.position += -normal * (depth + colliderSkin) * solverModifier / massFactorA;
                         return x;

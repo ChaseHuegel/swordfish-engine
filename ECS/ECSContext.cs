@@ -172,6 +172,8 @@ namespace Swordfish.ECS
             if (_recycledIDs.Count > 0)
                 return _recycledIDs.Dequeue();
 
+            //  ! Entity ID starts at 1, indicies start at 0
+            //  ID = 0 is a 'null' entity
             return _entities.Count + 1;
         }
 
