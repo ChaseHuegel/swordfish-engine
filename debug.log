@@ -59,11 +59,10 @@
         Registered 'Swordfish.ECS.BillboardComponent'
         Registered 'Swordfish.ECS.CollisionComponent'
         Registered 'Swordfish.ECS.LightComponent'
-        Registered 'Swordfish.ECS.PositionComponent'
         Registered 'Swordfish.ECS.RenderComponent'
         Registered 'Swordfish.ECS.RigidbodyComponent'
-        Registered 'Swordfish.ECS.RotationComponent'
         Registered 'Swordfish.ECS.TextureAnimationComponent'
+        Registered 'Swordfish.ECS.TransformComponent'
         Registered 'Swordfish.ECS.TurntableComponent'
 [INFO] Registering ECS systems...
         Registered 'Swordfish.ECS.AnimationSystem'
@@ -172,10 +171,10 @@
 [INFO] Resized dear imgui vertex buffer to new size 15000
 [INFO] Resized dear imgui vertex buffer to new size 25280
 [INFO] Resized dear imgui index buffer to new size 3792
-[INFO] Resized dear imgui vertex buffer to new size 77040
-[INFO] Resized dear imgui index buffer to new size 11556
-[INFO] Resized dear imgui vertex buffer to new size 115560
-[INFO] Resized dear imgui index buffer to new size 17334
+[INFO] Resized dear imgui vertex buffer to new size 77280
+[INFO] Resized dear imgui index buffer to new size 11592
+[INFO] Resized dear imgui vertex buffer to new size 115920
+[INFO] Resized dear imgui index buffer to new size 17388
 [WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Unload: InvalidValue
       at line 49 (OnUnload) in E:\Projects\Wayward Beyond\swordfish-engine\WindowContext.cs

@@ -289,7 +289,7 @@ namespace Swordfish.Rendering
             SortedDictionary<float, Entity> sortedEntities = new SortedDictionary<float, Entity>();
             foreach (Entity entity in entities)
             {
-                Vector3 point = Engine.ECS.Get<PositionComponent>(entity).position;
+                Vector3 point = Engine.ECS.Get<TransformComponent>(entity).position;
                 Vector3 origin = camera.transform.position - camera.transform.forward;
 
                 //  Greedily cull entities beyond the far clip plane
@@ -312,7 +312,7 @@ namespace Swordfish.Rendering
                     continue;
 
                 //  ... Not culled, sort the entity by distance
-                float distance = MathS.DistanceUnsquared(camera.transform.position, Engine.ECS.Get<PositionComponent>(entity).position);
+                float distance = MathS.DistanceUnsquared(camera.transform.position, Engine.ECS.Get<TransformComponent>(entity).position);
                 sortedEntities[distance] = entity;
             }
 
@@ -323,11 +323,8 @@ namespace Swordfish.Rendering
                 //  Make a draw call per entity
                 Entity entity = pair.Value;
 
-                if (Engine.ECS.HasComponent<RotationComponent>(entity))
-                    transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<RotationComponent>(entity).orientation)
-                                    * Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
-                else
-                    transformMatrix = Matrix4.CreateTranslation(Engine.ECS.Get<PositionComponent>(entity).position);
+                transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<TransformComponent>(entity).orientation)
+                                * Matrix4.CreateTranslation(Engine.ECS.Get<TransformComponent>(entity).position);
 
                 Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
                 if (mesh != null && mesh.Material != null)
@@ -350,7 +347,7 @@ namespace Swordfish.Rendering
 
                         for (int i = 0; i < lights.Length; i++)
                         {
-                            shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                            shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<TransformComponent>(lights[i]).position);
                             shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
                         }
 
@@ -382,7 +379,7 @@ namespace Swordfish.Rendering
 
                     for (int i = 0; i < lights.Length; i++)
                     {
-                        shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                        shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<TransformComponent>(lights[i]).position);
                         shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
                     }
 
@@ -460,12 +457,12 @@ namespace Swordfish.Rendering
             float exposure = Engine.Settings.Renderer.EXPOSURE;
             for (int i = 0; i < lights.Length; i++)
             {
-                Vector3 relative = Engine.ECS.Get<PositionComponent>(lights[i]).position - Camera.Main.transform.position;
+                Vector3 relative = Engine.ECS.Get<TransformComponent>(lights[i]).position - Camera.Main.transform.position;
                 relative.NormalizeFast();
 
                 float dot = Vector3.Dot(relative, Camera.Main.transform.forward);
 
-                float distance = Vector3.Distance(Camera.Main.transform.position, Engine.ECS.Get<PositionComponent>(lights[i]).position);
+                float distance = Vector3.Distance(Camera.Main.transform.position, Engine.ECS.Get<TransformComponent>(lights[i]).position);
                 distance /= 70f/Camera.Main.FOV;
 
                 float facing = MathS.RangeToRange(dot, -1f, 1f, distance+1f, 1f);

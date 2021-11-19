@@ -2,6 +2,8 @@ namespace Swordfish.ECS
 {
     public class Entity
     {
+        public const int Null = 0;
+
         public readonly ECSContext Context;
         public readonly int UID;
         public string Name;

@@ -159,18 +159,19 @@ namespace Swordfish.Physics
                 });
 
                 //  Apply velocity
-                Engine.ECS.Do<PositionComponent>(entity, x =>
+                Engine.ECS.Do<TransformComponent>(entity, x =>
                 {
-                    x.position += deltaTime *
-                    (
-                        Engine.ECS.Get<RigidbodyComponent>(entity).velocity
-                        + Engine.ECS.Get<RigidbodyComponent>(entity).acceleration
-                        + Engine.ECS.Get<RigidbodyComponent>(entity).impulse
+                    x.Translate(deltaTime *
+                        (
+                            Engine.ECS.Get<RigidbodyComponent>(entity).velocity
+                            + Engine.ECS.Get<RigidbodyComponent>(entity).acceleration
+                            + Engine.ECS.Get<RigidbodyComponent>(entity).impulse
+                        )
                     );
 
                     //  Gravity
                     //  TODO gravity should be defined either by context or rigidbody not hardcoded
-                    x.position.Y -= 9.8f * deltaTime * (1f - Engine.ECS.Get<RigidbodyComponent>(entity).resistance);
+                    x.Translate(0f, -9.8f * deltaTime * (1f - Engine.ECS.Get<RigidbodyComponent>(entity).resistance), 0f);
 
                     return x;
                 });
@@ -185,7 +186,7 @@ namespace Swordfish.Physics
 
             //  Push every entity with collision to the tree
             foreach (int collider in colliderCache)
-                collisionTree.TryAdd(collider, Engine.ECS.Get<PositionComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size);
+                collisionTree.TryAdd(collider, Engine.ECS.Get<TransformComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size);
 
             //  Broadphase; test every object against the tree
             //  TODO should only test objects which have moved
@@ -193,7 +194,7 @@ namespace Swordfish.Physics
             foreach (int collider in colliderCache)
             {
                 List<int> hits = new List<int>();
-                collisionTree.GetColliding(Engine.ECS.Get<PositionComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size, hits);
+                collisionTree.GetColliding(Engine.ECS.Get<TransformComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size, hits);
 
                 //  Create collision pairings from all hit objects
                 foreach (int other in hits) if (collider != other)
@@ -210,15 +211,15 @@ namespace Swordfish.Physics
                 broadHits.Add(pair.B);
 
                 if (Intersection.SphereToSphere(
-                    Engine.ECS.Get<PositionComponent>(pair.A).position, Engine.ECS.Get<CollisionComponent>(pair.A).size,
-                    Engine.ECS.Get<PositionComponent>(pair.B).position, Engine.ECS.Get<CollisionComponent>(pair.B).size
+                    Engine.ECS.Get<TransformComponent>(pair.A).position, Engine.ECS.Get<CollisionComponent>(pair.A).size,
+                    Engine.ECS.Get<TransformComponent>(pair.B).position, Engine.ECS.Get<CollisionComponent>(pair.B).size
                 ))
                 {
                     //  We have a collision
                     hitEntities.Add(pair.A);
                     hitEntities.Add(pair.B);
 
-                    Vector3 relativeVector = Engine.ECS.Get<PositionComponent>(pair.A).position - Engine.ECS.Get<PositionComponent>(pair.B).position;
+                    Vector3 relativeVector = Engine.ECS.Get<TransformComponent>(pair.A).position - Engine.ECS.Get<TransformComponent>(pair.B).position;
 
                     //  Get penetration depth
                     float depth = Vector3.Dot(relativeVector, relativeVector) - (Engine.ECS.Get<CollisionComponent>(pair.A).size + Engine.ECS.Get<CollisionComponent>(pair.B).size);
@@ -252,13 +253,13 @@ namespace Swordfish.Physics
                     });
 
                     // ******  Position solver ****** //
-                    Engine.ECS.Do<PositionComponent>(pair.A, x =>
+                    Engine.ECS.Do<TransformComponent>(pair.A, x =>
                     {
                         x.position += normal * (depth + colliderSkin) * solverModifier / massFactorA;
                         return x;
                     });
 
-                    Engine.ECS.Do<PositionComponent>(pair.B, x =>
+                    Engine.ECS.Do<TransformComponent>(pair.B, x =>
                     {
                         x.position += -normal * (depth + colliderSkin) * solverModifier / massFactorA;
                         return x;

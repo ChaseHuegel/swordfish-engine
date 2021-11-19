@@ -172,7 +172,7 @@ namespace Swordfish.ECS
             if (_recycledIDs.Count > 0)
                 return _recycledIDs.Dequeue();
 
-            return _entities.Count;
+            return _entities.Count + 1;
         }
 
         /// <summary>
@@ -183,14 +183,14 @@ namespace Swordfish.ECS
         public bool Push(Entity entity)
         {
             //  Push to a recycled slot if available
-            if (entity.UID < _entities.Count && _entities[entity.UID] == null)
+            if (entity.UID < _entities.Count && _entities[entity.UID-1] == null)
             {
-                _entities[entity.UID] = entity;
+                _entities[entity.UID-1] = entity;
 
                 //  Clear component data
                 foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
                     if (_components.TryGetValue(pair.Key, out ExpandingList<object> data))
-                        data[entity.UID] = null;
+                        data[entity.UID-1] = null;
 
                 return true;
             }
@@ -229,7 +229,7 @@ namespace Swordfish.ECS
                 {
                     if (_components.TryGetValue(type, out ExpandingList<object> data))
                     {
-                        if (data[entity.UID] != null)
+                        if (data[entity.UID-1] != null)
                             matches++;
                     }
                 }
@@ -261,7 +261,7 @@ namespace Swordfish.ECS
                 {
                     if (_components.TryGetValue(type, out ExpandingList<object> data))
                     {
-                        if (data[entity.UID] != null)
+                        if (data[entity.UID-1] != null)
                             matches++;
                     }
                 }
@@ -282,7 +282,7 @@ namespace Swordfish.ECS
         public bool HasComponent<T>(Entity entity) where T : struct
         {
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
-                return data[entity.UID] != null;
+                return data[entity.UID-1] != null;
 
             return false;
         }
@@ -297,10 +297,10 @@ namespace Swordfish.ECS
         {
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
             {
-                if (data[entity.UID] == null)
+                if (data[entity.UID-1] == null)
                     return default(T);
                 else
-                    return (T)data[entity.UID];
+                    return (T)data[entity.UID-1];
             }
 
             return default(T);
@@ -402,13 +402,13 @@ namespace Swordfish.ECS
             _recycledIDs.Enqueue(entity.UID);
 
             //  Release the entity
-            _entities[entity.UID] = null;
+            _entities[entity.UID-1] = null;
             Interlocked.Decrement(ref _entityCount);
 
             //  Collect a list of all components this entity had
             List<Type> destroyedComponents = new List<Type>();
             foreach (KeyValuePair<Type, ExpandingList<object>> pair in _components)
-                if (_components.TryGetValue(pair.Key, out ExpandingList<object> data) && data[entity.UID] != null)
+                if (_components.TryGetValue(pair.Key, out ExpandingList<object> data) && data[entity.UID-1] != null)
                     destroyedComponents.Add(pair.Key);
 
             //  Tell all systems with this entity's components to do a fresh pull
@@ -435,7 +435,7 @@ namespace Swordfish.ECS
 
             if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
             {
-                data[entity.UID] = component;
+                data[entity.UID-1] = component;
 
                 //  Tell all systems with this component to update matching entities
                 foreach (ComponentSystem system in _systems)
@@ -464,7 +464,7 @@ namespace Swordfish.ECS
 
                 if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
                 {
-                    data[entity.UID] = component;
+                    data[entity.UID-1] = component;
 
                     //  Tell all systems with this component to update matching entities
                     foreach (ComponentSystem system in _systems)
@@ -489,7 +489,7 @@ namespace Swordfish.ECS
 
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
             {
-                data[entity.UID] = null;
+                data[entity.UID-1] = null;
 
                 //  Tell all systems with this component to update matching entities
                 foreach (ComponentSystem system in _systems)
@@ -514,7 +514,7 @@ namespace Swordfish.ECS
                 Debug.Log($"Component of type({typeof(T).ToString()}) is not registered to context", "ECS", LogType.WARNING);
 
             if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
-                data[entity.UID] = component;
+                data[entity.UID-1] = component;
 
             return this;
         }
@@ -531,11 +531,11 @@ namespace Swordfish.ECS
             T component;
 
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
-                component = data[entity.UID] != null ? (T)data[entity.UID] : default(T);
+                component = data[entity.UID-1] != null ? (T)data[entity.UID-1] : default(T);
             else
                 return this;
 
-            data[entity.UID] = action(component);
+            data[entity.UID-1] = action(component);
 
             return this;
         }

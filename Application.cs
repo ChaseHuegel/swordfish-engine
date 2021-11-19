@@ -37,14 +37,38 @@ namespace source
 
         private Mesh donut1;
 
+        public void CreateEntityParented(Vector3 pos, Quaternion rot)
+        {
+            Entity parent = Engine.ECS.CreateEntity("parentedEntity", "",
+                    new RenderComponent() { mesh = null },
+                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new CollisionComponent() { size = 0.5f },
+                    new TransformComponent() { position = pos, orientation = rot },
+                    new TurntableComponent()
+                );
+
+            Engine.ECS.CreateEntity("childEntity", "",
+                    new RenderComponent() { mesh = null },
+                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new CollisionComponent() { size = 0.5f },
+                    new TransformComponent() { parent = parent, localPosition = new Vector3(0, 1, 0), orientation = rot }
+                );
+
+            Engine.ECS.CreateEntity("childEntity", "",
+                    new RenderComponent() { mesh = null },
+                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new CollisionComponent() { size = 0.5f },
+                    new TransformComponent() { parent = parent, localPosition = new Vector3(0, -1, 0), orientation = rot }
+                );
+        }
+
         public void CreateEntityCube(Vector3 pos, Quaternion rot)
         {
             Engine.ECS.CreateEntity("floatingCube", "",
                     new RenderComponent() { mesh = null },
                     new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
-                    new PositionComponent() { position = pos },
-                    new RotationComponent() { orientation = rot },
+                    new TransformComponent() { position = pos, orientation = rot },
                     new TurntableComponent()
                 );
         }
@@ -73,8 +97,7 @@ namespace source
                     new RenderComponent() { mesh = null },
                     new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f },
                     new CollisionComponent() { size = 0.5f },
-                    new PositionComponent() { position = Camera.Main.transform.position + (Camera.Main.transform.forward * 2) },
-                    new RotationComponent() { orientation = Quaternion.Identity }
+                    new TransformComponent() { position = Camera.Main.transform.position + (Camera.Main.transform.forward * 2), orientation = Quaternion.Identity }
                 );
         }
 
@@ -100,8 +123,7 @@ namespace source
                         new RenderComponent() { mesh = mesh },
                         new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                         new CollisionComponent() { size = 0.5f },
-                        new PositionComponent() { position = position },
-                        new RotationComponent() { orientation = Quaternion.Identity },
+                        new TransformComponent() { position = position, orientation = Quaternion.Identity },
                         new BillboardComponent()
                     );
             }
@@ -125,8 +147,7 @@ namespace source
 
                 Engine.ECS.Attach(entity,
                         new RenderComponent() { mesh = mesh },
-                        new PositionComponent() { position = position },
-                        new RotationComponent() { orientation = Quaternion.Identity },
+                        new TransformComponent() { position = position, orientation = Quaternion.Identity },
                         new LightComponent() { color = color, lumens = lumens },
                         new BillboardComponent()
                     );
@@ -165,8 +186,7 @@ namespace source
                         new TextureAnimationComponent() { frames = frames, speed = speed },
                         new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                         new CollisionComponent() { size = 0.5f },
-                        new PositionComponent() { position = position },
-                        new RotationComponent() { orientation = Quaternion.Identity },
+                        new TransformComponent() { position = position, orientation = Quaternion.Identity },
                         new BillboardComponent()
                     );
             }
@@ -204,8 +224,7 @@ namespace source
                     new RenderComponent() { mesh = model },
                     new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
-                    new PositionComponent() { position = Vector3.Zero },
-                    new RotationComponent() { orientation = Quaternion.Identity },
+                    new TransformComponent() { position = Vector3.Zero, orientation = Quaternion.Identity },
                     new TurntableComponent()
                 );
 
@@ -225,8 +244,7 @@ namespace source
                     new RenderComponent() { mesh = model },
                     new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
-                    new PositionComponent() { position = new Vector3(0f, 0f, -5f) },
-                    new RotationComponent() { orientation = Quaternion.Identity },
+                    new TransformComponent() { position = new Vector3(0f, 0f, -5f), orientation = Quaternion.Identity },
                     new TurntableComponent()
                 );
 
@@ -253,6 +271,8 @@ namespace source
 
             tex = Texture2D.LoadFromFile("resources/textures/explosion.png", "explosion");
             CreateAnimatedBoardEntity(Shaders.UNLIT.Get(), tex, 0.75f, new Vector3(-10f, 0f, -4f), Vector3.One * 10f);
+
+            CreateEntityParented(new Vector3(-12f, 0f, -4f), Quaternion.Identity);
         }
 
         private void ShowGui()
