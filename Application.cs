@@ -41,7 +41,7 @@ namespace source
         {
             Entity parent = Engine.ECS.CreateEntity("parentedEntity", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
                     new TransformComponent() { position = pos, orientation = rot },
                     new TurntableComponent()
@@ -49,14 +49,14 @@ namespace source
 
             Engine.ECS.CreateEntity("childEntity", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
                     new TransformComponent() { parent = parent, localPosition = new Vector3(0, 1, 0), orientation = rot }
                 );
 
             Engine.ECS.CreateEntity("childEntity", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { mass = 5, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
+                    new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
                     new TransformComponent() { parent = parent, localPosition = new Vector3(0, -1, 0), orientation = rot }
                 );
@@ -66,7 +66,7 @@ namespace source
         {
             Engine.ECS.CreateEntity("floatingCube", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 0f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
+                    new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
                     new TransformComponent() { position = pos, orientation = rot },
                     new TurntableComponent()
@@ -95,7 +95,7 @@ namespace source
         {
             Engine.ECS.CreateEntity("projectile", "",
                     new RenderComponent() { mesh = null },
-                    new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f },
+                    new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = 1f, restitution = 1f, drag = 3f, resistance = 0f },
                     new CollisionComponent() { size = 0.5f },
                     new TransformComponent() { position = Camera.Main.transform.position + (Camera.Main.transform.forward * 2), orientation = Quaternion.Identity }
                 );

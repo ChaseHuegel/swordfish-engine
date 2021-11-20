@@ -230,56 +230,67 @@ namespace Swordfish.Physics
                     //  The collision normal
                     Vector3 normal = relativeVector.Normalized();
 
-                    //  TODO combine mass of all children
-                    //  Mass of A/B and B/A
-                    float massFactorA = Engine.ECS.Get<RigidbodyComponent>(pair.A).mass / Engine.ECS.Get<RigidbodyComponent>(pair.B).mass;
-                    float massFactorB = Engine.ECS.Get<RigidbodyComponent>(pair.B).mass / Engine.ECS.Get<RigidbodyComponent>(pair.A).mass;
-
-                    //  Force of the collision is the magnitude of the relative velocity of the objects
-                    float force = (Engine.ECS.Get<RigidbodyComponent>(pair.A).velocity - Engine.ECS.Get<RigidbodyComponent>(pair.B).velocity).Length;
-
-                    //  temporary, skin should be defined by the object
-                    float colliderSkin = 0.01f;
-                    float solverModifier = 0.5f;
-
-                    //  Propogate response up parent-child chain
-                    int target = pair.A;
-                    int other = pair.B;
+                    //  Propagate response up parent-child chain
                     int parent;
 
+                    int target = pair.A;
+                    float targetMass = Engine.ECS.Get<RigidbodyComponent>(target).mass;
+                    Vector3 targetVelocity = Engine.ECS.Get<RigidbodyComponent>(target).velocity;
+
+                    int other = pair.B;
+                    float otherMass = Engine.ECS.Get<RigidbodyComponent>(other).mass;
+                    Vector3 otherVelocity = Engine.ECS.Get<RigidbodyComponent>(other).velocity;
+
                     while ((parent = Engine.ECS.Get<TransformComponent>(target).parent) != Entity.Null)
+                    {
                         target = parent;
+                        targetMass += Engine.ECS.Get<RigidbodyComponent>(target).mass;
+                        targetVelocity += Engine.ECS.Get<RigidbodyComponent>(target).velocity;
+                    }
 
                     while ((parent = Engine.ECS.Get<TransformComponent>(other).parent) != Entity.Null)
+                    {
                         other = parent;
+                        otherMass += Engine.ECS.Get<RigidbodyComponent>(other).mass;
+                        otherVelocity += Engine.ECS.Get<RigidbodyComponent>(other).velocity;
+                    }
 
                     //  Ignore response between objects sharing a parent
                     if (target == other)
                         continue;
 
+                    //  TODO skin should be defined by the rigidbody
+                    float colliderSkin = 0.01f;
+                    float solverModifier = 0.5f;
+                    float energy = (targetVelocity.Length - otherVelocity.Length) * normal.Length / (normal.Length * normal.Length * (1f / targetMass + 1f / otherMass));
+
                     // ******  Physics solver ****** //
                     Engine.ECS.Do<RigidbodyComponent>(target, x =>
                     {
-                        x.velocity += normal * force * x.restitution * solverModifier / massFactorA;
+                        float response = x.restitution * energy;
+
+                        x.velocity += targetVelocity - response * normal / targetMass;
                         return x;
                     });
 
                     Engine.ECS.Do<RigidbodyComponent>(other, x =>
                     {
-                        x.velocity += -normal * force * x.restitution * solverModifier / massFactorB;
+                        float response = x.restitution * energy;
+
+                        x.velocity += targetVelocity + response * normal / otherMass;
                         return x;
                     });
 
                     // ******  Position solver ****** //
                     Engine.ECS.Do<TransformComponent>(target, x =>
                     {
-                        x.position += normal * (depth + colliderSkin) * solverModifier / massFactorA;
+                        x.position += normal * (depth + colliderSkin) * solverModifier * (2f*Engine.ECS.Get<RigidbodyComponent>(target).restitution);
                         return x;
                     });
 
                     Engine.ECS.Do<TransformComponent>(other, x =>
                     {
-                        x.position += -normal * (depth + colliderSkin) * solverModifier / massFactorA;
+                        x.position += -normal * (depth + colliderSkin) * solverModifier * (2f*Engine.ECS.Get<RigidbodyComponent>(other).restitution);
                         return x;
                     });
                 }
