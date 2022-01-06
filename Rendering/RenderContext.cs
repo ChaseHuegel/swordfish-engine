@@ -272,6 +272,8 @@ namespace Swordfish.Rendering
             //  Wireframe
             if (Engine.Settings.Renderer.WIREFRAME)
                 GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
+            else
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
             camera.Update();
 

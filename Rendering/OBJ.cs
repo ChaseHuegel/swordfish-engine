@@ -61,7 +61,7 @@ namespace Swordfish.Rendering
         /// <param name="path">location of the obj file</param>
         /// <param name="name">name of the created mesh</param>
         /// <returns>instance of Mesh created from the OBJ</returns>
-        public static Mesh LoadFromFile(string path, string name)
+        public static Mesh LoadFromFile(string path, string name, float scale = 1f)
         {
             List<uint> vertexIndicies = new List<uint>();
             List<uint> uvIndicies = new List<uint>();
@@ -155,7 +155,7 @@ namespace Swordfish.Rendering
             foreach (uint vertexIndex in vertexIndicies)
             {
                 Vector3 vertex = vertexData[(int)vertexIndex];
-                vertices.Add(vertex);
+                vertices.Add(vertex * scale);
 
                 colors.Add(Color.White);
             }

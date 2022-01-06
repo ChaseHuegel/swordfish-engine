@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "iWG9VU/o5zL7Tzq4pSXZ6j92OM3KEPl9vFFdK3jlFvCti4AI2mfN2Lh5sjqzrXnBsJsnficUIEOhgJEa2SBOlw==",
+  "dgSpecHash": "EfrB6hPXjdDKgBooiHUAG4+7qyRIiJmKTGr6nE+iKCgxXgN+0iOr0hRKCPcYKz501ugOk2ebYsHbceYjsSdxyA==",
   "success": true,
-  "projectFilePath": "E:\\Projects\\Wayward Beyond\\swordfish-engine\\Swordfish.csproj",
+  "projectFilePath": "D:\\Projects\\Swordfish\\swordfish-engine\\Swordfish.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Chase\\.nuget\\packages\\imgui.net\\1.78.0\\imgui.net.1.78.0.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\microsoft.netcore.platforms\\5.0.0\\microsoft.netcore.platforms.5.0.0.nupkg.sha512",
@@ -100,7 +100,11 @@
     "C:\\Users\\Chase\\.nuget\\packages\\xunit.assert\\2.4.1\\xunit.assert.2.4.1.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\xunit.core\\2.4.1\\xunit.core.2.4.1.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\xunit.extensibility.core\\2.4.1\\xunit.extensibility.core.2.4.1.nupkg.sha512",
-    "C:\\Users\\Chase\\.nuget\\packages\\xunit.extensibility.execution\\2.4.1\\xunit.extensibility.execution.2.4.1.nupkg.sha512"
+    "C:\\Users\\Chase\\.nuget\\packages\\xunit.extensibility.execution\\2.4.1\\xunit.extensibility.execution.2.4.1.nupkg.sha512",
+    "C:\\Users\\Chase\\.nuget\\packages\\microsoft.netcore.app.ref\\3.1.0\\microsoft.netcore.app.ref.3.1.0.nupkg.sha512",
+    "C:\\Users\\Chase\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\3.1.0\\microsoft.windowsdesktop.app.ref.3.1.0.nupkg.sha512",
+    "C:\\Users\\Chase\\.nuget\\packages\\microsoft.aspnetcore.app.ref\\3.1.10\\microsoft.aspnetcore.app.ref.3.1.10.nupkg.sha512",
+    "C:\\Users\\Chase\\.nuget\\packages\\microsoft.netcore.app.host.win-x64\\3.1.21\\microsoft.netcore.app.host.win-x64.3.1.21.nupkg.sha512"
   ],
   "logs": []
 }

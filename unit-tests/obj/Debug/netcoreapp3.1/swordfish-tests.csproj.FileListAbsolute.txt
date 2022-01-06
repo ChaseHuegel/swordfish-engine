@@ -266,3 +266,5 @@ e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\r
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\character_animated.gltf
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\donut.mtl
 e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\resources\models\donut.obj
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\flat.frag
+e:\Projects\Wayward Beyond\swordfish-engine\unit-tests\bin\Debug\netcoreapp3.1\shaders\flat.vert
