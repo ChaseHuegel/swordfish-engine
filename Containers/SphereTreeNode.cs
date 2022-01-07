@@ -15,6 +15,22 @@ namespace Swordfish.Containers
     {
         public T A;
         public T B;
+
+        public override bool Equals(object obj)
+        {
+            if ( !(obj is SphereTreeObjectPair<T>) )
+                return false;
+            
+            SphereTreeObjectPair<T> other = (SphereTreeObjectPair<T>)obj;
+
+            //  A pair is equal if its A-B are contained in this A-B regardless of combination order
+            return (this.A.Equals(other.A) || this.A.Equals(other.B)) && (this.B.Equals(other.A) || this.B.Equals(other.B));
+        }
+
+        public override int GetHashCode()
+        {
+            return A.GetHashCode() + B.GetHashCode();
+        }
     }
 
     /// <summary>

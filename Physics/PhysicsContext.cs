@@ -197,10 +197,19 @@ namespace Swordfish.Physics
                 collisionTree.GetColliding(Engine.ECS.Get<TransformComponent>(collider).position, Engine.ECS.Get<CollisionComponent>(collider).size, hits);
 
                 //  Create collision pairings from all hit objects
-                // TODO check for shared parents
-                // TODO check for duplicate pairs
-                foreach (int other in hits) if (collider != other)
-                        collisions.Add(new SphereTreeObjectPair<int>() { A = collider, B = other });
+                SphereTreeObjectPair<int> pair;
+                foreach (int other in hits)
+                {
+                    //  Don't collide with self
+                    if (collider != other)
+                    {
+                        pair = new SphereTreeObjectPair<int>() { A = collider, B = other };
+                        
+                        //  Don't allow duplicate pairs   
+                        if (!collisions.Contains(pair))
+                            collisions.Add(pair);
+                    }
+                }
             }
 
             List<int> hitEntities = new List<int>();

@@ -193,9 +193,9 @@
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
+[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
-[WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Unload: InvalidValue
