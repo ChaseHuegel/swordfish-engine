@@ -46,7 +46,6 @@ namespace Swordfish.Rendering
                 int triangle = 1;
                 foreach (uint index in mesh.triangles)
                 {
-                    //  TODO this might need more work, untested
                     stream.WriteLine($"f {index + 1}/{triangle}/{triangle}");
                     triangle++;
                 }
