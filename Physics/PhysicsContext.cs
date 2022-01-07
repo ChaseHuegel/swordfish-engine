@@ -204,7 +204,7 @@ namespace Swordfish.Physics
                     if (collider != other)
                     {
                         pair = new SphereTreeObjectPair<int>() { A = collider, B = other };
-                        
+
                         //  Don't allow duplicate pairs   
                         if (!collisions.Contains(pair))
                             collisions.Add(pair);
@@ -268,8 +268,9 @@ namespace Swordfish.Physics
                     if (target == other)
                         continue;
 
-                    //  TODO skin should be defined by the rigidbody
-                    float colliderSkin = 0.01f;
+                    float colliderSkin = Engine.ECS.Get<CollisionComponent>(target).skin + Engine.ECS.Get<CollisionComponent>(other).skin;
+
+                    //  TODO should the solver magic number be configurable?
                     float solverModifier = 0.5f;
                     float energy = (targetVelocity.Length - otherVelocity.Length) * normal.Length / (normal.Length * normal.Length * (1f / targetMass + 1f / otherMass));
 

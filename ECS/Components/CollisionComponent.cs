@@ -6,5 +6,6 @@ namespace Swordfish.ECS
         public float size;
         public bool colliding;
         public bool broadHit;
+        public float skin;
     }
 }
