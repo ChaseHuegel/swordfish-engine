@@ -224,8 +224,6 @@ namespace Swordfish.Rendering
                                  Engine.MainWindow.ClientSize.Y,
                                  false)
             };
-
-            renderTarget.Bind();
         }
 
         /// <summary>

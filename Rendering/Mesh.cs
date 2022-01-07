@@ -24,6 +24,8 @@ namespace Swordfish.Rendering
     {
         internal int VAO, VBO, EBO;
 
+        private bool boundToGL = false;
+
         public uint[] triangles;
         public Vector3[] vertices;
         public Vector4[] colors;
@@ -87,6 +89,9 @@ namespace Swordfish.Rendering
         /// </summary>
         internal Mesh Bind()
         {
+            //  Don't rebind, the user or renderer has already binded this Mesh
+            if (boundToGL) return this;
+
             MeshData data = GetRawData();
 
             //  Setup vertex buffer
@@ -145,6 +150,8 @@ namespace Swordfish.Rendering
                 if (m.EmissionTexture == null)  m.Shader.SetFloat("Emission", m.Emission);
             }
 
+            boundToGL = true;
+
             return this;
         }
 
@@ -154,6 +161,10 @@ namespace Swordfish.Rendering
         /// </summary>
         internal void Render()
         {
+            //  TODO Binding should ideally be done on load, not on the first render
+            if (!boundToGL)
+                Bind();
+
             if (Material != null)
             {
                 GLHelper.SetProperty(EnableCap.CullFace, Material.DoubleSided);

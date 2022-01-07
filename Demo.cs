@@ -116,8 +116,6 @@ public class Demo
                 Metallic = 0f
             };
 
-            mesh.Bind();
-
             Engine.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
                     new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
@@ -141,8 +139,6 @@ public class Demo
                 Shader = Shaders.UNLIT.Get(),
                 DiffuseTexture = Icons.LIGHT.Get()
             };
-
-            mesh.Bind();
 
             Engine.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
@@ -178,8 +174,6 @@ public class Demo
                 Metallic = 0f
             };
 
-            mesh.Bind();
-
             Engine.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
                     new TextureAnimationComponent() { frames = frames, speed = speed },
@@ -207,7 +201,6 @@ public class Demo
             Shader = shader,
             DiffuseTexture = tex
         };
-        model.Bind();
 
         Engine.ECS.CreateEntity("westchester", "",
                 new RenderComponent() { mesh = model },
@@ -227,7 +220,6 @@ public class Demo
             Roughness = 1f,
             Metallic = 0f
         };
-        model.Bind();
 
         Engine.ECS.CreateEntity("character", "",
                 new RenderComponent() { mesh = model },
@@ -271,7 +263,7 @@ public class Demo
             Shader = shader,
             DiffuseTexture = tex,
         };
-        model.Bind();
+
         bulletMesh = model;
 
         Engine.ECS.CreateEntity("donut", "",
@@ -293,7 +285,6 @@ public class Demo
             Shader = shader,
             DiffuseTexture = tex,
         };
-        model.Bind();
 
         Engine.ECS.CreateEntity("voxelObject", "",
                 new RenderComponent() { mesh = model },
