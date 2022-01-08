@@ -1,13 +1,14 @@
-﻿using System.Linq;
+﻿using System;
 using System.Drawing.Imaging;
+using System.IO;
+using System.Linq;
+
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Diagnostics;
-using System.IO;
-using System;
 
 namespace Swordfish
 {

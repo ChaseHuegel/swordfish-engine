@@ -1,6 +1,8 @@
-using Xunit;
-using Swordfish.Util;
 using OpenTK.Mathematics;
+
+using Swordfish.Util;
+
+using Xunit;
 
 namespace SwordfishTests
 {

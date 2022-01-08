@@ -5,6 +5,7 @@ using OpenTK.Windowing.Common;
 
 using Swordfish.Diagnostics;
 using Swordfish.Types;
+
 using Tomlet;
 
 namespace Swordfish

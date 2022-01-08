@@ -1,4 +1,3 @@
-using System;
 using Swordfish.Types;
 
 namespace Swordfish.Rendering

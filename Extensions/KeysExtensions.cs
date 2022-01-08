@@ -1,4 +1,5 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
+
 using Swordfish.Rendering;
 
 namespace Swordfish.Extensions

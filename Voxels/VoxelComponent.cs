@@ -1,4 +1,3 @@
-using System;
 using Swordfish.ECS;
 
 namespace Swordfish.Voxels

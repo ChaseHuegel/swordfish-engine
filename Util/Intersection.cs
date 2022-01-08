@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 
 using OpenTK.Mathematics;
+
 using Swordfish.Types;
 
 namespace Swordfish.Util

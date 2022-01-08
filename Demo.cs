@@ -1,7 +1,5 @@
-using System;
-using System.IO;
 using ImGuiNET;
-using OpenTK.Graphics.OpenGL4;
+
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
@@ -14,6 +12,7 @@ using Swordfish.Rendering.Shapes;
 using Swordfish.Rendering.UI;
 using Swordfish.Types;
 using Swordfish.Voxels;
+
 using Vector2 = System.Numerics.Vector2;
 
 public class Demo

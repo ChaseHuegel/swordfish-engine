@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "EfrB6hPXjdDKgBooiHUAG4+7qyRIiJmKTGr6nE+iKCgxXgN+0iOr0hRKCPcYKz501ugOk2ebYsHbceYjsSdxyA==",
+  "dgSpecHash": "rVTikXmMd5IliHWcqXtsU1Ci+csC3BlSfxtQtOfFpuXB/vr41UotH0VCoXfGqz5NhkGtc6zRENAb2tReLFz2/g==",
   "success": true,
-  "projectFilePath": "D:\\Projects\\Swordfish\\swordfish-engine\\Swordfish.csproj",
+  "projectFilePath": "d:\\Projects\\Swordfish\\swordfish-engine\\Swordfish.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Chase\\.nuget\\packages\\imgui.net\\1.78.0\\imgui.net.1.78.0.nupkg.sha512",
     "C:\\Users\\Chase\\.nuget\\packages\\microsoft.netcore.platforms\\5.0.0\\microsoft.netcore.platforms.5.0.0.nupkg.sha512",

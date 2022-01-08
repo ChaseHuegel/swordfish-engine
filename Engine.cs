@@ -1,14 +1,13 @@
 ﻿using System;
 
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 
 using Swordfish.Diagnostics;
 using Swordfish.ECS;
 using Swordfish.Physics;
 using Swordfish.Rendering;
-
-using WindowBorder = OpenTK.Windowing.Common.WindowBorder;
 
 namespace Swordfish
 {
@@ -69,7 +68,11 @@ namespace Swordfish
             {
                 Title = Settings.Window.TITLE,
                 Size = Settings.Window.FULLSCREEN ? screenSize : new Vector2i(Settings.Window.WIDTH, Settings.Window.HEIGHT),
-                WindowBorder = Settings.Window.FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed
+                WindowBorder = Settings.Window.FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed,
+                
+                Profile = ContextProfile.Core,
+                API = ContextAPI.OpenGL,
+                APIVersion = new Version(4, 5),
             };
 
             using (WindowContext window = new WindowContext(GameWindowSettings.Default, nativeWindowSettings))

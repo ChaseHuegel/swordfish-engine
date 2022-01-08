@@ -5,8 +5,8 @@ using System.Reflection;
 using System.Threading;
 
 using Swordfish.Containers;
-using Swordfish.Diagnostics;
 using Swordfish.Delegates;
+using Swordfish.Diagnostics;
 using Swordfish.Threading;
 
 namespace Swordfish.ECS

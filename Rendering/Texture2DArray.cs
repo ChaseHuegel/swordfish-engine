@@ -4,8 +4,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 
-using OpenTK.Mathematics;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 
 using Swordfish.Diagnostics;
 using Swordfish.Extensions;

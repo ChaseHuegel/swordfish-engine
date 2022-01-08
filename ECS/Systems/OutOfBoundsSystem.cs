@@ -1,4 +1,3 @@
-using System;
 using OpenTK.Mathematics;
 
 namespace Swordfish.ECS

@@ -53,6 +53,10 @@
                 "/consoleloggerparameters:NoSummary"
             ],
             "problemMatcher": "$msCompile"
-        }
+        },
+        // {
+        //     "label": "format-usings-onsave",
+        //     "command": "${command:csharpFormatUsings.formatUsings}",
+        // }
     ]
 }

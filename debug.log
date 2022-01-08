@@ -7,7 +7,7 @@
 [INFO] Started Swordfish Engine
         Framelimit 120
         Resolution 1024 x 768 borderless
-[INFO] OpenGL v3.3.0 NVIDIA 497.09
+[INFO] OpenGL v4.5.0 NVIDIA 497.09
         NVIDIA Corporation NVIDIA GeForce GTX 970/PCIe/SSE2
         Extensions found: 385
         Shader vertex attr supported: 16
@@ -180,10 +180,10 @@
 [INFO] Resized dear imgui vertex buffer to new size 15000
 [INFO] Resized dear imgui vertex buffer to new size 25280
 [INFO] Resized dear imgui index buffer to new size 3792
-[INFO] Resized dear imgui vertex buffer to new size 77200
-[INFO] Resized dear imgui index buffer to new size 11580
-[INFO] Resized dear imgui vertex buffer to new size 115800
-[INFO] Resized dear imgui index buffer to new size 17370
+[INFO] Resized dear imgui vertex buffer to new size 77280
+[INFO] Resized dear imgui index buffer to new size 11592
+[INFO] Resized dear imgui vertex buffer to new size 115920
+[INFO] Resized dear imgui index buffer to new size 17388
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Projection: InvalidValue
@@ -195,6 +195,8 @@
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
+[ERROR] OpenGL - Projection: InvalidValue
+      at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Unload: InvalidValue

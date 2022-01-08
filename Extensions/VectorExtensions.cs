@@ -1,5 +1,4 @@
 using OpenTK.Mathematics;
-using Swordfish.Rendering;
 
 namespace Swordfish.Extensions
 {
