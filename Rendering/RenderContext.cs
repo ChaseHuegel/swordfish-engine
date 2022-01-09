@@ -22,7 +22,10 @@ namespace Swordfish.Rendering
 {
     public class RenderContext
     {
+        private Dictionary<Material, Batch> batches;
+
         public int DrawCalls = 0;
+        public int Batches = 0;
 
         private int RenderTexture;
         private int HdrTexture;
@@ -35,6 +38,7 @@ namespace Swordfish.Rendering
 
         public ImGuiController GuiController;
         private Shader shader;
+        private Material defaultMaterial;
         private Texture2DArray textureArray;
         private Texture2D hdrTexture;
 
@@ -109,6 +113,8 @@ namespace Swordfish.Rendering
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
             camera = new Camera(Vector3.Zero, Vector3.Zero);
 
+            batches = new Dictionary<Material, Batch>();
+
             entities = new int[0];
             lights = new int[0];
 
@@ -119,6 +125,10 @@ namespace Swordfish.Rendering
             //  Shaders
             shader = Shaders.PBR_ARRAY.Get();
             shader.Use();
+
+            //  Material
+            defaultMaterial = new Material();
+            defaultMaterial.Shader = shader;
 
             //  Setup framebuffer
             FrameBufferObject = GL.GenFramebuffer();
@@ -317,9 +327,136 @@ namespace Swordfish.Rendering
                 float distance = MathS.DistanceUnsquared(camera.transform.position, Engine.ECS.Get<TransformComponent>(entity).position);
                 sortedEntities[distance] = entity;
             }
+            
+            //  Build batches
+            batches.Clear();
+            foreach (KeyValuePair<float, Entity> pair in sortedEntities.Reverse())
+            {
+                Entity entity = pair.Value;
+                Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
 
+                Material material = defaultMaterial;
+
+                if (mesh != null && mesh.Material != null)
+                    material = mesh.Material;
+
+                if (batches.TryGetValue(material, out Batch batch))
+                {
+                    batch.Add(entity);
+                }
+                else
+                {
+                    batch = new Batch();
+                    batch.Add(entity);
+
+                    batches.Add(material, batch);
+                }
+            }
+
+            //  Draw batches
             DrawCalls = 0;
-            Matrix4 transformMatrix;
+            Batches = batches.Count;
+            foreach (KeyValuePair<Material, Batch> pair in batches)
+            {
+                foreach (Entity entity in pair.Value.GetEntities())
+                {
+                    Matrix4 transformMatrix = Matrix4.CreateFromQuaternion(Engine.ECS.Get<TransformComponent>(entity).orientation)
+                                    * Matrix4.CreateTranslation(Engine.ECS.Get<TransformComponent>(entity).position);
+
+                    Mesh mesh = Engine.ECS.Get<RenderComponent>(entity).mesh;
+                    if (mesh != null && mesh.Material != null)
+                    {
+                        foreach (Material m in mesh.Materials)
+                        {
+                            Shader shader = m.Shader;
+
+                            shader.SetMatrix4("view", camera.view);
+                            shader.SetMatrix4("projection", projection);
+                            shader.SetMatrix4("transform", transformMatrix);
+                            shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
+
+                            shader.SetVec3("viewPosition", camera.transform.position);
+
+                            shader.SetFloat("ambientLightning", 0.03f);
+
+                            shader.SetFloat("Metallic", m.Metallic);
+                            shader.SetFloat("Roughness", m.Roughness);
+
+                            for (int i = 0; i < lights.Length; i++)
+                            {
+                                shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<TransformComponent>(lights[i]).position);
+                                shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
+                            }
+
+                            if (lights.Length < MAX_LIGHTS)
+                            {
+                                for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                                {
+                                    shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
+                                    shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
+                                }
+                            }
+                        }
+
+                        mesh.Render();
+                        DrawCalls++;
+                    }
+                    else
+                    {
+                        shader.SetMatrix4("view", camera.view);
+                        shader.SetMatrix4("projection", projection);
+                        shader.SetMatrix4("transform", transformMatrix);
+                        shader.SetMatrix4("inversedTransform", transformMatrix.Inverted());
+
+                        shader.SetVec3("viewPosition", camera.transform.position);
+
+                        shader.SetFloat("ambientLightning", 0.03f);
+
+                        shader.SetFloat("Metallic", 0f);
+                        shader.SetFloat("Roughness", 1f);
+
+                        for (int i = 0; i < lights.Length; i++)
+                        {
+                            shader.SetVec3($"lightPositions[{i}]", Engine.ECS.Get<TransformComponent>(lights[i]).position);
+                            shader.SetVec3($"lightColors[{i}]", Engine.ECS.Get<LightComponent>(lights[i]).color.Xyz * Engine.ECS.Get<LightComponent>(lights[i]).lumens);
+                        }
+
+                        if (lights.Length < MAX_LIGHTS)
+                        {
+                            for (int i = lights.Length; i < MAX_LIGHTS; i++)
+                            {
+                                shader.SetVec3($"lightPositions[{i}]", Vector3.Zero);
+                                shader.SetVec3($"lightColors[{i}]", Color.Black.rgb);
+                            }
+                        }
+
+                        shader.Use();
+                        textureArray.Use(TextureUnit.Texture0);
+
+                        if (mesh != null)
+                            mesh.Render();
+                        else
+                        {
+                            GL.BindVertexArray(VertexArrayObject);
+
+                            //  TODO temporary physics visual debug
+                            if (Engine.ECS.Get<CollisionComponent>(entity).colliding)
+                                shader.SetVec4("tint", Color.Red);
+                            else if (Engine.ECS.Get<CollisionComponent>(entity).broadHit)
+                                shader.SetVec4("tint", Color.Blue);
+                            else
+                                shader.SetVec4("tint", Color.White);
+
+                            GL.DrawElements(PrimitiveType.Triangles, indices.Length, DrawElementsType.UnsignedInt, 0);
+                            DrawCalls++;
+                        }
+                    }
+                }
+
+                GL.BindVertexArray(0);
+            }
+
+            /*Matrix4 transformMatrix;
             foreach (KeyValuePair<float, Entity> pair in sortedEntities.Reverse())
             {
                 //  Make a draw call per entity
@@ -417,7 +554,7 @@ namespace Swordfish.Rendering
 
                 DrawCalls++;
                 GL.BindVertexArray(0);
-            }
+            }*/
 
             //  Read highest luminance at center of screen
             int pixelCount = 128*128;

@@ -91,7 +91,7 @@
 [INFO] Loading texture 'donut' from 'resources/textures/test.png'
 [INFO] Loading texture 'voxels' from 'resources/textures/test.png'
 [ERROR] OpenGL - Load: InvalidValue
-      at line 38 (OnLoad) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
+      at line 39 (OnLoad) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
 [WARNING] Uniform 'Tint' does not exist in the shader 'pbr'!
 [WARNING] Uniform 'Emission' does not exist in the shader 'pbr'!
 [WARNING] Uniform 'Offset' does not exist in the shader 'pbr'!
@@ -176,14 +176,16 @@
 [INFO] Loading image 'ico_leftalt' from 'resources/icons/controls/alt_left.png'
 [INFO] Loading image 'ico_rightalt' from 'resources/icons/controls/alt_right.png'
 [ERROR] OpenGL - RenderFrame: InvalidValue
-      at line 151 (OnRenderFrame) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
+      at line 152 (OnRenderFrame) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
 [INFO] Resized dear imgui vertex buffer to new size 15000
-[INFO] Resized dear imgui vertex buffer to new size 25280
-[INFO] Resized dear imgui index buffer to new size 3792
-[INFO] Resized dear imgui vertex buffer to new size 77280
-[INFO] Resized dear imgui index buffer to new size 11592
-[INFO] Resized dear imgui vertex buffer to new size 115920
-[INFO] Resized dear imgui index buffer to new size 17388
+[INFO] Resized dear imgui vertex buffer to new size 25440
+[INFO] Resized dear imgui index buffer to new size 3816
+[INFO] Resized dear imgui vertex buffer to new size 77440
+[INFO] Resized dear imgui index buffer to new size 11616
+[INFO] Resized dear imgui vertex buffer to new size 116160
+[INFO] Resized dear imgui index buffer to new size 17424
+[ERROR] OpenGL - Projection: InvalidValue
+      at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Projection: InvalidValue
@@ -197,9 +199,7 @@
 [WARNING] Uniform 'tint' does not exist in the shader 'pbr array'!
 [ERROR] OpenGL - Projection: InvalidValue
       at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
-[ERROR] OpenGL - Projection: InvalidValue
-      at line 316 (RenderImDrawData) in D:\Projects\Swordfish\swordfish-engine\Rendering\UI\ImGuiController.cs
 [ERROR] OpenGL - Unload: InvalidValue
-      at line 49 (OnUnload) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
+      at line 50 (OnUnload) in D:\Projects\Swordfish\swordfish-engine\WindowContext.cs
 [INFO] Threading: Stopped thread 'ECS'
 [INFO] Threading: Stopped thread 'Physics'
