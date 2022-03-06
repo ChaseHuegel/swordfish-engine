@@ -12,7 +12,6 @@ namespace Swordfish.Rendering
         public Color color;
 
         private Matrix4 transform;
-        private Matrix4 matrix;
 
         private Shader shader;
         private int VBO, VAO;
