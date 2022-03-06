@@ -1,5 +1,0 @@
-Size = 32
-MinUnicode = "f000"
-MaxUnicode = "ffff"
-IsIcons = true
-IsDefault = false
