@@ -308,7 +308,7 @@ public class Demo
                 ImGui.SameLine(); ImGui.Text($"Console");
 
                 ImGui.Image(Keys.F1.GetIcon().GetIntPtr(), Keys.F1.GetIcon().GetSize().ToSysVector() * 2f);
-                ImGui.SameLine(); ImGui.Text($"Controls");
+                ImGui.SameLine(); ImGui.Text($"\uf11c Controls");
 
                 ImGui.Image(Keys.F2.GetIcon().GetIntPtr(), Keys.F2.GetIcon().GetSize().ToSysVector() * 2f);
                 ImGui.SameLine(); ImGui.Text($"Debug");

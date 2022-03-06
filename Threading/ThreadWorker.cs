@@ -116,7 +116,7 @@ namespace Swordfish.Threading
 				Thread.Sleep(200);	//	Sleep when paused
 			}
 
-            Debug.Log($"Ended thread '{thread.Name}'", "Threading");
+            Debug.Log($"Closed thread '{thread.Name}'", "Threading");
             //	Stopped thread safely
         }
 	}

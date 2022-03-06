@@ -4,11 +4,13 @@ using System.IO;
 using System.Linq;
 
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Diagnostics;
+using Swordfish.Rendering;
 
 namespace Swordfish
 {
@@ -27,9 +29,15 @@ namespace Swordfish
 
         protected override void OnLoad()
         {
-            Debug.Log($"Started {this.Title}");
-            Debug.Log($"    Framelimit {this.RenderFrequency}", LogType.NONE);
-            Debug.Log($"    Resolution {ClientSize.X} x {ClientSize.Y} borderless", LogType.NONE);
+            MonitorInfo screen = GLHelper.GetPrimaryDisplay();
+
+            Debug.Log($"Started {Engine.Settings.Window.TITLE}");
+            Debug.Log($"    Device: {screen.HorizontalResolution}x{screen.VerticalResolution}", LogType.NONE);
+            Debug.Log($"    Window: {Engine.Settings.Window.WIDTH}x{Engine.Settings.Window.HEIGHT}", LogType.NONE);
+            Debug.Log($"    Fullscreen: {Engine.Settings.Window.FULLSCREEN}", LogType.NONE);
+            Debug.Log($"    Vsync: {Engine.Settings.Window.VSYNC}", LogType.NONE);
+            Debug.Log($"    Framelimit: {Engine.Settings.Window.FRAMELIMIT}", LogType.NONE);
+            Debug.Log($"    Updatelimit: {Engine.Settings.Window.UPDATELIMIT}", LogType.NONE);
 
             Engine.Renderer.Load();
 
@@ -158,7 +166,7 @@ namespace Swordfish
         protected override void OnResize(ResizeEventArgs e)
         {
             GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
-            Engine.Renderer.GuiController.WindowResized(ClientSize.X, ClientSize.Y);
+            Engine.Renderer.GuiController.OnWindowResized(ClientSize.X, ClientSize.Y);
 
             //  Update size in settings
             Engine.Settings.Window.WIDTH = ClientSize.X;

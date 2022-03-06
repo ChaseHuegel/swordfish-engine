@@ -1,7 +1,10 @@
+using System.Globalization;
+using System.Linq;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.CompilerServices;
-
+using System.Runtime.InteropServices;
 using ImGuiNET;
 
 using OpenTK.Graphics.OpenGL4;
@@ -10,11 +13,15 @@ using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Diagnostics;
+using Swordfish.Extensions;
+using Tomlet;
 
 namespace Swordfish.Rendering.UI
 {
     public class ImGuiController : IDisposable
     {
+        public List<Font> Fonts { get; private set; }
+
         private bool _frameBegun;
 
         private int _vertexArray;
@@ -39,7 +46,7 @@ namespace Swordfish.Rendering.UI
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
             var io = ImGui.GetIO();
-            io.Fonts.AddFontDefault();
+            Fonts = CollectFontResources();
 
             io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 
@@ -54,10 +61,12 @@ namespace Swordfish.Rendering.UI
             Debug.TryCollectGLError("ImGuiController");
         }
 
-        public void WindowResized(int width, int height)
+        public void OnWindowResized(int width, int height)
         {
             _windowWidth = width;
             _windowHeight = height;
+
+            UpdateGlobalFontScale();
         }
 
         public void DestroyDeviceObjects()
@@ -138,8 +147,8 @@ namespace Swordfish.Rendering.UI
             io.Fonts.GetTexDataAsRGBA32(out IntPtr pixels, out int width, out int height, out int bytesPerPixel);
 
             _fontTexture = new Texture2D("ImGui Text Atlas", width, height, pixels);
-            _fontTexture.SetMagFilter(TextureMagFilter.Linear);
-            _fontTexture.SetMinFilter(TextureMinFilter.Linear);
+            _fontTexture.SetMagFilter(TextureMagFilter.Nearest);
+            _fontTexture.SetMinFilter(TextureMinFilter.Nearest);
 
             io.Fonts.SetTexID((IntPtr)_fontTexture.GetHandle());
 
@@ -191,6 +200,105 @@ namespace Swordfish.Rendering.UI
                 _windowHeight / _scaleFactor.Y);
             io.DisplayFramebufferScale = _scaleFactor;
             io.DeltaTime = deltaSeconds; // DeltaTime is in seconds.
+        }
+
+        private List<Font> CollectFontResources()
+        {
+            Debug.Log("Loading fonts...");
+
+            List<Font> fonts = new List<Font>();
+            Dictionary<string, FileInfo> fontFiles = new Dictionary<string, FileInfo>();
+
+            DirectoryInfo directory = new DirectoryInfo("resources/fonts/");
+            FileInfo[] configFiles = directory.GetFiles("*.toml");
+
+
+            foreach (FileInfo file in directory.GetFiles(".otf", ".ttf"))
+                fontFiles.TryAdd(Path.GetFileNameWithoutExtension(file.Name), file);
+
+            Debug.Log($"Found {configFiles.Length} configs, {fontFiles.Count} fonts");
+
+            foreach (FileInfo configFile in configFiles)
+            {
+                string fontName = Path.GetFileNameWithoutExtension(configFile.Name);
+
+                //  Check there is an matching font file for this config
+                if (!fontFiles.TryGetValue(fontName, out FileInfo fontFile))
+                    continue;
+
+                Font font = TomletMain.To<Font>(File.ReadAllText(configFile.FullName));
+                font.Name = fontName;
+                font.Source = fontFile.FullName;
+
+                if (font.IsDefault)
+                    fonts.Insert(0, font);
+                else
+                    fonts.Add(font);
+            }
+
+            if (!fonts[0].IsDefault)
+                ImGui.GetIO().Fonts.AddFontDefault();
+
+            foreach (Font font in fonts)
+            {
+                font.Ptr = LoadFont(
+                    font.Source,
+                    font.Size,
+                    font.IsIcons,
+                    (
+                        ushort.Parse(font.MinUnicode, NumberStyles.HexNumber),
+                        ushort.Parse(font.MaxUnicode, NumberStyles.HexNumber)
+                    )
+                );
+                
+                Debug.Log($"    Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.NONE);
+            }
+
+            Debug.Log($"    ...fonts collected: {fonts.Count}", LogType.NONE);
+            return fonts;
+        }
+
+        public unsafe ImFontPtr LoadFont(string fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
+        {
+            ImFontConfigPtr config = ImGuiNative.ImFontConfig_ImFontConfig();
+
+            config.MergeMode = mergeMode;
+            config.PixelSnapH = true;
+
+            IntPtr charRangePtr = IntPtr.Zero;
+            GCHandle charRangeHandle = default(GCHandle);
+            
+
+            if (charRange.Item1 == null || charRange.Item2 == null)
+            {
+                charRangePtr = ImGui.GetIO().Fonts.GetGlyphRangesDefault();
+            } 
+            else
+            {
+                charRangeHandle = GCHandle.Alloc(new ushort[] {
+                    charRange.Item1.Value,
+                    charRange.Item2.Value,
+                    0
+                }, GCHandleType.Pinned);
+
+                charRangePtr = charRangeHandle.AddrOfPinnedObject();
+            }
+
+
+            ImFontPtr ptr;
+            try
+            {
+                ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile, fontSize, config, charRangePtr);
+            }
+            finally
+            {
+                config.Destroy();
+
+                if (charRangeHandle.IsAllocated)
+                    charRangeHandle.Free();
+            }
+
+            return ptr;
         }
 
         readonly List<char> PressedChars = new List<char>();
@@ -377,6 +485,13 @@ namespace Swordfish.Rendering.UI
 
             GL.Disable(EnableCap.Blend);
             GL.Disable(EnableCap.ScissorTest);
+        }
+
+        private void UpdateGlobalFontScale()
+        {
+            MonitorInfo screen = GLHelper.GetPrimaryDisplay();
+            Vector2i screenSize = new Vector2i(screen.HorizontalResolution, screen.VerticalResolution);
+            ImGui.GetIO().FontGlobalScale = Math.Max((float)_windowWidth / screenSize.X, (float)_windowHeight / screenSize.Y);
         }
 
         public void Dispose()

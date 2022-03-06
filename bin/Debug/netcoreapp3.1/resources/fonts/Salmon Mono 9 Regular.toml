@@ -1,0 +1,5 @@
+Size = 24
+MinUnicode = "0020"
+MaxUnicode = "2665"
+IsIcons = false
+IsDefault = true

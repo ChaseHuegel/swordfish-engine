@@ -80,10 +80,10 @@ namespace Swordfish.Diagnostics
         /// </summary>
         /// <param name="message"></param>
         /// <param name="type"></param>
-        public static void Log(string message, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
+        public static void Log(object message, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
-            Logger.Write(message, "", type, snuff, lineNumber, caller, callerPath);
+            Logger.Write(message.ToString(), "", type, snuff, lineNumber, caller, callerPath);
         }
 
         /// <summary>
@@ -97,10 +97,10 @@ namespace Swordfish.Diagnostics
         /// <param name="caller"></param>
         /// <param name="callerPath"></param>
         /// <param name="debugTagging"></param>
-        public static void Log(string message, string title, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
+        public static void Log(object message, string title, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
-            Logger.Write(message, title, type, snuff, lineNumber, caller, callerPath);
+            Logger.Write(message.ToString(), title, type, snuff, lineNumber, caller, callerPath);
         }
 
         /// <summary>
