@@ -1,3 +1,5 @@
+using Microsoft.Win32.SafeHandles;
+using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -66,6 +68,11 @@ namespace Swordfish.Core.Rendering
         internal void PushLights(int[] entities) => this.lights = entities;
 
         /// <summary>
+        /// Update the renderer to use the current window size
+        /// </summary>
+        public void OnWindowResized() => Reload();
+
+        /// <summary>
         /// Takes a screenshot of the entire window
         /// <para/> Pass false to only capture the render target
         /// </summary>
@@ -93,9 +100,9 @@ namespace Swordfish.Core.Rendering
         }
 
         /// <summary>
-        /// Load the renderer
+        /// Initialize the renderer
         /// </summary>
-        public void Load()
+        public void Initialize()
         {
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
             Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.NONE);
@@ -116,6 +123,25 @@ namespace Swordfish.Core.Rendering
             vertices = mesh.vertices;
             indices = mesh.triangles;
 
+            Load();
+        }
+
+        /// <summary>
+        /// Reload the renderer
+        /// </summary>
+        public void Reload()
+        {
+            Unload();
+            Load();
+
+            GuiController.OnWindowResized(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+        }
+
+        /// <summary>
+        /// Load the renderer
+        /// </summary>
+        private void Load()
+        {
             //  Shaders
             shader = Shaders.PBR_ARRAY.Get();
             shader.Use();
@@ -229,16 +255,15 @@ namespace Swordfish.Core.Rendering
         }
 
         /// <summary>
+        /// Disposes resources used by the renderer
+        /// </summary>
+        public void Dispose() => Unload();
+
+        /// <summary>
         /// Unload the renderer
         /// </summary>
-        public void Unload()
+        private void Unload()
         {
-            //  Unbind resources
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, 0);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-            GL.BindVertexArray(0);
-            GL.UseProgram(0);
-
             // Delete resources
             GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteBuffer(VertexBufferObject);

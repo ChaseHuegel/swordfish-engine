@@ -39,7 +39,7 @@ namespace Swordfish.Core
             Debug.Log($"    Framelimit: {Engine.Settings.Window.FRAMELIMIT}", LogType.NONE);
             Debug.Log($"    Updatelimit: {Engine.Settings.Window.UPDATELIMIT}", LogType.NONE);
 
-            Engine.Renderer.Load();
+            Engine.Renderer.Initialize();
 
             Engine.Start();
 
@@ -51,7 +51,7 @@ namespace Swordfish.Core
 
         protected override void OnUnload()
         {
-            Engine.Renderer.Unload();
+            Engine.Renderer.Dispose();
             Engine.StopCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
@@ -166,7 +166,7 @@ namespace Swordfish.Core
         protected override void OnResize(ResizeEventArgs e)
         {
             GL.Viewport(0, 0, ClientSize.X, ClientSize.Y);
-            Engine.Renderer.GuiController.OnWindowResized(ClientSize.X, ClientSize.Y);
+            Engine.Renderer.OnWindowResized();
 
             //  Update size in settings
             Engine.Settings.Window.WIDTH = ClientSize.X;
