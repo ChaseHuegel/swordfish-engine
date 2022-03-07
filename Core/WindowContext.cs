@@ -113,12 +113,12 @@ namespace Swordfish.Core
             //  Screenshot the render with F11
             if (Input.IsKeyPressed(Keys.F11))
             {
-                Directory.CreateDirectory("screenshots/");
+                Directory.CreateDirectory(Directories.SCREENSHOTS);
 
                 //  Screenshots are formatted year.month.day-N where Nth screenshot on that date
-                string path = "screenshots/"
+                string path = Directories.SCREENSHOTS
                             + DateTime.Now.ToString("yyyy.MM.dd") + "-"
-                            + (Directory.GetFiles("screenshots/", $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
+                            + (Directory.GetFiles(Directories.SCREENSHOTS, $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
                             + ".png";
 
                 Engine.Renderer.Screenshot(false).Save(path, ImageFormat.Png);
@@ -128,12 +128,12 @@ namespace Swordfish.Core
             //  Screenshot the window with F12
             if (Input.IsKeyPressed(Keys.F12))
             {
-                Directory.CreateDirectory("screenshots/");
+                Directory.CreateDirectory(Directories.SCREENSHOTS);
 
                 //  Screenshots are formatted year.month.day-N where Nth screenshot on that date
-                string path = "screenshots/"
+                string path = Directories.SCREENSHOTS
                             + DateTime.Now.ToString("yyyy.MM.dd") + "-"
-                            + (Directory.GetFiles("screenshots/", $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
+                            + (Directory.GetFiles(Directories.SCREENSHOTS, $"{DateTime.Now.ToString("yyyy.MM.dd")}*").ToArray().Length + 1)
                             + ".png";
 
                 Engine.Renderer.Screenshot().Save(path, ImageFormat.Png);
