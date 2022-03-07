@@ -1,0 +1,18 @@
+using System.IO;
+using System;
+
+namespace Swordfish.Core
+{
+    public static class Directories
+    {
+        public static string CURRENT => Directory.GetCurrentDirectory();
+
+        public static string CONFIG = "config";
+        public static string SHADERS = "shaders";
+        public static string RESOURCES = "resources";
+        public static string FONTS = $"{RESOURCES}/fonts";
+        public static string ICONS = $"{RESOURCES}/icons";
+        public static string MODELS = $"{RESOURCES}/models";
+        public static string TEXTURES = $"{RESOURCES}/textures";
+    }
+}
