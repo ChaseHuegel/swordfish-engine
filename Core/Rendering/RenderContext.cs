@@ -131,7 +131,8 @@ namespace Swordfish.Core.Rendering
         /// </summary>
         public void Reload()
         {
-            Unload();
+            //  TODO #28 unloading breaks rendering hardcoded test cubes
+            // Unload();
             Load();
 
             GuiController.OnWindowResized(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
@@ -265,6 +266,7 @@ namespace Swordfish.Core.Rendering
         private void Unload()
         {
             // Delete resources
+            GL.DeleteBuffer(FrameBufferObject);
             GL.DeleteBuffer(ElementBufferObject);
             GL.DeleteBuffer(VertexBufferObject);
             GL.DeleteVertexArray(VertexArrayObject);
