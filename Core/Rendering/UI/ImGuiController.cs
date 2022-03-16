@@ -16,12 +16,15 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Tomlet;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Core.Rendering.UI
 {
     public class ImGuiController : IDisposable
     {
         public List<Font> Fonts { get; private set; }
+
+        public bool GeneratedNewSettings { get; private set; }
 
         private bool _frameBegun;
 
@@ -60,6 +63,9 @@ namespace Swordfish.Core.Rendering.UI
 
             io.BackendFlags |= ImGuiBackendFlags.RendererHasVtxOffset;
 
+            //  TODO #29 create a default imgui style
+            ImGui.PushStyleColor(ImGuiCol.TitleBgActive, Color.Gray);
+
             CreateDeviceResources();
             SetKeyMappings();
 
@@ -77,11 +83,6 @@ namespace Swordfish.Core.Rendering.UI
             _windowHeight = height;
 
             UpdateGlobalFontScale();
-        }
-
-        public void DestroyDeviceObjects()
-        {
-            Dispose();
         }
 
         public void CreateDeviceResources()
@@ -506,6 +507,8 @@ namespace Swordfish.Core.Rendering.UI
 
         public void Dispose()
         {
+            ImGui.SaveIniSettingsToDisk($"{Directories.CONFIG}/gui_layout.ini");
+
             _fontTexture.Dispose();
             _shader.Dispose();
         }

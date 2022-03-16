@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using ImGuiNET;
 
 using OpenTK.Windowing.Desktop;
+
 using Swordfish.Core;
 using Swordfish.Core.Rendering;
 
@@ -76,10 +77,10 @@ namespace Swordfish.Library.Diagnostics
         {
             MonitorInfo display = GLHelper.GetPrimaryDisplay();
 
-            ImGui.SetNextWindowPos(new Vector2(0, Engine.Settings.Window.HEIGHT - Engine.Settings.Window.HEIGHT * 0.2f));
-            ImGui.SetNextWindowSize( new Vector2(Engine.Settings.Window.WIDTH, Engine.Settings.Window.HEIGHT * 0.2f) );
+            ImGui.SetNextWindowPos(new Vector2(0, Engine.Settings.Window.HEIGHT - Engine.Settings.Window.HEIGHT * 0.2f), ImGuiCond.FirstUseEver);
+            ImGui.SetNextWindowSize( new Vector2(Engine.Settings.Window.WIDTH, Engine.Settings.Window.HEIGHT * 0.2f), ImGuiCond.FirstUseEver);
 
-            ImGui.Begin("Debug", ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoTitleBar | ImGuiWindowFlags.NoMove);
+            ImGui.Begin("Logger");
                 ImGui.BeginChild("scrollview", Vector2.Zero, false, ImGuiWindowFlags.AlwaysVerticalScrollbar);
 
                 ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);

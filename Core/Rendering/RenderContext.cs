@@ -274,6 +274,9 @@ namespace Swordfish.Core.Rendering
 
             //  Dispose shaders
             shader.Dispose();
+
+            //  Dispose gui
+            GuiController.Dispose();
         }
 
         /// <summary>
