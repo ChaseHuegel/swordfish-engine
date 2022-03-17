@@ -486,6 +486,10 @@ namespace Swordfish.Core.Rendering
             //  -----------------------------------------------------
             //  --- Second render pass for overlays and post processing ---
 
+            //  If wireframe is enabled, ensure we aren't rendering overlays in wireframe
+            if (Engine.Settings.Renderer.WIREFRAME)
+                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+
             //  Disable depth testing and culling for this pass
             GL.Disable(EnableCap.DepthTest);
             GL.Disable(EnableCap.CullFace);
