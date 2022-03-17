@@ -196,14 +196,5 @@ namespace Swordfish.Library.Diagnostics
                 LogType.ERROR
                 );
         }
-
-        /// <summary>
-        /// Present all enabled debug GUIs
-        /// </summary>
-        public static void ShowGui()
-        {
-            if (Stats) Statistics.ShowGui();
-            if (Profiling) Profiler.ShowGui();
-        }
     }
 }

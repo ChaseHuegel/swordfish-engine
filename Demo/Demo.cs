@@ -9,9 +9,9 @@ using Swordfish.Core.Rendering;
 using Swordfish.Core.Rendering.Shapes;
 using Swordfish.Core.Rendering.UI;
 using Swordfish.Core.Voxels;
-using Swordfish.Library.Extensions;
 using Swordfish.Integrations;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 
 using Vector2 = System.Numerics.Vector2;
@@ -300,7 +300,7 @@ public class Demo
         {
             ImGui.SetNextWindowPos(new Vector2(Engine.Settings.Window.WIDTH - 700, 0));
             ImGui.SetNextWindowSizeConstraints(new Vector2(700, 300), new Vector2(700, 600));
-            ImGui.Begin("Controls", WindowFlagPresets.FLAT);
+            ImGui.Begin("Controls", WindowFlagPresets.FLAT | ImGuiWindowFlags.NoBringToFrontOnFocus);
                 ImGui.Columns(3);
                 ImGui.SetColumnOffset(1, 200);
                 ImGui.SetColumnOffset(2, 500);

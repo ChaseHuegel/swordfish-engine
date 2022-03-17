@@ -19,6 +19,7 @@ using Swordfish.Util;
 
 using Color = Swordfish.Library.Types.Color;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
+using Swordfish.Core.Rendering.UI.Elements.Diagnostics;
 
 namespace Swordfish.Core.Rendering
 {
@@ -36,6 +37,12 @@ namespace Swordfish.Core.Rendering
         private float lastExposure = 0f;
 
         public ImGuiController GuiController;
+        public UiContext UiContext;
+
+        private ProfilerWindow profilerWindow;
+        private StatsWindow statsWindow;
+        private ConsoleWindow consoleWindow;
+        
         private Shader shader;
         private Texture2DArray textureArray;
         private Texture2D hdrTexture;
@@ -114,6 +121,13 @@ namespace Swordfish.Core.Rendering
             Debug.TryCreateGLOutput();
 
             GuiController = new ImGuiController(Engine.MainWindow.ClientSize.X, Engine.MainWindow.ClientSize.Y);
+            UiContext = new UiContext();
+
+            //  Setup debug UI
+            profilerWindow = new ProfilerWindow();
+            statsWindow = new StatsWindow();
+            consoleWindow = new ConsoleWindow();
+            
             camera = new Camera(Vector3.Zero, Vector3.Zero);
 
             entities = new int[0];
@@ -275,7 +289,7 @@ namespace Swordfish.Core.Rendering
             //  Dispose shaders
             shader.Dispose();
 
-            //  Dispose gui
+            //  Dispose gui controller
             GuiController.Dispose();
         }
 
@@ -524,11 +538,7 @@ namespace Swordfish.Core.Rendering
 
             //  Draw GUI elements
             GuiController.Update(Engine.MainWindow, Engine.DeltaTime);
-                //  Try presenting debug
-                if (Debug.Enabled) Debug.ShowGui();
-
-                //  Try presenting the console
-                if (Debug.Console) Logger.ShowGui();
+                UiContext.Render();
 
             //  Invoke GUI callback
             Engine.GuiCallback?.Invoke();
