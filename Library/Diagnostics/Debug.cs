@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -115,6 +116,9 @@ namespace Swordfish.Library.Diagnostics
         public static bool TryCollectGLError(string title,
             [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
+            if (HasGLOutput)
+                return false;
+            
             ErrorCode error = GL.GetError();
             if (error != ErrorCode.NoError)
             {
@@ -138,6 +142,9 @@ namespace Swordfish.Library.Diagnostics
         public static bool TryCollectAllGLErrors(string title,
             [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
+            if (HasGLOutput)
+                return false;
+            
             bool hadError = false;
 
             ErrorCode error = GL.GetError();
@@ -158,7 +165,7 @@ namespace Swordfish.Library.Diagnostics
         /// <returns>True if the callback was created; otherwise false if manual fallback must be used (i.e. TryCollectGLError)</returns>
         public static bool TryCreateGLOutput()
         {
-            if (HasGLOutput = GLHelper.HasCapabilities(4, 3, "GL_KHR_debug") == false)
+            if ((HasGLOutput = GLHelper.HasCapabilities(4, 3, "GL_KHR_debug")) == false)
             {
                 Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used", LogType.WARNING, false, true);
             }
@@ -166,6 +173,8 @@ namespace Swordfish.Library.Diagnostics
             {
                 glErrorDelegate = new DebugProc(GLErrorCallback);
                 GL.DebugMessageCallback(glErrorDelegate, IntPtr.Zero);
+                GL.Enable(EnableCap.DebugOutput);
+                GL.Enable(EnableCap.DebugOutputSynchronous);
 
                 Debug.Log("...Created OpenGL debug output");
             }
@@ -186,15 +195,14 @@ namespace Swordfish.Library.Diagnostics
         private static void GLErrorCallback(DebugSource source, DebugType type, int id,
             DebugSeverity severity, int length, IntPtr message, IntPtr userParam)
         {
-            Debug.Log(
-                (
-                    source == DebugSource.DebugSourceApplication ?
-                    message.ToString() :
-                    $"{message.ToString()} id:{id} severity:{severity} type:{type} source:{source}"
-                ),
-                "OpenGL",
-                LogType.ERROR
-                );
+            string output = Marshal.PtrToStringAnsi(message, length);
+            
+            LogType logType = LogType.WARNING;
+
+            if (type == DebugType.DebugTypeError)
+                logType = LogType.ERROR;
+
+            Debug.Log(output, "OpenGL", logType, true, true);
         }
     }
 }
