@@ -32,12 +32,12 @@ namespace Swordfish.Core
             MonitorInfo screen = GLHelper.GetPrimaryDisplay();
 
             Debug.Log($"Started {Engine.Settings.Window.TITLE}");
-            Debug.Log($"    Device: {screen.HorizontalResolution}x{screen.VerticalResolution}", LogType.NONE);
-            Debug.Log($"    Window: {Engine.Settings.Window.WIDTH}x{Engine.Settings.Window.HEIGHT}", LogType.NONE);
-            Debug.Log($"    Fullscreen: {Engine.Settings.Window.FULLSCREEN}", LogType.NONE);
-            Debug.Log($"    Vsync: {Engine.Settings.Window.VSYNC}", LogType.NONE);
-            Debug.Log($"    Framelimit: {Engine.Settings.Window.FRAMELIMIT}", LogType.NONE);
-            Debug.Log($"    Updatelimit: {Engine.Settings.Window.UPDATELIMIT}", LogType.NONE);
+            Debug.Log($"Device: {screen.HorizontalResolution}x{screen.VerticalResolution}", LogType.CONTINUED);
+            Debug.Log($"Window: {Engine.Settings.Window.WIDTH}x{Engine.Settings.Window.HEIGHT}", LogType.CONTINUED);
+            Debug.Log($"Fullscreen: {Engine.Settings.Window.FULLSCREEN}", LogType.CONTINUED);
+            Debug.Log($"Vsync: {Engine.Settings.Window.VSYNC}", LogType.CONTINUED);
+            Debug.Log($"Framelimit: {Engine.Settings.Window.FRAMELIMIT}", LogType.CONTINUED);
+            Debug.Log($"Updatelimit: {Engine.Settings.Window.UPDATELIMIT}", LogType.CONTINUED);
 
             Engine.Renderer.Initialize();
 

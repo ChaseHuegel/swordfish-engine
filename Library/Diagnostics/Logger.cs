@@ -16,7 +16,8 @@ namespace Swordfish.Library.Diagnostics
         NONE,
         INFO,
         WARNING,
-        ERROR
+        ERROR,
+        CONTINUED
     }
 
     public static class Logger
@@ -43,28 +44,42 @@ namespace Swordfish.Library.Diagnostics
 
         public static void Pad() => Console.WriteLine("");
 
-        public static void Write(string message, LogType type = LogType.INFO, bool snuff = false) => Write(message, "", type);
+        public static void Write(string message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false) => Write(message, "", type);
 
-        public static void Write(string message, string title, LogType type = LogType.INFO, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null, string debugTagging = "")
+        public static void Write(string message, string title, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
+            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
             if (!snuff && (type == LogType.ERROR || type == LogType.WARNING))
             {
                 //  Tag on a trace to the error
-                debugTagging += "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
+                message += "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
 
                 // Flag that the debugger has errors
                 HasErrors = true;
             }
 
-            if (title != string.Empty)
+            if (!string.IsNullOrEmpty(title))
                 title += ": ";
 
-            if (type == LogType.NONE)
-                Console.WriteLine($"    {title}{message}{debugTagging}");
-            else
-                Console.WriteLine($"[{type.ToString()}] {title}{message}{debugTagging}");
-            // Console.WriteLine($"{DateTime.Now} [{type.ToString()}] {title}: {message}{debugTagging}");
+            string output = $"{title}{message}";
+            
+            if (timestamp)
+                output = $"[{DateTime.Now}] {output}";
+            
+            switch (type)
+            {
+                case LogType.NONE:
+                    //  Don't modify the output
+                    break;
+                case LogType.CONTINUED:
+                    output = $"    {output}";
+                    break;
+                default:
+                    output = $"[{type.ToString()}] {output}";
+                    break;
+            }
+            
+            Console.WriteLine(output);
         }
     }
 }

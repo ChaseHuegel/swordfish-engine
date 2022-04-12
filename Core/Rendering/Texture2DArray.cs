@@ -38,7 +38,7 @@ namespace Swordfish.Core.Rendering
                 if (!IsValidBitmap(bitmap)) continue;
 
                 images.Add(bitmap);
-                Debug.Log($"    Found texture '{file.Name}' at {numOfLayers}", LogType.NONE);
+                Debug.Log($"Found texture '{file.Name}' at {numOfLayers}", LogType.CONTINUED);
 
                 //  Use the largest res if there wasn't one set
                 if (useLargestRes && bitmap.Width > width)
@@ -47,10 +47,10 @@ namespace Swordfish.Core.Rendering
                 //  Increase # of layers if this was a valid texture
                 numOfLayers++;
             }
-            Debug.Log($"    ...layers: {numOfLayers}", LogType.NONE);
+            Debug.Log($"...layers: {numOfLayers}", LogType.CONTINUED);
 
             //  Resize any images that aren't using the correct res
-            Debug.Log($"    ...using resolution {width}x{height}", LogType.NONE);
+            Debug.Log($"...using resolution {width}x{height}", LogType.CONTINUED);
             for (int i = 0; i < images.Count; i++)
                 if (images[i].Width != width)
                     images[i].Resize(width, height);

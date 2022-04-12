@@ -89,7 +89,7 @@ namespace Swordfish.Core.Physics
                 //  Only send warnings at set interval to prevent spam
                 if (isWarnReady)
                 {
-                    Debug.Log("Physics simulation took too long!", LogType.WARNING, true);
+                    Debug.Log("Physics simulation took too long!", LogType.WARNING, true, true);
                     isWarnReady = false;
                 }
 

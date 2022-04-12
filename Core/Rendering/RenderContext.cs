@@ -112,11 +112,11 @@ namespace Swordfish.Core.Rendering
         public void Initialize()
         {
             Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"    {GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.NONE);
-            Debug.Log($"    Extensions found: {GLHelper.GetSupportedExtensions().Count}", LogType.NONE);
+            Debug.Log($"{GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.CONTINUED);
+            Debug.Log($"Extensions found: {GLHelper.GetSupportedExtensions().Count}", LogType.CONTINUED);
 
             GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
-            Debug.Log($"    Shader vertex attr supported: {maxAttributeCount}", LogType.NONE);
+            Debug.Log($"Shader vertex attr supported: {maxAttributeCount}", LogType.CONTINUED);
 
             Debug.TryCreateGLOutput();
 

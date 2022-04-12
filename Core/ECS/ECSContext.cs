@@ -114,7 +114,7 @@ namespace Swordfish.Core.ECS
                 if (Attribute.GetCustomAttribute(type, typeof(ComponentAttribute)) != null)
                 {
                     if (RegisterComponent(Activator.CreateInstance(type)))
-                        Debug.Log($"    Registered '{type}'", LogType.NONE);
+                        Debug.Log($"Registered '{type}'", LogType.CONTINUED);
                 }
             }
 
@@ -130,7 +130,7 @@ namespace Swordfish.Core.ECS
                     system.filter = systemAttribute.filter;
 
                     if (RegisterSystem(system))
-                        Debug.Log($"    Registered '{type}'", LogType.NONE);
+                        Debug.Log($"Registered '{type}'", LogType.CONTINUED);
                 }
             }
         }
@@ -325,7 +325,7 @@ namespace Swordfish.Core.ECS
             else
             {
                 _recycledIDs.Enqueue(entity.UID);
-                Debug.Log("CreateEntity failed to push context", "ECS", LogType.WARNING);
+                Debug.Log("CreateEntity failed to push context", "ECS", LogType.ERROR);
                 return null;
             }
 

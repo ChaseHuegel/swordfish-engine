@@ -262,10 +262,10 @@ namespace Swordfish.Core.Rendering.UI
                     )
                 );
                 
-                Debug.Log($"    Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.NONE);
+                Debug.Log($"Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.CONTINUED);
             }
 
-            Debug.Log($"    ...fonts collected: {fonts.Count}", LogType.NONE);
+            Debug.Log($"...fonts collected: {fonts.Count}", LogType.CONTINUED);
             return fonts;
         }
 

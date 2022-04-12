@@ -87,7 +87,7 @@ namespace Swordfish.Core.Rendering
                 uniformOutput += key + (i  == numberOfUniforms-1 ? "" : ", ");
             }
 
-            Debug.Log($"    Uniforms: {uniformOutput}", LogType.NONE);
+            Debug.Log($"Uniforms: {uniformOutput}", LogType.CONTINUED);
         }
 
         public void Use()
