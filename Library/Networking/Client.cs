@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 
 namespace Swordfish.Library.Networking
 {
@@ -6,8 +7,6 @@ namespace Swordfish.Library.Networking
     {
         public Client(Host host) : base(host)
         {
-            this.AddSession(host.EndPoint);
-
             Console.WriteLine($"Client started on {this.Session.EndPoint}");
 
             this.PacketSent += OnPacketSent;
@@ -23,17 +22,17 @@ namespace Swordfish.Library.Networking
 
         public void OnPacketReceived(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"client->recieve {e.PacketID} from {sender}");
+            Console.WriteLine($"client->recieve {e.PacketID} from {e.EndPoint}");
         }
 
         public void OnPacketAccepted(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"client->accept {e.PacketID} from {sender}");
+            Console.WriteLine($"client->accept {e.PacketID} from {e.EndPoint}");
         }
 
         public void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"client->reject {e.PacketID} from {sender}");
+            Console.WriteLine($"client->reject {e.PacketID} from {e.EndPoint}");
         }
     }
 }

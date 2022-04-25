@@ -1,4 +1,5 @@
 using System;
+using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
 {
@@ -24,32 +25,32 @@ namespace Swordfish.Library.Networking
 
         public void OnPacketReceived(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->recieve {e.PacketID} from {sender}");
+            Console.WriteLine($"server->recieve {e.PacketID} from {e.EndPoint}");
         }
 
         public void OnPacketAccepted(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->accept {e.PacketID} from {sender}");
+            Console.WriteLine($"server->accept {e.PacketID} from {e.EndPoint}");
         }
 
         public void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->reject {e.PacketID} from {sender}");
+            Console.WriteLine($"server->reject {e.PacketID} from {e.EndPoint}");
         }
 
         public void OnSessionStarted(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session {e.Session} joined from {sender}");
+            Console.WriteLine($"server->session [{e.Session}] joined from {e.EndPoint}");
         }
 
         public void OnSessionRejected(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session {e.Session} rejected from {sender}");
+            Console.WriteLine($"server->session rejected from {e.EndPoint}");
         }
 
         public void OnSessionEnded(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session {e.Session} left from {sender}");
+            Console.WriteLine($"server->session [{e.Session}] left from {e.EndPoint}");
         }
     }
 }

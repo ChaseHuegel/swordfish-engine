@@ -1,4 +1,5 @@
 using System.Net;
+using System;
 
 namespace Swordfish.Library.Networking
 {
@@ -54,6 +55,11 @@ namespace Swordfish.Library.Networking
                 m_EndPoint.Address = m_Address;
                 m_EndPoint.Port = m_Port;
             }
+        }
+
+        public override string ToString()
+        {
+            return $"{(string.IsNullOrEmpty(Hostname) ? Address.ToString() : Hostname)}:{Port}";
         }
     }
 }

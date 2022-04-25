@@ -1,11 +1,12 @@
+using System.Linq;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 
 using Swordfish.Library.Networking.Interfaces;
+using System.Collections.Generic;
 
 namespace Swordfish.Library.Networking
 {
@@ -18,6 +19,11 @@ namespace Swordfish.Library.Networking
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         /// <summary>
+        /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
+        /// </summary>
+        public ICollection<NetSession> GetSessions() => Sessions.Values;
+
+        /// <summary>
         /// The default <see cref="Host"/> to communicate with
         /// if overrides aren't provided to <see cref="Send"/>.
         /// </summary>
@@ -28,6 +34,29 @@ namespace Swordfish.Library.Networking
         /// </summary>
         public NetSession Session { get; private set; }
 
+        /// <summary>
+        /// Whether to validate session IDs.
+        /// Should be true to ensure a layer of session security.
+        /// <para/>
+        /// May be false on a client, but recommended to remain true on a server.
+        /// </summary>
+        public virtual bool ValidateIDs => true;
+
+        /// <summary>
+        /// Whether to validate session endpoints.
+        /// Should be true to ensure a layer of session security.
+        /// <para/>
+        /// May be false on a server if <see cref="ValidateIDs"/> is true, but should always remain true on a client.
+        /// </summary>
+        public virtual bool ValidateEndPoints => true;
+
+        /// <summary>
+        /// Returns whether sessions will be validated.
+        /// <para/>
+        /// true if <see cref="ValidateIDs"/> and/or <see cref="ValidateEndPoints"/>.
+        /// </summary>
+        public bool ValidateSessions => ValidateIDs || ValidateEndPoints;
+
         public EventHandler<NetEventArgs> PacketSent;
         public EventHandler<NetEventArgs> PacketAccepted;
         public EventHandler<NetEventArgs> PacketReceived;
@@ -35,8 +64,6 @@ namespace Swordfish.Library.Networking
         public EventHandler<NetEventArgs> SessionStarted;
         public EventHandler<NetEventArgs> SessionEnded;
         public EventHandler<NetEventArgs> SessionRejected;
-
-        public ICollection<NetSession> GetSessions() => Sessions.Values;
 
         /// <summary>
         /// Initialize a NetController that automatically binds.
@@ -86,7 +113,8 @@ namespace Swordfish.Library.Networking
             
             //  Setup sessions; ensure the local connection is assigned a session.
             Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
-            Session = AddSession((IPEndPoint)Udp.Client.LocalEndPoint);
+            TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession session);
+            Session = session;
 
             DefaultHost = host ?? new Host{
                 Address = Session.EndPoint.Address,
@@ -114,16 +142,15 @@ namespace Swordfish.Library.Networking
             int packetID = packet.ReadInt();
             PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packetID);
 
-            PacketReceived?.Invoke(endPoint, new NetEventArgs {
+            PacketReceived?.Invoke(this, new NetEventArgs {
                 Packet = packet,
                 EndPoint = endPoint
             });
 
-            NetSession session = null;
-            
             //  The packet is accepted if:
             //  -   the packet doesn't require a session
             //  -   OR the provided session is valid
+            NetSession session = null;
             if (!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
             {
                 NetEventArgs netEventArgs = new NetEventArgs {
@@ -132,7 +159,7 @@ namespace Swordfish.Library.Networking
                     Session = session
                 };
 
-                PacketAccepted?.Invoke((object) session ?? endPoint, netEventArgs);
+                PacketAccepted?.Invoke(this, netEventArgs);
 
                 //  Deserialize the packet and invoke it's handlers
                 object deserializedPacket = (ISerializedPacket) packet.Deserialize(packetDefinition.Type);
@@ -141,7 +168,7 @@ namespace Swordfish.Library.Networking
             }
             else
             {
-                PacketRejected?.Invoke(endPoint, new NetEventArgs {
+                PacketRejected?.Invoke(this, new NetEventArgs {
                     Packet = packet,
                     EndPoint = endPoint
                 });
@@ -153,9 +180,10 @@ namespace Swordfish.Library.Networking
 
         private bool IsSessionValid(IPEndPoint endPoint, int sessionID, out NetSession netSession)
         {
-            bool validEndpoint = Sessions.TryGetValue(endPoint, out NetSession validSession);
-            netSession = validSession;
-            return validEndpoint && sessionID == validSession.ID;
+            netSession = null;
+            bool validEndpoint = !ValidateEndPoints || Sessions.TryGetValue(endPoint, out netSession);
+            bool validID = !ValidateIDs || sessionID == netSession.ID;
+            return validEndpoint && validID;
         }
 
         private Packet SignPacket(ISerializedPacket value)
@@ -209,29 +237,56 @@ namespace Swordfish.Library.Networking
             Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
         }
 
-        public NetSession AddSession(IPEndPoint endPoint)
+        /// <summary>
+        /// Attempts to add a valid <see cref="NetSession"/> from an <see cref="IPEndPoint"/> with a specific ID.
+        /// </summary>
+        /// <param name="endPoint">the <see cref="IPEndPoint"/> to validate</param>
+        /// <param name="id">the id of the session</param>
+        /// <param name="session">the session that was added; otherwise null</param>
+        /// <returns>true if the session was added; otherwise false</returns>
+        public bool TryAddSession(IPEndPoint endPoint, int id, out NetSession session)
         {
-            NetSession session = new NetSession {
-                EndPoint = endPoint,
-                ID = Sessions.Count //  TODO recycle session IDs
+            if (TryAddSession(endPoint, out session))
+            {
+                session.ID = id;
+                return true;   
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Creates and adds a valid <see cref="NetSession"/> from an <see cref="IPEndPoint"/>.
+        /// </summary>
+        /// <param name="endPoint">the <see cref="IPEndPoint"/> to validate</param>
+        /// <param name="session">the session that was created</param>
+        /// <returns>true if the session was added; otherwise false</returns>
+        public bool TryAddSession(IPEndPoint endPoint, out NetSession session)
+        {
+            session = new NetSession {
+                EndPoint = endPoint
             };
 
             if (Sessions.TryAdd(endPoint, session))
             {
-                SessionStarted?.Invoke(endPoint, new NetEventArgs {
+                //  TODO recycle session IDs
+                session.ID = Sessions.Count-1;
+
+                SessionStarted?.Invoke(this, new NetEventArgs {
                     EndPoint = endPoint,
                     Session = session
                 });
+
+                return true;
             }
             else
             {
-                SessionRejected?.Invoke(endPoint, new NetEventArgs {
-                    EndPoint = endPoint,
-                    Session = session
+                SessionRejected?.Invoke(this, new NetEventArgs {
+                    EndPoint = endPoint
                 });
-            }
 
-            return session;
+                return false;
+            }
         }
     }
 }
