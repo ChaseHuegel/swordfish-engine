@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System;
 
 namespace Swordfish.Library.Util
 {

@@ -7,11 +7,6 @@ namespace Swordfish.Library.Util
 {
     public class Config
     {
-        /// <summary>
-        /// Creates a <see cref="Config"/> instance of type T from a TOML config file
-        /// </summary>
-        /// <param name="path">path to the config including name and exension</param>
-        /// <returns>instance of type T from the config file; otherwise default of type T if config failed to load</returns>
         public static T Load<T>(string path) where T : Config
         {
             string tomlString = "";

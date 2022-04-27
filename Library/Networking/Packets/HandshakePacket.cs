@@ -5,7 +5,7 @@ using Swordfish.Library.Networking.Interfaces;
 
 namespace Swordfish.Library.Networking.Packets
 {
-    [Packet]
+    [Packet(RequiresSession = false)]
     public struct HandshakePacket : ISerializedPacket
     {
         public int ClientID;
@@ -18,10 +18,10 @@ namespace Swordfish.Library.Networking.Packets
             ServerID = NetSession.LocalOrUnassigned;
         }
 
-        [PacketHandler(typeof(HandshakePacket))]
+        [PacketHandler]
         public static void OnHandshakeReceived(NetController net, HandshakePacket packet, NetEventArgs e)
         {
-            if (net is Client)
+            if (net is NetClient)
             {
                 if (net.Session.ID == NetSession.LocalOrUnassigned && net.TryAddSession(e.EndPoint, packet.ServerID, out NetSession serverSession))
                 {

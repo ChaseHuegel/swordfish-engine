@@ -30,7 +30,7 @@ namespace Swordfish.Library.Networking
             return s_Instance;
         }
 
-        private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(24).Prepend("..");
+        private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(32).Trim('.').Prepend("...");
 
         private static void RegisterHandlers()
         {
@@ -45,9 +45,12 @@ namespace Swordfish.Library.Networking
                 {
                     if (IsValidHandlerParameters(method.GetParameters()))
                     {
-                        GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(method);
+                        if (packetHandlerAttribute.PacketType == null)
+                            packetHandlerAttribute.PacketType = method.DeclaringType;
+
+                        GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
                         Console.WriteLine(
-                            $"Registered '{TruncateToString(method.DeclaringType)}'"
+                            $"Registered '{TruncateToString($"{method.DeclaringType}.{method.Name}")}'"
                             + $" to '{TruncateToString(packetHandlerAttribute.PacketType)}'");
                     }
                     else
@@ -70,7 +73,7 @@ namespace Swordfish.Library.Networking
                 {
                     if (typeof(ISerializedPacket).IsAssignableFrom(type))
                     {
-                        int id = packetDefinitions.Count;
+                        ushort id = (ushort)(packetAttribute.PacketID ?? type.FullName.ToSeed());
                         PacketDefinition definition = new PacketDefinition {
                             ID = id,
                             Type = type,
@@ -82,7 +85,7 @@ namespace Swordfish.Library.Networking
                     }
                     else
                     {
-                        Console.WriteLine($"Ignored '{type}' decorated as a packet but does not implement IPacket");
+                        Console.WriteLine($"Ignored '{type}' decorated as a packet but does not implement {typeof(ISerializedPacket)}");
                     }
                 }
             }
@@ -99,7 +102,7 @@ namespace Swordfish.Library.Networking
         private static bool IsValidHandlerParameters(ParameterInfo[] parameters)
         {
             return parameters.Length == 3
-                && parameters[0].ParameterType == typeof(NetController)
+                && (parameters[0].ParameterType == typeof(NetController) || parameters[0].ParameterType.BaseType == typeof(NetController))
                 && typeof(ISerializedPacket).IsAssignableFrom(parameters[1].ParameterType)
                 && parameters[2].ParameterType == typeof(NetEventArgs);
         }

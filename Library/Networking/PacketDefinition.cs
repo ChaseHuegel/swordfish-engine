@@ -11,13 +11,13 @@ namespace Swordfish.Library.Networking
 
         public Type Type { get; set; }
 
-        public List<MethodInfo> Handlers { get; set; } = new List<MethodInfo>();
+        public List<PacketHandler> Handlers { get; set; } = new List<PacketHandler>();
 
         public bool RequiresSession { get; set; } = true;
 
         public override string ToString()
         {
-            return $"{Type.ToString().TruncateStartUpTo(24).Prepend("..")} [id: {ID}] [requires session: {RequiresSession}]";
+            return $"{Type} [id: {ID}] [requires session: {RequiresSession}]";
         }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using Swordfish.Library.Extensions;
 
 namespace Swordfish.Library.Networking
 {
@@ -23,6 +24,8 @@ namespace Swordfish.Library.Networking
         public Packet(byte[] data) => Append(data);
 
         public Packet() { }
+
+        public override string ToString() => Encoding.ASCII.GetString(GetBytes());
 
         //  Casting to/from byte array
         public static implicit operator Packet(byte[] data) => new Packet(data);
@@ -103,19 +106,19 @@ namespace Swordfish.Library.Networking
             else if (value is int)      WriteInt(value);
             else if (value is float)    WriteFloat(value);
             else if (value is bool)     WriteBool(value);
-
-            else throw new ArgumentException($"Unsupported type [{value.GetType()}] passed to Packet.Write()");
+            else if (value == null)     Append(BitConverter.GetBytes(0));
+            else Console.WriteLine($"Unsupported type [{value?.GetType()}] passed to Packet.Write()");
 
             return this;
         }
 
-        public Packet Serialize(object value)
+        public Packet Serialize(object obj)
         {
-            foreach (PropertyInfo property in value.GetType().GetProperties())
-                Write(property.GetValue(value));
-            
-            foreach (FieldInfo field in value.GetType().GetFields())
-                Write(field.GetValue(value));
+            foreach (PropertyInfo property in obj.GetType().GetProperties())
+                Write(property.GetValue(obj) ?? property.PropertyType.GetDefault());
+
+            foreach (FieldInfo field in obj.GetType().GetFields())
+                Write(field.GetValue(obj) ?? field.FieldType.GetDefault());
             
             return this;
         }
@@ -137,16 +140,10 @@ namespace Swordfish.Library.Networking
             object deserializedPacket = Activator.CreateInstance(type);
 
             foreach (PropertyInfo property in type.GetProperties())
-            {
-                object value = Read(property.PropertyType);
-                property.SetValue(deserializedPacket, value);
-            }
+                property.SetValue(deserializedPacket, Read(property.PropertyType));
             
             foreach (FieldInfo field in type.GetFields())
-            {
-                object value = Read(field.FieldType);
-                field.SetValue(deserializedPacket, value);
-            }
+                field.SetValue(deserializedPacket, Read(field.FieldType));
 
             return deserializedPacket;
         }
@@ -157,7 +154,7 @@ namespace Swordfish.Library.Networking
 
         private void WriteString(object value)
         {
-            string s = (string)value;
+            string s = (string)value ?? string.Empty;
 
             //  Write an int noting the length of the string in bytes
             byte[] bytes = BitConverter.GetBytes(Encoding.Default.GetByteCount(s));
@@ -175,6 +172,7 @@ namespace Swordfish.Library.Networking
             else if (type == typeof(float))    return ReadFloat();
             else if (type == typeof(bool))     return ReadBool();
 
+            return type.GetDefault();
             throw new ArgumentOutOfRangeException($"{type} is unsupported by Packet.Read!");
         }
 

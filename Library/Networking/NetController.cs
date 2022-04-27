@@ -1,12 +1,13 @@
 using System.Linq;
+using System.Threading.Tasks.Dataflow;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 
 using Swordfish.Library.Networking.Interfaces;
-using System.Collections.Generic;
 
 namespace Swordfish.Library.Networking
 {
@@ -35,6 +36,21 @@ namespace Swordfish.Library.Networking
         public NetSession Session { get; private set; }
 
         /// <summary>
+        /// The maximum number of sessions allowed to be active.
+        /// </summary>
+        public int MaxSessions { get; set; } = 20;
+        
+        /// <summary>
+        /// The number of sessions currently active.
+        /// </summary>
+        public int SessionCount => Sessions.Count-1;    // -1 to not count the local session
+
+        /// <summary>
+        /// Whether this <see cref="NetController"/> has reached it's max active sessions.
+        /// </summary>
+        public bool IsFull => SessionCount >= MaxSessions;
+
+        /// <summary>
         /// Whether to validate session IDs.
         /// Should be true to ensure a layer of session security.
         /// <para/>
@@ -61,6 +77,7 @@ namespace Swordfish.Library.Networking
         public EventHandler<NetEventArgs> PacketAccepted;
         public EventHandler<NetEventArgs> PacketReceived;
         public EventHandler<NetEventArgs> PacketRejected;
+        public EventHandler<NetEventArgs> PacketUnknown;
         public EventHandler<NetEventArgs> SessionStarted;
         public EventHandler<NetEventArgs> SessionEnded;
         public EventHandler<NetEventArgs> SessionRejected;
@@ -95,40 +112,46 @@ namespace Swordfish.Library.Networking
 
         private void Initialize(IPAddress address, int port, Host host)
         {
-            if (address == null)
-            {
-                //  Bind automatically if no address or port is provided.
-                if (port <= 0)
-                    Udp = new UdpClient(0);
-                //  Bind to a provided port and automatic address.
+            try {
+                if (address == null)
+                {
+                    //  Bind automatically if no address or port is provided.
+                    if (port <= 0)
+                        Udp = new UdpClient(0);
+                    //  Bind to a provided port and automatic address.
+                    else
+                        Udp = new UdpClient(port);
+                }
                 else
-                    Udp = new UdpClient(port);
+                {
+                    //  Bind to provided address and port.
+                    var endPoint = new IPEndPoint(address, port);
+                    Udp = new UdpClient(endPoint);
+                }
+                
+                //  Setup sessions; ensure the local connection is assigned a session.
+                Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
+                TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession session);
+                Session = session;
+
+                DefaultHost = host ?? new Host{
+                    Address = Session.EndPoint.Address,
+                    Port = Session.EndPoint.Port
+                };
+
+                Udp.BeginReceive(new AsyncCallback(OnReceive), null);
+                Console.WriteLine($"NetController session started [{Session}]");
             }
-            else
+            catch (Exception ex)
             {
-                //  Bind to provided address and port.
-                var endPoint = new IPEndPoint(address, port);
-                Udp = new UdpClient(endPoint);
-            }            
-            
-            //  Setup sessions; ensure the local connection is assigned a session.
-            Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
-            TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession session);
-            Session = session;
-
-            DefaultHost = host ?? new Host{
-                Address = Session.EndPoint.Address,
-                Port = Session.EndPoint.Port
-            };
-
-            Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-            Console.WriteLine($"NetController session started [{Session}]");
+                Console.WriteLine($"NetController failed to start on [{port}]\n{ex}");
+            }
         }
 
         private void OnSend(IAsyncResult result)
         {
             Udp.EndSend(result);
-            PacketSent.Invoke(this, (NetEventArgs) result.AsyncState);
+            PacketSent?.Invoke(this, (NetEventArgs) result.AsyncState);
             
             //  TODO If it isn't a fire and forget packet, we should resend with a delay until a response is received
         }
@@ -138,40 +161,55 @@ namespace Swordfish.Library.Networking
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
             Packet packet = Udp.EndReceive(result, ref endPoint);
 
-            int sessionID = packet.ReadInt();
-            int packetID = packet.ReadInt();
-            PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packetID);
-
-            PacketReceived?.Invoke(this, new NetEventArgs {
-                Packet = packet,
-                EndPoint = endPoint
-            });
-
-            //  The packet is accepted if:
-            //  -   the packet doesn't require a session
-            //  -   OR the provided session is valid
-            NetSession session = null;
-            if (!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
-            {
-                NetEventArgs netEventArgs = new NetEventArgs {
-                    Packet = packet,
-                    EndPoint = endPoint,
-                    Session = session
-                };
-
-                PacketAccepted?.Invoke(this, netEventArgs);
-
-                //  Deserialize the packet and invoke it's handlers
-                object deserializedPacket = (ISerializedPacket) packet.Deserialize(packetDefinition.Type);
-                foreach (MethodInfo handler in packetDefinition.Handlers)
-                    handler.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
-            }
-            else
-            {
-                PacketRejected?.Invoke(this, new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs {
                     Packet = packet,
                     EndPoint = endPoint
-                });
+                };
+
+            try {
+                int sessionID = packet.ReadInt();
+                int packetID = packet.ReadInt();
+                PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packetID);
+
+                netEventArgs.PacketID = packetID;
+
+                PacketReceived?.Invoke(this, netEventArgs);
+
+                //  The packet is accepted if:
+                //  -   the packet doesn't require a session
+                //  -   OR the provided session is valid
+                NetSession session = null;
+                if (!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
+                {
+                    netEventArgs.Session = session;
+                    PacketAccepted?.Invoke(this, netEventArgs);
+
+                    //  Deserialize the packet and invoke it's handlers
+                    object deserializedPacket = (ISerializedPacket) packet.Deserialize(packetDefinition.Type);
+                    foreach (PacketHandler handler in packetDefinition.Handlers)
+                    {
+                        switch (handler.Type)
+                        {
+                            case PacketHandlerType.SERVER:
+                                if (this is NetServer) handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                break;
+                            case PacketHandlerType.CLIENT:
+                                if (this is NetClient) handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                break;
+                            case PacketHandlerType.AGNOSTIC:
+                                handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                break;
+                        }
+                    }
+                }
+                else
+                {
+                    PacketRejected?.Invoke(this, netEventArgs);
+                }
+            }
+            catch
+            {
+                PacketUnknown?.Invoke(this, netEventArgs);
             }
 
             //  Continue receiving data
@@ -194,21 +232,21 @@ namespace Swordfish.Library.Networking
                     .Serialize(value);
         }
 
-        public void Send(ISerializedPacket value)
+        public void Send(ISerializedPacket packet)
         {
             if (string.IsNullOrEmpty(DefaultHost.Hostname))
-                Send(SignPacket(value), DefaultHost.EndPoint.Address, DefaultHost.EndPoint.Port);
+                Send(SignPacket(packet), DefaultHost.EndPoint.Address, DefaultHost.EndPoint.Port);
             else
-                Send(SignPacket(value), DefaultHost.Hostname, DefaultHost.Port);
+                Send(SignPacket(packet), DefaultHost.Hostname, DefaultHost.Port);
         }
 
-        public void Send(ISerializedPacket value, NetSession session) => Send(SignPacket(value), session.EndPoint.Address, session.EndPoint.Port);
+        public void Send(ISerializedPacket packet, NetSession session) => Send(SignPacket(packet), session.EndPoint.Address, session.EndPoint.Port);
 
-        public void Send(ISerializedPacket value, IPEndPoint endPoint) => Send(SignPacket(value), endPoint.Address, endPoint.Port);
+        public void Send(ISerializedPacket packet, IPEndPoint endPoint) => Send(SignPacket(packet), endPoint.Address, endPoint.Port);
 
-        public void Send(ISerializedPacket value, IPAddress address, int port) => Send(SignPacket(value), address, port);
+        public void Send(ISerializedPacket packet, IPAddress address, int port) => Send(SignPacket(packet), address, port);
 
-        public void Send(ISerializedPacket value, string hostname, int port) => Send(SignPacket(value), hostname, port);
+        public void Send(ISerializedPacket packet, string hostname, int port) => Send(SignPacket(packet), hostname, port);
 
         public void Send(byte[] buffer, IPAddress address, int port)
         {
@@ -218,8 +256,13 @@ namespace Swordfish.Library.Networking
             EndPoint.Address = address;
             EndPoint.Port = port;
 
+            Packet packet = buffer;
+            int sessionID = packet.ReadInt();
+            int packetID = packet.ReadInt();
+
             NetEventArgs netEventArgs = new NetEventArgs {
-                Packet = buffer,
+                Packet = packet,
+                PacketID = packetID,
                 EndPoint = EndPoint
             };
 
@@ -229,12 +272,35 @@ namespace Swordfish.Library.Networking
         public void Send(byte[] buffer, string hostname, int port)
         {
             IPEndPoint endPoint = new IPEndPoint(NetUtils.GetHostAddress(hostname), port);
+            Packet packet = buffer;
+            int sessionID = packet.ReadInt();
+            int packetID = packet.ReadInt();
+
             NetEventArgs netEventArgs = new NetEventArgs {
-                Packet = buffer,
+                Packet = packet,
+                PacketID = packetID,
                 EndPoint = endPoint
             };
 
             Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
+        }
+
+        public void Broadcast(ISerializedPacket packet)
+        {
+            foreach (NetSession session in Sessions.Values)
+                if (session != Session) Send(packet, session);
+        }
+
+        public void BroadcastTo(ISerializedPacket packet, params NetSession[] whitelist)
+        {
+            foreach (NetSession session in whitelist)
+                if (session != Session) Send(packet, session);
+        }
+
+        public void BroadcastExcept(ISerializedPacket packet, params NetSession[] blacklist)
+        {
+            foreach (NetSession session in Sessions.Values.Except(blacklist))
+                if (session != Session) Send(packet, session);
         }
 
         /// <summary>
@@ -267,7 +333,7 @@ namespace Swordfish.Library.Networking
                 EndPoint = endPoint
             };
 
-            if (Sessions.TryAdd(endPoint, session))
+            if (!IsFull && Sessions.TryAdd(endPoint, session))
             {
                 //  TODO recycle session IDs
                 session.ID = Sessions.Count-1;
