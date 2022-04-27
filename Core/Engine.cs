@@ -4,10 +4,11 @@ using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 
-using Swordfish.Library.Diagnostics;
 using Swordfish.Core.ECS;
 using Swordfish.Core.Physics;
 using Swordfish.Core.Rendering;
+using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Core
 {
@@ -53,7 +54,7 @@ namespace Swordfish.Core
         public static void Initialize()
         {
             //  Load engine settings
-            Settings = CoreSettings.LoadConfig($"{Directories.CONFIG}/swordfish.toml");
+            Settings = Config.Load<CoreSettings>($"{Directories.CONFIG}/swordfish.toml");
 
             //  Initialize all engine members
             Renderer = new RenderContext();
