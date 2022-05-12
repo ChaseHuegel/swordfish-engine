@@ -1,13 +1,7 @@
-using System.Net.Mime;
-using System;
 using System.Collections;
 using System.Linq;
-using System.Numerics;
 
 using ImGuiNET;
-using Swordfish.Core;
-using Swordfish.Core.Rendering.UI;
-using Swordfish.Core.Rendering.UI.Elements;
 
 namespace Swordfish.Library.Diagnostics
 {
@@ -17,6 +11,8 @@ namespace Swordfish.Library.Diagnostics
         private static Queue mainProfile;
         private static Queue ecsProfile;
         private static Queue physicsProfile;
+
+        public static int HistoryLength = 300;
 
         /// <summary>
         /// Dummy method to force construction of the static class
@@ -65,11 +61,11 @@ namespace Swordfish.Library.Diagnostics
             }
 
             //  Make certain the profile is within bounds
-            if (profile.Count != Engine.Settings.Profiler.HISTORY)
+            if (profile.Count != HistoryLength)
             {
-                while (profile.Count < Engine.Settings.Profiler.HISTORY)
+                while (profile.Count < HistoryLength)
                     profile.Enqueue(0f);
-                while (profile.Count > Engine.Settings.Profiler.HISTORY)
+                while (profile.Count > HistoryLength)
                     profile.Dequeue();
             }
 

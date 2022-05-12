@@ -1,6 +1,6 @@
 using OpenTK.Windowing.GraphicsLibraryFramework;
-using Swordfish.Core;
-using Swordfish.Core.Rendering;
+using Swordfish.Engine;
+using Swordfish.Engine.Rendering;
 
 namespace Swordfish.Library.Extensions
 {

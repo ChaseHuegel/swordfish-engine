@@ -3,12 +3,12 @@ using ImGuiNET;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
-using Swordfish.Core;
-using Swordfish.Core.ECS;
-using Swordfish.Core.Rendering;
-using Swordfish.Core.Rendering.Shapes;
-using Swordfish.Core.Rendering.UI;
-using Swordfish.Core.Voxels;
+using Swordfish.Engine;
+using Swordfish.Engine.ECS;
+using Swordfish.Engine.Rendering;
+using Swordfish.Engine.Rendering.Shapes;
+using Swordfish.Engine.Rendering.UI;
+using Swordfish.Engine.Voxels;
 using Swordfish.Integrations;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
@@ -22,11 +22,11 @@ public class Demo
     {
         Demo game = new Demo();
 
-        Engine.StartCallback = game.Start;
-        Engine.UpdateCallback = game.Update;
-        Engine.GuiCallback = game.ShowGui;
+        Swordfish.Engine.Swordfish.StartCallback = game.Start;
+        Swordfish.Engine.Swordfish.UpdateCallback = game.Update;
+        Swordfish.Engine.Swordfish.GuiCallback = game.ShowGui;
 
-        Engine.Initialize();
+        Swordfish.Engine.Swordfish.Initialize();
     }
 
     public float cameraSpeed = 12f;
@@ -38,7 +38,7 @@ public class Demo
 
     public void CreateEntityParented(Vector3 pos, Quaternion rot)
     {
-        Entity parent = Engine.ECS.CreateEntity("parentedEntity", "",
+        Entity parent = Swordfish.Engine.Swordfish.ECS.CreateEntity("parentedEntity", "",
                 new RenderComponent() { mesh = null },
                 new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -46,14 +46,14 @@ public class Demo
                 new TurntableComponent()
             );
 
-        Engine.ECS.CreateEntity("childEntity", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("childEntity", "",
                 new RenderComponent() { mesh = null },
                 new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
                 new TransformComponent() { parent = parent, localPosition = new Vector3(0, 1, 0), orientation = rot }
             );
 
-        Engine.ECS.CreateEntity("childEntity", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("childEntity", "",
                 new RenderComponent() { mesh = null },
                 new RigidbodyComponent() { mass = 10, restitution = 1f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -63,9 +63,9 @@ public class Demo
 
     public void CreateEntityCube(Vector3 pos, Quaternion rot)
     {
-        Engine.ECS.CreateEntity("floatingCube", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("floatingCube", "",
                 new RenderComponent() { mesh = null },
-                new RigidbodyComponent() { mass = Engine.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
+                new RigidbodyComponent() { mass = Swordfish.Engine.Swordfish.Random.Next(2, 10), restitution = 1f, drag = 3f, resistance = 0f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
                 new TransformComponent() { position = pos, orientation = rot },
                 new TurntableComponent()
@@ -78,21 +78,21 @@ public class Demo
         {
             CreateEntityCube(
                 new Vector3(
-                    Engine.Random.Next(-100, 100),
+                    Swordfish.Engine.Swordfish.Random.Next(-100, 100),
                     50,
-                    Engine.Random.Next(-100, 100)),
+                    Swordfish.Engine.Swordfish.Random.Next(-100, 100)),
 
                 Quaternion.FromEulerAngles(
-                    Engine.Random.Next(360),
-                    Engine.Random.Next(360),
-                    Engine.Random.Next(360))
+                    Swordfish.Engine.Swordfish.Random.Next(360),
+                    Swordfish.Engine.Swordfish.Random.Next(360),
+                    Swordfish.Engine.Swordfish.Random.Next(360))
                 );
         }
     }
 
     public void Shoot()
     {
-        Engine.ECS.CreateEntity("projectile", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("projectile", "",
                 new RenderComponent() { mesh = bulletMesh },
                 new RigidbodyComponent() { velocity = Camera.Main.transform.forward * 80, mass = 1f, restitution = 1f, drag = 3f, resistance = 0f },
                 new CollisionComponent() { size = 0.5f },
@@ -102,7 +102,7 @@ public class Demo
 
     public void CreateBillboardEntity(Shader shader, Texture texture, Vector3 position, Vector3 scale)
     {
-        if (Engine.ECS.CreateEntity(out Entity entity))
+        if (Swordfish.Engine.Swordfish.ECS.CreateEntity(out Entity entity))
         {
             Mesh mesh = new Quad();
             mesh.Scale = scale;
@@ -116,7 +116,7 @@ public class Demo
                 Metallic = 0f
             };
 
-            Engine.ECS.Attach(entity,
+            Swordfish.Engine.Swordfish.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
                     new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                     new CollisionComponent() { size = 0.5f },
@@ -128,7 +128,7 @@ public class Demo
 
     public void CreatePointLightEntity(Vector3 position, Vector4 color, float lumens)
     {
-        if (Engine.ECS.CreateEntity(out Entity entity))
+        if (Swordfish.Engine.Swordfish.ECS.CreateEntity(out Entity entity))
         {
             Mesh mesh = new Quad();
 
@@ -140,7 +140,7 @@ public class Demo
                 DiffuseTexture = Icons.LIGHT.Get()
             };
 
-            Engine.ECS.Attach(entity,
+            Swordfish.Engine.Swordfish.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
                     new TransformComponent() { position = position, orientation = Quaternion.Identity },
                     new LightComponent() { color = color, lumens = lumens },
@@ -151,7 +151,7 @@ public class Demo
 
     public void CreateAnimatedBoardEntity(Shader shader, Texture texture, float speed, Vector3 position, Vector3 scale)
     {
-        if (Engine.ECS.CreateEntity(out Entity entity))
+        if (Swordfish.Engine.Swordfish.ECS.CreateEntity(out Entity entity))
         {
             int frames = (int)(texture.GetSize().Y / texture.GetSize().X);
 
@@ -159,8 +159,8 @@ public class Demo
             mesh.Scale = scale;
 
             mesh.uv = new Vector3[] {
-                new Vector3(0f, 1f/frames, 0),
-                new Vector3(1f, 1f/frames, 0),
+                new Vector3(0f, 1f/ frames, 0),
+                new Vector3(1f, 1f/ frames, 0),
                 new Vector3(1f, 0f, 0),
                 new Vector3(0f, 0f, 0),
             };
@@ -174,7 +174,7 @@ public class Demo
                 Metallic = 0f
             };
 
-            Engine.ECS.Attach(entity,
+            Swordfish.Engine.Swordfish.ECS.Attach(entity,
                     new RenderComponent() { mesh = mesh },
                     new TextureAnimationComponent() { frames = frames, speed = speed },
                     new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
@@ -202,7 +202,7 @@ public class Demo
             DiffuseTexture = tex
         };
 
-        Engine.ECS.CreateEntity("westchester", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("westchester", "",
                 new RenderComponent() { mesh = model },
                 new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -221,7 +221,7 @@ public class Demo
             Metallic = 0f
         };
 
-        Engine.ECS.CreateEntity("character", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("character", "",
                 new RenderComponent() { mesh = model },
                 new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -266,7 +266,7 @@ public class Demo
 
         bulletMesh = model;
 
-        Engine.ECS.CreateEntity("donut", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("donut", "",
                 new RenderComponent() { mesh = model },
                 new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -286,7 +286,7 @@ public class Demo
             DiffuseTexture = tex,
         };
 
-        Engine.ECS.CreateEntity("voxelObject", "",
+        Swordfish.Engine.Swordfish.ECS.CreateEntity("voxelObject", "",
                 new RenderComponent() { mesh = model },
                 new RigidbodyComponent() { mass = 1f, restitution = 0f, drag = 3f, resistance = 1f, velocity = Vector3.Zero },
                 new CollisionComponent() { size = 0.5f },
@@ -298,7 +298,7 @@ public class Demo
     {
         if (showControls)
         {
-            ImGui.SetNextWindowPos(new Vector2(Engine.Settings.Window.WIDTH - 700, 0));
+            ImGui.SetNextWindowPos(new Vector2(Swordfish.Engine.Swordfish.Settings.Window.WIDTH - 700, 0));
             ImGui.SetNextWindowSizeConstraints(new Vector2(700, 300), new Vector2(700, 600));
             ImGui.Begin("Controls", WindowFlagPresets.FLAT | ImGuiWindowFlags.NoBringToFrontOnFocus);
                 ImGui.Columns(3);
@@ -369,13 +369,13 @@ public class Demo
     private void Update()
     {
         //  The camera should behave independent of the engine delta, which is scaled by the timescale
-        float delta = Engine.MainWindow.DeltaTime;
+        float delta = Swordfish.Engine.Swordfish.MainWindow.DeltaTime;
 
         if (raining)
             CreateEntityCubes(1);
 
         if (Input.IsKeyDown(Keys.Escape))
-            Engine.Shutdown();
+            Swordfish.Engine.Swordfish.Shutdown();
 
         if (Input.IsKeyPressed(Keys.F1))
             showControls = !showControls;
@@ -405,10 +405,10 @@ public class Demo
             CreateEntityCube(Camera.Main.transform.position + (Camera.Main.transform.forward * 2), Quaternion.Identity);
 
         if (Input.IsKeyDown(Keys.Equal))
-            Engine.Timescale += 0.5f * delta;
+            Swordfish.Engine.Swordfish.Timescale += 0.5f * delta;
 
         if (Input.IsKeyDown(Keys.Minus))
-            Engine.Timescale -= 0.5f * delta;
+            Swordfish.Engine.Swordfish.Timescale -= 0.5f * delta;
 
         if (Input.IsKeyDown(Keys.W))
             Camera.Main.transform.position += Camera.Main.transform.forward * cameraSpeed * delta;

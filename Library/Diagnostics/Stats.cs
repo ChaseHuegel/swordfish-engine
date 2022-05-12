@@ -1,8 +1,8 @@
 using System.Numerics;
 
 using ImGuiNET;
-using Swordfish.Core;
-using Swordfish.Core.Rendering.UI;
+using Swordfish.Engine;
+using Swordfish.Engine.Rendering.UI;
 
 namespace Swordfish.Library.Diagnostics
 {

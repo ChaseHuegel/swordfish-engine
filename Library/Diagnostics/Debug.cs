@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 
 using OpenTK.Graphics.OpenGL4;
 
-using Swordfish.Core.Rendering;
+using Swordfish.Engine.Rendering;
 
 namespace Swordfish.Library.Diagnostics
 {
