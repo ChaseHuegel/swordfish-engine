@@ -1,4 +1,7 @@
 [![](https://img.shields.io/nuget/v/Swordfish)](https://www.nuget.org/packages/Swordfish/)
+[![](https://img.shields.io/nuget/v/Swordfish.Engine?label=Engine)](https://www.nuget.org/packages/Swordfish.Engine/)
+[![](https://img.shields.io/nuget/v/Swordfish.Library?label=Library)](https://www.nuget.org/packages/Swordfish.Library/)
+[![](https://img.shields.io/nuget/v/Swordfish.Integrations?label=Integrations)](https://www.nuget.org/packages/Swordfish.Integrations/)
 
 ## Using
 OpenTK (OpenGL C# wrapper) https://github.com/opentk/opentk
