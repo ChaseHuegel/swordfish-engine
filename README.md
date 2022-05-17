@@ -1,3 +1,5 @@
+![](https://img.shields.io/nuget/v/Swordfish) ![](https://img.shields.io/nuget/dt/Swordfish)
+
 ## Using
 OpenTK (OpenGL C# wrapper) https://github.com/opentk/opentk
 
