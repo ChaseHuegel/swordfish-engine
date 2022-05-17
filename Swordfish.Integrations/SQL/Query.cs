@@ -39,17 +39,25 @@ namespace Swordfish.Integrations.SQL
 
         public bool RecordExists(string table, string column, string value) => Select(column).From(table).Where(column).Equals(value).HasResult();
 
-        public Query Select(string value) => AddSimpleParameter($"SELECT {value}");
+        public Query Select(params string[] values) => AddSimpleParameter($"SELECT {string.Join(", ", values)}");
 
         public Query From(string value) => AddSimpleParameter($"FROM {value}");
 
         public Query Where(string value) => AddSimpleParameter($"WHERE {value}");
 
-        public Query Equals(string value) => AppendParameter($"=\'{value}\'");
+        public Query In(params string[] values) => AddSimpleParameter($"IN ({string.Join(", ", values)})");
+
+        public Query Equals(string value) => AppendParameter(value == null ? "=NULL" : $"=\'{value}\'");
+
+        public Query EqualTo(string value) => Equals(value);
 
         public Query And(string value) => AddSimpleParameter($"AND {value}");
 
         public Query InsertInto(string value) => AddSimpleParameter($"INSERT INTO {value}");
+
+        public Query Update(string value) => AddSimpleParameter($"UPDATE {value}");
+
+        public Query Set(string value) => AddSimpleParameter($"SET {value}");
 
         public Query Columns(params string[] values) => AddSimpleParameter($"({string.Join(',', values)})");
 

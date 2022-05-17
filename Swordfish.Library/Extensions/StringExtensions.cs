@@ -57,9 +57,14 @@ namespace Swordfish.Library.Extensions
             return seed;
         }
 
-        public static bool IsAlphaNumeric(this string value)
+        public static bool IsAlphaNumeric(this string value, params char[] whitelist)
         {
-            return value.All(c => Char.IsLetterOrDigit(c));
+            return value.All(c => Char.IsLetterOrDigit(c) || whitelist.Contains(c));
+        }
+
+        public static bool IsAlphabetic(this string value, params char[] whitelist)
+        {
+            return value.All(c => Char.IsLetter(c) || whitelist.Contains(c));
         }
 
         public static string Without(this string value, params char[] without)
