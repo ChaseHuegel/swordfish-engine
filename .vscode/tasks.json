@@ -12,6 +12,12 @@
                 "reveal": "silent"
             },
             "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "pack-nuget",
+            "command": "dotnet pack -o ./nuget/",
+            "type": "shell",
+            "group": "build"
         }
     ]
 }

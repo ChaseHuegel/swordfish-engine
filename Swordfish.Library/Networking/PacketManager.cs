@@ -14,7 +14,7 @@ namespace Swordfish.Library.Networking
         private static PacketManager s_Instance;
         private static PacketManager Instance => s_Instance ?? (s_Instance = Initialize());
 
-        private SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions;
+        private SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
 
         public static PacketManager Initialize()
         {
@@ -46,15 +46,19 @@ namespace Swordfish.Library.Networking
 
         private static void RegisterHandlers(Assembly assembly)
         {
-            Console.WriteLine($"Registering packet handlers from assembly '{assembly}'...");
-            Dictionary<int, List<MethodInfo>> handlers = new Dictionary<int, List<MethodInfo>>();
-
+            bool logged = false;
             foreach (Type type in assembly.GetTypes())
             foreach (MethodInfo method in type.GetMethods())
             {
                 PacketHandlerAttribute packetHandlerAttribute = method.GetCustomAttribute<PacketHandlerAttribute>();
                 if (packetHandlerAttribute != null)
                 {
+                    if (!logged)
+                    {
+                        Console.WriteLine($"Registering packet handlers from assembly '{assembly}'...");
+                        logged = true;
+                    }
+
                     if (IsValidHandlerParameters(method.GetParameters()))
                     {
                         if (packetHandlerAttribute.PacketType == null)
@@ -62,12 +66,12 @@ namespace Swordfish.Library.Networking
 
                         GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
                         Console.WriteLine(
-                            $"Registered '{TruncateToString($"{method.DeclaringType}.{method.Name}")}'"
+                            $"- '{TruncateToString($"{method.DeclaringType}.{method.Name}")}'"
                             + $" to '{TruncateToString(packetHandlerAttribute.PacketType)}'");
                     }
                     else
                     {
-                        Console.WriteLine($"Ignored '{TruncateToString(method.DeclaringType)}' decorated as a PacketHandler with invalid signature.");
+                        Console.WriteLine($"- Ignored '{TruncateToString(method.DeclaringType)}' decorated as a PacketHandler with invalid signature.");
                     }
                 }
             }
@@ -75,14 +79,18 @@ namespace Swordfish.Library.Networking
 
         private static void RegisterPackets(Assembly assembly)
         {
-            Console.WriteLine($"Registering packet from assembly '{assembly}'...");
-            SwitchDictionary<int, Type, PacketDefinition> packetDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
-
+            bool logged = false;
             foreach (Type type in assembly.GetTypes())
             {
                 PacketAttribute packetAttribute = type.GetCustomAttribute<PacketAttribute>();
                 if (packetAttribute != null)
                 {
+                    if (!logged)
+                    {
+                        Console.WriteLine($"Registering packets from assembly '{assembly}'...");
+                        logged = true;
+                    }
+
                     if (typeof(ISerializedPacket).IsAssignableFrom(type))
                     {
                         ushort id = (ushort)(packetAttribute.PacketID ?? type.FullName.ToSeed());
@@ -92,17 +100,15 @@ namespace Swordfish.Library.Networking
                             RequiresSession = packetAttribute.RequiresSession
                         };
 
-                        packetDefinitions.Add(id, type, definition);
-                        Console.WriteLine($"Registered '{definition}'");
+                        Instance.PacketDefinitions.Add(id, definition.Type, definition);
+                        Console.WriteLine($"- '{definition}'");
                     }
                     else
                     {
-                        Console.WriteLine($"Ignored '{type}' decorated as a packet but does not implement {typeof(ISerializedPacket)}");
+                        Console.WriteLine($"- Ignored '{type}' decorated as a packet but does not implement {typeof(ISerializedPacket)}");
                     }
                 }
             }
-
-            Instance.PacketDefinitions = packetDefinitions;
         }
 
         public static PacketDefinition GetPacketDefinition(int id) => Instance.PacketDefinitions[id];
