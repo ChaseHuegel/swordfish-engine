@@ -25,19 +25,31 @@ namespace Swordfish.Library.Networking
             }
 
             s_Instance = new PacketManager();
-            RegisterPackets();
-            RegisterHandlers();
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                RegisterPackets(assembly);
+                RegisterHandlers(assembly);
+            }
+
+            AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoad;
+
             return s_Instance;
+        }
+
+        private static void OnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
+        {
+            RegisterPackets(args.LoadedAssembly);
+            RegisterHandlers(args.LoadedAssembly);
         }
 
         private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(32).Trim('.').Prepend("...");
 
-        private static void RegisterHandlers()
+        private static void RegisterHandlers(Assembly assembly)
         {
-            Console.WriteLine("Registering packet handlers...");
+            Console.WriteLine($"Registering packet handlers from assembly '{assembly}'...");
             Dictionary<int, List<MethodInfo>> handlers = new Dictionary<int, List<MethodInfo>>();
 
-            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach (Type type in assembly.GetTypes())
             foreach (MethodInfo method in type.GetMethods())
             {
                 PacketHandlerAttribute packetHandlerAttribute = method.GetCustomAttribute<PacketHandlerAttribute>();
@@ -61,12 +73,12 @@ namespace Swordfish.Library.Networking
             }
         }
 
-        private static void RegisterPackets()
+        private static void RegisterPackets(Assembly assembly)
         {
-            Console.WriteLine("Registering packets...");
+            Console.WriteLine($"Registering packet from assembly '{assembly}'...");
             SwitchDictionary<int, Type, PacketDefinition> packetDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
 
-            foreach (Type type in Assembly.GetExecutingAssembly().GetTypes())
+            foreach (Type type in assembly.GetTypes())
             {
                 PacketAttribute packetAttribute = type.GetCustomAttribute<PacketAttribute>();
                 if (packetAttribute != null)
