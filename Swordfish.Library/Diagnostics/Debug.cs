@@ -26,6 +26,11 @@ namespace Swordfish.Library.Diagnostics
         }
 
         /// <summary>
+        /// Whether any errors have been logged.
+        /// </summary>
+        public static bool HasErrors => Logger.HasErrors;
+
+        /// <summary>
         /// Enable/disable presenting and consuming debug tools, independent of the console
         /// </summary>
         public static bool Enabled = false;
