@@ -3,5 +3,6 @@
 **/obj/
 **/screenshots/
 **/config/
+**/nuget/
 
 *.log
