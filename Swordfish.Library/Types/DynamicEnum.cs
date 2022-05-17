@@ -10,7 +10,7 @@ namespace Swordfish.Library.Types
         private static T s_Instance;
         private static T Instance => s_Instance ?? (s_Instance = (T)Activator.CreateInstance(typeof(T)));
 
-        private ConcurrentDictionary<int, DynamicEnumValue> Values = new();
+        private ConcurrentDictionary<int, DynamicEnumValue> Values = new ConcurrentDictionary<int, DynamicEnumValue>();
 
         protected DynamicEnum()
         {

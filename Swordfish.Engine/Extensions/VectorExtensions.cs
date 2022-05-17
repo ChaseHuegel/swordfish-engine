@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace Swordfish.Library.Extensions
+namespace Swordfish.Engine.Extensions
 {
     public static class VectorExtensions
     {

@@ -4,7 +4,7 @@ using OpenTK.Mathematics;
 
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Library.Containers
+namespace Swordfish.Engine.Types
 {
     /// <summary>
     /// An octree made up of spherical nodes for detection collision or overlapping objects

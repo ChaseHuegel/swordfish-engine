@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -13,11 +12,10 @@ using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-
+using Swordfish.Engine.Types;
+using Swordfish.Engine.Util;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.Types;
-using Swordfish.Library.Util;
 
 using Tomlet;
 
@@ -77,7 +75,7 @@ namespace Swordfish.Engine.Rendering.UI
             ImGui.NewFrame();
             _frameBegun = true;
 
-            Debug.TryCollectGLError("ImGuiController");
+            GLDebug.TryCollectGLError("ImGuiController");
         }
 
         public void OnWindowResized(int width, int height)
@@ -149,7 +147,7 @@ namespace Swordfish.Engine.Rendering.UI
             GL.VertexArrayAttribBinding(_vertexArray, 2, 0);
             GL.VertexArrayAttribFormat(_vertexArray, 2, 4, VertexAttribType.UnsignedByte, true, 16);
 
-            Debug.TryCollectGLError("ImGui Setup");
+            GLDebug.TryCollectGLError("ImGui Setup");
         }
 
         /// <summary>
@@ -435,10 +433,10 @@ namespace Swordfish.Engine.Rendering.UI
             _shader.Use();
             GL.UniformMatrix4(_shader.GetUniformLocation("projection_matrix"), false, ref mvp);
             GL.Uniform1(_shader.GetUniformLocation("in_fontTexture"), 0);
-            Debug.TryCollectGLError("Projection");
+            GLDebug.TryCollectGLError("Projection");
 
             GL.BindVertexArray(_vertexArray);
-            Debug.TryCollectGLError("VAO");
+            GLDebug.TryCollectGLError("VAO");
 
             draw_data.ScaleClipRects(io.DisplayFramebufferScale);
 
@@ -455,10 +453,10 @@ namespace Swordfish.Engine.Rendering.UI
                 ImDrawListPtr cmd_list = draw_data.CmdListsRange[n];
 
                 GL.NamedBufferSubData(_vertexBuffer, IntPtr.Zero, cmd_list.VtxBuffer.Size * Unsafe.SizeOf<ImDrawVert>(), cmd_list.VtxBuffer.Data);
-                Debug.TryCollectGLError($"Data Vert {n}");
+                GLDebug.TryCollectGLError($"Data Vert {n}");
 
                 GL.NamedBufferSubData(_indexBuffer, IntPtr.Zero, cmd_list.IdxBuffer.Size * sizeof(ushort), cmd_list.IdxBuffer.Data);
-                Debug.TryCollectGLError($"Data Idx {n}");
+                GLDebug.TryCollectGLError($"Data Idx {n}");
 
                 int vtx_offset = 0;
                 int idx_offset = 0;
@@ -474,12 +472,12 @@ namespace Swordfish.Engine.Rendering.UI
                     {
                         GL.ActiveTexture(TextureUnit.Texture0);
                         GL.BindTexture(TextureTarget.Texture2D, (int)pcmd.TextureId);
-                        Debug.TryCollectGLError("Texture");
+                        GLDebug.TryCollectGLError("Texture");
 
                         // We do _windowHeight - (int)clip.W instead of (int)clip.Y because gl has flipped Y when it comes to these coordinates
                         var clip = pcmd.ClipRect;
                         GL.Scissor((int)clip.X, _windowHeight - (int)clip.W, (int)(clip.Z - clip.X), (int)(clip.W - clip.Y));
-                        Debug.TryCollectGLError("Scissor");
+                        GLDebug.TryCollectGLError("Scissor");
 
                         if ((io.BackendFlags & ImGuiBackendFlags.RendererHasVtxOffset) != 0)
                         {
@@ -489,7 +487,7 @@ namespace Swordfish.Engine.Rendering.UI
                         {
                             GL.DrawElements(BeginMode.Triangles, (int)pcmd.ElemCount, DrawElementsType.UnsignedShort, (int)pcmd.IdxOffset * sizeof(ushort));
                         }
-                        Debug.TryCollectGLError("Draw");
+                        GLDebug.TryCollectGLError("Draw");
                     }
 
                     idx_offset += (int)pcmd.ElemCount;

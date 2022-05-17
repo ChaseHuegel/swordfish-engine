@@ -3,9 +3,9 @@ using System.Runtime.CompilerServices;
 
 using OpenTK.Mathematics;
 
-using Swordfish.Library.Types;
+using Swordfish.Engine.Types;
 
-namespace Swordfish.Library.Util
+namespace Swordfish.Engine.Physics
 {
     public static class Intersection
     {

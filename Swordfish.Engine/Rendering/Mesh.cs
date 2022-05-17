@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
+using Swordfish.Engine.Util;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Engine.Rendering

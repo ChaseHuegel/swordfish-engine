@@ -4,8 +4,8 @@ using System.Linq;
 
 using OpenTK.Mathematics;
 
+using Swordfish.Engine.Types;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering
 {

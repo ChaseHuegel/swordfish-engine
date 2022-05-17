@@ -1,8 +1,5 @@
 using System;
-using System.Numerics;
 using System.Runtime.CompilerServices;
-
-using OpenTK.Windowing.Desktop;
 
 namespace Swordfish.Library.Diagnostics
 {

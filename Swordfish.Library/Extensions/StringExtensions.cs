@@ -74,13 +74,5 @@ namespace Swordfish.Library.Extensions
             
             return value;
         }
-
-        public static string Without(this string value, params string[] without)
-        {
-            foreach (string entry in without)
-                value = String.Join(string.Empty, value.Split(entry));
-            
-            return value;
-        }
     }
 }

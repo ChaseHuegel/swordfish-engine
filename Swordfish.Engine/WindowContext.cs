@@ -12,6 +12,7 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
 using Swordfish.Engine.Rendering;
+using Swordfish.Engine.Util;
 
 namespace Swordfish.Engine
 {
@@ -45,7 +46,7 @@ namespace Swordfish.Engine
             Swordfish.Start();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectAllGLErrors("Load");
+            GLDebug.TryCollectAllGLErrors("Load");
 
             base.OnLoad();
         }
@@ -56,7 +57,7 @@ namespace Swordfish.Engine
             Swordfish.StopCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectAllGLErrors("Unload");
+            GLDebug.TryCollectAllGLErrors("Unload");
 
             base.OnUnload();
         }
@@ -144,7 +145,7 @@ namespace Swordfish.Engine
             Swordfish.Step();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("UpdateFrame");
+            GLDebug.TryCollectGLError("UpdateFrame");
 
             base.OnUpdateFrame(e);
         }
@@ -158,7 +159,7 @@ namespace Swordfish.Engine
             Swordfish.PostRenderCallback?.Invoke();
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("RenderFrame");
+            GLDebug.TryCollectGLError("RenderFrame");
 
             Context.SwapBuffers();
             base.OnRenderFrame(e);
@@ -174,7 +175,7 @@ namespace Swordfish.Engine
             Swordfish.Settings.Window.HEIGHT = ClientSize.Y;
 
             //  Manual fallback to grab GL errors if debug output is unavailable
-            Debug.TryCollectGLError("Resize");
+            GLDebug.TryCollectGLError("Resize");
 
             base.OnResize(e);
         }

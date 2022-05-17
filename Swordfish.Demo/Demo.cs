@@ -12,10 +12,9 @@ using Swordfish.Engine.Extensions;
 using Swordfish.Engine.Voxels;
 using Swordfish.Integrations;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Extensions;
-using Swordfish.Library.Types;
 
 using Vector2 = System.Numerics.Vector2;
+using Swordfish.Engine.Types;
 
 public class Demo
 {

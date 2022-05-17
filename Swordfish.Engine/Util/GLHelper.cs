@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Windowing.Desktop;
 
-namespace Swordfish.Library.Util
+namespace Swordfish.Engine.Util
 {
     public static class GLHelper
     {

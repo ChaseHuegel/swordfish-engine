@@ -4,7 +4,7 @@ using OpenTK.Mathematics;
 
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Library.Containers
+namespace Swordfish.Engine.Types
 {
     /// <summary>
     /// A dynamically sizing Octree made up of spherical nodes for detection collision or overlapping objects

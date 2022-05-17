@@ -1,6 +1,6 @@
 using OpenTK.Windowing.Common;
 
-using Swordfish.Library.Types;
+using Swordfish.Engine.Types;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Engine

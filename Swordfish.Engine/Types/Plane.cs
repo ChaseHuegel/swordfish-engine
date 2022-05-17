@@ -1,6 +1,6 @@
 using OpenTK.Mathematics;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Engine.Types
 {
     public struct Plane
     {

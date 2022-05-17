@@ -59,9 +59,9 @@ namespace Swordfish.Integrations.SQL
 
         public Query Set(string value) => AddSimpleParameter($"SET {value}");
 
-        public Query Columns(params string[] values) => AddSimpleParameter($"({string.Join(',', values)})");
+        public Query Columns(params string[] values) => AddSimpleParameter($"({string.Join(",", values)})");
 
-        public Query Values(params string[] values) => AddSimpleParameter($"VALUES ({string.Join(',', values.Select(x => x.Envelope("\'")))})");
+        public Query Values(params string[] values) => AddSimpleParameter($"VALUES ({string.Join(",", values.Select(x => x.Envelope("\'")))})");
 
         public Query End() => AppendParameter(";");
 

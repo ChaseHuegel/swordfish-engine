@@ -14,12 +14,15 @@ using Swordfish.Engine.ECS;
 using Swordfish.Library.Extensions;
 using Swordfish.Engine.Rendering.Shapes;
 using Swordfish.Engine.Rendering.UI;
+using Swordfish.Engine.Util;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 
-using Color = Swordfish.Library.Types.Color;
+using Color = Swordfish.Engine.Types.Color;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 using Swordfish.Engine.Rendering.UI.Elements.Diagnostics;
+using Swordfish.Engine.Physics;
+using Swordfish.Engine.Types;
 
 namespace Swordfish.Engine.Rendering
 {
@@ -118,7 +121,7 @@ namespace Swordfish.Engine.Rendering
             GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
             Debug.Log($"Shader vertex attr supported: {maxAttributeCount}", LogType.CONTINUED);
 
-            Debug.TryCreateGLOutput();
+            GLDebug.TryCreateGLOutput();
 
             GuiController = new ImGuiController(Swordfish.MainWindow.ClientSize.X, Swordfish.MainWindow.ClientSize.Y);
             UiContext = new UiContext();
@@ -358,7 +361,7 @@ namespace Swordfish.Engine.Rendering
                     continue;
 
                 //  ... Not culled, sort the entity by distance
-                float distance = MathS.DistanceUnsquared(camera.transform.position, Swordfish.ECS.Get<TransformComponent>(entity).position);
+                float distance = MathE.DistanceUnsquared(camera.transform.position, Swordfish.ECS.Get<TransformComponent>(entity).position);
                 sortedEntities[distance] = entity;
             }
 
