@@ -14,7 +14,7 @@ namespace Swordfish.Library.Networking
         private static PacketManager s_Instance;
         private static PacketManager Instance => s_Instance ?? (s_Instance = Initialize());
 
-        private SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
+        public SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
 
         public static PacketManager Initialize()
         {
@@ -43,6 +43,11 @@ namespace Swordfish.Library.Networking
         }
 
         private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(32).Trim('.').Prepend("...");
+
+        public static void RegisterPacketDefinition(int id, PacketDefinition definition)
+        {
+            Instance.PacketDefinitions.Add(id, definition.Type, definition);
+        }
 
         public static void RegisterHandlers(Assembly assembly)
         {
