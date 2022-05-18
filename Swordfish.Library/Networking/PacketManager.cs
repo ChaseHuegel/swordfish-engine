@@ -44,7 +44,7 @@ namespace Swordfish.Library.Networking
 
         private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(32).Trim('.').Prepend("...");
 
-        private static void RegisterHandlers(Assembly assembly)
+        public static void RegisterHandlers(Assembly assembly)
         {
             bool logged = false;
             foreach (Type type in assembly.GetTypes())
@@ -77,7 +77,7 @@ namespace Swordfish.Library.Networking
             }
         }
 
-        private static void RegisterPackets(Assembly assembly)
+        public static void RegisterPackets(Assembly assembly)
         {
             bool logged = false;
             foreach (Type type in assembly.GetTypes())
