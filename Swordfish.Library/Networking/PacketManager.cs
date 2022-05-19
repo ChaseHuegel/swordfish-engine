@@ -11,45 +11,39 @@ namespace Swordfish.Library.Networking
 {
     public class PacketManager
     {
-        private static PacketManager s_Instance;
-        private static PacketManager Instance => s_Instance ?? (s_Instance = Initialize());
+        private static SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
 
-        private SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new SwitchDictionary<int, Type, PacketDefinition>();
-
-        public static PacketManager Initialize()
+        static PacketManager()
         {
-            if (s_Instance != null)
-            {
-                Console.WriteLine("Tried to re-initialize PacketManager while an instance already exists.");
-                return s_Instance;
-            }
-
-            s_Instance = new PacketManager();
-            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
-                RegisterPackets(assembly);
-                RegisterHandlers(assembly);
-            }
-
+            RegisterAssembly(Assembly.GetExecutingAssembly());
             AppDomain.CurrentDomain.AssemblyLoad += OnAssemblyLoad;
+        }
 
-            return s_Instance;
+        public static void RegisterPacketDefinition(int id, PacketDefinition definition)
+        {
+            PacketDefinitions.Add(id, definition.Type, definition);
+        }
+
+        public static void RegisterAssembly() => RegisterAssembly(Assembly.GetCallingAssembly());
+
+        public static void RegisterAssembly<T>() => RegisterAssembly(Assembly.GetAssembly(typeof(T)));
+
+        public static void RegisterAssembly(Type type) => RegisterAssembly(Assembly.GetAssembly(type));
+
+        public static void RegisterAssembly(Assembly assembly)
+        {
+            RegisterPackets(assembly);
+            RegisterHandlers(assembly);
         }
 
         private static void OnAssemblyLoad(object sender, AssemblyLoadEventArgs args)
         {
-            RegisterPackets(args.LoadedAssembly);
-            RegisterHandlers(args.LoadedAssembly);
+            RegisterAssembly(args.LoadedAssembly);
         }
 
         private static string TruncateToString(object obj) => obj.ToString().TruncateStartUpTo(32).Trim('.').Prepend("...");
 
-        public static void RegisterPacketDefinition(int id, PacketDefinition definition)
-        {
-            Instance.PacketDefinitions.Add(id, definition.Type, definition);
-        }
-
-        public static void RegisterHandlers(Assembly assembly)
+        private static void RegisterHandlers(Assembly assembly)
         {
             bool logged = false;
             foreach (Type type in assembly.GetTypes())
@@ -67,9 +61,7 @@ namespace Swordfish.Library.Networking
                     if (IsValidHandlerParameters(method.GetParameters()))
                     {
                         if (packetHandlerAttribute.PacketType == null)
-                        {
                             packetHandlerAttribute.PacketType = method.DeclaringType is ISerializedPacket ? method.DeclaringType : method.GetParameters()[1].ParameterType;
-                        }
 
                         GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
                         Console.WriteLine(
@@ -84,7 +76,7 @@ namespace Swordfish.Library.Networking
             }
         }
 
-        public static void RegisterPackets(Assembly assembly)
+        private static void RegisterPackets(Assembly assembly)
         {
             bool logged = false;
             foreach (Type type in assembly.GetTypes())
@@ -107,7 +99,7 @@ namespace Swordfish.Library.Networking
                             RequiresSession = packetAttribute.RequiresSession
                         };
 
-                        Instance.PacketDefinitions.Add(id, definition.Type, definition);
+                        PacketDefinitions.Add(id, definition.Type, definition);
                         Console.WriteLine($"- '{definition}'");
                     }
                     else
@@ -118,11 +110,11 @@ namespace Swordfish.Library.Networking
             }
         }
 
-        public static PacketDefinition GetPacketDefinition(int id) => Instance.PacketDefinitions[id];
+        public static PacketDefinition GetPacketDefinition(int id) => PacketDefinitions[id];
 
-        public static PacketDefinition GetPacketDefinition(Type type) => Instance.PacketDefinitions[type];
+        public static PacketDefinition GetPacketDefinition(Type type) => PacketDefinitions[type];
 
-        public static PacketDefinition GetPacketDefinition(ISerializedPacket packet) => Instance.PacketDefinitions[packet.GetType()];
+        public static PacketDefinition GetPacketDefinition(ISerializedPacket packet) => PacketDefinitions[packet.GetType()];
 
         private static bool IsValidHandlerParameters(ParameterInfo[] parameters)
         {
