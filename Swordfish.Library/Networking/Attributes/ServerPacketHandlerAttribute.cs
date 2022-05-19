@@ -9,5 +9,11 @@ namespace Swordfish.Library.Networking.Attributes
     [AttributeUsage(AttributeTargets.Method)]
     public class ServerPacketHandlerAttribute : PacketHandlerAttribute
     {
+        public ServerPacketHandlerAttribute() { }
+
+        public ServerPacketHandlerAttribute(Type packetType)
+        {
+            PacketType = packetType;
+        }
     }
 }
