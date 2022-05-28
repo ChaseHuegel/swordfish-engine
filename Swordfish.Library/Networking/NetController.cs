@@ -11,11 +11,19 @@ namespace Swordfish.Library.Networking
 {
     public class NetController
     {
+        private class SequencePair {
+            public uint Sent, Received;
+        }
+        
+        private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
+
         private UdpClient Udp { get; set; }
 
         private IPEndPoint EndPoint { get; set; }
 
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
+
+        private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
 
         /// <summary>
         /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
@@ -167,7 +175,9 @@ namespace Swordfish.Library.Networking
             try {
                 int sessionID = packet.ReadInt();
                 int packetID = packet.ReadInt();
+                uint packetSequence = packet.ReadUInt();
                 PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packetID);
+                SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
                 netEventArgs.PacketID = packetID;
 
@@ -176,11 +186,16 @@ namespace Swordfish.Library.Networking
                 //  The packet is accepted if:
                 //  -   the packet doesn't require a session
                 //  -   OR the provided session is valid
+                //  -   AND the sequence is new IF the packet is ordered
                 NetSession session = null;
-                if (!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
+                if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
+                    && (packetDefinition.Ordered ? packetSequence >= currentSequence.Received : true))
                 {
                     netEventArgs.Session = session;
                     PacketAccepted?.Invoke(this, netEventArgs);
+
+                    //  Update the sequence of this packet
+                    currentSequence.Received = packetSequence;
 
                     //  Deserialize the packet and invoke it's handlers
                     object deserializedPacket = (ISerializedPacket) packet.Deserialize(packetDefinition.Type);
@@ -224,9 +239,13 @@ namespace Swordfish.Library.Networking
 
         private Packet SignPacket(ISerializedPacket value)
         {
+            int packetID = PacketManager.GetPacketDefinition(value).ID;
+            SequencePair currentSequence = PacketSequences.GetOrAdd(packetID, SequencePairFactory);
+
             return Packet.Create()
                     .Write(Session.ID)
-                    .Write(PacketManager.GetPacketDefinition(value).ID)
+                    .Write(packetID)
+                    .Write(currentSequence.Sent++)  //  Increment the sequnce for this packet
                     .Serialize(value);
         }
 
@@ -257,6 +276,7 @@ namespace Swordfish.Library.Networking
             Packet packet = buffer;
             int sessionID = packet.ReadInt();
             int packetID = packet.ReadInt();
+            uint packetSequence = packet.ReadUInt();
 
             NetEventArgs netEventArgs = new NetEventArgs {
                 Packet = packet,
@@ -273,6 +293,7 @@ namespace Swordfish.Library.Networking
             Packet packet = buffer;
             int sessionID = packet.ReadInt();
             int packetID = packet.ReadInt();
+            uint packetSequence = packet.ReadUInt();
 
             NetEventArgs netEventArgs = new NetEventArgs {
                 Packet = packet,

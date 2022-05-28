@@ -107,6 +107,7 @@ namespace Swordfish.Library.Networking
         {
             if      (value is string)       WriteString(value);
             else if (value is int)          WriteInt(value);
+            else if (value is uint)         WriteUInt(value);
             else if (value is float)        WriteFloat(value);
             else if (value is bool)         WriteBool(value);
             else if (value is MultiBool)    WriteMultiBool(value);
@@ -148,6 +149,7 @@ namespace Swordfish.Library.Networking
         }
 
         private void WriteInt(object value) => Append( BitConverter.GetBytes((int)value) );
+        private void WriteUInt(object value) => Append( BitConverter.GetBytes((uint)value) );
         private void WriteFloat(object value) => Append( BitConverter.GetBytes((float)value) );
         private void WriteBool(object value) => Append( BitConverter.GetBytes((bool)value) );
         private void WriteMultiBool(object value) => Append( ByteConverter.GetBytes((MultiBool)value) );
@@ -182,6 +184,7 @@ namespace Swordfish.Library.Networking
         {
             if      (type == typeof(string))    return ReadString();
             else if (type == typeof(int))       return ReadInt();
+            else if (type == typeof(uint))      return ReadUInt();
             else if (type == typeof(float))     return ReadFloat();
             else if (type == typeof(bool))      return ReadBool();
             else if (type == typeof(MultiBool)) return ReadMultiBool();
@@ -212,6 +215,12 @@ namespace Swordfish.Library.Networking
         {
             readIndex += 4;
             return BitConverter.ToInt32( GetBytes(readIndex-4, 4), 0 );
+        }
+
+        public uint ReadUInt()
+        {
+            readIndex += 4;
+            return BitConverter.ToUInt32( GetBytes(readIndex-4, 4), 0 );
         }
 
         public float ReadFloat()

@@ -13,11 +13,13 @@ namespace Swordfish.Library.Networking
 
         public List<PacketHandler> Handlers { get; set; } = new List<PacketHandler>();
 
-        public bool RequiresSession { get; set; } = true;
+        public bool RequiresSession { get; set; }
+
+        public bool Ordered { get; set; }
 
         public override string ToString()
         {
-            return $"{Type} [id: {ID}] [requires session: {RequiresSession}]";
+            return $"{Type} [id: {ID}] [requires session: {RequiresSession}] [ordered: {Ordered}]";
         }
     }
 }

@@ -7,6 +7,8 @@ namespace Swordfish.Library.Networking.Attributes
     {
         public bool RequiresSession = true;
 
+        public bool Ordered = false;
+
         public int? PacketID;
     }
 }
