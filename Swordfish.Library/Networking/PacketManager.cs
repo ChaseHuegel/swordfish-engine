@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Networking.Attributes;
 using Swordfish.Library.Networking.Interfaces;
@@ -54,7 +54,7 @@ namespace Swordfish.Library.Networking
                 {
                     if (!logged)
                     {
-                        Console.WriteLine($"Registering packet handlers from assembly '{assembly}'...");
+                        Debug.Log($"Registering packet handlers from assembly '{assembly}'...");
                         logged = true;
                     }
 
@@ -64,13 +64,11 @@ namespace Swordfish.Library.Networking
                             packetHandlerAttribute.PacketType = method.DeclaringType is ISerializedPacket ? method.DeclaringType : method.GetParameters()[1].ParameterType;
 
                         GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
-                        Console.WriteLine(
-                            $"- '{TruncateToString($"{method.DeclaringType}.{method.Name}")}'"
-                            + $" to '{TruncateToString(packetHandlerAttribute.PacketType)}'");
+                        Debug.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
                     }
                     else
                     {
-                        Console.WriteLine($"- Ignored '{TruncateToString(method.DeclaringType)}' decorated as a PacketHandler with invalid signature.");
+                        Debug.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
                     }
                 }
             }
@@ -86,7 +84,7 @@ namespace Swordfish.Library.Networking
                 {
                     if (!logged)
                     {
-                        Console.WriteLine($"Registering packets from assembly '{assembly}'...");
+                        Debug.Log($"Registering packets from assembly '{assembly}'...");
                         logged = true;
                     }
 
@@ -100,11 +98,11 @@ namespace Swordfish.Library.Networking
                         };
 
                         PacketDefinitions.Add(id, definition.Type, definition);
-                        Console.WriteLine($"- '{definition}'");
+                        Debug.Log(definition, LogType.CONTINUED);
                     }
                     else
                     {
-                        Console.WriteLine($"- Ignored '{type}' decorated as a packet but does not implement {typeof(ISerializedPacket)}");
+                        Debug.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(ISerializedPacket)}", LogType.WARNING);
                     }
                 }
             }

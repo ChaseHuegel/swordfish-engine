@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Interfaces;
 
 namespace Swordfish.Library.Networking
@@ -14,7 +14,7 @@ namespace Swordfish.Library.Networking
         private class SequencePair {
             public uint Sent, Received;
         }
-        
+
         private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
 
         private UdpClient Udp { get; set; }
@@ -146,11 +146,11 @@ namespace Swordfish.Library.Networking
                 };
 
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-                Console.WriteLine($"NetController session started [{Session}]");
+                Debug.Log($"NetController session started [{Session}]");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"NetController failed to start on [{port}]\n{ex}");
+                Debug.Log($"NetController failed to start on [{port}]\n{ex}", LogType.ERROR);
             }
         }
 
@@ -220,8 +220,9 @@ namespace Swordfish.Library.Networking
                     PacketRejected?.Invoke(this, netEventArgs);
                 }
             }
-            catch
+            catch (Exception e)
             {
+                Debug.Log(e, LogType.ERROR);
                 PacketUnknown?.Invoke(this, netEventArgs);
             }
 

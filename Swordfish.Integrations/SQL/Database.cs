@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Integrations.SQL
 {
@@ -35,7 +36,7 @@ namespace Swordfish.Integrations.SQL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Caught exception executing an SQL query! {ex}");
+                Debug.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
                 return false;
             }
         }
@@ -57,7 +58,7 @@ namespace Swordfish.Integrations.SQL
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Caught exception executing an SQL query! {ex}");
+                Debug.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
                 return new QueryResult(null);
             }
         }

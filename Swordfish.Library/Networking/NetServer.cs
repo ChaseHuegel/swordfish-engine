@@ -1,5 +1,5 @@
 using System;
-
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 
 namespace Swordfish.Library.Networking
@@ -8,7 +8,7 @@ namespace Swordfish.Library.Networking
     {
         public NetServer(int port) : base(port)
         {
-            Console.WriteLine($"Server started on {this.Session.EndPoint}");
+            Debug.Log($"Server started on {this.Session.EndPoint}");
 
             this.PacketSent += OnPacketSent;
             this.PacketReceived += OnPacketReceived;
@@ -22,42 +22,42 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnPacketSent(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->sent {e.PacketID} to {e.EndPoint}");
+            Debug.Log($"server->sent {e.PacketID} to {e.EndPoint}");
         }
 
         public virtual void OnPacketReceived(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->recieve {e.PacketID} from {e.EndPoint}");
+            Debug.Log($"server->recieve {e.PacketID} from {e.EndPoint}");
         }
 
         public virtual void OnPacketAccepted(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->accept {e.PacketID} from {e.EndPoint}");
+            Debug.Log($"server->accept {e.PacketID} from {e.EndPoint}");
         }
 
         public virtual void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->reject {e.PacketID} from {e.EndPoint}");
+            Debug.Log($"server->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->unknown '{e.Packet.ToString().TruncateUpTo(24).Append("[...]")}' from {e.EndPoint}");
+            Debug.Log($"server->unknown '{e.Packet.ToString().TruncateUpTo(24).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnSessionStarted(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session [{e.Session}] joined from {e.EndPoint}");
+            Debug.Log($"server->session [{e.Session}] joined from {e.EndPoint}");
         }
 
         public virtual void OnSessionRejected(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session rejected from {e.EndPoint}");
+            Debug.Log($"server->session rejected from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnSessionEnded(object sender, NetEventArgs e)
         {
-            Console.WriteLine($"server->session [{e.Session}] left from {e.EndPoint}");
+            Debug.Log($"server->session [{e.Session}] left from {e.EndPoint}");
         }
     }
 }

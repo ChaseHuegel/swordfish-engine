@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-
+using Swordfish.Library.Diagnostics;
 using Tomlet;
 
 namespace Swordfish.Library.Util
@@ -16,34 +16,33 @@ namespace Swordfish.Library.Util
         {
             string tomlString = "";
             T config = Activator.CreateInstance<T>();
-            Console.WriteLine($"Loading {typeof(T).Name} from '{path}' ...");
+            Debug.Log($"Loading {typeof(T).Name} from '{path}' ...");
 
             try
             {
                 tomlString = File.ReadAllText(path);
             }
+            catch (Exception e) when (e is FileNotFoundException || e is DirectoryNotFoundException)
+            {
+                tomlString = TomletMain.DocumentFrom<T>(config).SerializedValue;
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                File.WriteAllText(path, tomlString);
+                Debug.Log($"...{typeof(T).Name} was not found, created from default at '{Path.GetFileName(path)}'", LogType.WARNING);
+            }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-
-                if (e is FileNotFoundException || e is DirectoryNotFoundException)
-                {
-                    tomlString = TomletMain.DocumentFrom<T>(config).SerializedValue;
-                    Directory.CreateDirectory(Path.GetDirectoryName(path));
-                    File.WriteAllText(path, tomlString);
-                    Console.WriteLine($"...Created file from default {typeof(T).Name} at '{Path.GetFileName(path)}'");
-                }
+                Debug.Log(e.Message, LogType.ERROR);
             }
 
             try
             {
                 config = TomletMain.To<T>(tomlString);
-                Console.WriteLine($"Loaded {typeof(T).Name}.");
+                Debug.Log($"Loaded {typeof(T).Name}.");
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
-                Console.WriteLine($"Falling back to default {typeof(T).Name}.");
+                Debug.Log(e.Message);
+                Debug.Log($"Falling back to default {typeof(T).Name}.", LogType.WARNING);
             }
 
             return config;

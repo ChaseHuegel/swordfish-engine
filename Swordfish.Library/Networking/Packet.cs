@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
-
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
@@ -113,7 +113,7 @@ namespace Swordfish.Library.Networking
             else if (value is MultiBool)    WriteMultiBool(value);
             else if (value is string[])     WriteStringArray(value);
             else if (value == null)         Append(BitConverter.GetBytes(0));
-            else Console.WriteLine($"Unsupported type [{value?.GetType()}] passed to Packet.Write()");
+            else Debug.Log($"Unsupported type [{value?.GetType()}] passed to Packet.Write()", LogType.ERROR);
 
             return this;
         }
