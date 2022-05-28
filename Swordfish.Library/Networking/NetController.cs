@@ -134,6 +134,8 @@ namespace Swordfish.Library.Networking
                     var endPoint = new IPEndPoint(address, port);
                     Udp = new UdpClient(endPoint);
                 }
+
+                PacketSequences = new ConcurrentDictionary<int, SequencePair>();
                 
                 //  Setup sessions; ensure the local connection is assigned a session.
                 Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
