@@ -112,6 +112,7 @@ namespace Swordfish.Library.Networking
             else if (value is bool)         WriteBool(value);
             else if (value is MultiBool)    WriteMultiBool(value);
             else if (value is string[])     WriteStringArray(value);
+            else if (value is int[])        WriteInt32Array(value);
             else if (value == null)         Append(BitConverter.GetBytes(0));
             else Debug.Log($"Unsupported type [{value?.GetType()}] passed to Packet.Write()", LogType.ERROR);
 
@@ -180,6 +181,19 @@ namespace Swordfish.Library.Networking
                 WriteString(s);
         }
 
+        private void WriteInt32Array(object value)
+        {
+            int[] ints = (int[])value ?? Array.Empty<int>();
+
+            //  Write an int noting the length of the array in bytes
+            byte[] bytes = BitConverter.GetBytes(ints.Length);
+            Append(bytes);
+
+            //  Write the ints
+            foreach (int i in ints)
+                WriteInt(i);
+        }
+
         public object Read(Type type)
         {
             if      (type == typeof(string))    return ReadString();
@@ -189,6 +203,7 @@ namespace Swordfish.Library.Networking
             else if (type == typeof(bool))      return ReadBool();
             else if (type == typeof(MultiBool)) return ReadMultiBool();
             else if (type == typeof(string[]))  return ReadStringArray();
+            else if (type == typeof(int[]))     return ReadInt32Array();
 
             return type.GetDefault();
             throw new ArgumentOutOfRangeException($"{type} is unsupported by Packet.Read!");
@@ -251,6 +266,18 @@ namespace Swordfish.Library.Networking
                 strings[i] = ReadString();
 
             return strings;
+        }
+
+        public int[] ReadInt32Array()
+        {
+            int length = BitConverter.ToInt32( GetBytes(readIndex, 4), 0 );
+            readIndex += 4;
+            
+            int[] ints = new int[length];
+            for (int i = 0; i < length; i++)
+                ints[i] = ReadInt();
+
+            return ints;
         }
     }
 }
