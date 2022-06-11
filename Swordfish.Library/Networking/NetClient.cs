@@ -27,17 +27,14 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnPacketSent(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->sent {e.PacketID} to {e.EndPoint}");
         }
 
         public virtual void OnPacketReceived(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->recieve {e.PacketID} from {e.EndPoint}");
         }
 
         public virtual void OnPacketAccepted(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->accept {e.PacketID} from {e.EndPoint}");
         }
 
         public virtual void OnPacketRejected(object sender, NetEventArgs e)
@@ -47,7 +44,7 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(24).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
+            Debug.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }
     }
 }
