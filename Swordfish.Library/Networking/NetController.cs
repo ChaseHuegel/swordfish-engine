@@ -4,8 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Interfaces;
+using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
 {
@@ -57,6 +59,11 @@ namespace Swordfish.Library.Networking
         public bool IsFull => SessionCount >= MaxSessions;
 
         /// <summary>
+        /// Whether this <see cref="NetController"/> has any active sessions.
+        /// </summary>
+        public bool IsConnected => SessionCount > 0;
+
+        /// <summary>
         /// Whether to validate session IDs.
         /// Should be true to ensure a layer of session security.
         /// <para/>
@@ -87,6 +94,8 @@ namespace Swordfish.Library.Networking
         public EventHandler<NetEventArgs> SessionStarted;
         public EventHandler<NetEventArgs> SessionEnded;
         public EventHandler<NetEventArgs> SessionRejected;
+        public EventHandler<NetEventArgs> Connected;
+        public EventHandler<NetEventArgs> Disconnected;
 
         /// <summary>
         /// Initialize a NetController that automatically binds.
@@ -137,10 +146,7 @@ namespace Swordfish.Library.Networking
 
                 PacketSequences = new ConcurrentDictionary<int, SequencePair>();
                 
-                //  Setup sessions; ensure the local connection is assigned a session.
-                Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
-                TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession session);
-                Session = session;
+                InitializeSessions();
 
                 DefaultHost = host ?? new Host{
                     Address = Session.EndPoint.Address,
@@ -156,6 +162,27 @@ namespace Swordfish.Library.Networking
             }
         }
 
+        private void InitializeSessions()
+        {
+            if (Sessions != null)
+            {
+                foreach (NetSession session in Sessions.Values)
+                {
+                    if (session.ID != NetSession.LocalOrUnassigned)
+                        SessionEnded?.Invoke(this, new NetEventArgs {
+                            EndPoint = session.EndPoint,
+                            Session = session
+                        });
+                }
+            }
+
+            Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
+
+            //  Ensure the local connection is assigned a session.
+            TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession localSession);
+            Session = localSession;
+        }
+
         private void OnSend(IAsyncResult result)
         {
             Udp.EndSend(result);
@@ -167,12 +194,22 @@ namespace Swordfish.Library.Networking
         private void OnReceive(IAsyncResult result)
         {
             IPEndPoint endPoint = new IPEndPoint(IPAddress.Any, 0);
-            Packet packet = Udp.EndReceive(result, ref endPoint);
+
+            Packet packet = null;
+            try {
+                packet = Udp.EndReceive(result, ref endPoint);
+            }
+            catch (SocketException)
+            {
+                //  There was a connection issue, continue receiving data.
+                Udp.BeginReceive(new AsyncCallback(OnReceive), null);
+                return;
+            }
 
             NetEventArgs netEventArgs = new NetEventArgs {
-                    Packet = packet,
-                    EndPoint = endPoint
-                };
+                Packet = packet,
+                EndPoint = endPoint
+            };
 
             try {
                 int sessionID = packet.ReadInt();
@@ -307,6 +344,11 @@ namespace Swordfish.Library.Networking
             Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
         }
 
+        public void Broadcast<T>() where T : ISerializedPacket
+        {
+            Broadcast(default(T));
+        }
+
         public void Broadcast(ISerializedPacket packet)
         {
             foreach (NetSession session in Sessions.Values)
@@ -323,6 +365,25 @@ namespace Swordfish.Library.Networking
         {
             foreach (NetSession session in Sessions.Values.Except(blacklist))
                 if (session != Session) Send(packet, session);
+        }
+
+        public void Disconnect()
+        {
+            if (IsConnected)
+            {
+                Broadcast<DisconnectPacket>();
+                InvokeLocalDisconnect();
+            }
+            else
+            {
+                Debug.Log("Tried to disconnect but there are no active sessions.", LogType.WARNING);
+            }
+        }
+
+        internal void InvokeLocalDisconnect()
+        {
+            InitializeSessions();
+            Disconnected?.Invoke(this, NetEventArgs.Empty);
         }
 
         /// <summary>
@@ -360,10 +421,13 @@ namespace Swordfish.Library.Networking
                 //  TODO recycle session IDs
                 session.ID = Sessions.Count-1;
 
-                SessionStarted?.Invoke(this, new NetEventArgs {
-                    EndPoint = endPoint,
-                    Session = session
-                });
+                if (session.ID != NetSession.LocalOrUnassigned)
+                {
+                    SessionStarted?.Invoke(this, new NetEventArgs {
+                        EndPoint = endPoint,
+                        Session = session
+                    });
+                }
 
                 return true;
             }
@@ -375,6 +439,47 @@ namespace Swordfish.Library.Networking
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Attempts to remove a <see cref="NetSession"/> with a specific ID.
+        /// </summary>
+        /// <param name="id">the id of the session to remove</param>
+        /// <returns>true if the session was removed; otherwise false</returns>
+        public bool TryRemoveSession(int id)
+        {
+            NetSession session = Sessions.FirstOrDefault(record => record.Value.ID == id).Value;
+            return session != null && TryRemoveSession(session);
+        }
+
+        /// <summary>
+        /// Attempts to remove a <see cref="NetSession"/>.
+        /// </summary>
+        /// <param name="NetSession">the session to remove</param>
+        /// <returns>true if the session was removed; otherwise false</returns>
+        /// <exception cref="ArgumentNullException">session is null.</exception>
+        /// <exception cref="ArgumentException">session is the local session.</exception>
+        public bool TryRemoveSession(NetSession session)
+        {
+            if (session == null)
+                throw new ArgumentNullException();
+            else if (session.Equals(Session))
+                throw new ArgumentException();
+            
+            if (Sessions.TryRemove(session.EndPoint, out _))
+            {
+                if (session.ID != NetSession.LocalOrUnassigned)
+                {
+                    SessionEnded?.Invoke(this, new NetEventArgs {
+                        EndPoint = session.EndPoint,
+                        Session = session
+                    });
+                }
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

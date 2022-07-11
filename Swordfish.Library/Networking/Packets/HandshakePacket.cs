@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
 using Swordfish.Library.Networking.Interfaces;
@@ -19,6 +20,10 @@ namespace Swordfish.Library.Networking.Packets
 
         public static Func<EndPoint, bool> ValidateHandshakeCallback { get; set; }
 
+        public static HandshakePacket New => new HandshakePacket {
+            Signature = ValidationSignature
+        };
+
         [ClientPacketHandler]
         public static void ClientHandshakeHandler(NetController net, HandshakePacket packet, NetEventArgs e)
         {
@@ -26,6 +31,7 @@ namespace Swordfish.Library.Networking.Packets
             {
                 net.Session.ID = packet.ClientID;
                 Debug.Log($"Joined [{serverSession}] with session [{net.Session}]");
+                net.Connected?.Invoke(net, NetEventArgs.Empty);
             }
             else
             {
