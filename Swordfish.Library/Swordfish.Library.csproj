@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PackageId>Swordfish.Library</PackageId>
-    <Version>1.3.22</Version>
+    <Version>1.3.25</Version>
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
