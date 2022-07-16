@@ -5,8 +5,9 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 
+using Needlefish;
+
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Networking.Interfaces;
 using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
@@ -212,13 +213,11 @@ namespace Swordfish.Library.Networking
             };
 
             try {
-                int sessionID = packet.ReadInt();
-                int packetID = packet.ReadInt();
-                uint packetSequence = packet.ReadUInt();
-                PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packetID);
+                packet.Unpack();
+                PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet.PacketID);
                 SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
-                netEventArgs.PacketID = packetID;
+                netEventArgs.PacketID = packet.PacketID;
 
                 PacketReceived?.Invoke(this, netEventArgs);
 
@@ -227,29 +226,29 @@ namespace Swordfish.Library.Networking
                 //  -   OR the provided session is valid
                 //  -   AND the sequence is new IF the packet is ordered
                 NetSession session = null;
-                if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, sessionID, out session))
-                    && (packetDefinition.Ordered ? packetSequence >= currentSequence.Received : true))
+                if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
+                    && (packetDefinition.Ordered ? packet.Sequence >= currentSequence.Received : true))
                 {
                     netEventArgs.Session = session;
                     PacketAccepted?.Invoke(this, netEventArgs);
 
-                    //  Update the sequence of this packet
-                    currentSequence.Received = packetSequence;
+                    //  Update this packet sequence
+                    currentSequence.Received = packet.Sequence;
 
-                    //  Deserialize the packet and invoke it's handlers
-                    object deserializedPacket = (ISerializedPacket) packet.Deserialize(packetDefinition.Type);
+                    //  Deserialize the data and invoke the packet's handlers
+                    IDataBody deserializeData = NeedlefishFormatter.Deserialize(packetDefinition.Type, packet.Data);
                     foreach (PacketHandler handler in packetDefinition.Handlers)
                     {
                         switch (handler.Type)
                         {
                             case PacketHandlerType.SERVER:
-                                if (this is NetServer) handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                if (this is NetServer) handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
                                 break;
                             case PacketHandlerType.CLIENT:
-                                if (this is NetClient) handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                if (this is NetClient) handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
                                 break;
                             case PacketHandlerType.AGNOSTIC:
-                                handler.Method.Invoke(null, new object[] { this, deserializedPacket, netEventArgs });
+                                handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
                                 break;
                         }
                     }
@@ -277,19 +276,16 @@ namespace Swordfish.Library.Networking
             return validEndpoint && validID;
         }
 
-        private Packet SignPacket(ISerializedPacket value)
+        private byte[] SignPacket(IDataBody value)
         {
             int packetID = PacketManager.GetPacketDefinition(value).ID;
             SequencePair currentSequence = PacketSequences.GetOrAdd(packetID, SequencePairFactory);
 
-            return Packet.Create()
-                    .Write(Session.ID)
-                    .Write(packetID)
-                    .Write(currentSequence.Sent++)  //  Increment the sequnce for this packet
-                    .Serialize(value);
+            //  Ensure we increment the sequence for this packet
+            return Packet.Create(Session.ID, packetID, currentSequence.Sent++, value).Pack();
         }
 
-        public void Send(ISerializedPacket packet)
+        public void Send(IDataBody packet)
         {
             if (string.IsNullOrEmpty(DefaultHost.Hostname))
                 Send(SignPacket(packet), DefaultHost.EndPoint.Address, DefaultHost.EndPoint.Port);
@@ -297,13 +293,13 @@ namespace Swordfish.Library.Networking
                 Send(SignPacket(packet), DefaultHost.Hostname, DefaultHost.Port);
         }
 
-        public void Send(ISerializedPacket packet, NetSession session) => Send(SignPacket(packet), session.EndPoint.Address, session.EndPoint.Port);
+        public void Send(IDataBody packet, NetSession session) => Send(SignPacket(packet), session.EndPoint.Address, session.EndPoint.Port);
 
-        public void Send(ISerializedPacket packet, IPEndPoint endPoint) => Send(SignPacket(packet), endPoint.Address, endPoint.Port);
+        public void Send(IDataBody packet, IPEndPoint endPoint) => Send(SignPacket(packet), endPoint.Address, endPoint.Port);
 
-        public void Send(ISerializedPacket packet, IPAddress address, int port) => Send(SignPacket(packet), address, port);
+        public void Send(IDataBody packet, IPAddress address, int port) => Send(SignPacket(packet), address, port);
 
-        public void Send(ISerializedPacket packet, string hostname, int port) => Send(SignPacket(packet), hostname, port);
+        public void Send(IDataBody packet, string hostname, int port) => Send(SignPacket(packet), hostname, port);
 
         public void Send(byte[] buffer, IPAddress address, int port)
         {
@@ -314,13 +310,11 @@ namespace Swordfish.Library.Networking
             EndPoint.Port = port;
 
             Packet packet = buffer;
-            int sessionID = packet.ReadInt();
-            int packetID = packet.ReadInt();
-            uint packetSequence = packet.ReadUInt();
+            packet.PeakHeaders();
 
             NetEventArgs netEventArgs = new NetEventArgs {
                 Packet = packet,
-                PacketID = packetID,
+                PacketID = packet.PacketID,
                 EndPoint = EndPoint
             };
 
@@ -331,37 +325,35 @@ namespace Swordfish.Library.Networking
         {
             IPEndPoint endPoint = new IPEndPoint(NetUtils.GetHostAddress(hostname), port);
             Packet packet = buffer;
-            int sessionID = packet.ReadInt();
-            int packetID = packet.ReadInt();
-            uint packetSequence = packet.ReadUInt();
+            packet.PeakHeaders();
 
             NetEventArgs netEventArgs = new NetEventArgs {
                 Packet = packet,
-                PacketID = packetID,
+                PacketID = packet.PacketID,
                 EndPoint = endPoint
             };
 
             Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
         }
 
-        public void Broadcast<T>() where T : ISerializedPacket
+        public void Broadcast<T>() where T : IDataBody
         {
             Broadcast(default(T));
         }
 
-        public void Broadcast(ISerializedPacket packet)
+        public void Broadcast(IDataBody packet)
         {
             foreach (NetSession session in Sessions.Values)
                 if (session != Session) Send(packet, session);
         }
 
-        public void BroadcastTo(ISerializedPacket packet, params NetSession[] whitelist)
+        public void BroadcastTo(IDataBody packet, params NetSession[] whitelist)
         {
             foreach (NetSession session in whitelist)
                 if (session != Session) Send(packet, session);
         }
 
-        public void BroadcastExcept(ISerializedPacket packet, params NetSession[] blacklist)
+        public void BroadcastExcept(IDataBody packet, params NetSession[] blacklist)
         {
             foreach (NetSession session in Sessions.Values.Except(blacklist))
                 if (session != Session) Send(packet, session);

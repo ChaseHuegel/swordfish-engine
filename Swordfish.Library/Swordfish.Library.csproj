@@ -6,11 +6,12 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PackageId>Swordfish.Library</PackageId>
-    <Version>1.3.26</Version>
+    <Version>2.0.8</Version>
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Needlefish" Version="1.1.9" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
     <PackageReference Include="Samboy063.Tomlet" Version="1.3.3" />
   </ItemGroup>

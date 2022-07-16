@@ -1,10 +1,11 @@
 using System;
-using System.Collections.Generic;
 using System.Reflection;
+
+using Needlefish;
+
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Networking.Attributes;
-using Swordfish.Library.Networking.Interfaces;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Library.Networking
@@ -61,7 +62,7 @@ namespace Swordfish.Library.Networking
                     if (IsValidHandlerParameters(method.GetParameters()))
                     {
                         if (packetHandlerAttribute.PacketType == null)
-                            packetHandlerAttribute.PacketType = method.DeclaringType is ISerializedPacket ? method.DeclaringType : method.GetParameters()[1].ParameterType;
+                            packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
 
                         GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
                         Debug.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
@@ -88,7 +89,7 @@ namespace Swordfish.Library.Networking
                         logged = true;
                     }
 
-                    if (typeof(ISerializedPacket).IsAssignableFrom(type))
+                    if (typeof(IDataBody).IsAssignableFrom(type))
                     {
                         ushort id = (ushort)(packetAttribute.PacketID ?? type.FullName.ToSeed());
                         PacketDefinition definition = new PacketDefinition {
@@ -102,7 +103,7 @@ namespace Swordfish.Library.Networking
                     }
                     else
                     {
-                        Debug.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(ISerializedPacket)}", LogType.WARNING);
+                        Debug.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
                     }
                 }
             }
@@ -112,13 +113,13 @@ namespace Swordfish.Library.Networking
 
         public static PacketDefinition GetPacketDefinition(Type type) => PacketDefinitions[type];
 
-        public static PacketDefinition GetPacketDefinition(ISerializedPacket packet) => PacketDefinitions[packet.GetType()];
+        public static PacketDefinition GetPacketDefinition(IDataBody packet) => PacketDefinitions[packet.GetType()];
 
         private static bool IsValidHandlerParameters(ParameterInfo[] parameters)
         {
             return parameters.Length == 3
                 && (parameters[0].ParameterType == typeof(NetController) || parameters[0].ParameterType.BaseType == typeof(NetController))
-                && typeof(ISerializedPacket).IsAssignableFrom(parameters[1].ParameterType)
+                && typeof(IDataBody).IsAssignableFrom(parameters[1].ParameterType)
                 && parameters[2].ParameterType == typeof(NetEventArgs);
         }
     }

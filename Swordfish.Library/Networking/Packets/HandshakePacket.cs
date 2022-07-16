@@ -1,14 +1,11 @@
-using System;
-using System.Net;
+using Needlefish;
 
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
-using Swordfish.Library.Networking.Interfaces;
 
 namespace Swordfish.Library.Networking.Packets
 {
     [Packet(RequiresSession = false)]
-    public struct HandshakePacket : ISerializedPacket
+    public struct HandshakePacket : IDataBody
     {
         public static string ValidationSignature { get; set; }
 
