@@ -2,7 +2,7 @@ using System;
 
 namespace Swordfish.Library.Networking.Attributes
 {
-    [AttributeUsage(AttributeTargets.Struct)]
+    [AttributeUsage(AttributeTargets.Class)]
     public class PacketAttribute : Attribute
     {
         public bool RequiresSession = true;

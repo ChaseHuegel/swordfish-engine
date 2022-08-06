@@ -5,7 +5,7 @@ using Swordfish.Library.Networking.Attributes;
 namespace Swordfish.Library.Networking.Packets
 {
     [Packet(RequiresSession = false)]
-    public struct HandshakePacket : IDataBody
+    public class HandshakePacket : Packet
     {
         public static string ValidationSignature { get; set; }
 
