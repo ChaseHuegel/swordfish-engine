@@ -230,14 +230,16 @@ namespace Swordfish.Library.Networking
                 if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
                     && (packetDefinition.Ordered ? packet.Sequence >= currentSequence.Received : true))
                 {
-                    netEventArgs.Session = session;
-                    PacketAccepted?.Invoke(this, netEventArgs);
-
                     //  Update this packet sequence
                     currentSequence.Received = packet.Sequence;
 
                     //  Deserialize the data and invoke the packet's handlers
                     IDataBody deserializeData = NeedlefishFormatter.Deserialize(packetDefinition.Type, buffer);
+
+                    netEventArgs.Packet = (Packet)deserializeData;
+                    netEventArgs.Session = session;
+                    PacketAccepted?.Invoke(this, netEventArgs);
+                    
                     foreach (PacketHandler handler in packetDefinition.Handlers)
                     {
                         switch (handler.Type)

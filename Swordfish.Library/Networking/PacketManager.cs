@@ -91,7 +91,7 @@ namespace Swordfish.Library.Networking
 
                     if (typeof(IDataBody).IsAssignableFrom(type))
                     {
-                        ushort id = (ushort)(packetAttribute.PacketID ?? type.FullName.ToSeed());
+                        int id = packetAttribute.PacketID ?? type.FullName.ToSeed();
                         PacketDefinition definition = new PacketDefinition {
                             ID = id,
                             Type = type,
