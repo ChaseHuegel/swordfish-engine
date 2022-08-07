@@ -1,10 +1,12 @@
+using Swordfish.Engine.Rendering.UI.Models;
+
 namespace Swordfish.Engine.Rendering.UI.Elements.Interfaces
 {
     public interface IElement
     {
-        bool Enabled { get; set; }
-
         string Name { get; set; }
+
+        bool Enabled { get; set; }
 
         void OnUpdate();
 

@@ -9,6 +9,11 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
 {
     public class StatsWindow : Element
     {
+        public StatsWindow()
+        {
+            Initialize();
+        }
+
         public override void OnUpdate()
         {
             Enabled = Debug.Enabled && Debug.Stats;

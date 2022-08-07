@@ -1,3 +1,9 @@
+using System.Linq;
+using System.Reflection;
+using System.IO;
+using System.Xml;
+using System.Xml.Serialization;
+
 using ImGuiNET;
 
 using OpenTK.Mathematics;
@@ -5,16 +11,19 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Engine;
 using Swordfish.Engine.ECS;
+using Swordfish.Engine.Extensions;
 using Swordfish.Engine.Rendering;
 using Swordfish.Engine.Rendering.Shapes;
 using Swordfish.Engine.Rendering.UI;
-using Swordfish.Engine.Extensions;
+using Swordfish.Engine.Rendering.UI.Elements;
+using Swordfish.Engine.Rendering.UI.Models;
+using Swordfish.Engine.Types;
 using Swordfish.Engine.Voxels;
 using Swordfish.Integrations;
 using Swordfish.Library.Diagnostics;
-
+using Tomlet;
+using Tomlet.Models;
 using Vector2 = System.Numerics.Vector2;
-using Swordfish.Engine.Types;
 
 public class Demo
 {
@@ -292,6 +301,154 @@ public class Demo
                 new CollisionComponent() { size = 0.5f },
                 new TransformComponent() { position = new Vector3(10f, 0f, 0f), orientation = Quaternion.Identity }
             );
+
+        Canvas canvas = new Canvas("Test Canvas") {
+            TryLoadLayout = false
+        };
+
+        canvas.Content.Add(
+            new Panel("My Panel") {
+                Size = new Vector2(100, 100),
+                Content = {
+                    new Label("This is a label.")
+                }
+            }
+        );
+
+        canvas.Content.Add(
+            new Group {
+                Layout = Layout.Horizontal,
+                Content = {
+                    new Label("This is a kind of long label."),
+                    new Label("Another label inside this group without word wrapping!", false)
+                }
+            }
+        );
+
+        canvas.Content.Add(
+            new LayoutGroup {
+                Layout = Layout.Vertical,
+                Content = {
+                    new Label("1"),
+                    new Label("2"),
+                    new Label("3"),
+                    new Label("4"),
+                    new Label("5")
+                }
+            }
+        );
+
+        canvas.Content.Add(
+            new LayoutGroup {
+                Layout = Layout.Horizontal,
+                Content = {
+                    new Label("1"),
+                    new Label("2"),
+                    new Label("3"),
+                    new Label("4"),
+                    new Label("5")
+                }
+            }
+        );
+
+        canvas.Content.Add(
+            new Panel("Another Panel") {
+                Size = new Vector2(0, 100),
+                Content = {
+                    new Label("This is a vertical layout label."),
+                    new Label("This is a horizontal layout label.") {
+                        Layout = Layout.Horizontal
+                    },
+                    new Label("This is a vertical layout label.")
+                }
+            }
+        );
+
+        canvas.Content.Add(new Divider());
+
+        TabMenu tabMenu = new TabMenu("Tab Menu") {
+            Size = new Vector2(400, 200)
+        };
+        canvas.Content.Add(tabMenu);
+
+        tabMenu.Items.Add(new TabMenuItem("LayoutGroup") {
+            Content = {
+                new LayoutGroup {
+                    Layout = Layout.Vertical,
+                    Content = {
+                        new Label("1"),
+                        new Label("2"),
+                        new Label("3"),
+                        new Label("4"),
+                        new Label("5")
+                    }
+                }
+            }
+        });
+
+        tabMenu.Items.Add(new TabMenuItem("Panel LayoutGroup") {
+            Content = {
+                new Panel("Panel With Horizontal Group") {
+                    Content = {
+                        new LayoutGroup {
+                            Layout = Layout.Horizontal,
+                            Content = {
+                                new Label("1"),
+                                new Label("2"),
+                                new Label("3"),
+                                new Label("4"),
+                                new Label("5")
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        tabMenu.Items.Add(new TabMenuItem("ScrollView") {
+            Content = {
+                new ScrollView() {
+                    Content = {
+                        new Label("This is a label, but that is a horizontal LayoutGroup ->"),
+                        new LayoutGroup {
+                            Layout = Layout.Horizontal,
+                            Content = {
+                                new Label("1"),
+                                new Label("2"),
+                                new Label("3"),
+                                new Label("4"),
+                                new Label("5")
+                            }
+                        },
+                        new Label("Label"),
+                        new Label("Label"),
+                        new Label("Label"),
+                        new Label("Label"),
+                        new Label("Label"),
+                        new Label("Label"),
+                    }
+                }
+            }
+        });
+        
+        XmlSerializer serializer = new XmlSerializer(typeof(Canvas));
+        Directory.CreateDirectory("ui/");
+        using (XmlWriter writer = XmlWriter.Create("ui/testcanvas.xml", new XmlWriterSettings {
+            Indent = true,
+            IndentChars = "\t",
+            OmitXmlDeclaration = true
+        }))
+        {
+            serializer.Serialize(writer, canvas);
+            writer.Close();
+        }
+
+        // XmlSerializer deserializer = new XmlSerializer(typeof(Canvas));
+        // using (Stream stream = new FileStream("ui/testcanvas.xml", FileMode.Open))
+        // {
+        //     Canvas newCanvas = (Canvas)deserializer.Deserialize(stream);
+        // }
+
     }
 
     private void ShowGui()

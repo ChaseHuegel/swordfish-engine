@@ -1,22 +1,44 @@
+using ImGuiNET;
+
 using Swordfish.Engine.Rendering.UI.Elements.Interfaces;
+using Swordfish.Engine.Rendering.UI.Models;
 
 namespace Swordfish.Engine.Rendering.UI.Elements
 {
     public class Element : IElement
     {
-        public bool Enabled { get; set; }
-
         public string Name { 
-            get => string.IsNullOrEmpty(_Name) ? this.GetType().ToString() : _Name;
-            set => _Name = value;
+            get => string.IsNullOrEmpty(name) ? this.GetType().ToString() : name;
+            set => name = value;
+        }
+        
+        public bool Enabled { get; set; } = true;
+
+        public Layout Layout;
+
+        private string name;
+        private bool initialized;
+
+        public Element() {}
+
+        public Element(string name)
+        {
+            Name = name;
         }
 
-        private string _Name;
-
-        public Element()
+        public void Initialize()
         {
-            if (!(this is IUnregistered))
+            if (!initialized)
+            {
                 Swordfish.Renderer.UiContext.Register(this);
+                initialized = true;
+            }
+        }
+
+        public void Destroy()
+        {
+            if (initialized)
+                Swordfish.Renderer.UiContext.Unregister(this);
         }
 
         public virtual void OnUpdate()
@@ -26,13 +48,8 @@ namespace Swordfish.Engine.Rendering.UI.Elements
 
         public virtual void OnShow()
         {
-            
-        }
-
-        public virtual void Destroy()
-        {
-            if (!(this is IUnregistered))
-                Swordfish.Renderer.UiContext.Unregister(this);
+            if (Layout == Layout.Horizontal)
+                ImGui.SameLine();
         }
     }
 }

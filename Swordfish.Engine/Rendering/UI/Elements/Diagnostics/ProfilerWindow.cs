@@ -12,6 +12,11 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
 
         private Tooltip tooltip = new Tooltip();
 
+        public ProfilerWindow()
+        {
+            Initialize();
+        }
+
         public override void OnUpdate()
         {
             Enabled = Debug.Enabled && Debug.Profiling;

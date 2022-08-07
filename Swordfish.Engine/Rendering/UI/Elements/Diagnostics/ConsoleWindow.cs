@@ -12,6 +12,11 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
 {
     public class ConsoleWindow : Element
     {
+        public ConsoleWindow()
+        {
+            Initialize();
+        }
+
         public override void OnUpdate()
         {
             Enabled = Debug.Console;
