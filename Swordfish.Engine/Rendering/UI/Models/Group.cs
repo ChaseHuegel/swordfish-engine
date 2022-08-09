@@ -26,6 +26,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
                 element.OnShow();
             
             ImGui.EndGroup();
+            base.TryShowTooltip();
         }
     }
 }

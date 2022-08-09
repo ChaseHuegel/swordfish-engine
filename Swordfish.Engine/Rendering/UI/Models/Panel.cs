@@ -28,11 +28,12 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnShow();
 
-            ImGui.BeginChild(Name, Size, Border, Flags);
+            ImGui.BeginChild(ImGuiUniqueName, Size, Border, Flags);
 
             if (TitleBar)
             {
                 ImGui.Text(Name);
+                base.TryShowTooltip();
                 ImGui.Separator();
             }
 

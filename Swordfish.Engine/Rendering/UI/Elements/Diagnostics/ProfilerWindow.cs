@@ -1,6 +1,9 @@
 using System;
 using System.Numerics;
+
 using ImGuiNET;
+
+using Swordfish.Engine.Rendering.UI.Models;
 using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
@@ -19,7 +22,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
 
         public override void OnUpdate()
         {
-            Enabled = Debug.Enabled && Debug.Profiling;
+            Visible = Debug.Enabled && Debug.Profiling;
         }
 
         public override void OnShow()
@@ -77,7 +80,14 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
                          + $"Highest: {highest.ToString("0.##")}ms";
 
             tooltip.Text = stats;
-            tooltip.OnShow();
+            if (ImGui.IsItemHovered())
+            {
+                ImGui.BeginTooltip();
+                ImGui.PushTextWrapPos(tooltip.MaxWidth > 0 ? tooltip.MaxWidth : ImGui.GetFontSize() * 10);
+                ImGui.TextUnformatted(tooltip.Text);
+                ImGui.PopTextWrapPos();
+                ImGui.EndTooltip();
+            }
         }
     }
 }

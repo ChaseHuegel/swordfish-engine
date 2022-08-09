@@ -11,11 +11,13 @@ namespace Swordfish.Engine.Rendering.UI.Models
     [XmlInclude(typeof(Panel))]
     [XmlInclude(typeof(Group))]
     [XmlInclude(typeof(LayoutGroup))]
-    [XmlInclude(typeof(Label))]
+    [XmlInclude(typeof(Text))]
     [XmlInclude(typeof(Divider))]
     [XmlInclude(typeof(TabMenu))]
     [XmlInclude(typeof(TabMenuItem))]
     [XmlInclude(typeof(ScrollView))]
+    [XmlInclude(typeof(Foldout))]
+    [XmlInclude(typeof(TreeNode))]
     public class Canvas : Element
     {
         public bool TryLoadLayout = true;
@@ -47,7 +49,8 @@ namespace Swordfish.Engine.Rendering.UI.Models
             ImGui.SetNextWindowPos(Position, TryLoadLayout ? ImGuiCond.FirstUseEver : ImGuiCond.Once);
             ImGui.SetNextWindowSize(Size, TryLoadLayout ? ImGuiCond.FirstUseEver : ImGuiCond.Once);
 
-            ImGui.Begin(Name, Flags);
+            ImGui.Begin(ImGuiUniqueName, Flags);
+            base.TryShowTooltip();
 
             foreach (Element element in Content)
                 element.OnShow();

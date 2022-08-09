@@ -24,12 +24,13 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnShow();
 
-            ImGui.BeginChild("ScrollView", Size, Border, Flags | ImGuiWindowFlags.HorizontalScrollbar);
+            ImGui.BeginChild(ImGuiUniqueName, Size, Border, Flags | ImGuiWindowFlags.HorizontalScrollbar);
 
             foreach (Element child in Content)
                 child.OnShow();
             
             ImGui.EndChild();
+            base.TryShowTooltip();
         }
     }
 }

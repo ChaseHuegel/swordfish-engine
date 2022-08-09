@@ -8,28 +8,32 @@ using Swordfish.Engine.Rendering.UI.Elements;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
-    public class TabMenuItem : Element
+    public class Foldout : Element
     {
+        public Vector2 Size;
+        
+        public bool TitleBar = true;
+
+        public bool Border = true;
+
+        public ImGuiTreeNodeFlags Flags;
+
         public List<Element> Content = new List<Element>();
 
-        public TabMenuItem() : base() {}
+        public Foldout() : base() {}
 
-        public TabMenuItem(string name) : base(name) {}
+        public Foldout(string name) : base(name) {}
         
         public override void OnShow()
         {
             base.OnShow();
-            
-            if (ImGui.BeginTabItem(ImGuiUniqueName))
+
+            if (ImGui.CollapsingHeader(ImGuiUniqueName, Flags))
             {
                 base.TryShowTooltip();
-                ImGui.BeginChild(ImGuiUniqueName + "_Content");
 
-                foreach (Element element in Content)
-                    element.OnShow();
-                
-                ImGui.EndChild();
-                ImGui.EndTabItem();
+                foreach (Element child in Content)
+                    child.OnShow();
             }
             else
             {

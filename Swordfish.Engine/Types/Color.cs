@@ -2,7 +2,7 @@ using OpenTK.Mathematics;
 
 namespace Swordfish.Engine.Types
 {
-    public class Color
+    public struct Color
     {
         //  -----------------------------------------------------
         //  --- Predefined colors ---
@@ -32,7 +32,6 @@ namespace Swordfish.Engine.Types
         public Vector3 rgb => new Vector3(r, g, b);
         public Vector3 RGB => rgb;
 
-        public Color() : this(1f, 1f, 1f, 1f) {}
         public Color(Vector4 v) : this(v.X, v.Y, v.Z, v.W) {}
         public Color(System.Numerics.Vector4 v) : this(v.X, v.Y, v.Z, v.W) {}
 

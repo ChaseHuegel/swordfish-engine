@@ -303,50 +303,124 @@ public class Demo
             );
 
         Canvas canvas = new Canvas("Test Canvas") {
-            TryLoadLayout = false
+            TryLoadLayout = true,
+            Tooltip = {
+                Text = "This canvas has a tooltip."
+            }
         };
 
         canvas.Content.Add(
             new Panel("My Panel") {
                 Size = new Vector2(100, 100),
                 Content = {
-                    new Label("This is a label.")
+                    new Text("This is a label.") {
+                        Tooltip = {
+                            Text = "My label has a long tooltip that will wrap automatically, kind of neat!"
+                        }
+                    }
                 }
             }
         );
 
         canvas.Content.Add(
             new Group {
-                Layout = Layout.Horizontal,
+                Alignment = Layout.Horizontal,
                 Content = {
-                    new Label("This is a kind of long label."),
-                    new Label("Another label inside this group without word wrapping!", false)
+                    new Text("This is a horizontal aligned Group with horizontal and a vertical LayoutGroups."),
+                    new LayoutGroup {
+                        Layout = Layout.Vertical,
+                        Content = {
+                            new Text("1"),
+                            new Text("2"),
+                            new Text("3"),
+                            new Text("4"),
+                            new Text("5")
+                        }
+                    },
+                    new LayoutGroup {
+                        Layout = Layout.Horizontal,
+                        Content = {
+                            new Text("1"),
+                            new Text("2"),
+                            new Text("3"),
+                            new Text("4"),
+                            new Text("5")
+                        }
+                    }
                 }
             }
         );
 
         canvas.Content.Add(
-            new LayoutGroup {
-                Layout = Layout.Vertical,
+            new Foldout("A foldout") {
+                Tooltip = {
+                    Help = true,
+                    Text = "Unhelpful tooltip."
+                },
+                Alignment = Layout.Vertical,
                 Content = {
-                    new Label("1"),
-                    new Label("2"),
-                    new Label("3"),
-                    new Label("4"),
-                    new Label("5")
+                    new Text("Text that doesn't wrap at all whatsoever", false),
+                    new Text("Simple text that does wrap"),
+                    new Text("This is some helpful text") {
+                        Tooltip = {
+                            Help = true,
+                            Text = "Unhelpful tooltip."
+                        }
+                    },
+                    new Text("Some colored text") {
+                        Color = Color.Green
+                    },
+                    new Text("Disabled text") {
+                        Enabled = false,
+                    },
+                    new Text("Label text") {
+                        Label = "MyLabel",
+                        Tooltip = {
+                            Help = true,
+                            Text = "A helper on this label!"
+                        }
+                    },
+                    new Text("Colored label text") {
+                        Label = "MyLabel",
+                        Color = Color.Blue,
+                    },
+                    new Text("Disabled label text with a tooltip") {
+                        Enabled = false,
+                        Label = "MyLabel",
+                        Tooltip = {
+                            Text = "A tooltip on the label?"
+                        }
+                    },
                 }
             }
         );
 
         canvas.Content.Add(
-            new LayoutGroup {
-                Layout = Layout.Horizontal,
-                Content = {
-                    new Label("1"),
-                    new Label("2"),
-                    new Label("3"),
-                    new Label("4"),
-                    new Label("5")
+            new TreeNode("Root") {
+                Nodes = {
+                    new TreeNode("Node 1") {
+                        Nodes = {
+                            new TreeNode("Node 1-1") {
+                                Nodes = {
+                                    new TreeNode("Node 1-1-1"),
+                                    new TreeNode("Node 1-1-2")
+                                }
+                            },
+                            new TreeNode("Node 1-2")
+                        }
+                    },
+                    new TreeNode("Node 2") {
+                        Nodes = {
+                            new TreeNode("Node 2-1"),
+                            new TreeNode("Node 2-2")
+                        }
+                    },
+                    new TreeNode("Node 3") {
+                        Nodes = {
+                            new TreeNode("Node 3-1"),
+                            new TreeNode("Node 3-2")
+                        }
+                    }
                 }
             }
         );
@@ -354,12 +428,16 @@ public class Demo
         canvas.Content.Add(
             new Panel("Another Panel") {
                 Size = new Vector2(0, 100),
+                Tooltip = {
+                    Help = true,
+                    Text = "This is a helpful tooltip."
+                },
                 Content = {
-                    new Label("This is a vertical layout label."),
-                    new Label("This is a horizontal layout label.") {
-                        Layout = Layout.Horizontal
+                    new Text("This is a vertical aligned label."),
+                    new Text("This is a horizontal aligned label.") {
+                        Alignment = Layout.Horizontal
                     },
-                    new Label("This is a vertical layout label.")
+                    new Text("This is a vertical aligned label.")
                 }
             }
         );
@@ -372,15 +450,18 @@ public class Demo
         canvas.Content.Add(tabMenu);
 
         tabMenu.Items.Add(new TabMenuItem("LayoutGroup") {
+            Tooltip = {
+                Text = "This is a tab tooltip."
+            },
             Content = {
                 new LayoutGroup {
                     Layout = Layout.Vertical,
                     Content = {
-                        new Label("1"),
-                        new Label("2"),
-                        new Label("3"),
-                        new Label("4"),
-                        new Label("5")
+                        new Text("1"),
+                        new Text("2"),
+                        new Text("3"),
+                        new Text("4"),
+                        new Text("5")
                     }
                 }
             }
@@ -388,16 +469,16 @@ public class Demo
 
         tabMenu.Items.Add(new TabMenuItem("Panel LayoutGroup") {
             Content = {
-                new Panel("Panel With Horizontal Group") {
+                new Panel("Panel With Horizontal LayoutGroup") {
                     Content = {
                         new LayoutGroup {
                             Layout = Layout.Horizontal,
                             Content = {
-                                new Label("1"),
-                                new Label("2"),
-                                new Label("3"),
-                                new Label("4"),
-                                new Label("5")
+                                new Text("1"),
+                                new Text("2"),
+                                new Text("3"),
+                                new Text("4"),
+                                new Text("5")
                             }
                         }
                     }
@@ -409,23 +490,23 @@ public class Demo
             Content = {
                 new ScrollView() {
                     Content = {
-                        new Label("This is a label, but that is a horizontal LayoutGroup ->"),
+                        new Text("This is a label, but that is a horizontal LayoutGroup ->"),
                         new LayoutGroup {
                             Layout = Layout.Horizontal,
                             Content = {
-                                new Label("1"),
-                                new Label("2"),
-                                new Label("3"),
-                                new Label("4"),
-                                new Label("5")
+                                new Text("1"),
+                                new Text("2"),
+                                new Text("3"),
+                                new Text("4"),
+                                new Text("5")
                             }
                         },
-                        new Label("Label"),
-                        new Label("Label"),
-                        new Label("Label"),
-                        new Label("Label"),
-                        new Label("Label"),
-                        new Label("Label"),
+                        new Text("Label"),
+                        new Text("Label"),
+                        new Text("Label"),
+                        new Text("Label"),
+                        new Text("Label"),
+                        new Text("Label"),
                     }
                 }
             }

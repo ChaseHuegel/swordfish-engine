@@ -19,7 +19,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
 
         public override void OnUpdate()
         {
-            Enabled = Debug.Console;
+            Visible = Debug.Console;
         }
 
         public override void OnShow()

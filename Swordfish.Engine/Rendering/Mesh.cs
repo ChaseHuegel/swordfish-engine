@@ -134,8 +134,7 @@ namespace Swordfish.Engine.Rendering
                 Material m = Materials[i];
 
                 m.Shader.Use();
-
-                if (m.Tint != null) m.Shader.SetVec3("Tint", m.Tint.rgb);
+                m.Shader.SetVec3("Tint", m.Tint.rgb);
 
                 //  Assign texture maps
                 if (m.DiffuseTexture != null)   m.Shader.SetInt("_Diffuse", 0);

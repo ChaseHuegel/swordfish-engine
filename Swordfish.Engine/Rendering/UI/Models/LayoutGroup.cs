@@ -10,6 +10,8 @@ namespace Swordfish.Engine.Rendering.UI.Models
 {
     public class LayoutGroup : Element
     {
+        public Layout Layout;
+
         public List<Element> Content = new List<Element>();
 
         public LayoutGroup() : base() {}
@@ -17,16 +19,19 @@ namespace Swordfish.Engine.Rendering.UI.Models
         public LayoutGroup(string name) : base(name) {}
         
         public override void OnShow()
-        {            
+        {
+            base.OnShow();
+            
             ImGui.BeginGroup();
 
             foreach (Element element in Content)
             {
-                element.Layout = Layout;                
+                element.Alignment = Layout;                
                 element.OnShow();
             }
             
             ImGui.EndGroup();
+            base.TryShowTooltip();
         }
     }
 }

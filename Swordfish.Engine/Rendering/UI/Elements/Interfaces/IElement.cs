@@ -6,11 +6,17 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Interfaces
     {
         string Name { get; set; }
 
+        string UID { get; set; }
+
+        bool Visible { get; set; }
+
         bool Enabled { get; set; }
 
         void OnUpdate();
 
         void OnShow();
+
+        void Initialize();
 
         void Destroy();
     }

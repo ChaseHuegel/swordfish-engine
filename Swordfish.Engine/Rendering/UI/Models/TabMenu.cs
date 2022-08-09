@@ -22,8 +22,8 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnShow();
             
-            ImGui.BeginChild(Name, Size, false, ImGuiWindowFlags.None);
-            ImGui.BeginTabBar(Name + "_TabBar", Flags);
+            ImGui.BeginChild(ImGuiUniqueName, Size, false, ImGuiWindowFlags.None);
+            ImGui.BeginTabBar(ImGuiUniqueName + "_TabBar", Flags);
 
             foreach (TabMenuItem item in Items)
                 item.OnShow();
