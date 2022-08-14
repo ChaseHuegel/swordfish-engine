@@ -8,11 +8,9 @@ using Swordfish.Engine.Rendering.UI.Elements;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
-    public class LayoutGroup : Element
+    public class LayoutGroup : ContentGroupElement
     {
         public Layout Layout;
-
-        public List<Element> Content = new List<Element>();
 
         public LayoutGroup() : base() {}
 
@@ -28,6 +26,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
             {
                 element.Alignment = Layout;                
                 element.OnShow();
+                base.TryInsertContentSeparator();
             }
             
             ImGui.EndGroup();

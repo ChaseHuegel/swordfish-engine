@@ -36,7 +36,12 @@ namespace Swordfish.Engine.Rendering.UI.Models
             ImGui.PushStyleColor(ImGuiCol.Text, Enabled ? Color : Color.Gray);
             
             if (string.IsNullOrWhiteSpace(Label))
-                ImGui.TextUnformatted(Value);
+            {
+                if (Value.StartsWith('-'))
+                    ImGui.BulletText(Value.TrimStart('-', ' '));
+                else
+                    ImGui.TextUnformatted(Value);
+            }
             else
                 ImGui.LabelText(Label, Value);
 

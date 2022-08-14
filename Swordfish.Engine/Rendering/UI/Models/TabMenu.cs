@@ -18,6 +18,14 @@ namespace Swordfish.Engine.Rendering.UI.Models
 
         public TabMenu(string name) : base(name) {}
 
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
+
+            foreach (Element element in Items)
+                element.OnUpdate();
+        }
+
         public override void OnShow()
         {
             base.OnShow();

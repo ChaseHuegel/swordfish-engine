@@ -1,3 +1,4 @@
+using System;
 using OpenTK.Mathematics;
 
 namespace Swordfish.Engine.Types
@@ -20,7 +21,9 @@ namespace Swordfish.Engine.Types
         public static Color Blue        = new Color(0f, 0f, 1f, 1f);
         //  -----------------------------------------------------
 
-
+        public static Color Random => new Color((float)rand.NextDouble(), (float)rand.NextDouble(), (float)rand.NextDouble(), 1f);
+        private static Random rand = new Random();
+        
 
         public float r, g, b, a;
 

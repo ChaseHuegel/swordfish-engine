@@ -65,7 +65,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements
 
         public virtual void OnUpdate()
         {
-
+            
         }
 
         public virtual void OnShow()

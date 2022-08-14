@@ -45,7 +45,7 @@ namespace Swordfish.Engine.ECS
         public void Start()
         {
             //  Register components and systems
-            Register();
+            RegisterAssembly();
 
             foreach (ComponentSystem system in _systems)
                 system.OnStart();
@@ -104,9 +104,9 @@ namespace Swordfish.Engine.ECS
         /// <summary>
         /// Self-register all components and systems marked by attributes
         /// </summary>
-        internal void Register()
+        public void RegisterAssembly()
         {
-            Type[] types = Assembly.GetExecutingAssembly().GetTypes();
+            Type[] types = Assembly.GetCallingAssembly().GetTypes();
 
             Debug.Log("Registering ECS components...");
             foreach (Type type in types)

@@ -54,7 +54,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
             Profiler.Collect(ProfilerType.MAIN, Swordfish.MainWindow.DeltaTime, ImGui.IsWindowHovered(), out highest, out lowest, out average, out profile);
             Present("T - Main", 0f, 16f, profile, highest, lowest, average);
 
-            ImGui.SetWindowPos(new Vector2(0f, Swordfish.Settings.Window.HEIGHT - ImGui.GetWindowHeight()));
+            ImGui.SetWindowPos(new Vector2(Swordfish.Settings.Window.WIDTH * 0.16f, Swordfish.Settings.Window.HEIGHT - ImGui.GetWindowHeight()));
             ImGui.End();
         }
 
@@ -70,7 +70,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
                             ref profile[0], profile.Length, 0,
                             name,
                             0f, 16f,
-                            new Vector2(Swordfish.Settings.Window.WIDTH * 0.45f, Swordfish.Settings.Window.WIDTH * 0.05f)
+                            new Vector2(Swordfish.Settings.Window.WIDTH * 0.25f, Swordfish.Settings.Window.HEIGHT * 0.05f)
                         );
             ImGui.PopStyleColor();
             ImGui.PopStyleColor();

@@ -8,10 +8,8 @@ using Swordfish.Engine.Rendering.UI.Elements;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
-    public class TabMenuItem : Element
+    public class TabMenuItem : ContentGroupElement
     {
-        public List<Element> Content = new List<Element>();
-
         public TabMenuItem() : base() {}
 
         public TabMenuItem(string name) : base(name) {}
@@ -26,7 +24,10 @@ namespace Swordfish.Engine.Rendering.UI.Models
                 ImGui.BeginChild(ImGuiUniqueName + "_Content");
 
                 foreach (Element element in Content)
+                {
                     element.OnShow();
+                    base.TryInsertContentSeparator();
+                }
                 
                 ImGui.EndChild();
                 ImGui.EndTabItem();

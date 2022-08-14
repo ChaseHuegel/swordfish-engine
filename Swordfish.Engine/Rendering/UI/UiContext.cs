@@ -14,17 +14,18 @@ namespace Swordfish.Engine.Rendering.UI
 
             return elements.Remove(element);
         }
+
+        internal void Update()
+        {
+            foreach (IElement element in elements)
+                element.OnUpdate();
+        }
         
         internal void Render()
         {
             foreach (IElement element in elements)
-            {                
                 if (element.Visible)
-                {
-                    element.OnUpdate();
                     element.OnShow();
-                }
-            }
         }
     }
 }

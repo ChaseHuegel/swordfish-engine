@@ -23,6 +23,14 @@ namespace Swordfish.Engine.Rendering.UI.Models
         public TreeNode() : base() {}
 
         public TreeNode(string name) : base(name) {}
+
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
+
+            foreach (TreeNode node in Nodes)
+                node.OnUpdate();
+        }
         
         public override void OnShow()
         {

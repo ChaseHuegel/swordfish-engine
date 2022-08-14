@@ -142,6 +142,7 @@ namespace Swordfish.Engine
                 Debug.Log($"Saved screenshot '{path}'");
             }
 
+            Swordfish.Renderer.Update();
             Swordfish.Step();
 
             //  Manual fallback to grab GL errors if debug output is unavailable

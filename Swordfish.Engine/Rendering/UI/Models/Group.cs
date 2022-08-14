@@ -8,10 +8,8 @@ using Swordfish.Engine.Rendering.UI.Elements;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
-    public class Group : Element
+    public class Group : ContentGroupElement
     {
-        public List<Element> Content = new List<Element>();
-
         public Group() : base() {}
 
         public Group(string name) : base(name) {}
@@ -23,7 +21,10 @@ namespace Swordfish.Engine.Rendering.UI.Models
             ImGui.BeginGroup();
 
             foreach (Element element in Content)
+            {
                 element.OnShow();
+                base.TryInsertContentSeparator();
+            }
             
             ImGui.EndGroup();
             base.TryShowTooltip();

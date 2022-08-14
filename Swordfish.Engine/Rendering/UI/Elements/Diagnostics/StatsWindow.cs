@@ -21,7 +21,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
  
         public override void OnShow()
         {
-            ImGui.SetNextWindowPos(Vector2.Zero);
+            ImGui.SetNextWindowPos(new Vector2(Swordfish.Settings.Window.WIDTH * 0.16f, 0f));
 
             ImGui.Begin(Name, WindowFlagPresets.FLAT | ImGuiWindowFlags.NoBringToFrontOnFocus);
                 ImGui.Text($"FPS: {Swordfish.MainWindow.FPS}");

@@ -297,6 +297,14 @@ namespace Swordfish.Engine.Rendering
         }
 
         /// <summary>
+        /// Update the context
+        /// </summary>
+        public void Update()
+        {
+            UiContext.Update();
+        }
+
+        /// <summary>
         /// Render the context
         /// </summary>
         public void Render()

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using OpenTK.Mathematics;
 
 namespace Swordfish.Engine.ECS
@@ -14,17 +15,24 @@ namespace Swordfish.Engine.ECS
                 if (_parent == value)
                     return;
 
-                //  If we are parented, local is offset by the origin
+                _parent = value;
+
                 if (_parent != Entity.Null)
                 {
-                    localPosition += Swordfish.ECS.Get<TransformComponent>(_parent).position;
-                    localOrientation += Swordfish.ECS.Get<TransformComponent>(_parent).orientation;
+                    TransformComponent parentTransform = Swordfish.ECS.Get<TransformComponent>(_parent);
+                    
+                    //  If we are parented, local is offset by the origin
+                    localPosition += parentTransform.position;
+                    localOrientation += parentTransform.orientation;
                 }
-
-                _parent = value;
             }
         }
 
+        private List<int> _children;
+        public List<int> children {
+            get => _children ?? (_children = new List<int>());
+            set => _children = value;
+        }
 
         public void Translate(Vector3 vec) { localPosition += vec; }
         public void Translate(float x, float y, float z) { localPosition.X += x; localPosition.Y += y; localPosition.Z += z; }
