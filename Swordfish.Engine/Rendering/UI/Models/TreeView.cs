@@ -1,8 +1,10 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Numerics;
+
 using ImGuiNET;
+
 using Swordfish.Engine.Rendering.UI.Elements;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
@@ -16,7 +18,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
 
         public ImGuiTreeNodeFlags Flags;
 
-        public List<TreeViewNode> Nodes = new List<TreeViewNode>();
+        public LockedList<TreeViewNode> Nodes = new LockedList<TreeViewNode>();
 
         public TreeView() : base() {}
 
@@ -26,23 +28,16 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnShow();
 
-            lock (Nodes)
-            {
-                foreach (TreeViewNode node in Nodes)
-                    RecursiveOnShow(node);
+            Nodes.ForEach((item) => RecursiveOnShow(item));
 
-                void RecursiveOnShow(TreeViewNode node)
-                {                
-                    if (ImGui.TreeNodeEx($"{node.Name}##{node.Uid}", node.Nodes?.Count > 0 ? Flags : Flags | ImGuiTreeNodeFlags.Leaf))
-                    {
-                        if (node.Nodes?.Count > 0)
-                        {
-                            foreach (TreeViewNode child in node.Nodes)
-                                RecursiveOnShow(child);
-                        }
-                        
-                        ImGui.TreePop();
-                    }
+            void RecursiveOnShow(TreeViewNode node)
+            {                
+                if (ImGui.TreeNodeEx($"{node.Name}##{node.Uid}", node.Nodes?.Count > 0 ? Flags : Flags | ImGuiTreeNodeFlags.Leaf))
+                {
+                    if (node.Nodes?.Count > 0)
+                        node.Nodes.ForEach((item) => RecursiveOnShow(item));
+                    
+                    ImGui.TreePop();
                 }
             }
         }

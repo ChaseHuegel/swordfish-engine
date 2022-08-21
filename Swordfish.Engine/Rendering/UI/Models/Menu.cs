@@ -1,13 +1,14 @@
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using ImGuiNET;
 
 using Swordfish.Engine.Rendering.UI.Elements;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
     public class Menu : Element
     {
-        public List<MenuItem> Items = new List<MenuItem>();
+        public LockedList<MenuItem> Items = new LockedList<MenuItem>();
 
         public Menu() {}
 
@@ -17,8 +18,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnUpdate();
 
-            foreach (MenuItem item in Items)
-                item.OnUpdate();
+            Items.ForEach((item) => item.OnUpdate());
         }
 
         public override void OnShow()
@@ -27,8 +27,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
             
             if (ImGui.BeginMenuBar())
             {
-                foreach (MenuItem item in Items)
-                    item.OnShow();
+                Items.ForEach((item) => item.OnShow());
                 
                 ImGui.EndMenuBar();
             }

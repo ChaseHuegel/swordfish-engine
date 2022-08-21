@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 
 using ImGuiNET;
 
 using Swordfish.Engine.Rendering.UI.Models;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Elements
 {
@@ -10,7 +12,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements
     {
         public ContentSeparator ContentSeparator;
 
-        public List<Element> Content = new List<Element>();
+        public LockedList<Element> Content = new LockedList<Element>();
 
         public ContentGroupElement() : base() {}
 
@@ -20,8 +22,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements
         {
             base.OnUpdate();
 
-            foreach (Element element in Content)
-                element.OnUpdate();
+            Content.ForEach((item) => item.OnUpdate());
         }
 
         public void TryInsertContentSeparator()

@@ -19,13 +19,14 @@ namespace Swordfish.Engine.Rendering.UI.Models
     [XmlInclude(typeof(TabMenuItem))]
     [XmlInclude(typeof(ScrollView))]
     [XmlInclude(typeof(Foldout))]
-    [XmlInclude(typeof(TreeNode))]
     [XmlInclude(typeof(Checkbox))]
     [XmlInclude(typeof(CheckboxFlags))]
     [XmlInclude(typeof(Button))]
     [XmlInclude(typeof(Menu))]
     [XmlInclude(typeof(MenuItem))]
     [XmlInclude(typeof(Spacer))]
+    [XmlInclude(typeof(TreeView))]
+    [XmlInclude(typeof(TreeViewNode))]
     public class Canvas : ContentGroupElement
     {
         public bool TryLoadLayout = true;

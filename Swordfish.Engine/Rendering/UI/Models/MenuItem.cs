@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Xml.Serialization;
 
 using ImGuiNET;
@@ -7,7 +7,7 @@ using ImGuiNET;
 using OpenTK.Windowing.GraphicsLibraryFramework;
 
 using Swordfish.Engine.Rendering.UI.Elements;
-using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
@@ -20,7 +20,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
 
         public bool Value;
 
-        public List<MenuItem> Items = new List<MenuItem>();
+        public LockedList<MenuItem> Items = new LockedList<MenuItem>();
 
         [XmlIgnore]
         public EventHandler<EventArgs> Clicked;
@@ -39,8 +39,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
             if (Enabled && Items.Count == 0 && Shortcut.IsPressed())
                 Clicked?.Invoke(this, EventArgs.Empty);
             
-            foreach (MenuItem item in Items)
-                item.OnUpdate();
+            Items.ForEach((item) => item.OnUpdate());
         }
         
         public override void OnShow()
@@ -76,8 +75,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
                 {
                     base.TryShowTooltip();
 
-                    foreach (MenuItem item in Items)
-                        item.OnShow();
+                    Items.ForEach((item) => item.OnShow());
                     
                     ImGui.EndMenu();
                 }

@@ -1,10 +1,3 @@
-using System.Threading;
-using System.Linq;
-using System.Reflection;
-using System.IO;
-using System.Xml;
-using System.Xml.Serialization;
-
 using ImGuiNET;
 
 using OpenTK.Mathematics;
@@ -16,14 +9,11 @@ using Swordfish.Engine.Extensions;
 using Swordfish.Engine.Rendering;
 using Swordfish.Engine.Rendering.Shapes;
 using Swordfish.Engine.Rendering.UI;
-using Swordfish.Engine.Rendering.UI.Elements;
-using Swordfish.Engine.Rendering.UI.Models;
 using Swordfish.Engine.Types;
 using Swordfish.Engine.Voxels;
 using Swordfish.Integrations;
 using Swordfish.Library.Diagnostics;
-using Tomlet;
-using Tomlet.Models;
+
 using Vector2 = System.Numerics.Vector2;
 
 namespace Swordfish.Demo

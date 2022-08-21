@@ -278,29 +278,33 @@ namespace Swordfish.Demo
             });
 
             canvas.Content.Add(
-                new TreeNode("Root") {
+                new TreeView("Tree View") {
                     Nodes = {
-                        new TreeNode("Node 1") {
+                        new TreeViewNode("Root") {
                             Nodes = {
-                                new TreeNode("Node 1-1") {
+                                new TreeViewNode("Node 1") {
                                     Nodes = {
-                                        new TreeNode("Node 1-1-1"),
-                                        new TreeNode("Node 1-1-2")
+                                        new TreeViewNode("Node 1-1") {
+                                            Nodes = {
+                                                new TreeViewNode("Node 1-1-1"),
+                                                new TreeViewNode("Node 1-1-2")
+                                            }
+                                        },
+                                        new TreeViewNode("Node 1-2")
                                     }
                                 },
-                                new TreeNode("Node 1-2")
-                            }
-                        },
-                        new TreeNode("Node 2") {
-                            Nodes = {
-                                new TreeNode("Node 2-1"),
-                                new TreeNode("Node 2-2")
-                            }
-                        },
-                        new TreeNode("Node 3") {
-                            Nodes = {
-                                new TreeNode("Node 3-1"),
-                                new TreeNode("Node 3-2")
+                                new TreeViewNode("Node 2") {
+                                    Nodes = {
+                                        new TreeViewNode("Node 2-1"),
+                                        new TreeViewNode("Node 2-2")
+                                    }
+                                },
+                                new TreeViewNode("Node 3") {
+                                    Nodes = {
+                                        new TreeViewNode("Node 3-1"),
+                                        new TreeViewNode("Node 3-2")
+                                    }
+                                }
                             }
                         }
                     }
@@ -335,17 +339,17 @@ namespace Swordfish.Demo
                 }
             });
             
-            XmlSerializer serializer = new XmlSerializer(typeof(Canvas));
-            Directory.CreateDirectory("ui/");
-            using (XmlWriter writer = XmlWriter.Create("ui/testcanvas.xml", new XmlWriterSettings {
-                Indent = true,
-                IndentChars = "\t",
-                OmitXmlDeclaration = true
-            }))
-            {
-                serializer.Serialize(writer, canvas);
-                writer.Close();
-            }
+            // XmlSerializer serializer = new XmlSerializer(typeof(Canvas));
+            // Directory.CreateDirectory("ui/");
+            // using (XmlWriter writer = XmlWriter.Create("ui/testcanvas.xml", new XmlWriterSettings {
+            //     Indent = true,
+            //     IndentChars = "\t",
+            //     OmitXmlDeclaration = true
+            // }))
+            // {
+            //     serializer.Serialize(writer, canvas);
+            //     writer.Close();
+            // }
 
             // XmlSerializer deserializer = new XmlSerializer(typeof(Canvas));
             // using (Stream stream = new FileStream("ui/testcanvas.xml", FileMode.Open))
@@ -456,14 +460,12 @@ namespace Swordfish.Demo
             void PopulateTree(int entityID, TreeView treeView)
             {
                 TransformComponent transform = Swordfish.Engine.Swordfish.ECS.Get<TransformComponent>(entityID);
-                TreeViewNode node = new TreeViewNode {
-                    Uid = entityID,
-                    Name = $"Entity {entityID}"
+                TreeViewNode node = new TreeViewNode($"Entity {entityID}") {
+                    Uid = entityID
                 };
 
                 if (transform.children.Count > 0)
                 {
-                    node.Nodes = new List<TreeViewNode>();
                     foreach (int childID in transform.children)
                         RecursivePopulateTree(childID, node);
                 }
@@ -474,10 +476,8 @@ namespace Swordfish.Demo
             void RecursivePopulateTree(int entityID, TreeViewNode parentNode)
             {
                 TransformComponent transform = Swordfish.Engine.Swordfish.ECS.Get<TransformComponent>(entityID);
-                TreeViewNode node = new TreeViewNode {
-                    Uid = entityID,
-                    Name = $"Entity {entityID}",
-                    Nodes = new List<TreeViewNode>()
+                TreeViewNode node = new TreeViewNode($"Entity {entityID}") {
+                    Uid = entityID
                 };
 
                 foreach (int childID in transform.children)

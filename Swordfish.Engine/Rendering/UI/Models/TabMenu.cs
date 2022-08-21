@@ -1,8 +1,10 @@
+using System.Collections.Concurrent;
 using System.Numerics;
-using System.Collections.Generic;
+
 using ImGuiNET;
 
 using Swordfish.Engine.Rendering.UI.Elements;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
@@ -12,7 +14,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
 
         public ImGuiTabBarFlags Flags;
 
-        public List<TabMenuItem> Items = new List<TabMenuItem>();
+        public LockedList<TabMenuItem> Items = new LockedList<TabMenuItem>();
 
         public TabMenu() {}
 
@@ -22,8 +24,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
         {
             base.OnUpdate();
 
-            foreach (Element element in Items)
-                element.OnUpdate();
+            Items.ForEach((item) => item.OnUpdate());
         }
 
         public override void OnShow()
@@ -33,8 +34,7 @@ namespace Swordfish.Engine.Rendering.UI.Models
             ImGui.BeginChild(ImGuiUniqueName, Size, false, ImGuiWindowFlags.None);
             ImGui.BeginTabBar(ImGuiUniqueName + "_TabBar", Flags);
 
-            foreach (TabMenuItem item in Items)
-                item.OnShow();
+            Items.ForEach((item) => item.OnShow());
             
             ImGui.EndTabBar();
             ImGui.EndChild();

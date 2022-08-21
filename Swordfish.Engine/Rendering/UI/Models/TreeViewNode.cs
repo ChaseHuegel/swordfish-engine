@@ -1,10 +1,5 @@
-using System.Collections.Generic;
-using System.Numerics;
-using System.Xml.Serialization;
-
-using ImGuiNET;
-
-using Swordfish.Engine.Rendering.UI.Elements;
+using System.Collections.Concurrent;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.Rendering.UI.Models
 {
@@ -14,6 +9,13 @@ namespace Swordfish.Engine.Rendering.UI.Models
 
         public int Uid;
 
-        public List<TreeViewNode> Nodes;
+        public LockedList<TreeViewNode> Nodes;
+
+        public TreeViewNode(string name)
+        {
+            Name = name;
+            Uid = 0;
+            Nodes = new LockedList<TreeViewNode>();
+        }
     }
 }
