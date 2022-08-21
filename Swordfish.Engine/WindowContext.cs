@@ -43,10 +43,10 @@ namespace Swordfish.Engine
 
             Swordfish.Renderer.Initialize();
 
-            Swordfish.Start();
-
             //  Manual fallback to grab GL errors if debug output is unavailable
             GLDebug.TryCollectAllGLErrors("Load");
+
+            Swordfish.Start();
 
             base.OnLoad();
         }

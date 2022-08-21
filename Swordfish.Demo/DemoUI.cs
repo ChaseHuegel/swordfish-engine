@@ -339,17 +339,17 @@ namespace Swordfish.Demo
                 }
             });
             
-            // XmlSerializer serializer = new XmlSerializer(typeof(Canvas));
-            // Directory.CreateDirectory("ui/");
-            // using (XmlWriter writer = XmlWriter.Create("ui/testcanvas.xml", new XmlWriterSettings {
-            //     Indent = true,
-            //     IndentChars = "\t",
-            //     OmitXmlDeclaration = true
-            // }))
-            // {
-            //     serializer.Serialize(writer, canvas);
-            //     writer.Close();
-            // }
+            XmlSerializer serializer = new XmlSerializer(typeof(Canvas));
+            Directory.CreateDirectory("ui/");
+            using (XmlWriter writer = XmlWriter.Create("ui/testcanvas.xml", new XmlWriterSettings {
+                Indent = true,
+                IndentChars = "\t",
+                OmitXmlDeclaration = true
+            }))
+            {
+                serializer.Serialize(writer, canvas);
+                writer.Close();
+            }
 
             // XmlSerializer deserializer = new XmlSerializer(typeof(Canvas));
             // using (Stream stream = new FileStream("ui/testcanvas.xml", FileMode.Open))
@@ -444,17 +444,14 @@ namespace Swordfish.Demo
             if (EntityTreeView == null)
                 return;
             
-            lock (EntityTreeView.Nodes)
+            EntityTreeView.Nodes.Clear();
+            
+            foreach (Entity entity in Swordfish.Engine.Swordfish.ECS.Pull(typeof(TransformComponent)))
             {
-                EntityTreeView.Nodes.Clear();
-                
-                foreach (Entity entity in Swordfish.Engine.Swordfish.ECS.Pull(typeof(TransformComponent)))
-                {
-                    TransformComponent transform = Swordfish.Engine.Swordfish.ECS.Get<TransformComponent>(entity.UID);
+                TransformComponent transform = Swordfish.Engine.Swordfish.ECS.Get<TransformComponent>(entity.UID);
 
-                    if (transform.parent == Entity.Null)
-                        PopulateTree(entity.UID, EntityTreeView);
-                }
+                if (transform.parent == Entity.Null)
+                    PopulateTree(entity.UID, EntityTreeView);
             }
 
             void PopulateTree(int entityID, TreeView treeView)
