@@ -31,10 +31,10 @@ namespace Swordfish.Library.Diagnostics
             //  Set the Console output to the Debug writer
             Console.SetOut(Writer);
 
-            Write("Logger initialized");
+            Write("Logger initialized.");
         }
 
-        public static void Pad() => Console.WriteLine("");
+        public static void Pad() => Console.WriteLine();
 
         public static void Write(string message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false) => Write(message, "", type);
 
@@ -54,10 +54,10 @@ namespace Swordfish.Library.Diagnostics
                 title += ": ";
 
             string output = $"{title}{message}";
-            
+
             if (timestamp)
                 output = $"[{DateTime.Now}] {output}";
-            
+
             switch (type)
             {
                 case LogType.NONE:
@@ -70,7 +70,7 @@ namespace Swordfish.Library.Diagnostics
                     output = $"[{type.ToString()}] {output}";
                     break;
             }
-            
+
             Console.WriteLine(output);
         }
     }

@@ -295,13 +295,13 @@ namespace Swordfish.Engine.Physics
                     // ******  Position solver ****** //
                     Swordfish.ECS.Do<TransformComponent>(target, x =>
                     {
-                        x.position += normal * (depth + colliderSkin) * solverModifier * (2f* Swordfish.ECS.Get<RigidbodyComponent>(target).restitution);
+                        x.position += normal * (depth + colliderSkin) * solverModifier * (2f * Swordfish.ECS.Get<RigidbodyComponent>(target).restitution);
                         return x;
                     });
 
                     Swordfish.ECS.Do<TransformComponent>(other, x =>
                     {
-                        x.position += -normal * (depth + colliderSkin) * solverModifier * (2f* Swordfish.ECS.Get<RigidbodyComponent>(other).restitution);
+                        x.position += -normal * (depth + colliderSkin) * solverModifier * (2f * Swordfish.ECS.Get<RigidbodyComponent>(other).restitution);
                         return x;
                     });
                 }

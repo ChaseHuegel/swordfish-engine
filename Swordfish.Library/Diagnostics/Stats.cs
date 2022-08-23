@@ -9,7 +9,7 @@ namespace Swordfish.Library.Diagnostics
 
         static Statistics()
         {
-            Debug.Log("Statistics initialized");
+            Debug.Log("Statistics initialized.");
         }
     }
 }

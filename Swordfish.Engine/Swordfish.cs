@@ -71,7 +71,7 @@ namespace Swordfish.Engine
                 Title = Settings.Window.TITLE,
                 Size = Settings.Window.FULLSCREEN ? screenSize : new Vector2i(Settings.Window.WIDTH, Settings.Window.HEIGHT),
                 WindowBorder = Settings.Window.FULLSCREEN ? WindowBorder.Hidden : WindowBorder.Fixed,
-                
+
                 Profile = ContextProfile.Core,
                 API = ContextAPI.OpenGL,
                 APIVersion = new Version(4, 5),
@@ -138,11 +138,11 @@ namespace Swordfish.Engine
             if (IsSafeShutdown)
             {
                 //  Dump the log if this this is a debug build OR any errors were detected
-                #if DEBUG
-                    Debug.Dump();
-                #else
+#if DEBUG
+                Debug.Dump();
+#else
                     if (Debug.HasErrors) Debug.Dump();
-                #endif
+#endif
             }
             //  ...otherwise an unsafe shutdown
             else

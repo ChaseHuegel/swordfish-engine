@@ -14,7 +14,8 @@ namespace Swordfish.Library.Networking
 {
     public class NetController
     {
-        private class SequencePair {
+        private class SequencePair
+        {
             public uint Sent, Received;
         }
 
@@ -48,11 +49,11 @@ namespace Swordfish.Library.Networking
         /// The maximum number of sessions allowed to be active.
         /// </summary>
         public int MaxSessions { get; set; } = 20;
-        
+
         /// <summary>
         /// The number of sessions currently active.
         /// </summary>
-        public int SessionCount => Sessions.Count-1;    // -1 to not count the local session
+        public int SessionCount => Sessions.Count - 1;    // -1 to not count the local session
 
         /// <summary>
         /// Whether this <see cref="NetController"/> has reached it's max active sessions.
@@ -128,7 +129,8 @@ namespace Swordfish.Library.Networking
 
         private void Initialize(IPAddress address, int port, Host host)
         {
-            try {
+            try
+            {
                 if (address == null)
                 {
                     //  Bind automatically if no address or port is provided.
@@ -146,10 +148,11 @@ namespace Swordfish.Library.Networking
                 }
 
                 PacketSequences = new ConcurrentDictionary<int, SequencePair>();
-                
+
                 InitializeSessions();
 
-                DefaultHost = host ?? new Host{
+                DefaultHost = host ?? new Host
+                {
                     Address = Session.EndPoint.Address,
                     Port = Session.EndPoint.Port
                 };
@@ -170,7 +173,8 @@ namespace Swordfish.Library.Networking
                 foreach (NetSession session in Sessions.Values)
                 {
                     if (session.ID != NetSession.LocalOrUnassigned)
-                        SessionEnded?.Invoke(this, new NetEventArgs {
+                        SessionEnded?.Invoke(this, new NetEventArgs
+                        {
                             EndPoint = session.EndPoint,
                             Session = session
                         });
@@ -187,8 +191,8 @@ namespace Swordfish.Library.Networking
         private void OnSend(IAsyncResult result)
         {
             Udp.EndSend(result);
-            PacketSent?.Invoke(this, (NetEventArgs) result.AsyncState);
-            
+            PacketSent?.Invoke(this, (NetEventArgs)result.AsyncState);
+
             //  TODO If it isn't a fire and forget packet, we should resend with a delay until a response is received
         }
 
@@ -198,7 +202,8 @@ namespace Swordfish.Library.Networking
 
             byte[] buffer;
             Packet packet;
-            try {
+            try
+            {
                 buffer = Udp.EndReceive(result, ref endPoint);
                 packet = NeedlefishFormatter.Deserialize<Packet>(buffer);
             }
@@ -209,12 +214,14 @@ namespace Swordfish.Library.Networking
                 return;
             }
 
-            NetEventArgs netEventArgs = new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs
+            {
                 Packet = packet,
                 EndPoint = endPoint
             };
 
-            try {
+            try
+            {
                 PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet.PacketID);
                 SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
@@ -239,7 +246,7 @@ namespace Swordfish.Library.Networking
                     netEventArgs.Packet = (Packet)deserializeData;
                     netEventArgs.Session = session;
                     PacketAccepted?.Invoke(this, netEventArgs);
-                    
+
                     foreach (PacketHandler handler in packetDefinition.Handlers)
                     {
                         switch (handler.Type)
@@ -308,16 +315,17 @@ namespace Swordfish.Library.Networking
         {
             if (EndPoint == null)
                 EndPoint = new IPEndPoint(address, port);
-            
+
             EndPoint.Address = address;
             EndPoint.Port = port;
 
-            NetEventArgs netEventArgs = new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs
+            {
                 Packet = packet,
                 PacketID = packet.PacketID,
                 EndPoint = EndPoint
             };
-            
+
             byte[] buffer = SignPacket(packet);
             Udp.BeginSend(buffer, buffer.Length, EndPoint, OnSend, netEventArgs);
         }
@@ -326,7 +334,8 @@ namespace Swordfish.Library.Networking
         {
             IPEndPoint endPoint = new IPEndPoint(NetUtils.GetHostAddress(hostname), port);
 
-            NetEventArgs netEventArgs = new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs
+            {
                 Packet = packet,
                 PacketID = packet.PacketID,
                 EndPoint = endPoint
@@ -390,7 +399,7 @@ namespace Swordfish.Library.Networking
             if (TryAddSession(endPoint, out session))
             {
                 session.ID = id;
-                return true;   
+                return true;
             }
 
             return false;
@@ -404,18 +413,20 @@ namespace Swordfish.Library.Networking
         /// <returns>true if the session was added; otherwise false</returns>
         public bool TryAddSession(IPEndPoint endPoint, out NetSession session)
         {
-            session = new NetSession {
+            session = new NetSession
+            {
                 EndPoint = endPoint
             };
 
             if (!IsFull && Sessions.TryAdd(endPoint, session))
             {
                 //  TODO recycle session IDs
-                session.ID = Sessions.Count-1;
+                session.ID = Sessions.Count - 1;
 
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
-                    SessionStarted?.Invoke(this, new NetEventArgs {
+                    SessionStarted?.Invoke(this, new NetEventArgs
+                    {
                         EndPoint = endPoint,
                         Session = session
                     });
@@ -425,7 +436,8 @@ namespace Swordfish.Library.Networking
             }
             else
             {
-                SessionRejected?.Invoke(this, new NetEventArgs {
+                SessionRejected?.Invoke(this, new NetEventArgs
+                {
                     EndPoint = endPoint
                 });
 
@@ -457,12 +469,13 @@ namespace Swordfish.Library.Networking
                 throw new ArgumentNullException();
             else if (session.Equals(Session))
                 throw new ArgumentException();
-            
+
             if (Sessions.TryRemove(session.EndPoint, out _))
             {
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
-                    SessionEnded?.Invoke(this, new NetEventArgs {
+                    SessionEnded?.Invoke(this, new NetEventArgs
+                    {
                         EndPoint = session.EndPoint,
                         Session = session
                     });

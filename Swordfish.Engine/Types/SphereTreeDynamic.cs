@@ -67,7 +67,7 @@ namespace Swordfish.Engine.Types
             int resizeAttempts = 0;
 
             //  Try adding the object, growing the tree on failed attempts
-            while ( !root.TryAdd(obj, pos, size) )
+            while (!root.TryAdd(obj, pos, size))
             {
                 //  ! TODO Dynamic sizing causing stack overflow when redistributing objects
                 GrowTree(pos - root.position);
@@ -145,7 +145,7 @@ namespace Swordfish.Engine.Types
         /// <param name="size">size of the sphere</param>
         /// <param name="results">list of colliding objects</param>
         /// <returns>true if there is any collisions; otherwise false</returns>
-        public bool GetColliding(Vector3 pos, float size, List<T> results)=> root.GetColliding(pos, size, results);
+        public bool GetColliding(Vector3 pos, float size, List<T> results) => root.GetColliding(pos, size, results);
 
         /// <summary>
         /// Retrieves collisions (if any) in the tree

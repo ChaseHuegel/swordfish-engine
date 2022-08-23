@@ -19,7 +19,7 @@ namespace Swordfish.Library.Diagnostics
 
         static Profiler()
         {
-            Debug.Log("Profiler initialized");
+            Debug.Log("Profiler initialized.");
 
             mainProfile = new Queue();
             ecsProfile = new Queue();

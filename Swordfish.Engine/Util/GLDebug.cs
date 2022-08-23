@@ -31,7 +31,7 @@ namespace Swordfish.Engine.Util
         {
             if (HasGLOutput)
                 return false;
-            
+
             ErrorCode error = GL.GetError();
             if (error != ErrorCode.NoError)
             {
@@ -57,7 +57,7 @@ namespace Swordfish.Engine.Util
         {
             if (HasGLOutput)
                 return false;
-            
+
             bool hadError = false;
 
             ErrorCode error = GL.GetError();
@@ -109,7 +109,7 @@ namespace Swordfish.Engine.Util
             DebugSeverity severity, int length, IntPtr message, IntPtr userParam)
         {
             string output = Marshal.PtrToStringAnsi(message, length);
-            
+
             LogType logType = LogType.WARNING;
 
             if (type == DebugType.DebugTypeError)

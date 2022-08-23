@@ -2,17 +2,15 @@
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
 using OpenTK.Windowing.GraphicsLibraryFramework;
-
-using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Util;
 using Swordfish.Engine.Rendering;
 using Swordfish.Engine.Util;
+using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Engine
 {
@@ -73,7 +71,7 @@ namespace Swordfish.Engine
             frameTimeIndex++;
             if (frameTimeIndex >= frameTimes.Length)
                 frameTimeIndex = 0;
-            if (frameTimer >= 1f/frameTimes.Length)
+            if (frameTimer >= 1f / frameTimes.Length)
             {
                 frameTimer = 0f;
 

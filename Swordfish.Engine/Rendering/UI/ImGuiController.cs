@@ -51,10 +51,10 @@ namespace Swordfish.Engine.Rendering.UI
             IntPtr context = ImGui.CreateContext();
             ImGui.SetCurrentContext(context);
             var io = ImGui.GetIO();
-            
+
             unsafe
             {
-                fixed(byte* configPtr = Encoding.UTF8.GetBytes($"{Directories.CONFIG}/gui_layout.ini"))
+                fixed (byte* configPtr = Encoding.UTF8.GetBytes($"{Directories.CONFIG}/gui_layout.ini"))
                 {
                     io.NativePtr->IniFilename = configPtr;
                 }
@@ -262,7 +262,7 @@ namespace Swordfish.Engine.Rendering.UI
                         ushort.Parse(font.MaxUnicode, NumberStyles.HexNumber)
                     )
                 );
-                
+
                 Debug.Log($"Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.CONTINUED);
             }
 

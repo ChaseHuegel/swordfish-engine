@@ -39,7 +39,8 @@ namespace Swordfish.Library.Networking.Handlers
 
                 Debug.Log($"{e.EndPoint} joined, assigning session: [{newSession}]");
 
-                HandshakePacket handshake = new HandshakePacket() {
+                HandshakePacket handshake = new HandshakePacket()
+                {
                     ClientID = newSession.ID,
                     ServerID = net.Session.ID,
                     Signature = HandshakePacket.ValidationSignature

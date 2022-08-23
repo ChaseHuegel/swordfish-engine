@@ -1,28 +1,25 @@
-using Microsoft.Win32.SafeHandles;
-using System.Runtime.InteropServices;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
-using Swordfish.Library.Diagnostics;
 using Swordfish.Engine.ECS;
-using Swordfish.Library.Extensions;
+using Swordfish.Engine.Physics;
 using Swordfish.Engine.Rendering.Shapes;
 using Swordfish.Engine.Rendering.UI;
+using Swordfish.Engine.Rendering.UI.Elements.Diagnostics;
+using Swordfish.Engine.Types;
 using Swordfish.Engine.Util;
+using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
-
 using Color = Swordfish.Engine.Types.Color;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
-using Swordfish.Engine.Rendering.UI.Elements.Diagnostics;
-using Swordfish.Engine.Physics;
-using Swordfish.Engine.Types;
 
 namespace Swordfish.Engine.Rendering
 {
@@ -45,7 +42,7 @@ namespace Swordfish.Engine.Rendering
         private ProfilerWindow profilerWindow;
         private StatsWindow statsWindow;
         private ConsoleWindow consoleWindow;
-        
+
         private Shader shader;
         private Texture2DArray textureArray;
         private Texture2D hdrTexture;
@@ -130,7 +127,7 @@ namespace Swordfish.Engine.Rendering
             profilerWindow = new ProfilerWindow();
             statsWindow = new StatsWindow();
             consoleWindow = new ConsoleWindow();
-            
+
             camera = new Camera(Vector3.Zero, Vector3.Zero);
 
             entities = new int[0];
@@ -467,9 +464,9 @@ namespace Swordfish.Engine.Rendering
             }
 
             //  Read highest luminance at center of screen
-            int pixelCount = 128*128;
-            byte[] pixels = new byte[3*pixelCount];
-            GL.ReadPixels((Swordfish.MainWindow.ClientSize.X/2)-64, (Swordfish.MainWindow.ClientSize.Y/2)-64, 128, 128, PixelFormat.Rgb, PixelType.UnsignedByte, pixels);
+            int pixelCount = 128 * 128;
+            byte[] pixels = new byte[3 * pixelCount];
+            GL.ReadPixels((Swordfish.MainWindow.ClientSize.X / 2) - 64, (Swordfish.MainWindow.ClientSize.Y / 2) - 64, 128, 128, PixelFormat.Rgb, PixelType.UnsignedByte, pixels);
             float luminance = 0f;
             for (int n = 0; n < pixelCount; n++)
             {
@@ -483,7 +480,7 @@ namespace Swordfish.Engine.Rendering
                 float lum = 0.2126f * c.r + 0.7152f * c.g + 0.0722f * c.b;
 
                 //  only consider luminance above a threshold
-                if (lum > 10f && lum > luminance) luminance = lum-10f;
+                if (lum > 10f && lum > luminance) luminance = lum - 10f;
             }
 
             //  -----------------------------------------------------
@@ -516,11 +513,11 @@ namespace Swordfish.Engine.Rendering
                 float dot = Vector3.Dot(relative, Camera.Main.transform.forward);
 
                 float distance = Vector3.Distance(Camera.Main.transform.position, Swordfish.ECS.Get<TransformComponent>(lights[i]).position);
-                distance /= 70f/Camera.Main.FOV;
+                distance /= 70f / Camera.Main.FOV;
 
-                float facing = MathS.RangeToRange(dot, -1f, 1f, distance+1f, 1f);
+                float facing = MathS.RangeToRange(dot, -1f, 1f, distance + 1f, 1f);
 
-                float attenuation = 1f/(distance*distance);
+                float attenuation = 1f / (distance * distance);
 
                 e += Swordfish.ECS.Get<LightComponent>(lights[i]).lumens * (float)Math.Pow(attenuation, facing);
             }
@@ -530,7 +527,7 @@ namespace Swordfish.Engine.Rendering
 
             if (lastExposure != exposure) exposureChange = 0f;
             exposure = MathS.Slerp(exposure, e, exposureChange);
-            exposureChange += 0.02f* Swordfish.DeltaTime;
+            exposureChange += 0.02f * Swordfish.DeltaTime;
             Swordfish.Settings.Renderer.EXPOSURE = exposure;
             lastExposure = exposure;
 
@@ -545,7 +542,7 @@ namespace Swordfish.Engine.Rendering
 
             //  Draw GUI elements
             GuiController.Update(Swordfish.MainWindow, Swordfish.DeltaTime);
-                UiContext.Render();
+            UiContext.Render();
 
             //  Invoke GUI callback
             Swordfish.GuiCallback?.Invoke();

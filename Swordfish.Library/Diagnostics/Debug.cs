@@ -1,7 +1,7 @@
-using System.Runtime.InteropServices;
 using System;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace Swordfish.Library.Diagnostics
 {
@@ -18,7 +18,7 @@ namespace Swordfish.Library.Diagnostics
             Statistics.Initialize();
             Profiler.Initialize();
 
-            Log("Debugger initialized");
+            Log("Debugger initialized.");
         }
 
         /// <summary>
@@ -97,6 +97,65 @@ namespace Swordfish.Library.Diagnostics
             [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
         {
             Logger.Write(message.ToString(), title, type, timestamp, snuff, lineNumber, caller, callerPath);
+        }
+
+        /// <summary>
+        /// Pushes an error message to the logger
+        /// Automatically collects and forwards caller info for debugging.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="type"></param>
+        public static void LogError(object message, Exception exception, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
+            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        {
+            string output = message.ToString();
+            if (exception != null)
+                output += Environment.NewLine + exception.ToString();
+
+            Logger.Write(output, "", LogType.ERROR, timestamp, snuff, lineNumber, caller, callerPath);
+        }
+
+        /// <summary>
+        /// Tries to run an action, catching and logging exceptions.
+        /// </summary>
+        /// <param name="action">The action to run.</param>
+        /// <param name="message">Optional message to log if an exception was caught.</param>
+        /// <returns>True if successful; otherwise false.</returns>
+        public static bool TryRun(Action action, string message = null)
+        {
+            try
+            {
+                action.Invoke();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError(message ?? $"Caught error invoking {action.Method}", ex);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Tries to run a function with a return type T, catching and logging exceptions.
+        /// </summary>
+        /// <param name="func">The function to run.</param>
+        /// <param name="result">The result of the function if successful; otherwise default.</param>
+        /// <param name="message">Optional message to log if an exception was caught.</param>
+        /// <typeparam name="T">The return type of the function.</typeparam>
+        /// <returns></returns>
+        public static bool TryCatch<T>(Func<T> func, out T result, string message = null)
+        {
+            try
+            {
+                result = func.Invoke();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                LogError(message ?? $"Caught error invoking {func.Method}", ex);
+                result = default;
+                return false;
+            }
         }
     }
 }

@@ -19,6 +19,7 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Swordfish\Swordfish.csproj"/>
+    <ProjectReference Include="..\Swordfish.Engine\Swordfish.Engine.csproj"/>
+    <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj"/>
   </ItemGroup>
 </Project>

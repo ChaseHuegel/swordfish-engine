@@ -9,7 +9,7 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Swordfish.Demo.exe",
+            "program": "${workspaceFolder}/bin/Swordfish.exe",
             "args": [],
             "cwd": "${workspaceFolder}/bin/",
             "console": "internalConsole",

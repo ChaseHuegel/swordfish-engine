@@ -18,9 +18,9 @@ namespace Swordfish.Engine.Types
 
         public override bool Equals(object obj)
         {
-            if ( !(obj is SphereTreeObjectPair<T>) )
+            if (!(obj is SphereTreeObjectPair<T>))
                 return false;
-            
+
             SphereTreeObjectPair<T> other = (SphereTreeObjectPair<T>)obj;
 
             //  A pair is equal if its A-B are contained in this A-B regardless of combination order
@@ -77,7 +77,8 @@ namespace Swordfish.Engine.Types
         /// <summary>
         /// An object in a sphere tree
         /// </summary>
-        public struct SphereTreeObject {
+        public struct SphereTreeObject
+        {
             public Vector3 position;
             public float size;
             public T obj;
@@ -237,14 +238,14 @@ namespace Swordfish.Engine.Types
             if (HasObjects())
             {
                 for (int i = 0; i < objects.Count; i++)
-                for (int n = i + 1; n < objects.Count; n++)
-                {
-                    SphereTreeObject obj = objects[i];
-                    SphereTreeObject obj2 = objects[n];
+                    for (int n = i + 1; n < objects.Count; n++)
+                    {
+                        SphereTreeObject obj = objects[i];
+                        SphereTreeObject obj2 = objects[n];
 
-                    if (Intersection.SweepSphereToSphere(obj.position, obj.size, obj2.position, obj2.size))
-                        results.Add(new SphereTreeObjectPair<T>() { A = obj.obj, B = obj2.obj });
-                }
+                        if (Intersection.SweepSphereToSphere(obj.position, obj.size, obj2.position, obj2.size))
+                            results.Add(new SphereTreeObjectPair<T>() { A = obj.obj, B = obj2.obj });
+                    }
             }
 
             //  Check the children in the node
@@ -378,16 +379,16 @@ namespace Swordfish.Engine.Types
             children = new SphereTreeNode<T>[8];
 
             //  Upper 4
-            children[0] = new SphereTreeNode<T>( position + new Vector3(-offset, offset, -offset), childSize, minSize );
-            children[1] = new SphereTreeNode<T>( position + new Vector3(offset, offset, -offset), childSize, minSize );
-            children[2] = new SphereTreeNode<T>( position + new Vector3(-offset, offset, offset), childSize, minSize );
-            children[3] = new SphereTreeNode<T>( position + new Vector3(offset, offset, offset), childSize, minSize );
+            children[0] = new SphereTreeNode<T>(position + new Vector3(-offset, offset, -offset), childSize, minSize);
+            children[1] = new SphereTreeNode<T>(position + new Vector3(offset, offset, -offset), childSize, minSize);
+            children[2] = new SphereTreeNode<T>(position + new Vector3(-offset, offset, offset), childSize, minSize);
+            children[3] = new SphereTreeNode<T>(position + new Vector3(offset, offset, offset), childSize, minSize);
 
             //  Lower 4
-            children[4] = new SphereTreeNode<T>( position + new Vector3(-offset, -offset, -offset), childSize, minSize );
-            children[5] = new SphereTreeNode<T>( position + new Vector3(offset, -offset, -offset), childSize, minSize );
-            children[6] = new SphereTreeNode<T>( position + new Vector3(-offset, -offset, offset), childSize, minSize );
-            children[7] = new SphereTreeNode<T>( position + new Vector3(offset, -offset, offset), childSize, minSize );
+            children[4] = new SphereTreeNode<T>(position + new Vector3(-offset, -offset, -offset), childSize, minSize);
+            children[5] = new SphereTreeNode<T>(position + new Vector3(offset, -offset, -offset), childSize, minSize);
+            children[6] = new SphereTreeNode<T>(position + new Vector3(-offset, -offset, offset), childSize, minSize);
+            children[7] = new SphereTreeNode<T>(position + new Vector3(offset, -offset, offset), childSize, minSize);
         }
 
         /// <summary>

@@ -2,19 +2,29 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Swordfish.Integrations\Swordfish.Integrations.csproj" />
-    <ProjectReference Include="..\Swordfish.Engine\Swordfish.Engine.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <TargetFramework>net6.0</TargetFramework>
-    <Nullable>disable</Nullable>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Swordfish</PackageId>
-    <Version>1.1.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Chase Huegel</Authors>
+    <ApplicationIcon>swordfish.ico</ApplicationIcon>
   </PropertyGroup>
-  
+
   <ItemGroup>
+    <Using Include="Silk.NET" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="swordfish.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="shaders\**\*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -22,6 +32,14 @@
       <Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Ninject" Version="3.3.6" />
+    <PackageReference Include="Samboy063.Tomlet" Version="3.2.2" />
+    <PackageReference Include="Silk.NET" Version="2.16.0" />
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.16.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />
   </ItemGroup>
 
 </Project>
