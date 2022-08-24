@@ -3,15 +3,19 @@ using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
+using Swordfish.UI.Elements;
 
 namespace Swordfish.UI;
 
 public class ImGuiContext : IUIContext
 {
-    private IWindow? Window { get; set; }
-
     private ImGuiController Controller => controller ??= new ImGuiController(GL.GetApi(Window), Window, Window?.CreateInput());
     private ImGuiController? controller;
+
+    public LockedList<IElement> Elements { get; } = new();
+
+    private IWindow? Window { get; set; }
 
     public void Initialize(IWindow window)
     {
@@ -31,7 +35,7 @@ public class ImGuiContext : IUIContext
     {
         Controller.Update((float)delta);
 
-        ImGuiNET.ImGui.ShowDemoWindow();
+        Elements.ForEach((element) => element.Render());
 
         Controller.Render();
     }
