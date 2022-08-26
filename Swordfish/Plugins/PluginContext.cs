@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using Ninject;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
@@ -39,18 +40,21 @@ public class PluginContext : IPluginContext
             return;
         }
 
-        if (Debug.TryRun(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
+        if (Debug.TryInvoke(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
         {
             plugins.TryAdd(plugin, plugin.GetType().Assembly);
             Debug.Log($"{LOAD_SUCCESS} '{plugin}'");
 
-            Debug.TryRun(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
+            //  Load kernel modules from the plugin
+            SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
+
+            Debug.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
         }
     }
 
     public void LoadFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
-        Debug.TryRun(() => LoadFromInternal(path, searchOption), $"{LOADFROM_ERROR} '{path}'");
+        Debug.TryInvoke(() => LoadFromInternal(path, searchOption), $"{LOADFROM_ERROR} '{path}'");
     }
 
     public void Unload(IPlugin plugin)
@@ -96,10 +100,13 @@ public class PluginContext : IPluginContext
                     continue;
                 }
 
-                if (Activator.CreateInstance(type) is IPlugin plugin && Debug.TryRun(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
+                if (Activator.CreateInstance(type) is IPlugin plugin && Debug.TryInvoke(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
                 {
                     loadedPlugins.Add(plugin);
                     plugins.TryAdd(plugin, type.Assembly);
+
+                    //  Load kernel modules from the plugin
+                    SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
 
                     Debug.Log($"{LOAD_SUCCESS} '{plugin}'");
                 }
@@ -107,12 +114,12 @@ public class PluginContext : IPluginContext
         }
 
         foreach (IPlugin plugin in loadedPlugins)
-            Debug.TryRun(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
+            Debug.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
     }
 
     private void UnloadInternal(IPlugin plugin)
     {
-        Debug.TryRun(plugin.Unload, $"{UNLOAD_ERROR} '{plugin}'");
+        Debug.TryInvoke(plugin.Unload, $"{UNLOAD_ERROR} '{plugin}'");
         plugins.TryRemove(plugin, out _);
     }
 }

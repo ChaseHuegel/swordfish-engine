@@ -1,5 +1,4 @@
-using Silk.NET.Input;
-using Silk.NET.Windowing;
+using System.Numerics;
 
 namespace Swordfish.Rendering;
 
@@ -14,4 +13,6 @@ public interface IWindowContext
     Action<double>? Update { get; set; }
 
     void Initialize();
+
+    Vector2 GetSize();
 }

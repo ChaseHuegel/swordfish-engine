@@ -121,7 +121,7 @@ namespace Swordfish.Library.Diagnostics
         /// <param name="action">The action to run.</param>
         /// <param name="message">Optional message to log if an exception was caught.</param>
         /// <returns>True if successful; otherwise false.</returns>
-        public static bool TryRun(Action action, string message = null)
+        public static bool TryInvoke(Action action, string message = null)
         {
             try
             {

@@ -1,6 +1,6 @@
 namespace Swordfish.UI.Elements;
 
-public interface ITextElement : IElement
+public interface ITextProperty
 {
     string? Text { get; set; }
 }

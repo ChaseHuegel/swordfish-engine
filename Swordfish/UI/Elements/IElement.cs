@@ -1,6 +1,6 @@
 namespace Swordfish.UI.Elements;
 
-public interface IElement
+public interface IElement : IUidProperty
 {
     bool Enabled { get; set; }
 

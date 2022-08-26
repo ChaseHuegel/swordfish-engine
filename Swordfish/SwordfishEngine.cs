@@ -16,7 +16,7 @@ public static class SwordfishEngine
     static SwordfishEngine()
     {
         Kernel = new StandardKernel();
-        Kernel.Load(AppDomain.CurrentDomain.GetAssemblies());
+        Kernel.Load(typeof(SwordfishEngine).Assembly);
 
         MainWindow = Kernel.Get<IWindowContext>();
         PathService = Kernel.Get<IPathService>();

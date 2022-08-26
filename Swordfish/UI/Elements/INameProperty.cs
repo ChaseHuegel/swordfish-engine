@@ -1,6 +1,6 @@
 namespace Swordfish.UI.Elements;
 
-public interface INamedElement : IElement
+public interface INameProperty
 {
     string Name { get; set; }
 }

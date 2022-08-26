@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using Ninject;
 using Silk.NET.Core;
@@ -49,6 +50,11 @@ public class SilkWindowContext : IWindowContext
     public void Initialize()
     {
         Window.Run();
+    }
+
+    public Vector2 GetSize()
+    {
+        return (Vector2)Window.Size;
     }
 
     private unsafe void OnLoad()
