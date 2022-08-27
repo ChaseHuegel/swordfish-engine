@@ -39,15 +39,6 @@ namespace Swordfish.Library.Types
 
         public bool IsReadOnly => false;
 
-        public void ForEach(Action<T> action)
-        {
-            lock (List)
-            {
-                foreach (T item in List)
-                    action.Invoke(item);
-            }
-        }
-
         public void Add(T item)
         {
             lock (List)

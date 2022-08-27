@@ -35,7 +35,8 @@ public class ImGuiContext : IUIContext
     {
         Controller.Update((float)delta);
 
-        Elements.ForEach((element) => element.Render());
+        foreach (IElement element in Elements)
+            element.Render();
 
         Controller.Render();
     }

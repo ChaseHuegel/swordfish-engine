@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using Swordfish.Library.Types;
 
 namespace Swordfish.UI.Elements;
@@ -6,5 +7,5 @@ public interface IContentElement : IElement
 {
     ContentSeparator ContentSeparator { get; set; }
 
-    LockedList<IElement> Content { get; }
+    LockedObservableCollection<IElement> Content { get; }
 }

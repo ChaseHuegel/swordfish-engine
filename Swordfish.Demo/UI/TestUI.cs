@@ -18,34 +18,107 @@ namespace Swordfish.Demo.UI
                 Flags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove,
                 Constraints = new RectConstraints
                 {
-                    Anchor = ConstraintAnchor.TOP_CENTER,
+                    Anchor = ConstraintAnchor.CENTER,
                     X = new AbsoluteConstraint(0),
                     Y = new AbsoluteConstraint(0),
-                    Width = new RelativeConstraint(0.5f),
-                    Height = new RelativeConstraint(0.5f)
+                    Width = new CenterConstraint(),
+                    Height = new CenterConstraint()
                 },
                 Content = {
-                    new LayoutGroup {
-                        Constraints = new RectConstraints
-                        {
-                            Anchor = ConstraintAnchor.TOP_CENTER,
-                            X = new AbsoluteConstraint(0),
-                            Y = new AbsoluteConstraint(0),
-                            Width = new RelativeConstraint(1f),
-                            Height = new AbsoluteConstraint(12)
-                        },
-                        Content = {
-                            new TextElement("This"),
-                            new TextElement("is"),
-                            new TextElement("a"),
-                            new TextElement("layout"),
-                            new TextElement("group"),
-                        }
-                    },
                     CreateTextPanel(),
+                    CreateLayoutGroupPanel(),
                 }
             };
         }
+
+        #region Layout Panel
+        public static IElement CreateLayoutGroupPanel()
+        {
+            return new PanelElement("LayoutGroup Panel")
+            {
+                Constraints = new RectConstraints
+                {
+                    Height = new RelativeConstraint(0.3f)
+                },
+                Tooltip = new Tooltip
+                {
+                    Help = true,
+                    Text = "This is a panel for testing LayoutGroup elements."
+                },
+                Content = {
+                        new LayoutGroup {
+                            Layout = ElementAlignment.HORIZONTAL,
+                            ContentSeparator = ContentSeparator.DIVIDER,
+                            Constraints = new RectConstraints
+                            {
+                                Anchor = ConstraintAnchor.TOP_CENTER,
+                                Width = new FillConstraint(),
+                                Height = new AbsoluteConstraint(14)
+                            },
+                            Content = {
+                                new TextElement("This"),
+                                new TextElement("is"),
+                                new TextElement("a"),
+                                new TextElement("horizontal"),
+                                new TextElement("layout"),
+                            }
+                        },
+                        new LayoutGroup {
+                            Layout = ElementAlignment.HORIZONTAL,
+                            Constraints = new RectConstraints
+                            {
+                                Height = new AbsoluteConstraint(100),
+                                Width = new FillConstraint(),
+                            },
+                            Content = {
+                                new LayoutGroup {
+                                    Layout = ElementAlignment.VERTICAL,
+                                    ContentSeparator = ContentSeparator.DIVIDER,
+                                    Constraints = new RectConstraints
+                                    {
+                                        Width = new RelativeConstraint(0.25f),
+                                    },
+                                    Content = {
+                                        new TextElement("These"),
+                                        new TextElement("vertical"),
+                                        new TextElement("are"),
+                                        new TextElement("a"),
+                                        new TextElement("layout"),
+                                    }
+                                },
+                                new LayoutGroup {
+                                    Layout = ElementAlignment.VERTICAL,
+                                    ContentSeparator = ContentSeparator.DIVIDER,
+                                    Constraints = new RectConstraints
+                                    {
+                                        Width = new RelativeConstraint(0.25f),
+                                    },
+                                    Content = {
+                                        new TextElement("two"),
+                                        new TextElement("layouts"),
+                                        new TextElement("inside"),
+                                        new TextElement("horizontal"),
+                                        new TextElement("group"),
+                                    }
+                                },
+                                new LayoutGroup {
+                                    Layout = ElementAlignment.HORIZONTAL,
+                                    ContentSeparator = ContentSeparator.NONE,
+                                    Constraints = new RectConstraints
+                                    {
+                                        Anchor = ConstraintAnchor.TOP_LEFT,
+                                        Width = new FillConstraint(),
+                                    },
+                                    Content = {
+                                        new TextElement("This is a horizontal layout."),
+                                    }
+                                },
+                            }
+                        },
+                    }
+            };
+        }
+        #endregion
 
         #region Text Panel
         public static IElement CreateTextPanel()
@@ -54,16 +127,12 @@ namespace Swordfish.Demo.UI
             {
                 Constraints = new RectConstraints
                 {
-                    Anchor = ConstraintAnchor.TOP_RIGHT,
-                    X = new AbsoluteConstraint(0),
-                    Y = new AbsoluteConstraint(0),
-                    Width = new RelativeConstraint(1f),
                     Height = new RelativeConstraint(0.5f)
                 },
                 Tooltip = new Tooltip
                 {
                     Help = true,
-                    Text = "This is a panel for testing text elements."
+                    Text = "This is a panel for testing Text elements."
                 },
                 Content = {
                     new TextElement("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquet sagittis id consectetur purus ut faucibus pulvinar elementum. Libero enim sed faucibus turpis in eu. Mi in nulla posuere sollicitudin. Purus in massa tempor nec feugiat nisl pretium. In eu mi bibendum neque egestas congue. Dui nunc mattis enim ut tellus elementum. Cursus euismod quis viverra nibh cras pulvinar mattis nunc sed. Sed vulputate mi sit amet mauris commodo quis. Phasellus vestibulum lorem sed risus. Amet aliquam id diam maecenas ultricies mi."),

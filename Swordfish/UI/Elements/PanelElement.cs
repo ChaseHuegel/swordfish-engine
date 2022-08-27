@@ -13,8 +13,12 @@ public class PanelElement : AbstractPaneElement
 
     protected override void OnRender()
     {
-        Constraints.Max = ImGui.GetContentRegionAvail();
-        ImGui.SetCursorPos(ImGui.GetCursorPos() + Constraints.GetPosition());
+        //  base max/origin off the parent or current context
+        Constraints.Max = (Parent as IConstraintsProperty)?.Constraints.Max ?? ImGui.GetWindowSize();
+        Vector2 origin = Alignment == ElementAlignment.NONE ? Vector2.Zero : ImGui.GetCursorPos();
+
+        ImGui.SetCursorPos(origin + Constraints.GetPosition());
+
         ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), Border, Flags);
 
         if (TitleBar)

@@ -1,4 +1,5 @@
 using System.Numerics;
+using ImGuiNET;
 using Swordfish.Types.Constraints;
 
 namespace Swordfish.Library.Types.Constraints;
@@ -90,8 +91,17 @@ public class RectConstraints
         }
         else
         {
-            xValue = Width?.GetValue(Max.X) ?? 0f;
-            yValue = Height?.GetValue(Max.Y) ?? 0f;
+            xValue = Width switch
+            {
+                FillConstraint _ => ImGui.GetContentRegionAvail().X,
+                _ => Width?.GetValue(Max.X) ?? 0f,
+            };
+
+            yValue = Height switch
+            {
+                FillConstraint _ => ImGui.GetContentRegionAvail().Y,
+                _ => Height?.GetValue(Max.Y) ?? 0f,
+            };
         }
 
         return new Vector2(xValue, yValue);

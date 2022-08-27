@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using ImGuiNET;
 using Swordfish.Library.Types;
 
@@ -5,17 +7,37 @@ namespace Swordfish.UI.Elements;
 
 public abstract class ContentElement : Element, IContentElement
 {
-    public ContentSeparator ContentSeparator { get; set; }
+    public virtual ContentSeparator ContentSeparator { get; set; }
 
-    public LockedList<IElement> Content { get; } = new();
+    public LockedObservableCollection<IElement> Content { get; } = new();
+
+    public ContentElement() : base()
+    {
+        Content.CollectionChanged += OnCollectionChanged;
+    }
+
+    private void OnCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        if (e.OldItems != null && e.Action != NotifyCollectionChangedAction.Move)
+        {
+            foreach (IElement element in e.OldItems)
+                element.Parent = null;
+        }
+
+        if (e.NewItems != null)
+        {
+            foreach (IElement element in e.NewItems)
+                element.Parent = this;
+        }
+    }
 
     protected override void OnRender()
     {
-        Content.ForEach((element) =>
+        foreach (var element in Content)
         {
             element.Render();
             RenderContentSeparator();
-        });
+        };
     }
 
     protected virtual void RenderContentSeparator()

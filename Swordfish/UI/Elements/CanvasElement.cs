@@ -18,8 +18,11 @@ public class CanvasElement : AbstractPaneElement
 
     protected override void OnRender()
     {
-        Constraints.Max = ImGui.GetIO().DisplaySize;
-        ImGui.SetNextWindowPos(Constraints.GetPosition(), Flags.HasFlag(ImGuiWindowFlags.NoMove) ? ImGuiCond.Always : ImGuiCond.Once);
+        //  Based max/origin off a parent or the screen
+        Constraints.Max = (Parent as IConstraintsProperty)?.Constraints.Max ?? ImGui.GetIO().DisplaySize;
+        Vector2 origin = (Parent as IConstraintsProperty)?.Constraints.GetPosition() ?? Vector2.Zero;
+
+        ImGui.SetNextWindowPos(origin + Constraints.GetPosition(), Flags.HasFlag(ImGuiWindowFlags.NoMove) ? ImGuiCond.Always : ImGuiCond.Once);
         ImGui.SetNextWindowSize(Constraints.GetDimensions(), Flags.HasFlag(ImGuiWindowFlags.AlwaysAutoResize) ? ImGuiCond.Always : ImGuiCond.Once);
 
         ImGui.SetNextWindowCollapsed(!Open);

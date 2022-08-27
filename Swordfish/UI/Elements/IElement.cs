@@ -6,5 +6,9 @@ public interface IElement : IUidProperty
 
     bool Visible { get; set; }
 
+    ElementAlignment Alignment { get; set; }
+
+    IContentElement? Parent { get; set; }
+
     void Render();
 }

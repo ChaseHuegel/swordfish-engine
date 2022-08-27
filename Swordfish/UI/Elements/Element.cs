@@ -1,9 +1,10 @@
+using System.Numerics;
 using ImGuiNET;
 using Swordfish.Library.Types.Constraints;
 
 namespace Swordfish.UI.Elements;
 
-public abstract class Element : IElement, IAlignmentProperty
+public abstract class Element : IElement
 {
     private static ulong NewUid() => Interlocked.Increment(ref CurrentUid);
     private static ulong CurrentUid;
@@ -15,6 +16,8 @@ public abstract class Element : IElement, IAlignmentProperty
     public bool Visible { get; set; } = true;
 
     public ElementAlignment Alignment { get; set; }
+
+    public IContentElement? Parent { get; set; }
 
     protected abstract void OnRender();
 
@@ -28,13 +31,11 @@ public abstract class Element : IElement, IAlignmentProperty
         if (!Visible)
             return;
 
-        ImGui.BeginDisabled(!Enabled);
-
         if (Alignment == ElementAlignment.HORIZONTAL)
             ImGui.SameLine();
 
+        ImGui.BeginDisabled(!Enabled);
         OnRender();
-
         ImGui.EndDisabled();
     }
 
