@@ -23,7 +23,7 @@ namespace Swordfish.Engine.Rendering
         {
             int handle = GL.GenTexture();
 
-            Debug.Log($"Loading image '{name}' from '{path}'");
+            Debugger.Log($"Loading image '{name}' from '{path}'");
 
             Bitmap image = new Bitmap(path);
 
@@ -65,7 +65,7 @@ namespace Swordfish.Engine.Rendering
             size = new Vector2(width, height);
             this.bitmap = bitmap;
 
-            Debug.Log($"Created image '{name}'");
+            Debugger.Log($"Created image '{name}'");
 
             GL.TextureParameter(handle, TextureParameterName.TextureMaxLevel, mipmapLevels - 1);
         }

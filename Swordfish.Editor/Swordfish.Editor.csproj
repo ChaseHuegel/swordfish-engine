@@ -10,7 +10,7 @@
   <PropertyGroup>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TargetFramework>net6.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/mods/$(AssemblyName)</OutputPath>
+    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/plugins/$(AssemblyName)</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

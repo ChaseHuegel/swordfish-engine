@@ -216,7 +216,7 @@ namespace Swordfish.Engine.Rendering.UI
 
         private List<Font> CollectFontResources()
         {
-            Debug.Log("Loading fonts...");
+            Debugger.Log("Loading fonts...");
 
             List<Font> fonts = new List<Font>();
             Dictionary<string, FileInfo> fontFiles = new Dictionary<string, FileInfo>();
@@ -228,7 +228,7 @@ namespace Swordfish.Engine.Rendering.UI
             foreach (FileInfo file in directory.GetFiles(".otf", ".ttf"))
                 fontFiles.TryAdd(Path.GetFileNameWithoutExtension(file.Name), file);
 
-            Debug.Log($"Found {configFiles.Length} configs, {fontFiles.Count} fonts");
+            Debugger.Log($"Found {configFiles.Length} configs, {fontFiles.Count} fonts");
 
             foreach (FileInfo configFile in configFiles)
             {
@@ -263,10 +263,10 @@ namespace Swordfish.Engine.Rendering.UI
                     )
                 );
 
-                Debug.Log($"Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.CONTINUED);
+                Debugger.Log($"Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.CONTINUED);
             }
 
-            Debug.Log($"...fonts collected: {fonts.Count}", LogType.CONTINUED);
+            Debugger.Log($"...fonts collected: {fonts.Count}", LogType.CONTINUED);
             return fonts;
         }
 
@@ -279,12 +279,12 @@ namespace Swordfish.Engine.Rendering.UI
 
             IntPtr charRangePtr = IntPtr.Zero;
             GCHandle charRangeHandle = default(GCHandle);
-            
+
 
             if (charRange.Item1 == null || charRange.Item2 == null)
             {
                 charRangePtr = ImGui.GetIO().Fonts.GetGlyphRangesDefault();
-            } 
+            }
             else
             {
                 charRangeHandle = GCHandle.Alloc(new ushort[] {
@@ -406,7 +406,7 @@ namespace Swordfish.Engine.Rendering.UI
                     GL.NamedBufferData(_vertexBuffer, newSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
                     _vertexBufferSize = newSize;
 
-                    Debug.Log($"Resized dear imgui vertex buffer to new size {_vertexBufferSize}");
+                    Debugger.Log($"Resized dear imgui vertex buffer to new size {_vertexBufferSize}");
                 }
 
                 int indexSize = cmd_list.IdxBuffer.Size * sizeof(ushort);
@@ -416,7 +416,7 @@ namespace Swordfish.Engine.Rendering.UI
                     GL.NamedBufferData(_indexBuffer, newSize, IntPtr.Zero, BufferUsageHint.DynamicDraw);
                     _indexBufferSize = newSize;
 
-                    Debug.Log($"Resized dear imgui index buffer to new size {_indexBufferSize}");
+                    Debugger.Log($"Resized dear imgui index buffer to new size {_indexBufferSize}");
                 }
             }
 

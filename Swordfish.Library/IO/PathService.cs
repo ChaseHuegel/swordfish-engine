@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace Swordfish.Library.IO
 {
@@ -17,7 +18,7 @@ namespace Swordfish.Library.IO
         private const string MODELS_FOLDER = "models";
         private const string TEXTURES_FOLDER = "textures";
 
-        public IPath Root => root ?? (root = new Path(AppDomain.CurrentDomain.BaseDirectory));
+        public IPath Root => root ?? (root = new Path(System.IO.Path.GetDirectoryName(Assembly.GetCallingAssembly().Location)));
 
         public IPath Plugins => plugins ?? (plugins = Root.At(PLUGINS_FOLDER).CreateDirectory());
 

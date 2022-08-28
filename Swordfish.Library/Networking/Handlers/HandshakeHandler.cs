@@ -17,14 +17,14 @@ namespace Swordfish.Library.Networking.Handlers
             if (net.Session.ID == NetSession.LocalOrUnassigned && net.TryAddSession(e.EndPoint, packet.ServerID, out NetSession serverSession))
             {
                 net.Session.ID = packet.ClientID;
-                Debug.Log($"Joined [{serverSession}] with session [{net.Session}]");
+                Debugger.Log($"Joined [{serverSession}] with session [{net.Session}]");
                 net.Connected?.Invoke(net, NetEventArgs.Empty);
             }
             else
             {
                 //  ? is there a situation where we should accept a new session from the server?
                 //  If we already have a session, do nothing and assume the packet was a mistake on the server's part.
-                Debug.Log($"Recieved a session handshake from {e.EndPoint} but already registered [{net.Session}] with [{e.Session}].", LogType.WARNING);
+                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but already registered [{net.Session}] with [{e.Session}].", LogType.WARNING);
             }
         }
 
@@ -37,7 +37,7 @@ namespace Swordfish.Library.Networking.Handlers
             {
                 net.TryAddSession(e.EndPoint, out NetSession newSession);
 
-                Debug.Log($"{e.EndPoint} joined, assigning session: [{newSession}]");
+                Debugger.Log($"{e.EndPoint} joined, assigning session: [{newSession}]");
 
                 HandshakePacket handshake = new HandshakePacket()
                 {
@@ -50,7 +50,7 @@ namespace Swordfish.Library.Networking.Handlers
             }
             else
             {
-                Debug.Log($"{e.EndPoint} tried to join, failed to validate handshake.", LogType.ERROR);
+                Debugger.Log($"{e.EndPoint} tried to join, failed to validate handshake.", LogType.ERROR);
             }
         }
     }

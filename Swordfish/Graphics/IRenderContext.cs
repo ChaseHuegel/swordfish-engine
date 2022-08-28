@@ -1,6 +1,6 @@
 using Silk.NET.Windowing;
 
-namespace Swordfish.Rendering;
+namespace Swordfish.Graphics;
 
 public interface IRenderContext
 {

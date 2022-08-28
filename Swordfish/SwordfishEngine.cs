@@ -1,7 +1,7 @@
 using Ninject;
+using Swordfish.Graphics;
 using Swordfish.Library.IO;
-using Swordfish.Plugins;
-using Swordfish.Rendering;
+using Swordfish.Extensibility;
 
 namespace Swordfish;
 
@@ -34,6 +34,7 @@ public static class SwordfishEngine
     {
         PluginContext.LoadFrom(PathService.Root);
         PluginContext.LoadFrom(PathService.Plugins, SearchOption.AllDirectories);
+        PluginContext.LoadFrom(PathService.Mods, SearchOption.AllDirectories);
     }
 
     private static void Stop()

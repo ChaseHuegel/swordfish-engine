@@ -4,16 +4,16 @@ using Ninject;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
-namespace Swordfish.Plugins;
+namespace Swordfish.Extensibility;
 
 public class PluginContext : IPluginContext
 {
-    private const string DUPLICATE_ERROR = "Tried to load duplicate plugin";
-    private const string LOADFROM_ERROR = "Unable to load plugins at path";
-    private const string INITIALIZE_ERROR = "Error initializing plugin";
-    private const string UNLOAD_ERROR = "Error unloading plugin";
-    private const string LOAD_ERROR = "Error loading plugin";
-    private const string LOAD_SUCCESS = "Loaded plugin";
+    private const string DUPLICATE_ERROR = "Tried to load a duplicate";
+    private const string LOADFROM_ERROR = "Unable to load extensions from";
+    private const string INITIALIZE_ERROR = "Unable to initialize";
+    private const string UNLOAD_ERROR = "Unable to unload";
+    private const string LOAD_ERROR = "Unable to load";
+    private const string LOAD_SUCCESS = "Loaded";
 
     private readonly ConcurrentDictionary<IPlugin, Assembly> plugins = new();
 
@@ -36,25 +36,25 @@ public class PluginContext : IPluginContext
     {
         if (IsLoaded(plugin))
         {
-            Debug.Log($"{DUPLICATE_ERROR} '{plugin}'", LogType.WARNING);
+            Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(plugin)} '{plugin}' at '{plugin.GetType().Assembly.Location}'", LogType.WARNING);
             return;
         }
 
-        if (Debug.TryInvoke(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
+        if (Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
         {
             plugins.TryAdd(plugin, plugin.GetType().Assembly);
-            Debug.Log($"{LOAD_SUCCESS} '{plugin}'");
+            Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
 
             //  Load kernel modules from the plugin
             SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
 
-            Debug.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
+            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
         }
     }
 
     public void LoadFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
-        Debug.TryInvoke(() => LoadFromInternal(path, searchOption), $"{LOADFROM_ERROR} '{path}'");
+        Debugger.TryInvoke(() => LoadFromInternal(path, searchOption), $"{LOADFROM_ERROR} '{path}'");
     }
 
     public void Unload(IPlugin plugin)
@@ -92,15 +92,15 @@ public class PluginContext : IPluginContext
 
         foreach (Type type in loadedTypes)
         {
-            if (!type.IsInterface && typeof(IPlugin).IsAssignableFrom(type))
+            if (!type.IsInterface && !type.IsAbstract && typeof(IPlugin).IsAssignableFrom(type))
             {
                 if (IsLoaded(type))
                 {
-                    Debug.Log($"{DUPLICATE_ERROR} '{type}'", LogType.WARNING);
+                    Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(type)} '{type}' at '{type.Assembly.Location}'", LogType.WARNING);
                     continue;
                 }
 
-                if (Activator.CreateInstance(type) is IPlugin plugin && Debug.TryInvoke(plugin.Load, $"{LOAD_ERROR} '{plugin}'"))
+                if (Activator.CreateInstance(type) is IPlugin plugin && Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(type)} '{plugin.Name}'"))
                 {
                     loadedPlugins.Add(plugin);
                     plugins.TryAdd(plugin, type.Assembly);
@@ -108,18 +108,24 @@ public class PluginContext : IPluginContext
                     //  Load kernel modules from the plugin
                     SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
 
-                    Debug.Log($"{LOAD_SUCCESS} '{plugin}'");
+                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
                 }
             }
         }
 
         foreach (IPlugin plugin in loadedPlugins)
-            Debug.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} '{plugin}'");
+            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
     }
 
     private void UnloadInternal(IPlugin plugin)
     {
-        Debug.TryInvoke(plugin.Unload, $"{UNLOAD_ERROR} '{plugin}'");
+        Debugger.TryInvoke(plugin.Unload, $"{UNLOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
         plugins.TryRemove(plugin, out _);
+    }
+
+    private static string GetSimpleTypeString(IPlugin plugin) => GetSimpleTypeString(plugin.GetType());
+    private static string GetSimpleTypeString(Type type)
+    {
+        return typeof(Mod).IsAssignableFrom(type) ? "mod" : "plugin";
     }
 }

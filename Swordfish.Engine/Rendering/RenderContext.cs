@@ -111,12 +111,12 @@ namespace Swordfish.Engine.Rendering
         /// </summary>
         public void Initialize()
         {
-            Debug.Log($"OpenGL v{GL.GetString(StringName.Version)}");
-            Debug.Log($"{GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.CONTINUED);
-            Debug.Log($"Extensions found: {GLHelper.GetSupportedExtensions().Count}", LogType.CONTINUED);
+            Debugger.Log($"OpenGL v{GL.GetString(StringName.Version)}");
+            Debugger.Log($"{GL.GetString(StringName.Vendor)} {GL.GetString(StringName.Renderer)}", LogType.CONTINUED);
+            Debugger.Log($"Extensions found: {GLHelper.GetSupportedExtensions().Count}", LogType.CONTINUED);
 
             GL.GetInteger(GetPName.MaxVertexAttribs, out int maxAttributeCount);
-            Debug.Log($"Shader vertex attr supported: {maxAttributeCount}", LogType.CONTINUED);
+            Debugger.Log($"Shader vertex attr supported: {maxAttributeCount}", LogType.CONTINUED);
 
             GLDebug.TryCreateGLOutput();
 
@@ -208,9 +208,9 @@ namespace Swordfish.Engine.Rendering
             //  Check if framebuffer is completed
             FramebufferErrorCode framebufferCode = GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
             if (framebufferCode != FramebufferErrorCode.FramebufferComplete)
-                Debug.Log($"Framebuffer code: {framebufferCode.ToString()}", LogType.ERROR);
+                Debugger.Log($"Framebuffer code: {framebufferCode.ToString()}", LogType.ERROR);
             else
-                Debug.Log($"Framebuffer code: {framebufferCode.ToString()}");
+                Debugger.Log($"Framebuffer code: {framebufferCode.ToString()}");
 
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);   //  Bind back to default buffer
 

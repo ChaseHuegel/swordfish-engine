@@ -9,7 +9,7 @@ namespace Swordfish.Library.Networking
     {
         public NetClient(Host host) : base(host)
         {
-            Debug.Log($"Client started on {this.Session.EndPoint}");
+            Debugger.Log($"Client started on {this.Session.EndPoint}");
 
             this.PacketSent += OnPacketSent;
             this.PacketReceived += OnPacketReceived;
@@ -37,12 +37,12 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
+            Debugger.Log($"client->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
-            Debug.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
+            Debugger.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }
     }
 }

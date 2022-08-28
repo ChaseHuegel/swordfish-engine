@@ -21,7 +21,7 @@ namespace Swordfish.Engine.Rendering
         {
             if (!Directory.Exists(path))
             {
-                Debug.Log($"Directory'{path}' not found, creating it...");
+                Debugger.Log($"Directory'{path}' not found, creating it...");
                 Directory.CreateDirectory(path);
             }
 
@@ -80,11 +80,11 @@ namespace Swordfish.Engine.Rendering
 
             if (!File.Exists(path))
             {
-                Debug.Log($"Unable to load model '{name}' from '{path}', file not found", LogType.ERROR);
+                Debugger.Log($"Unable to load model '{name}' from '{path}', file not found", LogType.ERROR);
                 return null;
             }
 
-            Debug.Log($"Loading model '{name}' from '{path}'");
+            Debugger.Log($"Loading model '{name}' from '{path}'");
 
             using (StreamReader reader = new StreamReader(path))
             {

@@ -158,11 +158,11 @@ namespace Swordfish.Library.Networking
                 };
 
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-                Debug.Log($"NetController session started [{Session}]");
+                Debugger.Log($"NetController session started [{Session}]");
             }
             catch (Exception ex)
             {
-                Debug.Log($"NetController failed to start on [{port}]\n{ex}", LogType.ERROR);
+                Debugger.Log($"NetController failed to start on [{port}]\n{ex}", LogType.ERROR);
             }
         }
 
@@ -270,7 +270,7 @@ namespace Swordfish.Library.Networking
             }
             catch (Exception e)
             {
-                Debug.Log(e, LogType.ERROR);
+                Debugger.Log(e, LogType.ERROR);
                 PacketUnknown?.Invoke(this, netEventArgs);
             }
 
@@ -377,7 +377,7 @@ namespace Swordfish.Library.Networking
             }
             else
             {
-                Debug.Log("Tried to disconnect but there are no active sessions.", LogType.WARNING);
+                Debugger.Log("Tried to disconnect but there are no active sessions.", LogType.WARNING);
             }
         }
 

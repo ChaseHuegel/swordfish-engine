@@ -479,7 +479,7 @@ namespace Swordfish.Engine.Types
         {
             if (!HasChildren)
             {
-                Debug.Log($"SphereTree attempted consuming NULL child nodes", LogType.WARNING);
+                Debugger.Log($"SphereTree attempted consuming NULL child nodes", LogType.WARNING);
                 return;
             }
 

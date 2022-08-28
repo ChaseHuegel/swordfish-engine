@@ -1,6 +1,6 @@
 using Swordfish.Library.IO;
 
-namespace Swordfish.Plugins;
+namespace Swordfish.Extensibility;
 
 public interface IPluginContext
 {

@@ -11,7 +11,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements.Diagnostics
     {
         public override void OnUpdate()
         {
-            Enabled = Debug.Enabled && Debug.Stats;
+            Enabled = Debugger.Enabled && Debugger.Stats;
         }
 
         public override void OnShow()

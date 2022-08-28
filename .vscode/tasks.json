@@ -5,7 +5,7 @@
     "tasks": [
         {
             "label": "build",
-            "command": "dotnet build -o ./bin/",
+            "command": "dotnet build",
             "type": "shell",
             "group": "build",
             "presentation": {

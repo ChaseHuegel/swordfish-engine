@@ -80,7 +80,7 @@ namespace Swordfish.Engine.Util
         {
             if ((HasGLOutput = GLHelper.HasCapabilities(4, 3, "GL_KHR_debug")) == false)
             {
-                Debug.Log("...OpenGL debug output is unavailable, manual fallback will be used", LogType.WARNING, false, true);
+                Debugger.Log("...OpenGL debug output is unavailable, manual fallback will be used", LogType.WARNING, false, true);
             }
             else
             {
@@ -89,7 +89,7 @@ namespace Swordfish.Engine.Util
                 GL.Enable(EnableCap.DebugOutput);
                 GL.Enable(EnableCap.DebugOutputSynchronous);
 
-                Debug.Log("...Created OpenGL debug output");
+                Debugger.Log("...Created OpenGL debug output");
             }
 
             return (glErrorDelegate == null);
@@ -115,7 +115,7 @@ namespace Swordfish.Engine.Util
             if (type == DebugType.DebugTypeError)
                 logType = LogType.ERROR;
 
-            Debug.Log(output, "OpenGL", logType, true, true);
+            Debugger.Log(output, "OpenGL", logType, true, true);
         }
     }
 }

@@ -139,7 +139,7 @@ namespace Swordfish.Engine
             {
                 //  Dump the log if this this is a debug build OR any errors were detected
 #if DEBUG
-                Debug.Dump();
+                Debugger.Dump();
 #else
                     if (Debug.HasErrors) Debug.Dump();
 #endif
@@ -148,8 +148,8 @@ namespace Swordfish.Engine
             else
             {
                 //  Notify and dump the log
-                Debug.Log("Unexpected shutdown! Did it crash?");
-                Debug.Dump();
+                Debugger.Log("Unexpected shutdown! Did it crash?");
+                Debugger.Dump();
 
                 //  Perform shutdown steps
                 Shutdown();

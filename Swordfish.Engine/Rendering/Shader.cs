@@ -18,17 +18,17 @@ namespace Swordfish.Engine.Rendering
 
         public static Shader LoadFromFile(string vertexPath, string fragmentPath, string name = "New Shader")
         {
-            Debug.Log($"Loading shader '{name}' from '{vertexPath}' / '{fragmentPath}'");
+            Debugger.Log($"Loading shader '{name}' from '{vertexPath}' / '{fragmentPath}'");
 
             if (!File.Exists(vertexPath))
             {
-                Debug.Log($"Unable to load shader '{name}', vertex source not found at '{vertexPath}'", LogType.ERROR);
+                Debugger.Log($"Unable to load shader '{name}', vertex source not found at '{vertexPath}'", LogType.ERROR);
                 return null;
             }
 
             if (!File.Exists(fragmentPath))
             {
-                Debug.Log($"Unable to load shader '{name}', fragment source not found at '{fragmentPath}'", LogType.ERROR);
+                Debugger.Log($"Unable to load shader '{name}', fragment source not found at '{fragmentPath}'", LogType.ERROR);
                 return null;
             }
 
@@ -53,12 +53,12 @@ namespace Swordfish.Engine.Rendering
             GL.CompileShader(vertexShader);
             string infoLogVert = GL.GetShaderInfoLog(vertexShader);
             if (infoLogVert != System.String.Empty)
-                Debug.Log(infoLogVert);
+                Debugger.Log(infoLogVert);
 
             GL.CompileShader(fragmentShader);
             string infoLogFrag = GL.GetShaderInfoLog(fragmentShader);
             if (infoLogFrag != System.String.Empty)
-                Debug.Log(infoLogFrag);
+                Debugger.Log(infoLogFrag);
 
             //  Link to program that can be used
             Handle = GL.CreateProgram();
@@ -87,7 +87,7 @@ namespace Swordfish.Engine.Rendering
                 uniformOutput += key + (i == numberOfUniforms - 1 ? "" : ", ");
             }
 
-            Debug.Log($"Uniforms: {uniformOutput}", LogType.CONTINUED);
+            Debugger.Log($"Uniforms: {uniformOutput}", LogType.CONTINUED);
         }
 
         public void Use()
@@ -120,7 +120,7 @@ namespace Swordfish.Engine.Rendering
 
                 if (location == -1)
                 {
-                    Debug.Log($"Uniform '{uniform}' does not exist in the shader '{Name}'!", LogType.WARNING, true);
+                    Debugger.Log($"Uniform '{uniform}' does not exist in the shader '{Name}'!", LogType.WARNING, true);
                 }
             }
 

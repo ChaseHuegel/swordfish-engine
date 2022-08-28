@@ -1,7 +1,7 @@
 using Ninject.Modules;
+using Swordfish.Extensibility;
+using Swordfish.Graphics;
 using Swordfish.Library.IO;
-using Swordfish.Plugins;
-using Swordfish.Rendering;
 using Swordfish.UI;
 
 namespace Swordfish;

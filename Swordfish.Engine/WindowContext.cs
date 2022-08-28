@@ -31,13 +31,13 @@ namespace Swordfish.Engine
         {
             MonitorInfo screen = GLHelper.GetPrimaryDisplay();
 
-            Debug.Log($"Started {(Swordfish.Settings.Window.TITLE)}");
-            Debug.Log($"Device: {screen.HorizontalResolution}x{screen.VerticalResolution}", LogType.CONTINUED);
-            Debug.Log($"Window: {(Swordfish.Settings.Window.WIDTH)}x{(Swordfish.Settings.Window.HEIGHT)}", LogType.CONTINUED);
-            Debug.Log($"Fullscreen: {(Swordfish.Settings.Window.FULLSCREEN)}", LogType.CONTINUED);
-            Debug.Log($"Vsync: {(Swordfish.Settings.Window.VSYNC)}", LogType.CONTINUED);
-            Debug.Log($"Framelimit: {(Swordfish.Settings.Window.FRAMELIMIT)}", LogType.CONTINUED);
-            Debug.Log($"Updatelimit: {(Swordfish.Settings.Window.UPDATELIMIT)}", LogType.CONTINUED);
+            Debugger.Log($"Started {(Swordfish.Settings.Window.TITLE)}");
+            Debugger.Log($"Device: {screen.HorizontalResolution}x{screen.VerticalResolution}", LogType.CONTINUED);
+            Debugger.Log($"Window: {(Swordfish.Settings.Window.WIDTH)}x{(Swordfish.Settings.Window.HEIGHT)}", LogType.CONTINUED);
+            Debugger.Log($"Fullscreen: {(Swordfish.Settings.Window.FULLSCREEN)}", LogType.CONTINUED);
+            Debugger.Log($"Vsync: {(Swordfish.Settings.Window.VSYNC)}", LogType.CONTINUED);
+            Debugger.Log($"Framelimit: {(Swordfish.Settings.Window.FRAMELIMIT)}", LogType.CONTINUED);
+            Debugger.Log($"Updatelimit: {(Swordfish.Settings.Window.UPDATELIMIT)}", LogType.CONTINUED);
 
             Swordfish.Renderer.Initialize();
 
@@ -122,7 +122,7 @@ namespace Swordfish.Engine
                             + ".png";
 
                 Swordfish.Renderer.Screenshot(false).Save(path, ImageFormat.Png);
-                Debug.Log($"Saved screenshot '{path}'");
+                Debugger.Log($"Saved screenshot '{path}'");
             }
 
             //  Screenshot the window with F12
@@ -137,7 +137,7 @@ namespace Swordfish.Engine
                             + ".png";
 
                 Swordfish.Renderer.Screenshot().Save(path, ImageFormat.Png);
-                Debug.Log($"Saved screenshot '{path}'");
+                Debugger.Log($"Saved screenshot '{path}'");
             }
 
             Swordfish.Step();

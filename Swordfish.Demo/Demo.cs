@@ -1,25 +1,16 @@
 using Swordfish.Demo.UI;
+using Swordfish.Extensibility;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Plugins;
 
 namespace Swordfish.Demo;
 
-public class Demo : IPlugin
+public class Demo : Mod
 {
-    public void Load()
-    {
-        Debug.Log("Demo loaded!");
-    }
+    public override string Name => "Swordfish Demo";
+    public override string Description => "A demo of the Swordfish engine.";
 
-    public void Unload()
+    public override void Initialize()
     {
-        Debug.Log("Demo unloaded!");
-    }
-
-    public void Initialize()
-    {
-        Debug.Log("Demo initialized!");
-
         TestUI.CreateCanvas();
     }
 }

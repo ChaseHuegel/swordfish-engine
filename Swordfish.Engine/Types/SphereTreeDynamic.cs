@@ -48,7 +48,7 @@ namespace Swordfish.Engine.Types
             if (minSize > size)
             {
                 minSize = size;
-                Debug.Log($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}", LogType.WARNING);
+                Debugger.Log($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}", LogType.WARNING);
             }
 
             Count = 0;
@@ -76,7 +76,7 @@ namespace Swordfish.Engine.Types
                 //  Limit # of resize attempts to prevent an unreasonable stack
                 if (resizeAttempts > 8)
                 {
-                    Debug.Log($"SphereTree add failed, unable to grow the tree large enough after {resizeAttempts} attempts", LogType.ERROR);
+                    Debugger.Log($"SphereTree add failed, unable to grow the tree large enough after {resizeAttempts} attempts", LogType.ERROR);
                     return false;
                 }
             }

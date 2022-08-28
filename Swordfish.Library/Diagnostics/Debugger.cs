@@ -5,14 +5,14 @@ using System.Runtime.InteropServices;
 
 namespace Swordfish.Library.Diagnostics
 {
-    public static class Debug
+    public static class Debugger
     {
         /// <summary>
         /// Dummy method to force construction of the static class
         /// </summary>
         public static void Initialize() { }
 
-        static Debug()
+        static Debugger()
         {
             Logger.Initialize();
             Statistics.Initialize();

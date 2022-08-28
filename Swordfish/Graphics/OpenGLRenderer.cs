@@ -6,7 +6,7 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Rendering;
+namespace Swordfish.Graphics;
 
 public class OpenGLRenderer : IRenderContext
 {
@@ -22,7 +22,7 @@ public class OpenGLRenderer : IRenderContext
         Window.FramebufferResize += Resize;
         Window.Render += Render;
 
-        Debug.Log("Renderer initialized.");
+        Debugger.Log("Renderer initialized.");
     }
 
     private void Cleanup()

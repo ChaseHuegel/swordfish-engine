@@ -23,7 +23,7 @@ public class ImGuiContext : IUIContext
         Window.Closing += Cleanup;
         Window.Render += Render;
 
-        Debug.Log("UI initialized.");
+        Debugger.Log("UI initialized.");
     }
 
     private void Cleanup()

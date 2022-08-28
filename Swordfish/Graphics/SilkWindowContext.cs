@@ -15,7 +15,7 @@ using Swordfish.UI;
 using Swordfish.Util;
 using Image = SixLabors.ImageSharp.Image;
 
-namespace Swordfish.Rendering;
+namespace Swordfish.Graphics;
 
 public class SilkWindowContext : IWindowContext
 {
@@ -57,9 +57,29 @@ public class SilkWindowContext : IWindowContext
         return (Vector2)Window.Size;
     }
 
+    public void SetWindowed()
+    {
+        Window.WindowState = WindowState.Normal;
+    }
+
+    public void Minimize()
+    {
+        Window.WindowState = WindowState.Minimized;
+    }
+
+    public void Maximize()
+    {
+        Window.WindowState = WindowState.Maximized;
+    }
+
+    public void Fullscreen()
+    {
+        Window.WindowState = WindowState.Fullscreen;
+    }
+
     private unsafe void OnLoad()
     {
-        Debug.Log("Window initialized.");
+        Debugger.Log("Window initialized.");
 
         Window.Center();
 

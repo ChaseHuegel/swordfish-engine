@@ -17,6 +17,16 @@
     <ApplicationIcon>swordfish.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <PreserveCompilationContext>false</PreserveCompilationContext>
+    <PreserveCompilationReferences>false</PreserveCompilationReferences>
+    <ProduceReferenceAssemblyInOutDir>true</ProduceReferenceAssemblyInOutDir>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+  </PropertyGroup>
+
   <ItemGroup>
     <Using Include="Silk.NET" />
   </ItemGroup>

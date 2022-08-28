@@ -9,9 +9,9 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/bin/Swordfish.exe",
+            "program": "${workspaceFolder}/Swordfish/bin/Debug/Swordfish.exe",
             "args": [],
-            "cwd": "${workspaceFolder}/bin/",
+            "cwd": "${workspaceFolder}/Swordfish/bin/Debug/",
             "console": "internalConsole",
             "stopAtEntry": false,
             "logging": {

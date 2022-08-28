@@ -4,6 +4,8 @@
 **/screenshots/
 **/config/
 **/nuget/
+**/plugins/
+**/mods/
 
 *.log
 NuGet.config

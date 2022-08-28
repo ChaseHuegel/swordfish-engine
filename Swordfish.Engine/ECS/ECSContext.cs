@@ -107,17 +107,17 @@ namespace Swordfish.Engine.ECS
         {
             Type[] types = Assembly.GetExecutingAssembly().GetTypes();
 
-            Debug.Log("Registering ECS components...");
+            Debugger.Log("Registering ECS components...");
             foreach (Type type in types)
             {
                 if (Attribute.GetCustomAttribute(type, typeof(ComponentAttribute)) != null)
                 {
                     if (RegisterComponent(Activator.CreateInstance(type)))
-                        Debug.Log($"Registered '{type}'", LogType.CONTINUED);
+                        Debugger.Log($"Registered '{type}'", LogType.CONTINUED);
                 }
             }
 
-            Debug.Log("Registering ECS systems...");
+            Debugger.Log("Registering ECS systems...");
             ComponentSystemAttribute systemAttribute;
             foreach (Type type in types)
             {
@@ -129,7 +129,7 @@ namespace Swordfish.Engine.ECS
                     system.filter = systemAttribute.filter;
 
                     if (RegisterSystem(system))
-                        Debug.Log($"Registered '{type}'", LogType.CONTINUED);
+                        Debugger.Log($"Registered '{type}'", LogType.CONTINUED);
                 }
             }
         }
@@ -324,7 +324,7 @@ namespace Swordfish.Engine.ECS
             else
             {
                 _recycledIDs.Enqueue(entity.UID);
-                Debug.Log("CreateEntity failed to push context", "ECS", LogType.ERROR);
+                Debugger.Log("CreateEntity failed to push context", "ECS", LogType.ERROR);
                 return null;
             }
 
@@ -432,7 +432,7 @@ namespace Swordfish.Engine.ECS
         public ECSContext Attach<T>(Entity entity, T component) where T : struct
         {
             if (!_components.ContainsKey(component.GetType()))
-                Debug.Log($"Component of type({component.GetType().ToString()}) is not registered to context", "ECS", LogType.WARNING);
+                Debugger.Log($"Component of type({component.GetType().ToString()}) is not registered to context", "ECS", LogType.WARNING);
 
             if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
             {
@@ -461,7 +461,7 @@ namespace Swordfish.Engine.ECS
                 if (component == null || !component.GetType().IsValueType) continue;
 
                 if (!_components.ContainsKey(component.GetType()))
-                    Debug.Log($"Component of type({component.GetType().ToString()}) is not registered to context", "ECS", LogType.WARNING);
+                    Debugger.Log($"Component of type({component.GetType().ToString()}) is not registered to context", "ECS", LogType.WARNING);
 
                 if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
                 {
@@ -486,7 +486,7 @@ namespace Swordfish.Engine.ECS
         public ECSContext Detach<T>(Entity entity) where T : struct
         {
             if (!_components.ContainsKey(typeof(T)))
-                Debug.Log($"Component of type({typeof(T).ToString()}) is not registered to context", "ECS", LogType.WARNING);
+                Debugger.Log($"Component of type({typeof(T).ToString()}) is not registered to context", "ECS", LogType.WARNING);
 
             if (_components.TryGetValue(typeof(T), out ExpandingList<object> data))
             {
@@ -512,7 +512,7 @@ namespace Swordfish.Engine.ECS
         public ECSContext Set<T>(Entity entity, T component) where T : struct
         {
             if (!_components.ContainsKey(typeof(T)))
-                Debug.Log($"Component of type({typeof(T).ToString()}) is not registered to context", "ECS", LogType.WARNING);
+                Debugger.Log($"Component of type({typeof(T).ToString()}) is not registered to context", "ECS", LogType.WARNING);
 
             if (_components.TryGetValue(component.GetType(), out ExpandingList<object> data))
                 data[entity.UID - 1] = component;

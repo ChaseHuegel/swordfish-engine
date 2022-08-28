@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-using Debug = Swordfish.Library.Diagnostics.Debug;
+using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Library.Threading
 {
@@ -39,13 +39,13 @@ namespace Swordfish.Library.Threading
             pause = false;
             thread.Start();
 
-            Debug.Log($"Started thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Started thread '{thread.Name}'", "Threading");
         }
 
         public void Stop()
         {
             stop = true;
-            Debug.Log($"Stopped thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Stopped thread '{thread.Name}'", "Threading");
         }
 
         public void Restart()
@@ -54,21 +54,21 @@ namespace Swordfish.Library.Threading
             pause = false;
             thread.Start();
 
-            Debug.Log($"Restarted thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Restarted thread '{thread.Name}'", "Threading");
         }
 
         public void Pause()
         {
             pause = true;
 
-            Debug.Log($"Paused thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Paused thread '{thread.Name}'", "Threading");
         }
 
         public void Unpause()
         {
             pause = false;
 
-            Debug.Log($"Resumed thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Resumed thread '{thread.Name}'", "Threading");
         }
 
         public void TogglePause()
@@ -116,7 +116,7 @@ namespace Swordfish.Library.Threading
                 Thread.Sleep(200);  //	Sleep when paused
             }
 
-            Debug.Log($"Closed thread '{thread.Name}'", "Threading");
+            Debugger.Log($"Closed thread '{thread.Name}'", "Threading");
             //	Stopped thread safely
         }
     }

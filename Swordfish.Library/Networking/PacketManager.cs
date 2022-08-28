@@ -55,7 +55,7 @@ namespace Swordfish.Library.Networking
                     {
                         if (!logged)
                         {
-                            Debug.Log($"Registering packet handlers from assembly '{assembly}'...");
+                            Debugger.Log($"Registering packet handlers from assembly '{assembly}'...");
                             logged = true;
                         }
 
@@ -65,11 +65,11 @@ namespace Swordfish.Library.Networking
                                 packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
 
                             GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
-                            Debug.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
+                            Debugger.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
                         }
                         else
                         {
-                            Debug.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
+                            Debugger.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
                         }
                     }
                 }
@@ -85,7 +85,7 @@ namespace Swordfish.Library.Networking
                 {
                     if (!logged)
                     {
-                        Debug.Log($"Registering packets from assembly '{assembly}'...");
+                        Debugger.Log($"Registering packets from assembly '{assembly}'...");
                         logged = true;
                     }
 
@@ -100,11 +100,11 @@ namespace Swordfish.Library.Networking
                         };
 
                         PacketDefinitions.Add(id, definition.Type, definition);
-                        Debug.Log(definition, LogType.CONTINUED);
+                        Debugger.Log(definition, LogType.CONTINUED);
                     }
                     else
                     {
-                        Debug.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
+                        Debugger.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
                     }
                 }
             }

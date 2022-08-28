@@ -8,7 +8,7 @@ namespace Swordfish.Library.Networking
     {
         public NetServer(int port) : base(port)
         {
-            Debug.Log($"Server started on {this.Session.EndPoint}");
+            Debugger.Log($"Server started on {this.Session.EndPoint}");
 
             this.PacketSent += OnPacketSent;
             this.PacketReceived += OnPacketReceived;
@@ -34,27 +34,27 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Debug.Log($"server->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
+            Debugger.Log($"server->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
-            Debug.Log($"server->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
+            Debugger.Log($"server->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnSessionStarted(object sender, NetEventArgs e)
         {
-            Debug.Log($"server->session [{e.Session}] joined from {e.EndPoint}");
+            Debugger.Log($"server->session [{e.Session}] joined from {e.EndPoint}");
         }
 
         public virtual void OnSessionRejected(object sender, NetEventArgs e)
         {
-            Debug.Log($"server->session rejected from {e.EndPoint}", LogType.WARNING);
+            Debugger.Log($"server->session rejected from {e.EndPoint}", LogType.WARNING);
         }
 
         public virtual void OnSessionEnded(object sender, NetEventArgs e)
         {
-            Debug.Log($"server->session [{e.Session}] left from {e.EndPoint}");
+            Debugger.Log($"server->session [{e.Session}] left from {e.EndPoint}");
         }
     }
 }
