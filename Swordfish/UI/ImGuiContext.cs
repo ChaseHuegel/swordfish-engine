@@ -17,6 +17,8 @@ public class ImGuiContext : IUIContext
 
     private IWindow? Window { get; set; }
 
+    public IMenuBarElement? MenuBar { get; set; }
+
     public void Initialize(IWindow window)
     {
         Window = window;
@@ -37,6 +39,9 @@ public class ImGuiContext : IUIContext
 
         foreach (IElement element in Elements)
             element.Render();
+
+        if (MenuBar != null)
+            MenuBar.Render();
 
         Controller.Render();
     }

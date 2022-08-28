@@ -8,5 +8,7 @@ public interface IUIContext
 {
     LockedList<IElement> Elements { get; }
 
+    IMenuBarElement? MenuBar { get; }
+
     void Initialize(IWindow window);
 }
