@@ -1,5 +1,8 @@
+using System.IO;
 using ImGuiNET;
+using Ninject;
 using Swordfish.Extensibility;
+using Swordfish.Library.IO;
 using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
@@ -25,12 +28,6 @@ public class Editor : Plugin
 
     public override void Initialize()
     {
-        // float padding = ImGui.GetStyle().FramePadding.X + ImGui.GetStyle().WindowPadding.X;
-        // float textWidth = ImGui.CalcTextSize("Swordfish Engine 2.0.0").X;
-        // float windowWidth = SwordfishEngine.MainWindow.GetSize().X;
-        // ImGui.SetCursorPos(new Vector2(windowWidth - textWidth - padding, 0f));
-        // ImGui.Text("Swordfish Engine 2.0.0");
-
         MenuElement menu = new()
         {
             Content = {
@@ -92,6 +89,29 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(0.2f)
             }
         };
+
+        PopulateDirectory(assetBrowser, SwordfishEngine.Kernel.Get<IPathService>().Root.OriginalString);
+
+        void PopulateDirectory(ContentElement root, string path)
+        {
+            foreach (string dir in Directory.GetDirectories(path))
+            {
+                TreeNode node = new(System.IO.Path.GetFileName(dir));
+                PopulateDirectory(node, dir);
+                root.Content.Add(node);
+            }
+
+            PopulateFiles(root, path);
+        }
+
+        void PopulateFiles(ContentElement root, string directory)
+        {
+            foreach (string file in Directory.GetFiles(directory, "*.*"))
+            {
+                TreeNode node = new(System.IO.Path.GetFileName(file));
+                root.Content.Add(node);
+            }
+        }
 
         CanvasElement inspector = new("Inspector")
         {
