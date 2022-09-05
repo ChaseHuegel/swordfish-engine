@@ -24,6 +24,8 @@ public class SilkWindowContext : IWindowContext
     private IUIContext UIContext { get; }
     private IInputContext? Input { get; set; }
 
+    public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
+
     public Action? Load { get; set; }
     public Action? Close { get; set; }
     public Action<double>? Render { get; set; }

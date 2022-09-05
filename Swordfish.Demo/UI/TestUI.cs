@@ -3,16 +3,29 @@ using System.Drawing;
 using System.Net.Mime;
 using System.Timers;
 using ImGuiNET;
+using Ninject;
+using Swordfish.Graphics;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
+using Swordfish.UI;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.Demo.UI;
 
 public static class TestUI
 {
+    private static IUIContext UIContext => uiContext ??= SwordfishEngine.Kernel.Get<IUIContext>();
+    private static IWindowContext WindowContext => windowContext ??= SwordfishEngine.Kernel.Get<IWindowContext>();
+
+    private static IUIContext uiContext;
+    private static IWindowContext windowContext;
+
     public static void CreateCanvas()
     {
+        //  Scale based on a target resolution
+        UIContext.ScaleConstraint.Set(new FactorConstraint(1080f));
+
         CanvasElement myCanvas = new("UI Test Canvas")
         {
             Flags = ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoMove,
@@ -53,7 +66,7 @@ public static class TestUI
                         {
                             Anchor = ConstraintAnchor.TOP_CENTER,
                             Width = new FillConstraint(),
-                            Height = new AbsoluteConstraint(14)
+                            Height = new AbsoluteConstraint(UIContext.FontDisplaySize)
                         },
                         Content = {
                             new TextElement("This"),
