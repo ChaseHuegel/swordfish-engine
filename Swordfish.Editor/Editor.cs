@@ -25,7 +25,39 @@ public class Editor : Plugin
 
     public override void Initialize()
     {
-        MenuElement menu = new();
+        // float padding = ImGui.GetStyle().FramePadding.X + ImGui.GetStyle().WindowPadding.X;
+        // float textWidth = ImGui.CalcTextSize("Swordfish Engine 2.0.0").X;
+        // float windowWidth = SwordfishEngine.MainWindow.GetSize().X;
+        // ImGui.SetCursorPos(new Vector2(windowWidth - textWidth - padding, 0f));
+        // ImGui.Text("Swordfish Engine 2.0.0");
+
+        MenuElement menu = new()
+        {
+            Content = {
+                new MenuItemElement("File") {
+                    Content = {
+                        new MenuItemElement("New") {
+                            Content = {
+                                new MenuItemElement("Project"),
+                                new MenuItemElement("Plugin"),
+                            }
+                        },
+                        new MenuItemElement("Open"),
+                        new MenuItemElement("Save"),
+                    }
+                },
+                new MenuItemElement("Edit"),
+                new MenuItemElement("View"),
+                new MenuItemElement("Tools"),
+                new MenuItemElement("Run"),
+                new MenuItemElement("Help"),
+                new TextElement("Swordfish Engine " + SwordfishEngine.Version) {
+                    Constraints = new RectConstraints() {
+                        Anchor = ConstraintAnchor.TOP_RIGHT
+                    }
+                }
+            }
+        };
 
         CanvasElement heirarchy = new("Hierarchy")
         {

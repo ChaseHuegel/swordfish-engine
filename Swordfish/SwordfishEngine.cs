@@ -1,12 +1,13 @@
 using Ninject;
+using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
-using Swordfish.Extensibility;
 
 namespace Swordfish;
 
 public static class SwordfishEngine
 {
+    public readonly static Version? Version;
     public readonly static IKernel Kernel;
     public readonly static IWindowContext MainWindow;
 
@@ -15,6 +16,7 @@ public static class SwordfishEngine
 
     static SwordfishEngine()
     {
+        Version = typeof(SwordfishEngine).Assembly.GetName().Version;
         Kernel = new StandardKernel();
         Kernel.Load(typeof(SwordfishEngine).Assembly);
 
