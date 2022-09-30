@@ -2,6 +2,7 @@ using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
 using Swordfish.Library.Types.Constraints;
+using Swordfish.Types.Constraints;
 using Swordfish.Util;
 
 namespace Swordfish.UI.Elements;
@@ -35,28 +36,28 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
         switch (Constraints.Anchor)
         {
-            case Types.Constraints.ConstraintAnchor.TOP_CENTER:
+            case ConstraintAnchor.TOP_CENTER:
                 origin -= new Vector2(ImGui.CalcTextSize(Text).X / 2f, 0f);
                 break;
-            case Types.Constraints.ConstraintAnchor.TOP_RIGHT:
+            case ConstraintAnchor.TOP_RIGHT:
                 origin -= new Vector2(ImGui.CalcTextSize(Text).X, 0f);
                 break;
-            case Types.Constraints.ConstraintAnchor.CENTER_LEFT:
+            case ConstraintAnchor.CENTER_LEFT:
                 origin -= new Vector2(0f, ImGui.CalcTextSize(Text).Y / 2f);
                 break;
-            case Types.Constraints.ConstraintAnchor.CENTER:
+            case ConstraintAnchor.CENTER:
                 origin -= ImGui.CalcTextSize(Text) / 2f;
                 break;
-            case Types.Constraints.ConstraintAnchor.CENTER_RIGHT:
+            case ConstraintAnchor.CENTER_RIGHT:
                 origin -= new Vector2(ImGui.CalcTextSize(Text).X, ImGui.CalcTextSize(Text).Y / 2f);
                 break;
-            case Types.Constraints.ConstraintAnchor.BOTTOM_LEFT:
+            case ConstraintAnchor.BOTTOM_LEFT:
                 origin += new Vector2(0f, ImGui.CalcTextSize(Text).Y);
                 break;
-            case Types.Constraints.ConstraintAnchor.BOTTOM_CENTER:
+            case ConstraintAnchor.BOTTOM_CENTER:
                 origin += new Vector2(-ImGui.CalcTextSize(Text).X / 2f, ImGui.CalcTextSize(Text).Y);
                 break;
-            case Types.Constraints.ConstraintAnchor.BOTTOM_RIGHT:
+            case ConstraintAnchor.BOTTOM_RIGHT:
                 origin += new Vector2(-ImGui.CalcTextSize(Text).X, ImGui.CalcTextSize(Text).Y);
                 break;
         }

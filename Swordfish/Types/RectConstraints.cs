@@ -1,8 +1,8 @@
 using System.Numerics;
 using ImGuiNET;
-using Swordfish.Types.Constraints;
+using Swordfish.Library.Types.Constraints;
 
-namespace Swordfish.Library.Types.Constraints;
+namespace Swordfish.Types.Constraints;
 
 public class RectConstraints
 {
