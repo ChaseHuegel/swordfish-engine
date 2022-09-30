@@ -111,6 +111,8 @@ public class Editor : Plugin
                 TreeNode node = new(System.IO.Path.GetFileName(file));
                 root.Content.Add(node);
             }
+
+            root.Content.Add(new DividerElement());
         }
 
         CanvasElement inspector = new("Inspector")

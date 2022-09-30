@@ -149,6 +149,7 @@ public static class TestUI
             },
             Content = {
                 new TextElement("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquet sagittis id consectetur purus ut faucibus pulvinar elementum. Libero enim sed faucibus turpis in eu. Mi in nulla posuere sollicitudin. Purus in massa tempor nec feugiat nisl pretium. In eu mi bibendum neque egestas congue. Dui nunc mattis enim ut tellus elementum. Cursus euismod quis viverra nibh cras pulvinar mattis nunc sed. Sed vulputate mi sit amet mauris commodo quis. Phasellus vestibulum lorem sed risus. Amet aliquam id diam maecenas ultricies mi."),
+                new DividerElement(),
                 new TextElement("Disabled text.") {
                     Enabled = false
                 },
