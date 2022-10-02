@@ -43,6 +43,9 @@ public class EntityBuilder
     public EntityBuilder Attach(Type type)
         => Attach(type, World.GetComponentIndex(type));
 
+    public EntityBuilder Attach<TComponent>(TComponent component) where TComponent : class
+        => Attach(component, World.GetComponentIndex<TComponent>());
+
     public EntityBuilder Attach<TComponent>(int componentIndex) where TComponent : class, new()
     {
         Components[componentIndex] = new TComponent();
@@ -52,6 +55,12 @@ public class EntityBuilder
     public EntityBuilder Attach(Type type, int componentIndex)
     {
         Components[componentIndex] = Activator.CreateInstance(type);
+        return this;
+    }
+
+    public EntityBuilder Attach<TComponent>(TComponent component, int componentIndex) where TComponent : class
+    {
+        Components[componentIndex] = component;
         return this;
     }
 }

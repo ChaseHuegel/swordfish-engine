@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 using ImGuiNET;
 using Ninject;
 using Swordfish.ECS;
@@ -9,6 +10,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
+using Path = Swordfish.Library.IO.Path;
 
 namespace Swordfish.Editor;
 
@@ -72,10 +74,10 @@ public class Editor : Plugin
         var world = new World();
         world.Initialize();
         for (int i = 0; i < 1000; i++)
-            world.EntityBuilder.Build();
+            world.EntityBuilder.Attach(new IdentifierComponent($"new entity {i}", null)).Build();
 
         foreach (var entity in world.GetEntities())
-            heirarchy.Content.Add(new TreeNode("Entity " + entity.Ptr.ToString()));
+            heirarchy.Content.Add(new DataTreeNode<Entity>("Entity " + entity.Ptr.ToString(), entity));
 
         CanvasElement console = new("Console")
         {
@@ -138,7 +140,7 @@ public class Editor : Plugin
         {
             foreach (string file in Directory.GetFiles(directory, "*.*"))
             {
-                TreeNode node = new(System.IO.Path.GetFileName(file));
+                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(file), new Path(file));
                 root.Content.Add(node);
             }
 
@@ -153,6 +155,70 @@ public class Editor : Plugin
                 Anchor = ConstraintAnchor.TOP_RIGHT,
                 Width = new RelativeConstraint(0.15f),
                 Height = new RelativeConstraint(1f)
+            }
+        };
+
+        TreeNode.Selected.Changed += (sender, args) =>
+        {
+            inspector.Content.Clear();
+
+            if (TreeNode.Selected.Get() is DataTreeNode<Entity> entityNode)
+            {
+                foreach (var component in entityNode.Data.Get().GetComponents().Where(x => x != null))
+                {
+                    var group = new PanelElement(component.ToString());
+
+                    foreach (var field in component.GetType().GetFields())
+                    {
+                        group.Content.Add(new TextElement(field.Name + ":")
+                        {
+                            Constraints = new RectConstraints()
+                            {
+                                X = new AbsoluteConstraint(10)
+                            }
+                        });
+                        group.Content.Add(new TextElement(field.GetValue(component)?.ToString() ?? "null")
+                        {
+                            Alignment = ElementAlignment.HORIZONTAL
+                        });
+                    }
+
+                    group.Content.Add(new DividerElement());
+                    inspector.Content.Add(group);
+                }
+            }
+            else if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
+            {
+                var group = new PanelElement(pathNode.Data.Get().GetType().ToString())
+                {
+                    Content = {
+                        new TextElement("File:")
+                        {
+                            Constraints = new RectConstraints()
+                            {
+                                X = new AbsoluteConstraint(10)
+                            }
+                        },
+                        new TextElement(System.IO.Path.GetFileName(pathNode.Data.Get().ToString()))
+                        {
+                            Alignment = ElementAlignment.HORIZONTAL
+                        },
+                        new TextElement("Path:")
+                        {
+                            Constraints = new RectConstraints()
+                            {
+                                X = new AbsoluteConstraint(10)
+                            }
+                        },
+                        new TextElement(pathNode.Data.Get().ToString())
+                        {
+                            Alignment = ElementAlignment.HORIZONTAL
+                        }
+                    }
+                };
+
+                group.Content.Add(new DividerElement());
+                inspector.Content.Add(group);
             }
         };
     }
