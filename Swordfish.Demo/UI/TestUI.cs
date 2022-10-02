@@ -18,8 +18,8 @@ public static class TestUI
     private static IUIContext UIContext => uiContext ??= SwordfishEngine.Kernel.Get<IUIContext>();
     private static IWindowContext WindowContext => windowContext ??= SwordfishEngine.Kernel.Get<IWindowContext>();
 
-    private static IUIContext uiContext;
-    private static IWindowContext windowContext;
+    private static IUIContext? uiContext;
+    private static IWindowContext? windowContext;
 
     public static void CreateCanvas()
     {

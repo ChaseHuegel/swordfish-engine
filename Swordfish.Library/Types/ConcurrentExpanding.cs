@@ -1,16 +1,24 @@
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
-namespace Swordfish.Library.Containers
+namespace Swordfish.Library.Types
 {
     /// <summary>
-    /// Represents a non-shrinking typed list
+    /// Represents a thread-safe non-shrinking typed list
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ExpandingList<T> : IEnumerable
+    public class ConcurrentExpanding<T> : IEnumerable
     {
+        private ReaderWriterLockSlim listLock = new ReaderWriterLockSlim();
         private T[] array = new T[1];
+
+        //  Deconstructor
+        ~ConcurrentExpanding()
+        {
+            if (listLock != null) listLock.Dispose();
+        }
 
         /// <summary>
         /// Number of indices in the list
@@ -41,10 +49,18 @@ namespace Swordfish.Library.Containers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T value)
         {
-            if (array.Length == Count)
-                Array.Resize(ref array, array.Length << 1);
+            listLock.EnterWriteLock();
+            try
+            {
+                if (array.Length == Count)
+                    Array.Resize(ref array, array.Length << 1);
 
-            array[Count++] = value;
+                array[Count++] = value;
+            }
+            finally
+            {
+                listLock.ExitWriteLock();
+            }
         }
 
         /// <summary>
@@ -55,9 +71,18 @@ namespace Swordfish.Library.Containers
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(T value)
         {
-            foreach (T entry in array)
-                if (entry != null && entry.Equals(value))
-                    return true;
+            listLock.EnterReadLock();
+
+            try
+            {
+                foreach (T entry in array)
+                    if (entry != null && entry.Equals(value))
+                        return true;
+            }
+            finally
+            {
+                listLock.ExitReadLock();
+            }
 
             return false;
         }
@@ -65,12 +90,23 @@ namespace Swordfish.Library.Containers
         //  Indexer
         public T this[int index]
         {
-            get => array[index];
-            set => array[index] = value;
+            get
+            {
+                listLock.EnterReadLock();
+                try { return array[index]; }
+                finally { listLock.ExitReadLock(); }
+            }
+
+            set
+            {
+                listLock.EnterWriteLock();
+                try { array[index] = value; }
+                finally { listLock.ExitWriteLock(); }
+            }
         }
 
         //  Enumerator
-        IEnumerator IEnumerable.GetEnumerator() => (IEnumerator)GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
         public ExpandingListEnum GetEnumerator() => new ExpandingListEnum(array);
 
         public class ExpandingListEnum : IEnumerator

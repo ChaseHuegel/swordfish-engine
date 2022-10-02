@@ -141,7 +141,7 @@ namespace Swordfish.Engine
 #if DEBUG
                 Debugger.Dump();
 #else
-                    if (Debug.HasErrors) Debug.Dump();
+                    if (Debugger.HasErrors) Debugger.Dump();
 #endif
             }
             //  ...otherwise an unsafe shutdown

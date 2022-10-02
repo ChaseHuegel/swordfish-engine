@@ -8,7 +8,7 @@
             "name": ".NET Core Launch (console)",
             "type": "coreclr",
             "request": "launch",
-            "preLaunchTask": "build",
+            "preLaunchTask": "build (Debug)",
             "program": "${workspaceFolder}/Swordfish/bin/Debug/Swordfish.exe",
             "args": [],
             "cwd": "${workspaceFolder}/Swordfish/bin/Debug/",

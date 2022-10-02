@@ -10,6 +10,9 @@ namespace Swordfish.Library.Diagnostics
         private List<string> lines = new List<string>();
 
         private TextWriter original;
+
+        public LogWriter() { }
+
         public LogWriter(TextWriter original)
         {
             this.original = original;
@@ -25,14 +28,10 @@ namespace Swordfish.Library.Diagnostics
             if (value == null) return;
 
             lines.Add(value);
-
-            //  Only push to original writer if this is a debug build
-            #if DEBUG
-                original?.WriteLine(value);
-            #endif
+            original?.WriteLine(value);
         }
 
         public List<string> GetLines() => lines;
-        public List<string> GetLines(int count) => lines.GetRange(Math.Max(lines.Count-count-1, 0), lines.Count-Math.Max(lines.Count-count-1, 0));
+        public List<string> GetLines(int count) => lines.GetRange(Math.Max(lines.Count - count - 1, 0), lines.Count - Math.Max(lines.Count - count - 1, 0));
     }
 }

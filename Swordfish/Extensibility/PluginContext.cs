@@ -86,7 +86,19 @@ public class PluginContext : IPluginContext
         if (files.Length == 0)
             return;
 
-        IEnumerable<Assembly> loadedAssemblies = files.Select(file => Assembly.LoadFrom(file));
+        List<Assembly> loadedAssemblies = new();
+        foreach (string file in files)
+        {
+            try
+            {
+                loadedAssemblies.Add(Assembly.LoadFrom(file));
+            }
+            catch
+            {
+                //  ignored
+            }
+        }
+
         IEnumerable<Type> loadedTypes = loadedAssemblies.SelectMany(assembly => assembly.GetTypes());
         List<IPlugin> loadedPlugins = new();
 

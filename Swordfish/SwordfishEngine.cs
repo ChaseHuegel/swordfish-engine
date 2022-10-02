@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Ninject;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
@@ -7,6 +8,12 @@ namespace Swordfish;
 
 public static class SwordfishEngine
 {
+    [DllImport("kernel32.dll", SetLastError = true)]
+    static extern bool AllocConsole();
+
+    [DllImport("kernel32", SetLastError = true)]
+    static extern bool AttachConsole(int dwProcessId);
+
     public readonly static Version? Version;
     public readonly static IKernel Kernel;
     public readonly static IWindowContext MainWindow;
@@ -27,6 +34,9 @@ public static class SwordfishEngine
 
     static void Main(string[] args)
     {
+        if (args.Contains("-debug") && !AttachConsole(-1))
+            AllocConsole();
+
         MainWindow.Load += Start;
         MainWindow.Close += Stop;
         MainWindow.Initialize();

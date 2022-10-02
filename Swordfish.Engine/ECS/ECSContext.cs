@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using Swordfish.Delegates;
-using Swordfish.Library.Containers;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Engine.ECS
 {

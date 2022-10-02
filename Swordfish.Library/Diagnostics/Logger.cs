@@ -25,16 +25,13 @@ namespace Swordfish.Library.Diagnostics
 
         static Logger()
         {
-            //  Create a writer that mirrors to the console
+            //  Create a writer that mirrors the console
             Writer = new LogWriter(Console.Out);
-
-            //  Set the Console output to the Debug writer
-            Console.SetOut(Writer);
 
             Write("Logger initialized.");
         }
 
-        public static void Pad() => Console.WriteLine();
+        public static void Pad() => Writer.WriteLine();
 
         public static void Write(string message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false) => Write(message, "", type);
 
@@ -71,7 +68,7 @@ namespace Swordfish.Library.Diagnostics
                     break;
             }
 
-            Console.WriteLine(output);
+            Writer.WriteLine(output);
         }
     }
 }

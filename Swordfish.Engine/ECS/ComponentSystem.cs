@@ -61,10 +61,10 @@ namespace Swordfish.Engine.ECS
             return false;
         }
 
-        public virtual void OnPullEntities() {}
-        public virtual void OnStart() {}
-        public virtual void OnShutdown() {}
-        public virtual void OnUpdate(float deltaTime) {}
-        public virtual void OnUpdateEntity(float deltaTime, Entity entity) {}
+        public virtual void OnPullEntities() { }
+        public virtual void OnStart() { }
+        public virtual void OnShutdown() { }
+        public virtual void OnUpdate(float deltaTime) { }
+        public virtual void OnUpdateEntity(float deltaTime, Entity entity) { }
     }
 }

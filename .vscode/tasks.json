@@ -4,8 +4,18 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
-            "command": "dotnet build",
+            "label": "build (Debug)",
+            "command": "dotnet build --configuration Debug",
+            "type": "shell",
+            "group": "build",
+            "presentation": {
+                "reveal": "silent"
+            },
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build (Release)",
+            "command": "dotnet build --configuration Release",
             "type": "shell",
             "group": "build",
             "presentation": {
