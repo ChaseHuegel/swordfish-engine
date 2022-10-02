@@ -41,6 +41,8 @@ public partial class World
         Store = new ChunkedDataStore(0, 1);
         ComponentTypes = new Dictionary<Type, int>();
         Systems = new HashSet<ComponentSystem>();
+
+        BindComponent<IdentifierComponent>();
     }
 
     public void Initialize()

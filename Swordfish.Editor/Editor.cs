@@ -1,8 +1,7 @@
-using System;
-using System.Drawing;
 using System.IO;
 using ImGuiNET;
 using Ninject;
+using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
@@ -69,6 +68,14 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(1f)
             }
         };
+
+        var world = new World();
+        world.Initialize();
+        for (int i = 0; i < 1000; i++)
+            world.EntityBuilder.Build();
+
+        foreach (var entity in world.GetEntities())
+            heirarchy.Content.Add(new TreeNode("Entity " + entity.Ptr.ToString()));
 
         CanvasElement console = new("Console")
         {
