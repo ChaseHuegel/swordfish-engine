@@ -7,6 +7,8 @@ namespace Swordfish.Library.Diagnostics
 {
     public class LogWriter : TextWriter
     {
+        public EventHandler<string> LineAdded;
+
         private List<string> lines = new List<string>();
 
         private TextWriter original;
@@ -29,6 +31,8 @@ namespace Swordfish.Library.Diagnostics
 
             lines.Add(value);
             original?.WriteLine(value);
+
+            LineAdded?.Invoke(this, value);
         }
 
         public List<string> GetLines() => lines;

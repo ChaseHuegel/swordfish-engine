@@ -26,8 +26,7 @@ namespace Swordfish.Engine.Util
         /// <param name="caller"></param>
         /// <param name="callerPath"></param>
         /// <returns>True if an error was collected; otherwise false</returns>
-        public static bool TryCollectGLError(string title,
-            [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static bool TryCollectGLError(string title)
         {
             if (HasGLOutput)
                 return false;
@@ -35,7 +34,7 @@ namespace Swordfish.Engine.Util
             ErrorCode error = GL.GetError();
             if (error != ErrorCode.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false, lineNumber, caller, callerPath);
+                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false);
 
                 return true;
             }
@@ -52,8 +51,7 @@ namespace Swordfish.Engine.Util
         /// <param name="caller"></param>
         /// <param name="callerPath"></param>
         /// <returns>True if any errors were collected; otherwise false</returns>
-        public static bool TryCollectAllGLErrors(string title,
-            [CallerLineNumber] int lineNumber = 0, [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static bool TryCollectAllGLErrors(string title)
         {
             if (HasGLOutput)
                 return false;
@@ -63,7 +61,7 @@ namespace Swordfish.Engine.Util
             ErrorCode error = GL.GetError();
             while (error != ErrorCode.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false, lineNumber, caller, callerPath);
+                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false);
                 error = GL.GetError();
                 hadError = true;
             }

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using Swordfish.ECS;
 
-namespace Swordfish.Demo;
+namespace Swordfish.Demo.ECS;
 
 [Component]
 public class DemoComponent

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -63,7 +64,7 @@ namespace Swordfish.Library.Diagnostics
         /// <summary>
         /// Dump the console to a file
         /// </summary>
-        public static void Dump() => File.WriteAllLines("debug.log", Logger.Writer.GetLines());
+        public static void Dump() => File.WriteAllLines("debug.log", Logger.GetLines());
 
         /// <summary>
         /// Tell the logger to push an empty line
@@ -76,10 +77,9 @@ namespace Swordfish.Library.Diagnostics
         /// </summary>
         /// <param name="message"></param>
         /// <param name="type"></param>
-        public static void Log(object message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static void Log(object message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false)
         {
-            Logger.Write(message.ToString(), "", type, timestamp, snuff, lineNumber, caller, callerPath);
+            Logger.Write(message.ToString(), "", type, timestamp, snuff, new StackTrace(1, true));
         }
 
         /// <summary>
@@ -93,10 +93,9 @@ namespace Swordfish.Library.Diagnostics
         /// <param name="caller"></param>
         /// <param name="callerPath"></param>
         /// <param name="debugTagging"></param>
-        public static void Log(object message, string title, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static void Log(object message, string title, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false)
         {
-            Logger.Write(message.ToString(), title, type, timestamp, snuff, lineNumber, caller, callerPath);
+            Logger.Write(message.ToString(), title, type, timestamp, snuff, new StackTrace(1, true));
         }
 
         /// <summary>
@@ -105,14 +104,13 @@ namespace Swordfish.Library.Diagnostics
         /// </summary>
         /// <param name="message"></param>
         /// <param name="type"></param>
-        public static void LogError(object message, Exception exception, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static void LogError(object message, Exception exception, bool timestamp = false, bool snuff = false)
         {
             string output = message.ToString();
             if (exception != null)
                 output += Environment.NewLine + exception.ToString();
 
-            Logger.Write(output, "", LogType.ERROR, timestamp, snuff, lineNumber, caller, callerPath);
+            Logger.Write(output, "", LogType.ERROR, timestamp, snuff, new StackTrace(1, true));
         }
 
         /// <summary>
@@ -130,7 +128,7 @@ namespace Swordfish.Library.Diagnostics
             }
             catch (Exception ex)
             {
-                LogError(message ?? $"Caught error invoking {action.Method}", ex);
+                LogError(message ?? $"Caught error invoking {action.Method}", ex, false, true);
                 return false;
             }
         }
@@ -152,7 +150,7 @@ namespace Swordfish.Library.Diagnostics
             }
             catch (Exception ex)
             {
-                LogError(message ?? $"Caught error invoking {func.Method}", ex);
+                LogError(message ?? $"Caught error invoking {func.Method}", ex, false, true);
                 result = default;
                 return false;
             }

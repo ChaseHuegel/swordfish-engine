@@ -2,7 +2,7 @@ using System.Diagnostics;
 using Swordfish.ECS;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
-namespace Swordfish.Demo;
+namespace Swordfish.Demo.ECS;
 
 public static class TestECS
 {

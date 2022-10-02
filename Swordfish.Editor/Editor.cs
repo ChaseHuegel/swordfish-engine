@@ -1,7 +1,11 @@
+using System;
+using System.Drawing;
 using System.IO;
 using ImGuiNET;
 using Ninject;
 using Swordfish.Extensibility;
+using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
@@ -77,6 +81,25 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(0.2f)
             }
         };
+
+        foreach (LogEventArgs record in Logger.History)
+            PopulateLogLine(null, record);
+
+        Logger.Logged += PopulateLogLine;
+
+        void PopulateLogLine(object sender, LogEventArgs args)
+        {
+            console.Content.Add(new TextElement(args.Line)
+            {
+                Color = args.Type.GetColor()
+            });
+        }
+
+        Debugger.Log("This is a NONE log", LogType.NONE);
+        Debugger.Log("This is a CONTINUED log", LogType.CONTINUED);
+        Debugger.Log("This is a INFO log", LogType.INFO);
+        Debugger.Log("This is a WARNING log", LogType.WARNING);
+        Debugger.Log("This is a ERROR log", LogType.ERROR);
 
         CanvasElement assetBrowser = new("Asset Browser")
         {

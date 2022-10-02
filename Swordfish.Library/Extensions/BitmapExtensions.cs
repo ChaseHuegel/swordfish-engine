@@ -37,7 +37,7 @@ namespace Swordfish.Library.Extensions
         public static void SetGamma(this Bitmap input, float gamma = 1f)
         {
             ImageAttributes attributes = new ImageAttributes();
-            attributes.SetGamma(1f/gamma);  //  Set gamma is a reversed scale, convert the input value
+            attributes.SetGamma(1f / gamma);  //  Set gamma is a reversed scale, convert the input value
 
             Rectangle rect = new Rectangle(0, 0, input.Width, input.Height);
 

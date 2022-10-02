@@ -1,6 +1,6 @@
 using Swordfish.ECS;
 
-namespace Swordfish.Demo;
+namespace Swordfish.Demo.ECS;
 
 [ComponentSystem(typeof(DemoComponent))]
 public class DemoSystem : ComponentSystem
