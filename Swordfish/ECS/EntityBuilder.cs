@@ -32,9 +32,7 @@ public class EntityBuilder
 
     public Entity Build()
     {
-        Entity entity = new(Store.Add(Components), World);
-        World.Modified = true;
-
+        Entity entity = World.CreateEntity(Components);
         Clear();
         return entity;
     }
@@ -42,9 +40,18 @@ public class EntityBuilder
     public EntityBuilder Attach<TComponent>() where TComponent : class, new()
         => Attach<TComponent>(World.GetComponentIndex<TComponent>());
 
+    public EntityBuilder Attach(Type type)
+        => Attach(type, World.GetComponentIndex(type));
+
     public EntityBuilder Attach<TComponent>(int componentIndex) where TComponent : class, new()
     {
         Components[componentIndex] = new TComponent();
+        return this;
+    }
+
+    public EntityBuilder Attach(Type type, int componentIndex)
+    {
+        Components[componentIndex] = Activator.CreateInstance(type);
         return this;
     }
 }

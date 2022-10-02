@@ -102,4 +102,71 @@ public partial class World
 
         Debugger.Log($"Bound system {typeof(TSystem)}.");
     }
+
+    public Entity CreateEntity()
+    {
+        if (!Initialized)
+            throw new InvalidOperationException(ReqInitializedMessage);
+
+        Modified = true;
+        return new Entity(Store.Add(), this);
+    }
+
+    public Entity CreateEntity(object?[] components)
+    {
+        if (!Initialized)
+            throw new InvalidOperationException(ReqInitializedMessage);
+
+        int ptr = Store.Add(components);
+        Modified = true;
+        return new Entity(ptr, this);
+    }
+
+    public void RemoveEntity(Entity entity)
+    {
+        if (!Initialized)
+            throw new InvalidOperationException(ReqInitializedMessage);
+
+        Modified = true;
+        Store.Remove(entity.Ptr);
+    }
+
+    public Entity[] GetEntities()
+    {
+        if (!Initialized)
+            throw new InvalidOperationException(ReqInitializedMessage);
+
+        int[] ptrs = Store.All();
+        Entity[] entities = new Entity[ptrs.Length];
+        for (int i = 0; i < entities.Length; i++)
+            entities[i] = new Entity(ptrs[i], this);
+
+        return entities;
+    }
+
+    public Entity[] GetEntities(params Type[] componentTypes)
+    {
+        if (!Initialized)
+            throw new InvalidOperationException(ReqInitializedMessage);
+
+        int[] ptrs = Store.All();
+        Entity[] entities = new Entity[ptrs.Length];
+        int entityCount = 0;
+
+        for (int i = 0; i < ptrs.Length; i++)
+        {
+            for (int n = 0; n < componentTypes.Length; n++)
+            {
+                if (Store.HasAt(ptrs[i], GetComponentIndex(componentTypes[n])))
+                {
+                    entities[entityCount++] = new Entity(ptrs[i], this);
+                    break;
+                }
+            }
+        }
+
+        Entity[] results = new Entity[entityCount];
+        Array.Copy(entities, 0, results, 0, entityCount);
+        return results;
+    }
 }
