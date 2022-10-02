@@ -4,6 +4,8 @@ namespace Swordfish.Extensibility;
 
 public interface IPluginContext
 {
+    void Initialize();
+
     bool IsLoaded(IPlugin plugin);
 
     bool IsLoaded<TPlugin>() where TPlugin : IPlugin;

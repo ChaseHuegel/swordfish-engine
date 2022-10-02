@@ -1,4 +1,5 @@
 using Ninject.Modules;
+using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -17,5 +18,7 @@ public class Module : NinjectModule
         Bind<IPathService>().To<PathService>().InSingletonScope();
         Bind<IFileService>().To<FileService>().InSingletonScope();
         Bind<IPluginContext>().To<PluginContext>().InSingletonScope();
+
+        Bind<IECSContext>().To<ECSContext>().InSingletonScope();
     }
 }

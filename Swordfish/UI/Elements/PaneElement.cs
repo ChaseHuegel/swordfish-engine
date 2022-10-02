@@ -1,15 +1,12 @@
 using System.Numerics;
 using ImGuiNET;
+using Swordfish.UI.ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public class PanelElement : AbstractPaneElement
+public class PaneElement : AbstractPaneElement
 {
-    public bool TitleBar { get; set; } = true;
-
-    public bool Border { get; set; } = true;
-
-    public PanelElement(string? name) : base(name) { }
+    public PaneElement(string? name) : base(name) { }
 
     protected override void OnRender()
     {
@@ -19,17 +16,12 @@ public class PanelElement : AbstractPaneElement
 
         ImGui.SetCursorPos(origin + Constraints.GetPosition());
 
-        ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), Border, Flags);
-
-        if (TitleBar)
-        {
-            ImGui.Text(Name);
-            TooltipProperty.RenderTooltip();
-            ImGui.Separator();
-        }
+        ImGuiEx.BeginPane(Name, Constraints.GetDimensions(), true);
 
         base.OnRender();
 
-        ImGui.EndChild();
+        ImGuiEx.EndGroupPanel();
+
+        TooltipProperty.RenderTooltip();
     }
 }

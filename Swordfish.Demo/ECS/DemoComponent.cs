@@ -4,7 +4,9 @@ using Swordfish.ECS;
 namespace Swordfish.Demo.ECS;
 
 [Component]
-public class DemoComponent
+public partial class DemoComponent
 {
+    public static int Index { get; set; }
+
     public int Value;
 }

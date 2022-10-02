@@ -4,7 +4,7 @@ namespace Swordfish.ECS;
 
 public class EntityBuilder
 {
-    private readonly World World;
+    private readonly ECSContext World;
     private readonly ChunkedDataStore Store;
 
     private object?[] Components
@@ -15,7 +15,7 @@ public class EntityBuilder
 
     private object?[]? _Components;
 
-    public EntityBuilder(World world, ChunkedDataStore store)
+    public EntityBuilder(ECSContext world, ChunkedDataStore store)
     {
         World = world;
         Store = store;

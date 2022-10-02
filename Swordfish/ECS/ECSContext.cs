@@ -4,12 +4,12 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.ECS;
 
-public partial class World
+public class ECSContext : IECSContext
 {
-    private const string ReqInitializedMessage = "The world must be itialized.";
-    private const string ReqUnitializedMessage = "The world is already initialized.";
+    private const string REQ_START_MESSAGE = "The context must be started.";
+    private const string REQ_STOP_MESSAGE = "The context must be stopped.";
 
-    public const int DefaultMaxEntities = 128000;
+    public const int DEFAULT_MAX_ENTITIES = 128000;
 
     public int MaxEntities { get; }
 
@@ -17,8 +17,8 @@ public partial class World
     {
         get
         {
-            if (!Initialized)
-                throw new NullReferenceException(ReqInitializedMessage);
+            if (!Running)
+                throw new NullReferenceException(REQ_START_MESSAGE);
 
             return _EntityBuilder ??= new EntityBuilder(this, Store);
         }
@@ -27,14 +27,16 @@ public partial class World
     internal bool Modified;
     internal ChunkedDataStore Store { get; private set; }
 
-    private bool Initialized;
+    private bool Running;
     private readonly Dictionary<Type, int> ComponentTypes;
     private readonly HashSet<ComponentSystem> Systems;
     private EntityBuilder? _EntityBuilder;
 
-    public World(int maxEntities = DefaultMaxEntities)
+    public ECSContext(int maxEntities = DEFAULT_MAX_ENTITIES)
     {
-        Initialized = false;
+        Debugger.Log($"Initializing ECS context.");
+
+        Running = false;
         Modified = false;
         MaxEntities = maxEntities;
 
@@ -45,16 +47,29 @@ public partial class World
         BindComponent<IdentifierComponent>();
     }
 
-    public void Initialize()
+    public void Start()
     {
-        Initialized = true;
+        Debugger.Log($"Starting ECS context.");
         Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
+        Running = true;
+    }
+
+    public void Stop()
+    {
+        Debugger.Log($"Stopping ECS context.");
+        Running = false;
+    }
+
+    public void Reset()
+    {
+        Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
+        Modified = true;
     }
 
     public void Update(float deltaTime)
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         foreach (ComponentSystem system in Systems)
         {
@@ -74,25 +89,25 @@ public partial class World
 
     public int BindComponent<TComponent>()
     {
-        if (Initialized)
-            throw new InvalidOperationException(ReqUnitializedMessage);
+        if (Running)
+            throw new InvalidOperationException(REQ_STOP_MESSAGE);
 
         if (!Reflection.HasAttribute<TComponent, ComponentAttribute>())
-            throw new ArgumentException($"Type {typeof(TComponent)} must be decorated as a Component.");
+            throw new ArgumentException($"Type '{typeof(TComponent)}' must be decorated as a Component.");
 
         if (ComponentTypes.TryGetValue(typeof(TComponent), out _))
-            throw new InvalidOperationException($"Component of type {typeof(TComponent)} is already bound.");
+            throw new InvalidOperationException($"Component of type '{typeof(TComponent)}' is already bound.");
 
         ComponentTypes.Add(typeof(TComponent), ComponentTypes.Count);
-        Debugger.Log($"Bound component {typeof(TComponent)}.");
+        Debugger.Log($"Binding ECS component '{typeof(TComponent)}'.");
 
         return ComponentTypes.Count - 1;
     }
 
-    public void BindSystem<TSystem>() where TSystem : ComponentSystem
+    public TSystem BindSystem<TSystem>() where TSystem : ComponentSystem
     {
-        if (Initialized)
-            throw new InvalidOperationException(ReqUnitializedMessage);
+        if (Running)
+            throw new InvalidOperationException(REQ_STOP_MESSAGE);
 
         if (Activator.CreateInstance(typeof(TSystem)) is not ComponentSystem system)
             throw new NullReferenceException();
@@ -102,13 +117,14 @@ public partial class World
 
         Systems.Add(system);
 
-        Debugger.Log($"Bound system {typeof(TSystem)}.");
+        Debugger.Log($"Binding ECS system '{typeof(TSystem)}'.");
+        return (TSystem)system;
     }
 
     public Entity CreateEntity()
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         Modified = true;
         return new Entity(Store.Add(), this);
@@ -116,8 +132,8 @@ public partial class World
 
     public Entity CreateEntity(object?[] components)
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         int ptr = Store.Add(components);
         Modified = true;
@@ -126,8 +142,8 @@ public partial class World
 
     public void RemoveEntity(Entity entity)
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         Modified = true;
         Store.Remove(entity.Ptr);
@@ -135,8 +151,8 @@ public partial class World
 
     public Entity[] GetEntities()
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         int[] ptrs = Store.All();
         Entity[] entities = new Entity[ptrs.Length];
@@ -148,8 +164,8 @@ public partial class World
 
     public Entity[] GetEntities(params Type[] componentTypes)
     {
-        if (!Initialized)
-            throw new InvalidOperationException(ReqInitializedMessage);
+        if (!Running)
+            throw new InvalidOperationException(REQ_START_MESSAGE);
 
         int[] ptrs = Store.All();
         Entity[] entities = new Entity[ptrs.Length];

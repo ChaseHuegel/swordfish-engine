@@ -4,9 +4,9 @@ namespace Swordfish.UI.Elements;
 
 public class MenuItemElement : ContentElement, INameProperty
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
-    public MenuItemElement(string name)
+    public MenuItemElement(string? name)
     {
         Name = name;
     }

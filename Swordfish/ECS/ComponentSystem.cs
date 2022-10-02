@@ -10,6 +10,10 @@ public abstract class ComponentSystem
 
     protected abstract void Update(Entity entity, float deltaTime);
 
+    protected virtual void OnModified() { }
+
+    protected virtual void OnUpdated() { }
+
     public ComponentSystem()
     {
         Filter = Array.Empty<Type>();
@@ -22,16 +26,19 @@ public abstract class ComponentSystem
         Entities = Array.Empty<Entity>();
     }
 
-    public void Update(World world, float deltaTime)
+    public void Update(ECSContext world, float deltaTime)
     {
         if (Modified)
         {
-            Entities = world.GetEntities(Filter);
+            Entities = Filter.Length > 0 ? world.GetEntities(Filter) : world.GetEntities();
             Modified = false;
+            OnModified();
         }
 
         for (int i = 0; i < Entities.Length; i++)
             Update(Entities[i], deltaTime);
+
+        OnUpdated();
     }
 
     /// <summary>

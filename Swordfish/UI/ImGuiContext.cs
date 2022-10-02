@@ -40,6 +40,7 @@ public class ImGuiContext : IUIContext
         OnFontScaleChanged(this, EventArgs.Empty);
 
         Debugger.Log("UI initialized.");
+        Debugger.Log($"using ImGui {ImGui.GetVersion()}", LogType.CONTINUED);
     }
 
     private void OnScalingConstraintChanged(object? sender, EventArgs e)

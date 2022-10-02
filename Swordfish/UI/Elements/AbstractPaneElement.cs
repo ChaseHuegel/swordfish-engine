@@ -5,7 +5,7 @@ namespace Swordfish.UI.Elements;
 
 public abstract class AbstractPaneElement : ContentElement, IUniqueNameProperty, IConstraintsProperty, IFlagsProperty<ImGuiWindowFlags>, ITooltipProperty
 {
-    public string Name { get; set; }
+    public string? Name { get; set; }
 
     public RectConstraints Constraints { get; set; } = new RectConstraints();
 
@@ -18,7 +18,7 @@ public abstract class AbstractPaneElement : ContentElement, IUniqueNameProperty,
     public string UniqueName => uniqueName ??= Name + "##" + Uid;
     private string? uniqueName;
 
-    public AbstractPaneElement(string name)
+    public AbstractPaneElement(string? name)
     {
         Name = name;
     }

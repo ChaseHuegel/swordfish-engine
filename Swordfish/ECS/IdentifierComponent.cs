@@ -1,8 +1,10 @@
 namespace Swordfish.ECS;
 
 [Component]
-public class IdentifierComponent
+public partial class IdentifierComponent
 {
+    public const int DefaultIndex = 0;
+
     public string? Name;
     public string? Tag;
 

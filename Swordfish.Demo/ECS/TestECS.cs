@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Ninject;
 using Swordfish.ECS;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
@@ -6,49 +7,44 @@ namespace Swordfish.Demo.ECS;
 
 public static class TestECS
 {
-    public static void Initialize()
+    public static void Populate()
     {
-        var world = new World();
-        world.BindSystem<DemoSystem>();
-        DemoSystem.ComponentIndex = world.BindComponent<DemoComponent>();
+        IECSContext ecsContext = SwordfishEngine.Kernel.Get<IECSContext>();
 
         Stopwatch sw = Stopwatch.StartNew();
-        world.Initialize();
-        Debugger.Log("World start ms: " + sw.Elapsed.TotalMilliseconds);
-
-        sw = Stopwatch.StartNew();
         for (int i = 0; i < 10000; i++)
         {
             if (i % 2 == 0)
-                world.EntityBuilder.Attach<DemoComponent>(DemoSystem.ComponentIndex).Build();
+            {
+                ecsContext.EntityBuilder
+                    .Attach(new IdentifierComponent($"Demo Entity {i}", null), IdentifierComponent.DefaultIndex)
+                    .Attach<DemoComponent>(DemoComponent.Index)
+                    .Build();
+            }
             else
-                world.EntityBuilder.Build();
+            {
+                ecsContext.EntityBuilder
+                    .Attach(new IdentifierComponent($"Entity {i}", null), IdentifierComponent.DefaultIndex)
+                    .Build();
+            }
         }
         Debugger.Log("Entity creation ms: " + sw.Elapsed.TotalMilliseconds);
 
         sw = Stopwatch.StartNew();
-        Entity[] entities = world.GetEntities();
+        Entity[] entities = ecsContext.GetEntities();
         Debugger.Log("Pull all ms: " + sw.Elapsed.TotalMilliseconds);
         Debugger.Log("Entities: " + entities.Length);
 
         sw = Stopwatch.StartNew();
-        Debugger.Log("DemoComponent entities: " + world.GetEntities(typeof(DemoComponent)).Length);
+        Debugger.Log("DemoComponent entities: " + ecsContext.GetEntities(typeof(DemoComponent)).Length);
         Debugger.Log("Pull DemoComponent ms: " + sw.Elapsed.TotalMilliseconds);
 
         for (int second = 0; second < 5; second++)
         {
             sw = Stopwatch.StartNew();
             for (int frame = 0; frame < 60; frame++)
-                world.Update(0f);
+                ecsContext.Update(0f);
             Debugger.Log("Last 60 frames ms: " + sw.Elapsed.TotalMilliseconds);
         }
-
-        Debugger.Log("DemoComponent value: " + entities[0].GetComponent<DemoComponent>()?.Value);
-
-        sw = Stopwatch.StartNew();
-        for (int i = 0; i < entities.Length / 2; i++)
-            world.RemoveEntity(entities[i]);
-        Debugger.Log("Remove entities ms: " + sw.Elapsed.TotalMilliseconds);
-        Debugger.Log("Entities: " + world.GetEntities().Length);
     }
 }

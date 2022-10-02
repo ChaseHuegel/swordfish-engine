@@ -9,9 +9,9 @@ public struct Entity
     public const int Null = ChunkedDataStore.NullPtr;
 
     public int Ptr { get; }
-    public World World { get; }
+    public ECSContext World { get; }
 
-    internal Entity(int ptr, World world)
+    internal Entity(int ptr, ECSContext world)
     {
         Ptr = ptr;
         World = world;
@@ -66,7 +66,7 @@ public struct Entity
         return World.Store.Get(Ptr);
     }
 
-    public void ForEachComponent(Action<object> action)
+    public void ForEachComponent(Action<object?> action)
     {
         World.Store.ForEach(Ptr, action);
     }

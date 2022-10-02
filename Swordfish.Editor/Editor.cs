@@ -22,17 +22,16 @@ public class Editor : Plugin
     public override string Name => "Swordfish Editor";
     public override string Description => "Visual editor for the Swordfish engine.";
 
+    private static IECSContext? ECSContext;
+    private static CanvasElement? Hierarchy;
+
     public override void Load()
     {
         SwordfishEngine.MainWindow.Maximize();
-    }
 
-    public override void Unload()
-    {
-    }
+        ECSContext = SwordfishEngine.Kernel.Get<IECSContext>();
+        ECSContext.BindSystem<HierarchySystem>();
 
-    public override void Initialize()
-    {
         MenuElement menu = new()
         {
             Content = {
@@ -61,7 +60,7 @@ public class Editor : Plugin
             }
         };
 
-        CanvasElement heirarchy = new("Hierarchy")
+        Hierarchy = new CanvasElement("Hierarchy")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
@@ -70,14 +69,6 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(1f)
             }
         };
-
-        var world = new World();
-        world.Initialize();
-        for (int i = 0; i < 1000; i++)
-            world.EntityBuilder.Attach(new IdentifierComponent($"new entity {i}", null)).Build();
-
-        foreach (var entity in world.GetEntities())
-            heirarchy.Content.Add(new DataTreeNode<Entity>("Entity " + entity.Ptr.ToString(), entity));
 
         CanvasElement console = new("Console")
         {
@@ -96,7 +87,7 @@ public class Editor : Plugin
 
         Logger.Logged += PopulateLogLine;
 
-        void PopulateLogLine(object sender, LogEventArgs args)
+        void PopulateLogLine(object? sender, LogEventArgs args)
         {
             console.Content.Add(new TextElement(args.Line)
             {
@@ -164,62 +155,136 @@ public class Editor : Plugin
 
             if (TreeNode.Selected.Get() is DataTreeNode<Entity> entityNode)
             {
-                foreach (var component in entityNode.Data.Get().GetComponents().Where(x => x != null))
+                var components = entityNode.Data.Get().GetComponents();
+                foreach (var component in components)
                 {
-                    var group = new PanelElement(component.ToString());
+                    if (component == null)
+                        continue;
+
+                    var group = new PaneElement(component.ToString())
+                    {
+                        Constraints = {
+                            Width = new FillConstraint()
+                        }
+                    };
 
                     foreach (var field in component.GetType().GetFields())
                     {
-                        group.Content.Add(new TextElement(field.Name + ":")
+                        group.Content.Add(new PaneElement(field.Name)
                         {
+                            Tooltip = new Tooltip
+                            {
+                                Text = field.FieldType.ToString()
+                            },
                             Constraints = new RectConstraints()
                             {
-                                X = new AbsoluteConstraint(10)
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement(field.GetValue(component)?.ToString() ?? "null")
                             }
-                        });
-                        group.Content.Add(new TextElement(field.GetValue(component)?.ToString() ?? "null")
-                        {
-                            Alignment = ElementAlignment.HORIZONTAL
                         });
                     }
 
-                    group.Content.Add(new DividerElement());
                     inspector.Content.Add(group);
                 }
             }
             else if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
             {
-                var group = new PanelElement(pathNode.Data.Get().GetType().ToString())
+                var fileInfo = new FileInfo(pathNode.Data.Get().OriginalString);
+                var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
                 {
+                    Constraints = {
+                        Width = new FillConstraint()
+                    },
                     Content = {
-                        new TextElement("File:")
+                        new PaneElement($"File ({fileInfo.Extension})")
+                        {
+                            Tooltip = new Tooltip
+                            {
+                                Text = fileInfo.Extension
+                            },
+                            Constraints = new RectConstraints()
+                            {
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement(System.IO.Path.GetFileNameWithoutExtension(fileInfo.Name))
+                            }
+                        },
+                        new PaneElement("Size")
                         {
                             Constraints = new RectConstraints()
                             {
-                                X = new AbsoluteConstraint(10)
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement((fileInfo.Length / 1024).ToString() + " kb")
                             }
                         },
-                        new TextElement(System.IO.Path.GetFileName(pathNode.Data.Get().ToString()))
-                        {
-                            Alignment = ElementAlignment.HORIZONTAL
-                        },
-                        new TextElement("Path:")
+                        new PaneElement("Modified")
                         {
                             Constraints = new RectConstraints()
                             {
-                                X = new AbsoluteConstraint(10)
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement(fileInfo.LastWriteTime.ToString())
                             }
                         },
-                        new TextElement(pathNode.Data.Get().ToString())
+                        new PaneElement("Created")
                         {
-                            Alignment = ElementAlignment.HORIZONTAL
+                            Constraints = new RectConstraints()
+                            {
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement(fileInfo.CreationTime.ToString())
+                            }
+                        },
+                        new PaneElement("Location")
+                        {
+                            Constraints = new RectConstraints()
+                            {
+                                Width = new FillConstraint()
+                            },
+                            Content = {
+                                new TextElement(pathNode.Data.Get().OriginalString)
+                            }
                         }
                     }
                 };
 
-                group.Content.Add(new DividerElement());
                 inspector.Content.Add(group);
             }
         };
+    }
+
+    public override void Initialize()
+    {
+        //  do nothing
+    }
+
+    [ComponentSystem]
+    public class HierarchySystem : ComponentSystem
+    {
+        private bool Populate = false;
+
+        protected override void Update(Entity entity, float deltaTime)
+        {
+            if (Populate)
+                Hierarchy?.Content.Add(new DataTreeNode<Entity>(entity.GetComponent<IdentifierComponent>()?.Name, entity));
+        }
+
+        protected override void OnModified()
+        {
+            Hierarchy?.Content.Clear();
+            Populate = true;
+        }
+
+        protected override void OnUpdated()
+        {
+            Populate = false;
+        }
     }
 }

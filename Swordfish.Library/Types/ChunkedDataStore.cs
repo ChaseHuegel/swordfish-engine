@@ -28,7 +28,7 @@ namespace Swordfish.Library.Types
             Size = size;
             ChunkSize = chunkSize;
             ChunkOffset = chunkSize + 1;
-            ShiftOffset = (int)Math.Round(chunkSize / 2d, MidpointRounding.AwayFromZero);
+            ShiftOffset = (int)Math.Round(ChunkOffset / 2d, MidpointRounding.AwayFromZero);
 
             Data = new object[Size * ChunkOffset];
 
@@ -167,11 +167,7 @@ namespace Swordfish.Library.Types
 
             ptr = GetChunkPtr(ptr);
             for (int i = 1; i <= ChunkSize; i++)
-            {
-                object value = Data[ptr + i];
-                if (value != null)
-                    yield return value;
-            }
+                yield return Data[ptr + i];
         }
 
         private int AllocatePtr()

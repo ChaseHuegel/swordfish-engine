@@ -5,11 +5,9 @@ namespace Swordfish.Demo.ECS;
 [ComponentSystem(typeof(DemoComponent))]
 public class DemoSystem : ComponentSystem
 {
-    public static int ComponentIndex { get; set; }
-
     protected override void Update(Entity entity, float deltaTime)
     {
-        entity.TryGetComponent(ComponentIndex, out DemoComponent? demoComponent);
+        entity.TryGetComponent(DemoComponent.Index, out DemoComponent? demoComponent);
 
         if (demoComponent != null)
         {

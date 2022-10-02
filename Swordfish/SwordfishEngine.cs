@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using Ninject;
+using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -20,6 +21,7 @@ public static class SwordfishEngine
 
     private readonly static IPathService PathService;
     private readonly static IPluginContext PluginContext;
+    private readonly static IECSContext ECSContext;
 
     static SwordfishEngine()
     {
@@ -30,6 +32,7 @@ public static class SwordfishEngine
         MainWindow = Kernel.Get<IWindowContext>();
         PathService = Kernel.Get<IPathService>();
         PluginContext = Kernel.Get<IPluginContext>();
+        ECSContext = Kernel.Get<IECSContext>();
     }
 
     static void Main(string[] args)
@@ -47,10 +50,15 @@ public static class SwordfishEngine
         PluginContext.LoadFrom(PathService.Root);
         PluginContext.LoadFrom(PathService.Plugins, SearchOption.AllDirectories);
         PluginContext.LoadFrom(PathService.Mods, SearchOption.AllDirectories);
+
+        ECSContext.Start();
+
+        PluginContext.Initialize();
     }
 
     private static void Stop()
     {
         PluginContext.UnloadAll();
+        ECSContext.Stop();
     }
 }

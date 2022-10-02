@@ -9,13 +9,19 @@ namespace Swordfish.Extensibility;
 public class PluginContext : IPluginContext
 {
     private const string DUPLICATE_ERROR = "Tried to load a duplicate";
-    private const string LOADFROM_ERROR = "Unable to load extensions from";
-    private const string INITIALIZE_ERROR = "Unable to initialize";
-    private const string UNLOAD_ERROR = "Unable to unload";
-    private const string LOAD_ERROR = "Unable to load";
-    private const string LOAD_SUCCESS = "Loaded";
+    private const string LOADFROM_ERROR = "Failed to load extensions from";
+    private const string INITIALIZE_ERROR = "Failed to initialize";
+    private const string UNLOAD_ERROR = "Failed to unload";
+    private const string LOAD_ERROR = "Failed to load";
+    private const string LOAD_SUCCESS = "Loading";
 
-    private readonly ConcurrentDictionary<IPlugin, Assembly> plugins = new();
+    private readonly ConcurrentDictionary<IPlugin, Assembly> LoadedPlugins = new();
+
+    public void Initialize()
+    {
+        foreach (IPlugin plugin in LoadedPlugins.Keys)
+            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+    }
 
     public bool IsLoaded(IPlugin plugin)
     {
@@ -29,7 +35,7 @@ public class PluginContext : IPluginContext
 
     public bool IsLoaded(Type type)
     {
-        return plugins.Keys.Any(p => p.GetType() == type);
+        return LoadedPlugins.Keys.Any(p => p.GetType() == type);
     }
 
     public void Load(IPlugin plugin)
@@ -42,13 +48,12 @@ public class PluginContext : IPluginContext
 
         if (Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
         {
-            plugins.TryAdd(plugin, plugin.GetType().Assembly);
             Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+
+            LoadedPlugins.TryAdd(plugin, plugin.GetType().Assembly);
 
             //  Load kernel modules from the plugin
             SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
-
-            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
         }
     }
 
@@ -69,13 +74,13 @@ public class PluginContext : IPluginContext
 
     public void Unload(Type type)
     {
-        foreach (IPlugin p in plugins.Keys.Where(p => p.GetType() == type))
+        foreach (IPlugin p in LoadedPlugins.Keys.Where(p => p.GetType() == type))
             UnloadInternal(p);
     }
 
     public void UnloadAll()
     {
-        foreach (IPlugin p in plugins.Keys)
+        foreach (IPlugin p in LoadedPlugins.Keys)
             UnloadInternal(p);
     }
 
@@ -114,25 +119,22 @@ public class PluginContext : IPluginContext
 
                 if (Activator.CreateInstance(type) is IPlugin plugin && Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(type)} '{plugin.Name}'"))
                 {
+                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
+
                     loadedPlugins.Add(plugin);
-                    plugins.TryAdd(plugin, type.Assembly);
+                    LoadedPlugins.TryAdd(plugin, type.Assembly);
 
                     //  Load kernel modules from the plugin
                     SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
-
-                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
                 }
             }
         }
-
-        foreach (IPlugin plugin in loadedPlugins)
-            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
     }
 
     private void UnloadInternal(IPlugin plugin)
     {
         Debugger.TryInvoke(plugin.Unload, $"{UNLOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
-        plugins.TryRemove(plugin, out _);
+        LoadedPlugins.TryRemove(plugin, out _);
     }
 
     private static string GetSimpleTypeString(IPlugin plugin) => GetSimpleTypeString(plugin.GetType());
