@@ -11,7 +11,7 @@ public class DemoSystem : ComponentSystem
 
         if (demoComponent != null)
         {
-            demoComponent.Value = 30;
+            demoComponent.Field = 30;
         }
     }
 }

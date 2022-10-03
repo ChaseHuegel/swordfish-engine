@@ -1,6 +1,6 @@
 using System;
 
-namespace Swordfish.Library.Util
+namespace Swordfish.Library.Reflection
 {
     public static class Reflection
     {

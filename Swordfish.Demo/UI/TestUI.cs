@@ -28,7 +28,6 @@ public static class TestUI
 
         CanvasElement myCanvas = new("UI Test Canvas")
         {
-            Flags = ImGuiWindowFlags.AlwaysAutoResize,
             Constraints = new RectConstraints
             {
                 Anchor = ConstraintAnchor.CENTER,

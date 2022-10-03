@@ -1,5 +1,7 @@
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using ImGuiNET;
 using Ninject;
 using Swordfish.ECS;
@@ -7,6 +9,7 @@ using Swordfish.Extensibility;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Library.Reflection;
 using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
@@ -66,7 +69,7 @@ public class Editor : Plugin
             Constraints = new RectConstraints
             {
                 Width = new RelativeConstraint(0.15f),
-                Height = new RelativeConstraint(1f)
+                Height = new RelativeConstraint(0.8f)
             }
         };
 
@@ -75,9 +78,9 @@ public class Editor : Plugin
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
             {
-                X = new RelativeConstraint(0.15f),
+                X = new RelativeConstraint(0f),
                 Y = new RelativeConstraint(0.8f),
-                Width = new RelativeConstraint(0.4f),
+                Width = new RelativeConstraint(0.55f),
                 Height = new RelativeConstraint(0.2f)
             }
         };
@@ -108,7 +111,7 @@ public class Editor : Plugin
             {
                 X = new RelativeConstraint(0.55f),
                 Y = new RelativeConstraint(0.8f),
-                Width = new RelativeConstraint(0.3f),
+                Width = new RelativeConstraint(0.28f),
                 Height = new RelativeConstraint(0.2f)
             }
         };
@@ -144,7 +147,7 @@ public class Editor : Plugin
             Constraints = new RectConstraints
             {
                 Anchor = ConstraintAnchor.TOP_RIGHT,
-                Width = new RelativeConstraint(0.15f),
+                Width = new RelativeConstraint(0.17f),
                 Height = new RelativeConstraint(1f)
             }
         };
@@ -161,30 +164,51 @@ public class Editor : Plugin
                     if (component == null)
                         continue;
 
-                    var group = new PaneElement(component.ToString())
+                    var componentType = component.GetType();
+                    var group = new PaneElement(componentType.Name)
                     {
                         Constraints = {
                             Width = new FillConstraint()
                         }
                     };
 
-                    foreach (var field in component.GetType().GetFields())
-                    {
-                        group.Content.Add(new PaneElement(field.Name)
-                        {
-                            Tooltip = new Tooltip
-                            {
-                                Text = field.FieldType.ToString()
-                            },
-                            Constraints = new RectConstraints()
-                            {
-                                Width = new FillConstraint()
-                            },
-                            Content = {
-                                new TextElement(field.GetValue(component)?.ToString() ?? "null")
-                            }
-                        });
-                    }
+                    BindingFlags publicFlags = BindingFlags.Instance | BindingFlags.Public;
+                    BindingFlags publicStaticFlags = BindingFlags.Static | BindingFlags.Public;
+                    BindingFlags privateFlags = BindingFlags.Instance | BindingFlags.NonPublic;
+                    BindingFlags privateStaticFlags = BindingFlags.Static | BindingFlags.NonPublic;
+
+                    foreach (var property in componentType.GetProperties(publicFlags))
+                        group.Content.Add(PropertyViewFactory(component, property));
+
+                    foreach (var field in componentType.GetFields(publicFlags))
+                        group.Content.Add(FieldViewFactory(component, field));
+
+                    var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
+                    group.Content.Add(staticBlock);
+
+                    foreach (var property in componentType.GetProperties(publicStaticFlags))
+                        staticBlock.Content.Add(PropertyViewFactory(component, property));
+
+                    foreach (var field in componentType.GetFields(publicStaticFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
+                        staticBlock.Content.Add(FieldViewFactory(component, field));
+
+                    var privateBlock = new ColorBlockElement(Color.SlateGray);
+                    group.Content.Add(privateBlock);
+
+                    foreach (var property in componentType.GetProperties(privateFlags))
+                        privateBlock.Content.Add(PropertyViewFactory(component, property));
+
+                    foreach (var field in componentType.GetFields(privateFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
+                        privateBlock.Content.Add(FieldViewFactory(component, field));
+
+                    var privateStaticBlock = new ColorBlockElement(Color.RoyalBlue);
+                    group.Content.Add(privateStaticBlock);
+
+                    foreach (var property in componentType.GetProperties(privateStaticFlags))
+                        privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+
+                    foreach (var field in componentType.GetFields(privateStaticFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
+                        privateStaticBlock.Content.Add(FieldViewFactory(component, field));
 
                     inspector.Content.Add(group);
                 }
@@ -263,6 +287,52 @@ public class Editor : Plugin
     public override void Initialize()
     {
         //  do nothing
+    }
+
+    private static PaneElement FieldViewFactory(object component, FieldInfo field)
+    {
+        return new PaneElement(field.Name)
+        {
+            Enabled = field.IsPublic,
+            Tooltip = new Tooltip
+            {
+                Text = field.GetSignature(),
+                MaxWidth = 300
+            },
+            Constraints = new RectConstraints
+            {
+                Width = new FillConstraint()
+            },
+            Content = {
+                new TextElement(field.GetValue(component)?.ToString() ?? "null") {
+                    Label = field.FieldType.Name,
+                    Color = !field.IsLiteral && !field.IsInitOnly ? Color.White : Color.Gray
+                }
+            }
+        };
+    }
+
+    private static PaneElement PropertyViewFactory(object component, PropertyInfo property)
+    {
+        return new PaneElement(property.Name)
+        {
+            Enabled = property.GetAccessors().Any(x => x.IsPublic),
+            Tooltip = new Tooltip
+            {
+                Text = property.GetSignature(),
+                MaxWidth = 300
+            },
+            Constraints = new RectConstraints
+            {
+                Width = new FillConstraint()
+            },
+            Content = {
+                new TextElement(property.GetValue(component)?.ToString() ?? "null") {
+                    Label = property.PropertyType.Name,
+                    Color = property.GetSetMethod() != null ? Color.White : Color.Gray
+                }
+            }
+        };
     }
 
     [ComponentSystem]
