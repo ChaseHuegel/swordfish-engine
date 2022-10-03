@@ -13,7 +13,8 @@ public class PluginContext : IPluginContext
     private const string INITIALIZE_ERROR = "Failed to initialize";
     private const string UNLOAD_ERROR = "Failed to unload";
     private const string LOAD_ERROR = "Failed to load";
-    private const string LOAD_SUCCESS = "Loading";
+    private const string LOAD_SUCCESS = "Loaded";
+    private const string MISSING_DESCRIPTION = "Missing description!";
 
     private readonly ConcurrentDictionary<IPlugin, Assembly> LoadedPlugins = new();
 
@@ -48,12 +49,13 @@ public class PluginContext : IPluginContext
 
         if (Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
         {
-            Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
-
             LoadedPlugins.TryAdd(plugin, plugin.GetType().Assembly);
 
             //  Load kernel modules from the plugin
             SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
+
+            Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+            Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
         }
     }
 
@@ -119,13 +121,14 @@ public class PluginContext : IPluginContext
 
                 if (Activator.CreateInstance(type) is IPlugin plugin && Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(type)} '{plugin.Name}'"))
                 {
-                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
-
                     loadedPlugins.Add(plugin);
                     LoadedPlugins.TryAdd(plugin, type.Assembly);
 
                     //  Load kernel modules from the plugin
                     SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
+
+                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
+                    Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
                 }
             }
         }
