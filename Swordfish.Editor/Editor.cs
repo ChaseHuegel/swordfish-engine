@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -172,43 +173,68 @@ public class Editor : Plugin
                         }
                     };
 
-                    BindingFlags publicFlags = BindingFlags.Instance | BindingFlags.Public;
-                    BindingFlags publicStaticFlags = BindingFlags.Static | BindingFlags.Public;
-                    BindingFlags privateFlags = BindingFlags.Instance | BindingFlags.NonPublic;
-                    BindingFlags privateStaticFlags = BindingFlags.Static | BindingFlags.NonPublic;
+                    var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+                    var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
 
-                    foreach (var property in componentType.GetProperties(publicFlags))
-                        group.Content.Add(PropertyViewFactory(component, property));
+                    var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+                    var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
 
-                    foreach (var field in componentType.GetFields(publicFlags))
-                        group.Content.Add(FieldViewFactory(component, field));
+                    var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
+                    var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
 
-                    var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
-                    group.Content.Add(staticBlock);
+                    var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
+                    var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
 
-                    foreach (var property in componentType.GetProperties(publicStaticFlags))
-                        staticBlock.Content.Add(PropertyViewFactory(component, property));
+                    if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
+                    {
+                        foreach (var property in publicInstanceProperties)
+                            group.Content.Add(PropertyViewFactory(component, property));
 
-                    foreach (var field in componentType.GetFields(publicStaticFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
-                        staticBlock.Content.Add(FieldViewFactory(component, field));
+                        foreach (var field in publicInstanceFields)
+                            group.Content.Add(FieldViewFactory(component, field));
+                    }
 
-                    var privateBlock = new ColorBlockElement(Color.SlateGray);
-                    group.Content.Add(privateBlock);
+                    if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
+                    {
+                        var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
+                        group.Content.Add(staticBlock);
 
-                    foreach (var property in componentType.GetProperties(privateFlags))
-                        privateBlock.Content.Add(PropertyViewFactory(component, property));
+                        staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
 
-                    foreach (var field in componentType.GetFields(privateFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
-                        privateBlock.Content.Add(FieldViewFactory(component, field));
+                        foreach (var property in publicStaticProperties)
+                            staticBlock.Content.Add(PropertyViewFactory(component, property));
 
-                    var privateStaticBlock = new ColorBlockElement(Color.RoyalBlue);
-                    group.Content.Add(privateStaticBlock);
+                        foreach (var field in publicStaticFields)  //  Ignore backing fields
+                            staticBlock.Content.Add(FieldViewFactory(component, field));
+                    }
 
-                    foreach (var property in componentType.GetProperties(privateStaticFlags))
-                        privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+                    if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
+                    {
+                        var privateBlock = new ColorBlockElement(Color.SlateGray);
+                        group.Content.Add(privateBlock);
 
-                    foreach (var field in componentType.GetFields(privateStaticFlags).Where<FieldInfo>(x => x.Name[0] != '<'))  //  Ignore backing fields
-                        privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+                        privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+                        foreach (var property in privateInstanceProperties)
+                            privateBlock.Content.Add(PropertyViewFactory(component, property));
+
+                        foreach (var field in privateInstanceFields)
+                            privateBlock.Content.Add(FieldViewFactory(component, field));
+                    }
+
+                    if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
+                    {
+                        var privateStaticBlock = new ColorBlockElement(Color.SteelBlue);
+                        group.Content.Add(privateStaticBlock);
+
+                        privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+                        foreach (var property in privateStaticProperties)
+                            privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+
+                        foreach (var field in privateStaticFields)
+                            privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+                    }
 
                     inspector.Content.Add(group);
                 }
@@ -291,45 +317,44 @@ public class Editor : Plugin
 
     private static PaneElement FieldViewFactory(object component, FieldInfo field)
     {
-        return new PaneElement(field.Name)
-        {
-            Enabled = field.IsPublic,
-            Tooltip = new Tooltip
-            {
-                Text = field.GetSignature(),
-                MaxWidth = 300
-            },
-            Constraints = new RectConstraints
-            {
-                Width = new FillConstraint()
-            },
-            Content = {
-                new TextElement(field.GetValue(component)?.ToString() ?? "null") {
-                    Label = field.FieldType.Name,
-                    Color = !field.IsLiteral && !field.IsInitOnly ? Color.White : Color.Gray
-                }
-            }
-        };
+        return MemberViewFactory(
+            field.Name,
+            field.GetSignature(),
+            field.GetValue(component),
+            field.FieldType,
+            field.IsLiteral | field.IsInitOnly == false
+        );
     }
 
     private static PaneElement PropertyViewFactory(object component, PropertyInfo property)
     {
-        return new PaneElement(property.Name)
+        return MemberViewFactory(
+            property.Name,
+            property.GetSignature(),
+            property.GetValue(component),
+            property.PropertyType,
+            property.GetSetMethod() != null
+        );
+    }
+
+    private static PaneElement MemberViewFactory(string name, string signature, object? value, Type type, bool canWrite)
+    {
+        return new PaneElement(name)
         {
-            Enabled = property.GetAccessors().Any(x => x.IsPublic),
             Tooltip = new Tooltip
             {
-                Text = property.GetSignature(),
+                Text = signature,
                 MaxWidth = 300
             },
             Constraints = new RectConstraints
             {
-                Width = new FillConstraint()
+                Anchor = ConstraintAnchor.TOP_CENTER,
+                Width = new RelativeConstraint(0.9f)
             },
             Content = {
-                new TextElement(property.GetValue(component)?.ToString() ?? "null") {
-                    Label = property.PropertyType.Name,
-                    Color = property.GetSetMethod() != null ? Color.White : Color.Gray
+                new TextElement(value?.ToString() ?? "null") {
+                    Color = canWrite ? Color.White : Color.Gray,
+                    Label = type.Name
                 }
             }
         };

@@ -44,6 +44,8 @@ public partial class ImGuiEx
     /// <inheritdoc cref="BeginPane(string?)"/>
     public static void BeginPane(string? name, Vector2 size, bool border)
     {
+        var title = !string.IsNullOrWhiteSpace(name);
+
         ImGui.BeginGroup();
 
         var itemSpacing = ImGui.GetStyle().ItemSpacing;
@@ -57,21 +59,20 @@ public partial class ImGuiEx
 
         var effectiveSize = size;
         if (size.X < 0f)
-            effectiveSize.X = ImGui.GetContentRegionAvail().X;
+            effectiveSize.X = ImGui.GetContentRegionAvail().X - frameHeight;
 
         ImGui.Dummy(new Vector2(effectiveSize.X, 0f));
 
         var frameHeightHalf = new Vector2(frameHeight * 0.5f, 0f);
 
-        ImGui.Dummy(frameHeightHalf);
+        if (title) ImGui.Dummy(frameHeightHalf);
 
-        ImGui.SameLine(0f, 0f);
+        if (title) ImGui.SameLine(0f, 0f);
         ImGui.BeginGroup();
 
-        ImGui.Dummy(frameHeightHalf);
+        if (title) ImGui.Dummy(frameHeightHalf);
 
         Vector2 labelMin, labelMax;
-        var title = !string.IsNullOrWhiteSpace(name);
         if (title)
         {
             ImGui.SameLine(0f, 0f);
@@ -93,8 +94,6 @@ public partial class ImGuiEx
 
         ImGui.PopStyleVar(2);
 
-        ImGui.SetWindowSize(ImGui.GetWindowSize() - new Vector2(frameHeight, 0));
-
         ImGui.PushItemWidth(Math.Max(0f, ImGui.CalcItemWidth() - frameHeight));
 
         PaneStack.Push(
@@ -107,7 +106,7 @@ public partial class ImGuiEx
         );
     }
 
-    public static void EndGroupPanel()
+    public static void EndPane()
     {
         var pane = PaneStack.Pop();
 
@@ -124,9 +123,9 @@ public partial class ImGuiEx
         ImGui.EndGroup();
 
         ImGui.SameLine(0, 0);
-        ImGui.Dummy(new Vector2(frameHeight * 0.5f, 0f));
+        if (pane.Title) ImGui.Dummy(new Vector2(frameHeight * 0.5f, 0f));
 
-        ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f - itemSpacing.Y));
+        if (pane.Title) ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f - itemSpacing.Y));
 
         ImGui.EndGroup();
 
@@ -139,8 +138,8 @@ public partial class ImGuiEx
 
         if (pane.Border)
         {
-            var halfFrame = new Vector2(frameHeight * 0.25f, frameHeight) * 0.5f;
-            var frameRect = new Rect2(itemMin + halfFrame, itemMax - new Vector2(halfFrame.X * 2, -halfFrame.Y));
+            var halfFrame = pane.Title ? new Vector2(frameHeight * 0.25f, frameHeight) * 0.5f : Vector2.Zero;
+            var frameRect = new Rect2(itemMin + halfFrame, itemMax - new Vector2(halfFrame.X, -halfFrame.Y));
             for (int i = 0; i < 4; i++)
             {
                 switch (i)
@@ -167,8 +166,6 @@ public partial class ImGuiEx
         }
 
         ImGui.PopStyleVar(2);
-
-        ImGui.SetWindowSize(ImGui.GetWindowSize() + new Vector2(frameHeight, 0));
 
         if (pane.Title)
             ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f + itemSpacing.Y));

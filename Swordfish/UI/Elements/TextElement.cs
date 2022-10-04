@@ -21,7 +21,8 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
     public RectConstraints Constraints { get; set; } = new RectConstraints();
 
-    private ITooltipProperty TooltipProperty => this;
+    protected ITooltipProperty TooltipProperty => this;
+    protected IColorProperty ColorProperty => this;
 
     public TextElement(string text)
     {
@@ -33,6 +34,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
     {
         Constraints.Max = (Parent as IConstraintsProperty)?.Constraints.Max ?? ImGui.GetContentRegionAvail();
         Vector2 origin = Alignment == ElementAlignment.NONE ? Vector2.Zero : ImGui.GetCursorPos();
+        Vector2 position = Constraints.GetPosition();
 
         switch (Constraints.Anchor)
         {
@@ -62,26 +64,31 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
                 break;
         }
 
-        ImGui.SetCursorPos(origin + Constraints.GetPosition());
+        ImGui.SetCursorPos(origin + position);
 
-        if (Wrap) ImGui.PushTextWrapPos();
-        ImGui.PushStyleColor(ImGuiCol.Text, Color.ToVector4());
+        ImGui.PushStyleColor(ImGuiCol.Text, ColorProperty.GetCurrentColor().ToVector4());
 
-        if (string.IsNullOrWhiteSpace(Label))
-        {
-            if (Text != null && Text.StartsWith('-'))
-                ImGui.BulletText(Text.TrimStart('-', ' '));
-            else
-                ImGui.TextUnformatted(Text);
-        }
+        float labelWidth = ImGui.CalcTextSize(Label).X;
+        float labelOffset = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
+        if (Wrap) ImGui.PushTextWrapPos(labelOffset - labelWidth);
+
+        if (Text != null && Text.StartsWith('-'))
+            ImGui.BulletText(Text.TrimStart('-', ' '));
         else
-        {
-            ImGui.LabelText(Label, Text);
-        }
+            ImGui.TextUnformatted(Text);
 
-        ImGui.PopStyleColor();
         if (Wrap) ImGui.PopTextWrapPos();
 
         TooltipProperty.RenderTooltip();
+
+        if (!string.IsNullOrWhiteSpace(Label))
+        {
+            ImGui.SameLine();
+            ImGui.Dummy(new Vector2(labelOffset - labelWidth - ImGui.GetCursorPos().X + ImGui.GetStyle().FramePadding.X, 0f));
+            ImGui.SameLine();
+            ImGui.TextUnformatted(Label);
+        }
+
+        ImGui.PopStyleColor();
     }
 }
