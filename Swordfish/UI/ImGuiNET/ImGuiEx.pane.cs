@@ -59,9 +59,9 @@ public partial class ImGuiEx
 
         var effectiveSize = size;
         if (size.X < 0f)
-            effectiveSize.X = ImGui.GetContentRegionAvail().X - frameHeight;
+            effectiveSize.X = ImGui.GetContentRegionAvail().X;
 
-        ImGui.Dummy(new Vector2(effectiveSize.X, 0f));
+        ImGui.Dummy(new Vector2(effectiveSize.X - frameHeight * 0.5f, 0f));
 
         var frameHeightHalf = new Vector2(frameHeight * 0.5f, 0f);
 

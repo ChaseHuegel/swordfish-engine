@@ -69,8 +69,8 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
         ImGui.PushStyleColor(ImGuiCol.Text, ColorProperty.GetCurrentColor().ToVector4());
 
         float labelWidth = ImGui.CalcTextSize(Label).X;
-        float labelOffset = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
-        if (Wrap) ImGui.PushTextWrapPos(labelOffset - labelWidth);
+        float width = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
+        if (Wrap) ImGui.PushTextWrapPos(width - labelWidth);
 
         if (Text != null && Text.StartsWith('-'))
             ImGui.BulletText(Text.TrimStart('-', ' '));
@@ -84,7 +84,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
         if (!string.IsNullOrWhiteSpace(Label))
         {
             ImGui.SameLine();
-            ImGui.Dummy(new Vector2(labelOffset - labelWidth - ImGui.GetCursorPos().X + ImGui.GetStyle().FramePadding.X, 0f));
+            ImGui.Dummy(new Vector2(width - labelWidth - ImGui.GetCursorPos().X + ImGui.GetStyle().FramePadding.X, 0f));
             ImGui.SameLine();
             ImGui.TextUnformatted(Label);
         }
