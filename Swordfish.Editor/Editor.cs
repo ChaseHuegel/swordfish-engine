@@ -167,7 +167,7 @@ public class Editor : Plugin
                         continue;
 
                     var componentType = component.GetType();
-                    var group = new PaneElement(componentType.Name)
+                    var group = new PaneElement(componentType.Name.ToTitle())
                     {
                         Constraints = {
                             Width = new FillConstraint()
@@ -340,7 +340,7 @@ public class Editor : Plugin
 
     private static PaneElement MemberViewFactory(string name, string signature, object? value, Type type, bool canWrite)
     {
-        return new PaneElement(name)
+        return new PaneElement(name.ToTitle())
         {
             Tooltip = new Tooltip
             {
