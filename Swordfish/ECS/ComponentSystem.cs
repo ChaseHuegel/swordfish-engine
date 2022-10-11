@@ -2,7 +2,7 @@ namespace Swordfish.ECS;
 
 public abstract class ComponentSystem
 {
-    internal bool Modified { get; set; }
+    internal bool Modified { get; set; } = true;
 
     private Entity[] Entities;
 

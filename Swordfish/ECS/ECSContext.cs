@@ -45,6 +45,10 @@ public class ECSContext : IECSContext
         Systems = new HashSet<ComponentSystem>();
 
         BindComponent<IdentifierComponent>();
+        BindComponent<TransformComponent>();
+        BindComponent<PhysicsComponent>();
+
+        BindSystem<PhysicsSystem>();
     }
 
     public void Start()

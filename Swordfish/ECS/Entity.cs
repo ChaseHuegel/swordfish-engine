@@ -1,4 +1,6 @@
 using System.Collections;
+using System.Reflection;
+using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using Swordfish.Library.Types;
 
@@ -26,9 +28,6 @@ public struct Entity
     public TComponent? GetComponent<TComponent>() where TComponent : class
         => GetComponent<TComponent>(World.GetComponentIndex<TComponent>());
 
-    public bool TryGetComponent<TComponent>(out TComponent? component) where TComponent : class
-        => TryGetComponent(World.GetComponentIndex<TComponent>(), out component);
-
     public bool HasComponent<TComponent>() where TComponent : class
         => HasComponent(World.GetComponentIndex<TComponent>());
 
@@ -41,26 +40,26 @@ public struct Entity
         return true;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public void SetComponent<TComponent>(int componentIndex, TComponent component) where TComponent : class
     {
         World.Store.Set(Ptr, componentIndex, component);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TComponent? GetComponent<TComponent>(int componentIndex) where TComponent : class
     {
-        return World.Store.GetAt(Ptr, componentIndex) as TComponent;
+        object component = World.Store.GetAt(Ptr, componentIndex);
+        return component is null ? null : (TComponent)component;
     }
 
-    public bool TryGetComponent<TComponent>(int componentIndex, out TComponent? component) where TComponent : class
-    {
-        return (component = GetComponent<TComponent>(componentIndex)) != null;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public bool HasComponent(int componentIndex)
     {
         return World.Store.HasAt(Ptr, componentIndex);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public object?[] GetComponents()
     {
         return World.Store.Get(Ptr);

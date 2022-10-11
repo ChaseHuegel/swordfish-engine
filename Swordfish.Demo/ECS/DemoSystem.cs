@@ -7,7 +7,7 @@ public class DemoSystem : ComponentSystem
 {
     protected override void Update(Entity entity, float deltaTime)
     {
-        entity.TryGetComponent(DemoComponent.Index, out DemoComponent? demoComponent);
+        DemoComponent? demoComponent = entity.GetComponent<DemoComponent>(DemoComponent.Index);
 
         if (demoComponent != null)
         {

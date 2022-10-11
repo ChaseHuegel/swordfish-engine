@@ -25,6 +25,8 @@ public static class TestECS
             {
                 ecsContext.EntityBuilder
                     .Attach(new IdentifierComponent($"Entity {i}", null), IdentifierComponent.DefaultIndex)
+                    .Attach(new TransformComponent(), TransformComponent.DefaultIndex)
+                    .Attach(new PhysicsComponent(), PhysicsComponent.DefaultIndex)
                     .Build();
             }
         }
