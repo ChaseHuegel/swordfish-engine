@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.CompilerServices;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
@@ -88,8 +89,10 @@ public class ECSContext : IECSContext
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetComponentIndex(Type type) => ComponentTypes.IndexOf(type);
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public int GetComponentIndex<TComponent>() => ComponentTypes.IndexOf(typeof(TComponent));
 
     public int BindComponent<TComponent>()
