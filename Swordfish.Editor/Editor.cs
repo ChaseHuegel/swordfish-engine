@@ -12,6 +12,7 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types.Constraints;
+using Swordfish.Library.Util;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
 using Path = Swordfish.Library.IO.Path;
@@ -269,7 +270,7 @@ public class Editor : Plugin
                                 Width = new FillConstraint()
                             },
                             Content = {
-                                new TextElement((fileInfo.Length / 1024).ToString() + " kb")
+                                new TextElement(ByteSize.FromBytes(fileInfo.Length).ToString())
                             }
                         },
                         new PaneElement("Modified")
