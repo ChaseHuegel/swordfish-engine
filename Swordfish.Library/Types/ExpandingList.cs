@@ -42,7 +42,7 @@ namespace Swordfish.Library.Types
         public void Add(T value)
         {
             if (array.Length == Count)
-                Array.Resize(ref array, array.Length << 1);
+                Array.Resize(ref array, array.Length * 2);
 
             array[Count++] = value;
         }

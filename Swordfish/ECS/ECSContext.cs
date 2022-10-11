@@ -1,3 +1,4 @@
+using System.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
@@ -28,7 +29,7 @@ public class ECSContext : IECSContext
     internal ChunkedDataStore Store { get; private set; }
 
     private bool Running;
-    private readonly Dictionary<Type, int> ComponentTypes;
+    private readonly IndexLookup<Type> ComponentTypes;
     private readonly HashSet<ComponentSystem> Systems;
     private EntityBuilder? _EntityBuilder;
 
@@ -41,7 +42,7 @@ public class ECSContext : IECSContext
         MaxEntities = maxEntities;
 
         Store = new ChunkedDataStore(0, 1);
-        ComponentTypes = new Dictionary<Type, int>();
+        ComponentTypes = new IndexLookup<Type>();
         Systems = new HashSet<ComponentSystem>();
 
         BindComponent<IdentifierComponent>();
@@ -87,9 +88,9 @@ public class ECSContext : IECSContext
         }
     }
 
-    public int GetComponentIndex(Type type) => ComponentTypes[type];
+    public int GetComponentIndex(Type type) => ComponentTypes.IndexOf(type);
 
-    public int GetComponentIndex<TComponent>() => ComponentTypes[typeof(TComponent)];
+    public int GetComponentIndex<TComponent>() => ComponentTypes.IndexOf(typeof(TComponent));
 
     public int BindComponent<TComponent>()
     {
@@ -99,10 +100,10 @@ public class ECSContext : IECSContext
         if (!Reflection.HasAttribute<TComponent, ComponentAttribute>())
             throw new ArgumentException($"Type '{typeof(TComponent)}' must be decorated as a Component.");
 
-        if (ComponentTypes.TryGetValue(typeof(TComponent), out _))
+        if (ComponentTypes.Contains(typeof(TComponent)))
             throw new InvalidOperationException($"Component of type '{typeof(TComponent)}' is already bound.");
 
-        ComponentTypes.Add(typeof(TComponent), ComponentTypes.Count);
+        ComponentTypes.Add(typeof(TComponent));
         Debugger.Log($"Binding ECS component '{typeof(TComponent)}'.");
 
         return ComponentTypes.Count - 1;
