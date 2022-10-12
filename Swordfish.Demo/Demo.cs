@@ -3,6 +3,7 @@ using Swordfish.Demo.ECS;
 using Swordfish.Demo.UI;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
+using Swordfish.Library.Diagnostics;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -15,9 +16,6 @@ public class Demo : Mod
     public override void Load()
     {
         IECSContext ecsContext = SwordfishEngine.Kernel.Get<IECSContext>();
-
-        ecsContext.BindSystem<DemoSystem>();
-
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
     }
 
@@ -25,6 +23,7 @@ public class Demo : Mod
     {
         TestUI.CreateCanvas();
         TestECS.Populate();
+        Benchmark.Log();
     }
 
     public override void Unload()

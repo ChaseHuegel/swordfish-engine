@@ -12,11 +12,13 @@ public struct Entity
 
     public int Ptr { get; }
     public ECSContext World { get; }
+    public ChunkedDataStore Store { get; }
 
     internal Entity(int ptr, ECSContext world)
     {
         Ptr = ptr;
         World = world;
+        Store = world.Store;
     }
 
     public bool AddComponent<TComponent>() where TComponent : class, new()
@@ -49,8 +51,7 @@ public struct Entity
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]
     public TComponent? GetComponent<TComponent>(int componentIndex) where TComponent : class
     {
-        object component = World.Store.GetAt(Ptr, componentIndex);
-        return component is null ? null : (TComponent)component;
+        return World.Store.GetAt(Ptr, componentIndex) as TComponent;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveOptimization)]

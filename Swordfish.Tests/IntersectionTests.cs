@@ -4,9 +4,9 @@ using Swordfish.Engine.Physics;
 
 using Xunit;
 
-namespace SwordfishTests
+namespace Swordfish.Tests
 {
-    public class IntersectionTest
+    public class IntersectionTests
     {
         [Fact]
         public void SphereToBoundryIsColliding()

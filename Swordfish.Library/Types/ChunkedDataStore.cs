@@ -18,7 +18,6 @@ namespace Swordfish.Library.Types
         private volatile int SecondLowestPtr;
         private readonly Queue<int> RecycledPtrs;
         private readonly int ChunkOffset;
-        private readonly int ShiftOffset;
 
         public ChunkedDataStore(int size, int chunkSize)
         {
@@ -28,7 +27,6 @@ namespace Swordfish.Library.Types
             Size = size;
             ChunkSize = chunkSize;
             ChunkOffset = chunkSize + 1;
-            ShiftOffset = (int)Math.Round(ChunkOffset / 2d, MidpointRounding.AwayFromZero);
 
             Data = new object[Size * ChunkOffset];
 
@@ -45,9 +43,9 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 ptr = AllocatePtr();
 
-            Data[ptr << ShiftOffset] = true;
+            Data[ptr * ChunkOffset] = true;
             for (int i = 1; i <= ChunkSize; i++)
-                Data[(ptr << ShiftOffset) + i] = null;
+                Data[(ptr * ChunkOffset) + i] = null;
 
             return ptr;
         }
@@ -61,9 +59,9 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 ptr = AllocatePtr();
 
-            Data[ptr << ShiftOffset] = true;
+            Data[ptr * ChunkOffset] = true;
             for (int i = 0; i < ChunkSize; i++)
-                Data[(ptr << ShiftOffset) + i + 1] = data[i];
+                Data[(ptr * ChunkOffset) + i + 1] = data[i];
 
             return ptr;
         }
@@ -74,9 +72,9 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 ptr = AllocatePtr();
 
-            Data[ptr << ShiftOffset] = true;
+            Data[ptr * ChunkOffset] = true;
             for (int i = 1; i <= ChunkSize; i++)
-                Data[(ptr << ShiftOffset) + i] = chunks.TryGetValue(i, out object chunk) ? chunk : null;
+                Data[(ptr * ChunkOffset) + i] = chunks.TryGetValue(i, out object chunk) ? chunk : null;
 
             return ptr;
         }
@@ -84,7 +82,7 @@ namespace Swordfish.Library.Types
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Set(int ptr, int chunkIndex, object chunk)
         {
-            Data[(ptr << ShiftOffset) + chunkIndex + 1] = chunk;
+            Data[(ptr * ChunkOffset) + chunkIndex + 1] = chunk;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -93,9 +91,9 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            Data[ptr << ShiftOffset] = null;
+            Data[ptr * ChunkOffset] = null;
             for (int i = 1; i <= ChunkSize; i++)
-                Data[(ptr << ShiftOffset) + i] = null;
+                Data[(ptr * ChunkOffset) + i] = null;
 
             FreePtr(ptr);
         }
@@ -107,7 +105,7 @@ namespace Swordfish.Library.Types
                 throw new NullReferenceException();
 
             object[] chunks = new object[ChunkSize];
-            Array.Copy(Data, (ptr << ShiftOffset) + 1, chunks, 0, ChunkSize);
+            Array.Copy(Data, (ptr * ChunkOffset) + 1, chunks, 0, ChunkSize);
             return chunks;
         }
 
@@ -117,7 +115,16 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            return Data[(ptr << ShiftOffset) + chunkIndex + 1];
+            return Data[(ptr * ChunkOffset) + chunkIndex + 1];
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public T GetAt<T>(int ptr, int chunkIndex)
+        {
+            if (ptr == NullPtr)
+                throw new NullReferenceException();
+
+            return (T)Data[(ptr * ChunkOffset) + chunkIndex + 1];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -126,7 +133,7 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            return ref Data[(ptr << ShiftOffset) + chunkIndex + 1];
+            return ref Data[(ptr * ChunkOffset) + chunkIndex + 1];
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -135,7 +142,7 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            return Data[ptr << ShiftOffset] is true;
+            return Data[ptr * ChunkOffset] is true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -144,7 +151,7 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            int index = (ptr << ShiftOffset) + chunkIndex + 1;
+            int index = (ptr * ChunkOffset) + chunkIndex + 1;
             return Data[index] != null;
         }
 
@@ -155,7 +162,7 @@ namespace Swordfish.Library.Types
             int ptrIndex = 0;
             for (int i = LowestPtr; i < HighestPtr; i++)
             {
-                if (Data[i << ShiftOffset] != null)
+                if (Data[i * ChunkOffset] != null)
                     ptrs[ptrIndex++] = i;
             }
 
@@ -168,7 +175,7 @@ namespace Swordfish.Library.Types
                 throw new NullReferenceException();
 
             for (int i = 1; i <= ChunkSize; i++)
-                action.Invoke(Data[(ptr << ShiftOffset) + i]);
+                action.Invoke(Data[(ptr * ChunkOffset) + i]);
         }
 
         public IEnumerable<object> EnumerateAt(int ptr)
@@ -176,7 +183,7 @@ namespace Swordfish.Library.Types
             if (ptr == NullPtr)
                 throw new NullReferenceException();
 
-            ptr = ptr << ShiftOffset;
+            ptr = ptr * ChunkOffset;
             for (int i = 1; i <= ChunkSize; i++)
                 yield return Data[ptr + i];
         }
