@@ -2,7 +2,7 @@ using System.Collections;
 using System.Reflection;
 using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
-using Swordfish.Library.Types;
+using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.ECS;
 

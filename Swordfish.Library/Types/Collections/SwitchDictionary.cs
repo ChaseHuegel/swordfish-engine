@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     public class SwitchDictionary<TKey1, TKey2, TValue>
     {
@@ -8,12 +8,14 @@ namespace Swordfish.Library.Types
 
         private Dictionary<TKey1, TValue> dictonary = new Dictionary<TKey1, TValue>();
 
-        public TValue this[TKey1 key1] {
+        public TValue this[TKey1 key1]
+        {
             get => dictonary[key1];
             set => dictonary[key1] = value;
         }
 
-        public TValue this[TKey2 key2] {
+        public TValue this[TKey2 key2]
+        {
             get => dictonary[link[key2]];
             set => dictonary[link[key2]] = value;
         }
@@ -33,7 +35,7 @@ namespace Swordfish.Library.Types
             dictonary.Clear();
             link.Clear();
         }
-        
+
         public bool ContainsKey(TKey1 key1) => dictonary.ContainsKey(key1);
 
         public bool ContainsKey(TKey2 key2) => dictonary.ContainsKey(link[key2]);

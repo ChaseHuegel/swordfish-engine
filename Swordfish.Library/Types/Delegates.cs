@@ -1,4 +1,4 @@
-namespace Swordfish.Delegates
+namespace Swordfish.Library.Types
 {
     /// <summary>
     /// Delegate which returns a value

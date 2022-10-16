@@ -2,7 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     public class LockedList<T> : IList<T>
     {

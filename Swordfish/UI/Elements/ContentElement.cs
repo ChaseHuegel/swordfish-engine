@@ -1,7 +1,7 @@
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using ImGuiNET;
-using Swordfish.Library.Types;
+using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.UI.Elements;
 

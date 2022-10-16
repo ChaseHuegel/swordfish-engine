@@ -1,24 +1,16 @@
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
-using System.Threading;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     /// <summary>
-    /// Represents a thread-safe non-shrinking typed list
+    /// Represents a non-shrinking typed list
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ConcurrentExpanding<T> : IEnumerable
+    public class ExpandingList<T> : IEnumerable
     {
-        private ReaderWriterLockSlim listLock = new ReaderWriterLockSlim();
         private T[] array = new T[1];
-
-        //  Deconstructor
-        ~ConcurrentExpanding()
-        {
-            if (listLock != null) listLock.Dispose();
-        }
 
         /// <summary>
         /// Number of indices in the list
@@ -49,18 +41,10 @@ namespace Swordfish.Library.Types
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(T value)
         {
-            listLock.EnterWriteLock();
-            try
-            {
-                if (array.Length == Count)
-                    Array.Resize(ref array, array.Length << 1);
+            if (array.Length == Count)
+                Array.Resize(ref array, array.Length * 2);
 
-                array[Count++] = value;
-            }
-            finally
-            {
-                listLock.ExitWriteLock();
-            }
+            array[Count++] = value;
         }
 
         /// <summary>
@@ -71,18 +55,9 @@ namespace Swordfish.Library.Types
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool Contains(T value)
         {
-            listLock.EnterReadLock();
-
-            try
-            {
-                foreach (T entry in array)
-                    if (entry != null && entry.Equals(value))
-                        return true;
-            }
-            finally
-            {
-                listLock.ExitReadLock();
-            }
+            foreach (T entry in array)
+                if (entry != null && entry.Equals(value))
+                    return true;
 
             return false;
         }
@@ -90,19 +65,8 @@ namespace Swordfish.Library.Types
         //  Indexer
         public T this[int index]
         {
-            get
-            {
-                listLock.EnterReadLock();
-                try { return array[index]; }
-                finally { listLock.ExitReadLock(); }
-            }
-
-            set
-            {
-                listLock.EnterWriteLock();
-                try { array[index] = value; }
-                finally { listLock.ExitWriteLock(); }
-            }
+            get => array[index];
+            set => array[index] = value;
         }
 
         //  Enumerator

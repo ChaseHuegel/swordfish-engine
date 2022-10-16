@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     public class LinkedDictionary<TKey1, TKey2>
     {
@@ -8,12 +8,14 @@ namespace Swordfish.Library.Types
 
         private Dictionary<TKey2, TKey1> flippedDictionary = new Dictionary<TKey2, TKey1>();
 
-        public TKey2 this[TKey1 key1] {
+        public TKey2 this[TKey1 key1]
+        {
             get => dictionary[key1];
             set => dictionary[key1] = value;
         }
 
-        public TKey1 this[TKey2 key2] {
+        public TKey1 this[TKey2 key2]
+        {
             get => flippedDictionary[key2];
             set => flippedDictionary[key2] = value;
         }
@@ -33,7 +35,7 @@ namespace Swordfish.Library.Types
             dictionary.Clear();
             flippedDictionary.Clear();
         }
-        
+
         public bool Contains(TKey1 key) => dictionary.ContainsKey(key);
 
         public bool Contains(TKey2 key) => flippedDictionary.ContainsKey(key);

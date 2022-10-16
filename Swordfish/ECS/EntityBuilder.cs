@@ -1,4 +1,4 @@
-using Swordfish.Library.Types;
+using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.ECS;
 

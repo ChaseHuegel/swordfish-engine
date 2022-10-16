@@ -5,7 +5,7 @@ using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     public class LockedObservableCollection<T> : Collection<T>, INotifyCollectionChanged, IEnumerable
     {

@@ -1,6 +1,6 @@
 using System;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types.Collections
 {
     public class IndexLookup<TKey> where TKey : class
     {
