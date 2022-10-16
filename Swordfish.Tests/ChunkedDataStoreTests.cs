@@ -5,8 +5,8 @@ using System.Runtime.CompilerServices;
 using OpenTK.Mathematics;
 using Swordfish.ECS;
 using Swordfish.Engine.Physics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Types.Collections;
 using Xunit;
 using Xunit.Abstractions;
 

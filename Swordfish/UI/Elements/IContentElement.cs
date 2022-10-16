@@ -1,5 +1,5 @@
 using System.Collections.ObjectModel;
-using Swordfish.Library.Types.Collections;
+using Swordfish.Library.Collections;
 
 namespace Swordfish.UI.Elements;
 

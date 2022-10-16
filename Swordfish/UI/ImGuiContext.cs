@@ -3,10 +3,10 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Swordfish.Library.Collections;
+using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
-using Swordfish.Library.Types.Collections;
-using Swordfish.Library.Types.Constraints;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
 

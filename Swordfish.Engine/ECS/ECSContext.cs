@@ -3,10 +3,10 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
-using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.Engine.ECS
 {

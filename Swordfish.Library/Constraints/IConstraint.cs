@@ -1,4 +1,4 @@
-namespace Swordfish.Library.Types.Constraints
+namespace Swordfish.Library.Constraints
 {
     public interface IConstraint
     {

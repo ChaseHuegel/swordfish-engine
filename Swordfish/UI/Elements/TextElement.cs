@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Numerics;
 using ImGuiNET;
-using Swordfish.Library.Types.Constraints;
+using Swordfish.Library.Constraints;
 using Swordfish.Types.Constraints;
 using Swordfish.Util;
 

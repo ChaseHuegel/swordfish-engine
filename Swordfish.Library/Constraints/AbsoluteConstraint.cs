@@ -1,6 +1,6 @@
 using Swordfish.Library.Types;
 
-namespace Swordfish.Library.Types.Constraints
+namespace Swordfish.Library.Constraints
 {
     public class AbsoluteConstraint : IConstraint
     {

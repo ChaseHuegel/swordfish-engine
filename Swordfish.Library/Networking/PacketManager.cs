@@ -2,11 +2,10 @@ using System;
 using System.Reflection;
 
 using Needlefish;
-
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Networking.Attributes;
-using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.Library.Networking
 {

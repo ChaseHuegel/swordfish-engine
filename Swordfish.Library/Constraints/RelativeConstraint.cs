@@ -1,4 +1,6 @@
-namespace Swordfish.Library.Types.Constraints
+using Swordfish.Library.Types.Constraints;
+
+namespace Swordfish.Library.Constraints
 {
     public class RelativeConstraint : IConstraint
     {

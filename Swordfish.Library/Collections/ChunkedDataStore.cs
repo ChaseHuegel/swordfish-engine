@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Swordfish.Library.Types.Collections
+namespace Swordfish.Library.Collections
 {
     public class ChunkedDataStore
     {

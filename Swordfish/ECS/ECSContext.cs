@@ -1,8 +1,8 @@
 using System.Collections;
 using System.Runtime.CompilerServices;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
-using Swordfish.Library.Types.Collections;
 
 namespace Swordfish.ECS;
 

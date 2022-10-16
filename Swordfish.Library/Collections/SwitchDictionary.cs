@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Types.Collections
+namespace Swordfish.Library.Collections
 {
     public class SwitchDictionary<TKey1, TKey2, TValue>
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Types.Collections
+namespace Swordfish.Library.Collections
 {
     public class LinkedDictionary<TKey1, TKey2>
     {

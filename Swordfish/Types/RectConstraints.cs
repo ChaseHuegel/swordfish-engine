@@ -1,6 +1,6 @@
 using System.Numerics;
 using ImGuiNET;
-using Swordfish.Library.Types.Constraints;
+using Swordfish.Library.Constraints;
 
 namespace Swordfish.Types.Constraints;
 

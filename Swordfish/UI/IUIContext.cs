@@ -1,7 +1,7 @@
 using Silk.NET.Windowing;
+using Swordfish.Library.Collections;
+using Swordfish.Library.Constraints;
 using Swordfish.Library.Types;
-using Swordfish.Library.Types.Collections;
-using Swordfish.Library.Types.Constraints;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.UI;
