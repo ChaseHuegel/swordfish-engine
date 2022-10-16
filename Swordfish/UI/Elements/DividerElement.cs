@@ -1,8 +1,4 @@
-using System.Drawing;
-using System.Numerics;
 using ImGuiNET;
-using Swordfish.Library.Types.Constraints;
-using Swordfish.Util;
 
 namespace Swordfish.UI.Elements;
 

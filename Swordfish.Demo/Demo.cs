@@ -3,6 +3,7 @@ using Swordfish.Demo.ECS;
 using Swordfish.Demo.UI;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
+using Swordfish.Library.BehaviorTrees;
 using Swordfish.Library.Diagnostics;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 

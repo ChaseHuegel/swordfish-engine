@@ -3,11 +3,16 @@ using OpenTK.Mathematics;
 using Swordfish.Engine.Physics;
 
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Swordfish.Tests
 {
-    public class IntersectionTests
+    public class IntersectionTests : TestBase
     {
+        public IntersectionTests(ITestOutputHelper output) : base(output)
+        {
+        }
+
         [Fact]
         public void SphereToBoundryIsColliding()
         {

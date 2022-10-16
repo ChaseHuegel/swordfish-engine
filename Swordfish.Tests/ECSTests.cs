@@ -12,14 +12,12 @@ using Xunit.Abstractions;
 
 namespace Swordfish.Tests
 {
-    public class ECSTests
+    public class ECSTests : TestBase
     {
-        private readonly ITestOutputHelper Output;
         private readonly ECSContext ECSContext;
 
-        public ECSTests(ITestOutputHelper output)
+        public ECSTests(ITestOutputHelper output) : base(output)
         {
-            Output = output;
             ECSContext = new ECSContext();
             ECSContext.Start();
             ECSContext.CreateEntity();

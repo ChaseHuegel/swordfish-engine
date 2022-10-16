@@ -13,23 +13,22 @@ using Xunit.Abstractions;
 
 namespace Swordfish.Tests
 {
-    public class NetTests
+    public class NetTests : TestBase
     {
-        private readonly ITestOutputHelper Output;
-        public NetTests(ITestOutputHelper testOutputHelper)
+        public NetTests(ITestOutputHelper output) : base(output)
         {
-            Output = testOutputHelper;
         }
 
         [Fact]
         public void SerializedPacketDoesDeserialize()
         {
-            HandshakePacket packet = new HandshakePacket {
+            HandshakePacket packet = new HandshakePacket
+            {
                 Signature = "test"
             };
 
             byte[] buffer = NeedlefishFormatter.Serialize(packet);
-            HandshakePacket deserializedPacket = (HandshakePacket) NeedlefishFormatter.Deserialize(typeof(HandshakePacket), buffer);
+            HandshakePacket deserializedPacket = (HandshakePacket)NeedlefishFormatter.Deserialize(typeof(HandshakePacket), buffer);
 
             Assert.Equal(packet.Signature, deserializedPacket.Signature);
         }

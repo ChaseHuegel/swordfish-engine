@@ -12,13 +12,10 @@ using Xunit.Abstractions;
 
 namespace Swordfish.Tests
 {
-    public class ChunkedDataStoreTests
+    public class ChunkedDataStoreTests : TestBase
     {
-        private readonly ITestOutputHelper Output;
-
-        public ChunkedDataStoreTests(ITestOutputHelper output)
+        public ChunkedDataStoreTests(ITestOutputHelper output) : base(output)
         {
-            Output = output;
         }
 
         [Fact]

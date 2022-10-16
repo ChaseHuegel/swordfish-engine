@@ -2,8 +2,10 @@ using System;
 
 namespace Swordfish.Library.Util
 {
-	public class MathS
-	{
+    public static class MathS
+    {
+        public static readonly Random Random = new Random();
+
         public static float Lerp(float start, float end, float value)
         {
             return start + value * (end - start);
