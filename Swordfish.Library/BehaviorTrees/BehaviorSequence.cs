@@ -13,18 +13,15 @@ namespace Swordfish.Library.BehaviorTrees
 
         public override BehaviorState Evaluate(object target, float delta)
         {
-            bool running = false;
             for (int i = 0; i < Children.Count; i++)
             {
                 BehaviorState state = Children[i].Evaluate(target, delta);
 
-                if (state == BehaviorState.FAILED)
-                    return BehaviorState.FAILED;
-                else if (!running && state == BehaviorState.RUNNING)
-                    running = true;
+                if (state != BehaviorState.SUCCESS)
+                    return state;
             }
 
-            return running ? BehaviorState.RUNNING : BehaviorState.SUCCESS;
+            return BehaviorState.SUCCESS;
         }
     }
 }
