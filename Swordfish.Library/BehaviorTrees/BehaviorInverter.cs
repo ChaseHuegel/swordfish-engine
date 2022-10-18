@@ -2,7 +2,7 @@ using System;
 
 namespace Swordfish.Library.BehaviorTrees
 {
-    public sealed class BehaviorInverter : BehaviorNode
+    public sealed class BehaviorInverter : BehaviorNode, IBehaviorDecorator
     {
         public BehaviorInverter(BehaviorNode child) : base(child) { }
 

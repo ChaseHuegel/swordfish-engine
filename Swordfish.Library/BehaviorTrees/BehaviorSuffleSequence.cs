@@ -4,7 +4,7 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.BehaviorTrees
 {
-    public sealed class BehaviorSuffleSequence : BehaviorNode
+    public sealed class BehaviorSuffleSequence : BehaviorNode, IBehaviorCompositor
     {
         public BehaviorSuffleSequence(BehaviorNode child) : base(child) { }
 

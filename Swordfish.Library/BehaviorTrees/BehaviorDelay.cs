@@ -2,7 +2,7 @@ using System;
 
 namespace Swordfish.Library.BehaviorTrees
 {
-    public sealed class BehaviorDelay : BehaviorNode
+    public sealed class BehaviorDelay : BehaviorNode, IBehaviorDecorator
     {
         private readonly float Delay;
         private float Elapsed;

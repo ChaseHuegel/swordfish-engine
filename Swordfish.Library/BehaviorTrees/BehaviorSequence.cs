@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Swordfish.Library.BehaviorTrees
 {
-    public sealed class BehaviorSequence : BehaviorNode
+    public sealed class BehaviorSequence : BehaviorNode, IBehaviorCompositor
     {
         public BehaviorSequence(BehaviorNode child) : base(child) { }
 

@@ -1,6 +1,7 @@
 namespace Swordfish.Library.BehaviorTrees
 {
-    public abstract class BehaviorGate<TTarget> : BehaviorNode<TTarget> where TTarget : class
+    public abstract class BehaviorGate<TTarget> : BehaviorNode<TTarget>, IBehaviorDecorator
+        where TTarget : class
     {
         public BehaviorGate(BehaviorNode child) : base(child) { }
 

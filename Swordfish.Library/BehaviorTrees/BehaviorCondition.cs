@@ -1,6 +1,7 @@
 namespace Swordfish.Library.BehaviorTrees
 {
-    public abstract class BehaviorCondition<TTarget> : BehaviorNode<TTarget> where TTarget : class
+    public abstract class BehaviorCondition<TTarget> : BehaviorNode<TTarget>, IBehaviorCondition
+        where TTarget : class
     {
         public override BehaviorState Evaluate(TTarget target, float delta)
         {

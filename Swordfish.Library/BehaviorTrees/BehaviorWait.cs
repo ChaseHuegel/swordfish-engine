@@ -1,6 +1,6 @@
 namespace Swordfish.Library.BehaviorTrees
 {
-    public sealed class BehaviorWait : BehaviorNode
+    public sealed class BehaviorWait : BehaviorNode, IBehaviorAction
     {
         private readonly float Seconds;
         private float Elapsed;
