@@ -19,8 +19,7 @@ namespace Swordfish.Library.BehaviorTrees
             if (Elapsed >= Delay)
             {
                 Elapsed = 0f;
-                Children[0].Evaluate(target, delta);
-                return BehaviorState.SUCCESS;
+                return Children[0].Evaluate(target, delta);
             }
 
             return BehaviorState.RUNNING;
