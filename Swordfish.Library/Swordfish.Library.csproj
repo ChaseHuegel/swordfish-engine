@@ -10,6 +10,12 @@
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <ProduceReferenceAssemblyInOutDir>true</ProduceReferenceAssemblyInOutDir>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Needlefish" Version="1.2.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
