@@ -6,7 +6,7 @@ namespace Swordfish.Library.Types
     {
         private T data;
 
-        public EventHandler<EventArgs> Changed;
+        public EventHandler<DataChangedEventArgs<T>> Changed;
 
         public static implicit operator T(DataBinding<T> binding) => binding.Get();
 
@@ -21,8 +21,19 @@ namespace Swordfish.Library.Types
 
         public DataBinding<T> Set(T value)
         {
-            data = value;
-            Changed?.Invoke(this, EventArgs.Empty);
+            if (data != null && !data.Equals(value))
+            {
+                Changed?.Invoke(this, new DataChangedEventArgs<T>(data, value));
+                data = value;
+                return this;
+            }
+
+            if (data == null && value != null)
+            {
+                Changed?.Invoke(this, new DataChangedEventArgs<T>(data, value));
+                data = value;
+                return this;
+            }
 
             return this;
         }
