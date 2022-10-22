@@ -3,7 +3,7 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Collections
 {
-    public class Property
+    public class ValueField
     {
         public string Name
         {
@@ -40,7 +40,7 @@ namespace Swordfish.Library.Collections
         public DataBinding<float> ValueBinding { get; private set; }
         public DataBinding<float> MaxValueBinding { get; private set; }
 
-        public Property(string name, float value = 1.0f, float max = 0.0f)
+        public ValueField(string name, float value = 1.0f, float max = 0.0f)
         {
             NameBinding = new DataBinding<string>();
             ValueBinding = new DataBinding<float>();
@@ -54,25 +54,25 @@ namespace Swordfish.Library.Collections
         public bool IsMax() => Value == MaxValue;
         public float CalculatePercent() => Value / MaxValue;
 
-        public Property Add(float amount)
+        public ValueField Add(float amount)
         {
             Value += amount;
             return this;
         }
 
-        public Property Remove(float amount)
+        public ValueField Remove(float amount)
         {
             Value -= amount;
             return this;
         }
 
-        public Property Maximize()
+        public ValueField Maximize()
         {
             Value = MaxValue;
             return this;
         }
 
-        public Property Clear()
+        public ValueField Clear()
         {
             Value = 0;
             return this;
@@ -93,7 +93,7 @@ namespace Swordfish.Library.Collections
             if (obj is string str)
                 return Name.Equals(str);
 
-            if (obj is Property atr)
+            if (obj is ValueField atr)
                 return Name.Equals(atr.Name);
 
             return false;

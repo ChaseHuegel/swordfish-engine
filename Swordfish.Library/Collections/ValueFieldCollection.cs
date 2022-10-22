@@ -2,9 +2,9 @@
 
 namespace Swordfish.Library.Collections
 {
-    public class PropertyCollection
+    public class ValueFieldCollection
     {
-        private readonly Dictionary<string, Property> Items = new Dictionary<string, Property>();
+        private readonly Dictionary<string, ValueField> Items = new Dictionary<string, ValueField>();
 
         public bool Contains(string name)
         {
@@ -13,29 +13,29 @@ namespace Swordfish.Library.Collections
 
         public float ValueOf(string name)
         {
-            return Items.TryGetValue(name, out Property attribute) ? attribute.Value : 0f;
+            return Items.TryGetValue(name, out ValueField attribute) ? attribute.Value : 0f;
         }
 
         public float MaxValueOf(string name)
         {
-            return Items.TryGetValue(name, out Property attribute) ? attribute.MaxValue : 0f;
+            return Items.TryGetValue(name, out ValueField attribute) ? attribute.MaxValue : 0f;
         }
 
         public float CalculatePercentOf(string name)
         {
-            return Items.TryGetValue(name, out Property attribute) ? attribute.CalculatePercent() : 0f;
+            return Items.TryGetValue(name, out ValueField attribute) ? attribute.CalculatePercent() : 0f;
         }
 
-        public Property Get(string name)
+        public ValueField Get(string name)
         {
-            return Items.TryGetValue(name, out Property attribute) ? attribute : null;
+            return Items.TryGetValue(name, out ValueField attribute) ? attribute : null;
         }
 
-        public Property Add(string name, float value, float max = 0f)
+        public ValueField Add(string name, float value, float max = 0f)
         {
             if (!Items.ContainsKey(name))
             {
-                var attribute = new Property(name, value, max);
+                var attribute = new ValueField(name, value, max);
                 Items.Add(name, attribute);
                 return attribute;
             }
@@ -49,7 +49,7 @@ namespace Swordfish.Library.Collections
                 return false;
             else
             {
-                Items.Add(name, new Property(name, value, max));
+                Items.Add(name, new ValueField(name, value, max));
                 return true;
             }
         }
@@ -59,7 +59,7 @@ namespace Swordfish.Library.Collections
             return Items.Remove(name);
         }
 
-        public Property GetOrAdd(string name, float value, float max = 0f)
+        public ValueField GetOrAdd(string name, float value, float max = 0f)
         {
             return Get(name) ?? Add(name, value, max);
         }
