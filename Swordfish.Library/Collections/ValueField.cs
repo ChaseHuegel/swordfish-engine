@@ -11,6 +11,20 @@ namespace Swordfish.Library.Collections
             set => NameBinding.Set(value);
         }
 
+        public float MaxValue
+        {
+            get => MaxValueBinding.Get();
+            set
+            {
+                float oldMax = MaxValueBinding.Get();
+                float newMax = value > 0f ? value : float.MaxValue;
+                MaxValueBinding.Set(newMax);
+
+                if (oldMax > 0f && oldMax != float.MaxValue && newMax > 0f && newMax != float.MaxValue)
+                    Value *= newMax / oldMax;
+            }
+        }
+
         public float Value
         {
             get => ValueBinding.Get();
@@ -21,34 +35,19 @@ namespace Swordfish.Library.Collections
             }
         }
 
-        public float MaxValue
-        {
-            get => MaxValueBinding.Get();
-            set
-            {
-                float oldMax = MaxValueBinding.Get();
-                float newMax = value > 0f ? value : float.MaxValue;
-
-                if (oldMax > 0f)
-                    Value *= newMax / oldMax;
-
-                MaxValueBinding.Set(newMax);
-            }
-        }
-
         public DataBinding<string> NameBinding { get; private set; }
-        public DataBinding<float> ValueBinding { get; private set; }
         public DataBinding<float> MaxValueBinding { get; private set; }
+        public DataBinding<float> ValueBinding { get; private set; }
 
         public ValueField(string name, float value = 1.0f, float max = 0.0f)
         {
             NameBinding = new DataBinding<string>();
-            ValueBinding = new DataBinding<float>();
             MaxValueBinding = new DataBinding<float>();
+            ValueBinding = new DataBinding<float>();
 
             Name = name;
-            Value = value;
             MaxValue = max;
+            Value = value;
         }
 
         public bool IsMax() => Value == MaxValue;
