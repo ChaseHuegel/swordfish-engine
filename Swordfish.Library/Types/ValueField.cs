@@ -4,11 +4,7 @@ namespace Swordfish.Library.Types
 {
     public class ValueField
     {
-        public string Name
-        {
-            get => NameBinding.Get();
-            set => NameBinding.Set(value);
-        }
+        public string Name { get; private set; }
 
         public float MaxValue
         {
@@ -34,13 +30,11 @@ namespace Swordfish.Library.Types
             }
         }
 
-        public DataBinding<string> NameBinding { get; private set; }
         public DataBinding<float> MaxValueBinding { get; private set; }
         public DataBinding<float> ValueBinding { get; private set; }
 
         public ValueField(string name, float value = 1.0f, float max = 0.0f)
         {
-            NameBinding = new DataBinding<string>();
             MaxValueBinding = new DataBinding<float>();
             ValueBinding = new DataBinding<float>();
 
