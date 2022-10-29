@@ -1,4 +1,4 @@
-using Swordfish.Library.Collections;
+using Swordfish.Library.Types;
 using Xunit;
 using Xunit.Abstractions;
 

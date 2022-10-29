@@ -1,7 +1,6 @@
-﻿using Swordfish.Library.Types;
-using Swordfish.Library.Util;
+﻿using Swordfish.Library.Util;
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Types
 {
     public class ValueField
     {

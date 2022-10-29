@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Library.Collections
 {
@@ -51,6 +52,22 @@ namespace Swordfish.Library.Collections
             {
                 Items.Add(name, new ValueField(name, value, max));
                 return true;
+            }
+        }
+
+        public ValueField AddOrUpdate(string name, float value, float max = 0f)
+        {
+            if (Items.TryGetValue(name, out ValueField field))
+            {
+                field.MaxValue = max;
+                field.Value = value;
+                return field;
+            }
+            else
+            {
+                field = new ValueField(name, value, max);
+                Items.Add(name, field);
+                return field;
             }
         }
 
