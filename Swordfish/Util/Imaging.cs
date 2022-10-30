@@ -11,9 +11,10 @@ namespace Swordfish.Util;
 
 public static class Imaging
 {
-    public static RawImage LoadIcon(IPath path)
+    /// <inheritdoc cref="Load"/>
+    /// <remarks>This is useful when trying to load an unsupported image type, such as ICO.</remarks>
+    public static RawImage LoadAsPng(IPath path)
     {
-        //  ico isn't supported by ImageSharp so first load the image as a png
         using var stream = new MemoryStream();
         using var bitmap = new Bitmap(path.OriginalString);
 
@@ -23,15 +24,25 @@ public static class Imaging
         return Load(buffer);
     }
 
-    public static RawImage Load(byte[] buffer)
-    {
-        var image = Image.Load<Rgba32>(buffer);
-        return image.ToRawImage();
-    }
-
+    /// <summary>
+    ///     Loads an image from disk as a <see cref="RawImage"/>.
+    /// </summary>
+    /// <param name="path">Path to load an image from.</param>
+    /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
     public static RawImage Load(IPath path)
     {
         var image = Image.Load<Rgba32>(path.OriginalString);
+        return image.ToRawImage();
+    }
+
+    /// <summary>
+    ///     Loads an image buffer as a <see cref="RawImage"/>.
+    /// </summary>
+    /// <param name="path">Path to load an image from.</param>
+    /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
+    public static RawImage Load(byte[] buffer)
+    {
+        var image = Image.Load<Rgba32>(buffer);
         return image.ToRawImage();
     }
 }

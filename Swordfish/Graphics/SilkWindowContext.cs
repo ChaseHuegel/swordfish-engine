@@ -86,7 +86,7 @@ public class SilkWindowContext : IWindowContext
         Window.Center();
 
         var pathService = SwordfishEngine.Kernel.Get<IPathService>();
-        RawImage icon = Imaging.LoadIcon(pathService.Root.At("swordfish.ico"));
+        RawImage icon = Imaging.LoadAsPng(pathService.Root.At("swordfish.ico"));
         Window.SetWindowIcon(ref icon);
 
         Input = Window.CreateInput();
