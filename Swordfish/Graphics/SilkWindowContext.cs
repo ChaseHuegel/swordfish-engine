@@ -121,16 +121,21 @@ public class SilkWindowContext : IWindowContext
         Render?.Invoke(delta);
     }
 
-    private void KeyDown(IKeyboard keyboard, Key key, int value)
+    private void KeyDown(IKeyboard keyboard, Silk.NET.Input.Key key, int value)
     {
         switch (key)
         {
-            case Key.Escape:
+            case Silk.NET.Input.Key.Escape:
                 Close();
                 break;
-            case Key.F11:
+            case Silk.NET.Input.Key.F11:
                 Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal;
                 break;
         }
+    }
+
+    private void testDown(IGamepad arg1, Button arg2)
+    {
+        throw new NotImplementedException();
     }
 }
