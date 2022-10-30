@@ -40,8 +40,8 @@ public static class SwordfishEngine
         if (args.Contains("-debug") && !AttachConsole(-1))
             AllocConsole();
 
-        MainWindow.Load += Start;
-        MainWindow.Close += Stop;
+        MainWindow.Loaded += Start;
+        MainWindow.Closed += Stop;
         MainWindow.Initialize();
     }
 

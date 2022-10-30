@@ -6,8 +6,8 @@ public interface IWindowContext
 {
     Vector2 MonitorResolution { get; }
 
-    Action? Load { get; set; }
-    Action? Close { get; set; }
+    Action? Loaded { get; set; }
+    Action? Closed { get; set; }
     Action<double>? Render { get; set; }
     Action<double>? Update { get; set; }
 
@@ -15,6 +15,7 @@ public interface IWindowContext
 
     Vector2 GetSize();
 
+    void Close();
     void SetWindowed();
     void Minimize();
     void Maximize();

@@ -26,8 +26,8 @@ public class SilkWindowContext : IWindowContext
 
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
 
-    public Action? Load { get; set; }
-    public Action? Close { get; set; }
+    public Action? Loaded { get; set; }
+    public Action? Closed { get; set; }
     public Action<double>? Render { get; set; }
     public Action<double>? Update { get; set; }
 
@@ -57,6 +57,11 @@ public class SilkWindowContext : IWindowContext
     public Vector2 GetSize()
     {
         return (Vector2)Window.Size;
+    }
+
+    public void Close()
+    {
+        Window.Close();
     }
 
     public void SetWindowed()
@@ -96,14 +101,14 @@ public class SilkWindowContext : IWindowContext
         Renderer.Initialize(Window);
         UIContext.Initialize(Window);
 
-        Load?.Invoke();
+        Loaded?.Invoke();
     }
 
     private void OnClose()
     {
         Input?.Dispose();
 
-        Close?.Invoke();
+        Closed?.Invoke();
     }
 
     private void OnUpdate(double delta)
@@ -121,7 +126,7 @@ public class SilkWindowContext : IWindowContext
         switch (key)
         {
             case Key.Escape:
-                Window.Close();
+                Close();
                 break;
             case Key.F11:
                 Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal;
