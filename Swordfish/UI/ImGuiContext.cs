@@ -25,7 +25,7 @@ public class ImGuiContext : IUIContext
     private ImGuiController? Controller { get; set; }
     private IWindow? Window { get; set; }
 
-    public void Initialize(IWindow window)
+    public void Initialize(IWindow window, IInputContext inputContext)
     {
         Window = window;
         Window.Closing += Cleanup;
@@ -35,7 +35,7 @@ public class ImGuiContext : IUIContext
         FontScale.Changed += OnFontScaleChanged;
         ScaleConstraint.Changed += OnScalingConstraintChanged;
 
-        Controller = new ImGuiController(GL.GetApi(Window), Window, Window?.CreateInput());
+        Controller = new ImGuiController(GL.GetApi(Window), Window, inputContext);
         Controller.Update(0f);
 
         OnFontScaleChanged(this, EventArgs.Empty);
@@ -67,9 +67,7 @@ public class ImGuiContext : IUIContext
         foreach (IElement element in Elements)
             element.Render();
 
-        if (MenuBar != null)
-            MenuBar.Render();
-
+        MenuBar?.Render();
         Controller?.Render();
     }
 

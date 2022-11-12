@@ -4,7 +4,7 @@ namespace Swordfish.Library.IO
 {
     public class ScrolledEventArgs : EventArgs
     {
-        public new readonly ScrolledEventArgs Empty = new ScrolledEventArgs(0f);
+        public static new readonly ScrolledEventArgs Empty = new ScrolledEventArgs(0f);
 
         public float Delta;
 

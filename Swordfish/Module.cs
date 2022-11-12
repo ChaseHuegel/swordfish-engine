@@ -2,6 +2,7 @@ using Ninject.Modules;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Input;
 using Swordfish.Library.IO;
 using Swordfish.UI;
 
@@ -14,6 +15,7 @@ public class Module : NinjectModule
         Bind<IWindowContext>().To<SilkWindowContext>().InSingletonScope();
         Bind<IRenderContext>().To<OpenGLRenderer>().InSingletonScope();
         Bind<IUIContext>().To<ImGuiContext>().InSingletonScope();
+        Bind<IInputService>().To<SilkInputService>().InSingletonScope();
 
         Bind<IPathService>().To<PathService>().InSingletonScope();
         Bind<IFileService>().To<FileService>().InSingletonScope();

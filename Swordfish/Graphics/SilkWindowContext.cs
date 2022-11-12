@@ -1,29 +1,20 @@
-using System.Drawing;
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Ninject;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.PixelFormats;
+using Swordfish.Input;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.UI;
 using Swordfish.Util;
-using Image = SixLabors.ImageSharp.Image;
+using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
 
 public class SilkWindowContext : IWindowContext
 {
-    private IWindow Window { get; }
-    private IRenderContext Renderer { get; }
-    private IUIContext UIContext { get; }
-    private IInputContext? Input { get; set; }
-
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
 
     public Action? Loaded { get; set; }
@@ -31,10 +22,16 @@ public class SilkWindowContext : IWindowContext
     public Action<double>? Render { get; set; }
     public Action<double>? Update { get; set; }
 
-    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext)
+    private IWindow Window { get; }
+    private IRenderContext Renderer { get; }
+    private IUIContext UIContext { get; }
+    private SilkInputService InputService { get; }
+
+    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService)
     {
         Renderer = renderer;
         UIContext = uiContext;
+        InputService = (SilkInputService)inputService;
 
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
@@ -94,20 +91,18 @@ public class SilkWindowContext : IWindowContext
         RawImage icon = Imaging.LoadAsPng(pathService.Root.At("swordfish.ico"));
         Window.SetWindowIcon(ref icon);
 
-        Input = Window.CreateInput();
-        for (int i = 0; i < Input.Keyboards.Count; i++)
-            Input.Keyboards[i].KeyDown += KeyDown;
+        IInputContext input = Window.CreateInput();
 
         Renderer.Initialize(Window);
-        UIContext.Initialize(Window);
+        UIContext.Initialize(Window, input);
+        InputService.Initialize(input);
+        InputService.KeyPressed += OnKeyPressed;
 
         Loaded?.Invoke();
     }
 
     private void OnClose()
     {
-        Input?.Dispose();
-
         Closed?.Invoke();
     }
 
@@ -121,21 +116,16 @@ public class SilkWindowContext : IWindowContext
         Render?.Invoke(delta);
     }
 
-    private void KeyDown(IKeyboard keyboard, Silk.NET.Input.Key key, int value)
+    private void OnKeyPressed(object? sender, KeyEventArgs e)
     {
-        switch (key)
+        switch (e.Key)
         {
-            case Silk.NET.Input.Key.Escape:
+            case Key.ESC:
                 Close();
                 break;
-            case Silk.NET.Input.Key.F11:
+            case Key.F11:
                 Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal;
                 break;
         }
-    }
-
-    private void testDown(IGamepad arg1, Button arg2)
-    {
-        throw new NotImplementedException();
     }
 }

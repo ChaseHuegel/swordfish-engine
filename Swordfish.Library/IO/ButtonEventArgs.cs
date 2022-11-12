@@ -5,7 +5,7 @@ namespace Swordfish.Library.IO
 {
     public class ButtonEventArgs : EventArgs
     {
-        public new readonly ButtonEventArgs Empty = new ButtonEventArgs(new InputButton());
+        public static new readonly ButtonEventArgs Empty = new ButtonEventArgs(new InputButton());
 
         public InputButton Button;
 

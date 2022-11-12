@@ -5,7 +5,7 @@ namespace Swordfish.Library.IO
 {
     public class ClickedEventArgs : EventArgs
     {
-        public new readonly ClickedEventArgs Empty = new ClickedEventArgs(MouseButton.NONE, Vec2f.Zero);
+        public static new readonly ClickedEventArgs Empty = new ClickedEventArgs(MouseButton.NONE, Vec2f.Zero);
 
         public MouseButton MouseButton;
         public Vec2f Position;
