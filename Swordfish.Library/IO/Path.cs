@@ -1,5 +1,6 @@
-using System;
+using System.Diagnostics;
 using System.IO;
+using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Library.IO
 {
@@ -35,6 +36,20 @@ namespace Swordfish.Library.IO
         {
             Directory.CreateDirectory(OriginalString);
             return this;
+        }
+
+        public bool TryOpenInDefaultApp()
+        {
+            ProcessStartInfo processStartInfo = new ProcessStartInfo
+            {
+                FileName = OriginalString,
+                UseShellExecute = true
+            };
+
+            return Debugger.TryInvoke(
+                () => Process.Start(processStartInfo),
+                "Failed to open path in the default application."
+            );
         }
 
         public override string ToString() => OriginalString;

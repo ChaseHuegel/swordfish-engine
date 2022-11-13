@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,7 @@ using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
+using Debugger = Swordfish.Library.Diagnostics.Debugger;
 using Path = Swordfish.Library.IO.Path;
 
 namespace Swordfish.Editor;
@@ -59,7 +61,21 @@ public class Editor : Plugin
                                     ShortcutModifiers.CONTROL,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
-                                    () => Debugger.Log("Create new plugin")
+                                    () => {
+                                        Debugger.Log("Creating new plugin");
+                                        IPath path = LocalPathService.Root
+                                            .At("Projects")
+                                            .At("New Project")
+                                            .At("Source").CreateDirectory();
+                                        path = path.At("NewPlugin.cs");
+                                        Assembly assembly = Assembly.GetAssembly(typeof(Editor))!;
+                                        var resources = assembly.GetManifestResourceNames();
+                                        Stream? stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Templates.NewPlugin.cstemplate");
+                                        using (StreamReader reader = new(stream!))
+                                        {
+                                            File.WriteAllText(path.ToString()!, reader.ReadToEnd());
+                                        }
+                                    }
                                 )),
                                 new MenuItemElement("Project", new Shortcut(
                                     "New Project",
@@ -71,13 +87,19 @@ public class Editor : Plugin
                                 )),
                             }
                         },
-                        new MenuItemElement("Open Project", new Shortcut(
-                            "Open Project",
+                        new MenuItemElement("Open", new Shortcut(
+                            "Open",
                             "Editor",
                             ShortcutModifiers.CONTROL,
                             Key.O,
                             Shortcut.DefaultEnabled,
-                            () => Debugger.Log("Open project")
+                            () => {
+                                if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
+                                {
+                                    Debugger.Log($"Opening {pathNode.Data.Get()}");
+                                    pathNode.Data.Get().TryOpenInDefaultApp();
+                                }
+                            }
                         )),
                         new MenuItemElement("Save", new Shortcut(
                             "Save",
