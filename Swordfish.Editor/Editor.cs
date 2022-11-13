@@ -105,6 +105,7 @@ public class Editor : Plugin
                 new MenuItemElement("Help"),
                 new TextElement("Swordfish Engine " + SwordfishEngine.Version)
                 {
+                    Wrap = false,
                     Constraints = new RectConstraints()
                     {
                         Anchor = ConstraintAnchor.TOP_RIGHT
