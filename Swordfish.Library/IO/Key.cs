@@ -117,4 +117,15 @@ namespace Swordfish.Library.IO
         LEFT_ALT = 164,
         RIGHT_ALT = 165,
     }
+
+    public static class KeyExtensions
+    {
+        public static string ToDisplayString(this Key key)
+        {
+            if (key >= Key.D0 && key <= Key.D9)
+                return (key - Key.D0).ToString();
+
+            return key.ToString().Replace('_', ' ');
+        }
+    }
 }

@@ -37,6 +37,15 @@ public class Editor : Plugin
         ECSContext = SwordfishEngine.Kernel.Get<IECSContext>();
         ECSContext.BindSystem<HierarchySystem>();
 
+        Shortcut exitShortcut = new(
+            "Exit",
+            "General",
+            ShortcutModifiers.NONE,
+            Key.ESC,
+            Shortcut.DefaultEnabled,
+            () => SwordfishEngine.MainWindow.Close()
+        );
+
         MenuElement menu = new()
         {
             Content = {
@@ -44,12 +53,49 @@ public class Editor : Plugin
                     Content = {
                         new MenuItemElement("New") {
                             Content = {
-                                new MenuItemElement("Project"),
-                                new MenuItemElement("Plugin"),
+                                new MenuItemElement("Plugin", new Shortcut(
+                                    "New Plugin",
+                                    "Editor",
+                                    ShortcutModifiers.CONTROL,
+                                    Key.N,
+                                    Shortcut.DefaultEnabled,
+                                    () => Debugger.Log("Create new plugin")
+                                )),
+                                new MenuItemElement("Project", new Shortcut(
+                                    "New Project",
+                                    "Editor",
+                                    ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
+                                    Key.N,
+                                    Shortcut.DefaultEnabled,
+                                    () => Debugger.Log("Create new project")
+                                )),
                             }
                         },
-                        new MenuItemElement("Open"),
-                        new MenuItemElement("Save"),
+                        new MenuItemElement("Open Project", new Shortcut(
+                            "Open Project",
+                            "Editor",
+                            ShortcutModifiers.CONTROL,
+                            Key.O,
+                            Shortcut.DefaultEnabled,
+                            () => Debugger.Log("Open project")
+                        )),
+                        new MenuItemElement("Save", new Shortcut(
+                            "Save",
+                            "Editor",
+                            ShortcutModifiers.CONTROL,
+                            Key.S,
+                            Shortcut.DefaultEnabled,
+                            () => Debugger.Log("Save project")
+                        )),
+                        new MenuItemElement("Save As", new Shortcut(
+                            "Save As",
+                            "Editor",
+                            ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
+                            Key.S,
+                            Shortcut.DefaultEnabled,
+                            () => Debugger.Log("Save project as")
+                        )),
+                        new MenuItemElement("Exit", exitShortcut),
                     }
                 },
                 new MenuItemElement("Edit"),
@@ -57,8 +103,10 @@ public class Editor : Plugin
                 new MenuItemElement("Tools"),
                 new MenuItemElement("Run"),
                 new MenuItemElement("Help"),
-                new TextElement("Swordfish Engine " + SwordfishEngine.Version) {
-                    Constraints = new RectConstraints() {
+                new TextElement("Swordfish Engine " + SwordfishEngine.Version)
+                {
+                    Constraints = new RectConstraints()
+                    {
                         Anchor = ConstraintAnchor.TOP_RIGHT
                     }
                 }
@@ -78,6 +126,7 @@ public class Editor : Plugin
         CanvasElement console = new("Console")
         {
             Flags = EDITOR_CANVAS_FLAGS,
+            AutoScroll = true,
             Constraints = new RectConstraints
             {
                 X = new RelativeConstraint(0f),

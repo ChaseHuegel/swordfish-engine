@@ -10,6 +10,8 @@ public abstract class ContentElement : Element, IContentElement
 
     public LockedObservableCollection<IElement> Content { get; } = new();
 
+    public bool AutoScroll { get; set; }
+
     public ContentElement() : base()
     {
         Content.CollectionChanged += OnCollectionChanged;
@@ -37,6 +39,9 @@ public abstract class ContentElement : Element, IContentElement
             element.Render();
             RenderContentSeparator();
         };
+
+        if (AutoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+            ImGui.SetScrollHereY(1f);
     }
 
     protected virtual void RenderContentSeparator()

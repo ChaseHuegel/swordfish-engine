@@ -16,6 +16,7 @@ public class Module : NinjectModule
         Bind<IRenderContext>().To<OpenGLRenderer>().InSingletonScope();
         Bind<IUIContext>().To<ImGuiContext>().InSingletonScope();
         Bind<IInputService>().To<SilkInputService>().InSingletonScope();
+        Bind<IShortcutService>().To<ShortcutService>().InSingletonScope();
 
         Bind<IPathService>().To<PathService>().InSingletonScope();
         Bind<IFileService>().To<FileService>().InSingletonScope();

@@ -26,12 +26,14 @@ public class SilkWindowContext : IWindowContext
     private IRenderContext Renderer { get; }
     private IUIContext UIContext { get; }
     private SilkInputService InputService { get; }
+    private IShortcutService ShortcutService { get; }
 
-    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService)
+    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService)
     {
         Renderer = renderer;
         UIContext = uiContext;
         InputService = (SilkInputService)inputService;
+        ShortcutService = shortcutService;
 
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
@@ -96,7 +98,16 @@ public class SilkWindowContext : IWindowContext
         Renderer.Initialize(Window);
         UIContext.Initialize(Window, input);
         InputService.Initialize(input);
-        InputService.KeyPressed += OnKeyPressed;
+
+        ShortcutService.RegisterShortcut(new Shortcut(
+                "Toggle Fullscreen",
+                "UI",
+                ShortcutModifiers.NONE,
+                Key.F11,
+                Shortcut.DefaultEnabled,
+                () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal
+            )
+        );
 
         Loaded?.Invoke();
     }
@@ -114,18 +125,5 @@ public class SilkWindowContext : IWindowContext
     private void OnRender(double delta)
     {
         Render?.Invoke(delta);
-    }
-
-    private void OnKeyPressed(object? sender, KeyEventArgs e)
-    {
-        switch (e.Key)
-        {
-            case Key.ESC:
-                Close();
-                break;
-            case Key.F11:
-                Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal;
-                break;
-        }
     }
 }
