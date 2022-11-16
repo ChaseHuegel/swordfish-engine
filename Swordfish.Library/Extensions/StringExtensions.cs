@@ -85,5 +85,16 @@ namespace Swordfish.Library.Extensions
                 .Select(match => match.Value)
             );
         }
+
+        public static string Substitute(this string value, char newChar, params char[] oldChars)
+        {
+            return value.Substitute(newChar.ToString(), oldChars);
+        }
+
+        public static string Substitute(this string value, string newString, params char[] oldChars)
+        {
+            string[] splitValue = value.Split(oldChars);
+            return string.Join(newString, splitValue);
+        }
     }
 }

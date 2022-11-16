@@ -1,8 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using ImGuiNET;
 using Ninject;
@@ -30,11 +28,14 @@ public class Editor : Plugin
     public override string Description => "Visual editor for the Swordfish engine.";
 
     private static IECSContext? ECSContext;
+    private static IFileService? FileService;
     private static CanvasElement? Hierarchy;
 
     public override void Load()
     {
         SwordfishEngine.MainWindow.Maximize();
+
+        FileService = SwordfishEngine.Kernel.Get<IFileService>();
 
         ECSContext = SwordfishEngine.Kernel.Get<IECSContext>();
         ECSContext.BindSystem<HierarchySystem>();
@@ -68,10 +69,8 @@ public class Editor : Plugin
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
                                         path = path.At("NewPlugin.cs");
-                                        Assembly assembly = Assembly.GetAssembly(typeof(Editor))!;
-                                        var resources = assembly.GetManifestResourceNames();
-                                        Stream? stream = assembly.GetManifestResourceStream($"{assembly.GetName().Name}.Templates.NewPlugin.cstemplate");
-                                        using (StreamReader reader = new(stream!))
+                                        Stream stream = FileService.Read(new Path("manifest://Templates/NewPlugin.cstemplate"));
+                                        using (StreamReader reader = new(stream))
                                         {
                                             File.WriteAllText(path.ToString()!, reader.ReadToEnd());
                                         }
