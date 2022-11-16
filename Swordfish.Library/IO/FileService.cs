@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Reflection;
 using System.Text;
@@ -28,12 +27,15 @@ namespace Swordfish.Library.IO
                     return assembly.GetManifestResourceStream(builder.ToString());
             }
 
-            return File.Open(path.ToString(), FileMode.Open);
+            return File.Open(path.ToString(), FileMode.Open, FileAccess.Read);
         }
 
         public void Write(IPath path, Stream stream)
         {
-            throw new NotImplementedException();
+            using (Stream output = File.Open(path.ToString(), FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                stream.CopyTo(output);
+            }
         }
     }
 }

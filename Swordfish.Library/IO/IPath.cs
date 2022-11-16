@@ -19,5 +19,7 @@ namespace Swordfish.Library.IO
         IPath At(IPath path);
 
         IPath CreateDirectory();
+
+        string ToString();
     }
 }

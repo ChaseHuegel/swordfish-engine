@@ -34,11 +34,13 @@ public abstract class ContentElement : Element, IContentElement
 
     protected override void OnRender()
     {
-        foreach (var element in Content)
+        Content.ForEach(RenderItem);
+
+        void RenderItem(IElement element)
         {
             element.Render();
             RenderContentSeparator();
-        };
+        }
 
         if (AutoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
             ImGui.SetScrollHereY(1f);

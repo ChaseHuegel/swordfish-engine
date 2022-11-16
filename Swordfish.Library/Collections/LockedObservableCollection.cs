@@ -29,7 +29,12 @@ namespace Swordfish.Library.Collections
         public LockedObservableCollection()
         {
             ObservableCollection = new ObservableCollection<T>();
-            ObservableCollection.CollectionChanged += CollectionChanged;
+            ObservableCollection.CollectionChanged += OnCollectinChanged;
+        }
+
+        private void OnCollectinChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            CollectionChanged?.Invoke(sender, e);
         }
 
         public LockedObservableCollection(IList<T> list)
@@ -84,6 +89,17 @@ namespace Swordfish.Library.Collections
             lock (ObservableCollection)
             {
                 ObservableCollection.CopyTo(array, arrayIndex);
+            }
+        }
+
+        public void ForEach(Action<T> action)
+        {
+            lock (ObservableCollection)
+            {
+                foreach (T item in ObservableCollection)
+                {
+                    action.Invoke(item);
+                }
             }
         }
 

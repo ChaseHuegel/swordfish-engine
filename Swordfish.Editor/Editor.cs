@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using ImGuiNET;
 using Ninject;
@@ -30,6 +32,8 @@ public class Editor : Plugin
     private static IECSContext? ECSContext;
     private static IFileService? FileService;
     private static CanvasElement? Hierarchy;
+
+    private Action FileWrite;
 
     public override void Load()
     {
@@ -64,16 +68,14 @@ public class Editor : Plugin
                                     Shortcut.DefaultEnabled,
                                     () => {
                                         Debugger.Log("Creating new plugin");
-                                        IPath path = LocalPathService.Root
+                                        IPath outputPath = LocalPathService.Root
                                             .At("Projects")
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
-                                        path = path.At("NewPlugin.cs");
-                                        Stream stream = FileService.Read(new Path("manifest://Templates/NewPlugin.cstemplate"));
-                                        using (StreamReader reader = new(stream))
-                                        {
-                                            File.WriteAllText(path.ToString()!, reader.ReadToEnd());
-                                        }
+                                        outputPath = outputPath.At("NewPlugin.cs");
+                                        Stream fileToCopy = FileService.Read(new Path("manifest://Templates/NewPlugin.cstemplate"));
+                                        FileService.Write(outputPath, fileToCopy);
+                                        FileWrite?.Invoke();
                                     }
                                 )),
                                 new MenuItemElement("Project", new Shortcut(
@@ -189,13 +191,45 @@ public class Editor : Plugin
             }
         };
 
-        PopulateDirectory(assetBrowser, SwordfishEngine.Kernel.Get<IPathService>().Root.OriginalString);
+        PopulateDirectory(assetBrowser, SwordfishEngine.Kernel.Get<IPathService>().Root.ToString());
+
+        SwordfishEngine.MainWindow.Focused += RefreshAssetBrowser;
+        FileWrite += RefreshAssetBrowser;
+        void RefreshAssetBrowser()
+        {
+            List<IElement> removalList = RefreshContentRecursively(assetBrowser);
+            removalList.Reverse();
+            foreach (var element in removalList)
+                element.Parent?.Content.Remove(element);
+        }
+
+        List<IElement> RefreshContentRecursively(ContentElement element)
+        {
+            List<IElement> removalList = new();
+
+            if (element is DataTreeNode<Path> node)
+            {
+                string? path = node.Data.Get().ToString();
+                if (!Directory.Exists(path) && !File.Exists(path))
+                {
+                    removalList.Add(node);
+                    return removalList;
+                }
+            }
+
+            foreach (TreeNode child in element.Content.OfType<DataTreeNode<Path>>())
+            {
+                removalList.AddRange(RefreshContentRecursively(child));
+            }
+
+            return removalList;
+        }
 
         void PopulateDirectory(ContentElement root, string path)
         {
             foreach (string dir in Directory.GetDirectories(path))
             {
-                TreeNode node = new(System.IO.Path.GetFileName(dir));
+                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(dir), new Path(dir));
                 PopulateDirectory(node, dir);
                 root.Content.Add(node);
             }
@@ -313,6 +347,9 @@ public class Editor : Plugin
             }
             else if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
             {
+                if (!File.Exists(pathNode.Data.Get().OriginalString))
+                    return;
+
                 var fileInfo = new FileInfo(pathNode.Data.Get().OriginalString);
                 var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
                 {

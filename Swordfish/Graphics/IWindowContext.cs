@@ -10,6 +10,8 @@ public interface IWindowContext
     Action? Closed { get; set; }
     Action<double>? Render { get; set; }
     Action<double>? Update { get; set; }
+    Action? Focused { get; set; }
+    Action? Unfocused { get; set; }
 
     void Initialize();
 

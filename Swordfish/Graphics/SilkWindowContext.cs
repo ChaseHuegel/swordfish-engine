@@ -21,6 +21,8 @@ public class SilkWindowContext : IWindowContext
     public Action? Closed { get; set; }
     public Action<double>? Render { get; set; }
     public Action<double>? Update { get; set; }
+    public Action? Focused { get; set; }
+    public Action? Unfocused { get; set; }
 
     private IWindow Window { get; }
     private IRenderContext Renderer { get; }
@@ -42,6 +44,7 @@ public class SilkWindowContext : IWindowContext
 
         Window = Silk.NET.Windowing.Window.Create(options);
 
+        Window.FocusChanged += OnFocusChanged;
         Window.Load += OnLoad;
         Window.Closing += OnClose;
         Window.Update += OnUpdate;
@@ -125,5 +128,13 @@ public class SilkWindowContext : IWindowContext
     private void OnRender(double delta)
     {
         Render?.Invoke(delta);
+    }
+
+    private void OnFocusChanged(bool obj)
+    {
+        if (obj)
+            Focused?.Invoke();
+        else
+            Unfocused?.Invoke();
     }
 }
