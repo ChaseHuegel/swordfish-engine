@@ -15,12 +15,12 @@ public class BrickGrid
     private readonly Brick[,,] Bricks;
     private readonly BrickGrid[,,] NeighborGrids = new BrickGrid[3, 3, 3];
     private readonly List<BrickGrid> Subgrids = new();
+    private readonly object LockObject = new();
 
     private volatile int NeighorBrickCount;
     private volatile int BrickCount;
     private volatile bool Building;
     private volatile bool Dirty;
-    private readonly object LockObject = new();
 
     public BrickGrid(int dimensionSize)
     {

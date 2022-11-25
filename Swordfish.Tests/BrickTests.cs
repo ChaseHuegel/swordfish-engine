@@ -1,6 +1,4 @@
-using System.Diagnostics;
 using Swordfish.Bricks;
-using Swordfish.ECS;
 using Xunit;
 using Xunit.Abstractions;
 
