@@ -95,7 +95,9 @@ namespace Swordfish.Library.Networking
                         {
                             ID = id,
                             Type = type,
-                            RequiresSession = packetAttribute.RequiresSession
+                            RequiresSession = packetAttribute.RequiresSession,
+                            Ordered = packetAttribute.Ordered,
+                            Reliable = packetAttribute.Reliable
                         };
 
                         PacketDefinitions.Add(id, definition.Type, definition);

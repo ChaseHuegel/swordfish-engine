@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-
 using Needlefish;
-
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Packets;
+using Swordfish.Library.Threading;
 
 namespace Swordfish.Library.Networking
 {
@@ -19,7 +18,17 @@ namespace Swordfish.Library.Networking
             public uint Sent, Received;
         }
 
+        private class ReliablePacket
+        {
+            public DateTime Timestamp;
+            public int PacketID;
+            public uint PacketSequence;
+            public byte[] OriginalBuffer;
+        }
+
         private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
+
+        private ThreadWorker ThreadWorker { get; set; }
 
         private UdpClient Udp { get; set; }
 
@@ -28,6 +37,8 @@ namespace Swordfish.Library.Networking
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
+
+        private ConcurrentDictionary<IPEndPoint, List<ReliablePacket>> SentReliablePackets { get; set; }
 
         /// <summary>
         /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
@@ -148,6 +159,7 @@ namespace Swordfish.Library.Networking
                 }
 
                 PacketSequences = new ConcurrentDictionary<int, SequencePair>();
+                SentReliablePackets = new ConcurrentDictionary<IPEndPoint, List<ReliablePacket>>();
 
                 InitializeSessions();
 
@@ -155,6 +167,11 @@ namespace Swordfish.Library.Networking
                 {
                     Address = Session.EndPoint.Address,
                     Port = Session.EndPoint.Port
+                };
+
+                ThreadWorker = new ThreadWorker(Heartbeat, false, $"NetController ({GetType()})")
+                {
+                    TargetTickRate = 10
                 };
 
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
@@ -186,6 +203,23 @@ namespace Swordfish.Library.Networking
             //  Ensure the local connection is assigned a session.
             TryAddSession((IPEndPoint)Udp.Client.LocalEndPoint, out NetSession localSession);
             Session = localSession;
+        }
+
+        private void Heartbeat(float deltaTime)
+        {
+            //  Handle following up on reliable packets that are outstanding
+            foreach (KeyValuePair<IPEndPoint, List<ReliablePacket>> item in SentReliablePackets)
+            {
+                for (int i = 0; i < item.Value.Count; i++)
+                {
+                    ReliablePacket reliablePacket = item.Value[i];
+                    TimeSpan timeElapsed = DateTime.UtcNow - reliablePacket.Timestamp;
+                    if (timeElapsed.Milliseconds > 200)
+                    {
+                        SendRaw(reliablePacket.OriginalBuffer, item.Key);
+                    }
+                }
+            }
         }
 
         private void OnSend(IAsyncResult result)
@@ -235,13 +269,29 @@ namespace Swordfish.Library.Networking
                 //  -   AND the sequence is new IF the packet is ordered
                 NetSession session = null;
                 if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
-                    && (packetDefinition.Ordered ? packet.Sequence >= currentSequence.Received : true))
+                    && (!packetDefinition.Ordered || packet.Sequence >= currentSequence.Received))
                 {
                     //  Update this packet sequence
                     currentSequence.Received = packet.Sequence;
 
                     //  Deserialize the data and invoke the packet's handlers
                     IDataBody deserializeData = NeedlefishFormatter.Deserialize(packetDefinition.Type, buffer);
+
+                    //  Process reliable packets
+                    if (packetDefinition.Reliable)
+                    {
+                        //  If it is an ack, then one of our reliable packets has been received.
+                        if (packetDefinition.Type == typeof(AckPacket))
+                        {
+                            AckPacket ack = (AckPacket)deserializeData;
+                            UnregisterReliablePacket(endPoint, ack.AckPacketID, ack.AckSequence);
+                        }
+                        //  Else, we should ack this packet.
+                        else
+                        {
+                            Send(AckPacket.New(packet.PacketID, packet.Sequence), endPoint);
+                        }
+                    }
 
                     netEventArgs.Packet = (Packet)deserializeData;
                     netEventArgs.Session = session;
@@ -286,9 +336,39 @@ namespace Swordfish.Library.Networking
             return validEndpoint && validID;
         }
 
-        private byte[] SignPacket(Packet packet)
+        private void RegisterReliablePacket(IPEndPoint endPoint, Packet packet)
         {
-            PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet);
+            List<ReliablePacket> ReliablePacketListFactory(IPEndPoint arg) => new List<ReliablePacket>();
+            List<ReliablePacket> reliablePackets = SentReliablePackets.GetOrAdd(endPoint, ReliablePacketListFactory);
+            ReliablePacket reliablePacket = new ReliablePacket
+            {
+                Timestamp = DateTime.UtcNow,
+                PacketID = packet.PacketID,
+                PacketSequence = packet.Sequence
+            };
+
+            reliablePackets.Add(reliablePacket);
+        }
+
+        private void UnregisterReliablePacket(IPEndPoint endPoint, int packetID, uint sequence)
+        {
+            if (SentReliablePackets.TryGetValue(endPoint, out List<ReliablePacket> reliablePackets))
+            {
+                for (int i = 0; i < reliablePackets.Count; i++)
+                {
+                    ReliablePacket reliablePacket = reliablePackets[i];
+                    if (reliablePacket.PacketID == packetID && reliablePacket.PacketSequence == sequence)
+                    {
+                        reliablePackets.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private byte[] SignPacket(Packet packet, out PacketDefinition packetDefinition)
+        {
+            packetDefinition = PacketManager.GetPacketDefinition(packet);
             SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
             packet.SessionID = Session.ID;
@@ -304,12 +384,14 @@ namespace Swordfish.Library.Networking
             if (string.IsNullOrEmpty(DefaultHost.Hostname))
                 Send(packet, DefaultHost.EndPoint.Address, DefaultHost.EndPoint.Port);
             else
-                Send(packet, DefaultHost.Hostname, DefaultHost.Port);
+                Send(packet, NetUtils.GetHostAddress(DefaultHost.Hostname), DefaultHost.Port);
         }
 
         public void Send(Packet packet, NetSession session) => Send(packet, session.EndPoint.Address, session.EndPoint.Port);
 
         public void Send(Packet packet, IPEndPoint endPoint) => Send(packet, endPoint.Address, endPoint.Port);
+
+        public void Send(Packet packet, string hostname, int port) => Send(packet, NetUtils.GetHostAddress(hostname), port);
 
         public void Send(Packet packet, IPAddress address, int port)
         {
@@ -326,23 +408,27 @@ namespace Swordfish.Library.Networking
                 EndPoint = EndPoint
             };
 
-            byte[] buffer = SignPacket(packet);
-            Udp.BeginSend(buffer, buffer.Length, EndPoint, OnSend, netEventArgs);
+            byte[] buffer = SignPacket(packet, out PacketDefinition packetDefinition);
+
+            if (packetDefinition.Reliable)
+                RegisterReliablePacket(EndPoint, packet);
+
+            SendRaw(buffer, EndPoint, netEventArgs);
         }
 
-        public void Send(Packet packet, string hostname, int port)
+        private void SendRaw(byte[] buffer, IPEndPoint endPoint, NetEventArgs netEventArgs = null)
         {
-            IPEndPoint endPoint = new IPEndPoint(NetUtils.GetHostAddress(hostname), port);
-
-            NetEventArgs netEventArgs = new NetEventArgs
+            if (netEventArgs == null)
             {
-                Packet = packet,
-                PacketID = packet.PacketID,
-                EndPoint = endPoint
-            };
+                netEventArgs = new NetEventArgs
+                {
+                    Packet = new Packet(),
+                    PacketID = 0,
+                    EndPoint = EndPoint
+                };
+            }
 
-            byte[] buffer = SignPacket(packet);
-            Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
+            Udp.BeginSend(buffer, buffer.Length, endPoint, OnSend, netEventArgs);
         }
 
         public void Broadcast<T>() where T : Packet
