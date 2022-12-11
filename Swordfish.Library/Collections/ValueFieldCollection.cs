@@ -3,61 +3,65 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Library.Collections
 {
-    public class ValueFieldCollection
+    public class ValueFieldCollection : ValueFieldCollection<string>
     {
-        private readonly Dictionary<string, ValueField> Items = new Dictionary<string, ValueField>();
+    }
 
-        public bool Contains(string name)
+    public class ValueFieldCollection<TIdentifier>
+    {
+        private readonly Dictionary<TIdentifier, ValueField<TIdentifier>> Items = new Dictionary<TIdentifier, ValueField<TIdentifier>>();
+
+        public bool Contains(TIdentifier identifier)
         {
-            return Items.ContainsKey(name);
+            return Items.ContainsKey(identifier);
         }
 
-        public float ValueOf(string name)
+        public float ValueOf(TIdentifier identifier)
         {
-            return Items.TryGetValue(name, out ValueField attribute) ? attribute.Value : 0f;
+            return Items.TryGetValue(identifier, out ValueField<TIdentifier> attribute) ? attribute.Value : 0f;
         }
 
-        public float MaxValueOf(string name)
+        public float MaxValueOf(TIdentifier identifier)
         {
-            return Items.TryGetValue(name, out ValueField attribute) ? attribute.MaxValue : 0f;
+            return Items.TryGetValue(identifier, out ValueField<TIdentifier> attribute) ? attribute.MaxValue : 0f;
         }
 
-        public float CalculatePercentOf(string name)
+        public float CalculatePercentOf(TIdentifier identifier)
         {
-            return Items.TryGetValue(name, out ValueField attribute) ? attribute.CalculatePercent() : 0f;
+            return Items.TryGetValue(identifier, out ValueField<TIdentifier> attribute) ? attribute.CalculatePercent() : 0f;
         }
 
-        public ValueField Get(string name)
+        public ValueField<TIdentifier> Get(TIdentifier identifier)
         {
-            return Items.TryGetValue(name, out ValueField attribute) ? attribute : null;
+            return Items.TryGetValue(identifier, out ValueField<TIdentifier> attribute) ? attribute : null;
         }
 
-        public ValueField Add(string name, float value, float max = 0f)
+        public ValueField<TIdentifier> Add(TIdentifier identifier, float value, float max = 0f)
         {
-            if (!Items.ContainsKey(name))
+            if (!Items.ContainsKey(identifier))
             {
-                var attribute = new ValueField(name, value, max);
-                Items.Add(name, attribute);
+                var attribute = new ValueField<TIdentifier>(identifier, value, max);
+                Items.Add(identifier, attribute);
                 return attribute;
             }
 
             return null;
         }
 
-        public bool TryAdd(string name, float value, float max = 0f)
+        public bool TryAdd(TIdentifier identifier, float value, float max = 0f)
         {
-            if (Items.ContainsKey(name))
+            if (Items.ContainsKey(identifier))
                 return false;
             else
             {
-                Items.Add(name, new ValueField(name, value, max));
+                Items.Add(identifier, new ValueField<TIdentifier>(identifier, value, max));
                 return true;
             }
         }
 
-        public ValueField AddOrUpdate(string name, float value, float max = 0f)
+        public ValueField<TIdentifier> AddOrUpdate(TIdentifier identifier, float value, float max = 0f)
         {
-            if (Items.TryGetValue(name, out ValueField field))
+            if (Items.TryGetValue(identifier, out ValueField<TIdentifier> field))
             {
                 field.MaxValue = max;
                 field.Value = value;
@@ -65,18 +69,18 @@ namespace Swordfish.Library.Collections
             }
             else
             {
-                field = new ValueField(name, value, max);
-                Items.Add(name, field);
+                field = new ValueField<TIdentifier>(identifier, value, max);
+                Items.Add(identifier, field);
                 return field;
             }
         }
 
-        public bool Remove(string name)
+        public bool Remove(TIdentifier name)
         {
             return Items.Remove(name);
         }
 
-        public ValueField GetOrAdd(string name, float value, float max = 0f)
+        public ValueField<TIdentifier> GetOrAdd(TIdentifier name, float value, float max = 0f)
         {
             return Get(name) ?? Add(name, value, max);
         }

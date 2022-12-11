@@ -1,14 +1,31 @@
-﻿using Swordfish.Library.Util;
+﻿using System.Collections.Generic;
+using System.Linq;
+using Swordfish.Library.Extensions;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Types
 {
-    public class ValueField
+    public class ValueField : ValueField<string>
     {
-        public string Name { get; private set; }
+        public ValueField(string identifier, float value = 1f, float max = 0) : base(identifier, value, max)
+        {
+        }
+    }
+
+    public class ValueField<TIdentifier>
+    {
+        public TIdentifier Identifier { get; private set; }
 
         public float MaxValue
         {
-            get => MaxValueBinding.Get();
+            get
+            {
+                float value = MaxValueBinding.Get();
+                foreach (var modifier in MaxValueModifiers)
+                    modifier.Apply(ref value);
+
+                return value;
+            }
             set
             {
                 float oldMax = MaxValueBinding.Get();
@@ -16,13 +33,20 @@ namespace Swordfish.Library.Types
                 MaxValueBinding.Set(newMax);
 
                 if (oldMax > 0f && oldMax != float.MaxValue && newMax > 0f && newMax != float.MaxValue)
-                    Value *= newMax / oldMax;
+                    ValueBinding.Set(ValueBinding.Get() * newMax / oldMax);
             }
         }
 
         public float Value
         {
-            get => ValueBinding.Get();
+            get
+            {
+                float value = ValueBinding.Get();
+                foreach (var modifier in ValueModifiers)
+                    modifier.Apply(ref value);
+
+                return MathS.Clamp(value, 0f, MaxValue);
+            }
             set
             {
                 float newValue = MathS.Clamp(value, 0f, MaxValue);
@@ -33,12 +57,15 @@ namespace Swordfish.Library.Types
         public DataBinding<float> MaxValueBinding { get; private set; }
         public DataBinding<float> ValueBinding { get; private set; }
 
-        public ValueField(string name, float value = 1.0f, float max = 0.0f)
+        private readonly List<ValueFieldModifier<TIdentifier>> MaxValueModifiers = new List<ValueFieldModifier<TIdentifier>>();
+        private readonly List<ValueFieldModifier<TIdentifier>> ValueModifiers = new List<ValueFieldModifier<TIdentifier>>();
+
+        public ValueField(TIdentifier identifier, float value = 1f, float max = 0f)
         {
             MaxValueBinding = new DataBinding<float>();
             ValueBinding = new DataBinding<float>();
 
-            Name = name;
+            Identifier = identifier;
             MaxValue = max;
             Value = value;
         }
@@ -46,28 +73,86 @@ namespace Swordfish.Library.Types
         public bool IsMax() => Value == MaxValue;
         public float CalculatePercent() => Value / MaxValue;
 
-        public ValueField Add(float amount)
+        public ValueField<TIdentifier> Add(float amount)
         {
             Value += amount;
             return this;
         }
 
-        public ValueField Remove(float amount)
+        public ValueField<TIdentifier> Remove(float amount)
         {
             Value -= amount;
             return this;
         }
 
-        public ValueField Maximize()
+        public ValueField<TIdentifier> Maximize()
         {
             Value = MaxValue;
             return this;
         }
 
-        public ValueField Clear()
+        public ValueField<TIdentifier> Clear()
         {
             Value = 0;
             return this;
+        }
+
+        public ValueField<TIdentifier> AddModifier(TIdentifier identifier, Modifier modifier, float amount)
+        {
+            return AddModifier(new ValueFieldModifier<TIdentifier>(identifier, modifier, amount));
+        }
+
+        public ValueField<TIdentifier> AddModifier(ValueFieldModifier<TIdentifier> modifier)
+        {
+            ValueModifiers.Add(modifier);
+            ValueModifiers.Sort();
+            return this;
+        }
+
+        public ValueField<TIdentifier> RemoveModifier(TIdentifier identifier)
+        {
+            ValueModifiers.RemoveAll(modifier => modifier.Identifier.Equals(identifier));
+            return this;
+        }
+
+        public ValueField<TIdentifier> RemoveModifier(ValueFieldModifier<TIdentifier> modifier)
+        {
+            ValueModifiers.Remove(modifier);
+            return this;
+        }
+
+        public ValueFieldModifier<TIdentifier>[] GetModifiers()
+        {
+            return ValueModifiers.ToArray();
+        }
+
+        public ValueField<TIdentifier> AddMaxModifier(TIdentifier identifier, Modifier modifier, float amount)
+        {
+            return AddMaxModifier(new ValueFieldModifier<TIdentifier>(identifier, modifier, amount));
+        }
+
+        public ValueField<TIdentifier> AddMaxModifier(ValueFieldModifier<TIdentifier> modifier)
+        {
+            MaxValueModifiers.Add(modifier);
+            MaxValueModifiers.Sort();
+            return this;
+        }
+
+        public ValueField<TIdentifier> RemoveMaxModifier(TIdentifier identifier)
+        {
+            MaxValueModifiers.RemoveAll(modifier => modifier.Identifier.Equals(identifier));
+            return this;
+        }
+
+        public ValueField<TIdentifier> RemoveMaxModifier(ValueFieldModifier<TIdentifier> modifier)
+        {
+            MaxValueModifiers.Remove(modifier);
+            return this;
+        }
+
+        public ValueFieldModifier<TIdentifier>[] GetMaxModifiers()
+        {
+            return MaxValueModifiers.ToArray();
         }
 
         public float PeekAdd(float amount)
@@ -82,18 +167,18 @@ namespace Swordfish.Library.Types
 
         public override bool Equals(object obj)
         {
-            if (obj is string str)
-                return Name.Equals(str);
+            if (obj is TIdentifier str)
+                return Identifier.Equals(str);
 
-            if (obj is ValueField atr)
-                return Name.Equals(atr.Name);
+            if (obj is ValueField<TIdentifier> valueField)
+                return Identifier.Equals(valueField.Identifier);
 
             return false;
         }
 
         public override int GetHashCode()
         {
-            return Name.GetHashCode();
+            return Identifier.GetHashCode();
         }
     }
 
