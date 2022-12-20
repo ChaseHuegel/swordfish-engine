@@ -4,5 +4,5 @@ namespace Swordfish.Graphics;
 
 public interface IRenderContext
 {
-    void Initialize(IWindow window);
+    void Initialize();
 }

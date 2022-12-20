@@ -13,7 +13,7 @@ public class Module : NinjectModule
     public override void Load()
     {
         Bind<IWindowContext>().To<SilkWindowContext>().InSingletonScope();
-        Bind<IRenderContext>().To<OpenGLRenderer>().InSingletonScope();
+        Bind<IRenderContext>().To<RenderContext>().InSingletonScope();
         Bind<IUIContext>().To<ImGuiContext>().InSingletonScope();
         Bind<IInputService>().To<SilkInputService>().InSingletonScope();
         Bind<IShortcutService>().To<ShortcutService>().InSingletonScope();
