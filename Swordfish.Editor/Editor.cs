@@ -263,7 +263,7 @@ public class Editor : Plugin
         {
             inspector.Content.Clear();
 
-            if (TreeNode.Selected.Get() is DataTreeNode<Entity> entityNode)
+            if (args.NewValue is DataTreeNode<Entity> entityNode)
             {
                 var components = entityNode.Data.Get().GetComponents();
                 foreach (var component in components)
@@ -345,7 +345,7 @@ public class Editor : Plugin
                     inspector.Content.Add(group);
                 }
             }
-            else if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
+            else if (args.NewValue is DataTreeNode<Path> pathNode)
             {
                 if (!File.Exists(pathNode.Data.Get().OriginalString))
                     return;
