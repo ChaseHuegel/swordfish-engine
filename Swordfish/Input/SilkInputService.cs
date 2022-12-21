@@ -27,8 +27,8 @@ public class SilkInputService : IInputService
     public EventHandler<ScrolledEventArgs>? Scrolled { get; set; }
     public EventHandler<KeyEventArgs>? KeyPressed { get; set; }
     public EventHandler<KeyEventArgs>? KeyReleased { get; set; }
-    public EventHandler<ButtonEventArgs>? ButtonPressed { get; set; }
-    public EventHandler<ButtonEventArgs>? ButtonReleased { get; set; }
+    public EventHandler<InputButtonEventArgs>? ButtonPressed { get; set; }
+    public EventHandler<InputButtonEventArgs>? ButtonReleased { get; set; }
 
     public CursorState CursorState { get; set; }
     public Vec3f CursorDelta { get; private set; }
