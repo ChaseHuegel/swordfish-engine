@@ -3,6 +3,7 @@ using Ninject;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
+using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Swordfish.Input;
 using Swordfish.Library.Diagnostics;
@@ -30,6 +31,9 @@ public class SilkWindowContext : IWindowContext
     private SilkInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
+    private GL Gl => gl ??= GL.GetApi(Window);
+    private GL? gl;
+
     public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService)
     {
         Renderer = renderer;
@@ -49,6 +53,7 @@ public class SilkWindowContext : IWindowContext
         Window.Closing += OnClose;
         Window.Update += OnUpdate;
         Window.Render += OnRender;
+        Window.Resize += OnResize;
     }
 
     public void Initialize()
@@ -98,7 +103,7 @@ public class SilkWindowContext : IWindowContext
 
         IInputContext input = Window.CreateInput();
 
-        Renderer.Initialize(Window);
+        Renderer.Initialize();
         UIContext.Initialize(Window, input);
         InputService.Initialize(input);
 
@@ -117,6 +122,7 @@ public class SilkWindowContext : IWindowContext
 
     private void OnClose()
     {
+        Gl.Dispose();
         Closed?.Invoke();
     }
 
@@ -128,6 +134,11 @@ public class SilkWindowContext : IWindowContext
     private void OnRender(double delta)
     {
         Render?.Invoke(delta);
+    }
+
+    private void OnResize(Vector2D<int> size)
+    {
+        Gl.Viewport(size);
     }
 
     private void OnFocusChanged(bool obj)

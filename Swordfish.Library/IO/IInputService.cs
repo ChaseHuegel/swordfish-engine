@@ -16,8 +16,8 @@ namespace Swordfish.Library.IO
         EventHandler<ScrolledEventArgs> Scrolled { get; set; }
         EventHandler<KeyEventArgs> KeyPressed { get; set; }
         EventHandler<KeyEventArgs> KeyReleased { get; set; }
-        EventHandler<ButtonEventArgs> ButtonPressed { get; set; }
-        EventHandler<ButtonEventArgs> ButtonReleased { get; set; }
+        EventHandler<InputButtonEventArgs> ButtonPressed { get; set; }
+        EventHandler<InputButtonEventArgs> ButtonReleased { get; set; }
 
         CursorState CursorState { get; set; }
         Vec3f CursorDelta { get; }

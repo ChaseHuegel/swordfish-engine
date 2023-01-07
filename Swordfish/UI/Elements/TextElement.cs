@@ -32,7 +32,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
     protected override void OnRender()
     {
-        Constraints.Max = (Parent as IConstraintsProperty)?.Constraints.Max ?? ImGui.GetContentRegionAvail();
+        Constraints.Max = ImGui.GetContentRegionAvail();
         Vector2 origin = Alignment == ElementAlignment.NONE ? Vector2.Zero : ImGui.GetCursorPos();
         Vector2 position = Constraints.GetPosition();
 
@@ -70,7 +70,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
         float labelWidth = ImGui.CalcTextSize(Label).X;
         float width = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
-        if (Wrap) ImGui.PushTextWrapPos(width - labelWidth);
+        if (Wrap) ImGui.PushTextWrapPos();
 
         if (Text != null && Text.StartsWith('-'))
             ImGui.BulletText(Text.TrimStart('-', ' '));
