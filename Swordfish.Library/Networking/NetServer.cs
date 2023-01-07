@@ -6,7 +6,13 @@ namespace Swordfish.Library.Networking
 {
     public class NetServer : NetController
     {
+        public NetServer(NetControllerSettings settings) : base(settings)
+            => Initialize();
+
         public NetServer(int port) : base(port)
+            => Initialize();
+
+        private void Initialize()
         {
             Debugger.Log($"Server started on {this.Session.EndPoint}");
 

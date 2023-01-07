@@ -7,7 +7,13 @@ namespace Swordfish.Library.Networking
 {
     public class NetClient : NetController
     {
+        public NetClient(NetControllerSettings settings) : base(settings)
+            => Initialize();
+
         public NetClient(Host host) : base(host)
+            => Initialize();
+
+        private void Initialize()
         {
             Debugger.Log($"Client started on {this.Session.EndPoint}");
 
