@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-
+using System.Timers;
 using Needlefish;
 
 using Swordfish.Library.Diagnostics;
@@ -25,6 +25,8 @@ namespace Swordfish.Library.Networking
 
         private IPEndPoint EndPoint { get; set; }
 
+        private Timer KeepAliveHeartbeat { get; set; }
+
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
@@ -41,14 +43,27 @@ namespace Swordfish.Library.Networking
         public Host DefaultHost { get; set; }
 
         /// <summary>
-        /// The current session of this <see cref="NetController"/>.
-        /// </summary>
-        public NetSession Session { get; private set; }
-
-        /// <summary>
         /// The maximum number of sessions allowed to be active.
         /// </summary>
         public int MaxSessions { get; set; } = 20;
+
+        /// <summary>
+        /// The time it takes for a session to expire.
+        /// Any communication will refresh a session's expiration.
+        /// Zero disables this behavior.
+        /// </summary>
+        public TimeSpan SessionExpiration { get; set; }
+
+        /// <summary>
+        /// Specifies a rate to ping connected sessions to keep the session active.
+        /// Zero disables this behavior.
+        /// </summary>
+        public TimeSpan KeepAliveRate { get; set; }
+
+        /// <summary>
+        /// The current session of this <see cref="NetController"/>.
+        /// </summary>
+        public NetSession Session { get; private set; }
 
         /// <summary>
         /// The number of sessions currently active.
@@ -157,6 +172,13 @@ namespace Swordfish.Library.Networking
                     Port = Session.EndPoint.Port
                 };
 
+                KeepAliveHeartbeat = new Timer(KeepAliveRate.TotalMilliseconds)
+                {
+                    AutoReset = true,
+                    Enabled = true
+                };
+                KeepAliveHeartbeat.Elapsed += OnKeepAlive;
+
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
                 Debugger.Log($"NetController session started [{Session}]");
             }
@@ -237,6 +259,9 @@ namespace Swordfish.Library.Networking
                 if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
                     && (packetDefinition.Ordered ? packet.Sequence >= currentSequence.Received : true))
                 {
+                    //  Any valid communication should refresh expiration.
+                    session.RefreshExpiration();
+
                     //  Update this packet sequence
                     currentSequence.Received = packet.Sequence;
 
@@ -276,6 +301,11 @@ namespace Swordfish.Library.Networking
 
             //  Continue receiving data
             Udp.BeginReceive(new AsyncCallback(OnReceive), null);
+        }
+
+        private void OnKeepAlive(object sender, ElapsedEventArgs e)
+        {
+            Broadcast<PingPacket>();
         }
 
         private bool IsSessionValid(IPEndPoint endPoint, int sessionID, out NetSession netSession)
@@ -345,9 +375,9 @@ namespace Swordfish.Library.Networking
             Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
         }
 
-        public void Broadcast<T>() where T : Packet
+        public void Broadcast<T>() where T : Packet, new()
         {
-            Broadcast(default(T));
+            Broadcast(new T());
         }
 
         public void Broadcast(Packet packet)
@@ -413,7 +443,7 @@ namespace Swordfish.Library.Networking
         /// <returns>true if the session was added; otherwise false</returns>
         public bool TryAddSession(IPEndPoint endPoint, out NetSession session)
         {
-            session = new NetSession
+            session = new NetSession(this)
             {
                 EndPoint = endPoint
             };
@@ -474,6 +504,9 @@ namespace Swordfish.Library.Networking
             {
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
+                    //  Inform the session holder they've been disconnected.
+                    Send(new DisconnectPacket(), session.EndPoint);
+
                     SessionEnded?.Invoke(this, new NetEventArgs
                     {
                         EndPoint = session.EndPoint,
