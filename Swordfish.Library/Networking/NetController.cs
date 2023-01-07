@@ -35,13 +35,20 @@ namespace Swordfish.Library.Networking
 
         private IPEndPoint EndPoint { get; set; }
 
-        private Timer KeepAliveHeartbeat { get; set; }
+        private Timer KeepAliveTimer { get; set; }
 
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
 
         private ConcurrentDictionary<IPEndPoint, List<ReliablePacket>> SentReliablePackets { get; set; }
+
+        /// <summary>
+        /// The time it takes for a session to expire.
+        /// Any communication will refresh a session's expiration.
+        /// Zero disables this behavior.
+        /// </summary>
+        internal TimeSpan SessionExpiration { get; private set; }
 
         /// <summary>
         /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
@@ -51,6 +58,7 @@ namespace Swordfish.Library.Networking
         /// <summary>
         /// The default <see cref="Host"/> to communicate with
         /// if overrides aren't provided to <see cref="Send"/>.
+        /// Typically this would be the server for a client.
         /// </summary>
         public Host DefaultHost { get; set; }
 
@@ -58,19 +66,6 @@ namespace Swordfish.Library.Networking
         /// The maximum number of sessions allowed to be active.
         /// </summary>
         public int MaxSessions { get; set; } = 20;
-
-        /// <summary>
-        /// The time it takes for a session to expire.
-        /// Any communication will refresh a session's expiration.
-        /// Zero disables this behavior.
-        /// </summary>
-        public TimeSpan SessionExpiration { get; set; }
-
-        /// <summary>
-        /// Specifies a rate to ping connected sessions to keep the session active.
-        /// Zero disables this behavior.
-        /// </summary>
-        public TimeSpan KeepAliveRate { get; set; }
 
         /// <summary>
         /// The current session of this <see cref="NetController"/>.
@@ -130,21 +125,21 @@ namespace Swordfish.Library.Networking
         /// Initialize a NetController that automatically binds.
         /// This should be used by a client or client-as-server.
         /// </summary>
-        public NetController() => Initialize(null, 0, null);
+        public NetController() => Initialize(default);
 
         /// <summary>
         /// Initialize a NetController that automatically binds and communicates with a host.
         /// This should be used by a client.
         /// </summary>
-        /// <param name="host">the host to communicate with</param>
-        public NetController(Host host) => Initialize(null, 0, host);
+        /// <param name="defaultHost">the host to communicate with</param>
+        public NetController(Host defaultHost) => Initialize(new NetControllerSettings(defaultHost));
 
         /// <summary>
         /// Initialize a NetController bound to a port.
         /// This should be used by a server or client-as-server.
         /// </summary>
         /// <param name="port">the port to bind to</param>
-        public NetController(int port) => Initialize(null, port, null);
+        public NetController(int port) => Initialize(new NetControllerSettings(port));
 
         /// <summary>
         /// Initialize a NetController bound to an address and port. 
@@ -152,25 +147,30 @@ namespace Swordfish.Library.Networking
         /// </summary>
         /// <param name="address">the <see cref="IPAddress"/> to bind to</param>
         /// <param name="port">the port to bind to</param>
-        public NetController(IPAddress address, int port) => Initialize(address, port, null);
+        public NetController(IPAddress address, int port) => Initialize(new NetControllerSettings(address, port));
 
-        private void Initialize(IPAddress address, int port, Host host)
+        /// <summary>
+        /// Initialize a NetController using the provided settings.
+        /// </summary>
+        public NetController(NetControllerSettings settings) => Initialize(settings);
+
+        private void Initialize(NetControllerSettings settings)
         {
             try
             {
-                if (address == null)
+                if (settings.Address == null)
                 {
                     //  Bind automatically if no address or port is provided.
-                    if (port <= 0)
+                    if (settings.Port <= 0)
                         Udp = new UdpClient(0);
                     //  Bind to a provided port and automatic address.
                     else
-                        Udp = new UdpClient(port);
+                        Udp = new UdpClient(settings.Port);
                 }
                 else
                 {
                     //  Bind to provided address and port.
-                    var endPoint = new IPEndPoint(address, port);
+                    IPEndPoint endPoint = new IPEndPoint(settings.Address, settings.Port);
                     Udp = new UdpClient(endPoint);
                 }
 
@@ -179,7 +179,8 @@ namespace Swordfish.Library.Networking
 
                 InitializeSessions();
 
-                DefaultHost = host ?? new Host
+                //  If a host isn't provided, default to ourself/the local host
+                DefaultHost = settings.DefaultHost ?? new Host
                 {
                     Address = Session.EndPoint.Address,
                     Port = Session.EndPoint.Port
@@ -187,22 +188,27 @@ namespace Swordfish.Library.Networking
 
                 ThreadWorker = new ThreadWorker(Heartbeat, false, $"NetController ({GetType()})")
                 {
-                    TargetTickRate = 10
+                    TargetTickRate = settings.TickRate > 0 ? settings.TickRate : NetControllerSettings.DefaultTickRate
                 };
 
-                KeepAliveHeartbeat = new Timer(KeepAliveRate.TotalMilliseconds)
+                if (settings.KeepAlive.TotalMilliseconds > 0)
                 {
-                    AutoReset = true,
-                    Enabled = true
-                };
-                KeepAliveHeartbeat.Elapsed += OnKeepAlive;
+                    KeepAliveTimer = new Timer(settings.KeepAlive.TotalMilliseconds)
+                    {
+                        AutoReset = true,
+                        Enabled = true
+                    };
+                    KeepAliveTimer.Elapsed += OnKeepAlive;
+                }
+
+                SessionExpiration = settings.SessionExpiration;
 
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-                Debugger.Log($"NetController session started [{Session}]");
+                Debugger.Log($"NetController session started [{Session}] with settings [{settings}]");
             }
             catch (Exception ex)
             {
-                Debugger.Log($"NetController failed to start on [{port}]\n{ex}", LogType.ERROR);
+                Debugger.Log($"NetController failed to start with settings [{settings}]\n{ex}", LogType.ERROR);
             }
         }
 
@@ -367,7 +373,7 @@ namespace Swordfish.Library.Networking
             return validEndpoint && validID;
         }
 
-        private void RegisterReliablePacket(IPEndPoint endPoint, Packet packet)
+        private void RegisterReliablePacket(IPEndPoint endPoint, Packet packet, byte[] buffer)
         {
             List<ReliablePacket> ReliablePacketListFactory(IPEndPoint arg) => new List<ReliablePacket>();
             List<ReliablePacket> reliablePackets = SentReliablePackets.GetOrAdd(endPoint, ReliablePacketListFactory);
@@ -375,7 +381,8 @@ namespace Swordfish.Library.Networking
             {
                 Timestamp = DateTime.UtcNow,
                 PacketID = packet.PacketID,
-                PacketSequence = packet.Sequence
+                PacketSequence = packet.Sequence,
+                OriginalBuffer = buffer
             };
 
             reliablePackets.Add(reliablePacket);
@@ -442,7 +449,7 @@ namespace Swordfish.Library.Networking
             byte[] buffer = SignPacket(packet, out PacketDefinition packetDefinition);
 
             if (packetDefinition.Reliable)
-                RegisterReliablePacket(EndPoint, packet);
+                RegisterReliablePacket(EndPoint, packet, buffer);
 
             SendRaw(buffer, EndPoint, netEventArgs);
         }
