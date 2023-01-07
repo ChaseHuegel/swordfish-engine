@@ -65,7 +65,7 @@ namespace Swordfish.Library.Networking
         /// <summary>
         /// The maximum number of sessions allowed to be active.
         /// </summary>
-        public int MaxSessions { get; set; } = 20;
+        public int MaxSessions { get; set; } = NetControllerSettings.DefaultMaxSessions;
 
         /// <summary>
         /// The current session of this <see cref="NetController"/>.
