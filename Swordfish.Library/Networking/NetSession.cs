@@ -48,7 +48,8 @@ namespace Swordfish.Library.Networking
                 }
 
                 ExpirationTimer.Interval = Controller.SessionExpiration.TotalMilliseconds;
-                ExpirationTimer.Enabled = true;
+                ExpirationTimer.Stop();
+                ExpirationTimer.Start();
             }
             else if (ExpirationTimer != null)
             {
@@ -74,10 +75,6 @@ namespace Swordfish.Library.Networking
 
         private void OnSessionElapsed(object sender, ElapsedEventArgs e)
         {
-            //  Local and orphan sessions can't expire
-            if (!IsValid())
-                return;
-
             Controller.TryRemoveSession(this);
         }
     }

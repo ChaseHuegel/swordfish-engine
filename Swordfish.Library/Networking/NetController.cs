@@ -37,6 +37,8 @@ namespace Swordfish.Library.Networking
 
         private Timer KeepAliveTimer { get; set; }
 
+        private NetControllerSettings Settings { get; set; }
+
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
@@ -156,6 +158,11 @@ namespace Swordfish.Library.Networking
 
         private void Initialize(NetControllerSettings settings)
         {
+            Settings = settings;
+            Udp?.Close();
+            KeepAliveTimer?.Dispose();
+            ThreadWorker?.Stop();
+
             try
             {
                 if (settings.Address == null)
@@ -217,12 +224,16 @@ namespace Swordfish.Library.Networking
                 foreach (NetSession session in Sessions.Values)
                 {
                     if (session.ID != NetSession.LocalOrUnassigned)
+                    {
                         SessionEnded?.Invoke(this, new NetEventArgs
                         {
                             EndPoint = session.EndPoint,
                             Session = session
                         });
+                    }
                 }
+
+                Sessions.Clear();
             }
 
             Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
@@ -268,9 +279,15 @@ namespace Swordfish.Library.Networking
                 buffer = Udp.EndReceive(result, ref endPoint);
                 packet = NeedlefishFormatter.Deserialize<Packet>(buffer);
             }
-            catch (SocketException)
+            catch (ObjectDisposedException)
             {
-                //  There was a connection issue, continue receiving data.
+                //  The UDP client has been disposed. Reset.
+                Initialize(Settings);
+                return;
+            }
+            catch
+            {
+                //  If there was some other issue just move on and keep listening.
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
                 return;
             }
@@ -496,18 +513,12 @@ namespace Swordfish.Library.Networking
             {
                 Debugger.Log($"NetController session [{Session}] disconnected.");
                 Broadcast<DisconnectPacket>();
-                InvokeLocalDisconnect();
+                Disconnected?.Invoke(this, NetEventArgs.Empty);
             }
             else
             {
-                Debugger.Log("Tried to disconnect but there are no active sessions.", LogType.WARNING);
+                Debugger.Log("Tried to disconnect but there are no active sessions to disconnect from.", LogType.WARNING);
             }
-        }
-
-        internal void InvokeLocalDisconnect()
-        {
-            InitializeSessions();
-            Disconnected?.Invoke(this, NetEventArgs.Empty);
         }
 
         /// <summary>

@@ -1,6 +1,6 @@
 using System;
+using System.Linq;
 using System.Net;
-
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
 using Swordfish.Library.Networking.Packets;
@@ -24,7 +24,7 @@ namespace Swordfish.Library.Networking.Handlers
             {
                 //  ? is there a situation where we should accept a new session from the server?
                 //  If we already have a session, do nothing and assume the packet was a mistake on the server's part.
-                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but already registered [{net.Session}] with [{e.Session}].", LogType.WARNING);
+                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but already have an active session with a host.", LogType.WARNING);
             }
         }
 

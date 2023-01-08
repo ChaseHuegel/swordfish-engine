@@ -13,7 +13,7 @@ namespace Swordfish.Library.Networking.Handlers
                 Debugger.Log($"Failed to end session for {e.EndPoint}.", LogType.WARNING);
 
             if (net is NetClient && !net.IsConnected)
-                net.InvokeLocalDisconnect();
+                net.Disconnect();
         }
     }
 }
