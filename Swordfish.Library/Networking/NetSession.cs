@@ -67,7 +67,7 @@ namespace Swordfish.Library.Networking
         {
             Debugger.Log($"Session [{this}] expired! Timeout: {Controller.SessionExpiration} Controller: {Controller}");
             ExpirationTimer.Stop();
-            Controller.TryRemoveSession(this);
+            Controller.TryRemoveSession(this, SessionEndedReason.EXPIRED);
         }
     }
 }

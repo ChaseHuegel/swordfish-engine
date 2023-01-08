@@ -52,6 +52,8 @@ namespace Swordfish.Library.Networking
         /// </summary>
         internal TimeSpan SessionExpiration { get; private set; }
 
+        public NetStatsService Stats { get; private set; }
+
         /// <summary>
         /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
         /// </summary>
@@ -158,7 +160,9 @@ namespace Swordfish.Library.Networking
 
         private void Initialize(NetControllerSettings settings)
         {
+            Stats = new NetStatsService();
             Settings = settings;
+
             Udp?.Close();
             KeepAliveTimer?.Dispose();
             ThreadWorker?.Stop();
@@ -264,8 +268,6 @@ namespace Swordfish.Library.Networking
         {
             Udp.EndSend(result);
             PacketSent?.Invoke(this, (NetEventArgs)result.AsyncState);
-
-            //  TODO If it isn't a fire and forget packet, we should resend with a delay until a response is received
         }
 
         private void OnReceive(IAsyncResult result)
@@ -305,6 +307,8 @@ namespace Swordfish.Library.Networking
 
                 netEventArgs.PacketID = packet.PacketID;
 
+                Stats.RecordPacketRecieved();
+                Stats.RecordBytesIn(buffer.Length);
                 PacketReceived?.Invoke(this, netEventArgs);
 
                 //  The packet is accepted if:
@@ -342,6 +346,8 @@ namespace Swordfish.Library.Networking
 
                     netEventArgs.Packet = (Packet)deserializeData;
                     netEventArgs.Session = session;
+                    Stats.RecordPacketAccepted();
+                    Stats.RecordBytesAccepted(buffer.Length);
                     PacketAccepted?.Invoke(this, netEventArgs);
 
                     foreach (PacketHandler handler in packetDefinition.Handlers)
@@ -362,6 +368,7 @@ namespace Swordfish.Library.Networking
                 }
                 else
                 {
+                    Stats.RecordPacketRejected();
                     PacketRejected?.Invoke(this, netEventArgs);
                 }
             }
@@ -481,6 +488,8 @@ namespace Swordfish.Library.Networking
                 };
             }
 
+            Stats.RecordPacketSent();
+            Stats.RecordBytesOut(buffer.Length);
             Udp.BeginSend(buffer, buffer.Length, endPoint, OnSend, netEventArgs);
         }
 
@@ -566,6 +575,7 @@ namespace Swordfish.Library.Networking
                     });
                 }
 
+                Stats.RecordSessionStarted();
                 return true;
             }
             else
@@ -575,6 +585,7 @@ namespace Swordfish.Library.Networking
                     EndPoint = endPoint
                 });
 
+                Stats.RecordSessionRejected();
                 return false;
             }
         }
@@ -584,10 +595,10 @@ namespace Swordfish.Library.Networking
         /// </summary>
         /// <param name="id">the id of the session to remove</param>
         /// <returns>true if the session was removed; otherwise false</returns>
-        public bool TryRemoveSession(int id)
+        public bool TryRemoveSession(int id, SessionEndedReason reason = SessionEndedReason.CLOSED)
         {
             NetSession session = Sessions.FirstOrDefault(record => record.Value.ID == id).Value;
-            return session != null && TryRemoveSession(session);
+            return session != null && TryRemoveSession(session, reason);
         }
 
         /// <summary>
@@ -597,7 +608,7 @@ namespace Swordfish.Library.Networking
         /// <returns>true if the session was removed; otherwise false</returns>
         /// <exception cref="ArgumentNullException">session is null.</exception>
         /// <exception cref="ArgumentException">session is the local session.</exception>
-        public bool TryRemoveSession(NetSession session)
+        public bool TryRemoveSession(NetSession session, SessionEndedReason reason = SessionEndedReason.CLOSED)
         {
             if (session == null)
                 throw new ArgumentNullException();
@@ -606,6 +617,8 @@ namespace Swordfish.Library.Networking
 
             if (Sessions.TryRemove(session.EndPoint, out _))
             {
+                Debugger.Log($"Session [{session}] ended [{reason}]");
+
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
                     //  Inform the session holder they've been disconnected.
@@ -616,6 +629,19 @@ namespace Swordfish.Library.Networking
                         EndPoint = session.EndPoint,
                         Session = session
                     });
+                }
+
+                switch (reason)
+                {
+                    case SessionEndedReason.CLOSED:
+                        Stats.RecordSessionClosed();
+                        break;
+                    case SessionEndedReason.DISCONNECTED:
+                        Stats.RecordSessionDisconnected();
+                        break;
+                    case SessionEndedReason.EXPIRED:
+                        Stats.RecordSessionExpired();
+                        break;
                 }
 
                 return true;
