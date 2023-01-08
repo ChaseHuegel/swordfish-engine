@@ -35,7 +35,7 @@ namespace Swordfish.Library.Networking
             if (!IsValid())
                 return;
 
-            if (ExpirationTimer?.Interval > 0)
+            if (Controller.SessionExpiration.TotalMilliseconds > 0)
             {
                 if (ExpirationTimer == null)
                 {
@@ -65,6 +65,7 @@ namespace Swordfish.Library.Networking
 
         private void OnSessionElapsed(object sender, ElapsedEventArgs e)
         {
+            Debugger.Log($"Session [{this}] expired! Timeout: {Controller.SessionExpiration} Controller: {Controller}");
             ExpirationTimer.Stop();
             Controller.TryRemoveSession(this);
         }
