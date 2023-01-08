@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Sockets;
 
 namespace Swordfish.Library.Networking
 {
@@ -8,6 +9,7 @@ namespace Swordfish.Library.Networking
         public const int DefaultTickRate = 10;
         public const int DefaultMaxSessions = 20;
 
+        public AddressFamily AddressFamily;
         public IPAddress Address;
         public int Port;
         public Host DefaultHost;
@@ -17,6 +19,7 @@ namespace Swordfish.Library.Networking
         public int MaxSessions;
 
         public NetControllerSettings(
+            AddressFamily addressFamily,
             IPAddress address,
             int port,
             Host defaultHost,
@@ -25,6 +28,7 @@ namespace Swordfish.Library.Networking
             int tickRate = DefaultTickRate,
             int maxSessions = DefaultMaxSessions)
         {
+            AddressFamily = addressFamily;
             Address = address;
             Port = port;
             DefaultHost = defaultHost;
@@ -34,10 +38,14 @@ namespace Swordfish.Library.Networking
             MaxSessions = maxSessions;
         }
 
-        public NetControllerSettings(Host defaultHost) : this(default, default, defaultHost, default, default, DefaultTickRate, DefaultMaxSessions) { }
+        public NetControllerSettings(Host defaultHost) : this(AddressFamily.Unspecified, default, default, defaultHost, default, default, DefaultTickRate, DefaultMaxSessions) { }
 
-        public NetControllerSettings(int port) : this(default, port, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
+        public NetControllerSettings(AddressFamily addressFamily) : this(addressFamily, default, default, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
 
-        public NetControllerSettings(IPAddress address, int port) : this(address, port, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
+        public NetControllerSettings(int port) : this(AddressFamily.Unspecified, default, port, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
+
+        public NetControllerSettings(int port, AddressFamily addressFamily) : this(addressFamily, default, port, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
+
+        public NetControllerSettings(IPAddress address, int port) : this(AddressFamily.Unspecified, address, port, default, default, default, DefaultTickRate, DefaultMaxSessions) { }
     }
 }

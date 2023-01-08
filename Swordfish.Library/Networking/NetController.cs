@@ -160,10 +160,8 @@ namespace Swordfish.Library.Networking
             {
                 if (settings.Address == null)
                 {
-                    //  Bind automatically if no address or port is provided.
-                    if (settings.Port <= 0)
-                        Udp = new UdpClient(0);
-                    //  Bind to a provided port and automatic address.
+                    if (settings.AddressFamily > AddressFamily.Unspecified)
+                        Udp = new UdpClient(settings.Port, settings.AddressFamily);
                     else
                         Udp = new UdpClient(settings.Port);
                 }
@@ -300,8 +298,8 @@ namespace Swordfish.Library.Networking
                 if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
                     && (!packetDefinition.Ordered || packet.Sequence >= currentSequence.Received))
                 {
-                    //  Any valid communication should refresh expiration.
-                    session.RefreshExpiration();
+                    //  Any valid communication should refresh sessions.
+                    session?.RefreshExpiration();
 
                     //  Update this packet sequence
                     currentSequence.Received = packet.Sequence;
