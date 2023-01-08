@@ -4,9 +4,9 @@ using Swordfish.Library.Networking.Attributes;
 
 namespace Swordfish.Library.Networking.Packets
 {
-    [Packet(RequiresSession = true)]
+    [Packet(RequiresSession = true, Reliable = true)]
     public class DisconnectPacket : Packet
     {
-        
+
     }
 }

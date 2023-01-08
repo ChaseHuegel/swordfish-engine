@@ -193,10 +193,10 @@ namespace Swordfish.Library.Networking
                 {
                     KeepAliveTimer = new Timer(settings.KeepAlive.TotalMilliseconds)
                     {
-                        AutoReset = true,
-                        Enabled = true
+                        AutoReset = true
                     };
                     KeepAliveTimer.Elapsed += OnKeepAlive;
+                    KeepAliveTimer.Start();
                 }
 
                 SessionExpiration = settings.SessionExpiration;
