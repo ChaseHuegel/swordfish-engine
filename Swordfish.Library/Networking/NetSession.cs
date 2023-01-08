@@ -35,26 +35,16 @@ namespace Swordfish.Library.Networking
             if (!IsValid())
                 return;
 
-            if (Controller.SessionExpiration.TotalMilliseconds > 0)
+            if (ExpirationTimer?.Interval > 0)
             {
                 if (ExpirationTimer == null)
                 {
-                    ExpirationTimer = new Timer
-                    {
-                        AutoReset = false
-                    };
-
+                    ExpirationTimer = new Timer(Controller.SessionExpiration.TotalMilliseconds);
                     ExpirationTimer.Elapsed += OnSessionElapsed;
                 }
 
-                ExpirationTimer.Interval = Controller.SessionExpiration.TotalMilliseconds;
                 ExpirationTimer.Stop();
                 ExpirationTimer.Start();
-            }
-            else if (ExpirationTimer != null)
-            {
-                ExpirationTimer.Dispose();
-                ExpirationTimer = null;
             }
         }
 
@@ -75,6 +65,7 @@ namespace Swordfish.Library.Networking
 
         private void OnSessionElapsed(object sender, ElapsedEventArgs e)
         {
+            ExpirationTimer.Stop();
             Controller.TryRemoveSession(this);
         }
     }
