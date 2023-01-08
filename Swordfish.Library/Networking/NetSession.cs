@@ -1,6 +1,7 @@
 using System;
 using System.Net;
 using System.Timers;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
@@ -38,7 +39,11 @@ namespace Swordfish.Library.Networking
             {
                 if (ExpirationTimer == null)
                 {
-                    ExpirationTimer = new Timer();
+                    ExpirationTimer = new Timer
+                    {
+                        AutoReset = false
+                    };
+
                     ExpirationTimer.Elapsed += OnSessionElapsed;
                 }
 

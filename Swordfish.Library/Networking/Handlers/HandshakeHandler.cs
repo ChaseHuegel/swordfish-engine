@@ -16,8 +16,8 @@ namespace Swordfish.Library.Networking.Handlers
         {
             if (net.Session.ID == NetSession.LocalOrUnassigned && net.TryAddSession(e.EndPoint, packet.ServerID, out NetSession serverSession))
             {
-                net.Session.ID = packet.ClientID;
                 Debugger.Log($"Joined [{serverSession}] with session [{net.Session}]");
+                net.Session.ID = packet.ClientID;
                 net.Connected?.Invoke(net, NetEventArgs.Empty);
             }
             else

@@ -494,6 +494,7 @@ namespace Swordfish.Library.Networking
         {
             if (IsConnected)
             {
+                Debugger.Log($"NetController session [{Session}] disconnected.");
                 Broadcast<DisconnectPacket>();
                 InvokeLocalDisconnect();
             }
