@@ -1,4 +1,3 @@
-using System;
 using Swordfish.Library.Annotations;
 
 namespace Swordfish.Library.IO
@@ -19,6 +18,16 @@ namespace Swordfish.Library.IO
         IPath At(IPath path);
 
         IPath CreateDirectory();
+
+        string GetFileName();
+
+        string GetFileNameWithoutExtension();
+
+        string GetExtension();
+
+        string GetDirectoryName();
+
+        bool TryOpenInDefaultApp();
 
         string ToString();
     }

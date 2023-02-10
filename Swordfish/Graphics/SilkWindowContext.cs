@@ -1,3 +1,4 @@
+using System.Drawing;
 using System.Numerics;
 using Ninject;
 using Silk.NET.Core;
@@ -31,8 +32,7 @@ public class SilkWindowContext : IWindowContext
     private SilkInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
-    private GL Gl => gl ??= GL.GetApi(Window);
-    private GL? gl;
+    private GL GL;
 
     public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService)
     {
@@ -103,6 +103,9 @@ public class SilkWindowContext : IWindowContext
 
         IInputContext input = Window.CreateInput();
 
+        GL = GL.GetApi(Window);
+        SwordfishEngine.Kernel.Bind<GL>().ToConstant(GL).InSingletonScope();
+
         Renderer.Initialize();
         UIContext.Initialize(Window, input);
         InputService.Initialize(input);
@@ -122,7 +125,7 @@ public class SilkWindowContext : IWindowContext
 
     private void OnClose()
     {
-        Gl.Dispose();
+        GL.Dispose();
         Closed?.Invoke();
     }
 
@@ -133,12 +136,26 @@ public class SilkWindowContext : IWindowContext
 
     private void OnRender(double delta)
     {
+        GL.ClearColor(Color.CornflowerBlue);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+        GL.Enable(EnableCap.DepthTest);
+        GL.Enable(EnableCap.CullFace);
+        GL.CullFace(CullFaceMode.Back);
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+
+        Renderer.Render(delta);
+
         Render?.Invoke(delta);
+
+        GLDebug.TryCollectAllGLErrors("OnRender");
     }
 
     private void OnResize(Vector2D<int> size)
     {
-        Gl.Viewport(size);
+        GL.Viewport(size);
     }
 
     private void OnFocusChanged(bool obj)

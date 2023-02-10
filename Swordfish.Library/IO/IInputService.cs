@@ -1,5 +1,5 @@
 using System;
-using Swordfish.Library.Types;
+using System.Numerics;
 
 namespace Swordfish.Library.IO
 {
@@ -20,8 +20,8 @@ namespace Swordfish.Library.IO
         EventHandler<InputButtonEventArgs> ButtonReleased { get; set; }
 
         CursorState CursorState { get; set; }
-        Vec3f CursorDelta { get; }
-        Vec3f CursorPosition { get; set; }
+        Vector3 CursorDelta { get; }
+        Vector3 CursorPosition { get; set; }
 
         bool IsMouseHeld(MouseButton mouseButton);
         bool IsMousePressed(MouseButton mouseButton);

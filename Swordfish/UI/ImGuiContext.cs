@@ -1,4 +1,5 @@
 using ImGuiNET;
+using Ninject;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
@@ -14,6 +15,9 @@ namespace Swordfish.UI;
 
 public class ImGuiContext : IUIContext
 {
+    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
+    private GL gl;
+
     public LockedList<IElement> Elements { get; } = new();
     public IMenuBarElement? MenuBar { get; set; }
 
@@ -35,7 +39,7 @@ public class ImGuiContext : IUIContext
         FontScale.Changed += OnFontScaleChanged;
         ScaleConstraint.Changed += OnScalingConstraintChanged;
 
-        Controller = new ImGuiController(GL.GetApi(Window), Window, inputContext);
+        Controller = new ImGuiController(GL, Window, inputContext);
         Controller.Update(0f);
 
         OnFontScaleChanged(this, EventArgs.Empty);

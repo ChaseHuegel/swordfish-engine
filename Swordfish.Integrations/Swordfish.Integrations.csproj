@@ -5,11 +5,11 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFramework>netstandard2.1</TargetFramework>
     <Nullable>disable</Nullable>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PackageId>Swordfish.Integrations</PackageId>
-    <Version>1.1.2</Version>
+    <Version>1.2.0</Version>
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 

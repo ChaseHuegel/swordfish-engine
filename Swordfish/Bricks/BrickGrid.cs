@@ -1,4 +1,4 @@
-using Swordfish.Library.Types;
+using System.Numerics;
 
 namespace Swordfish.Bricks;
 
@@ -6,7 +6,7 @@ public class BrickGrid
 {
     public readonly int DimensionSize;
 
-    public Vec3i CenterOfMass { get; private set; }
+    public Vector3 CenterOfMass { get; private set; }
 
     public int Size { get; private set; }
 
@@ -59,7 +59,7 @@ public class BrickGrid
             if (currentBrick != brick)
             {
                 int newBrickCount = BrickCount + (brick == Brick.EMPTY ? -1 : 1);
-                CenterOfMass = ((CenterOfMass * BrickCount) + new Vec3i(x, y, z)) / newBrickCount;
+                CenterOfMass = ((CenterOfMass * BrickCount) + new Vector3(x, y, z)) / newBrickCount;
 
                 Bricks[x, y, z] = brick;
                 BrickCount = newBrickCount;
@@ -118,18 +118,18 @@ public class BrickGrid
         int yOffset = y >> 4;
         int zOffset = z >> 4;
 
-        Vec3i targetNeighbor = new(
+        Vector3 targetNeighbor = new(
             xOffset != 0 ? (xOffset < 0 ? 0 : 2) : 1,
             yOffset != 0 ? (yOffset < 0 ? 0 : 2) : 1,
             zOffset != 0 ? (zOffset < 0 ? 0 : 2) : 1
         );
 
-        if (targetNeighbor != Vec3i.One)
+        if (targetNeighbor != Vector3.One)
         {
-            neighbor = NeighborGrids[targetNeighbor.X, targetNeighbor.Y, targetNeighbor.Z];
+            neighbor = NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z];
 
             if (neighbor == null)
-                NeighborGrids[targetNeighbor.X, targetNeighbor.Y, targetNeighbor.Z] = neighbor = new BrickGrid(DimensionSize);
+                NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor = new BrickGrid(DimensionSize);
 
             return true;
         }

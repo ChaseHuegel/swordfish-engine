@@ -50,6 +50,26 @@ namespace Swordfish.Library.IO
             return this;
         }
 
+        public string GetFileName()
+        {
+            return System.IO.Path.GetFileName(OriginalString);
+        }
+
+        public string GetFileNameWithoutExtension()
+        {
+            return System.IO.Path.GetFileNameWithoutExtension(OriginalString);
+        }
+
+        public string GetExtension()
+        {
+            return System.IO.Path.GetExtension(OriginalString);
+        }
+
+        public string GetDirectoryName()
+        {
+            return System.IO.Path.GetDirectoryName(OriginalString);
+        }
+
         public bool TryOpenInDefaultApp()
         {
             ProcessStartInfo processStartInfo = new ProcessStartInfo

@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <Content Include="shaders\**\*.*">
+      <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="resources\**\*.*">

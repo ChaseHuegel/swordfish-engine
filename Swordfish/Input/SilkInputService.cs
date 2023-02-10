@@ -1,9 +1,7 @@
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
+using System.Numerics;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 
 namespace Swordfish.Input;
 
@@ -31,8 +29,8 @@ public class SilkInputService : IInputService
     public EventHandler<InputButtonEventArgs>? ButtonReleased { get; set; }
 
     public CursorState CursorState { get; set; }
-    public Vec3f CursorDelta { get; private set; }
-    public Vec3f CursorPosition { get; set; }
+    public Vector3 CursorDelta { get; private set; }
+    public Vector3 CursorPosition { get; set; }
 
     private Silk.NET.Input.IInputContext? Context;
     private readonly ConcurrentDictionary<Key, KeyInputRecord> KeyInputMap = new();

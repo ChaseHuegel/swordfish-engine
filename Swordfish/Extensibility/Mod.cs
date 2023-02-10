@@ -1,10 +1,11 @@
+using System.Reflection;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Extensibility;
 
 public abstract class Mod : IPlugin
 {
-    public IPathService LocalPathService { get; } = new PathService();
+    public IPathService LocalPathService = new PathService(System.IO.Path.GetDirectoryName(Assembly.GetCallingAssembly().Location));
 
     public abstract string Name { get; }
     public abstract string Description { get; }

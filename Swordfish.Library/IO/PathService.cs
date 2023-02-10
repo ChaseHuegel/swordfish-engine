@@ -12,7 +12,7 @@ namespace Swordfish.Library.IO
         private const string SCREENSHOTS_FOLDER = "screenshots";
         private const string SHADERS_FOLDER = "shaders";
         private const string UI_FOLDER = "ui";
-        private const string RESOURCES_FOLDER = "plugins";
+        private const string RESOURCES_FOLDER = "resources";
         private const string FONTS_FOLDER = "fonts";
         private const string ICONS_FOLDER = "icons";
         private const string MODELS_FOLDER = "models";
@@ -54,5 +54,12 @@ namespace Swordfish.Library.IO
         private IPath icons;
         private IPath models;
         private IPath textures;
+
+        public PathService() { }
+
+        public PathService(string root)
+        {
+            this.root = new Path(root);
+        }
     }
 }
