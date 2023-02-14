@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -42,6 +43,7 @@ public class Demo : Mod
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
     }
 
+    private RenderTarget RenderTarget;
     public override void Initialize()
     {
         // TestUI.CreateCanvas();
@@ -49,16 +51,23 @@ public class Demo : Mod
         Benchmark.Log();
 
         IRenderContext renderContext = SwordfishEngine.Kernel.Get<IRenderContext>();
+        IWindowContext windowContext = SwordfishEngine.Kernel.Get<IWindowContext>();
 
-        RenderTarget renderTarget = new(
+        RenderTarget = new(
             VertexData,
             Indices,
             Shader.LoadFrom(LocalPathService.Shaders.At("textured.frag")),
             Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
         );
-        renderTarget.Transform.Position = new Vector3(0, 0, 1);
+        RenderTarget.Transform.Position = new Vector3(0, 0, 1);
+        renderContext.Bind(RenderTarget);
 
-        renderContext.Bind(renderTarget);
+        windowContext.Update += OnUpdate;
+    }
+
+    private void OnUpdate(double delta)
+    {
+        RenderTarget.Transform.Rotation += new Vector3(5 * (float)delta, 5 * (float)delta, 0);
     }
 
     public override void Unload()
