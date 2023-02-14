@@ -89,6 +89,11 @@ public sealed class Shader : IDisposable
         GL.UseProgram(Handle);
     }
 
+    public uint GetAttributeLocation(string name)
+    {
+        return (uint)GL.GetAttribLocation(Handle, name);
+    }
+
     public bool HasUniform(string name)
     {
         return TryGetUniform(name, out _);

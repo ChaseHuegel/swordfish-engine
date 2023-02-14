@@ -1,6 +1,7 @@
 using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Util;
 
 namespace Swordfish.Graphics.SilkNET;
 
@@ -14,19 +15,27 @@ public sealed class RenderTarget : IDisposable
     private readonly VertexArrayObject<float, uint> VertexArrayObject;
 
     private Shader Shader;
+    private Texture Texture;
 
     private volatile bool Disposed;
 
-    public RenderTarget(Span<float> vertices, Span<uint> indices, Shader shader)
+    public RenderTarget(Span<float> vertices, Span<uint> indices, Shader shader, Texture texture)
     {
         Shader = shader;
+        Texture = texture;
 
         VertexBufferObject = new BufferObject<float>(vertices, BufferTargetARB.ArrayBuffer);
         ElementBufferObject = new BufferObject<uint>(indices, BufferTargetARB.ElementArrayBuffer);
         VertexArrayObject = new VertexArrayObject<float, uint>(VertexBufferObject, ElementBufferObject);
 
-        VertexArrayObject.SetVertexAttributePointer(0, 3, VertexAttribPointerType.Float, 7, 0);
-        VertexArrayObject.SetVertexAttributePointer(1, 4, VertexAttribPointerType.Float, 7, 3);
+        uint attributeLocation = Shader.GetAttributeLocation("in_position");
+        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 0);
+
+        attributeLocation = Shader.GetAttributeLocation("in_color");
+        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 4, VertexAttribPointerType.Float, 10, 3);
+
+        attributeLocation = Shader.GetAttributeLocation("in_uv");
+        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 7);
     }
 
     public void Dispose()
@@ -42,13 +51,18 @@ public sealed class RenderTarget : IDisposable
         ElementBufferObject.Dispose();
         VertexArrayObject.Dispose();
         Shader.Dispose();
+        Texture.Dispose();
     }
 
     public unsafe void Render()
     {
         VertexArrayObject.Bind();
+
         Shader.Use();
-        Shader.SetUniform("uBlue", (float)Math.Sin(DateTime.Now.Millisecond / 1000f * Math.PI));
+
+        Texture.Bind(TextureUnit.Texture0);
+        Shader.SetUniform("texture0", 0);
+
         GL.DrawElements(PrimitiveType.Triangles, (uint)ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0);
     }
 }
