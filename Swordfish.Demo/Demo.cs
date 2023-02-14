@@ -1,4 +1,6 @@
+using System.Numerics;
 using System.Reflection;
+using System.Threading.Tasks;
 using Ninject;
 using Swordfish.Demo.ECS;
 using Swordfish.Demo.UI;
@@ -54,6 +56,7 @@ public class Demo : Mod
             Shader.LoadFrom(LocalPathService.Shaders.At("textured.frag")),
             Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
         );
+        renderTarget.Transform.Position = new Vector3(0, 0, 1);
 
         renderContext.Bind(renderTarget);
     }

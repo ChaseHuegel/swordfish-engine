@@ -129,6 +129,12 @@ public sealed class Shader : IDisposable
             GL.Uniform4(location, value.X, value.Y, value.Z, value.W);
     }
 
+    public unsafe void SetUniform(string name, Matrix4x4 value)
+    {
+        if (TryGetUniform(name, out int location))
+            GL.UniformMatrix4(location, 1, false, (float*)&value);
+    }
+
     private bool TryGetUniform(string name, out int location)
     {
         if (!UniformLocations.TryGetValue(name, out location))

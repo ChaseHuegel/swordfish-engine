@@ -17,6 +17,8 @@ namespace Swordfish.Graphics;
 
 public class SilkWindowContext : IWindowContext
 {
+    public Vector2 Resolution => new(Window.Size.X, Window.Size.Y);
+
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
 
     public Action? Loaded { get; set; }

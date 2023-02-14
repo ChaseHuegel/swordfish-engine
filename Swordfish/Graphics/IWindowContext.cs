@@ -4,6 +4,7 @@ namespace Swordfish.Graphics;
 
 public interface IWindowContext
 {
+    Vector2 Resolution { get; }
     Vector2 MonitorResolution { get; }
 
     Action? Loaded { get; set; }

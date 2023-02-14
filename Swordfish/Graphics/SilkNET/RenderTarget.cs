@@ -1,14 +1,30 @@
+using System.Numerics;
 using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Util;
+using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Graphics.SilkNET;
 
 public sealed class RenderTarget : IDisposable
 {
+    //  Reflects the Z axis.
+    //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
+    private static Matrix4x4 ReflectionMatrix { get; } = new(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, -1, 0,
+        0, 0, 0, 1
+    );
+
     private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
     private GL gl;
+
+    private IWindowContext Window => window ??= SwordfishEngine.Kernel.Get<IWindowContext>();
+    private IWindowContext window;
+
+    public Transform Transform { get; set; } = new();
 
     private readonly BufferObject<float> VertexBufferObject;
     private readonly BufferObject<uint> ElementBufferObject;
@@ -54,7 +70,7 @@ public sealed class RenderTarget : IDisposable
         Texture.Dispose();
     }
 
-    public unsafe void Render()
+    public unsafe void Render(Camera camera)
     {
         VertexArrayObject.Bind();
 
@@ -62,6 +78,14 @@ public sealed class RenderTarget : IDisposable
 
         Texture.Bind(TextureUnit.Texture0);
         Shader.SetUniform("texture0", 0);
+
+        var model = Transform.ToMatrix4x4() * ReflectionMatrix;
+        var view = camera.Transform.ToMatrix4x4();
+        var projection = Matrix4x4.CreatePerspectiveFieldOfView(MathS.DegreesToRadians * camera.FOV, Window.Resolution.X / Window.Resolution.Y, 0.001f, 100f);
+
+        Shader.SetUniform("model", model);
+        Shader.SetUniform("view", view);
+        Shader.SetUniform("projection", projection);
 
         GL.DrawElements(PrimitiveType.Triangles, (uint)ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0);
     }

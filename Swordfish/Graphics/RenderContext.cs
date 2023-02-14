@@ -13,8 +13,11 @@ public class RenderContext : IRenderContext
 
     private ConcurrentBag<RenderTarget> RenderTargets = new();
 
+    private Camera Camera;
+
     public void Initialize()
     {
+        Camera = new Camera(90);
         Debugger.Log("Renderer initialized.");
     }
 
@@ -22,7 +25,7 @@ public class RenderContext : IRenderContext
     {
         foreach (RenderTarget target in RenderTargets)
         {
-            target.Render();
+            target.Render(Camera);
         }
     }
 
