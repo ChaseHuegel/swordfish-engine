@@ -44,6 +44,11 @@ namespace Swordfish.Library.IO
             return new Path(System.IO.Path.Combine(Scheme, Value, path.ToString()));
         }
 
+        public IPath GetDirectory()
+        {
+            return new Path(System.IO.Path.GetDirectoryName(OriginalString));
+        }
+
         public IPath CreateDirectory()
         {
             Directory.CreateDirectory(Value);

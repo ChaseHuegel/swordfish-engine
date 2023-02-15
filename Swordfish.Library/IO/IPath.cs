@@ -17,6 +17,8 @@ namespace Swordfish.Library.IO
 
         IPath At(IPath path);
 
+        IPath GetDirectory();
+
         IPath CreateDirectory();
 
         string GetFileName();

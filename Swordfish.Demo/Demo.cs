@@ -56,7 +56,7 @@ public class Demo : Mod
         RenderTarget = new(
             VertexData,
             Indices,
-            Shader.LoadFrom(LocalPathService.Shaders.At("textured.frag")),
+            Shader.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
             Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
         );
         RenderTarget.Transform.Position = new Vector3(0, 0, 1);
