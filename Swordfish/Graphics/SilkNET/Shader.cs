@@ -9,9 +9,6 @@ namespace Swordfish.Graphics.SilkNET;
 
 public sealed class Shader : IDisposable
 {
-    public const string VertexFileExtension = ".vert";
-    public const string FragmentFileExtension = ".frag";
-
     private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
     private GL gl;
 
