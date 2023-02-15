@@ -173,12 +173,6 @@ public class Editor : Plugin
             });
         }
 
-        Debugger.Log("This is a NONE log", LogType.NONE);
-        Debugger.Log("This is a CONTINUED log", LogType.CONTINUED);
-        Debugger.Log("This is a INFO log", LogType.INFO);
-        Debugger.Log("This is a WARNING log", LogType.WARNING);
-        Debugger.Log("This is a ERROR log", LogType.ERROR);
-
         CanvasElement assetBrowser = new("Asset Browser")
         {
             Flags = EDITOR_CANVAS_FLAGS,
