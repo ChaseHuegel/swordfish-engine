@@ -11,7 +11,7 @@ public sealed class RenderTarget : IDisposable
 {
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
-    private static Matrix4x4 ReflectionMatrix { get; } = new(
+    private static readonly Matrix4x4 ReflectionMatrix = new(
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, -1, 0,

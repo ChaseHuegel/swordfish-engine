@@ -287,11 +287,14 @@ public class Editor : Plugin
 
                     if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
                     {
+                        var publicGroup = new ColorBlockElement(Color.White);
+                        group.Content.Add(publicGroup);
+
                         foreach (var property in publicInstanceProperties)
-                            group.Content.Add(PropertyViewFactory(component, property));
+                            publicGroup.Content.Add(PropertyViewFactory(component, property));
 
                         foreach (var field in publicInstanceFields)
-                            group.Content.Add(FieldViewFactory(component, field));
+                            publicGroup.Content.Add(FieldViewFactory(component, field));
                     }
 
                     if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
