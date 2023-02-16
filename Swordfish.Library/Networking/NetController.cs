@@ -195,7 +195,7 @@ namespace Swordfish.Library.Networking
                     Port = Session.EndPoint.Port
                 };
 
-                ThreadWorker = new ThreadWorker(Heartbeat, false, $"NetController ({GetType()})")
+                ThreadWorker = new ThreadWorker(Heartbeat, $"NetController ({GetType()})")
                 {
                     TargetTickRate = settings.TickRate > 0 ? settings.TickRate : NetControllerSettings.DefaultTickRate
                 };

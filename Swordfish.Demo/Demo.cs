@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using Ninject;
 using Swordfish.Demo.ECS;
@@ -41,28 +42,32 @@ public class Demo : Mod
     {
         IECSContext ecsContext = SwordfishEngine.Kernel.Get<IECSContext>();
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
+
+        RenderTarget = new RenderTarget(
+            VertexData,
+            Indices,
+            Shader.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
+            Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
+        )
+        {
+            Transform = {
+                Position = new Vector3(0, 0, 1)
+            }
+        };
     }
 
     private RenderTarget RenderTarget;
     public override void Initialize()
     {
-        // TestUI.CreateCanvas();
-        // TestECS.Populate();
-        Benchmark.Log();
-
         IRenderContext renderContext = SwordfishEngine.Kernel.Get<IRenderContext>();
         IWindowContext windowContext = SwordfishEngine.Kernel.Get<IWindowContext>();
 
-        RenderTarget = new(
-            VertexData,
-            Indices,
-            Shader.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
-            Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
-        );
-        RenderTarget.Transform.Position = new Vector3(0, 0, 1);
         renderContext.Bind(RenderTarget);
-
         windowContext.Update += OnUpdate;
+
+        // TestUI.CreateCanvas();
+        TestECS.Populate();
+        Benchmark.Log();
     }
 
     private void OnUpdate(double delta)

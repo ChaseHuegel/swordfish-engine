@@ -20,8 +20,17 @@ public class PluginContext : IPluginContext
 
     public void Initialize()
     {
-        foreach (IPlugin plugin in LoadedPlugins.Keys)
+        ThreadPool.QueueUserWorkItem(InitializePlugins);
+
+        void InitializePlugins(object? state)
+        {
+            Parallel.ForEach(LoadedPlugins.Keys, ForEachPlugin);
+        }
+
+        static void ForEachPlugin(IPlugin plugin, ParallelLoopState loopState, long index)
+        {
             Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+        }
     }
 
     public bool IsLoaded(IPlugin plugin)

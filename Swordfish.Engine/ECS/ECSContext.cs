@@ -38,7 +38,7 @@ namespace Swordfish.Engine.ECS
             _recycledIDs = new Queue<int>();
             _awaitingDestroy = new ConcurrentBag<Entity>();
 
-            Thread = new ThreadWorker(Step, false, "ECS");
+            Thread = new ThreadWorker(Step, "ECS");
         }
 
         public void Start()

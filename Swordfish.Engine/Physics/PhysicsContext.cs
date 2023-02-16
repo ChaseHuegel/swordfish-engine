@@ -38,7 +38,7 @@ namespace Swordfish.Engine.Physics
             collisionTree = new SphereTree<int>(Vector3.Zero, 150f, 10f);
             WorldSize = collisionTree.Size;
 
-            Thread = new ThreadWorker(Step, false, "Physics");
+            Thread = new ThreadWorker(Step, "Physics");
         }
 
         /// <summary>

@@ -12,6 +12,7 @@ namespace Swordfish.Library.Threading
         private volatile bool pause = false;
 
         private Thread thread = null;
+        private Action handleOnce;
         private Action<float> handle;
 
         private Stopwatch stopwatch = new Stopwatch();
@@ -21,16 +22,22 @@ namespace Swordfish.Library.Threading
         public float DeltaTime { get; private set; }
         private float elapsedTime;
 
-        public ThreadWorker(Action<float> handle, bool runOnce = false, string name = "")
+        public ThreadWorker(Action handler, string name = "")
         {
-            this.handle = handle;
+            handleOnce = handler;
+            thread = new Thread(new ThreadStart(handleOnce))
+            {
+                Name = name == "" ? this.handle.Method.ToString() : name
+            };
+        }
 
-            if (runOnce)
-                this.thread = new Thread(Handle);
-            else
-                this.thread = new Thread(Tick);
-
-            this.thread.Name = name == "" ? this.handle.Method.ToString() : name;
+        public ThreadWorker(Action<float> handler, string name = "")
+        {
+            handle = handler;
+            thread = new Thread(Tick)
+            {
+                Name = name == "" ? this.handle.Method.ToString() : name
+            };
         }
 
         public void Start()
@@ -81,7 +88,7 @@ namespace Swordfish.Library.Threading
 
         private void Handle()
         {
-            handle(1f);
+            handleOnce();
             Stop();
         }
 
@@ -118,6 +125,23 @@ namespace Swordfish.Library.Threading
 
             Debugger.Log($"Closed thread '{thread.Name}'", "Threading");
             //	Stopped thread safely
+        }
+
+        public static ThreadWorker Create(string name, Action handler) => new ThreadWorker(handler, name);
+        public static ThreadWorker Create(string name, Action<float> handler) => new ThreadWorker(handler, name);
+
+        public static ThreadWorker Run(string name, Action handler)
+        {
+            ThreadWorker worker = Create(name, handler);
+            worker.Start();
+            return worker;
+        }
+
+        public static ThreadWorker Run(string name, Action<float> handler)
+        {
+            ThreadWorker worker = Create(name, handler);
+            worker.Start();
+            return worker;
         }
     }
 }

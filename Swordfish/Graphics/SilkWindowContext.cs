@@ -6,6 +6,7 @@ using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using Swordfish.Graphics.SilkNET;
 using Swordfish.Input;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
@@ -95,8 +96,6 @@ public class SilkWindowContext : IWindowContext
 
     private unsafe void OnLoad()
     {
-        Debugger.Log("Window initialized.");
-
         Window.Center();
 
         var pathService = SwordfishEngine.Kernel.Get<IPathService>();
@@ -108,10 +107,6 @@ public class SilkWindowContext : IWindowContext
         GL = GL.GetApi(Window);
         SwordfishEngine.Kernel.Bind<GL>().ToConstant(GL).InSingletonScope();
 
-        Renderer.Initialize();
-        UIContext.Initialize(Window, input);
-        InputService.Initialize(input);
-
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
                 "UI",
@@ -122,6 +117,21 @@ public class SilkWindowContext : IWindowContext
             )
         );
 
+        Debugger.Log("Window initialized.");
+        Debugger.Log($"using OpenGL {GL.GetStringS(StringName.Version)}", LogType.CONTINUED);
+        Debugger.Log($"using GLSL {GL.GetStringS(StringName.ShadingLanguageVersion)}", LogType.CONTINUED);
+        Debugger.Log($"using GPU {GL.GetStringS(StringName.Renderer)} ({GL.GetStringS(StringName.Vendor)})", LogType.CONTINUED);
+
+        string[] openGLMetadata = new string[]
+        {
+            $"available extensions: {GL.GetExtensions().Length}",
+            $"max vertex attributes: {GL.GetInt(GetPName.MaxVertexAttribs)}",
+        };
+        Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
+
+        Renderer.Initialize();
+        UIContext.Initialize(Window, input);
+        InputService.Initialize(input);
         Loaded?.Invoke();
     }
 
