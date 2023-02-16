@@ -108,8 +108,6 @@ public class SilkWindowContext : IWindowContext<GL>
         IInputContext input = Window.CreateInput();
 
         GL = Window.CreateOpenGL();
-        SwordfishEngine.Kernel.AddSingleton(GL);
-        // SwordfishEngine.Kernel.AddSingleton<IWindowContext<GL>>(this);
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",

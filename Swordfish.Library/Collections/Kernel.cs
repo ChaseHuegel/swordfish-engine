@@ -54,12 +54,12 @@ namespace Swordfish.Library.Collections
             return Resolvers.TryAdd(Resolvers.Count, resolver);
         }
 
-        public bool AddSingleton<TInterface, TImplementation>() where TImplementation : TInterface, new()
+        public bool AddInstance<TInterface, TImplementation>() where TImplementation : TInterface, new()
         {
             return Singletons.TryAdd(typeof(TInterface), new TImplementation());
         }
 
-        public bool AddSingleton<TInterface>(TInterface instance) where TInterface : class
+        public bool AddInstance<TInterface>(TInterface instance) where TInterface : class
         {
             return Singletons.TryAdd(typeof(TInterface), instance);
         }
