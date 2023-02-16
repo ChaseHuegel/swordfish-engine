@@ -1,6 +1,5 @@
 using System.Numerics;
 using System.Text;
-using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;

@@ -5,9 +5,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using ImGuiNET;
-using Ninject;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
+using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
@@ -16,6 +16,7 @@ using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
+
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 using Path = Swordfish.Library.IO.Path;
 
@@ -37,7 +38,7 @@ public class Editor : Plugin
 
     public override void Load()
     {
-        SwordfishEngine.MainWindow.Maximize();
+        SwordfishEngine.Kernel.Get<IWindowContext>().Maximize();
 
         FileService = SwordfishEngine.Kernel.Get<IFileService>();
 
@@ -50,7 +51,7 @@ public class Editor : Plugin
             ShortcutModifiers.NONE,
             Key.ESC,
             Shortcut.DefaultEnabled,
-            () => SwordfishEngine.MainWindow.Close()
+            () => SwordfishEngine.Kernel.Get<IWindowContext>().Close()
         );
 
         MenuElement menu = new()
@@ -187,7 +188,7 @@ public class Editor : Plugin
 
         PopulateDirectory(assetBrowser, SwordfishEngine.Kernel.Get<IPathService>().Root.ToString());
 
-        SwordfishEngine.MainWindow.Focused += RefreshAssetBrowser;
+        SwordfishEngine.Kernel.Get<IWindowContext>().Focused += RefreshAssetBrowser;
         FileWrite += RefreshAssetBrowser;
         void RefreshAssetBrowser()
         {

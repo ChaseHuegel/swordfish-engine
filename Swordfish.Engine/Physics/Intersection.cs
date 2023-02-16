@@ -1,8 +1,6 @@
 using System;
 using System.Runtime.CompilerServices;
-
 using OpenTK.Mathematics;
-
 using Swordfish.Engine.Types;
 
 namespace Swordfish.Engine.Physics
@@ -34,7 +32,7 @@ namespace Swordfish.Engine.Physics
         /// <returns>true if there is a collision; otherwise false</returns>
         public static bool SphereToPoint(Vector3 center, float radius, Vector3 point)
         {
-            float distance = Vector3.Dot(center, point) - radius*radius;
+            float distance = Vector3.Dot(center, point) - radius * radius;
 
             return distance <= 0;
         }
@@ -81,7 +79,7 @@ namespace Swordfish.Engine.Physics
             Vector3 relativeVector = center1 - center2;
             float range = radius1 + radius2;
 
-            float distance = Vector3.Dot(relativeVector, relativeVector) - range*range;
+            float distance = Vector3.Dot(relativeVector, relativeVector) - range * range;
 
             return distance <= 0;
         }

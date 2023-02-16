@@ -1,9 +1,7 @@
 ﻿using System;
-
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.Desktop;
-
 using Swordfish.Engine.ECS;
 using Swordfish.Engine.Physics;
 using Swordfish.Engine.Rendering;

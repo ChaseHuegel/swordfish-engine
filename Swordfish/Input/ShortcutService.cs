@@ -1,5 +1,4 @@
 using Swordfish.Library.Collections;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Input;

@@ -1,5 +1,4 @@
 using System;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 
@@ -19,7 +18,8 @@ namespace Swordfish.Engine.Rendering
         protected Vector2 size;
 
         private int _handle;
-        protected int handle {
+        protected int handle
+        {
             get => _handle;
             set { _handle = value; Initialize(); }
         }

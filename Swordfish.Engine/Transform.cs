@@ -7,7 +7,8 @@ namespace Swordfish.Engine
         public Transform parent;
 
         public Vector3 localPosition;
-        public Vector3 position {
+        public Vector3 position
+        {
             get
             {
                 if (parent == null)
@@ -34,7 +35,8 @@ namespace Swordfish.Engine
         private Vector3 lastRotation;
 
         private Vector3 _forward = new Vector3(0f, 0f, -1f);
-        public Vector3 forward {
+        public Vector3 forward
+        {
             get
             {
                 TryUpdateDirections();
@@ -43,7 +45,8 @@ namespace Swordfish.Engine
         }
 
         private Vector3 _up = new Vector3(0f, 1f, 0f);
-        public Vector3 up {
+        public Vector3 up
+        {
             get
             {
                 TryUpdateDirections();
@@ -52,7 +55,8 @@ namespace Swordfish.Engine
         }
 
         private Vector3 _right = new Vector3(-1f, 0f, 0f);
-        public Vector3 right {
+        public Vector3 right
+        {
             get
             {
                 TryUpdateDirections();

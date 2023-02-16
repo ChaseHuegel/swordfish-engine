@@ -1,5 +1,4 @@
 using ImGuiNET;
-using Ninject;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
@@ -8,7 +7,6 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
-using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.UI;

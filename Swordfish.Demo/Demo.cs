@@ -1,19 +1,11 @@
-using System;
 using System.Numerics;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using Ninject;
 using Swordfish.Demo.ECS;
-using Swordfish.Demo.UI;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET;
-using Swordfish.Library.BehaviorTrees;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.IO;
-using Swordfish.Util;
+
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;

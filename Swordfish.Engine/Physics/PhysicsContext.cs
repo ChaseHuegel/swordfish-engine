@@ -5,8 +5,6 @@ using Swordfish.Engine.ECS;
 using Swordfish.Engine.Types;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
-using Swordfish.Library.Types;
-using Swordfish.Library.Util;
 
 namespace Swordfish.Engine.Physics
 {

@@ -1,9 +1,6 @@
 using System.Numerics;
-
 using ImGuiNET;
-
 using OpenTK.Windowing.Desktop;
-
 using Swordfish.Engine.Rendering.UI.Elements.Interfaces;
 using Swordfish.Engine.Util;
 using Swordfish.Library.Diagnostics;

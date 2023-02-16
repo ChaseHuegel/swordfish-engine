@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Reflection;
+using MicroResolver;
 
 namespace Swordfish.Library.IO
 {
@@ -55,6 +56,7 @@ namespace Swordfish.Library.IO
         private IPath models;
         private IPath textures;
 
+        [Inject]
         public PathService() { }
 
         public PathService(string root)

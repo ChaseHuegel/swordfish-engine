@@ -1,6 +1,5 @@
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
 using Swordfish.Engine.Types;
 
 namespace Swordfish.Engine.Rendering

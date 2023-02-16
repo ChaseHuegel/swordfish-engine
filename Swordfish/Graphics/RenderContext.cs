@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Diagnostics;

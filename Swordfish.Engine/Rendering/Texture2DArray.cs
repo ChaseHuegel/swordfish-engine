@@ -3,10 +3,8 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;

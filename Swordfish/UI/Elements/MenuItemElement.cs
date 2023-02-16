@@ -1,5 +1,4 @@
 using ImGuiNET;
-using Ninject;
 using Swordfish.Library.IO;
 
 namespace Swordfish.UI.Elements;

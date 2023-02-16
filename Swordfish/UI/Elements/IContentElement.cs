@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using Swordfish.Library.Collections;
 
 namespace Swordfish.UI.Elements;

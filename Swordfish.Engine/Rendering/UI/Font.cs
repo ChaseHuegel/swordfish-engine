@@ -20,6 +20,6 @@ namespace Swordfish.Engine.Rendering.UI
 
         public string Source;
 
-        public Font() {}
+        public Font() { }
     }
 }

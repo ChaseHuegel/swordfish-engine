@@ -1,9 +1,13 @@
 using System.Runtime.InteropServices;
-using Ninject;
+using MicroResolver;
+using Silk.NET.OpenGL;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Input;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.UI;
 
 namespace Swordfish;
 
@@ -15,24 +19,32 @@ public static class SwordfishEngine
     [DllImport("kernel32", SetLastError = true)]
     static extern bool AttachConsole(int dwProcessId);
 
-    public readonly static Version? Version;
-    public readonly static IKernel Kernel;
-    public readonly static IWindowContext MainWindow;
+    public static readonly Version? Version;
 
-    private readonly static IPathService PathService;
-    private readonly static IPluginContext PluginContext;
-    private readonly static IECSContext ECSContext;
+    public static readonly Kernel Kernel;
 
     static SwordfishEngine()
     {
         Version = typeof(SwordfishEngine).Assembly.GetName().Version;
-        Kernel = new StandardKernel();
-        Kernel.Load(typeof(SwordfishEngine).Assembly);
 
-        MainWindow = Kernel.Get<IWindowContext>();
-        PathService = Kernel.Get<IPathService>();
-        PluginContext = Kernel.Get<IPluginContext>();
-        ECSContext = Kernel.Get<IECSContext>();
+        var engineResolver = ObjectResolver.Create();
+
+        engineResolver.Register<IWindowContext, SilkWindowContext>(Lifestyle.Singleton);
+        engineResolver.Register<IRenderContext, RenderContext>(Lifestyle.Singleton);
+        engineResolver.Register<IUIContext, ImGuiContext>(Lifestyle.Singleton);
+
+        engineResolver.Register<IECSContext, ECSContext>(Lifestyle.Singleton);
+
+        engineResolver.Register<IPluginContext, PluginContext>(Lifestyle.Singleton);
+
+        engineResolver.Register<IInputService, SilkInputService>(Lifestyle.Singleton);
+        engineResolver.Register<IShortcutService, ShortcutService>(Lifestyle.Singleton);
+
+        engineResolver.Register<IPathService, PathService>(Lifestyle.Singleton);
+        engineResolver.Register<IFileService, FileService>(Lifestyle.Singleton);
+
+        engineResolver.Compile();
+        Kernel = new Kernel(engineResolver);
     }
 
     static void Main(string[] args)
@@ -40,25 +52,30 @@ public static class SwordfishEngine
         if (args.Contains("-debug") && !AttachConsole(-1))
             AllocConsole();
 
-        MainWindow.Loaded += Start;
-        MainWindow.Closed += Stop;
-        MainWindow.Initialize();
+        var mainWindow = Kernel.Get<IWindowContext>();
+        mainWindow.Loaded += Start;
+        mainWindow.Closed += Stop;
+        mainWindow.Initialize();
     }
 
     private static void Start()
     {
-        PluginContext.LoadFrom(PathService.Root);
-        PluginContext.LoadFrom(PathService.Plugins, SearchOption.AllDirectories);
-        PluginContext.LoadFrom(PathService.Mods, SearchOption.AllDirectories);
+        var pathService = Kernel.Get<IPathService>();
+        var pluginContext = Kernel.Get<IPluginContext>();
+        var ecsContext = Kernel.Get<IECSContext>();
 
-        ECSContext.Start();
+        pluginContext.LoadFrom(pathService.Root);
+        pluginContext.LoadFrom(pathService.Plugins, SearchOption.AllDirectories);
+        pluginContext.LoadFrom(pathService.Mods, SearchOption.AllDirectories);
 
-        PluginContext.Initialize();
+        ecsContext.Start();
+
+        pluginContext.Initialize();
     }
 
     private static void Stop()
     {
-        PluginContext.UnloadAll();
-        ECSContext.Stop();
+        Kernel.Get<IPluginContext>().UnloadAll();
+        Kernel.Get<IECSContext>().Stop();
     }
 }

@@ -1,5 +1,4 @@
 using System.Numerics;
-using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
@@ -19,10 +18,10 @@ public sealed class RenderTarget : IDisposable
     );
 
     private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
+    private GL? gl;
 
-    private IWindowContext Window => window ??= SwordfishEngine.Kernel.Get<IWindowContext>();
-    private IWindowContext window;
+    private IWindowContext<GL> Window => window ??= SwordfishEngine.Kernel.Get<IWindowContext<GL>>();
+    private IWindowContext<GL>? window;
 
     public Transform Transform { get; set; } = new();
 

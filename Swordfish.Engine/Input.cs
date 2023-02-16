@@ -1,5 +1,5 @@
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using OpenTK.Windowing.Common;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 
 namespace Swordfish.Engine
 {
@@ -18,7 +18,8 @@ namespace Swordfish.Engine
         public static bool CursorGrabbed
         {
             get => Swordfish.MainWindow.CursorState.HasFlag(CursorState.Grabbed);
-            set {
+            set
+            {
                 if (value)
                     Swordfish.MainWindow.CursorState |= CursorState.Grabbed;
                 else
@@ -29,7 +30,8 @@ namespace Swordfish.Engine
         public static bool CursorVisible
         {
             get => !Swordfish.MainWindow.CursorState.HasFlag(CursorState.Hidden);
-            set {
+            set
+            {
                 if (value)
                     Swordfish.MainWindow.CursorState &= ~CursorState.Hidden;
                 else

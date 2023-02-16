@@ -1,4 +1,3 @@
-using Ninject;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-
 using OpenTK.Mathematics;
 using Swordfish.Engine.Physics;
 using Swordfish.Library.Diagnostics;

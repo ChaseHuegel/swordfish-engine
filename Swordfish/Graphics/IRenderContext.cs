@@ -1,4 +1,3 @@
-using Silk.NET.Windowing;
 using Swordfish.Graphics.SilkNET;
 
 namespace Swordfish.Graphics;

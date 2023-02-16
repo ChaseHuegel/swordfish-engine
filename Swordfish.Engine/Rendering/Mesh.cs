@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
 using Swordfish.Engine.Util;
 using Swordfish.Library.Util;
 
@@ -57,28 +55,28 @@ namespace Swordfish.Engine.Rendering
         /// <returns></returns>
         public MeshData GetRawData()
         {
-            float[] raw = new float[ vertices.Length * 13 ];
+            float[] raw = new float[vertices.Length * 13];
 
             int row;
             for (int i = 0; i < vertices.Length; i++)
             {
                 row = i * 13;
                 raw[row] = (vertices[i].X + Origin.X) * Scale.X;
-                raw[row+1] = (vertices[i].Y + Origin.Y) * Scale.Y;
-                raw[row+2] = (vertices[i].Z + Origin.Z) * Scale.Z;
+                raw[row + 1] = (vertices[i].Y + Origin.Y) * Scale.Y;
+                raw[row + 2] = (vertices[i].Z + Origin.Z) * Scale.Z;
 
-                raw[row+3] = colors[i].X;
-                raw[row+4] = colors[i].Y;
-                raw[row+5] = colors[i].Z;
-                raw[row+6] = colors[i].W;
+                raw[row + 3] = colors[i].X;
+                raw[row + 4] = colors[i].Y;
+                raw[row + 5] = colors[i].Z;
+                raw[row + 6] = colors[i].W;
 
-                raw[row+7] = normals[i].X;
-                raw[row+8] = normals[i].Y;
-                raw[row+9] = normals[i].Z;
+                raw[row + 7] = normals[i].X;
+                raw[row + 8] = normals[i].Y;
+                raw[row + 9] = normals[i].Z;
 
-                raw[row+10] = uv[i].X + uvOffset.X;
-                raw[row+11] = uv[i].Y + uvOffset.Y;
-                raw[row+12] = uv[i].Z;
+                raw[row + 10] = uv[i].X + uvOffset.X;
+                raw[row + 11] = uv[i].Y + uvOffset.Y;
+                raw[row + 12] = uv[i].Z;
             }
 
             return new MeshData(triangles, raw);
@@ -138,16 +136,16 @@ namespace Swordfish.Engine.Rendering
                 if (m.Tint != null) m.Shader.SetVec3("Tint", m.Tint.rgb);
 
                 //  Assign texture maps
-                if (m.DiffuseTexture != null)   m.Shader.SetInt("_Diffuse", 0);
+                if (m.DiffuseTexture != null) m.Shader.SetInt("_Diffuse", 0);
                 if (m.RoughnessTexture != null) m.Shader.SetInt("_Roughness", 1);
-                if (m.MetallicTexture != null)  m.Shader.SetInt("_Metallic", 2);
-                if (m.EmissionTexture != null)  m.Shader.SetInt("_Emission", 3);
+                if (m.MetallicTexture != null) m.Shader.SetInt("_Metallic", 2);
+                if (m.EmissionTexture != null) m.Shader.SetInt("_Emission", 3);
                 if (m.OcclusionTexture != null) m.Shader.SetInt("_Occlusion", 4);
 
                 //  Fallback to PBR properties where texture maps aren't used
                 if (m.RoughnessTexture == null) m.Shader.SetFloat("Roughness", m.Roughness);
-                if (m.MetallicTexture == null)  m.Shader.SetFloat("Metallic", m.Metallic);
-                if (m.EmissionTexture == null)  m.Shader.SetFloat("Emission", m.Emission);
+                if (m.MetallicTexture == null) m.Shader.SetFloat("Metallic", m.Metallic);
+                if (m.EmissionTexture == null) m.Shader.SetFloat("Emission", m.Emission);
             }
 
             boundToGL = true;

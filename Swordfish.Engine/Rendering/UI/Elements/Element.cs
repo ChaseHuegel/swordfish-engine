@@ -6,7 +6,8 @@ namespace Swordfish.Engine.Rendering.UI.Elements
     {
         public bool Enabled { get; set; }
 
-        public string Name { 
+        public string Name
+        {
             get => string.IsNullOrEmpty(_Name) ? this.GetType().ToString() : _Name;
             set => _Name = value;
         }
@@ -26,7 +27,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements
 
         public virtual void OnShow()
         {
-            
+
         }
 
         public virtual void Destroy()

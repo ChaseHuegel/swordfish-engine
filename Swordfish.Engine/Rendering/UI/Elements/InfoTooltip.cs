@@ -1,5 +1,4 @@
 using ImGuiNET;
-using Swordfish.Engine.Rendering.UI.Elements.Interfaces;
 
 namespace Swordfish.Engine.Rendering.UI.Elements
 {
@@ -8,7 +7,7 @@ namespace Swordfish.Engine.Rendering.UI.Elements
         public override void OnShow()
         {
             ImGui.TextDisabled("?");
-            
+
             base.OnShow();
         }
     }

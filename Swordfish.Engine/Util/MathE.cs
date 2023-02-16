@@ -5,7 +5,7 @@ namespace Swordfish.Engine.Util
 {
     public static class MathE
     {
-        public static float Distance (Vector3 firstPosition, Vector3 secondPosition)
+        public static float Distance(Vector3 firstPosition, Vector3 secondPosition)
         {
             Vector3 heading;
 
@@ -26,11 +26,12 @@ namespace Swordfish.Engine.Util
 
         public static Vector3[] CreateEllipse(float a, float b, float h, float k, float theta, int resolution)
         {
-            Vector3[] positions = new Vector3[resolution+1];
+            Vector3[] positions = new Vector3[resolution + 1];
             Quaternion q = Quaternion.FromAxisAngle(Vector3.UnitY, theta);
-            Vector3 center = new Vector3(h,k,0.0f);
+            Vector3 center = new Vector3(h, k, 0.0f);
 
-            for (int i = 0; i <= resolution; i++) {
+            for (int i = 0; i <= resolution; i++)
+            {
                 float angle = (float)i / (float)resolution * 2.0f * (float)Math.PI;
                 positions[i] = new Vector3(a * (float)Math.Cos(angle), 0.0f, b * (float)Math.Sin(angle));
                 positions[i] = q * positions[i] + center;

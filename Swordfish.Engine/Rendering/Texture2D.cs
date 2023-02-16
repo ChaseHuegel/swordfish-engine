@@ -1,10 +1,8 @@
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
 using Swordfish.Library.Diagnostics;
 
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;

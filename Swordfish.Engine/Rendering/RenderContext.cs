@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
-using System.Runtime.InteropServices;
-using Microsoft.Win32.SafeHandles;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using Swordfish.Engine.ECS;
@@ -16,8 +14,8 @@ using Swordfish.Engine.Types;
 using Swordfish.Engine.Util;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
+
 using Color = Swordfish.Engine.Types.Color;
 using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 

@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using Ninject;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
@@ -59,9 +58,6 @@ public class PluginContext : IPluginContext
         if (Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
         {
             LoadedPlugins.TryAdd(plugin, plugin.GetType().Assembly);
-
-            //  Load kernel modules from the plugin
-            SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
 
             Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
             Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
@@ -132,9 +128,6 @@ public class PluginContext : IPluginContext
                 {
                     loadedPlugins.Add(plugin);
                     LoadedPlugins.TryAdd(plugin, type.Assembly);
-
-                    //  Load kernel modules from the plugin
-                    SwordfishEngine.Kernel.Load(plugin.GetType().Assembly);
 
                     Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
                     Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);

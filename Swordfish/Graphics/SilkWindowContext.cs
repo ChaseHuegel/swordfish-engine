@@ -1,6 +1,6 @@
 using System.Drawing;
 using System.Numerics;
-using Ninject;
+using MicroResolver;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -12,12 +12,15 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.UI;
 using Swordfish.Util;
+
 using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
 
-public class SilkWindowContext : IWindowContext
+public class SilkWindowContext : IWindowContext<GL>
 {
+    public GL API => GL!;
+
     public Vector2 Resolution => new(Window.Size.X, Window.Size.Y);
 
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
@@ -35,7 +38,7 @@ public class SilkWindowContext : IWindowContext
     private SilkInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
-    private GL GL;
+    private GL? GL;
 
     public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService)
     {
@@ -104,8 +107,9 @@ public class SilkWindowContext : IWindowContext
 
         IInputContext input = Window.CreateInput();
 
-        GL = GL.GetApi(Window);
-        SwordfishEngine.Kernel.Bind<GL>().ToConstant(GL).InSingletonScope();
+        GL = Window.CreateOpenGL();
+        SwordfishEngine.Kernel.AddSingleton(GL);
+        // SwordfishEngine.Kernel.AddSingleton<IWindowContext<GL>>(this);
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",

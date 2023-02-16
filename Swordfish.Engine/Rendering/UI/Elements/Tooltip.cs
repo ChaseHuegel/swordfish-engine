@@ -12,9 +12,9 @@ namespace Swordfish.Engine.Rendering.UI.Elements
             if (ImGui.IsItemHovered())
             {
                 ImGui.BeginTooltip();
-                    ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
-                    ImGui.TextUnformatted(Text);
-                    ImGui.PopTextWrapPos();                
+                ImGui.PushTextWrapPos(ImGui.GetFontSize() * 35f);
+                ImGui.TextUnformatted(Text);
+                ImGui.PopTextWrapPos();
                 ImGui.EndTooltip();
             }
         }

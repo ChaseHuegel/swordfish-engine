@@ -1,4 +1,3 @@
-using System;
 using OpenTK.Mathematics;
 using Swordfish.Engine.Types;
 

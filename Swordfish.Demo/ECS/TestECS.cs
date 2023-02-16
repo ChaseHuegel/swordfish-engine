@@ -1,7 +1,6 @@
-using System.Diagnostics;
-using Ninject;
 using Swordfish.ECS;
 using Swordfish.Library.Diagnostics;
+
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo.ECS;

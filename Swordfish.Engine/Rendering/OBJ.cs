@@ -1,9 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-
 using OpenTK.Mathematics;
-
 using Swordfish.Engine.Types;
 using Swordfish.Library.Diagnostics;
 

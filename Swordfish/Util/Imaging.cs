@@ -1,10 +1,8 @@
 using System.Drawing;
-using System.Runtime.InteropServices;
 using Silk.NET.Core;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Library.IO;
+
 using Image = SixLabors.ImageSharp.Image;
 
 namespace Swordfish.Util;

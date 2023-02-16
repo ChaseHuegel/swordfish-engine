@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-
 using OpenTK.Mathematics;
-
 using Swordfish.Engine.Rendering;
 using Swordfish.Engine.Rendering.Shapes;
 

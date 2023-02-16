@@ -27,11 +27,11 @@ namespace Swordfish.Engine.Types
             planes[0] = new Plane() { Normal = forward, Origin = origin + (forward * near) };
             planes[1] = new Plane() { Normal = -forward, Origin = origin + (forward * far) };
             //  Side planes
-            planes[2] = new Plane() { Normal = Quaternion.FromAxisAngle(up, MathHelper.DegreesToRadians(90f-fovOffset)) * forward, Origin = origin };
-            planes[3] = new Plane() { Normal = Quaternion.FromAxisAngle(up, MathHelper.DegreesToRadians(270f+fovOffset)) * forward, Origin = origin };
+            planes[2] = new Plane() { Normal = Quaternion.FromAxisAngle(up, MathHelper.DegreesToRadians(90f - fovOffset)) * forward, Origin = origin };
+            planes[3] = new Plane() { Normal = Quaternion.FromAxisAngle(up, MathHelper.DegreesToRadians(270f + fovOffset)) * forward, Origin = origin };
             //  Top/bottom planes
-            planes[4] = new Plane() { Normal = Quaternion.FromAxisAngle(right, MathHelper.DegreesToRadians(90f-fovOffset*0.8f)) * forward, Origin = origin };
-            planes[5] = new Plane() { Normal = Quaternion.FromAxisAngle(right, MathHelper.DegreesToRadians(270f+fovOffset*0.8f)) * forward, Origin = origin };
+            planes[4] = new Plane() { Normal = Quaternion.FromAxisAngle(right, MathHelper.DegreesToRadians(90f - fovOffset * 0.8f)) * forward, Origin = origin };
+            planes[5] = new Plane() { Normal = Quaternion.FromAxisAngle(right, MathHelper.DegreesToRadians(270f + fovOffset * 0.8f)) * forward, Origin = origin };
 
             return planes;
         }

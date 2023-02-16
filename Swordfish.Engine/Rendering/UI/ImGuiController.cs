@@ -5,9 +5,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-
 using ImGuiNET;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
@@ -16,7 +14,6 @@ using Swordfish.Engine.Types;
 using Swordfish.Engine.Util;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-
 using Tomlet;
 
 namespace Swordfish.Engine.Rendering.UI

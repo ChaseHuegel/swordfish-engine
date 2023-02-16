@@ -13,14 +13,14 @@ public interface IPlugin
     string Description { get; }
 
     /// <summary>
-    ///     Invoked when first loaded prior to any initialization.
-    ///     This is where you should load resources and bind dependencies.
+    ///     Invoked after the engine has loaded but before initialization.
+    ///     This is where you should load resources and register dependencies.
     /// </summary>
     void Load();
 
     /// <summary>
     ///     Invoked when unloaded.
-    ///     This is where you should cleanup resources and unbind dependencies.
+    ///     This is where you should cleanup resources.
     /// </summary>
     void Unload();
 

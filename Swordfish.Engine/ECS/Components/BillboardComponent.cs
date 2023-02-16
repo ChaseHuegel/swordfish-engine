@@ -1,5 +1,3 @@
-using OpenTK.Mathematics;
-
 namespace Swordfish.Engine.ECS
 {
     [Component]

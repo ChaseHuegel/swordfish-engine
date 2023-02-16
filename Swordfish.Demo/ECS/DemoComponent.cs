@@ -1,7 +1,6 @@
 using System;
 using System.ComponentModel;
 using Needlefish;
-using Ninject;
 using Swordfish.ECS;
 using Swordfish.Library.Reflection;
 

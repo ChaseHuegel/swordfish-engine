@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.Bricks;
 
 public struct Brick : IEquatable<Brick>

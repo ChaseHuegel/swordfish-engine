@@ -1,5 +1,4 @@
 using OpenTK.Windowing.Common;
-
 using Swordfish.Engine.Types;
 using Swordfish.Library.Util;
 
@@ -24,7 +23,8 @@ namespace Swordfish.Engine
         public ProfilerSettings Profiler = new ProfilerSettings();
         public class ProfilerSettings
         {
-            public int HISTORY {
+            public int HISTORY
+            {
                 get => Library.Diagnostics.Profiler.HistoryLength;
                 set => Library.Diagnostics.Profiler.HistoryLength = value;
             }

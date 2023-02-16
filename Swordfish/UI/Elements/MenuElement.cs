@@ -1,6 +1,4 @@
-using System.Numerics;
 using ImGuiNET;
-using Ninject;
 
 namespace Swordfish.UI.Elements;
 

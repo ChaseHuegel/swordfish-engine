@@ -1,10 +1,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
-
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-
 using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Engine.Rendering

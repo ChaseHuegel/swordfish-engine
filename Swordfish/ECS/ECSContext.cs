@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Runtime.CompilerServices;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
@@ -35,7 +34,7 @@ public class ECSContext : IECSContext
     private readonly HashSet<ComponentSystem> Systems;
     private EntityBuilder? _EntityBuilder;
 
-    public ECSContext(int maxEntities = DEFAULT_MAX_ENTITIES)
+    public ECSContext()
     {
         Debugger.Log($"Initializing ECS context.");
 
@@ -43,7 +42,7 @@ public class ECSContext : IECSContext
         {
             Running = false;
             Modified = false;
-            MaxEntities = maxEntities;
+            MaxEntities = DEFAULT_MAX_ENTITIES;
 
             Store = new ChunkedDataStore(0, 1);
             ComponentTypes = new IndexLookup<Type>();

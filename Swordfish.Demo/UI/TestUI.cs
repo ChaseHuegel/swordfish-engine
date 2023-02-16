@@ -1,12 +1,6 @@
-using System;
 using System.Drawing;
-using System.Net.Mime;
-using System.Timers;
-using ImGuiNET;
-using Ninject;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Types.Constraints;
 using Swordfish.UI;
 using Swordfish.UI.Elements;

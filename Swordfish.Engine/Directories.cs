@@ -1,5 +1,4 @@
 using System.IO;
-using System;
 
 namespace Swordfish.Engine
 {

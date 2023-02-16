@@ -1,7 +1,5 @@
 using System.Collections.Generic;
-
 using OpenTK.Mathematics;
-
 using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Engine.Types

@@ -6,10 +6,12 @@ namespace Swordfish.Engine.ECS
     public struct TransformComponent
     {
         private int _parent;
-        public int parent {
+        public int parent
+        {
             get => _parent;
 
-            set {
+            set
+            {
                 //  Don't do anything if the parent isn't changing
                 if (_parent == value)
                     return;
@@ -30,15 +32,18 @@ namespace Swordfish.Engine.ECS
         public void Translate(float x, float y, float z) { localPosition.X += x; localPosition.Y += y; localPosition.Z += z; }
 
         public Vector3 localPosition;
-        public Vector3 position {
-            get {
+        public Vector3 position
+        {
+            get
+            {
                 if (parent == Entity.Null)
                     return localPosition;
                 else
                     return localPosition + Swordfish.ECS.Get<TransformComponent>(parent).position;
             }
 
-            set {
+            set
+            {
                 if (parent == Entity.Null)
                     localPosition = value;
                 else
@@ -61,10 +66,12 @@ namespace Swordfish.Engine.ECS
         public Vector3 up;
 
         private Quaternion _orientation;
-        public Quaternion localOrientation {
+        public Quaternion localOrientation
+        {
             get => _orientation;
 
-            set {
+            set
+            {
                 _orientation = value;
 
                 forward = Vector3.Transform(-Vector3.UnitZ, _orientation);
@@ -73,15 +80,18 @@ namespace Swordfish.Engine.ECS
             }
         }
 
-        public Quaternion orientation {
-            get {
+        public Quaternion orientation
+        {
+            get
+            {
                 if (parent == Entity.Null)
                     return localOrientation;
                 else
                     return localOrientation + Swordfish.ECS.Get<TransformComponent>(parent).orientation;
             }
 
-            set {
+            set
+            {
                 if (parent == Entity.Null)
                     localOrientation = value;
                 else
