@@ -80,7 +80,8 @@ namespace Swordfish.Library.IO
             ProcessStartInfo processStartInfo = new ProcessStartInfo
             {
                 FileName = OriginalString,
-                UseShellExecute = true
+                UseShellExecute = true,
+                Verb = "open"
             };
 
             return Debugger.TryInvoke(
