@@ -35,7 +35,7 @@ public class Editor : Plugin
     private static IFileService FileService;
     private static IPathService PathService;
 
-    private static CanvasElement? Hierarchy;
+    private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
@@ -47,6 +47,16 @@ public class Editor : Plugin
         PathService = pathService;
 
         ECSContext.BindSystem<HierarchySystem>();
+
+        Hierarchy = new CanvasElement("Hierarchy")
+        {
+            Flags = EDITOR_CANVAS_FLAGS,
+            Constraints = new RectConstraints
+            {
+                Width = new RelativeConstraint(0.15f),
+                Height = new RelativeConstraint(0.8f)
+            }
+        };
     }
 
     public override void Start()
@@ -143,16 +153,6 @@ public class Editor : Plugin
                         Anchor = ConstraintAnchor.TOP_RIGHT
                     }
                 }
-            }
-        };
-
-        Hierarchy = new CanvasElement("Hierarchy")
-        {
-            Flags = EDITOR_CANVAS_FLAGS,
-            Constraints = new RectConstraints
-            {
-                Width = new RelativeConstraint(0.15f),
-                Height = new RelativeConstraint(0.8f)
             }
         };
 
@@ -478,18 +478,19 @@ public class Editor : Plugin
         protected override void Update(Entity entity, float deltaTime)
         {
             if (Populate)
-                Hierarchy?.Content.Add(new DataTreeNode<Entity>(entity.GetComponent<IdentifierComponent>()?.Name, entity));
+                Hierarchy.Content.Add(new DataTreeNode<Entity>(entity.GetComponent<IdentifierComponent>()?.Name, entity));
         }
 
         protected override void OnModified()
         {
-            Hierarchy?.Content.Clear();
+            Hierarchy.Content.Clear();
             Populate = true;
         }
 
         protected override void OnUpdated()
         {
-            Populate = false;
+            if (Hierarchy != null)
+                Populate = false;
         }
     }
 }

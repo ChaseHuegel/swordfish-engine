@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using SimpleInjector;
+using DryIoc;
 
 namespace Swordfish.Library.Collections
 {
@@ -22,7 +21,7 @@ namespace Swordfish.Library.Collections
 
             try
             {
-                instances.AddRange(BaseResolver.GetAllInstances<TInterface>());
+                instances.AddRange(BaseResolver.ResolveMany<TInterface>());
             }
             finally
             {
@@ -30,7 +29,7 @@ namespace Swordfish.Library.Collections
                 {
                     try
                     {
-                        instances.AddRange(Resolvers[i].GetAllInstances<TInterface>());
+                        instances.AddRange(Resolvers[i].ResolveMany<TInterface>());
                     }
                     catch
                     {
@@ -49,7 +48,7 @@ namespace Swordfish.Library.Collections
         {
             try
             {
-                return BaseResolver.GetInstance<TInterface>();
+                return BaseResolver.Resolve<TInterface>();
             }
             catch
             {
@@ -57,7 +56,7 @@ namespace Swordfish.Library.Collections
                 {
                     try
                     {
-                        return Resolvers[i].GetInstance<TInterface>();
+                        return Resolvers[i].Resolve<TInterface>();
                     }
                     catch
                     {

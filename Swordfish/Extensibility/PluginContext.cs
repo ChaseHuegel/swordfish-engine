@@ -16,6 +16,7 @@ public class PluginContext : IPluginContext
     private const string MISSING_DESCRIPTION = "Missing description!";
 
     private readonly ConcurrentDictionary<Type, Assembly> PluginTypes = new();
+    private readonly ConcurrentDictionary<Type, IPlugin> ActivePlugins = new();
 
     public IEnumerable<Type> GetRegisteredTypes()
     {
@@ -26,7 +27,7 @@ public class PluginContext : IPluginContext
     {
         // Parallel.ForEach(plugins, ForEachPlugin);
         // ThreadPool.QueueUserWorkItem(WorkCallback);
-        void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
+        // void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
 
         foreach (var plugin in plugins)
         {
@@ -35,7 +36,6 @@ public class PluginContext : IPluginContext
 
         void ForEachPlugin(IPlugin plugin, ParallelLoopState loopState, long index)
         {
-            Debugger.Log($"Loading {GetSimpleTypeString(plugin)} '{plugin.Name}'");
             if (Debugger.TryInvoke(plugin.Start, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
             {
                 Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
@@ -86,7 +86,7 @@ public class PluginContext : IPluginContext
 
     public bool IsLoaded(Type type)
     {
-        return PluginTypes.Keys.Any(p => p.GetType() == type);
+        return ActivePlugins.TryGetValue(type, out _);
     }
 
     public void Unload(IPlugin plugin)
@@ -101,13 +101,13 @@ public class PluginContext : IPluginContext
 
     public void Unload(Type type)
     {
-        foreach (IPlugin p in PluginTypes.Keys.Where(p => p.GetType() == type))
-            UnloadInternal(p);
+        if (ActivePlugins.TryGetValue(type, out IPlugin? plugin))
+            UnloadInternal(plugin);
     }
 
     public void UnloadAll()
     {
-        foreach (IPlugin p in PluginTypes.Keys)
+        foreach (IPlugin p in ActivePlugins.Values)
             UnloadInternal(p);
     }
 

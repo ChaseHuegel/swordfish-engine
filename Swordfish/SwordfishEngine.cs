@@ -1,16 +1,15 @@
-using System.Diagnostics.CodeAnalysis;
-using System.Reflection;
 using System.Runtime.InteropServices;
+using DryIoc;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using SimpleInjector;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Input;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.UI;
 
@@ -45,6 +44,8 @@ public static class SwordfishEngine
         options.ShouldSwapAutomatically = true;
 
         MainWindow = Window.Create(options);
+        MainWindow.Load += OnWindowLoaded;
+        MainWindow.Closing += OnWindowClosing;
     }
 
     static void Main(string[] args)
@@ -52,8 +53,6 @@ public static class SwordfishEngine
         if (args.Contains("-debug") && !AttachConsole(-1))
             AllocConsole();
 
-        MainWindow.Load += OnWindowLoaded;
-        MainWindow.Closing += OnWindowClosing;
         MainWindow.Run();
     }
 
@@ -75,27 +74,26 @@ public static class SwordfishEngine
         PluginContext.RegisterFrom(EnginePathService.Mods, SearchOption.AllDirectories);
 
         var engineResolver = new Container();
+        engineResolver.RegisterInstance(PluginContext);
         engineResolver.RegisterInstance(MainWindow);
         engineResolver.RegisterInstance(InputContext);
         engineResolver.RegisterInstance(GL);
 
-        engineResolver.Collection.Register<IPlugin>(PluginContext.GetRegisteredTypes(), Lifestyle.Singleton);
+        engineResolver.RegisterMany(PluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
-        engineResolver.Register<IWindowContext, SilkWindowContext>(Lifestyle.Singleton);
-        engineResolver.Register<IRenderContext, RenderContext>(Lifestyle.Singleton);
-        engineResolver.Register<IUIContext, ImGuiContext>(Lifestyle.Singleton);
+        engineResolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
+        engineResolver.Register<IRenderContext, RenderContext>(Reuse.Singleton);
+        engineResolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
-        engineResolver.Register<IECSContext, ECSContext>(Lifestyle.Singleton);
+        engineResolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 
-        engineResolver.Register<IPluginContext, PluginContext>(Lifestyle.Singleton);
+        engineResolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
+        engineResolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        engineResolver.Register<IInputService, SilkInputService>(Lifestyle.Singleton);
-        engineResolver.Register<IShortcutService, ShortcutService>(Lifestyle.Singleton);
+        engineResolver.Register<IPathService, PathService>(Reuse.Singleton);
+        engineResolver.Register<IFileService, FileService>(Reuse.Singleton);
 
-        engineResolver.Register<IPathService, PathService>(Lifestyle.Singleton);
-        engineResolver.Register<IFileService, FileService>(Lifestyle.Singleton);
-
-        engineResolver.Verify();
+        engineResolver.ValidateAndThrow();
         Kernel = new Kernel(engineResolver);
 
         Start();
@@ -103,7 +101,13 @@ public static class SwordfishEngine
 
     private static void Start()
     {
+        IEnumerable<IPlugin> plugins = Kernel.GetAll<IPlugin>();
+
+        //  Touch each plugin to trigger the ctor
+        foreach (var plugin in plugins)
+            Debugger.Log($"Initialized plugin '{plugin.Name}'.");
+
         Kernel.Get<IECSContext>().Start();
-        PluginContext.InvokeStart(Kernel.GetAll<IPlugin>());
+        PluginContext.InvokeStart(plugins);
     }
 }

@@ -3,6 +3,7 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
@@ -25,19 +26,15 @@ public class ImGuiContext : IUIContext
     private DataBinding<float> Scale { get; } = new DataBinding<float>(1f);
     private ImGuiController? Controller { get; set; }
     private IWindow? Window { get; set; }
+    private IInputContext? InputContext { get; set; }
 
     public ImGuiContext(IWindow window, Silk.NET.Input.IInputContext inputContext, GL gl)
     {
         GL = gl;
         Window = window;
-        Window.Closing += Cleanup;
-        Window.Render += Render;
+        InputContext = inputContext;
 
-        Scale.Changed += OnFontScaleChanged;
-        FontScale.Changed += OnFontScaleChanged;
-        ScaleConstraint.Changed += OnScalingConstraintChanged;
-
-        Controller = new ImGuiController(GL, Window, inputContext);
+        Controller = new ImGuiController(GL, Window, InputContext);
         Controller.Update(0f);
 
         OnFontScaleChanged(this, EventArgs.Empty);
@@ -48,7 +45,12 @@ public class ImGuiContext : IUIContext
 
     public void Initialize()
     {
+        Window.Closing += Cleanup;
+        Window.Render += Render;
 
+        Scale.Changed += OnFontScaleChanged;
+        FontScale.Changed += OnFontScaleChanged;
+        ScaleConstraint.Changed += OnScalingConstraintChanged;
     }
 
     private void OnScalingConstraintChanged(object? sender, EventArgs e)
