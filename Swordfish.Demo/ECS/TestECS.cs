@@ -7,10 +7,8 @@ namespace Swordfish.Demo.ECS;
 
 public static class TestECS
 {
-    public static void Populate()
+    public static void Populate(IECSContext ecsContext)
     {
-        IECSContext ecsContext = SwordfishEngine.Kernel.Get<IECSContext>();
-
         using (Benchmark.StartNew(nameof(TestECS), nameof(Populate), "_CreateEntities"))
         {
             for (int i = 0; i < 10000; i++)

@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Numerics;
-using MicroResolver;
 using Silk.NET.Core;
 using Silk.NET.Input;
 using Silk.NET.Maths;
@@ -35,36 +34,56 @@ public class SilkWindowContext : IWindowContext<GL>
     private IWindow Window { get; }
     private IRenderContext Renderer { get; }
     private IUIContext UIContext { get; }
-    private SilkInputService InputService { get; }
+    private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
     private GL? GL;
 
-    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService)
+    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, GL gl, IPathService pathService)
     {
+        GL = gl;
+        Window = window;
         Renderer = renderer;
         UIContext = uiContext;
-        InputService = (SilkInputService)inputService;
+        InputService = inputService;
         ShortcutService = shortcutService;
 
-        var options = WindowOptions.Default;
-        options.Size = new Vector2D<int>(800, 600);
-        options.Title = "Swordfish";
-        options.ShouldSwapAutomatically = true;
-
-        Window = Silk.NET.Windowing.Window.Create(options);
-
         Window.FocusChanged += OnFocusChanged;
-        Window.Load += OnLoad;
         Window.Closing += OnClose;
         Window.Update += OnUpdate;
         Window.Render += OnRender;
         Window.Resize += OnResize;
-    }
 
-    public void Initialize()
-    {
-        Window.Run();
+        Window.Center();
+
+        RawImage icon = Imaging.LoadAsPng(pathService.Root.At("swordfish.ico"));
+        Window.SetWindowIcon(ref icon);
+
+        ShortcutService.RegisterShortcut(new Shortcut(
+                "Toggle Fullscreen",
+                "UI",
+                ShortcutModifiers.NONE,
+                Key.F11,
+                Shortcut.DefaultEnabled,
+                () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal
+            )
+        );
+
+        Debugger.Log("Window initialized.");
+        Debugger.Log($"using OpenGL {GL.GetStringS(StringName.Version)}", LogType.CONTINUED);
+        Debugger.Log($"using GLSL {GL.GetStringS(StringName.ShadingLanguageVersion)}", LogType.CONTINUED);
+        Debugger.Log($"using GPU {GL.GetStringS(StringName.Renderer)} ({GL.GetStringS(StringName.Vendor)})", LogType.CONTINUED);
+
+        string[] openGLMetadata = new string[]
+        {
+            $"available extensions: {GL.GetExtensions().Length}",
+            $"max vertex attributes: {GL.GetInt(GetPName.MaxVertexAttribs)}",
+        };
+        Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
+
+        Renderer.Initialize();
+        UIContext.Initialize();
+        Loaded?.Invoke();
     }
 
     public Vector2 GetSize()
@@ -95,46 +114,6 @@ public class SilkWindowContext : IWindowContext<GL>
     public void Fullscreen()
     {
         Window.WindowState = WindowState.Fullscreen;
-    }
-
-    private unsafe void OnLoad()
-    {
-        Window.Center();
-
-        var pathService = SwordfishEngine.Kernel.Get<IPathService>();
-        RawImage icon = Imaging.LoadAsPng(pathService.Root.At("swordfish.ico"));
-        Window.SetWindowIcon(ref icon);
-
-        IInputContext input = Window.CreateInput();
-
-        GL = Window.CreateOpenGL();
-
-        ShortcutService.RegisterShortcut(new Shortcut(
-                "Toggle Fullscreen",
-                "UI",
-                ShortcutModifiers.NONE,
-                Key.F11,
-                Shortcut.DefaultEnabled,
-                () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal
-            )
-        );
-
-        Debugger.Log("Window initialized.");
-        Debugger.Log($"using OpenGL {GL.GetStringS(StringName.Version)}", LogType.CONTINUED);
-        Debugger.Log($"using GLSL {GL.GetStringS(StringName.ShadingLanguageVersion)}", LogType.CONTINUED);
-        Debugger.Log($"using GPU {GL.GetStringS(StringName.Renderer)} ({GL.GetStringS(StringName.Vendor)})", LogType.CONTINUED);
-
-        string[] openGLMetadata = new string[]
-        {
-            $"available extensions: {GL.GetExtensions().Length}",
-            $"max vertex attributes: {GL.GetInt(GetPName.MaxVertexAttribs)}",
-        };
-        Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
-
-        Renderer.Initialize();
-        UIContext.Initialize(Window, input);
-        InputService.Initialize(input);
-        Loaded?.Invoke();
     }
 
     private void OnClose()

@@ -1,4 +1,5 @@
 using Swordfish.Library.Collections;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Input;
@@ -14,6 +15,8 @@ public class ShortcutService : IShortcutService
         Shortcuts = new LockedList<Shortcut>();
 
         InputService.KeyPressed += OnKeyPressed;
+
+        Debugger.Log("Shortcut service initialize.");
     }
 
     public bool RegisterShortcut(Shortcut shortcut)

@@ -1,7 +1,9 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Input;
 
@@ -42,7 +44,7 @@ public class SilkInputService : IInputService
         public readonly Stopwatch LastRelease = Stopwatch.StartNew();
     }
 
-    public void Initialize(Silk.NET.Input.IInputContext context)
+    public SilkInputService(Silk.NET.Input.IInputContext context)
     {
         Context = context;
 
@@ -67,6 +69,8 @@ public class SilkInputService : IInputService
 
         foreach (Key key in Enum.GetValues<Key>())
             KeyInputMap.TryAdd(key, new KeyInputRecord());
+
+        Debugger.Log("Input initialized.");
     }
 
     public float GetAxis(InputAxis axis)

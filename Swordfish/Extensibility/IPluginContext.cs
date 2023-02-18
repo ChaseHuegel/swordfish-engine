@@ -1,20 +1,23 @@
+using System.Reflection;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Extensibility;
 
 public interface IPluginContext
 {
-    void Initialize();
+    IEnumerable<Type> GetRegisteredTypes();
+
+    void InvokeStart(IEnumerable<IPlugin> plugins);
+
+    void Register(params Assembly[] assemblies);
+
+    void RegisterFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly);
 
     bool IsLoaded(IPlugin plugin);
 
-    bool IsLoaded<TPlugin>() where TPlugin : IPlugin;
-
     bool IsLoaded(Type type);
 
-    void Load(IPlugin plugin);
-
-    void LoadFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly);
+    bool IsLoaded<TPlugin>() where TPlugin : IPlugin;
 
     void Unload(IPlugin plugin);
 

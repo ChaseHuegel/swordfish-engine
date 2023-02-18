@@ -4,6 +4,7 @@ using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
@@ -30,11 +31,25 @@ public class Demo : Mod
         3, 2, 1
     };
 
-    public override void Load()
+    private static IECSContext ECSContext;
+    private static IRenderContext RenderContext;
+    private IWindowContext WindowContext;
+
+    private RenderTarget RenderTarget;
+
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext)
     {
-        IECSContext ecsContext = SwordfishEngine.Kernel.Get<IECSContext>();
+        ECSContext = ecsContext;
+        RenderContext = renderContext;
+        WindowContext = windowContext;
+
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
 
+        Benchmark.Log();
+    }
+
+    public override void Start()
+    {
         RenderTarget = new RenderTarget(
             VertexData,
             Indices,
@@ -46,20 +61,12 @@ public class Demo : Mod
                 Position = new Vector3(0, 0, 1)
             }
         };
-    }
 
-    private RenderTarget RenderTarget;
-    public override void Initialize()
-    {
-        IRenderContext renderContext = SwordfishEngine.Kernel.Get<IRenderContext>();
-        IWindowContext windowContext = SwordfishEngine.Kernel.Get<IWindowContext>();
-
-        renderContext.Bind(RenderTarget);
-        windowContext.Update += OnUpdate;
+        RenderContext.Bind(RenderTarget);
+        WindowContext.Update += OnUpdate;
 
         // TestUI.CreateCanvas();
-        TestECS.Populate();
-        Benchmark.Log();
+        TestECS.Populate(ECSContext);
     }
 
     private void OnUpdate(double delta)

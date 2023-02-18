@@ -14,8 +14,6 @@ public interface IWindowContext
     Action? Focused { get; set; }
     Action? Unfocused { get; set; }
 
-    void Initialize();
-
     Vector2 GetSize();
 
     void Close();

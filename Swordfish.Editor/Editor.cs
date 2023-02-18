@@ -30,20 +30,28 @@ public class Editor : Plugin
     public override string Name => "Swordfish Editor";
     public override string Description => "Visual editor for the Swordfish engine.";
 
-    private static IECSContext? ECSContext;
-    private static IFileService? FileService;
+    private IWindowContext WindowContext;
+    private static IECSContext ECSContext;
+    private static IFileService FileService;
+    private static IPathService PathService;
+
     private static CanvasElement? Hierarchy;
 
     private Action FileWrite;
 
-    public override void Load()
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService)
     {
-        SwordfishEngine.Kernel.Get<IWindowContext>().Maximize();
+        WindowContext = windowContext;
+        FileService = fileService;
+        ECSContext = ecsContext;
+        PathService = pathService;
 
-        FileService = SwordfishEngine.Kernel.Get<IFileService>();
-
-        ECSContext = SwordfishEngine.Kernel.Get<IECSContext>();
         ECSContext.BindSystem<HierarchySystem>();
+    }
+
+    public override void Start()
+    {
+        WindowContext.Maximize();
 
         Shortcut exitShortcut = new(
             "Exit",
@@ -51,7 +59,7 @@ public class Editor : Plugin
             ShortcutModifiers.NONE,
             Key.ESC,
             Shortcut.DefaultEnabled,
-            () => SwordfishEngine.Kernel.Get<IWindowContext>().Close()
+            WindowContext.Close
         );
 
         MenuElement menu = new()
@@ -186,9 +194,9 @@ public class Editor : Plugin
             }
         };
 
-        PopulateDirectory(assetBrowser, SwordfishEngine.Kernel.Get<IPathService>().Root.ToString());
+        PopulateDirectory(assetBrowser, PathService.Root.ToString());
 
-        SwordfishEngine.Kernel.Get<IWindowContext>().Focused += RefreshAssetBrowser;
+        WindowContext.Focused += RefreshAssetBrowser;
         FileWrite += RefreshAssetBrowser;
         void RefreshAssetBrowser()
         {
@@ -415,11 +423,6 @@ public class Editor : Plugin
                 inspector.Content.Add(group);
             }
         };
-    }
-
-    public override void Initialize()
-    {
-        //  do nothing
     }
 
     private static PaneElement FieldViewFactory(object component, FieldInfo field)

@@ -1,10 +1,15 @@
-using System;
-using System.IO;
 using System.Reflection;
-using MicroResolver;
 
 namespace Swordfish.Library.IO
 {
+    public class RootedPathService : PathService
+    {
+        public RootedPathService(string root)
+        {
+            this.root = new Path(root);
+        }
+    }
+
     public class PathService : IPathService
     {
         private const string PLUGINS_FOLDER = "plugins";
@@ -43,7 +48,7 @@ namespace Swordfish.Library.IO
 
         public IPath Textures => textures ?? (textures = Resources.At(TEXTURES_FOLDER).CreateDirectory());
 
-        private IPath root;
+        protected IPath root;
         private IPath plugins;
         private IPath mods;
         private IPath config;
@@ -56,12 +61,12 @@ namespace Swordfish.Library.IO
         private IPath models;
         private IPath textures;
 
-        [Inject]
-        public PathService() { }
-
-        public PathService(string root)
+        public PathService()
         {
-            this.root = new Path(root);
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            string location = assembly.Location;
+            string directory = System.IO.Path.GetDirectoryName(location);
+            root = new Path(directory);
         }
     }
 }

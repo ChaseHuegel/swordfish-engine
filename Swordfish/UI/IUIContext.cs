@@ -18,5 +18,5 @@ public interface IUIContext
 
     DataBinding<float> FontDisplaySize { get; }
 
-    void Initialize(IWindow window, Silk.NET.Input.IInputContext input);
+    void Initialize();
 }

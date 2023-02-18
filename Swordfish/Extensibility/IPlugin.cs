@@ -1,3 +1,5 @@
+using Swordfish.Library.Collections;
+
 namespace Swordfish.Extensibility;
 
 public interface IPlugin
@@ -13,20 +15,14 @@ public interface IPlugin
     string Description { get; }
 
     /// <summary>
-    ///     Invoked after the engine has loaded but before initialization.
-    ///     This is where you should load resources and register dependencies.
+    ///     Invoked after all adjacent extensions have loaded and dependencies resolved.
+    ///     This is where you should bring the extension to life.
     /// </summary>
-    void Load();
+    void Start();
 
     /// <summary>
     ///     Invoked when unloaded.
     ///     This is where you should cleanup resources.
     /// </summary>
     void Unload();
-
-    /// <summary>
-    ///     Invoked after all adjacent extensions have loaded.
-    ///     This is where you should get dependencies and bring the extension to life.
-    /// </summary>
-    void Initialize();
 }

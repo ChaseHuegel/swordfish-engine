@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using Needlefish;
 using Swordfish.ECS;
+using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 
 namespace Swordfish.Demo.ECS;
@@ -20,7 +21,7 @@ public partial class DemoComponent
 
     //  These should not appear in the inspector since they aren't instanced.
     [DataField] private static string? PrivateProperty { get; set; } = null;
-    private static IECSContext PrivateGetter { get; } = SwordfishEngine.Kernel.Get<IECSContext>();
+    private static IPath PrivateGetter { get; }
     private static Entity PrivateStatic = new();
     private const long PrivateConst = 341345;
 

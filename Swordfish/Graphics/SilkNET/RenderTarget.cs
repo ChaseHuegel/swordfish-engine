@@ -20,8 +20,8 @@ public sealed class RenderTarget : IDisposable
     private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
     private GL? gl;
 
-    private IWindowContext<GL> Window => window ??= SwordfishEngine.Kernel.Get<IWindowContext<GL>>();
-    private IWindowContext<GL>? window;
+    private IWindowContext Window => window ??= SwordfishEngine.Kernel.Get<IWindowContext>();
+    private IWindowContext? window;
 
     public Transform Transform { get; set; } = new();
 

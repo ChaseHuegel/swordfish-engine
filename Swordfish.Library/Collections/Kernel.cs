@@ -1,34 +1,36 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using MicroResolver;
+using SimpleInjector;
 
 namespace Swordfish.Library.Collections
 {
     public class Kernel
     {
-        private readonly ObjectResolver BaseResolver;
-        private readonly ConcurrentDictionary<int, ObjectResolver> Resolvers = new ConcurrentDictionary<int, ObjectResolver>();
-        private readonly ConcurrentDictionary<Type, object> Singletons = new ConcurrentDictionary<Type, object>();
+        private readonly Container BaseResolver;
+        private readonly ConcurrentDictionary<int, Container> Resolvers = new ConcurrentDictionary<int, Container>();
 
-        public Kernel(ObjectResolver baseResolver)
+        public Kernel(Container baseResolver)
         {
             BaseResolver = baseResolver;
         }
 
-        public TInterface Get<TInterface>() where TInterface : class
+        public IEnumerable<TInterface> GetAll<TInterface>() where TInterface : class
         {
+            List<TInterface> instances = new List<TInterface>();
+
             try
             {
-                return BaseResolver.Resolve<TInterface>();
+                instances.AddRange(BaseResolver.GetAllInstances<TInterface>());
             }
-            catch
+            finally
             {
                 for (int i = 0; i < Resolvers.Count; i++)
                 {
                     try
                     {
-                        return Resolvers[i].Resolve<TInterface>();
+                        instances.AddRange(Resolvers[i].GetAllInstances<TInterface>());
                     }
                     catch
                     {
@@ -36,32 +38,40 @@ namespace Swordfish.Library.Collections
                     }
                 }
 
-                try
+                if (instances.Count == 0)
+                    throw new Exception($"Type {typeof(TInterface)} was not found.");
+            }
+
+            return instances;
+        }
+
+        public TInterface Get<TInterface>() where TInterface : class
+        {
+            try
+            {
+                return BaseResolver.GetInstance<TInterface>();
+            }
+            catch
+            {
+                for (int i = 0; i < Resolvers.Count; i++)
                 {
-                    return Unsafe.As<TInterface>(Singletons[typeof(TInterface)]);
-                }
-                catch
-                {
-                    //  do nothing
+                    try
+                    {
+                        return Resolvers[i].GetInstance<TInterface>();
+                    }
+                    catch
+                    {
+                        continue;
+                    }
                 }
 
-                throw new MicroResolverException($"Type {typeof(TInterface)} was not found.");
+                throw new Exception($"Type {typeof(TInterface)} was not found.");
             }
         }
 
-        public bool AddResolver(ObjectResolver resolver)
+        public bool AddResolver(Container resolver)
         {
             return Resolvers.TryAdd(Resolvers.Count, resolver);
-        }
-
-        public bool AddInstance<TInterface, TImplementation>() where TImplementation : TInterface, new()
-        {
-            return Singletons.TryAdd(typeof(TInterface), new TImplementation());
-        }
-
-        public bool AddInstance<TInterface>(TInterface instance) where TInterface : class
-        {
-            return Singletons.TryAdd(typeof(TInterface), instance);
         }
     }
 }

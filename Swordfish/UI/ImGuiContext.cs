@@ -13,8 +13,7 @@ namespace Swordfish.UI;
 
 public class ImGuiContext : IUIContext
 {
-    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
+    private GL GL;
 
     public LockedList<IElement> Elements { get; } = new();
     public IMenuBarElement? MenuBar { get; set; }
@@ -27,8 +26,9 @@ public class ImGuiContext : IUIContext
     private ImGuiController? Controller { get; set; }
     private IWindow? Window { get; set; }
 
-    public void Initialize(IWindow window, IInputContext inputContext)
+    public ImGuiContext(IWindow window, Silk.NET.Input.IInputContext inputContext, GL gl)
     {
+        GL = gl;
         Window = window;
         Window.Closing += Cleanup;
         Window.Render += Render;
@@ -44,6 +44,11 @@ public class ImGuiContext : IUIContext
 
         Debugger.Log("UI initialized.");
         Debugger.Log($"using ImGui {ImGui.GetVersion()}", LogType.CONTINUED);
+    }
+
+    public void Initialize()
+    {
+
     }
 
     private void OnScalingConstraintChanged(object? sender, EventArgs e)

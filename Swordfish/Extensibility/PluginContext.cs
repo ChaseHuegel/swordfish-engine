@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
@@ -9,27 +10,68 @@ public class PluginContext : IPluginContext
 {
     private const string DUPLICATE_ERROR = "Tried to load a duplicate";
     private const string LOADFROM_ERROR = "Failed to load extensions from";
-    private const string INITIALIZE_ERROR = "Failed to initialize";
     private const string UNLOAD_ERROR = "Failed to unload";
     private const string LOAD_ERROR = "Failed to load";
     private const string LOAD_SUCCESS = "Loaded";
     private const string MISSING_DESCRIPTION = "Missing description!";
 
-    private readonly ConcurrentDictionary<IPlugin, Assembly> LoadedPlugins = new();
+    private readonly ConcurrentDictionary<Type, Assembly> PluginTypes = new();
 
-    public void Initialize()
+    public IEnumerable<Type> GetRegisteredTypes()
     {
-        ThreadPool.QueueUserWorkItem(InitializePlugins);
+        return PluginTypes.Keys;
+    }
 
-        void InitializePlugins(object? state)
+    public void InvokeStart(IEnumerable<IPlugin> plugins)
+    {
+        // Parallel.ForEach(plugins, ForEachPlugin);
+        // ThreadPool.QueueUserWorkItem(WorkCallback);
+        void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
+
+        foreach (var plugin in plugins)
         {
-            Parallel.ForEach(LoadedPlugins.Keys, ForEachPlugin);
+            ForEachPlugin(plugin, null, 0);
         }
 
-        static void ForEachPlugin(IPlugin plugin, ParallelLoopState loopState, long index)
+        void ForEachPlugin(IPlugin plugin, ParallelLoopState loopState, long index)
         {
-            Debugger.TryInvoke(plugin.Initialize, $"{INITIALIZE_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+            Debugger.Log($"Loading {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+            if (Debugger.TryInvoke(plugin.Start, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
+            {
+                Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
+                Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
+            }
         }
+    }
+
+    public void Register(params Assembly[] assemblies)
+    {
+        IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
+
+        foreach (Type type in types)
+        {
+            if (!type.IsInterface && !type.IsAbstract && typeof(IPlugin).IsAssignableFrom(type))
+            {
+                if (IsLoaded(type))
+                {
+                    Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(type)} '{type}' at '{type.Assembly.Location}'", LogType.WARNING);
+                    continue;
+                }
+
+                PluginTypes.TryAdd(type, type.Assembly);
+            }
+        }
+    }
+
+    public void RegisterFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    {
+        string[] files = Directory.GetFiles(path.OriginalString ?? string.Empty, "*.dll", searchOption);
+
+        List<Assembly> loadedAssemblies = new();
+        foreach (string file in files)
+            Debugger.TryInvoke(() => loadedAssemblies.Add(Assembly.LoadFrom(file)));
+
+        Register(loadedAssemblies.ToArray());
     }
 
     public bool IsLoaded(IPlugin plugin)
@@ -44,29 +86,7 @@ public class PluginContext : IPluginContext
 
     public bool IsLoaded(Type type)
     {
-        return LoadedPlugins.Keys.Any(p => p.GetType() == type);
-    }
-
-    public void Load(IPlugin plugin)
-    {
-        if (IsLoaded(plugin))
-        {
-            Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(plugin)} '{plugin}' at '{plugin.GetType().Assembly.Location}'", LogType.WARNING);
-            return;
-        }
-
-        if (Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
-        {
-            LoadedPlugins.TryAdd(plugin, plugin.GetType().Assembly);
-
-            Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
-            Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
-        }
-    }
-
-    public void LoadFrom(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly)
-    {
-        Debugger.TryInvoke(() => LoadFromInternal(path, searchOption), $"{LOADFROM_ERROR} '{path}'");
+        return PluginTypes.Keys.Any(p => p.GetType() == type);
     }
 
     public void Unload(IPlugin plugin)
@@ -81,65 +101,20 @@ public class PluginContext : IPluginContext
 
     public void Unload(Type type)
     {
-        foreach (IPlugin p in LoadedPlugins.Keys.Where(p => p.GetType() == type))
+        foreach (IPlugin p in PluginTypes.Keys.Where(p => p.GetType() == type))
             UnloadInternal(p);
     }
 
     public void UnloadAll()
     {
-        foreach (IPlugin p in LoadedPlugins.Keys)
+        foreach (IPlugin p in PluginTypes.Keys)
             UnloadInternal(p);
-    }
-
-    private void LoadFromInternal(IPath path, SearchOption searchOption = SearchOption.TopDirectoryOnly)
-    {
-        string[] files = Directory.GetFiles(path.OriginalString ?? string.Empty, "*.dll", searchOption);
-
-        if (files.Length == 0)
-            return;
-
-        List<Assembly> loadedAssemblies = new();
-        foreach (string file in files)
-        {
-            try
-            {
-                loadedAssemblies.Add(Assembly.LoadFrom(file));
-            }
-            catch
-            {
-                //  ignored
-            }
-        }
-
-        IEnumerable<Type> loadedTypes = loadedAssemblies.SelectMany(assembly => assembly.GetTypes());
-        List<IPlugin> loadedPlugins = new();
-
-        foreach (Type type in loadedTypes)
-        {
-            if (!type.IsInterface && !type.IsAbstract && typeof(IPlugin).IsAssignableFrom(type))
-            {
-                if (IsLoaded(type))
-                {
-                    Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(type)} '{type}' at '{type.Assembly.Location}'", LogType.WARNING);
-                    continue;
-                }
-
-                if (Activator.CreateInstance(type) is IPlugin plugin && Debugger.TryInvoke(plugin.Load, $"{LOAD_ERROR} {GetSimpleTypeString(type)} '{plugin.Name}'"))
-                {
-                    loadedPlugins.Add(plugin);
-                    LoadedPlugins.TryAdd(plugin, type.Assembly);
-
-                    Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(type)} '{plugin.Name}'");
-                    Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
-                }
-            }
-        }
     }
 
     private void UnloadInternal(IPlugin plugin)
     {
         Debugger.TryInvoke(plugin.Unload, $"{UNLOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
-        LoadedPlugins.TryRemove(plugin, out _);
+        PluginTypes.TryRemove(plugin.GetType(), out _);
     }
 
     private static string GetSimpleTypeString(IPlugin plugin) => GetSimpleTypeString(plugin.GetType());

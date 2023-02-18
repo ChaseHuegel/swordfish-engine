@@ -1,6 +1,5 @@
 using System.Numerics;
 using ImGuiNET;
-using MicroResolver;
 using Swordfish.Graphics;
 
 namespace Swordfish.UI.Elements;
