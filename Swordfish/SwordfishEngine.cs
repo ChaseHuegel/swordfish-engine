@@ -73,28 +73,28 @@ public static class SwordfishEngine
         PluginContext.RegisterFrom(EnginePathService.Plugins, SearchOption.AllDirectories);
         PluginContext.RegisterFrom(EnginePathService.Mods, SearchOption.AllDirectories);
 
-        var engineResolver = new Container();
-        engineResolver.RegisterInstance(PluginContext);
-        engineResolver.RegisterInstance(MainWindow);
-        engineResolver.RegisterInstance(InputContext);
-        engineResolver.RegisterInstance(GL);
+        var resolver = new Container();
+        resolver.RegisterInstance(PluginContext);
+        resolver.RegisterInstance(MainWindow);
+        resolver.RegisterInstance(InputContext);
+        resolver.RegisterInstance(GL);
 
-        engineResolver.RegisterMany(PluginContext.GetRegisteredTypes(), Reuse.Singleton);
+        resolver.RegisterMany(PluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
-        engineResolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
-        engineResolver.Register<IRenderContext, RenderContext>(Reuse.Singleton);
-        engineResolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
+        resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
+        resolver.Register<IRenderContext, RenderContext>(Reuse.Singleton);
+        resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
-        engineResolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
+        resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 
-        engineResolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
-        engineResolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
+        resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
+        resolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        engineResolver.Register<IPathService, PathService>(Reuse.Singleton);
-        engineResolver.Register<IFileService, FileService>(Reuse.Singleton);
+        resolver.Register<IPathService, PathService>(Reuse.Singleton);
+        resolver.Register<IFileService, FileService>(Reuse.Singleton);
 
-        engineResolver.ValidateAndThrow();
-        Kernel = new Kernel(engineResolver);
+        resolver.ValidateAndThrow();
+        Kernel = new Kernel(resolver);
 
         Start();
     }
@@ -104,7 +104,7 @@ public static class SwordfishEngine
         IEnumerable<IPlugin> plugins = Kernel.GetAll<IPlugin>();
 
         //  Touch each plugin to trigger the ctor
-        foreach (var plugin in plugins)
+        foreach (IPlugin plugin in plugins)
             Debugger.Log($"Initialized plugin '{plugin.Name}'.");
 
         Kernel.Get<IECSContext>().Start();

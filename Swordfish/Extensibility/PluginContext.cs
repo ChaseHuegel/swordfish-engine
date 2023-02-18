@@ -25,6 +25,8 @@ public class PluginContext : IPluginContext
 
     public void InvokeStart(IEnumerable<IPlugin> plugins)
     {
+        //  TODO plugins should be given their own threads
+        //  TODO re-enable this once the GL renderer is made thread-safe
         // Parallel.ForEach(plugins, ForEachPlugin);
         // ThreadPool.QueueUserWorkItem(WorkCallback);
         // void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
