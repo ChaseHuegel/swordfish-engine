@@ -45,15 +45,16 @@ public static class SwordfishEngine
         options.ShouldSwapAutomatically = true;
 
         MainWindow = Window.Create(options);
-        MainWindow.Load += OnWindowLoaded;
-        MainWindow.Closing += OnWindowClosing;
-        MainWindow.Run();
     }
 
     static void Main(string[] args)
     {
         if (args.Contains("-debug") && !AttachConsole(-1))
             AllocConsole();
+
+        MainWindow.Load += OnWindowLoaded;
+        MainWindow.Closing += OnWindowClosing;
+        MainWindow.Run();
     }
 
     private static void OnWindowClosing()
