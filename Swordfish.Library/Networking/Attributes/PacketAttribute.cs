@@ -9,6 +9,8 @@ namespace Swordfish.Library.Networking.Attributes
 
         public bool Ordered = false;
 
+        public bool Reliable = false;
+
         public int? PacketID;
     }
 }

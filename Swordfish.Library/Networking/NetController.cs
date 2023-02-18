@@ -4,29 +4,55 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-
+using System.Timers;
 using Needlefish;
-
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Packets;
+using Swordfish.Library.Threading;
 
 namespace Swordfish.Library.Networking
 {
     public class NetController
     {
-        private class SequencePair {
+        private class SequencePair
+        {
             public uint Sent, Received;
         }
 
+        private class ReliablePacket
+        {
+            public DateTime Timestamp;
+            public int PacketID;
+            public uint PacketSequence;
+            public byte[] OriginalBuffer;
+        }
+
         private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
+
+        private ThreadWorker ThreadWorker { get; set; }
 
         private UdpClient Udp { get; set; }
 
         private IPEndPoint EndPoint { get; set; }
 
+        private Timer KeepAliveTimer { get; set; }
+
+        private NetControllerSettings Settings { get; set; }
+
         private ConcurrentDictionary<IPEndPoint, NetSession> Sessions { get; set; }
 
         private ConcurrentDictionary<int, SequencePair> PacketSequences { get; set; }
+
+        private ConcurrentDictionary<IPEndPoint, List<ReliablePacket>> SentReliablePackets { get; set; }
+
+        /// <summary>
+        /// The time it takes for a session to expire.
+        /// Any communication will refresh a session's expiration.
+        /// Zero disables this behavior.
+        /// </summary>
+        internal TimeSpan SessionExpiration { get; private set; }
+
+        public NetStatsService Stats { get; private set; }
 
         /// <summary>
         /// Returns a snapshot collection of the valid sessions trusted by this <see cref="NetController"/>.
@@ -36,8 +62,14 @@ namespace Swordfish.Library.Networking
         /// <summary>
         /// The default <see cref="Host"/> to communicate with
         /// if overrides aren't provided to <see cref="Send"/>.
+        /// Typically this would be the server for a client.
         /// </summary>
         public Host DefaultHost { get; set; }
+
+        /// <summary>
+        /// The maximum number of sessions allowed to be active.
+        /// </summary>
+        public int MaxSessions { get; set; } = NetControllerSettings.DefaultMaxSessions;
 
         /// <summary>
         /// The current session of this <see cref="NetController"/>.
@@ -45,14 +77,9 @@ namespace Swordfish.Library.Networking
         public NetSession Session { get; private set; }
 
         /// <summary>
-        /// The maximum number of sessions allowed to be active.
-        /// </summary>
-        public int MaxSessions { get; set; } = 20;
-        
-        /// <summary>
         /// The number of sessions currently active.
         /// </summary>
-        public int SessionCount => Sessions.Count-1;    // -1 to not count the local session
+        public int SessionCount => Sessions.Count - 1;    // -1 to not count the local session
 
         /// <summary>
         /// Whether this <see cref="NetController"/> has reached it's max active sessions.
@@ -102,21 +129,21 @@ namespace Swordfish.Library.Networking
         /// Initialize a NetController that automatically binds.
         /// This should be used by a client or client-as-server.
         /// </summary>
-        public NetController() => Initialize(null, 0, null);
+        public NetController() => Initialize(default);
 
         /// <summary>
         /// Initialize a NetController that automatically binds and communicates with a host.
         /// This should be used by a client.
         /// </summary>
-        /// <param name="host">the host to communicate with</param>
-        public NetController(Host host) => Initialize(null, 0, host);
+        /// <param name="defaultHost">the host to communicate with</param>
+        public NetController(Host defaultHost) => Initialize(new NetControllerSettings(defaultHost));
 
         /// <summary>
         /// Initialize a NetController bound to a port.
         /// This should be used by a server or client-as-server.
         /// </summary>
         /// <param name="port">the port to bind to</param>
-        public NetController(int port) => Initialize(null, port, null);
+        public NetController(int port) => Initialize(new NetControllerSettings(port));
 
         /// <summary>
         /// Initialize a NetController bound to an address and port. 
@@ -124,42 +151,73 @@ namespace Swordfish.Library.Networking
         /// </summary>
         /// <param name="address">the <see cref="IPAddress"/> to bind to</param>
         /// <param name="port">the port to bind to</param>
-        public NetController(IPAddress address, int port) => Initialize(address, port, null);
+        public NetController(IPAddress address, int port) => Initialize(new NetControllerSettings(address, port));
 
-        private void Initialize(IPAddress address, int port, Host host)
+        /// <summary>
+        /// Initialize a NetController using the provided settings.
+        /// </summary>
+        public NetController(NetControllerSettings settings) => Initialize(settings);
+
+        private void Initialize(NetControllerSettings settings)
         {
-            try {
-                if (address == null)
+            Stats = new NetStatsService();
+            Settings = settings;
+
+            Udp?.Close();
+            KeepAliveTimer?.Dispose();
+            ThreadWorker?.Stop();
+
+            try
+            {
+                if (settings.Address == null)
                 {
-                    //  Bind automatically if no address or port is provided.
-                    if (port <= 0)
-                        Udp = new UdpClient(0);
-                    //  Bind to a provided port and automatic address.
+                    if (settings.AddressFamily > AddressFamily.Unspecified)
+                        Udp = new UdpClient(settings.Port, settings.AddressFamily);
                     else
-                        Udp = new UdpClient(port);
+                        Udp = new UdpClient(settings.Port);
                 }
                 else
                 {
                     //  Bind to provided address and port.
-                    var endPoint = new IPEndPoint(address, port);
+                    IPEndPoint endPoint = new IPEndPoint(settings.Address, settings.Port);
                     Udp = new UdpClient(endPoint);
                 }
 
                 PacketSequences = new ConcurrentDictionary<int, SequencePair>();
-                
+                SentReliablePackets = new ConcurrentDictionary<IPEndPoint, List<ReliablePacket>>();
+
                 InitializeSessions();
 
-                DefaultHost = host ?? new Host{
+                //  If a host isn't provided, default to ourself/the local host
+                DefaultHost = settings.DefaultHost ?? new Host
+                {
                     Address = Session.EndPoint.Address,
                     Port = Session.EndPoint.Port
                 };
 
+                ThreadWorker = new ThreadWorker(Heartbeat, $"NetController ({GetType()})")
+                {
+                    TargetTickRate = settings.TickRate > 0 ? settings.TickRate : NetControllerSettings.DefaultTickRate
+                };
+
+                if (settings.KeepAlive.TotalMilliseconds > 0)
+                {
+                    KeepAliveTimer = new Timer(settings.KeepAlive.TotalMilliseconds)
+                    {
+                        AutoReset = true
+                    };
+                    KeepAliveTimer.Elapsed += OnKeepAlive;
+                    KeepAliveTimer.Start();
+                }
+
+                SessionExpiration = settings.SessionExpiration;
+
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-                Debug.Log($"NetController session started [{Session}]");
+                Debugger.Log($"NetController session started [{Session}] with settings [{settings}]");
             }
             catch (Exception ex)
             {
-                Debug.Log($"NetController failed to start on [{port}]\n{ex}", LogType.ERROR);
+                Debugger.Log($"NetController failed to start with settings [{settings}]\n{ex}", LogType.ERROR);
             }
         }
 
@@ -170,11 +228,16 @@ namespace Swordfish.Library.Networking
                 foreach (NetSession session in Sessions.Values)
                 {
                     if (session.ID != NetSession.LocalOrUnassigned)
-                        SessionEnded?.Invoke(this, new NetEventArgs {
+                    {
+                        SessionEnded?.Invoke(this, new NetEventArgs
+                        {
                             EndPoint = session.EndPoint,
                             Session = session
                         });
+                    }
                 }
+
+                Sessions.Clear();
             }
 
             Sessions = new ConcurrentDictionary<IPEndPoint, NetSession>();
@@ -184,12 +247,27 @@ namespace Swordfish.Library.Networking
             Session = localSession;
         }
 
+        private void Heartbeat(float deltaTime)
+        {
+            //  Handle following up on reliable packets that are outstanding
+            foreach (KeyValuePair<IPEndPoint, List<ReliablePacket>> item in SentReliablePackets)
+            {
+                for (int i = 0; i < item.Value.Count; i++)
+                {
+                    ReliablePacket reliablePacket = item.Value[i];
+                    TimeSpan timeElapsed = DateTime.UtcNow - reliablePacket.Timestamp;
+                    if (timeElapsed.Milliseconds > 200)
+                    {
+                        SendRaw(reliablePacket.OriginalBuffer, item.Key);
+                    }
+                }
+            }
+        }
+
         private void OnSend(IAsyncResult result)
         {
             Udp.EndSend(result);
-            PacketSent?.Invoke(this, (NetEventArgs) result.AsyncState);
-            
-            //  TODO If it isn't a fire and forget packet, we should resend with a delay until a response is received
+            PacketSent?.Invoke(this, (NetEventArgs)result.AsyncState);
         }
 
         private void OnReceive(IAsyncResult result)
@@ -198,28 +276,39 @@ namespace Swordfish.Library.Networking
 
             byte[] buffer;
             Packet packet;
-            try {
+            try
+            {
                 buffer = Udp.EndReceive(result, ref endPoint);
                 packet = NeedlefishFormatter.Deserialize<Packet>(buffer);
             }
-            catch (SocketException)
+            catch (ObjectDisposedException)
             {
-                //  There was a connection issue, continue receiving data.
+                //  The UDP client has been disposed. Reset.
+                Initialize(Settings);
+                return;
+            }
+            catch
+            {
+                //  If there was some other issue just move on and keep listening.
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
                 return;
             }
 
-            NetEventArgs netEventArgs = new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs
+            {
                 Packet = packet,
                 EndPoint = endPoint
             };
 
-            try {
+            try
+            {
                 PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet.PacketID);
                 SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
                 netEventArgs.PacketID = packet.PacketID;
 
+                Stats.RecordPacketRecieved();
+                Stats.RecordBytesIn(buffer.Length);
                 PacketReceived?.Invoke(this, netEventArgs);
 
                 //  The packet is accepted if:
@@ -228,18 +317,39 @@ namespace Swordfish.Library.Networking
                 //  -   AND the sequence is new IF the packet is ordered
                 NetSession session = null;
                 if ((!packetDefinition.RequiresSession || IsSessionValid(endPoint, packet.SessionID, out session))
-                    && (packetDefinition.Ordered ? packet.Sequence >= currentSequence.Received : true))
+                    && (!packetDefinition.Ordered || packet.Sequence >= currentSequence.Received))
                 {
+                    //  Any valid communication should refresh sessions.
+                    session?.RefreshExpiration();
+
                     //  Update this packet sequence
                     currentSequence.Received = packet.Sequence;
 
                     //  Deserialize the data and invoke the packet's handlers
                     IDataBody deserializeData = NeedlefishFormatter.Deserialize(packetDefinition.Type, buffer);
 
+                    //  Process reliable packets
+                    if (packetDefinition.Reliable)
+                    {
+                        //  If it is an ack, then one of our reliable packets has been received.
+                        if (packetDefinition.Type == typeof(AckPacket))
+                        {
+                            AckPacket ack = (AckPacket)deserializeData;
+                            UnregisterReliablePacket(endPoint, ack.AckPacketID, ack.AckSequence);
+                        }
+                        //  Else, we should ack this packet.
+                        else
+                        {
+                            Send(AckPacket.New(packet.PacketID, packet.Sequence), endPoint);
+                        }
+                    }
+
                     netEventArgs.Packet = (Packet)deserializeData;
                     netEventArgs.Session = session;
+                    Stats.RecordPacketAccepted();
+                    Stats.RecordBytesAccepted(buffer.Length);
                     PacketAccepted?.Invoke(this, netEventArgs);
-                    
+
                     foreach (PacketHandler handler in packetDefinition.Handlers)
                     {
                         switch (handler.Type)
@@ -258,17 +368,23 @@ namespace Swordfish.Library.Networking
                 }
                 else
                 {
+                    Stats.RecordPacketRejected();
                     PacketRejected?.Invoke(this, netEventArgs);
                 }
             }
             catch (Exception e)
             {
-                Debug.Log(e, LogType.ERROR);
+                Debugger.Log(e, LogType.ERROR);
                 PacketUnknown?.Invoke(this, netEventArgs);
             }
 
             //  Continue receiving data
             Udp.BeginReceive(new AsyncCallback(OnReceive), null);
+        }
+
+        private void OnKeepAlive(object sender, ElapsedEventArgs e)
+        {
+            Broadcast<PingPacket>();
         }
 
         private bool IsSessionValid(IPEndPoint endPoint, int sessionID, out NetSession netSession)
@@ -279,9 +395,40 @@ namespace Swordfish.Library.Networking
             return validEndpoint && validID;
         }
 
-        private byte[] SignPacket(Packet packet)
+        private void RegisterReliablePacket(IPEndPoint endPoint, Packet packet, byte[] buffer)
         {
-            PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet);
+            List<ReliablePacket> ReliablePacketListFactory(IPEndPoint arg) => new List<ReliablePacket>();
+            List<ReliablePacket> reliablePackets = SentReliablePackets.GetOrAdd(endPoint, ReliablePacketListFactory);
+            ReliablePacket reliablePacket = new ReliablePacket
+            {
+                Timestamp = DateTime.UtcNow,
+                PacketID = packet.PacketID,
+                PacketSequence = packet.Sequence,
+                OriginalBuffer = buffer
+            };
+
+            reliablePackets.Add(reliablePacket);
+        }
+
+        private void UnregisterReliablePacket(IPEndPoint endPoint, int packetID, uint sequence)
+        {
+            if (SentReliablePackets.TryGetValue(endPoint, out List<ReliablePacket> reliablePackets))
+            {
+                for (int i = 0; i < reliablePackets.Count; i++)
+                {
+                    ReliablePacket reliablePacket = reliablePackets[i];
+                    if (reliablePacket.PacketID == packetID && reliablePacket.PacketSequence == sequence)
+                    {
+                        reliablePackets.RemoveAt(i);
+                        break;
+                    }
+                }
+            }
+        }
+
+        private byte[] SignPacket(Packet packet, out PacketDefinition packetDefinition)
+        {
+            packetDefinition = PacketManager.GetPacketDefinition(packet);
             SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
 
             packet.SessionID = Session.ID;
@@ -297,48 +444,58 @@ namespace Swordfish.Library.Networking
             if (string.IsNullOrEmpty(DefaultHost.Hostname))
                 Send(packet, DefaultHost.EndPoint.Address, DefaultHost.EndPoint.Port);
             else
-                Send(packet, DefaultHost.Hostname, DefaultHost.Port);
+                Send(packet, NetUtils.GetHostAddress(DefaultHost.Hostname), DefaultHost.Port);
         }
 
         public void Send(Packet packet, NetSession session) => Send(packet, session.EndPoint.Address, session.EndPoint.Port);
 
         public void Send(Packet packet, IPEndPoint endPoint) => Send(packet, endPoint.Address, endPoint.Port);
 
+        public void Send(Packet packet, string hostname, int port) => Send(packet, NetUtils.GetHostAddress(hostname), port);
+
         public void Send(Packet packet, IPAddress address, int port)
         {
             if (EndPoint == null)
                 EndPoint = new IPEndPoint(address, port);
-            
+
             EndPoint.Address = address;
             EndPoint.Port = port;
 
-            NetEventArgs netEventArgs = new NetEventArgs {
+            NetEventArgs netEventArgs = new NetEventArgs
+            {
                 Packet = packet,
                 PacketID = packet.PacketID,
                 EndPoint = EndPoint
             };
-            
-            byte[] buffer = SignPacket(packet);
-            Udp.BeginSend(buffer, buffer.Length, EndPoint, OnSend, netEventArgs);
+
+            byte[] buffer = SignPacket(packet, out PacketDefinition packetDefinition);
+
+            if (packetDefinition.Reliable)
+                RegisterReliablePacket(EndPoint, packet, buffer);
+
+            SendRaw(buffer, EndPoint, netEventArgs);
         }
 
-        public void Send(Packet packet, string hostname, int port)
+        private void SendRaw(byte[] buffer, IPEndPoint endPoint, NetEventArgs netEventArgs = null)
         {
-            IPEndPoint endPoint = new IPEndPoint(NetUtils.GetHostAddress(hostname), port);
+            if (netEventArgs == null)
+            {
+                netEventArgs = new NetEventArgs
+                {
+                    Packet = new Packet(),
+                    PacketID = 0,
+                    EndPoint = EndPoint
+                };
+            }
 
-            NetEventArgs netEventArgs = new NetEventArgs {
-                Packet = packet,
-                PacketID = packet.PacketID,
-                EndPoint = endPoint
-            };
-
-            byte[] buffer = SignPacket(packet);
-            Udp.BeginSend(buffer, buffer.Length, hostname, port, OnSend, netEventArgs);
+            Stats.RecordPacketSent();
+            Stats.RecordBytesOut(buffer.Length);
+            Udp.BeginSend(buffer, buffer.Length, endPoint, OnSend, netEventArgs);
         }
 
-        public void Broadcast<T>() where T : Packet
+        public void Broadcast<T>() where T : Packet, new()
         {
-            Broadcast(default(T));
+            Broadcast(new T());
         }
 
         public void Broadcast(Packet packet)
@@ -363,19 +520,14 @@ namespace Swordfish.Library.Networking
         {
             if (IsConnected)
             {
+                Debugger.Log($"NetController session [{Session}] disconnected.");
                 Broadcast<DisconnectPacket>();
-                InvokeLocalDisconnect();
+                Disconnected?.Invoke(this, NetEventArgs.Empty);
             }
             else
             {
-                Debug.Log("Tried to disconnect but there are no active sessions.", LogType.WARNING);
+                Debugger.Log("Tried to disconnect but there are no active sessions to disconnect from.", LogType.WARNING);
             }
-        }
-
-        internal void InvokeLocalDisconnect()
-        {
-            InitializeSessions();
-            Disconnected?.Invoke(this, NetEventArgs.Empty);
         }
 
         /// <summary>
@@ -390,7 +542,7 @@ namespace Swordfish.Library.Networking
             if (TryAddSession(endPoint, out session))
             {
                 session.ID = id;
-                return true;   
+                return true;
             }
 
             return false;
@@ -404,31 +556,36 @@ namespace Swordfish.Library.Networking
         /// <returns>true if the session was added; otherwise false</returns>
         public bool TryAddSession(IPEndPoint endPoint, out NetSession session)
         {
-            session = new NetSession {
+            session = new NetSession(this)
+            {
                 EndPoint = endPoint
             };
 
             if (!IsFull && Sessions.TryAdd(endPoint, session))
             {
                 //  TODO recycle session IDs
-                session.ID = Sessions.Count-1;
+                session.ID = Sessions.Count - 1;
 
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
-                    SessionStarted?.Invoke(this, new NetEventArgs {
+                    SessionStarted?.Invoke(this, new NetEventArgs
+                    {
                         EndPoint = endPoint,
                         Session = session
                     });
                 }
 
+                Stats.RecordSessionStarted();
                 return true;
             }
             else
             {
-                SessionRejected?.Invoke(this, new NetEventArgs {
+                SessionRejected?.Invoke(this, new NetEventArgs
+                {
                     EndPoint = endPoint
                 });
 
+                Stats.RecordSessionRejected();
                 return false;
             }
         }
@@ -438,10 +595,10 @@ namespace Swordfish.Library.Networking
         /// </summary>
         /// <param name="id">the id of the session to remove</param>
         /// <returns>true if the session was removed; otherwise false</returns>
-        public bool TryRemoveSession(int id)
+        public bool TryRemoveSession(int id, SessionEndedReason reason = SessionEndedReason.CLOSED)
         {
             NetSession session = Sessions.FirstOrDefault(record => record.Value.ID == id).Value;
-            return session != null && TryRemoveSession(session);
+            return session != null && TryRemoveSession(session, reason);
         }
 
         /// <summary>
@@ -451,21 +608,40 @@ namespace Swordfish.Library.Networking
         /// <returns>true if the session was removed; otherwise false</returns>
         /// <exception cref="ArgumentNullException">session is null.</exception>
         /// <exception cref="ArgumentException">session is the local session.</exception>
-        public bool TryRemoveSession(NetSession session)
+        public bool TryRemoveSession(NetSession session, SessionEndedReason reason = SessionEndedReason.CLOSED)
         {
             if (session == null)
                 throw new ArgumentNullException();
             else if (session.Equals(Session))
                 throw new ArgumentException();
-            
+
             if (Sessions.TryRemove(session.EndPoint, out _))
             {
+                Debugger.Log($"Session [{session}] ended [{reason}]");
+
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
-                    SessionEnded?.Invoke(this, new NetEventArgs {
+                    //  Inform the session holder they've been disconnected.
+                    Send(new DisconnectPacket(), session.EndPoint);
+
+                    SessionEnded?.Invoke(this, new NetEventArgs
+                    {
                         EndPoint = session.EndPoint,
                         Session = session
                     });
+                }
+
+                switch (reason)
+                {
+                    case SessionEndedReason.CLOSED:
+                        Stats.RecordSessionClosed();
+                        break;
+                    case SessionEndedReason.DISCONNECTED:
+                        Stats.RecordSessionDisconnected();
+                        break;
+                    case SessionEndedReason.EXPIRED:
+                        Stats.RecordSessionExpired();
+                        break;
                 }
 
                 return true;

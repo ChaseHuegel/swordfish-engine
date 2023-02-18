@@ -1,0 +1,17 @@
+using Swordfish.Extensibility;
+
+namespace NewProject;
+
+public class NewPlugin : Plugin
+{
+    public override string Name => "New Plugin";
+    public override string Description => "";
+
+    public override void Load()
+    {
+    }
+
+    public override void Initialize()
+    {
+    }
+}

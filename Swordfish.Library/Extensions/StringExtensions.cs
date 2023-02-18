@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace Swordfish.Library.Extensions
 {
@@ -9,7 +11,7 @@ namespace Swordfish.Library.Extensions
         {
             if (string.IsNullOrEmpty(value))
                 return value;
-            
+
             return value.Substring(0, Math.Min(value.Length, minLength > 0 ? Math.Min(count, minLength) : count));
         }
 
@@ -53,7 +55,7 @@ namespace Swordfish.Library.Extensions
             int seed = value.Length;
             foreach (char c in value)
                 seed = ((seed << 5) + seed) ^ c;
-            
+
             return seed;
         }
 
@@ -71,8 +73,28 @@ namespace Swordfish.Library.Extensions
         {
             foreach (char entry in without)
                 value = String.Join(string.Empty, value.Split(entry));
-            
+
             return value;
+        }
+
+        public static string ToTitle(this string value)
+        {
+            return string.Join(" ",
+                Regex.Matches(value, @"([A-Z]+(?![a-z])|[A-Z][a-z]+|[0-9]+|[a-z]+)")
+                .OfType<Match>()
+                .Select(match => match.Value)
+            );
+        }
+
+        public static string Substitute(this string value, char newChar, params char[] oldChars)
+        {
+            return value.Substitute(newChar.ToString(), oldChars);
+        }
+
+        public static string Substitute(this string value, string newString, params char[] oldChars)
+        {
+            string[] splitValue = value.Split(oldChars);
+            return string.Join(newString, splitValue);
         }
     }
 }

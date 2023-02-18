@@ -2,11 +2,10 @@ using System;
 using System.Reflection;
 
 using Needlefish;
-
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Networking.Attributes;
-using Swordfish.Library.Types;
 
 namespace Swordfish.Library.Networking
 {
@@ -48,31 +47,31 @@ namespace Swordfish.Library.Networking
         {
             bool logged = false;
             foreach (Type type in assembly.GetTypes())
-            foreach (MethodInfo method in type.GetMethods())
-            {
-                PacketHandlerAttribute packetHandlerAttribute = method.GetCustomAttribute<PacketHandlerAttribute>();
-                if (packetHandlerAttribute != null)
+                foreach (MethodInfo method in type.GetMethods())
                 {
-                    if (!logged)
+                    PacketHandlerAttribute packetHandlerAttribute = method.GetCustomAttribute<PacketHandlerAttribute>();
+                    if (packetHandlerAttribute != null)
                     {
-                        Debug.Log($"Registering packet handlers from assembly '{assembly}'...");
-                        logged = true;
-                    }
+                        if (!logged)
+                        {
+                            Debugger.Log($"Registering packet handlers from assembly '{assembly}'...");
+                            logged = true;
+                        }
 
-                    if (IsValidHandlerParameters(method.GetParameters()))
-                    {
-                        if (packetHandlerAttribute.PacketType == null)
-                            packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
+                        if (IsValidHandlerParameters(method.GetParameters()))
+                        {
+                            if (packetHandlerAttribute.PacketType == null)
+                                packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
 
-                        GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
-                        Debug.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
-                    }
-                    else
-                    {
-                        Debug.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
+                            GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
+                            Debugger.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
+                        }
+                        else
+                        {
+                            Debugger.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
+                        }
                     }
                 }
-            }
         }
 
         private static void RegisterPackets(Assembly assembly)
@@ -85,25 +84,28 @@ namespace Swordfish.Library.Networking
                 {
                     if (!logged)
                     {
-                        Debug.Log($"Registering packets from assembly '{assembly}'...");
+                        Debugger.Log($"Registering packets from assembly '{assembly}'...");
                         logged = true;
                     }
 
                     if (typeof(IDataBody).IsAssignableFrom(type))
                     {
                         int id = packetAttribute.PacketID ?? type.FullName.ToSeed();
-                        PacketDefinition definition = new PacketDefinition {
+                        PacketDefinition definition = new PacketDefinition
+                        {
                             ID = id,
                             Type = type,
-                            RequiresSession = packetAttribute.RequiresSession
+                            RequiresSession = packetAttribute.RequiresSession,
+                            Ordered = packetAttribute.Ordered,
+                            Reliable = packetAttribute.Reliable
                         };
 
                         PacketDefinitions.Add(id, definition.Type, definition);
-                        Debug.Log(definition, LogType.CONTINUED);
+                        Debugger.Log(definition, LogType.CONTINUED);
                     }
                     else
                     {
-                        Debug.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
+                        Debugger.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
                     }
                 }
             }

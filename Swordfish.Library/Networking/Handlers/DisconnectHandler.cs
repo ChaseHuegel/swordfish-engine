@@ -8,12 +8,12 @@ namespace Swordfish.Library.Networking.Handlers
     {
         [PacketHandler]
         public static void AgnosticDisconnectHandler(NetController net, DisconnectPacket packet, NetEventArgs e)
-        {            
-            if (!net.TryRemoveSession(e.Session))
-                Debug.Log($"Failed to end session for {e.EndPoint}.", LogType.WARNING);
-            
+        {
+            if (!net.TryRemoveSession(e.Session, SessionEndedReason.DISCONNECTED))
+                Debugger.Log($"Failed to end session for {e.EndPoint}.", LogType.WARNING);
+
             if (net is NetClient && !net.IsConnected)
-                net.InvokeLocalDisconnect();
+                net.Disconnect();
         }
     }
 }

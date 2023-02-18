@@ -17,9 +17,11 @@ namespace Swordfish.Library.Networking
 
         public bool Ordered { get; set; }
 
+        public bool Reliable { get; set; }
+
         public override string ToString()
         {
-            return $"{Type} [id: {ID}] [requires session: {RequiresSession}] [ordered: {Ordered}]";
+            return $"{Type} [id: {ID}] [requires session: {RequiresSession}] [ordered: {Ordered}] [reliable: {Reliable}]";
         }
     }
 }

@@ -1,5 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using Swordfish.Library.Extensions;
 
 namespace Swordfish.Library.Diagnostics
 {
@@ -14,6 +18,10 @@ namespace Swordfish.Library.Diagnostics
 
     public static class Logger
     {
+        public static EventHandler<LogEventArgs> Logged;
+
+        public static List<LogEventArgs> History { get; }
+
         public static bool HasErrors { get; private set; }
 
         internal static LogWriter Writer { get; private set; }
@@ -25,26 +33,41 @@ namespace Swordfish.Library.Diagnostics
 
         static Logger()
         {
-            //  Create a writer that mirrors to the console
+            //  Create a writer that mirrors the console
             Writer = new LogWriter(Console.Out);
+            History = new List<LogEventArgs>();
+            Logged += (sender, args) => History.Add(args);
 
-            //  Set the Console output to the Debug writer
-            Console.SetOut(Writer);
-
-            Write("Logger initialized");
+            Write("Logger initialized.");
         }
 
-        public static void Pad() => Console.WriteLine("");
-
-        public static void Write(string message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false) => Write(message, "", type);
-
-        public static void Write(string message, string title, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, [CallerLineNumber] int lineNumber = 0,
-            [CallerMemberName] string caller = null, [CallerFilePath] string callerPath = null)
+        public static List<string> GetLines()
         {
-            if (!snuff && (type == LogType.ERROR || type == LogType.WARNING))
+            return Writer.GetLines();
+        }
+
+        public static void Pad()
+        {
+            Writer.WriteLine();
+            Logged?.Invoke(Writer, new LogEventArgs(Writer.NewLine, Writer.NewLine, string.Empty, LogType.NONE));
+        }
+
+        public static void Write(string message, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, StackTrace trace = null) => Write(message, string.Empty, type);
+
+        public static void Write(string message, string title, LogType type = LogType.INFO, bool timestamp = false, bool snuff = false, StackTrace trace = null)
+        {
+            if (type == LogType.ERROR || type == LogType.WARNING)
             {
-                //  Tag on a trace to the error
-                message += "\n      at line " + lineNumber + " (" + caller + ") in " + callerPath;
+                if (!snuff)
+                {
+                    if (trace == null)
+                        trace = new StackTrace(2, true);
+
+                    if (type == LogType.ERROR)
+                        message += trace.GetFrames().Take(5).ToFormattedString();
+                    else
+                        message += trace.GetFrames().Take(1).ToFormattedString();
+                }
 
                 // Flag that the debugger has errors
                 HasErrors = true;
@@ -54,24 +77,25 @@ namespace Swordfish.Library.Diagnostics
                 title += ": ";
 
             string output = $"{title}{message}";
-            
+
             if (timestamp)
                 output = $"[{DateTime.Now}] {output}";
-            
+
             switch (type)
             {
                 case LogType.NONE:
                     //  Don't modify the output
                     break;
                 case LogType.CONTINUED:
-                    output = $"    {output}";
+                    output = $"\t{output}";
                     break;
                 default:
-                    output = $"[{type.ToString()}] {output}";
+                    output = $"[{type}] {output}";
                     break;
             }
-            
-            Console.WriteLine(output);
+
+            Writer.WriteLine(output);
+            Logged?.Invoke(Writer, new LogEventArgs(output, message, title, type));
         }
     }
 }

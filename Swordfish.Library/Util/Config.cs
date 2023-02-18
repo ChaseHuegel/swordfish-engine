@@ -16,7 +16,7 @@ namespace Swordfish.Library.Util
         {
             string tomlString = "";
             T config = Activator.CreateInstance<T>();
-            Debug.Log($"Loading {typeof(T).Name} from '{path}' ...");
+            Debugger.Log($"Loading {typeof(T).Name} from '{path}' ...");
 
             try
             {
@@ -27,22 +27,22 @@ namespace Swordfish.Library.Util
                 tomlString = TomletMain.DocumentFrom<T>(config).SerializedValue;
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, tomlString);
-                Debug.Log($"...{typeof(T).Name} was not found, created from default at '{Path.GetFileName(path)}'", LogType.WARNING);
+                Debugger.Log($"...{typeof(T).Name} was not found, created from default at '{Path.GetFileName(path)}'", LogType.WARNING);
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message, LogType.ERROR);
+                Debugger.Log(e.Message, LogType.ERROR);
             }
 
             try
             {
                 config = TomletMain.To<T>(tomlString);
-                Debug.Log($"Loaded {typeof(T).Name}.");
+                Debugger.Log($"Loaded {typeof(T).Name}.");
             }
             catch (Exception e)
             {
-                Debug.Log(e.Message);
-                Debug.Log($"Falling back to default {typeof(T).Name}.", LogType.WARNING);
+                Debugger.Log(e.Message);
+                Debugger.Log($"Falling back to default {typeof(T).Name}.", LogType.WARNING);
             }
 
             return config;

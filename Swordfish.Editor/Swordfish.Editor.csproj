@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Swordfish\Swordfish.csproj">
+      <Private>false</Private>
+      <IncludeAssets>compile</IncludeAssets>
+    </ProjectReference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <TargetFramework>net7.0</TargetFramework>
+    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/plugins/$(AssemblyName)</OutputPath>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <PreserveCompilationContext>false</PreserveCompilationContext>
+    <PreserveCompilationReferences>false</PreserveCompilationReferences>
+    <ProduceReferenceAssemblyInOutDir>false</ProduceReferenceAssemblyInOutDir>
+    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="shaders\**\*.*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="resources\**\*.*">
+      <Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Manifest\**\*.*"/>
+  </ItemGroup>
+
+</Project>

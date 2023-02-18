@@ -20,7 +20,7 @@ namespace Swordfish.Library.Extensions
             SmoothingMode smoothing = SmoothingMode.None,
             PixelOffsetMode offset = PixelOffsetMode.Half)
         {
-            using (Graphics g = Graphics.FromImage(input))
+            using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(input))
             {
                 g.InterpolationMode = interpolation;
                 g.SmoothingMode = smoothing;
@@ -37,7 +37,7 @@ namespace Swordfish.Library.Extensions
         public static void SetGamma(this Bitmap input, float gamma = 1f)
         {
             ImageAttributes attributes = new ImageAttributes();
-            attributes.SetGamma(1f/gamma);  //  Set gamma is a reversed scale, convert the input value
+            attributes.SetGamma(1f / gamma);  //  Set gamma is a reversed scale, convert the input value
 
             Rectangle rect = new Rectangle(0, 0, input.Width, input.Height);
 
@@ -48,7 +48,7 @@ namespace Swordfish.Library.Extensions
                 new Point(0, input.Height),
             };
 
-            using (Graphics g = Graphics.FromImage(input))
+            using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(input))
             {
                 g.DrawImage(input, points, rect, GraphicsUnit.Pixel, attributes);
             }

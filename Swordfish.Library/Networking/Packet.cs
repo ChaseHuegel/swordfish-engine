@@ -7,7 +7,7 @@ namespace Swordfish.Library.Networking
     {
         [DataField(0)]
         public int SessionID;
-        
+
         [DataField(1)]
         public int PacketID;
 

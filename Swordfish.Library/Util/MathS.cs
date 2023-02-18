@@ -2,8 +2,12 @@ using System;
 
 namespace Swordfish.Library.Util
 {
-	public class MathS
-	{
+    public static class MathS
+    {
+        public const float DegreesToRadians = MathF.PI / 180f;
+
+        public static readonly Random Random = new Random();
+
         public static float Lerp(float start, float end, float value)
         {
             return start + value * (end - start);

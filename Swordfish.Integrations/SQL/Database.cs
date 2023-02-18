@@ -36,7 +36,7 @@ namespace Swordfish.Integrations.SQL
             }
             catch (Exception ex)
             {
-                Debug.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
+                Debugger.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
                 return false;
             }
         }
@@ -58,7 +58,7 @@ namespace Swordfish.Integrations.SQL
             }
             catch (Exception ex)
             {
-                Debug.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
+                Debugger.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
                 return new QueryResult(null);
             }
         }

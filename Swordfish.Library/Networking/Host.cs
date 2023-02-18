@@ -1,5 +1,5 @@
-using System.Net;
 using System;
+using System.Net;
 
 namespace Swordfish.Library.Networking
 {
@@ -10,35 +10,43 @@ namespace Swordfish.Library.Networking
         private int m_Port;
         private IPEndPoint m_EndPoint;
 
-        public string Hostname {
+        public string Hostname
+        {
             get => m_Hostname;
-            set {
+            set
+            {
                 m_Hostname = value;
                 m_Address = NetUtils.GetHostAddress(value);
                 UpdateEndPoint();
             }
         }
 
-        public IPAddress Address {
+        public IPAddress Address
+        {
             get => m_Address;
-            set {
+            set
+            {
                 m_Address = value;
                 m_Hostname = string.Empty;
                 UpdateEndPoint();
             }
         }
 
-        public int Port {
+        public int Port
+        {
             get => m_Port;
-            set {
+            set
+            {
                 m_Port = value;
                 UpdateEndPoint();
             }
         }
 
-        public IPEndPoint EndPoint {
+        public IPEndPoint EndPoint
+        {
             get => m_EndPoint;
-            set {
+            set
+            {
                 m_EndPoint = value;
                 m_Address = value.Address;
                 m_Hostname = string.Empty;
@@ -50,7 +58,7 @@ namespace Swordfish.Library.Networking
         {
             if (m_EndPoint == null)
                 m_EndPoint = new IPEndPoint(m_Address, m_Port);
-            else 
+            else
             {
                 m_EndPoint.Address = m_Address;
                 m_EndPoint.Port = m_Port;
