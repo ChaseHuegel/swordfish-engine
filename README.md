@@ -11,7 +11,7 @@ ImageSharp (Image loading) https://github.com/SixLabors/ImageSharp
 
 glTF2Loader (GLTF parsing) https://github.com/KhronosGroup/glTF-CSharp-Loader
 
-MicroResolver (DI) https://github.com/neuecc/MicroResolver
+DryIoc (DI) https://github.com/dadhi/DryIoc
 
 Tomlet (TOML files) https://github.com/SamboyCoding/Tomlet
 
