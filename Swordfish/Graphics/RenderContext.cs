@@ -7,16 +7,17 @@ namespace Swordfish.Graphics;
 
 public class RenderContext : IRenderContext
 {
-    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
+    private readonly ConcurrentBag<RenderTarget> RenderTargets = new();
 
-    private ConcurrentBag<RenderTarget> RenderTargets = new();
+    private readonly Camera Camera;
 
-    private Camera Camera;
+    public RenderContext()
+    {
+        Camera = new Camera(90);
+    }
 
     public void Initialize()
     {
-        Camera = new Camera(90);
         Debugger.Log("Renderer initialized.");
     }
 

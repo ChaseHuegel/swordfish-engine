@@ -7,16 +7,16 @@ public sealed class VertexArrayObject<TVertexType, TElementType> : IDisposable
     where TVertexType : unmanaged
     where TElementType : unmanaged
 {
-    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
+    private readonly GL GL;
 
     private readonly uint Handle;
 
     private volatile bool Disposed;
 
-    public VertexArrayObject(BufferObject<TVertexType> vertexBufferObject, BufferObject<TElementType> elementBufferObject)
+    public VertexArrayObject(GL gl, BufferObject<TVertexType> vertexBufferObject, BufferObject<TElementType> elementBufferObject)
     {
-        Handle = GL!.GenVertexArray();
+        GL = gl;
+        Handle = GL.GenVertexArray();
 
         Bind();
         vertexBufferObject.Bind();

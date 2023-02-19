@@ -57,7 +57,7 @@ public class Demo : Mod
             VertexData,
             Indices,
             FileService.Parse<ShaderProgram>(LocalPathService.Shaders.At("textured.glsl")),
-            Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
+            FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"))
         )
         {
             Transform = {

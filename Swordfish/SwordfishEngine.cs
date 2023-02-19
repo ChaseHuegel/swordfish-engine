@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using DryIoc;
+using PInvoke;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -20,27 +21,21 @@ namespace Swordfish;
 
 public static class SwordfishEngine
 {
-    [DllImport("kernel32.dll", SetLastError = true)]
-    static extern bool AllocConsole();
-
-    [DllImport("kernel32", SetLastError = true)]
-    static extern bool AttachConsole(int dwProcessId);
-
     public static Version Version { get; private set; }
 
-    public static Kernel Kernel { get; private set; }
-    public static SynchronizationManager SyncManager { get; private set; }
+    private static Kernel? kernel;
+    public static Kernel Kernel
+    {
+        get => kernel!;
+        private set => kernel = value;
+    }
 
+    public static SynchronizationManager SyncManager;
     private static IWindow MainWindow;
-    private static IPluginContext? PluginContext;
-    private static IPathService? EnginePathService;
-    private static IInputContext? InputContext;
-    private static GL? GL;
 
     static SwordfishEngine()
     {
         Version = typeof(SwordfishEngine).Assembly.GetName().Version!;
-        Kernel = new Kernel(null);
         SyncManager = new SynchronizationManager();
 
         var options = WindowOptions.Default;
@@ -56,29 +51,31 @@ public static class SwordfishEngine
 
     static void Main(string[] args)
     {
-        if (args.Contains("-debug") && !AttachConsole(-1))
-            AllocConsole();
+#if WINDOWS
+        if (args.Contains("-debug") && !Kernel32.AttachConsole(-1))
+            Kernel32.AllocConsole();
+#endif
 
         MainWindow.Run();
     }
 
     private static void OnWindowLoaded()
     {
-        EnginePathService = new PathService();
-        PluginContext = new PluginContext();
-        InputContext = MainWindow.CreateInput();
-        GL = MainWindow.CreateOpenGL();
+        var enginePathService = new PathService();
+        var pluginContext = new PluginContext();
+        var inputContext = MainWindow.CreateInput();
+        var gl = MainWindow.CreateOpenGL();
 
-        PluginContext.RegisterFrom(EnginePathService.Root);
-        PluginContext.RegisterFrom(EnginePathService.Plugins, SearchOption.AllDirectories);
-        PluginContext.RegisterFrom(EnginePathService.Mods, SearchOption.AllDirectories);
+        pluginContext.RegisterFrom(enginePathService.Root);
+        pluginContext.RegisterFrom(enginePathService.Plugins, SearchOption.AllDirectories);
+        pluginContext.RegisterFrom(enginePathService.Mods, SearchOption.AllDirectories);
 
         var resolver = new Container();
-        resolver.RegisterInstance(PluginContext);
-        resolver.RegisterMany(PluginContext.GetRegisteredTypes(), Reuse.Singleton);
+        resolver.RegisterInstance<IPluginContext>(pluginContext);
+        resolver.RegisterMany(pluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
-        resolver.RegisterInstance(GL);
-        resolver.RegisterInstance(MainWindow);
+        resolver.RegisterInstance<GL>(gl);
+        resolver.RegisterInstance<IWindow>(MainWindow);
         resolver.RegisterInstance<SynchronizationContext>(SyncManager);
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
@@ -87,13 +84,14 @@ public static class SwordfishEngine
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 
-        resolver.RegisterInstance(InputContext);
+        resolver.RegisterInstance<IInputContext>(inputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
         resolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        resolver.Register<IPathService, PathService>(Reuse.Singleton);
+        resolver.RegisterInstance<IPathService>(enginePathService);
         resolver.Register<IFileService, FileService>(Reuse.Singleton);
         resolver.Register<IFileParser, GlslParser>(Reuse.Singleton);
+        resolver.Register<IFileParser, TextureParser>(Reuse.Singleton);
 
         resolver.ValidateAndThrow();
         Kernel = new Kernel(resolver);
@@ -110,7 +108,7 @@ public static class SwordfishEngine
             Debugger.Log($"Initialized plugin '{plugin.Name}'.");
 
         Kernel.Get<IECSContext>().Start();
-        PluginContext!.InvokeStart(plugins);
+        Kernel.Get<IPluginContext>().InvokeStart(plugins);
     }
 
     private static void OnWindowClosing()

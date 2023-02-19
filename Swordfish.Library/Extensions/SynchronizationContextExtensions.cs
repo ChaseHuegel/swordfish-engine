@@ -18,5 +18,13 @@ namespace Swordfish.Library.Extensions
             void Callback(object state) => result = factory();
             return result;
         }
+
+        public static TResult WaitForResult<TResult, TArg>(this SynchronizationContext context, Func<TArg, TResult> factory, TArg arg)
+        {
+            TResult result = default;
+            context.Send(Callback, arg);
+            void Callback(object state) => result = factory(arg);
+            return result;
+        }
     }
 }

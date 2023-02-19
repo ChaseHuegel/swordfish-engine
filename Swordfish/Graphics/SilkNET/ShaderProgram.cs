@@ -8,12 +8,11 @@ namespace Swordfish.Graphics.SilkNET;
 
 public sealed class ShaderProgram : IDisposable
 {
-    private readonly GL GL;
-
     public string Name { get; private set; }
 
-    private uint Handle;
-    private Dictionary<string, int> UniformLocations = new();
+    private readonly GL GL;
+    private readonly uint Handle;
+    private readonly Dictionary<string, int> UniformLocations;
 
     private volatile bool Disposed;
 
@@ -21,6 +20,7 @@ public sealed class ShaderProgram : IDisposable
     {
         GL = gl;
         Name = name;
+        UniformLocations = new Dictionary<string, int>();
 
         if (vertexSource.Length == 0)
             Debugger.Log($"No vertex source provided for shader '{Name}'.", LogType.ERROR);

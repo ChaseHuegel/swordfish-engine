@@ -6,18 +6,16 @@ namespace Swordfish.Graphics.SilkNET;
 public sealed class BufferObject<TData> : IDisposable
     where TData : unmanaged
 {
+    private readonly GL GL;
     public readonly int Length;
-
-    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
-
     private readonly uint Handle;
     private readonly BufferTargetARB BufferType;
 
     private volatile bool Disposed;
 
-    public unsafe BufferObject(Span<TData> data, BufferTargetARB bufferType)
+    public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType)
     {
+        GL = gl;
         Length = data.Length;
         BufferType = bufferType;
         Handle = GL!.GenBuffer();

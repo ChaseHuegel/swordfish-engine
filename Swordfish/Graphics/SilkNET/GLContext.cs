@@ -3,7 +3,7 @@ using Swordfish.Library.Extensions;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public class GLContext
+public unsafe partial class GLContext
 {
     private readonly GL GL;
     private readonly SynchronizationContext GLThread;
@@ -16,6 +16,14 @@ public class GLContext
 
     public ShaderProgram CreateShaderProgram(string name, string vertexSource, string fragmentSource)
     {
-        return GLThread.WaitForResult(() => new ShaderProgram(GL, name, vertexSource, fragmentSource));
+        return GLThread.WaitForResult(SharderProgramArgs.Create, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
+    }
+
+    public Texture CreateTexture(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
+    {
+        fixed (byte* pixelPtr = pixels)
+        {
+            return GLThread.WaitForResult(TextureArgs.Create, new TextureArgs(GL, name, pixelPtr, width, height, generateMipmaps));
+        }
     }
 }

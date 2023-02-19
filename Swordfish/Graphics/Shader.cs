@@ -1,7 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
-using System.Text;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
 
@@ -33,11 +31,5 @@ public sealed class Shader : IDisposable
         }
 
         Disposed = true;
-    }
-
-    public static Shader LoadFrom(IPath file)
-    {
-        string shaderName = file.GetFileNameWithoutExtension();
-        return new Shader(shaderName, SwordfishEngine.Kernel.Get<IFileService>().Read(file));
     }
 }

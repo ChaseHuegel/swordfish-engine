@@ -47,9 +47,9 @@ public sealed class RenderTarget : IDisposable
         SwordfishEngine.SyncManager.WaitFor(Construct);
         void Construct()
         {
-            VertexBufferObject = new BufferObject<float>(verticesArray, BufferTargetARB.ArrayBuffer);
-            ElementBufferObject = new BufferObject<uint>(indiciesArray, BufferTargetARB.ElementArrayBuffer);
-            VertexArrayObject = new VertexArrayObject<float, uint>(VertexBufferObject, ElementBufferObject);
+            VertexBufferObject = new BufferObject<float>(GL, verticesArray, BufferTargetARB.ArrayBuffer);
+            ElementBufferObject = new BufferObject<uint>(GL, indiciesArray, BufferTargetARB.ElementArrayBuffer);
+            VertexArrayObject = new VertexArrayObject<float, uint>(GL, VertexBufferObject, ElementBufferObject);
 
             uint attributeLocation = Shader.GetAttributeLocation("in_position");
             VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 0);
