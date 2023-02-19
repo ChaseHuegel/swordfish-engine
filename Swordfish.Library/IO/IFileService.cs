@@ -7,5 +7,9 @@ namespace Swordfish.Library.IO
         Stream Read(IPath path);
 
         void Write(IPath path, Stream stream);
+
+        TResult Parse<TResult>(IPath path);
+
+        bool TryParse<TResult>(IPath path, out TResult result);
     }
 }

@@ -6,7 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
-
+using Swordfish.Library.IO;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -34,11 +34,14 @@ public class Demo : Mod
     private static IECSContext ECSContext;
     private static IRenderContext RenderContext;
     private IWindowContext WindowContext;
+    private readonly IFileService FileService;
 
     private RenderTarget RenderTarget;
 
-    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext)
+
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService)
     {
+        FileService = fileService;
         ECSContext = ecsContext;
         RenderContext = renderContext;
         WindowContext = windowContext;
@@ -53,7 +56,7 @@ public class Demo : Mod
         RenderTarget = new RenderTarget(
             VertexData,
             Indices,
-            ShaderProgram.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
+            FileService.Parse<ShaderProgram>(LocalPathService.Shaders.At("textured.glsl")),
             Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
         )
         {

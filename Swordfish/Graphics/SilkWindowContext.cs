@@ -6,20 +6,17 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Swordfish.Graphics.SilkNET;
-using Swordfish.Input;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.UI;
 using Swordfish.Util;
-
 using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
 
-public class SilkWindowContext : IWindowContext<GL>
+public class SilkWindowContext : IWindowContext
 {
-    public GL API => GL!;
-
     public Vector2 Resolution => new(Window.Size.X, Window.Size.Y);
 
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
@@ -37,11 +34,13 @@ public class SilkWindowContext : IWindowContext<GL>
     private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
-    private GL? GL;
+    private readonly GL GL;
+    private readonly SynchronizationContext MainThread;
 
-    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, GL gl, IPathService pathService)
+    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IPathService pathService)
     {
         GL = gl;
+        MainThread = mainThread;
         Window = window;
         Renderer = renderer;
         UIContext = uiContext;
@@ -103,27 +102,27 @@ public class SilkWindowContext : IWindowContext<GL>
 
     public void Close()
     {
-        SwordfishEngine.WaitForMainThread(() => Window.Close());
+        MainThread.WaitFor(Window.Close);
     }
 
     public void SetWindowed()
     {
-        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Normal);
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Normal);
     }
 
     public void Minimize()
     {
-        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Minimized);
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Minimized);
     }
 
     public void Maximize()
     {
-        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Maximized);
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Maximized);
     }
 
     public void Fullscreen()
     {
-        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Fullscreen);
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
     }
 
     private void OnClose()

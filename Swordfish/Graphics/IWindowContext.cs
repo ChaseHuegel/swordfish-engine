@@ -22,8 +22,3 @@ public interface IWindowContext
     void Maximize();
     void Fullscreen();
 }
-
-public interface IWindowContext<TApi> : IWindowContext
-{
-    TApi API { get; }
-}

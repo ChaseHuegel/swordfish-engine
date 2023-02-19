@@ -8,7 +8,9 @@ using Silk.NET.Windowing;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Graphics.SilkNET;
 using Swordfish.Input;
+using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
@@ -27,11 +29,11 @@ public static class SwordfishEngine
     public static Version Version { get; private set; }
 
     public static Kernel Kernel { get; private set; }
-    public static SyncContext Context { get; private set; }
+    public static SynchronizationManager SyncManager { get; private set; }
 
     private static IWindow MainWindow;
-    private static IPluginContext PluginContext;
-    private static IPathService EnginePathService;
+    private static IPluginContext? PluginContext;
+    private static IPathService? EnginePathService;
     private static IInputContext? InputContext;
     private static GL? GL;
 
@@ -39,7 +41,7 @@ public static class SwordfishEngine
     {
         Version = typeof(SwordfishEngine).Assembly.GetName().Version!;
         Kernel = new Kernel(null);
-        Context = new SyncContext();
+        SyncManager = new SynchronizationManager();
 
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
@@ -60,17 +62,6 @@ public static class SwordfishEngine
         MainWindow.Run();
     }
 
-    private static void OnWindowUpdate(double obj)
-    {
-        Context.Process();
-    }
-
-    private static void OnWindowClosing()
-    {
-        Kernel.Get<IPluginContext>().UnloadAll();
-        Kernel.Get<IECSContext>().Stop();
-    }
-
     private static void OnWindowLoaded()
     {
         EnginePathService = new PathService();
@@ -84,23 +75,25 @@ public static class SwordfishEngine
 
         var resolver = new Container();
         resolver.RegisterInstance(PluginContext);
-        resolver.RegisterInstance(MainWindow);
-        resolver.RegisterInstance(InputContext);
-        resolver.RegisterInstance(GL);
-
         resolver.RegisterMany(PluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
+        resolver.RegisterInstance(GL);
+        resolver.RegisterInstance(MainWindow);
+        resolver.RegisterInstance<SynchronizationContext>(SyncManager);
+        resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.Register<IRenderContext, RenderContext>(Reuse.Singleton);
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 
+        resolver.RegisterInstance(InputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
         resolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
         resolver.Register<IPathService, PathService>(Reuse.Singleton);
         resolver.Register<IFileService, FileService>(Reuse.Singleton);
+        resolver.Register<IFileParser, GlslParser>(Reuse.Singleton);
 
         resolver.ValidateAndThrow();
         Kernel = new Kernel(resolver);
@@ -117,108 +110,17 @@ public static class SwordfishEngine
             Debugger.Log($"Initialized plugin '{plugin.Name}'.");
 
         Kernel.Get<IECSContext>().Start();
-        PluginContext.InvokeStart(plugins);
+        PluginContext!.InvokeStart(plugins);
     }
 
-    public static void WaitForMainThread(Action action)
+    private static void OnWindowClosing()
     {
-        Context.Send(new SendOrPostCallback((x) =>
-        {
-            action();
-        }), null);
+        Kernel.Get<IPluginContext>().UnloadAll();
+        Kernel.Get<IECSContext>().Stop();
     }
 
-    public static void WaitForMainThread<TArg1>(Action<TArg1> action, TArg1 arg1)
+    private static void OnWindowUpdate(double obj)
     {
-        Context.Send(new SendOrPostCallback((x) =>
-        {
-            action(arg1);
-        }), null);
-    }
-
-    public static TResult WaitForMainThread<TArg1, TResult>(Func<TArg1, TResult> func, TArg1 arg1)
-    {
-        TResult result = default!;
-        Context.Send(new SendOrPostCallback((x) =>
-        {
-            result = func(arg1);
-        }), null);
-        return result!;
-    }
-
-    public class SyncContext : SynchronizationContext
-    {
-        private struct WorkItem
-        {
-            internal SendOrPostCallback callback;
-            internal object? state;
-
-            public WorkItem(SendOrPostCallback callback, object? state)
-            {
-                this.callback = callback;
-                this.state = state;
-            }
-        }
-
-        private struct SignaledWorkItem
-        {
-            internal SendOrPostCallback callback;
-            internal object? state;
-            internal EventWaitHandle signal;
-
-            public SignaledWorkItem(SendOrPostCallback callback, object? state, EventWaitHandle handle)
-            {
-                this.callback = callback;
-                this.state = state;
-                this.signal = handle;
-            }
-        }
-
-        private readonly int ThreadId;
-        private ConcurrentQueue<WorkItem> WorkQueue = new();
-        private ConcurrentQueue<SignaledWorkItem> SignaledWorkQueue = new();
-
-        public SyncContext()
-        {
-            ThreadId = Environment.CurrentManagedThreadId;
-        }
-
-        public override void Post(SendOrPostCallback d, object? state)
-        {
-            if (ThreadId == Environment.CurrentManagedThreadId)
-            {
-                d?.Invoke(state);
-                return;
-            }
-
-            WorkQueue.Enqueue(new WorkItem(d, state));
-        }
-
-        public override void Send(SendOrPostCallback d, object? state)
-        {
-            if (ThreadId == Environment.CurrentManagedThreadId)
-            {
-                d?.Invoke(state);
-                return;
-            }
-
-            AutoResetEvent handle = new(false);
-            SignaledWorkQueue.Enqueue(new SignaledWorkItem(d, state, handle));
-            handle.WaitOne();
-        }
-
-        public void Process()
-        {
-            while (WorkQueue.TryDequeue(out WorkItem workItem))
-            {
-                workItem.callback?.Invoke(workItem.state);
-            }
-
-            while (SignaledWorkQueue.TryDequeue(out SignaledWorkItem workItem))
-            {
-                workItem.callback?.Invoke(workItem.state);
-                workItem.signal.Set();
-            }
-        }
+        SyncManager.Process();
     }
 }

@@ -2,6 +2,7 @@ using Silk.NET.OpenGL;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
@@ -30,48 +31,32 @@ public sealed class Texture : IDisposable
         }
     }
 
-    private struct TextureArgs
-    {
-        public Image<Rgba32> image;
-        public bool generateMipmaps;
-
-        public TextureArgs(Image<Rgba32> image, bool generateMipmaps)
-        {
-            this.image = image;
-            this.generateMipmaps = generateMipmaps;
-        }
-    }
-
     public unsafe Texture(Image<Rgba32> image, bool generateMipmaps = false)
     {
-        SwordfishEngine.WaitForMainThread(Construct, new TextureArgs(image, generateMipmaps));
-    }
-
-    private unsafe void Construct(TextureArgs textureArgs)
-    {
-        Image<Rgba32> image = textureArgs.image;
-        bool generateMipmaps = textureArgs.generateMipmaps;
-
-        Handle = GL.GenTexture();
-        MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(image.Width, image.Height), 2));
-
-        Bind();
-
-        GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, (uint)image.Width, (uint)image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, null);
-        image.ProcessPixelRows(SubImagePixelRow);
-
-        static void SubImagePixelRow(PixelAccessor<Rgba32> pixelAccessor)
+        SwordfishEngine.SyncManager.WaitFor(Construct);
+        void Construct()
         {
-            for (int y = 0; y < pixelAccessor.Height; y++)
+            Handle = GL.GenTexture();
+            MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(image.Width, image.Height), 2));
+
+            Bind();
+
+            GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba8, (uint)image.Width, (uint)image.Height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, null);
+            image.ProcessPixelRows(SubImagePixelRow);
+
+            static void SubImagePixelRow(PixelAccessor<Rgba32> pixelAccessor)
             {
-                fixed (void* data = pixelAccessor.GetRowSpan(y))
+                for (int y = 0; y < pixelAccessor.Height; y++)
                 {
-                    GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, (uint)pixelAccessor.Width, 1, PixelFormat.Rgba, PixelType.UnsignedByte, data);
+                    fixed (void* data = pixelAccessor.GetRowSpan(y))
+                    {
+                        GL.TexSubImage2D(TextureTarget.Texture2D, 0, 0, y, (uint)pixelAccessor.Width, 1, PixelFormat.Rgba, PixelType.UnsignedByte, data);
+                    }
                 }
             }
-        }
 
-        SetDefaultParameters();
+            SetDefaultParameters();
+        }
     }
 
     public void Dispose()

@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 
@@ -35,40 +36,30 @@ public sealed class RenderTarget : IDisposable
 
     private volatile bool Disposed;
 
-    internal struct BufferContainer
-    {
-        internal float[] vertices;
-        internal uint[] indices;
-
-        public BufferContainer(Span<float> vertices, Span<uint> indices)
-        {
-            this.vertices = vertices.ToArray();
-            this.indices = indices.ToArray();
-        }
-    }
-
     public RenderTarget(Span<float> vertices, Span<uint> indices, ShaderProgram shader, Texture texture)
     {
         Shader = shader;
         Texture = texture;
 
-        SwordfishEngine.WaitForMainThread(Construct, new BufferContainer(vertices, indices));
-    }
+        float[] verticesArray = vertices.ToArray();
+        uint[] indiciesArray = indices.ToArray();
 
-    private void Construct(BufferContainer container)
-    {
-        VertexBufferObject = new BufferObject<float>(container.vertices, BufferTargetARB.ArrayBuffer);
-        ElementBufferObject = new BufferObject<uint>(container.indices, BufferTargetARB.ElementArrayBuffer);
-        VertexArrayObject = new VertexArrayObject<float, uint>(VertexBufferObject, ElementBufferObject);
+        SwordfishEngine.SyncManager.WaitFor(Construct);
+        void Construct()
+        {
+            VertexBufferObject = new BufferObject<float>(verticesArray, BufferTargetARB.ArrayBuffer);
+            ElementBufferObject = new BufferObject<uint>(indiciesArray, BufferTargetARB.ElementArrayBuffer);
+            VertexArrayObject = new VertexArrayObject<float, uint>(VertexBufferObject, ElementBufferObject);
 
-        uint attributeLocation = Shader.GetAttributeLocation("in_position");
-        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 0);
+            uint attributeLocation = Shader.GetAttributeLocation("in_position");
+            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 0);
 
-        attributeLocation = Shader.GetAttributeLocation("in_color");
-        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 4, VertexAttribPointerType.Float, 10, 3);
+            attributeLocation = Shader.GetAttributeLocation("in_color");
+            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 4, VertexAttribPointerType.Float, 10, 3);
 
-        attributeLocation = Shader.GetAttributeLocation("in_uv");
-        VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 7);
+            attributeLocation = Shader.GetAttributeLocation("in_uv");
+            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 7);
+        }
     }
 
     public void Dispose()
