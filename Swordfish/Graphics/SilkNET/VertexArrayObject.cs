@@ -3,7 +3,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class VertexArrayObject<TVertexType, TElementType> : IDisposable
+internal sealed class VertexArrayObject<TVertexType, TElementType> : IDisposable
     where TVertexType : unmanaged
     where TElementType : unmanaged
 {

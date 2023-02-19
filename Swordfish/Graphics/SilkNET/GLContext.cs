@@ -3,7 +3,7 @@ using Swordfish.Library.Extensions;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public unsafe partial class GLContext
+internal unsafe partial class GLContext
 {
     private readonly GL GL;
     private readonly SynchronizationContext GLThread;
@@ -19,7 +19,7 @@ public unsafe partial class GLContext
         return GLThread.WaitForResult(SharderProgramArgs.Create, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
     }
 
-    public Texture CreateTexture(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
+    public TexImage2D CreateTexture(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
     {
         fixed (byte* pixelPtr = pixels)
         {

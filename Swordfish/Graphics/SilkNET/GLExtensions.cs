@@ -2,7 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public static class GLExtensions
+internal static class GLExtensions
 {
     public const string FRAGMENT_DIRECTIVE = "FRAGMENT";
     public const string VERTEX_DIRECTIVE = "VERTEX";

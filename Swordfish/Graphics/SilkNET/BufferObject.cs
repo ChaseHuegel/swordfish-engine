@@ -3,7 +3,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class BufferObject<TData> : IDisposable
+internal sealed class BufferObject<TData> : IDisposable
     where TData : unmanaged
 {
     private readonly GL GL;

@@ -3,7 +3,7 @@ using Swordfish.Library.Extensions;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public unsafe partial class GLContext
+internal unsafe partial class GLContext
 {
     private readonly struct SharderProgramArgs
     {
@@ -45,9 +45,9 @@ public unsafe partial class GLContext
             this.pixels = pixels;
         }
 
-        public static Texture Create(TextureArgs args)
+        public static TexImage2D Create(TextureArgs args)
         {
-            return new Texture(args.gl, args.name, args.pixels, args.width, args.height, args.generateMipmaps);
+            return new TexImage2D(args.gl, args.name, args.pixels, args.width, args.height, args.generateMipmaps);
         }
     }
 }

@@ -2,7 +2,7 @@ using Silk.NET.OpenGL;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public static class GLUtil
+internal static class GLUtil
 {
     public static string[] GetExtensions(this GL gl)
     {

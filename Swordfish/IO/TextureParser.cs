@@ -5,7 +5,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO
 {
-    public class TextureParser : IFileParser<Texture>
+    internal class TextureParser : IFileParser<TexImage2D>
     {
         public string[] SupportedExtensions { get; } = new string[] {
             ".png"
@@ -19,7 +19,7 @@ namespace Swordfish.IO
         }
 
         object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-        public unsafe Texture Parse(IFileService fileService, IPath file)
+        public unsafe TexImage2D Parse(IFileService fileService, IPath file)
         {
             using Stream stream = fileService.Read(file);
             using StreamReader reader = new(stream);

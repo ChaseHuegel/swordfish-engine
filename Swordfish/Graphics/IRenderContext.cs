@@ -8,5 +8,5 @@ public interface IRenderContext
 
     void Render(double delta);
 
-    void Bind(RenderTarget renderTarget);
+    void Bind(IRenderTarget renderTarget);
 }

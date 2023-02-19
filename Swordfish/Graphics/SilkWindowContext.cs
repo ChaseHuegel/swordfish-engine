@@ -27,6 +27,7 @@ public class SilkWindowContext : IWindowContext
     public Action<double>? Update { get; set; }
     public Action? Focused { get; set; }
     public Action? Unfocused { get; set; }
+    public Action<Vector2>? Resized { get; set; }
 
     private IWindow Window { get; }
     private IRenderContext Renderer { get; }
@@ -158,6 +159,7 @@ public class SilkWindowContext : IWindowContext
     private void OnResize(Vector2D<int> size)
     {
         GL.Viewport(size);
+        Resized?.Invoke(new Vector2(size.X, size.Y));
     }
 
     private void OnFocusChanged(bool obj)

@@ -6,7 +6,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class ShaderProgram : IDisposable
+internal sealed class ShaderProgram : IDisposable
 {
     public string Name { get; private set; }
 

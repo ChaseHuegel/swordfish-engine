@@ -3,7 +3,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class Texture : IDisposable
+internal sealed class TexImage2D : IDisposable
 {
     public string Name { get; private set; }
 
@@ -13,7 +13,7 @@ public sealed class Texture : IDisposable
 
     private volatile bool Disposed;
 
-    public unsafe Texture(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
+    public unsafe TexImage2D(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
     {
         GL = gl;
         Name = name;

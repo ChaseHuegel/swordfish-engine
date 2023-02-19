@@ -6,7 +6,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO;
 
-public class GlslParser : IFileParser<ShaderProgram>
+internal class GlslParser : IFileParser<ShaderProgram>
 {
     public string[] SupportedExtensions { get; } = new string[] {
         ".glsl"
@@ -22,8 +22,8 @@ public class GlslParser : IFileParser<ShaderProgram>
     object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
     public ShaderProgram Parse(IFileService fileService, IPath file)
     {
-        (string vertexSource, string fragmentSource) result = ParseVertAndFrag(fileService, file);
-        return GLContext.CreateShaderProgram(file.GetFileNameWithoutExtension(), result.vertexSource, result.fragmentSource);
+        (string vertexSource, string fragmentSource) = ParseVertAndFrag(fileService, file);
+        return GLContext.CreateShaderProgram(file.GetFileNameWithoutExtension(), vertexSource, fragmentSource);
     }
 
     private static (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
