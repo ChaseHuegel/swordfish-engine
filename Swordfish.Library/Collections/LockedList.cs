@@ -6,20 +6,21 @@ namespace Swordfish.Library.Collections
 {
     public class LockedList<T> : IList<T>
     {
+        private readonly object Lock = new object();
         private readonly List<T> List = new List<T>();
 
         public T this[int index]
         {
             get
             {
-                lock (List)
+                lock (Lock)
                 {
                     return List[index];
                 }
             }
             set
             {
-                lock (List)
+                lock (Lock)
                 {
                     List[index] = value;
                 }
@@ -30,7 +31,7 @@ namespace Swordfish.Library.Collections
         {
             get
             {
-                lock (List)
+                lock (Lock)
                 {
                     return List.Count;
                 }
@@ -41,7 +42,7 @@ namespace Swordfish.Library.Collections
 
         public void Add(T item)
         {
-            lock (List)
+            lock (Lock)
             {
                 List.Add(item);
             }
@@ -49,7 +50,7 @@ namespace Swordfish.Library.Collections
 
         public void Clear()
         {
-            lock (List)
+            lock (Lock)
             {
                 List.Clear();
             }
@@ -57,7 +58,7 @@ namespace Swordfish.Library.Collections
 
         public bool Contains(T item)
         {
-            lock (List)
+            lock (Lock)
             {
                 return List.Contains(item);
             }
@@ -65,7 +66,7 @@ namespace Swordfish.Library.Collections
 
         public void CopyTo(T[] array, int arrayIndex)
         {
-            lock (List)
+            lock (Lock)
             {
                 List.CopyTo(array, arrayIndex);
             }
@@ -73,7 +74,7 @@ namespace Swordfish.Library.Collections
 
         public IEnumerator<T> GetEnumerator()
         {
-            lock (List)
+            lock (Lock)
             {
                 return List.GetEnumerator();
             }
@@ -81,7 +82,7 @@ namespace Swordfish.Library.Collections
 
         public int IndexOf(T item)
         {
-            lock (List)
+            lock (Lock)
             {
                 return List.IndexOf(item);
             }
@@ -89,7 +90,7 @@ namespace Swordfish.Library.Collections
 
         public void Insert(int index, T item)
         {
-            lock (List)
+            lock (Lock)
             {
                 List.Insert(index, item);
             }
@@ -97,7 +98,7 @@ namespace Swordfish.Library.Collections
 
         public bool Remove(T item)
         {
-            lock (List)
+            lock (Lock)
             {
                 return List.Remove(item);
             }
@@ -105,7 +106,7 @@ namespace Swordfish.Library.Collections
 
         public void RemoveAt(int index)
         {
-            lock (List)
+            lock (Lock)
             {
                 List.RemoveAt(index);
             }
@@ -113,7 +114,7 @@ namespace Swordfish.Library.Collections
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            lock (List)
+            lock (Lock)
             {
                 return List.GetEnumerator();
             }

@@ -103,27 +103,27 @@ public class SilkWindowContext : IWindowContext<GL>
 
     public void Close()
     {
-        Window.Close();
+        SwordfishEngine.WaitForMainThread(() => Window.Close());
     }
 
     public void SetWindowed()
     {
-        Window.WindowState = WindowState.Normal;
+        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Normal);
     }
 
     public void Minimize()
     {
-        Window.WindowState = WindowState.Minimized;
+        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Minimized);
     }
 
     public void Maximize()
     {
-        Window.WindowState = WindowState.Maximized;
+        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Maximized);
     }
 
     public void Fullscreen()
     {
-        Window.WindowState = WindowState.Fullscreen;
+        SwordfishEngine.WaitForMainThread(() => Window.WindowState = WindowState.Fullscreen);
     }
 
     private void OnClose()

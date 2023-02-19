@@ -53,7 +53,7 @@ public class Demo : Mod
         RenderTarget = new RenderTarget(
             VertexData,
             Indices,
-            Shader.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
+            ShaderProgram.LoadFrom(LocalPathService.Shaders.At("textured.glsl")),
             Texture.LoadFrom(LocalPathService.Textures.At("astronaut.png"))
         )
         {

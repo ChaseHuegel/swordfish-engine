@@ -6,25 +6,25 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class Shader : IDisposable
+public sealed class ShaderProgram : IDisposable
 {
     private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
     private GL gl;
 
-    public readonly string Name;
+    public string Name { get; private set; }
 
-    private readonly uint Handle;
-    private readonly Dictionary<string, int> UniformLocations = new();
+    private uint Handle;
+    private Dictionary<string, int> UniformLocations = new();
 
     private volatile bool Disposed;
 
-    public Shader(string name, string[] sources)
+    public ShaderProgram(string name, string[] sources)
         : this(name, sources, sources) { }
 
-    public Shader(string name, string vertexSource, string fragmentSource)
+    public ShaderProgram(string name, string vertexSource, string fragmentSource)
         : this(name, new string[] { vertexSource }, new string[] { fragmentSource }) { }
 
-    public Shader(string name, string[] vertexSources, string[] fragmentSources)
+    public ShaderProgram(string name, string[] vertexSources, string[] fragmentSources)
     {
         Name = name;
 
@@ -168,7 +168,12 @@ public sealed class Shader : IDisposable
         return handle;
     }
 
-    public static Shader LoadFrom(IPath file)
+    public static ShaderProgram LoadFrom(IPath file)
+    {
+        return SwordfishEngine.WaitForMainThread(LoadFromWorker, file);
+    }
+
+    private static ShaderProgram LoadFromWorker(IPath file)
     {
         string shaderName = file.GetFileNameWithoutExtension();
 
@@ -255,7 +260,7 @@ void main()
         for (int i = includedSources.Count - 1; i >= 0; i--)
             combinedSources.Insert(2, includedSources[i]);
 
-        return new Shader(shaderName, combinedSources.ToArray());
+        return new ShaderProgram(shaderName, combinedSources.ToArray());
     }
 
     private static void ProcessSourceFile(IPath file, out string? versionDirective, out string? source, ref List<string> includedFiles)

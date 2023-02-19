@@ -73,7 +73,7 @@ public class ImGuiContext : IUIContext
     {
         Controller?.Update((float)delta);
 
-        foreach (IElement element in Elements)
+        foreach (IElement element in Elements.ToArray())
             element.Render();
 
         MenuBar?.Render();

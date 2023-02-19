@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using DryIoc;
 using Silk.NET.Input;
@@ -26,6 +27,7 @@ public static class SwordfishEngine
     public static Version Version { get; private set; }
 
     public static Kernel Kernel { get; private set; }
+    public static SyncContext Context { get; private set; }
 
     private static IWindow MainWindow;
     private static IPluginContext PluginContext;
@@ -37,6 +39,7 @@ public static class SwordfishEngine
     {
         Version = typeof(SwordfishEngine).Assembly.GetName().Version!;
         Kernel = new Kernel(null);
+        Context = new SyncContext();
 
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
@@ -46,6 +49,7 @@ public static class SwordfishEngine
         MainWindow = Window.Create(options);
         MainWindow.Load += OnWindowLoaded;
         MainWindow.Closing += OnWindowClosing;
+        MainWindow.Update += OnWindowUpdate;
     }
 
     static void Main(string[] args)
@@ -54,6 +58,11 @@ public static class SwordfishEngine
             AllocConsole();
 
         MainWindow.Run();
+    }
+
+    private static void OnWindowUpdate(double obj)
+    {
+        Context.Process();
     }
 
     private static void OnWindowClosing()
@@ -109,5 +118,107 @@ public static class SwordfishEngine
 
         Kernel.Get<IECSContext>().Start();
         PluginContext.InvokeStart(plugins);
+    }
+
+    public static void WaitForMainThread(Action action)
+    {
+        Context.Send(new SendOrPostCallback((x) =>
+        {
+            action();
+        }), null);
+    }
+
+    public static void WaitForMainThread<TArg1>(Action<TArg1> action, TArg1 arg1)
+    {
+        Context.Send(new SendOrPostCallback((x) =>
+        {
+            action(arg1);
+        }), null);
+    }
+
+    public static TResult WaitForMainThread<TArg1, TResult>(Func<TArg1, TResult> func, TArg1 arg1)
+    {
+        TResult result = default!;
+        Context.Send(new SendOrPostCallback((x) =>
+        {
+            result = func(arg1);
+        }), null);
+        return result!;
+    }
+
+    public class SyncContext : SynchronizationContext
+    {
+        private struct WorkItem
+        {
+            internal SendOrPostCallback callback;
+            internal object? state;
+
+            public WorkItem(SendOrPostCallback callback, object? state)
+            {
+                this.callback = callback;
+                this.state = state;
+            }
+        }
+
+        private struct SignaledWorkItem
+        {
+            internal SendOrPostCallback callback;
+            internal object? state;
+            internal EventWaitHandle signal;
+
+            public SignaledWorkItem(SendOrPostCallback callback, object? state, EventWaitHandle handle)
+            {
+                this.callback = callback;
+                this.state = state;
+                this.signal = handle;
+            }
+        }
+
+        private readonly int ThreadId;
+        private ConcurrentQueue<WorkItem> WorkQueue = new();
+        private ConcurrentQueue<SignaledWorkItem> SignaledWorkQueue = new();
+
+        public SyncContext()
+        {
+            ThreadId = Environment.CurrentManagedThreadId;
+        }
+
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            if (ThreadId == Environment.CurrentManagedThreadId)
+            {
+                d?.Invoke(state);
+                return;
+            }
+
+            WorkQueue.Enqueue(new WorkItem(d, state));
+        }
+
+        public override void Send(SendOrPostCallback d, object? state)
+        {
+            if (ThreadId == Environment.CurrentManagedThreadId)
+            {
+                d?.Invoke(state);
+                return;
+            }
+
+            AutoResetEvent handle = new(false);
+            SignaledWorkQueue.Enqueue(new SignaledWorkItem(d, state, handle));
+            handle.WaitOne();
+        }
+
+        public void Process()
+        {
+            while (WorkQueue.TryDequeue(out WorkItem workItem))
+            {
+                workItem.callback?.Invoke(workItem.state);
+            }
+
+            while (SignaledWorkQueue.TryDequeue(out SignaledWorkItem workItem))
+            {
+                workItem.callback?.Invoke(workItem.state);
+                workItem.signal.Set();
+            }
+        }
     }
 }

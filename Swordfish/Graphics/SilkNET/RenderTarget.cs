@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
@@ -25,22 +26,39 @@ public sealed class RenderTarget : IDisposable
 
     public Transform Transform { get; set; } = new();
 
-    private readonly BufferObject<float> VertexBufferObject;
-    private readonly BufferObject<uint> ElementBufferObject;
-    private readonly VertexArrayObject<float, uint> VertexArrayObject;
+    private BufferObject<float> VertexBufferObject;
+    private BufferObject<uint> ElementBufferObject;
+    private VertexArrayObject<float, uint> VertexArrayObject;
 
-    private Shader Shader;
+    private ShaderProgram Shader;
     private Texture Texture;
 
     private volatile bool Disposed;
 
-    public RenderTarget(Span<float> vertices, Span<uint> indices, Shader shader, Texture texture)
+    internal struct BufferContainer
+    {
+        internal float[] vertices;
+        internal uint[] indices;
+
+        public BufferContainer(Span<float> vertices, Span<uint> indices)
+        {
+            this.vertices = vertices.ToArray();
+            this.indices = indices.ToArray();
+        }
+    }
+
+    public RenderTarget(Span<float> vertices, Span<uint> indices, ShaderProgram shader, Texture texture)
     {
         Shader = shader;
         Texture = texture;
 
-        VertexBufferObject = new BufferObject<float>(vertices, BufferTargetARB.ArrayBuffer);
-        ElementBufferObject = new BufferObject<uint>(indices, BufferTargetARB.ElementArrayBuffer);
+        SwordfishEngine.WaitForMainThread(Construct, new BufferContainer(vertices, indices));
+    }
+
+    private void Construct(BufferContainer container)
+    {
+        VertexBufferObject = new BufferObject<float>(container.vertices, BufferTargetARB.ArrayBuffer);
+        ElementBufferObject = new BufferObject<uint>(container.indices, BufferTargetARB.ElementArrayBuffer);
         VertexArrayObject = new VertexArrayObject<float, uint>(VertexBufferObject, ElementBufferObject);
 
         uint attributeLocation = Shader.GetAttributeLocation("in_position");
