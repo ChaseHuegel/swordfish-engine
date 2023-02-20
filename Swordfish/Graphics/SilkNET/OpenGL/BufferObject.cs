@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class BufferObject<TData> : IDisposable
     where TData : unmanaged

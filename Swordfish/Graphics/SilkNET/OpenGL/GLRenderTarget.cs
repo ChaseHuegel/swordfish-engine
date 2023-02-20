@@ -1,11 +1,9 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
-using Swordfish.Library.Util;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class GLRenderTarget : IDisposable, IRenderTarget
 {

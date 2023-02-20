@@ -3,8 +3,6 @@ using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;

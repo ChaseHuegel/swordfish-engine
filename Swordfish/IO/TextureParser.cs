@@ -1,6 +1,6 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using Swordfish.Graphics.SilkNET;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
 
 namespace Swordfish.IO

@@ -1,7 +1,7 @@
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class VertexArrayObject<TVertexType, TElementType> : IDisposable
     where TVertexType : unmanaged

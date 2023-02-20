@@ -1,6 +1,6 @@
 using System.Text;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics.SilkNET;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 

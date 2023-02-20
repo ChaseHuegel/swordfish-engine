@@ -9,7 +9,7 @@ using Silk.NET.Windowing;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Input;
 using Swordfish.IO;
 using Swordfish.Library.Collections;

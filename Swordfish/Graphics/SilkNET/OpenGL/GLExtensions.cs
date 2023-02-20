@@ -1,6 +1,6 @@
 using Silk.NET.OpenGL;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal static class GLExtensions
 {

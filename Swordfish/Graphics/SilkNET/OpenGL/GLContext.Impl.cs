@@ -1,7 +1,6 @@
 using Silk.NET.OpenGL;
-using Swordfish.Library.Extensions;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal unsafe partial class GLContext
 {

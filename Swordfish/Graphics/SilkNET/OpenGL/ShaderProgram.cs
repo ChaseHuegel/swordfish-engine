@@ -1,10 +1,8 @@
 using System.Numerics;
-using System.Text;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.IO;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class ShaderProgram : IDisposable
 {
