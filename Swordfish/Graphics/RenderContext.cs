@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Numerics;
+using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 
@@ -34,9 +35,26 @@ internal class RenderContext : IRenderContext
         }
     }
 
-    public void Bind(IRenderTarget renderTarget)
+    public void Bind(Shader shader)
     {
-        RenderTargets.Add(renderTarget);
+    }
+
+    public void Bind(Texture texture)
+    {
+    }
+
+    public void Bind(Mesh mesh)
+    {
+    }
+
+
+    public void Bind(MeshRenderer meshRenderer)
+    {
+        //  Get or create ShaderProgram, assign to Shader.Handle
+        //  Get or create TexImage2D, assign to Texture.Handle
+        //  Get or create VertexArrayObject, assign to Mesh.Handle
+        //  Get or create GLRenderTarget, assign to MeshRenderer.Handle
+        //  Store GLRenderTarget for rendering
     }
 
     private void OnWindowResized(Vector2 newSize)

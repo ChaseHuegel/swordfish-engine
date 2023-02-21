@@ -34,7 +34,7 @@ public class Demo : Mod
     private IWindowContext WindowContext;
     private readonly IFileService FileService;
 
-    private RenderTarget RenderTarget;
+    private MeshRenderer RenderTarget;
 
 
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService)
@@ -54,7 +54,7 @@ public class Demo : Mod
         RenderTarget = new RenderTarget(
             VertexData,
             Indices,
-            FileService.Parse<ShaderProgram>(LocalPathService.Shaders.At("textured.glsl")),
+            FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl")),
             FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"))
         )
         {

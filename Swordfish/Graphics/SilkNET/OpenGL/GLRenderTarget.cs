@@ -5,7 +5,7 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class GLRenderTarget : IDisposable, IRenderTarget
+internal sealed class GLRenderTarget : IDisposable
 {
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.

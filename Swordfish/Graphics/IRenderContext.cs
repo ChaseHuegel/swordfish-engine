@@ -8,5 +8,11 @@ public interface IRenderContext
 
     void Render(double delta);
 
-    void Bind(IRenderTarget renderTarget);
+    void Bind(Shader shader);
+
+    void Bind(Texture texture);
+
+    void Bind(Mesh mesh);
+
+    void Bind(MeshRenderer meshRenderer);
 }

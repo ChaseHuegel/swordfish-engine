@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Swordfish.Library.Types
 {
-    public class Transform
+    public struct Transform
     {
         public Vector3 Position { get; set; }
 

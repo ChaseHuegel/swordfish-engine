@@ -3,21 +3,17 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class TexImage2D : IDisposable
+internal sealed class TexImage2D : ManagedHandle<uint>
 {
     public string Name { get; private set; }
 
     private readonly GL GL;
-    private readonly uint Handle;
     private readonly byte MipmapLevels;
-
-    private volatile bool Disposed;
 
     public unsafe TexImage2D(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
     {
         GL = gl;
         Name = name;
-        Handle = GL.GenTexture();
         MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
         Bind();
@@ -26,15 +22,13 @@ internal sealed class TexImage2D : IDisposable
         SetDefaultParameters();
     }
 
-    public void Dispose()
+    protected override uint CreateHandle()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
+        return GL.GenTexture();
+    }
 
-        Disposed = true;
+    protected override void OnDisposed()
+    {
         GL.DeleteTexture(Handle);
     }
 

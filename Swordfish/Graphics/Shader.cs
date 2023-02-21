@@ -11,6 +11,8 @@ public sealed class Shader : IDisposable
     internal volatile bool Dirty;
     internal readonly Stream Source;
 
+    internal IHandle? Handle;
+
     public Shader([NotNull] string name, [NotNull] Stream source)
     {
         Name = name;
