@@ -50,11 +50,13 @@ internal class RenderContext : IRenderContext
 
     public void Bind(MeshRenderer meshRenderer)
     {
+        //  TODO
         //  Get or create ShaderProgram, assign to Shader.Handle
         //  Get or create TexImage2D, assign to Texture.Handle
         //  Get or create VertexArrayObject, assign to Mesh.Handle
         //  Get or create GLRenderTarget, assign to MeshRenderer.Handle
         //  Store GLRenderTarget for rendering
+        //  Set MeshRenderer.RenderContext
     }
 
     private void OnWindowResized(Vector2 newSize)
