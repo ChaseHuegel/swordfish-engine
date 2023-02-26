@@ -75,6 +75,31 @@ namespace Swordfish.Library.IO
             return System.IO.Path.GetDirectoryName(OriginalString);
         }
 
+        public bool IsFile()
+        {
+            return !string.IsNullOrEmpty(System.IO.Path.GetFileName(OriginalString));
+        }
+
+        public bool IsDirectory()
+        {
+            return !IsFile();
+        }
+
+        public bool Exists()
+        {
+            return (IsFile() && FileExists()) || (IsDirectory() && DirectoryExists());
+        }
+
+        public bool FileExists()
+        {
+            return IsFile() && File.Exists(OriginalString);
+        }
+
+        public bool DirectoryExists()
+        {
+            return IsDirectory() && Directory.Exists(OriginalString);
+        }
+
         public bool TryOpenInDefaultApp()
         {
             ProcessStartInfo processStartInfo = new ProcessStartInfo

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
 
@@ -8,20 +9,18 @@ public sealed class Shader : IDisposable
     public readonly string Name;
 
     internal volatile bool Disposed;
-    internal volatile bool Dirty;
-    internal readonly Stream Source;
+    internal readonly IPath Source;
 
     internal IHandle? Handle;
 
-    public Shader([NotNull] string name, [NotNull] Stream source)
+    public Shader([NotNull] string name, [NotNull] IPath source)
     {
         Name = name;
 
-        if (source.Length == 0)
+        if (!source.FileExists())
             Debugger.Log($"No source provided for shader '{Name}'.", LogType.ERROR);
 
         Source = source;
-        Dirty = true;
     }
 
     public void Dispose()

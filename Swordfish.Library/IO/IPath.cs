@@ -29,6 +29,16 @@ namespace Swordfish.Library.IO
 
         string GetDirectoryName();
 
+        bool IsFile();
+
+        bool IsDirectory();
+
+        bool Exists();
+
+        bool FileExists();
+
+        bool DirectoryExists();
+
         bool TryOpenInDefaultApp();
 
         string ToString();

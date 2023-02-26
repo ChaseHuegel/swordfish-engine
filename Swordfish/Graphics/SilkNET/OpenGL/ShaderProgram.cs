@@ -4,15 +4,12 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class ShaderProgram : IDisposable
+internal sealed class ShaderProgram : ManagedHandle<uint>
 {
     public string Name { get; private set; }
 
     private readonly GL GL;
-    private readonly uint Handle;
     private readonly Dictionary<string, int> UniformLocations;
-
-    private volatile bool Disposed;
 
     public ShaderProgram(GL gl, string name, string vertexSource, string fragmentSource)
     {
@@ -29,7 +26,6 @@ internal sealed class ShaderProgram : IDisposable
         uint vertexHandle = CreateShaderHandle(ShaderType.VertexShader, vertexSource);
         uint fragmentHandle = CreateShaderHandle(ShaderType.FragmentShader, fragmentSource);
 
-        Handle = GL!.CreateProgram();
         GL.AttachShader(Handle, vertexHandle);
         GL.AttachShader(Handle, fragmentHandle);
 
@@ -60,15 +56,13 @@ internal sealed class ShaderProgram : IDisposable
         }
     }
 
-    public void Dispose()
+    protected override uint CreateHandle()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
+        return GL.CreateProgram();
+    }
 
-        Disposed = true;
+    protected override void OnDisposed()
+    {
         GL.DeleteProgram(Handle);
     }
 

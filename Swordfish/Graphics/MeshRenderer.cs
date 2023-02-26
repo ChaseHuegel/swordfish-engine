@@ -3,17 +3,16 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
-public class MeshRenderer
+public sealed class MeshRenderer : IHandle
 {
+    public event EventHandler<EventArgs>? Disposed;
+
     public Transform Transform { get; set; }
 
     public Mesh Mesh { get; set; }
 
     //  TODO create a Material object which encapsulates a Shader and collection of Textures
     public Shader Shader { get; set; }
-
-    internal IHandle? RenderContext;
-    internal IHandle? Handle;
 
     public MeshRenderer(Mesh mesh, Shader shader)
     {
@@ -23,8 +22,6 @@ public class MeshRenderer
 
     public void Dispose()
     {
-        Mesh.Handle?.Dispose();
-        Shader.Handle?.Dispose();
-        //  TODO Remove self from RenderContext
+        Disposed?.Invoke(this, EventArgs.Empty);
     }
 }

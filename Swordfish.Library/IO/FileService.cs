@@ -86,5 +86,10 @@ namespace Swordfish.Library.IO
             result = default;
             return false;
         }
+
+        public bool TryParse<TResult>(Stream stream, out TResult result)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
