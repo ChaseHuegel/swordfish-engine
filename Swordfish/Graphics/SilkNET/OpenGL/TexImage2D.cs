@@ -34,7 +34,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>
 
     public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
     {
-        if (Disposed)
+        if (disposed)
         {
             Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;

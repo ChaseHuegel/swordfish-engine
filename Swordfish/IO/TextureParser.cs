@@ -30,7 +30,7 @@ namespace Swordfish.IO
             byte[] pixels = new byte[sizeof(Rgba32) * image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            return GLContext.CreateTexture(name, pixels, (uint)image.Width, (uint)image.Height);
+            return GLContext.CreateTexImage2D(name, pixels, (uint)image.Width, (uint)image.Height);
         }
     }
 }

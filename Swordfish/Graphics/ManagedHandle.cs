@@ -1,29 +1,34 @@
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Graphics.SilkNET.OpenGL;
+namespace Swordfish.Graphics;
 
-public abstract class ManagedHandle<TType> : IHandle
+public abstract class Handle : IHandle
 {
-    public TType Handle => handle ??= CreateHandle();
+    public event EventHandler<EventArgs>? Disposed;
 
-    protected volatile bool Disposed;
-
-    private TType? handle;
+    protected volatile bool disposed;
 
     public void Dispose()
     {
-        if (Disposed)
+        if (disposed)
         {
             Debugger.Log($"Attempted to dispose a {GetType()} that was already disposed.", LogType.WARNING);
             return;
         }
 
-        Disposed = true;
+        disposed = true;
+        Disposed?.Invoke(this, EventArgs.Empty);
         OnDisposed();
         GC.SuppressFinalize(this);
     }
 
-    protected abstract TType CreateHandle();
-
     protected abstract void OnDisposed();
+}
+
+public abstract class ManagedHandle<TType> : Handle
+{
+    public TType Handle => handle ??= CreateHandle();
+    private TType? handle;
+
+    protected abstract TType CreateHandle();
 }

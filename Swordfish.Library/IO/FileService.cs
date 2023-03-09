@@ -91,5 +91,10 @@ namespace Swordfish.Library.IO
         {
             throw new NotImplementedException();
         }
+
+        public TResult Parse<TResult>(Stream stream)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

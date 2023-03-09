@@ -19,7 +19,7 @@ internal unsafe partial class GLContext
         return GLThread.WaitForResult(SharderProgramArgs.Create, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
     }
 
-    public TexImage2D CreateTexture(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
+    public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
     {
         fixed (byte* pixelPtr = pixels)
         {

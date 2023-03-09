@@ -3,8 +3,10 @@ using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -51,14 +53,14 @@ public class Demo : Mod
 
     public override void Start()
     {
-        RenderTarget = new RenderTarget(
-            VertexData,
-            Indices,
-            FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl")),
-            FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"))
-        )
+        var mesh = new Mesh();
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"));
+
+        RenderTarget = new MeshRenderer(mesh, shader)
         {
-            Transform = {
+            Transform = new Transform
+            {
                 Position = new Vector3(0, 0, 1)
             }
         };
@@ -72,7 +74,7 @@ public class Demo : Mod
 
     private void OnUpdate(double delta)
     {
-        RenderTarget.Transform.Rotation += new Vector3(5 * (float)delta, 5 * (float)delta, 0);
+        RenderTarget.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
     }
 
     public override void Unload()

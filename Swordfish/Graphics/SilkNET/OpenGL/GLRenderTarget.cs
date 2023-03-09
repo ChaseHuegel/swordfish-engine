@@ -1,11 +1,10 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class GLRenderTarget : IDisposable
+internal sealed class GLRenderTarget : Handle, IRenderTarget
 {
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
@@ -26,8 +25,6 @@ internal sealed class GLRenderTarget : IDisposable
 
     private ShaderProgram Shader;
     private TexImage2D Texture;
-
-    private volatile bool Disposed;
 
     public GLRenderTarget(GL gl, Span<float> vertices, Span<uint> indices, ShaderProgram shader, TexImage2D texture)
     {
@@ -52,15 +49,8 @@ internal sealed class GLRenderTarget : IDisposable
         VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 7);
     }
 
-    public void Dispose()
+    protected override void OnDisposed()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
-
-        Disposed = true;
         VertexBufferObject.Dispose();
         ElementBufferObject.Dispose();
         VertexArrayObject.Dispose();

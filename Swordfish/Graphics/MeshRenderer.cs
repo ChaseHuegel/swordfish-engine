@@ -9,15 +9,14 @@ public sealed class MeshRenderer : IHandle
 
     public Transform Transform { get; set; }
 
-    public Mesh Mesh { get; set; }
+    public Mesh Mesh { get; }
 
-    //  TODO create a Material object which encapsulates a Shader and collection of Textures
-    public Shader Shader { get; set; }
+    public Material[] Materials { get; }
 
-    public MeshRenderer(Mesh mesh, Shader shader)
+    public MeshRenderer(Mesh mesh, params Material[] materials)
     {
         Mesh = mesh;
-        Shader = shader;
+        Materials = materials;
     }
 
     public void Dispose()

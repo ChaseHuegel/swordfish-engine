@@ -68,7 +68,7 @@ internal sealed class ShaderProgram : ManagedHandle<uint>
 
     public void Use()
     {
-        if (Disposed)
+        if (disposed)
         {
             Debugger.Log($"Attempted to use shader '{Name}' but it is disposed.", LogType.ERROR);
             return;

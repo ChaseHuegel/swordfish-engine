@@ -46,40 +46,11 @@ internal class RenderContext : IRenderContext
         }
     }
 
-    public void Bind(Shader shader)
-    {
-        if (!LinkedHandles.ContainsKey(shader))
-            LinkedHandles.TryAdd(shader, FileService.Parse<ShaderProgram>(shader.Source));
-    }
-
-    public void Bind(Texture texture)
-    {
-        if (!LinkedHandles.ContainsKey(texture))
-            LinkedHandles.TryAdd(texture, FileService.Parse<TexImage2D>(texture.Source));
-    }
-
-    public void Bind(Mesh mesh)
-    {
-        if (!LinkedHandles.ContainsKey(mesh))
-            LinkedHandles.TryAdd(mesh, FileService.Parse<VertexArrayObject>(mesh.Source));
-    }
-
-    public void Bind(MeshRenderer meshRenderer)
-    {
-        Bind(meshRenderer.Shader);
-        Bind(meshRenderer.Texture);
-        Bind(meshRenderer.Mesh);
-
-        if (!LinkedHandles.ContainsKey(meshRenderer))
-        {
-            IRenderTarget renderTarget = GLContext.CreateRenderTarget();
-            if (LinkedHandles.TryAdd(meshRenderer, renderTarget))
-            {
-                RenderTargets.Add(renderTarget);
-                meshRenderer.Disposed += OnControlHandleDisposed;
-            }
-        }
-    }
+    public void Bind(Shader shader) => InternalBind(shader);
+    public void Bind(Texture texture) => InternalBind(texture);
+    public void Bind(Mesh mesh) => InternalBind(mesh);
+    public void Bind(Material material) => InternalBind(material);
+    public void Bind(MeshRenderer meshRenderer) => InternalBind(meshRenderer);
 
     private void OnControlHandleDisposed(object? sender, EventArgs e)
     {
@@ -90,5 +61,76 @@ internal class RenderContext : IRenderContext
     private void OnWindowResized(Vector2 newSize)
     {
         Camera.AspectRatio = newSize.GetRatio();
+    }
+
+    private ShaderProgram InternalBind(Shader shader)
+    {
+        if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
+        {
+            handle = FileService.Parse<ShaderProgram>(shader.Source);
+            LinkedHandles.TryAdd(shader, handle);
+        }
+
+        return Unsafe.As<ShaderProgram>(handle);
+    }
+
+    private TexImage2D InternalBind(Texture texture)
+    {
+        if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
+        {
+            handle = FileService.Parse<TexImage2D>(texture.Source);
+            LinkedHandles.TryAdd(texture, handle);
+        }
+
+        return Unsafe.As<TexImage2D>(handle);
+    }
+
+    private VertexArrayObject InternalBind(Mesh mesh)
+    {
+        if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
+        {
+            handle = FileService.Parse<VertexArrayObject>(mesh.Source);
+            LinkedHandles.TryAdd(mesh, handle);
+        }
+
+        return Unsafe.As<VertexArrayObject>(handle);
+    }
+
+    private GLMaterial InternalBind(Material material)
+    {
+        if (!LinkedHandles.TryGetValue(material, out IHandle? handle))
+        {
+            ShaderProgram shaderProgram = InternalBind(material.Shader);
+
+            List<TexImage2D> texImages2D = new();
+            for (int i = 0; i < material.Textures.Length; i++)
+                texImages2D.Add(InternalBind(material.Textures[i]));
+
+            handle = GLContext.CreateGLMaterial(shaderProgram, texImages2D);
+            LinkedHandles.TryAdd(material, handle);
+        }
+
+        return Unsafe.As<GLMaterial>(handle);
+    }
+
+    private GLRenderTarget InternalBind(MeshRenderer meshRenderer)
+    {
+        if (!LinkedHandles.TryGetValue(meshRenderer, out IHandle? handle))
+        {
+            Bind(meshRenderer.Mesh);
+
+            for (int i = 0; i < meshRenderer.Materials.Length; i++)
+                Bind(meshRenderer.Materials[i]);
+
+            GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget();
+            handle = renderTarget;
+            if (LinkedHandles.TryAdd(meshRenderer, renderTarget))
+            {
+                RenderTargets.Add(renderTarget);
+                meshRenderer.Disposed += OnControlHandleDisposed;
+            }
+        }
+
+        return Unsafe.As<GLRenderTarget>(handle);
     }
 }

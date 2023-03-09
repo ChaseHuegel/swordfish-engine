@@ -1,7 +1,8 @@
 using System.Numerics;
+
 namespace Swordfish.Graphics;
 
-public class Mesh
+public class Mesh : Handle
 {
     public uint[] Triangles = Array.Empty<uint>();
     public Vector3[] Vertices = Array.Empty<Vector3>();
@@ -9,5 +10,7 @@ public class Mesh
     public Vector3[] UV = Array.Empty<Vector3>();
     public Vector3[] Normals = Array.Empty<Vector3>();
 
-    internal IHandle? Handle;
+    protected override void OnDisposed()
+    {
+    }
 }

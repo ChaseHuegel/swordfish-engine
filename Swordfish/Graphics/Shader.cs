@@ -4,14 +4,11 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET;
 
-public sealed class Shader : IDisposable
+public sealed class Shader : Handle
 {
     public readonly string Name;
 
-    internal volatile bool Disposed;
     internal readonly IPath Source;
-
-    internal IHandle? Handle;
 
     public Shader([NotNull] string name, [NotNull] IPath source)
     {
@@ -23,14 +20,8 @@ public sealed class Shader : IDisposable
         Source = source;
     }
 
-    public void Dispose()
+    protected override void OnDisposed()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
-
-        Disposed = true;
+        //  Do nothing
     }
 }
