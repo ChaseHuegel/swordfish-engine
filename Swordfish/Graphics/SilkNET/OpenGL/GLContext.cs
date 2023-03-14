@@ -17,29 +17,36 @@ internal unsafe partial class GLContext
 
     public ShaderProgram CreateShaderProgram(string name, string vertexSource, string fragmentSource)
     {
-        return GLThread.WaitForResult(SharderProgramArgs.Create, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
+        return GLThread.WaitForResult(SharderProgramArgs.Factory, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
     }
 
     public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
     {
         fixed (byte* pixelPtr = pixels)
         {
-            return GLThread.WaitForResult(TextureArgs.Create, new TextureArgs(GL, name, pixelPtr, width, height, generateMipmaps));
+            return GLThread.WaitForResult(TextureArgs.Factory, new TextureArgs(GL, name, pixelPtr, width, height, generateMipmaps));
         }
     }
 
     public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, params TexImage2D[] texImages2D)
     {
-        throw new NotImplementedException();
+        return GLThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, texImages2D));
     }
 
-    internal GLRenderTarget CreateGLRenderTarget(Transform transform, float[] vertexData, uint[] indices, params Material[] materials)
+    internal GLRenderTarget CreateGLRenderTarget(Transform transform, float[] vertexData, uint[] indices, params GLMaterial[] materials)
     {
-        throw new NotImplementedException();
+        return GLThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(GL, transform, vertexData, indices, materials));
     }
 
-    internal VertexArrayObject32 CreateVertexArrayObject(float[] vertexData, uint[] indices)
+    internal VertexArrayObject<TVertexType, TElementType> CreateVertexArrayObject<TVertexType, TElementType>(TVertexType[] vertexData, TElementType[] indices)
+        where TVertexType : unmanaged
+        where TElementType : unmanaged
     {
-        throw new NotImplementedException();
+        return GLThread.WaitForResult(VertexArrayObjectArgs<TVertexType, TElementType>.Factory, new VertexArrayObjectArgs<TVertexType, TElementType>(GL, vertexData, indices));
+    }
+
+    internal VertexArrayObject32 CreateVertexArrayObject32(float[] vertexData, uint[] indices)
+    {
+        return GLThread.WaitForResult(VertexArrayObject32Args.Factory, new VertexArrayObject32Args(GL, vertexData, indices));
     }
 }

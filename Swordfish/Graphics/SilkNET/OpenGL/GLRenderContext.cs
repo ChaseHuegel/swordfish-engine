@@ -89,7 +89,7 @@ internal class GLRenderContext : IRenderContext
     {
         if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
-            handle = GLContext.CreateVertexArrayObject(mesh.GetRawVertexData(), mesh.Triangles);
+            handle = GLContext.CreateVertexArrayObject32(mesh.GetRawVertexData(), mesh.Triangles);
             LinkedHandles.TryAdd(mesh, handle);
         }
 
@@ -117,16 +117,17 @@ internal class GLRenderContext : IRenderContext
     {
         if (!LinkedHandles.TryGetValue(meshRenderer, out IHandle? handle))
         {
-            Bind(meshRenderer.Mesh);
+            InternalBind(meshRenderer.Mesh);
 
+            GLMaterial[] glMaterials = new GLMaterial[meshRenderer.Materials.Length];
             for (int i = 0; i < meshRenderer.Materials.Length; i++)
-                Bind(meshRenderer.Materials[i]);
+                glMaterials[i] = InternalBind(meshRenderer.Materials[i]);
 
             GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget(
                 meshRenderer.Transform,
                 meshRenderer.Mesh.GetRawVertexData(),
                 meshRenderer.Mesh.Triangles,
-                meshRenderer.Materials
+                glMaterials
             );
             handle = renderTarget;
 

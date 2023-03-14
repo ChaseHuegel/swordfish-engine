@@ -25,9 +25,10 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget
 
     private readonly GLMaterial[] Materials;
 
-    public GLRenderTarget(GL gl, Span<float> vertices, Span<uint> indices, params GLMaterial[] materials)
+    public GLRenderTarget(GL gl, Transform transform, Span<float> vertices, Span<uint> indices, params GLMaterial[] materials)
     {
         GL = gl;
+        Transform = transform;
         Materials = materials;
 
         float[] verticesArray = vertices.ToArray();
