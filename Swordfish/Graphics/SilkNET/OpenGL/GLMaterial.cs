@@ -20,8 +20,7 @@ internal sealed class GLMaterial : Handle
 
     protected override void OnDisposed()
     {
-        //  ! We do not want to dispose the shader and textures,
-        //  ! they may be shared with other materials.
+        //  We do not want to dispose the shader and textures, they may be shared with other materials.
     }
 
     public void Use()
@@ -35,6 +34,9 @@ internal sealed class GLMaterial : Handle
         ShaderProgram.Use();
 
         for (int i = 0; i < Textures.Length; i++)
+        {
             Textures[i].Bind(TextureUnit.Texture0 + i);
+            ShaderProgram.SetUniform("texture" + i, i);
+        }
     }
 }

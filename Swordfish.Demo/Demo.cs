@@ -31,13 +31,12 @@ public class Demo : Mod
         3, 2, 1
     };
 
-    private static IECSContext ECSContext;
-    private static IRenderContext RenderContext;
-    private IWindowContext WindowContext;
+    private readonly IECSContext ECSContext;
+    private readonly IRenderContext RenderContext;
+    private readonly IWindowContext WindowContext;
     private readonly IFileService FileService;
 
-    private MeshRenderer RenderTarget;
-
+    private MeshRenderer? RenderTarget;
 
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService)
     {
@@ -53,11 +52,12 @@ public class Demo : Mod
 
     public override void Start()
     {
-        var mesh = new Mesh();
         var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
         var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"));
+        var material = new Material(shader, texture);
+        var mesh = new Mesh();
 
-        RenderTarget = new MeshRenderer(mesh, shader)
+        RenderTarget = new MeshRenderer(mesh, material)
         {
             Transform = new Transform
             {
@@ -74,7 +74,7 @@ public class Demo : Mod
 
     private void OnUpdate(double delta)
     {
-        RenderTarget.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
+        RenderTarget!.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
     }
 
     public override void Unload()

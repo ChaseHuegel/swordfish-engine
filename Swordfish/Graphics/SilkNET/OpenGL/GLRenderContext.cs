@@ -9,7 +9,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics;
 
-internal class RenderContext : IRenderContext
+internal class GLRenderContext : IRenderContext
 {
     private readonly ConcurrentBag<IRenderTarget> RenderTargets = new();
 
@@ -23,7 +23,7 @@ internal class RenderContext : IRenderContext
 
     private readonly IFileService FileService;
 
-    public RenderContext(IWindowContext windowContext, GLContext glContext, IFileService fileService)
+    public GLRenderContext(IWindowContext windowContext, GLContext glContext, IFileService fileService)
     {
         FileService = fileService;
         WindowContext = windowContext;
@@ -85,15 +85,15 @@ internal class RenderContext : IRenderContext
         return Unsafe.As<TexImage2D>(handle);
     }
 
-    private VertexArrayObject InternalBind(Mesh mesh)
+    private VertexArrayObject<float, uint> InternalBind(Mesh mesh)
     {
         if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
-            handle = FileService.Parse<VertexArrayObject>(mesh.Source);
+            handle = GLContext.CreateVertexArrayObject(mesh.GetRawVertexData(), mesh.Triangles);
             LinkedHandles.TryAdd(mesh, handle);
         }
 
-        return Unsafe.As<VertexArrayObject>(handle);
+        return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
     private GLMaterial InternalBind(Material material)
@@ -102,9 +102,9 @@ internal class RenderContext : IRenderContext
         {
             ShaderProgram shaderProgram = InternalBind(material.Shader);
 
-            List<TexImage2D> texImages2D = new();
+            TexImage2D[] texImages2D = new TexImage2D[material.Textures.Length];
             for (int i = 0; i < material.Textures.Length; i++)
-                texImages2D.Add(InternalBind(material.Textures[i]));
+                texImages2D[i] = InternalBind(material.Textures[i]);
 
             handle = GLContext.CreateGLMaterial(shaderProgram, texImages2D);
             LinkedHandles.TryAdd(material, handle);
@@ -122,8 +122,14 @@ internal class RenderContext : IRenderContext
             for (int i = 0; i < meshRenderer.Materials.Length; i++)
                 Bind(meshRenderer.Materials[i]);
 
-            GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget();
+            GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget(
+                meshRenderer.Transform,
+                meshRenderer.Mesh.GetRawVertexData(),
+                meshRenderer.Mesh.Triangles,
+                meshRenderer.Materials
+            );
             handle = renderTarget;
+
             if (LinkedHandles.TryAdd(meshRenderer, renderTarget))
             {
                 RenderTargets.Add(renderTarget);

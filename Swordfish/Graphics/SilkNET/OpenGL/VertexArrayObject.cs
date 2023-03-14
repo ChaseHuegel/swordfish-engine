@@ -3,41 +3,40 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class VertexArrayObject<TVertexType, TElementType> : IDisposable
+internal sealed class VertexArrayObject32 : VertexArrayObject<float, uint>
+{
+    public VertexArrayObject32(GL gl, BufferObject<float> vertexBufferObject, BufferObject<uint> elementBufferObject)
+        : base(gl, vertexBufferObject, elementBufferObject) { }
+}
+
+internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint>
     where TVertexType : unmanaged
     where TElementType : unmanaged
 {
     private readonly GL GL;
 
-    private readonly uint Handle;
-
-    private volatile bool Disposed;
-
     public VertexArrayObject(GL gl, BufferObject<TVertexType> vertexBufferObject, BufferObject<TElementType> elementBufferObject)
     {
         GL = gl;
-        Handle = GL.GenVertexArray();
 
         Bind();
         vertexBufferObject.Bind();
         elementBufferObject.Bind();
     }
 
-    public void Dispose()
+    protected override uint CreateHandle()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
+        return GL.GenVertexArray();
+    }
 
-        Disposed = true;
+    protected override void OnDisposed()
+    {
         GL.DeleteVertexArray(Handle);
     }
 
     public void Bind()
     {
-        if (Disposed)
+        if (disposed)
         {
             Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;
