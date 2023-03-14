@@ -30,15 +30,17 @@ internal class GLRenderContext : IRenderContext
         GLContext = glContext;
 
         Camera = new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f);
+        WindowContext.Loaded += OnWindowLoaded;
+        WindowContext.Render += OnWindowRender;
         WindowContext.Resized += OnWindowResized;
     }
 
-    public void Initialize()
+    private void OnWindowLoaded()
     {
         Debugger.Log("Renderer initialized.");
     }
 
-    public void Render(double delta)
+    private void OnWindowRender(double delta)
     {
         foreach (IRenderTarget target in RenderTargets)
         {

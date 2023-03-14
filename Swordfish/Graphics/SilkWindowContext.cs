@@ -30,7 +30,6 @@ public class SilkWindowContext : IWindowContext
     public Action<Vector2>? Resized { get; set; }
 
     private IWindow Window { get; }
-    private IRenderContext Renderer { get; }
     private IUIContext UIContext { get; }
     private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
@@ -38,12 +37,11 @@ public class SilkWindowContext : IWindowContext
     private readonly GL GL;
     private readonly SynchronizationContext MainThread;
 
-    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IPathService pathService)
+    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IPathService pathService)
     {
         GL = gl;
         MainThread = mainThread;
         Window = window;
-        Renderer = renderer;
         UIContext = uiContext;
         InputService = inputService;
         ShortcutService = shortcutService;
@@ -91,7 +89,6 @@ public class SilkWindowContext : IWindowContext
         };
         Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
 
-        Renderer.Initialize();
         UIContext.Initialize();
         Loaded?.Invoke();
     }
@@ -148,8 +145,6 @@ public class SilkWindowContext : IWindowContext
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-
-        Renderer.Render(delta);
 
         Render?.Invoke(delta);
 

@@ -52,8 +52,8 @@ public class Demo : Mod
 
     public override void Start()
     {
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
-        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"));
+        var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
+        var texture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
         var material = new Material(shader, texture);
         var mesh = new Mesh();
 
