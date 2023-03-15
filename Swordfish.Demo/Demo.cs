@@ -84,7 +84,7 @@ public class Demo : Mod
 
         RenderTarget = new MeshRenderer(mesh, material)
         {
-            Transform = new Transform
+            Transform =
             {
                 Position = new Vector3(0, 0, 1)
             }

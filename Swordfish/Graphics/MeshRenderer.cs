@@ -17,6 +17,7 @@ public sealed class MeshRenderer : IHandle
     {
         Mesh = mesh;
         Materials = materials;
+        Transform = new Transform();
     }
 
     public void Dispose()
