@@ -1,3 +1,5 @@
+using System;
+using System.Drawing;
 using System.Numerics;
 using Swordfish.Demo.ECS;
 using Swordfish.ECS;
@@ -16,19 +18,42 @@ public class Demo : Mod
     public override string Name => "Swordfish Demo";
     public override string Description => "A demo of the Swordfish engine.";
 
-    private static readonly float[] VertexData =
-    {
-        //X     Y     Z     R   G   B   A   UX  VY  UZ
-         0.5f,  0.5f, 0.0f, 1f, 0f, 0f, 1f, 1f, 0f, 0f,
-         0.5f, -0.5f, 0.0f, 0f, 1f, 0f, 1f, 1f, 1f, 0f,
-        -0.5f, -0.5f, 0.0f, 0f, 0f, 1f, 1f, 0f, 1f, 0f,
-        -0.5f,  0.5f, 0.0f, 1f, 0f, 0f, 1f, 0f, 0f, 0f
-    };
-
-    private static readonly uint[] Indices =
+    private static readonly uint[] Triangles =
     {
         3, 1, 0,
         3, 2, 1
+    };
+
+    private static readonly Vector3[] Vertices =
+    {
+        new Vector3(0.5f,  0.5f, 0.0f),
+        new Vector3(0.5f, -0.5f, 0.0f),
+        new Vector3(-0.5f, -0.5f, 0.0f),
+        new Vector3(-0.5f,  0.5f, 0.0f)
+    };
+
+    private static readonly Vector4[] Colors =
+    {
+        new Vector4(1f, 0f, 0f, 1f),
+        new Vector4(0f, 1f, 0f, 1f),
+        new Vector4(0f, 0f, 1f, 1f),
+        new Vector4(1f, 0f, 0f, 1f)
+    };
+
+    private static readonly Vector3[] UV =
+    {
+        new Vector3(1f, 0f, 0f),
+        new Vector3(1f, 1f, 0f),
+        new Vector3(0f, 1f, 0f),
+        new Vector3(0f, 0f, 0f)
+    };
+
+    private static readonly Vector3[] Normals =
+    {
+        new Vector3(1f),
+        new Vector3(1f),
+        new Vector3(1f),
+        new Vector3(1f)
     };
 
     private readonly IECSContext ECSContext;
@@ -55,7 +80,7 @@ public class Demo : Mod
         var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
         var texture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
         var material = new Material(shader, texture);
-        var mesh = new Mesh();
+        var mesh = new Mesh(Triangles, Vertices, Colors, UV, Normals);
 
         RenderTarget = new MeshRenderer(mesh, material)
         {

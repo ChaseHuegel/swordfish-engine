@@ -27,8 +27,22 @@ public abstract class Handle : IHandle
 
 public abstract class ManagedHandle<TType> : Handle
 {
-    public TType Handle => handle ??= CreateHandle();
+    public TType Handle
+    {
+        get
+        {
+            if (!handleCreated)
+            {
+                handle = CreateHandle();
+                handleCreated = true;
+            }
+
+            return handle!;
+        }
+    }
+
     private TType? handle;
+    private bool handleCreated;
 
     protected abstract TType CreateHandle();
 }

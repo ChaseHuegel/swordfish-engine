@@ -68,15 +68,18 @@ internal class GlslParser : IFileParser<ShaderProgram>
         attributesBuilder.AppendLine("in vec3 in_position;");
         attributesBuilder.AppendLine("in vec4 in_color;");
         attributesBuilder.AppendLine("in vec3 in_uv;");
+        attributesBuilder.AppendLine("in vec3 in_normal;");
         attributesBuilder.AppendLine("out vec3 VertexPosition;");
         attributesBuilder.AppendLine("out vec4 VertexColor;");
         attributesBuilder.AppendLine("out vec3 TextureCoord;");
+        attributesBuilder.AppendLine("out vec3 VertexNormal;");
         attributesBuilder.AppendLine("#endif");
         attributesBuilder.AppendLine();
         attributesBuilder.AppendLine("#ifdef FRAGMENT");
         attributesBuilder.AppendLine("in vec3 VertexPosition;");
         attributesBuilder.AppendLine("in vec4 VertexColor;");
         attributesBuilder.AppendLine("in vec3 TextureCoord;");
+        attributesBuilder.AppendLine("in vec3 VertexNormal;");
         attributesBuilder.AppendLine("out vec4 FragColor;");
         attributesBuilder.AppendLine("#endif");
         string attributes = attributesBuilder.ToString();
@@ -89,6 +92,7 @@ void main()
     VertexPosition = in_position;
     VertexColor = in_color;
     TextureCoord = in_uv;
+    VertexNormal = in_normal;
     gl_Position = vertex();
 #endif
 

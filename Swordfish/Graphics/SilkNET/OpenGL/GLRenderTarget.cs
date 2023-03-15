@@ -6,6 +6,8 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class GLRenderTarget : Handle, IRenderTarget
 {
+    public const int VertexDataLength = 13;
+
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
     private static readonly Matrix4x4 ReflectionMatrix = new(
@@ -41,14 +43,17 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget
         {
             ShaderProgram shaderProgram = Materials[i].ShaderProgram;
 
-            uint attributeLocation = shaderProgram.GetAttributeLocation("in_position");
-            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 0);
+            uint attrLoc = shaderProgram.BindAttributeLocation("in_position", 0);
+            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 0);
 
-            attributeLocation = shaderProgram.GetAttributeLocation("in_color");
-            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 4, VertexAttribPointerType.Float, 10, 3);
+            attrLoc = shaderProgram.BindAttributeLocation("in_color", 1);
+            VertexArrayObject.SetVertexAttributePointer(attrLoc, 4, VertexAttribPointerType.Float, VertexDataLength, 3);
 
-            attributeLocation = shaderProgram.GetAttributeLocation("in_uv");
-            VertexArrayObject.SetVertexAttributePointer(attributeLocation, 3, VertexAttribPointerType.Float, 10, 7);
+            attrLoc = shaderProgram.BindAttributeLocation("in_uv", 2);
+            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 7);
+
+            attrLoc = shaderProgram.BindAttributeLocation("in_normal", 3);
+            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 10);
         }
     }
 

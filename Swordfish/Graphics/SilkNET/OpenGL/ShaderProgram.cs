@@ -77,62 +77,73 @@ internal sealed class ShaderProgram : ManagedHandle<uint>
         GL.UseProgram(Handle);
     }
 
-    public uint GetAttributeLocation(string name)
+    public uint BindAttributeLocation(string attribute, uint location)
     {
-        return (uint)GL.GetAttribLocation(Handle, name);
+        GL.BindAttribLocation(Handle, location, attribute);
+        return location;
     }
 
-    public bool HasUniform(string name)
+    public uint GetAttributeLocation(string attribute)
     {
-        return TryGetUniform(name, out _);
+        int location = GL.GetAttribLocation(Handle, attribute);
+
+        if (location < 0)
+            Debugger.Log($"Shader attribute '{attribute}' not found in shader '{Name}'.", LogType.ERROR);
+
+        return (uint)location;
     }
 
-    public void SetUniform(string name, int value)
+    public bool HasUniform(string uniform)
     {
-        if (TryGetUniform(name, out int location))
+        return TryGetUniform(uniform, out _);
+    }
+
+    public void SetUniform(string uniform, int value)
+    {
+        if (TryGetUniform(uniform, out int location))
             GL.Uniform1(location, value);
     }
 
-    public void SetUniform(string name, float value)
+    public void SetUniform(string uniform, float value)
     {
-        if (TryGetUniform(name, out int location))
+        if (TryGetUniform(uniform, out int location))
             GL.Uniform1(location, value);
     }
 
-    public void SetUniform(string name, Vector2 value)
+    public void SetUniform(string uniform, Vector2 value)
     {
-        if (TryGetUniform(name, out int location))
+        if (TryGetUniform(uniform, out int location))
             GL.Uniform2(location, value.X, value.Y);
     }
 
-    public void SetUniform(string name, Vector3 value)
+    public void SetUniform(string uniform, Vector3 value)
     {
-        if (TryGetUniform(name, out int location))
+        if (TryGetUniform(uniform, out int location))
             GL.Uniform3(location, value.X, value.Y, value.Z);
     }
 
-    public void SetUniform(string name, Vector4 value)
+    public void SetUniform(string uniform, Vector4 value)
     {
-        if (TryGetUniform(name, out int location))
+        if (TryGetUniform(uniform, out int location))
             GL.Uniform4(location, value.X, value.Y, value.Z, value.W);
     }
 
-    public unsafe void SetUniform(string name, Matrix4x4 value)
+    public unsafe void SetUniform(string uniform, Matrix4x4 value)
     {
-        if (TryGetUniform(name, out int location))
+        if (TryGetUniform(uniform, out int location))
             GL.UniformMatrix4(location, 1, false, (float*)&value);
     }
 
-    private bool TryGetUniform(string name, out int location)
+    private bool TryGetUniform(string uniform, out int location)
     {
-        if (!UniformLocations.TryGetValue(name, out location))
+        if (!UniformLocations.TryGetValue(uniform, out location))
         {
-            location = GL.GetUniformLocation(Handle, name);
-            UniformLocations.Add(name, location);
+            location = GL.GetUniformLocation(Handle, uniform);
+            UniformLocations.Add(uniform, location);
         }
 
         if (location == -1)
-            Debugger.Log($"Uniform '{name}' does not exist in the shader '{Name}'.", LogType.WARNING);
+            Debugger.Log($"Uniform '{uniform}' not found in the shader '{Name}'.", LogType.WARNING);
 
         return location != -1;
     }
