@@ -61,7 +61,7 @@ public class Demo : Mod
     private readonly IWindowContext WindowContext;
     private readonly IFileService FileService;
 
-    private MeshRenderer? RenderTarget;
+    private MeshRenderer? MeshRenderer;
 
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService)
     {
@@ -71,6 +71,7 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
+        ecsContext.BindSystem<RoundaboutSystem>();
 
         Benchmark.Log();
     }
@@ -82,7 +83,7 @@ public class Demo : Mod
         var material = new Material(shader, texture);
         var mesh = new Mesh(Triangles, Vertices, Colors, UV, Normals);
 
-        RenderTarget = new MeshRenderer(mesh, material)
+        MeshRenderer = new MeshRenderer(mesh, material)
         {
             Transform =
             {
@@ -90,16 +91,38 @@ public class Demo : Mod
             }
         };
 
-        RenderContext.Bind(RenderTarget);
+        using (Benchmark.StartNew(nameof(Demo), nameof(Start), "_CreateEntities"))
+        {
+            int index = 0;
+            for (int x = 0; x < 20; x++)
+            {
+                for (int y = 0; y < 20; y++)
+                {
+                    for (int z = 0; z < 25; z++)
+                    {
+                        ECSContext.EntityBuilder
+                            .Attach(new IdentifierComponent($"Astronaut{index++}", null), IdentifierComponent.DefaultIndex)
+                            .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 15), Vector3.Zero), TransformComponent.DefaultIndex)
+                            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material)), MeshRendererComponent.DefaultIndex)
+                            .Build();
+                    }
+                }
+            }
+        }
+
+        Benchmark.Log();
+
+        // RenderContext.Bind(RenderTarget);
         WindowContext.Update += OnUpdate;
 
         // TestUI.CreateCanvas();
-        TestECS.Populate(ECSContext);
+        // TestECS.Populate(ECSContext);
     }
 
     private void OnUpdate(double delta)
     {
-        RenderTarget!.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
+        // MeshRenderer!.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
+        ECSContext.Update((float)delta);
     }
 
     public override void Unload()

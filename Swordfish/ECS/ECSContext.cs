@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
@@ -52,8 +53,10 @@ public class ECSContext : IECSContext
         BindComponent<IdentifierComponent>();
         BindComponent<TransformComponent>();
         BindComponent<PhysicsComponent>();
+        BindComponent<MeshRendererComponent>();
 
         BindSystem<PhysicsSystem>();
+        BindSystem<MeshRendererSystem>();
     }
 
     public void Start()
@@ -202,14 +205,14 @@ public class ECSContext : IECSContext
 
         for (int i = 0; i < ptrs.Length; i++)
         {
+            int componentsFound = 0;
+
             for (int n = 0; n < componentTypes.Length; n++)
-            {
                 if (Store.HasAt(ptrs[i], GetComponentIndex(componentTypes[n])))
-                {
-                    entities[entityCount++] = new Entity(ptrs[i], this);
-                    break;
-                }
-            }
+                    componentsFound++;
+
+            if (componentsFound == componentTypes.Length)
+                entities[entityCount++] = new Entity(ptrs[i], this);
         }
 
         Entity[] results = new Entity[entityCount];

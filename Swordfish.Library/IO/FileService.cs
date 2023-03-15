@@ -41,7 +41,7 @@ namespace Swordfish.Library.IO
                     return assembly.GetManifestResourceStream(builder.ToString());
             }
 
-            return File.Open(path.ToString(), FileMode.Open, FileAccess.Read);
+            return File.Open(path.ToString(), FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
         public void Write(IPath path, Stream stream)
