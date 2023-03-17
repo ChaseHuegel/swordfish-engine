@@ -23,7 +23,7 @@ public class PluginContext : IPluginContext
         return PluginTypes.Keys;
     }
 
-    public void InvokeStart(IEnumerable<IPlugin> plugins)
+    public void Activate(IEnumerable<IPlugin> plugins)
     {
         ThreadPool.QueueUserWorkItem(WorkCallback);
         void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
@@ -32,6 +32,7 @@ public class PluginContext : IPluginContext
         {
             if (Debugger.TryInvoke(plugin.Start, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
             {
+                ActivePlugins.TryAdd(plugin.GetType(), plugin);
                 Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
                 Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
             }

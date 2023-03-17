@@ -106,7 +106,7 @@ public static class SwordfishEngine
             Debugger.Log($"Initialized plugin '{plugin.Name}'.");
 
         Kernel.Get<IECSContext>().Start();
-        Kernel.Get<IPluginContext>().InvokeStart(plugins);
+        Kernel.Get<IPluginContext>().Activate(plugins);
     }
 
     private static void OnWindowClosing()
