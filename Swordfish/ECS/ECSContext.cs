@@ -39,16 +39,13 @@ public class ECSContext : IECSContext
     {
         Debugger.Log($"Initializing ECS context.");
 
-        using (Benchmark.StartNew(nameof(ECSContext), "ctor"))
-        {
-            Running = false;
-            Modified = false;
-            MaxEntities = DEFAULT_MAX_ENTITIES;
+        Running = false;
+        Modified = false;
+        MaxEntities = DEFAULT_MAX_ENTITIES;
 
-            Store = new ChunkedDataStore(0, 1);
-            ComponentTypes = new IndexLookup<Type>();
-            Systems = new HashSet<ComponentSystem>();
-        }
+        Store = new ChunkedDataStore(0, 1);
+        ComponentTypes = new IndexLookup<Type>();
+        Systems = new HashSet<ComponentSystem>();
 
         BindComponent<IdentifierComponent>();
         BindComponent<TransformComponent>();
@@ -66,11 +63,8 @@ public class ECSContext : IECSContext
 
         Debugger.Log($"Starting ECS context.");
 
-        using (Benchmark.StartNew(nameof(ECSContext), nameof(Start)))
-        {
-            Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
-            Running = true;
-        }
+        Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
+        Running = true;
     }
 
     public void Stop()
@@ -90,18 +84,15 @@ public class ECSContext : IECSContext
         if (!Running)
             throw new InvalidOperationException(REQ_START_MESSAGE);
 
-        using (Benchmark.StartNew(nameof(ECSContext), nameof(Update)))
+        foreach (ComponentSystem system in Systems)
         {
-            foreach (ComponentSystem system in Systems)
+            if (Modified)
             {
-                if (Modified)
-                {
-                    system.Modified = true;
-                    Modified = false;
-                }
-
-                system.Update(this, deltaTime);
+                system.Modified = true;
+                Modified = false;
             }
+
+            system.Update(this, deltaTime);
         }
     }
 
@@ -118,18 +109,15 @@ public class ECSContext : IECSContext
 
         Debugger.Log($"Binding ECS component '{typeof(TComponent)}'.");
 
-        using (Benchmark.StartNew(nameof(ECSContext), nameof(BindComponent)))
-        {
-            if (!Reflection.HasAttribute<TComponent, ComponentAttribute>())
-                throw new ArgumentException($"Type '{typeof(TComponent)}' must be decorated as a Component.");
+        if (!Reflection.HasAttribute<TComponent, ComponentAttribute>())
+            throw new ArgumentException($"Type '{typeof(TComponent)}' must be decorated as a Component.");
 
-            if (ComponentTypes.Contains(typeof(TComponent)))
-                throw new InvalidOperationException($"Component of type '{typeof(TComponent)}' is already bound.");
+        if (ComponentTypes.Contains(typeof(TComponent)))
+            throw new InvalidOperationException($"Component of type '{typeof(TComponent)}' is already bound.");
 
-            ComponentTypes.Add(typeof(TComponent));
+        ComponentTypes.Add(typeof(TComponent));
 
-            return ComponentTypes.Count - 1;
-        }
+        return ComponentTypes.Count - 1;
     }
 
     public TSystem BindSystem<TSystem>() where TSystem : ComponentSystem
@@ -139,18 +127,15 @@ public class ECSContext : IECSContext
 
         Debugger.Log($"Binding ECS system '{typeof(TSystem)}'.");
 
-        using (Benchmark.StartNew(nameof(ECSContext), nameof(BindSystem)))
-        {
-            if (Activator.CreateInstance(typeof(TSystem)) is not ComponentSystem system)
-                throw new NullReferenceException();
+        if (Activator.CreateInstance(typeof(TSystem)) is not ComponentSystem system)
+            throw new NullReferenceException();
 
-            if (Reflection.TryGetAttribute<TSystem, ComponentSystemAttribute>(out ComponentSystemAttribute attribute))
-                system.Filter = attribute.Filter;
+        if (Reflection.TryGetAttribute<TSystem, ComponentSystemAttribute>(out ComponentSystemAttribute attribute))
+            system.Filter = attribute.Filter;
 
-            Systems.Add(system);
+        Systems.Add(system);
 
-            return (TSystem)system;
-        }
+        return (TSystem)system;
     }
 
     public Entity CreateEntity()

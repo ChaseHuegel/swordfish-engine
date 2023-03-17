@@ -72,8 +72,6 @@ public class Demo : Mod
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
         ecsContext.BindSystem<RoundaboutSystem>();
-
-        Benchmark.Log();
     }
 
     public override void Start()
@@ -91,32 +89,29 @@ public class Demo : Mod
             }
         };
 
-        using (Benchmark.StartNew(nameof(Demo), nameof(Start), "_CreateEntities"))
+        int index = 0;
+        for (int x = 0; x < 20; x++)
         {
-            int index = 0;
-            for (int x = 0; x < 20; x++)
+            for (int y = 0; y < 20; y++)
             {
-                for (int y = 0; y < 20; y++)
+                for (int z = 0; z < 30; z++)
                 {
-                    for (int z = 0; z < 25; z++)
-                    {
-                        ECSContext.EntityBuilder
-                            .Attach(new IdentifierComponent($"Astronaut{index++}", null), IdentifierComponent.DefaultIndex)
-                            .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 15), Vector3.Zero), TransformComponent.DefaultIndex)
-                            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material)), MeshRendererComponent.DefaultIndex)
-                            .Build();
-                    }
+                    ECSContext.EntityBuilder
+                        .Attach(new IdentifierComponent($"Astronaut{index++}", null), IdentifierComponent.DefaultIndex)
+                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 15), Vector3.Zero), TransformComponent.DefaultIndex)
+                        .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material)), MeshRendererComponent.DefaultIndex)
+                        .Build();
                 }
             }
         }
-
-        Benchmark.Log();
 
         // RenderContext.Bind(RenderTarget);
         WindowContext.Update += OnUpdate;
 
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
+
+        Benchmark.Log();
     }
 
     private void OnUpdate(double delta)

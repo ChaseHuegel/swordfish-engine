@@ -6,7 +6,7 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class GLRenderTarget : Handle, IRenderTarget
 {
-    public const int VertexDataLength = 13;
+    public const int VertexDataLength = 13 + 16;
 
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
@@ -21,13 +21,14 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget
 
     public Transform Transform { get; set; } = new();
 
-    private readonly BufferObject<float> VertexBufferObject;
-    private readonly BufferObject<uint> ElementBufferObject;
-    private readonly VertexArrayObject<float, uint> VertexArrayObject;
+    internal readonly BufferObject<Matrix4x4> ModelsArrayBufferObject;
+    internal readonly BufferObject<float> VertexBufferObject;
+    internal readonly BufferObject<uint> ElementBufferObject;
+    internal readonly VertexArrayObject<float, uint> VertexArrayObject;
 
-    private readonly GLMaterial[] Materials;
+    internal readonly GLMaterial[] Materials;
 
-    public GLRenderTarget(GL gl, Transform transform, Span<float> vertices, Span<uint> indices, params GLMaterial[] materials)
+    public unsafe GLRenderTarget(GL gl, Transform transform, Span<float> vertices, Span<uint> indices, params GLMaterial[] materials)
     {
         GL = gl;
         Transform = transform;
@@ -39,21 +40,30 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget
         ElementBufferObject = new BufferObject<uint>(GL, indiciesArray, BufferTargetARB.ElementArrayBuffer);
         VertexArrayObject = new VertexArrayObject<float, uint>(GL, VertexBufferObject, ElementBufferObject);
 
+        VertexBufferObject.Bind();
+        VertexArrayObject.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, VertexDataLength, 0);
+        VertexArrayObject.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, VertexDataLength, 3);
+        VertexArrayObject.SetVertexAttribute(2, 3, VertexAttribPointerType.Float, VertexDataLength, 7);
+        VertexArrayObject.SetVertexAttribute(3, 3, VertexAttribPointerType.Float, VertexDataLength, 10);
+
+        ModelsArrayBufferObject = new BufferObject<Matrix4x4>(GL, Array.Empty<Matrix4x4>(), BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
+        ModelsArrayBufferObject.Bind();
+        for (uint i = 0; i < 4; i++)
+        {
+            VertexArrayObject.SetVertexAttributePointer(4 + i, 4, VertexAttribPointerType.Float, (uint)sizeof(Matrix4x4), (int)(i * sizeof(float) * 4));
+            VertexArrayObject.SetVertexAttributeDivisor(4 + i, 1);
+        }
+
+        GL.BindVertexArray(0);
+
         for (int i = 0; i < Materials.Length; i++)
         {
             ShaderProgram shaderProgram = Materials[i].ShaderProgram;
-
-            uint attrLoc = shaderProgram.BindAttributeLocation("in_position", 0);
-            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 0);
-
-            attrLoc = shaderProgram.BindAttributeLocation("in_color", 1);
-            VertexArrayObject.SetVertexAttributePointer(attrLoc, 4, VertexAttribPointerType.Float, VertexDataLength, 3);
-
-            attrLoc = shaderProgram.BindAttributeLocation("in_uv", 2);
-            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 7);
-
-            attrLoc = shaderProgram.BindAttributeLocation("in_normal", 3);
-            VertexArrayObject.SetVertexAttributePointer(attrLoc, 3, VertexAttribPointerType.Float, VertexDataLength, 10);
+            shaderProgram.BindAttributeLocation("in_position", 0);
+            shaderProgram.BindAttributeLocation("in_color", 1);
+            shaderProgram.BindAttributeLocation("in_uv", 2);
+            shaderProgram.BindAttributeLocation("in_normal", 3);
+            shaderProgram.BindAttributeLocation("model", 4);
         }
     }
 

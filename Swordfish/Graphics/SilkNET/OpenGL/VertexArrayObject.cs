@@ -45,9 +45,20 @@ internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint
         GL.BindVertexArray(Handle);
     }
 
-    public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)
+    public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)
     {
-        GL.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
         GL.EnableVertexAttribArray(index);
+        GL.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
+    }
+
+    public unsafe void SetVertexAttribute(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)
+    {
+        GL.EnableVertexAttribArray(index);
+        GL.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
+    }
+
+    public void SetVertexAttributeDivisor(uint index, uint divisor)
+    {
+        GL.VertexAttribDivisor(index, divisor);
     }
 }

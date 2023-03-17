@@ -13,7 +13,7 @@ internal sealed class BufferObject<TData> : IDisposable
 
     private volatile bool Disposed;
 
-    public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType)
+    public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
     {
         GL = gl;
         Length = data.Length;
@@ -23,7 +23,7 @@ internal sealed class BufferObject<TData> : IDisposable
         Bind();
         fixed (void* dataPtr = data)
         {
-            GL.BufferData(BufferType, (nuint)(data.Length * sizeof(TData)), dataPtr, BufferUsageARB.StaticDraw);
+            GL.BufferData(BufferType, (nuint)(data.Length * sizeof(TData)), dataPtr, usage);
         }
     }
 

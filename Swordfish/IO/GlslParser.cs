@@ -65,10 +65,13 @@ internal class GlslParser : IFileParser<ShaderProgram>
         //  The min required attributes for functionality
         StringBuilder attributesBuilder = new();
         attributesBuilder.AppendLine("#ifdef VERTEX");
-        attributesBuilder.AppendLine("in vec3 in_position;");
-        attributesBuilder.AppendLine("in vec4 in_color;");
-        attributesBuilder.AppendLine("in vec3 in_uv;");
-        attributesBuilder.AppendLine("in vec3 in_normal;");
+        attributesBuilder.AppendLine("layout (location = 0) in vec3 in_position;");
+        attributesBuilder.AppendLine("layout (location = 1) in vec4 in_color;");
+        attributesBuilder.AppendLine("layout (location = 2) in vec3 in_uv;");
+        attributesBuilder.AppendLine("layout (location = 3) in vec3 in_normal;");
+        attributesBuilder.AppendLine("layout (location = 4) in mat4 model;");
+        attributesBuilder.AppendLine("uniform mat4 view;");
+        attributesBuilder.AppendLine("uniform mat4 projection;");
         attributesBuilder.AppendLine("out vec3 VertexPosition;");
         attributesBuilder.AppendLine("out vec4 VertexColor;");
         attributesBuilder.AppendLine("out vec3 TextureCoord;");

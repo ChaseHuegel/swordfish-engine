@@ -1,21 +1,37 @@
+using System;
 using System.Collections.Concurrent;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
+using Swordfish.Util;
+using Shader = Swordfish.Graphics.SilkNET.Shader;
 
 namespace Swordfish.Graphics;
 
 internal class GLRenderContext : IRenderContext
 {
+    //  Reflects the Z axis.
+    //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
+    private static readonly Matrix4x4 ReflectionMatrix = new(
+        1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, -1, 0,
+        0, 0, 0, 1
+    );
+
     private readonly ConcurrentBag<IRenderTarget> RenderTargets = new();
 
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
 
     private readonly Camera Camera;
+
+    private readonly GL GL;
 
     private readonly IWindowContext WindowContext;
 
@@ -23,11 +39,23 @@ internal class GLRenderContext : IRenderContext
 
     private readonly IFileService FileService;
 
-    public GLRenderContext(IWindowContext windowContext, GLContext glContext, IFileService fileService)
+    private readonly BufferObject<Matrix4x4> InstanceBuffer;
+
+    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IFileService fileService)
     {
+        GL = gl;
         FileService = fileService;
         WindowContext = windowContext;
         GLContext = glContext;
+
+        var transform = new Transform()
+        {
+            Position = new Vector3(0, 0, 5)
+        };
+        var models = new Matrix4x4[] {
+            transform.ToMatrix4x4() * ReflectionMatrix
+        };
+        InstanceBuffer = new BufferObject<Matrix4x4>(gl, models, BufferTargetARB.ArrayBuffer);
 
         Camera = new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f);
         WindowContext.Loaded += OnWindowLoaded;
@@ -40,12 +68,44 @@ internal class GLRenderContext : IRenderContext
         Debugger.Log("Renderer initialized.");
     }
 
-    private void OnWindowRender(double delta)
+    private unsafe void OnWindowRender(double delta)
     {
-        foreach (IRenderTarget target in RenderTargets)
+        var view = Camera.Transform.ToMatrix4x4() * ReflectionMatrix;
+        var projection = Camera.GetProjection();
+
+        if (RenderTargets.IsEmpty)
+            return;
+
+        //  TODO this will actually be per unique VAO
+        var target = (GLRenderTarget)RenderTargets.First();
+
+        Matrix4x4[] models = new Matrix4x4[RenderTargets.Count];
+        IRenderTarget[] renderTargets = RenderTargets.ToArray();
+
+        for (int i = 0; i < renderTargets.Length; i++)
+            models[i] = renderTargets[i].Transform.ToMatrix4x4();
+
+        target.ModelsArrayBufferObject.Bind();
+
+        GL.GetBufferParameter(BufferTargetARB.ArrayBuffer, BufferPNameARB.Size, out int bufferSize);
+
+        if (bufferSize >= models.Length * sizeof(Matrix4x4))
+            GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, new ReadOnlySpan<Matrix4x4>(models));
+        else
+            GL.BufferData(BufferTargetARB.ArrayBuffer, new ReadOnlySpan<Matrix4x4>(models), BufferUsageARB.DynamicDraw);
+
+        GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
+
+        for (int i = 0; i < target.Materials.Length; i++)
         {
-            target.Render(Camera);
+            GLMaterial material = target.Materials[i];
+            material.Use();
+            material.ShaderProgram.SetUniform("view", view);
+            material.ShaderProgram.SetUniform("projection", projection);
         }
+
+        target.VertexArrayObject.Bind();
+        GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
     }
 
     public void Bind(Shader shader) => InternalBind(shader);
