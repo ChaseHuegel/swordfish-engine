@@ -39,7 +39,6 @@ public static class SwordfishEngine
         options.Size = new Vector2D<int>(800, 600);
         options.Title = "Swordfish";
         options.ShouldSwapAutomatically = true;
-        options.VSync = false;
 
         MainWindow = Window.Create(options);
         MainWindow.Load += OnWindowLoaded;
