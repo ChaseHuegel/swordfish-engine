@@ -9,30 +9,66 @@ namespace Swordfish.Library.Types
 {
     public class Transform
     {
-        public Vector3 Position { get; set; }
+        public Vector3 Position
+        {
+            get => position;
+            set
+            {
+                dirty = true;
+                position = value;
+            }
+        }
 
-        public Vector3 Rotation { get; set; }
+        public Vector3 Rotation
+        {
+            get => rotation;
+            set
+            {
+                dirty = true;
+                rotation = value;
+            }
+        }
 
-        public Vector3 Scale { get; set; }
+        public Vector3 Scale
+        {
+            get => scale;
+            set
+            {
+                dirty = true;
+                scale = value;
+            }
+        }
+
+        private bool dirty = true;
+        private Vector3 position;
+        private Vector3 rotation;
+        private Vector3 scale;
+        private Matrix4x4 matrix4x4;
 
         public void Translate(Vector3 translation)
         {
             Position += translation;
+            dirty = true;
         }
 
         public void Rotate(Vector3 rotation)
         {
             Rotation += rotation;
+            dirty = true;
         }
 
         public void Scalar(Vector3 scale)
         {
             Scale *= scale;
+            dirty = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Matrix4x4 ToMatrix4x4()
         {
+            if (!dirty)
+                return matrix4x4;
+
             float cosY = MathS.Cos(Rotation.Y);
             float sinY = MathS.Sin(Rotation.Y);
 
@@ -63,7 +99,8 @@ namespace Swordfish.Library.Types
             matrix.M42 = Position.Y;
             matrix.M43 = Position.Z;
 
-            return matrix;
+            dirty = false;
+            return matrix4x4 = matrix;
         }
     }
 }
