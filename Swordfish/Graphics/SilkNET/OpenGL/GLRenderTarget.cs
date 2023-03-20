@@ -22,19 +22,21 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
     private readonly GL GL;
 
     public Transform Transform { get; set; } = new();
+    public RenderOptions RenderOptions { get; set; }
 
     internal readonly VertexArrayObject<float, uint> VertexArrayObject;
     internal readonly BufferObject<Matrix4x4> ModelsBufferObject;
 
     internal readonly GLMaterial[] Materials;
 
-    public unsafe GLRenderTarget(GL gl, Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, params GLMaterial[] materials)
+    public unsafe GLRenderTarget(GL gl, Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
         GL = gl;
         Transform = transform;
         VertexArrayObject = vertexArrayObject;
         ModelsBufferObject = modelsBufferObject;
         Materials = materials;
+        RenderOptions = renderOptions;
 
         VertexArrayObject.Bind();
 
@@ -72,27 +74,6 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         VertexArrayObject.Dispose();
         for (int i = 0; i < Materials.Length; i++)
             Materials[i].Dispose();
-    }
-
-    public unsafe void Render(Camera camera)
-    {
-        var model = Transform.ToMatrix4x4() * ReflectionMatrix;
-        var view = camera.Transform.ToMatrix4x4();
-        var projection = camera.GetProjection();
-
-        VertexArrayObject.Bind();
-
-        for (int i = 0; i < Materials.Length; i++)
-        {
-            GLMaterial material = Materials[i];
-
-            material.Use();
-            material.ShaderProgram.SetUniform("model", model);
-            material.ShaderProgram.SetUniform("view", view);
-            material.ShaderProgram.SetUniform("projection", projection);
-        }
-
-        GL.DrawElements(PrimitiveType.Triangles, (uint)VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

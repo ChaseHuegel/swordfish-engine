@@ -7,7 +7,9 @@ public sealed class MeshRenderer : IHandle
 {
     public event EventHandler<EventArgs>? Disposed;
 
-    public Transform Transform { get; set; }
+    public RenderOptions RenderOptions { get; set; }
+
+    public Transform Transform { get; set; } = new();
 
     public Mesh Mesh { get; }
 
@@ -17,7 +19,16 @@ public sealed class MeshRenderer : IHandle
     {
         Mesh = mesh;
         Materials = materials;
-        Transform = new Transform();
+    }
+
+    public MeshRenderer(Mesh mesh, Material[] materials, RenderOptions renderOptions) : this(mesh, materials)
+    {
+        RenderOptions = renderOptions;
+    }
+
+    public MeshRenderer(Mesh mesh, Material material, RenderOptions renderOptions) : this(mesh, material)
+    {
+        RenderOptions = renderOptions;
     }
 
     public void Dispose()

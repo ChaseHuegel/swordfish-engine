@@ -26,4 +26,15 @@ internal static class GLUtil
         gl.GetInteger(glEnum, out int value);
         return value;
     }
+
+    public static void Set(this GL gl, EnableCap enableCap, bool value)
+    {
+        if (value)
+        {
+            gl.Enable(enableCap);
+            return;
+        }
+
+        gl.Disable(enableCap);
+    }
 }

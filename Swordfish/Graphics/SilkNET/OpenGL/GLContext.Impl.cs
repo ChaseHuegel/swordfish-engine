@@ -76,19 +76,21 @@ internal unsafe partial class GLContext
         private readonly VertexArrayObject<float, uint> vertexArrayObject;
         private readonly BufferObject<Matrix4x4> modelsBufferObject;
         private readonly GLMaterial[] materials;
+        private readonly RenderOptions renderOptions;
 
-        public GLRenderTargetArgs(GL gl, Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials)
+        public GLRenderTargetArgs(GL gl, Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
         {
             this.gl = gl;
             this.transform = transform;
             this.vertexArrayObject = vertexArrayObject;
             this.modelsBufferObject = modelsBufferObject;
             this.materials = materials;
+            this.renderOptions = renderOptions;
         }
 
         public static GLRenderTarget Factory(GLRenderTargetArgs args)
         {
-            return new GLRenderTarget(args.gl, args.transform, args.vertexArrayObject, args.modelsBufferObject, args.materials);
+            return new GLRenderTarget(args.gl, args.transform, args.vertexArrayObject, args.modelsBufferObject, args.materials, args.renderOptions);
         }
     }
 

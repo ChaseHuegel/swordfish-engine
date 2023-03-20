@@ -109,6 +109,8 @@ internal class GLRenderContext : IRenderContext
             }
 
             target.VertexArrayObject.Bind();
+
+            GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
         }
     }
@@ -195,7 +197,8 @@ internal class GLRenderContext : IRenderContext
                 meshRenderer.Transform,
                 vao,
                 mbo,
-                glMaterials
+                glMaterials,
+                meshRenderer.RenderOptions
             );
 
             handle = renderTarget;

@@ -9,6 +9,7 @@ using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -34,10 +35,10 @@ public class Demo : Mod
 
     private static readonly Vector4[] Colors =
     {
-        new Vector4(1f, 0f, 0f, 1f),
-        new Vector4(0f, 1f, 0f, 1f),
-        new Vector4(0f, 0f, 1f, 1f),
-        new Vector4(1f, 0f, 0f, 1f)
+        Vector4.One,
+        Vector4.One,
+        Vector4.One,
+        Vector4.One
     };
 
     private static readonly Vector3[] UV =
@@ -61,8 +62,6 @@ public class Demo : Mod
     private readonly IWindowContext WindowContext;
     private readonly IFileService FileService;
 
-    private MeshRenderer? MeshRenderer;
-
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService)
     {
         FileService = fileService;
@@ -77,17 +76,29 @@ public class Demo : Mod
     public override void Start()
     {
         var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
-        var texture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
-        var material = new Material(shader, texture);
+
+        var astronautTexture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
+        var chortTexture = new Texture("chort", LocalPathService.Textures.At("chort.png"));
+        var hubertTexture = new Texture("hubert", LocalPathService.Textures.At("hubert.png"));
+        var haroldTexture = new Texture("harold", LocalPathService.Textures.At("harold.png"));
+        var melvinTexture = new Texture("melvin", LocalPathService.Textures.At("melvin.png"));
+        var womanTexture = new Texture("woman", LocalPathService.Textures.At("woman.png"));
+
+        var astronautMaterial = new Material(shader, astronautTexture);
+        var chortMaterial = new Material(shader, chortTexture);
+        var hubertMaterial = new Material(shader, hubertTexture);
+        var haroldMaterial = new Material(shader, haroldTexture);
+        var melvinMaterial = new Material(shader, melvinTexture);
+        var womanMaterial = new Material(shader, womanTexture);
+
         var mesh = new Mesh(Triangles, Vertices, Colors, UV, Normals);
 
-        MeshRenderer = new MeshRenderer(mesh, material)
+        var renderOptions = new RenderOptions
         {
-            Transform =
-            {
-                Position = new Vector3(0, 0, 1)
-            }
+            DoubleFaced = true
         };
+
+        var random = new Randomizer();
 
         int index = 0;
         for (int x = 0; x < 20; x++)
@@ -96,10 +107,12 @@ public class Demo : Mod
             {
                 for (int z = 0; z < 30; z++)
                 {
+                    var material = random.Select(astronautMaterial, chortMaterial, hubertMaterial, haroldMaterial, melvinMaterial, womanMaterial);
+
                     ECSContext.EntityBuilder
-                        .Attach(new IdentifierComponent($"Astronaut{index++}", null), IdentifierComponent.DefaultIndex)
+                        .Attach(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null), IdentifierComponent.DefaultIndex)
                         .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 15), Vector3.Zero), TransformComponent.DefaultIndex)
-                        .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material)), MeshRendererComponent.DefaultIndex)
+                        .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
                         .Build();
                 }
             }
