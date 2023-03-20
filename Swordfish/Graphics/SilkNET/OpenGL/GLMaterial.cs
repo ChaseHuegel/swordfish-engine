@@ -25,7 +25,7 @@ internal sealed class GLMaterial : Handle
 
     public void Use()
     {
-        if (disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to use {this} but it is disposed.", LogType.ERROR);
             return;
@@ -38,5 +38,28 @@ internal sealed class GLMaterial : Handle
             Textures[i].Bind(TextureUnit.Texture0 + i);
             ShaderProgram.SetUniform("texture" + i, i);
         }
+    }
+
+    public bool Equals(GLMaterial? other)
+    {
+        return ShaderProgram.Equals(other?.ShaderProgram) && Textures.SequenceEqual(other.Textures);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not GLMaterial other)
+            return false;
+
+        return Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return HashCode.Combine(ShaderProgram.GetHashCode(), Textures.GetHashCode());
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString() + $"[{ShaderProgram}]" + $"[{Textures.Length}]";
     }
 }

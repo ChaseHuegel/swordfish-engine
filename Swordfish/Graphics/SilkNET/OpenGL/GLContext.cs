@@ -1,3 +1,4 @@
+using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
@@ -33,9 +34,9 @@ internal unsafe partial class GLContext
         return GLThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, texImages2D));
     }
 
-    internal GLRenderTarget CreateGLRenderTarget(Transform transform, float[] vertexData, uint[] indices, params GLMaterial[] materials)
+    internal GLRenderTarget CreateGLRenderTarget(Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, params GLMaterial[] materials)
     {
-        return GLThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(GL, transform, vertexData, indices, materials));
+        return GLThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(GL, transform, vertexArrayObject, modelsBufferObject, materials));
     }
 
     internal VertexArrayObject<TVertexType, TElementType> CreateVertexArrayObject<TVertexType, TElementType>(TVertexType[] vertexData, TElementType[] indices)
@@ -48,5 +49,11 @@ internal unsafe partial class GLContext
     internal VertexArrayObject32 CreateVertexArrayObject32(float[] vertexData, uint[] indices)
     {
         return GLThread.WaitForResult(VertexArrayObject32Args.Factory, new VertexArrayObject32Args(GL, vertexData, indices));
+    }
+
+    internal BufferObject<TData> CreateBufferObject<TData>(TData[] data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
+        where TData : unmanaged
+    {
+        return GLThread.WaitForResult(BufferObjectArgs<TData>.Factory, new BufferObjectArgs<TData>(GL, data, bufferType, usage));
     }
 }

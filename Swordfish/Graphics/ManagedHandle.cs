@@ -6,17 +6,17 @@ public abstract class Handle : IHandle
 {
     public event EventHandler<EventArgs>? Disposed;
 
-    protected volatile bool disposed;
+    protected volatile bool IsDisposed;
 
     public void Dispose()
     {
-        if (disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to dispose a {GetType()} that was already disposed.", LogType.WARNING);
             return;
         }
 
-        disposed = true;
+        IsDisposed = true;
         Disposed?.Invoke(this, EventArgs.Empty);
         OnDisposed();
         GC.SuppressFinalize(this);

@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using Swordfish.Util;
 using Shader = Swordfish.Graphics.SilkNET.Shader;
 
@@ -26,20 +29,14 @@ internal class GLRenderContext : IRenderContext
     );
 
     private readonly ConcurrentBag<IRenderTarget> RenderTargets = new();
-
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
 
     private readonly Camera Camera;
 
     private readonly GL GL;
-
     private readonly IWindowContext WindowContext;
-
     private readonly GLContext GLContext;
-
     private readonly IFileService FileService;
-
-    private readonly BufferObject<Matrix4x4> InstanceBuffer;
 
     public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IFileService fileService)
     {
@@ -47,15 +44,6 @@ internal class GLRenderContext : IRenderContext
         FileService = fileService;
         WindowContext = windowContext;
         GLContext = glContext;
-
-        var transform = new Transform()
-        {
-            Position = new Vector3(0, 0, 5)
-        };
-        var models = new Matrix4x4[] {
-            transform.ToMatrix4x4() * ReflectionMatrix
-        };
-        InstanceBuffer = new BufferObject<Matrix4x4>(gl, models, BufferTargetARB.ArrayBuffer);
 
         Camera = new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f);
         WindowContext.Loaded += OnWindowLoaded;
@@ -68,7 +56,7 @@ internal class GLRenderContext : IRenderContext
         Debugger.Log("Renderer initialized.");
     }
 
-    private unsafe void OnWindowRender(double delta)
+    private void OnWindowRender(double delta)
     {
         var view = Camera.Transform.ToMatrix4x4() * ReflectionMatrix;
         var projection = Camera.GetProjection();
@@ -76,43 +64,61 @@ internal class GLRenderContext : IRenderContext
         if (RenderTargets.IsEmpty)
             return;
 
-        //  TODO this will actually be per unique VAO
-        var target = (GLRenderTarget)RenderTargets.First();
-
-        Matrix4x4[] models = new Matrix4x4[RenderTargets.Count];
-        IRenderTarget[] renderTargets = RenderTargets.ToArray();
-
-        for (int i = 0; i < renderTargets.Length; i++)
-            models[i] = renderTargets[i].Transform.ToMatrix4x4();
-
-        target.ModelsArrayBufferObject.Bind();
-
-        GL.GetBufferParameter(BufferTargetARB.ArrayBuffer, BufferPNameARB.Size, out int bufferSize);
-
-        if (bufferSize >= models.Length * sizeof(Matrix4x4))
-            GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, new ReadOnlySpan<Matrix4x4>(models));
-        else
-            GL.BufferData(BufferTargetARB.ArrayBuffer, new ReadOnlySpan<Matrix4x4>(models), BufferUsageARB.DynamicDraw);
-
-        GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
-
-        for (int i = 0; i < target.Materials.Length; i++)
-        {
-            GLMaterial material = target.Materials[i];
-            material.Use();
-            material.ShaderProgram.SetUniform("view", view);
-            material.ShaderProgram.SetUniform("projection", projection);
-        }
-
-        target.VertexArrayObject.Bind();
-        GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
+        RenderInstancedTargets(view, projection);
     }
 
-    public void Bind(Shader shader) => InternalBind(shader);
-    public void Bind(Texture texture) => InternalBind(texture);
-    public void Bind(Mesh mesh) => InternalBind(mesh);
-    public void Bind(Material material) => InternalBind(material);
-    public void Bind(MeshRenderer meshRenderer) => InternalBind(meshRenderer);
+    private static Dictionary<uint, (GLRenderTarget target, List<Matrix4x4> matrices)> InstanceMap = new();
+    private unsafe void RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
+    {
+        InstanceMap.Clear();
+        foreach (var renderTarget in RenderTargets)
+        {
+            var glRenderTarget = Unsafe.As<GLRenderTarget>(renderTarget);
+            var vaoHandle = glRenderTarget.VertexArrayObject.Handle;
+
+            if (!InstanceMap.TryGetValue(vaoHandle, out (GLRenderTarget target, List<Matrix4x4> matrices) pair))
+            {
+                pair = new(glRenderTarget, new List<Matrix4x4>());
+                InstanceMap.Add(vaoHandle, pair);
+            }
+
+            pair.matrices.Add(renderTarget.Transform.ToMatrix4x4());
+        }
+
+        foreach (var instancedTarget in InstanceMap.Values)
+        {
+            var target = instancedTarget.target;
+            var models = instancedTarget.matrices.ToArray();
+
+            target.ModelsBufferObject.Bind();
+
+            GL.GetBufferParameter(BufferTargetARB.ArrayBuffer, BufferPNameARB.Size, out int bufferSize);
+
+            if (bufferSize >= models.Length * sizeof(Matrix4x4))
+                GL.BufferSubData(BufferTargetARB.ArrayBuffer, 0, new ReadOnlySpan<Matrix4x4>(models));
+            else
+                GL.BufferData(BufferTargetARB.ArrayBuffer, new ReadOnlySpan<Matrix4x4>(models), BufferUsageARB.DynamicDraw);
+
+            GL.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
+
+            for (int n = 0; n < target.Materials.Length; n++)
+            {
+                GLMaterial material = target.Materials[n];
+                material.Use();
+                material.ShaderProgram.SetUniform("view", view);
+                material.ShaderProgram.SetUniform("projection", projection);
+            }
+
+            target.VertexArrayObject.Bind();
+            GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
+        }
+    }
+
+    public void Bind(Shader shader) => BindShader(shader);
+    public void Bind(Texture texture) => BindTexture(texture);
+    public void Bind(Mesh mesh) => BindMesh(mesh);
+    public void Bind(Material material) => BindMaterial(material);
+    public void Bind(MeshRenderer meshRenderer) => BindMeshRenderer(meshRenderer);
 
     private void OnControlHandleDisposed(object? sender, EventArgs e)
     {
@@ -125,7 +131,7 @@ internal class GLRenderContext : IRenderContext
         Camera.AspectRatio = newSize.GetRatio();
     }
 
-    private ShaderProgram InternalBind(Shader shader)
+    private ShaderProgram BindShader(Shader shader)
     {
         if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
         {
@@ -136,7 +142,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<ShaderProgram>(handle);
     }
 
-    private TexImage2D InternalBind(Texture texture)
+    private TexImage2D BindTexture(Texture texture)
     {
         if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
         {
@@ -147,7 +153,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<TexImage2D>(handle);
     }
 
-    private VertexArrayObject<float, uint> InternalBind(Mesh mesh)
+    private VertexArrayObject<float, uint> BindMesh(Mesh mesh)
     {
         if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
@@ -158,15 +164,15 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
-    private GLMaterial InternalBind(Material material)
+    private GLMaterial BindMaterial(Material material)
     {
         if (!LinkedHandles.TryGetValue(material, out IHandle? handle))
         {
-            ShaderProgram shaderProgram = InternalBind(material.Shader);
+            ShaderProgram shaderProgram = BindShader(material.Shader);
 
             TexImage2D[] texImages2D = new TexImage2D[material.Textures.Length];
             for (int i = 0; i < material.Textures.Length; i++)
-                texImages2D[i] = InternalBind(material.Textures[i]);
+                texImages2D[i] = BindTexture(material.Textures[i]);
 
             handle = GLContext.CreateGLMaterial(shaderProgram, texImages2D);
             LinkedHandles.TryAdd(material, handle);
@@ -175,24 +181,25 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    private GLRenderTarget InternalBind(MeshRenderer meshRenderer)
+    private unsafe GLRenderTarget BindMeshRenderer(MeshRenderer meshRenderer)
     {
         if (!LinkedHandles.TryGetValue(meshRenderer, out IHandle? handle))
         {
-            InternalBind(meshRenderer.Mesh);
+            VertexArrayObject<float, uint> vao = BindMesh(meshRenderer.Mesh);
+            BufferObject<Matrix4x4> mbo = BindToMBO(vao);
 
             GLMaterial[] glMaterials = new GLMaterial[meshRenderer.Materials.Length];
             for (int i = 0; i < meshRenderer.Materials.Length; i++)
-                glMaterials[i] = InternalBind(meshRenderer.Materials[i]);
+                glMaterials[i] = BindMaterial(meshRenderer.Materials[i]);
 
             GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget(
                 meshRenderer.Transform,
-                meshRenderer.Mesh.GetRawVertexData(),
-                meshRenderer.Mesh.Triangles,
+                vao,
+                mbo,
                 glMaterials
             );
-            handle = renderTarget;
 
+            handle = renderTarget;
             if (LinkedHandles.TryAdd(meshRenderer, renderTarget))
             {
                 RenderTargets.Add(renderTarget);
@@ -201,5 +208,16 @@ internal class GLRenderContext : IRenderContext
         }
 
         return Unsafe.As<GLRenderTarget>(handle);
+    }
+
+    private BufferObject<Matrix4x4> BindToMBO(VertexArrayObject<float, uint> vao)
+    {
+        if (!LinkedHandles.TryGetValue(vao, out IHandle? handle))
+        {
+            handle = GLContext.CreateBufferObject(Array.Empty<Matrix4x4>(), BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
+            LinkedHandles.TryAdd(vao, handle);
+        }
+
+        return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
 }

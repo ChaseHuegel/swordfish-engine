@@ -4,7 +4,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class ShaderProgram : ManagedHandle<uint>
+internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProgram>
 {
     public string Name { get; private set; }
 
@@ -68,7 +68,7 @@ internal sealed class ShaderProgram : ManagedHandle<uint>
 
     public void Use()
     {
-        if (disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to use shader '{Name}' but it is disposed.", LogType.ERROR);
             return;
@@ -159,5 +159,28 @@ internal sealed class ShaderProgram : ManagedHandle<uint>
             Debugger.Log($"Failed to compile {shaderType} '{Name}'.\n{shaderError}", LogType.ERROR);
 
         return handle;
+    }
+
+    public bool Equals(ShaderProgram? other)
+    {
+        return Handle.Equals(other?.Handle);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not ShaderProgram other)
+            return false;
+
+        return Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Handle;
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString() + $"[{Handle}]";
     }
 }

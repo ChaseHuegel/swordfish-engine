@@ -9,19 +9,24 @@ internal sealed class VertexArrayObject32 : VertexArrayObject<float, uint>
         : base(gl, vertexBufferObject, elementBufferObject) { }
 }
 
-internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint>
+internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint>, IEquatable<VertexArrayObject<TVertexType, TElementType>>
     where TVertexType : unmanaged
     where TElementType : unmanaged
 {
+    internal BufferObject<TVertexType> VertexBufferObject { get; }
+    internal BufferObject<TElementType> ElementBufferObject { get; }
+
     private readonly GL GL;
 
     public VertexArrayObject(GL gl, BufferObject<TVertexType> vertexBufferObject, BufferObject<TElementType> elementBufferObject)
     {
         GL = gl;
+        VertexBufferObject = vertexBufferObject;
+        ElementBufferObject = elementBufferObject;
 
         Bind();
-        vertexBufferObject.Bind();
-        elementBufferObject.Bind();
+        VertexBufferObject.Bind();
+        ElementBufferObject.Bind();
     }
 
     protected override uint CreateHandle()
@@ -36,7 +41,7 @@ internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint
 
     public void Bind()
     {
-        if (disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;
@@ -60,5 +65,28 @@ internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint
     public void SetVertexAttributeDivisor(uint index, uint divisor)
     {
         GL.VertexAttribDivisor(index, divisor);
+    }
+
+    public bool Equals(VertexArrayObject<TVertexType, TElementType>? other)
+    {
+        return Handle.Equals(other?.Handle);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not VertexArrayObject<TVertexType, TElementType> other)
+            return false;
+
+        return Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Handle;
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString() + $"[{Handle}]";
     }
 }

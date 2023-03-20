@@ -3,7 +3,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class TexImage2D : ManagedHandle<uint>
+internal sealed class TexImage2D : ManagedHandle<uint>, IEquatable<TexImage2D>
 {
     public string Name { get; private set; }
 
@@ -34,7 +34,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>
 
     public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
     {
-        if (disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;
@@ -53,5 +53,28 @@ internal sealed class TexImage2D : ManagedHandle<uint>
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
         GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
         GL.GenerateMipmap(TextureTarget.Texture2D);
+    }
+
+    public bool Equals(TexImage2D? other)
+    {
+        return Handle.Equals(other?.Handle);
+    }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not TexImage2D other)
+            return false;
+
+        return Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return (int)Handle;
+    }
+
+    public override string? ToString()
+    {
+        return base.ToString() + $"[{Handle}]";
     }
 }
