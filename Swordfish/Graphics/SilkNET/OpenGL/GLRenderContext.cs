@@ -28,8 +28,9 @@ internal class GLRenderContext : IRenderContext
         0, 0, 0, 1
     );
 
-    private readonly ConcurrentBag<IRenderTarget> RenderTargets = new();
+    private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
+    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> InstancedRenderTargets = new();
 
     private readonly Camera Camera;
 
@@ -67,28 +68,26 @@ internal class GLRenderContext : IRenderContext
         RenderInstancedTargets(view, projection);
     }
 
-    private static Dictionary<uint, (GLRenderTarget target, List<Matrix4x4> matrices)> InstanceMap = new();
     private unsafe void RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
     {
-        InstanceMap.Clear();
-        foreach (var renderTarget in RenderTargets)
-        {
-            var glRenderTarget = Unsafe.As<GLRenderTarget>(renderTarget);
-            var vaoHandle = glRenderTarget.VertexArrayObject.Handle;
+        foreach (var matrices in InstancedRenderTargets.Values)
+            matrices.Clear();
 
-            if (!InstanceMap.TryGetValue(vaoHandle, out (GLRenderTarget target, List<Matrix4x4> matrices) pair))
+        foreach (GLRenderTarget renderTarget in RenderTargets)
+        {
+            if (!InstancedRenderTargets.TryGetValue(renderTarget, out List<Matrix4x4>? matrices))
             {
-                pair = new(glRenderTarget, new List<Matrix4x4>());
-                InstanceMap.Add(vaoHandle, pair);
+                matrices = new List<Matrix4x4>(RenderTargets.Count);
+                InstancedRenderTargets.Add(renderTarget, matrices);
             }
 
-            pair.matrices.Add(renderTarget.Transform.ToMatrix4x4());
+            matrices.Add(renderTarget.Transform.ToMatrix4x4());
         }
 
-        foreach (var instancedTarget in InstanceMap.Values)
+        foreach (var instancedTarget in InstancedRenderTargets)
         {
-            var target = instancedTarget.target;
-            var models = instancedTarget.matrices.ToArray();
+            GLRenderTarget target = instancedTarget.Key;
+            Matrix4x4[] models = instancedTarget.Value.ToArray();
 
             target.ModelsBufferObject.Bind();
 

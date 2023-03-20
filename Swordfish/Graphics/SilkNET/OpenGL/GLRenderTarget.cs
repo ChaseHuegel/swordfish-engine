@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Types;
 using Swordfish.Util;
@@ -94,11 +95,13 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         GL.DrawElements(PrimitiveType.Triangles, (uint)VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(GLRenderTarget? other)
     {
         return Equals((object?)other);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))

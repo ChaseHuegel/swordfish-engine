@@ -1,4 +1,5 @@
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -161,13 +162,18 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
         return handle;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(ShaderProgram? other)
     {
         return Handle.Equals(other?.Handle);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
+        if (ReferenceEquals(this, obj))
+            return true;
+
         if (obj is not ShaderProgram other)
             return false;
 

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -67,13 +68,18 @@ internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint
         GL.VertexAttribDivisor(index, divisor);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(VertexArrayObject<TVertexType, TElementType>? other)
     {
         return Handle.Equals(other?.Handle);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
+        if (ReferenceEquals(this, obj))
+            return true;
+
         if (obj is not VertexArrayObject<TVertexType, TElementType> other)
             return false;
 

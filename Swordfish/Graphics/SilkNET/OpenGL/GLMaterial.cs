@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Reflection.Metadata;
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -40,13 +43,18 @@ internal sealed class GLMaterial : Handle
         }
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(GLMaterial? other)
     {
         return ShaderProgram.Equals(other?.ShaderProgram) && Textures.SequenceEqual(other.Textures);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
+        if (ReferenceEquals(this, obj))
+            return true;
+
         if (obj is not GLMaterial other)
             return false;
 

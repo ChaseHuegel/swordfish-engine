@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -55,13 +56,18 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IEquatable<TexImage2D>
         GL.GenerateMipmap(TextureTarget.Texture2D);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(TexImage2D? other)
     {
         return Handle.Equals(other?.Handle);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public override bool Equals(object? obj)
     {
+        if (ReferenceEquals(this, obj))
+            return true;
+
         if (obj is not TexImage2D other)
             return false;
 
