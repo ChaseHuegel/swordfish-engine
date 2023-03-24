@@ -5,6 +5,12 @@ namespace Swordfish.Library.Extensions
 {
     public static class SynchronizationContextExtensions
     {
+        public static void Wait(this SynchronizationContext context)
+        {
+            context.Send(Callback, null);
+            static void Callback(object state) { };
+        }
+
         public static void WaitFor(this SynchronizationContext context, Action action)
         {
             context.Send(Callback, null);

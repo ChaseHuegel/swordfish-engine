@@ -30,7 +30,7 @@ internal class GLRenderContext : IRenderContext
 
     private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
-    private readonly ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
+    private ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
 
     private readonly Camera Camera;
 
@@ -103,19 +103,19 @@ internal class GLRenderContext : IRenderContext
 
     public void RefreshRenderTargets()
     {
-        foreach (var matrices in InstancedRenderTargets.Values)
-            matrices.Clear();
-
+        var instanceMap = new ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>>();
         foreach (GLRenderTarget renderTarget in RenderTargets)
         {
-            if (!InstancedRenderTargets.TryGetValue(renderTarget, out ConcurrentBag<Matrix4x4>? matrices))
+            if (!instanceMap.TryGetValue(renderTarget, out ConcurrentBag<Matrix4x4>? matrices))
             {
                 matrices = new ConcurrentBag<Matrix4x4>();
-                InstancedRenderTargets.TryAdd(renderTarget, matrices);
+                instanceMap.TryAdd(renderTarget, matrices);
             }
 
             matrices.Add(renderTarget.Transform.ToMatrix4x4());
         }
+
+        InstancedRenderTargets = instanceMap;
     }
 
     public void Bind(Shader shader) => BindShader(shader);
