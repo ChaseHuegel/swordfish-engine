@@ -3,6 +3,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
+using Swordfish.Library.Threading;
 
 namespace Swordfish.ECS;
 
@@ -27,6 +28,8 @@ public class ECSContext : IECSContext
     }
 
     public ChunkedDataStore Store { get; private set; }
+
+    private ThreadWorker ThreadWorker { get; set; }
 
     internal bool Modified;
 
@@ -54,6 +57,8 @@ public class ECSContext : IECSContext
 
         BindSystem<PhysicsSystem>();
         BindSystem<MeshRendererSystem>();
+
+        ThreadWorker = new ThreadWorker(Update, "ECS");
     }
 
     public void Start()
@@ -65,12 +70,15 @@ public class ECSContext : IECSContext
 
         Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
         Running = true;
+
+        ThreadWorker.Start();
     }
 
     public void Stop()
     {
         Debugger.Log($"Stopping ECS context.");
         Running = false;
+        ThreadWorker?.Stop();
     }
 
     public void Reset()
@@ -143,8 +151,9 @@ public class ECSContext : IECSContext
         if (!Running)
             throw new InvalidOperationException(REQ_START_MESSAGE);
 
+        int ptr = Store.Add();
         Modified = true;
-        return new Entity(Store.Add(), this);
+        return new Entity(ptr, this);
     }
 
     public Entity CreateEntity(object?[] components)
@@ -162,8 +171,8 @@ public class ECSContext : IECSContext
         if (!Running)
             throw new InvalidOperationException(REQ_START_MESSAGE);
 
-        Modified = true;
         Store.Remove(entity.Ptr);
+        Modified = true;
     }
 
     public Entity[] GetEntities()

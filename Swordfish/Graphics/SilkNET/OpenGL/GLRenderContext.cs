@@ -30,7 +30,7 @@ internal class GLRenderContext : IRenderContext
 
     private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
-    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> InstancedRenderTargets = new();
+    private readonly ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
 
     private readonly Camera Camera;
 
@@ -70,20 +70,6 @@ internal class GLRenderContext : IRenderContext
 
     private unsafe void RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
     {
-        foreach (var matrices in InstancedRenderTargets.Values)
-            matrices.Clear();
-
-        foreach (GLRenderTarget renderTarget in RenderTargets)
-        {
-            if (!InstancedRenderTargets.TryGetValue(renderTarget, out List<Matrix4x4>? matrices))
-            {
-                matrices = new List<Matrix4x4>(RenderTargets.Count);
-                InstancedRenderTargets.Add(renderTarget, matrices);
-            }
-
-            matrices.Add(renderTarget.Transform.ToMatrix4x4());
-        }
-
         foreach (var instancedTarget in InstancedRenderTargets)
         {
             GLRenderTarget target = instancedTarget.Key;
@@ -112,6 +98,23 @@ internal class GLRenderContext : IRenderContext
 
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
+        }
+    }
+
+    public void RefreshRenderTargets()
+    {
+        foreach (var matrices in InstancedRenderTargets.Values)
+            matrices.Clear();
+
+        foreach (GLRenderTarget renderTarget in RenderTargets)
+        {
+            if (!InstancedRenderTargets.TryGetValue(renderTarget, out ConcurrentBag<Matrix4x4>? matrices))
+            {
+                matrices = new ConcurrentBag<Matrix4x4>();
+                InstancedRenderTargets.TryAdd(renderTarget, matrices);
+            }
+
+            matrices.Add(renderTarget.Transform.ToMatrix4x4());
         }
     }
 

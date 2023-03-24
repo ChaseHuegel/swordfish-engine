@@ -1,10 +1,20 @@
 using Swordfish.ECS;
+using Swordfish.Library.Extensions;
 
 namespace Swordfish.Graphics;
 
 [ComponentSystem(typeof(MeshRendererComponent), typeof(TransformComponent))]
 public class MeshRendererSystem : ComponentSystem
 {
+    private static IRenderContext RenderContext => renderContext ??= SwordfishEngine.SyncManager.WaitForResult(SwordfishEngine.Kernel.Get<IRenderContext>);
+    private static IRenderContext? renderContext;
+
+    protected override void OnUpdated()
+    {
+        var renderContext = SwordfishEngine.Kernel.Get<IRenderContext>();
+        renderContext.RefreshRenderTargets();
+    }
+
     protected override void Update(Entity entity, float deltaTime)
     {
         MeshRendererComponent renderComponent = entity.World.Store.GetAt<MeshRendererComponent>(entity.Ptr, MeshRendererComponent.DefaultIndex);
@@ -12,7 +22,7 @@ public class MeshRendererSystem : ComponentSystem
 
         if (!renderComponent.Bound)
         {
-            SwordfishEngine.Kernel.Get<IRenderContext>().Bind(renderComponent.MeshRenderer!);
+            RenderContext.Bind(renderComponent.MeshRenderer!);
             renderComponent.Bound = true;
         }
 

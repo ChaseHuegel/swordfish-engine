@@ -6,6 +6,7 @@ using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
@@ -118,19 +119,10 @@ public class Demo : Mod
             }
         }
 
-        // RenderContext.Bind(RenderTarget);
-        WindowContext.Update += OnUpdate;
-
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
 
         Benchmark.Log();
-    }
-
-    private void OnUpdate(double delta)
-    {
-        // MeshRenderer!.Transform.Rotate(new Vector3(5 * (float)delta, 5 * (float)delta, 0));
-        ECSContext.Update((float)delta);
     }
 
     public override void Unload()

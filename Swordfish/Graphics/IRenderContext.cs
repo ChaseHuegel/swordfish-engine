@@ -4,6 +4,8 @@ namespace Swordfish.Graphics;
 
 public interface IRenderContext
 {
+    void RefreshRenderTargets();
+
     void Bind(Shader shader);
 
     void Bind(Texture texture);
