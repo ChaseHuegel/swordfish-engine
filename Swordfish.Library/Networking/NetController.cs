@@ -516,6 +516,19 @@ namespace Swordfish.Library.Networking
                 if (session != Session) Send(packet, session);
         }
 
+        public void Connect(string hostname, int port)
+        {
+            Connect(new IPEndPoint(NetUtils.GetHostAddress(hostname), port));
+        }
+
+        public void Connect(IPEndPoint endPoint)
+        {
+            if (IsConnected)
+                Debugger.Log("Tried to connect but there is already an active connection.", LogType.WARNING);
+            else
+                Send(Handshake.BeginPacket.New, endPoint);
+        }
+
         public void Disconnect()
         {
             if (IsConnected)
