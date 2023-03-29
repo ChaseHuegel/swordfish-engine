@@ -24,13 +24,13 @@ namespace Swordfish.Tests
         {
             Handshake.BeginPacket packet = new Handshake.BeginPacket
             {
-                Signature = "test"
+                Secret = "test"
             };
 
             byte[] buffer = NeedlefishFormatter.Serialize(packet);
             Handshake.BeginPacket deserializedPacket = (Handshake.BeginPacket)NeedlefishFormatter.Deserialize(typeof(Handshake.BeginPacket), buffer);
 
-            Assert.Equal(packet.Signature, deserializedPacket.Signature);
+            Assert.Equal(packet.Secret, deserializedPacket.Secret);
         }
     }
 }
