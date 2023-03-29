@@ -22,13 +22,13 @@ namespace Swordfish.Tests
         [Fact]
         public void SerializedPacketDoesDeserialize()
         {
-            HandshakePacket packet = new HandshakePacket
+            Handshake.BeginPacket packet = new Handshake.BeginPacket
             {
                 Signature = "test"
             };
 
             byte[] buffer = NeedlefishFormatter.Serialize(packet);
-            HandshakePacket deserializedPacket = (HandshakePacket)NeedlefishFormatter.Deserialize(typeof(HandshakePacket), buffer);
+            Handshake.BeginPacket deserializedPacket = (Handshake.BeginPacket)NeedlefishFormatter.Deserialize(typeof(Handshake.BeginPacket), buffer);
 
             Assert.Equal(packet.Signature, deserializedPacket.Signature);
         }
