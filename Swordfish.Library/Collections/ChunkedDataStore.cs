@@ -74,7 +74,9 @@ namespace Swordfish.Library.Collections
 
             Data[ptr * ChunkOffset] = true;
             for (int i = 1; i <= ChunkSize; i++)
-                Data[ptr * ChunkOffset + i] = chunks.TryGetValue(i, out object chunk) ? chunk : null;
+                Data[ptr * ChunkOffset + i] = chunks.TryGetValue(i, out object chunk)
+                    ? chunk
+                    : null;
 
             return ptr;
         }
@@ -158,9 +160,12 @@ namespace Swordfish.Library.Collections
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int[] All()
         {
+            int highestPtr = HighestPtr;
+            int lowestPtr = LowestPtr;
+
             int[] ptrs = new int[Count];
             int ptrIndex = 0;
-            for (int i = LowestPtr; i < HighestPtr; i++)
+            for (int i = lowestPtr; i < highestPtr; i++)
             {
                 if (Data[i * ChunkOffset] != null)
                     ptrs[ptrIndex++] = i;
