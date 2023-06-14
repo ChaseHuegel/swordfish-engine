@@ -1,7 +1,6 @@
 using System.Drawing;
 using System.Numerics;
 using Silk.NET.Core;
-using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -9,6 +8,7 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.UI;
 using Swordfish.Util;
 using Key = Swordfish.Library.IO.Key;
@@ -17,6 +17,9 @@ namespace Swordfish.Graphics;
 
 public class SilkWindowContext : IWindowContext
 {
+    public DataBinding<double> UpdateDelta { get; } = new();
+    public DataBinding<double> RenderDelta { get; } = new();
+
     public Vector2 Resolution => new(Window.Size.X, Window.Size.Y);
 
     public Vector2 MonitorResolution => (Vector2?)Window.Monitor?.VideoMode.Resolution ?? Vector2.Zero;
@@ -131,11 +134,14 @@ public class SilkWindowContext : IWindowContext
 
     private void OnUpdate(double delta)
     {
+        UpdateDelta.Set(delta);
         Update?.Invoke(delta);
     }
 
     private void OnRender(double delta)
     {
+        RenderDelta.Set(delta);
+
         GL.ClearColor(Color.CornflowerBlue);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 

@@ -21,7 +21,7 @@ namespace Swordfish.IO
         object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
         public unsafe TexImage2D Parse(IFileService fileService, IPath file)
         {
-            using Stream stream = fileService.Read(file);
+            using Stream stream = fileService.Open(file);
             using StreamReader reader = new(stream);
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 

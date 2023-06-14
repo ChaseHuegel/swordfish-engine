@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using ImGuiNET;
 using Swordfish.ECS;
+using Swordfish.Editor.UI;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
@@ -72,6 +73,8 @@ public class Editor : Plugin
             WindowContext.Close
         );
 
+        StatsWindow statsWindow = new(WindowContext, ECSContext);
+
         MenuElement menu = new()
         {
             Content = {
@@ -92,7 +95,7 @@ public class Editor : Plugin
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
                                         outputPath = outputPath.At("NewPlugin.cs");
-                                        Stream fileToCopy = FileService.Read(new Path("manifest://Templates/NewPlugin.cstemplate"));
+                                        Stream fileToCopy = FileService.Open(new Path("manifest://Templates/NewPlugin.cstemplate"));
                                         FileService.Write(outputPath, fileToCopy);
                                         FileWrite?.Invoke();
                                     }
@@ -141,7 +144,21 @@ public class Editor : Plugin
                     }
                 },
                 new MenuItemElement("Edit"),
-                new MenuItemElement("View"),
+                new MenuItemElement("View") {
+                    Content = {
+                        new MenuItemElement("Stats", new Shortcut(
+                                "Stats",
+                                "Editor",
+                                ShortcutModifiers.NONE,
+                                Key.F5,
+                                Shortcut.DefaultEnabled,
+                                () => {
+                                    statsWindow.Visible = !statsWindow.Visible;
+                                }
+                            )
+                        )
+                    }
+                },
                 new MenuItemElement("Tools"),
                 new MenuItemElement("Run"),
                 new MenuItemElement("Help"),

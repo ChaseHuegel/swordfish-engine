@@ -4,6 +4,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Threading;
+using Swordfish.Library.Types;
 
 namespace Swordfish.ECS;
 
@@ -13,6 +14,8 @@ public class ECSContext : IECSContext
     private const string REQ_STOP_MESSAGE = "The context must be stopped.";
 
     public const int DEFAULT_MAX_ENTITIES = 128000;
+
+    public DataBinding<double> Delta { get; } = new();
 
     public int MaxEntities { get; }
 
@@ -91,6 +94,8 @@ public class ECSContext : IECSContext
     {
         if (!Running)
             throw new InvalidOperationException(REQ_START_MESSAGE);
+
+        Delta.Set(deltaTime);
 
         foreach (ComponentSystem system in Systems)
         {

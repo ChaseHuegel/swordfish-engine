@@ -137,7 +137,7 @@ void main()
         includedFiles ??= new();
         StringBuilder sourceBuilder = new();
 
-        using (Stream stream = fileService.Read(file))
+        using (Stream stream = fileService.Open(file))
         using (StreamReader reader = new(stream))
         {
             string? line = reader.ReadLine()?.Trim();

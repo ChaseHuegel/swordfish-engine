@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Swordfish.Library.Extensions;
@@ -21,7 +22,7 @@ namespace Swordfish.Library.IO
                     Parsers.TryAdd(extension, parser);
         }
 
-        public Stream Read(IPath path)
+        public Stream Open(IPath path)
         {
             switch (path.Scheme)
             {
@@ -42,6 +43,25 @@ namespace Swordfish.Library.IO
             }
 
             return File.Open(path.ToString(), FileMode.Open, FileAccess.Read, FileShare.Read);
+        }
+
+        public byte[] ReadBytes(IPath path)
+        {
+            using (Stream stream = Open(path))
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                stream.CopyTo(memoryStream);
+                return memoryStream.ToArray();
+            }
+        }
+
+        public string ReadString(IPath path)
+        {
+            using (Stream stream = Open(path))
+            using (StreamReader reader = new StreamReader(stream))
+            {
+                return reader.ReadToEnd();
+            }
         }
 
         public void Write(IPath path, Stream stream)
@@ -95,6 +115,29 @@ namespace Swordfish.Library.IO
         public TResult Parse<TResult>(Stream stream)
         {
             throw new NotImplementedException();
+        }
+
+        public IPath[] GetFiles(IPath path)
+        {
+            return GetFiles(path, "*", SearchOption.TopDirectoryOnly);
+        }
+
+        public IPath[] GetFiles(IPath path, string searchPattern)
+        {
+            return GetFiles(path, searchPattern, SearchOption.TopDirectoryOnly);
+        }
+
+        public IPath[] GetFiles(IPath path, SearchOption searchOption)
+        {
+            return GetFiles(path, "*", searchOption);
+        }
+
+        public IPath[] GetFiles(IPath path, string searchPattern, SearchOption searchOption)
+        {
+            string dir = path.GetDirectory().ToString();
+            return Directory.GetFiles(dir, searchPattern, searchOption)
+                .Select(str => (IPath)new Path(str))
+                .ToArray();
         }
     }
 }

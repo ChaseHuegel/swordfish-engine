@@ -1,9 +1,13 @@
 using System.Numerics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
 public interface IWindowContext
 {
+    DataBinding<double> UpdateDelta { get; }
+    DataBinding<double> RenderDelta { get; }
+
     Vector2 Resolution { get; }
     Vector2 MonitorResolution { get; }
 
