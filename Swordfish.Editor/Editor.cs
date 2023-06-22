@@ -371,8 +371,16 @@ public class Editor : Plugin
         };
     }
 
-    private static void BuildInpsectorView(ContentElement contentElement, object component)
+    private static void BuildInpsectorView(ContentElement contentElement, object component, int depth = 0)
     {
+        //  TODO setting this too far can result in throws due to reflection hitting something it shouldn't
+        //  TODO setting this too deep (really beyond 2) is noisey and mostly useless since there is no filtering of what is displayed yet
+        const int maxDepth = 1;
+        if (depth > maxDepth)
+            return;
+        else
+            depth++;
+
         var componentType = component.GetType();
         var group = new PaneElement(componentType.Name.ToTitle())
         {
@@ -399,10 +407,20 @@ public class Editor : Plugin
             group.Content.Add(publicGroup);
 
             foreach (var property in publicInstanceProperties)
-                publicGroup.Content.Add(PropertyViewFactory(component, property));
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(publicGroup, property.GetValue(component)!, depth);
+                else
+                    publicGroup.Content.Add(PropertyViewFactory(component, property));
+            }
 
             foreach (var field in publicInstanceFields)
-                publicGroup.Content.Add(FieldViewFactory(component, field));
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(publicGroup, field.GetValue(component)!, depth);
+                else
+                    publicGroup.Content.Add(FieldViewFactory(component, field));
+            }
         }
 
         if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
@@ -413,10 +431,20 @@ public class Editor : Plugin
             staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
 
             foreach (var property in publicStaticProperties)
-                staticBlock.Content.Add(PropertyViewFactory(component, property));
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(staticBlock, property.GetValue(component)!, depth);
+                else
+                    staticBlock.Content.Add(PropertyViewFactory(component, property));
+            }
 
             foreach (var field in publicStaticFields)  //  Ignore backing fields
-                staticBlock.Content.Add(FieldViewFactory(component, field));
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(staticBlock, field.GetValue(component)!, depth);
+                else
+                    staticBlock.Content.Add(FieldViewFactory(component, field));
+            }
         }
 
         if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
@@ -427,10 +455,20 @@ public class Editor : Plugin
             privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
 
             foreach (var property in privateInstanceProperties)
-                privateBlock.Content.Add(PropertyViewFactory(component, property));
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateBlock, property.GetValue(component)!, depth);
+                else
+                    privateBlock.Content.Add(PropertyViewFactory(component, property));
+            }
 
             foreach (var field in privateInstanceFields)
-                privateBlock.Content.Add(FieldViewFactory(component, field));
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateBlock, field.GetValue(component)!, depth);
+                else
+                    privateBlock.Content.Add(FieldViewFactory(component, field));
+            }
         }
 
         if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
@@ -441,10 +479,20 @@ public class Editor : Plugin
             privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
 
             foreach (var property in privateStaticProperties)
-                privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateStaticBlock, property.GetValue(component)!, depth);
+                else
+                    privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+            }
 
             foreach (var field in privateStaticFields)
-                privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateStaticBlock, field.GetValue(component)!, depth);
+                else
+                    privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+            }
         }
 
         contentElement.Content.Add(group);

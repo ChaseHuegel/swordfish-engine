@@ -68,6 +68,7 @@ namespace Swordfish.Library.Collections
         {
             lock (Lock)
             {
+                //  ! This can throw, there is a race here
                 List.CopyTo(array, arrayIndex);
             }
         }
