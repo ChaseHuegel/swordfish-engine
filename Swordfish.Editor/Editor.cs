@@ -285,87 +285,16 @@ public class Editor : Plugin
 
             if (args.NewValue is DataTreeNode<Entity> entityNode)
             {
-                var components = entityNode.Data.Get().GetComponents();
+                var entity = entityNode.Data.Get();
+                BuildInpsectorView(inspector, entity);
+
+                var components = entity.GetComponents();
                 foreach (var component in components)
                 {
                     if (component == null)
                         continue;
 
-                    var componentType = component.GetType();
-                    var group = new PaneElement(componentType.Name.ToTitle())
-                    {
-                        Constraints = {
-                            Width = new FillConstraint()
-                        }
-                    };
-
-                    var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
-                    var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
-
-                    var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
-                    var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
-
-                    var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
-                    var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
-
-                    var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
-                    var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
-
-                    if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
-                    {
-                        var publicGroup = new ColorBlockElement(Color.White);
-                        group.Content.Add(publicGroup);
-
-                        foreach (var property in publicInstanceProperties)
-                            publicGroup.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in publicInstanceFields)
-                            publicGroup.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
-                    {
-                        var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
-                        group.Content.Add(staticBlock);
-
-                        staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in publicStaticProperties)
-                            staticBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in publicStaticFields)  //  Ignore backing fields
-                            staticBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
-                    {
-                        var privateBlock = new ColorBlockElement(Color.SlateGray);
-                        group.Content.Add(privateBlock);
-
-                        privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in privateInstanceProperties)
-                            privateBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in privateInstanceFields)
-                            privateBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
-                    {
-                        var privateStaticBlock = new ColorBlockElement(Color.SteelBlue);
-                        group.Content.Add(privateStaticBlock);
-
-                        privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in privateStaticProperties)
-                            privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in privateStaticFields)
-                            privateStaticBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    inspector.Content.Add(group);
+                    BuildInpsectorView(inspector, component);
                 }
             }
             else if (args.NewValue is DataTreeNode<Path> pathNode)
@@ -440,6 +369,85 @@ public class Editor : Plugin
                 inspector.Content.Add(group);
             }
         };
+    }
+
+    private static void BuildInpsectorView(ContentElement contentElement, object component)
+    {
+        var componentType = component.GetType();
+        var group = new PaneElement(componentType.Name.ToTitle())
+        {
+            Constraints = {
+                Width = new FillConstraint()
+            }
+        };
+
+        var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+        var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+
+        var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+        var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+
+        var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
+        var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
+
+        var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
+        var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
+
+        if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
+        {
+            var publicGroup = new ColorBlockElement(Color.White);
+            group.Content.Add(publicGroup);
+
+            foreach (var property in publicInstanceProperties)
+                publicGroup.Content.Add(PropertyViewFactory(component, property));
+
+            foreach (var field in publicInstanceFields)
+                publicGroup.Content.Add(FieldViewFactory(component, field));
+        }
+
+        if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
+        {
+            var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
+            group.Content.Add(staticBlock);
+
+            staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in publicStaticProperties)
+                staticBlock.Content.Add(PropertyViewFactory(component, property));
+
+            foreach (var field in publicStaticFields)  //  Ignore backing fields
+                staticBlock.Content.Add(FieldViewFactory(component, field));
+        }
+
+        if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
+        {
+            var privateBlock = new ColorBlockElement(Color.SlateGray);
+            group.Content.Add(privateBlock);
+
+            privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in privateInstanceProperties)
+                privateBlock.Content.Add(PropertyViewFactory(component, property));
+
+            foreach (var field in privateInstanceFields)
+                privateBlock.Content.Add(FieldViewFactory(component, field));
+        }
+
+        if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
+        {
+            var privateStaticBlock = new ColorBlockElement(Color.SteelBlue);
+            group.Content.Add(privateStaticBlock);
+
+            privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in privateStaticProperties)
+                privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+
+            foreach (var field in privateStaticFields)
+                privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+        }
+
+        contentElement.Content.Add(group);
     }
 
     private static PaneElement FieldViewFactory(object component, FieldInfo field)
