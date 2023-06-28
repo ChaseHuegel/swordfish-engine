@@ -12,9 +12,9 @@ public class BrickGrid
 
     public int Count => BrickCount + NeighorBrickCount;
 
-    private readonly Brick[,,] Bricks;
-    private readonly BrickGrid[,,] NeighborGrids = new BrickGrid[3, 3, 3];
-    private readonly List<BrickGrid> Subgrids = new();
+    public readonly Brick[,,] Bricks;
+    public readonly BrickGrid[,,] NeighborGrids = new BrickGrid[3, 3, 3];
+    public readonly List<BrickGrid> Subgrids = new();
     private readonly object LockObject = new();
 
     private volatile int NeighorBrickCount;
@@ -35,13 +35,13 @@ public class BrickGrid
     {
         if (TryGetOrAddNeighbor(x, y, z, out BrickGrid neighbor))
         {
-            if (x != 0)
+            if (x >= DimensionSize)
                 x += x < 0 ? DimensionSize : -DimensionSize;
 
-            if (y != 0)
+            if (y >= DimensionSize)
                 y += y < 0 ? DimensionSize : -DimensionSize;
 
-            if (z != 0)
+            if (z >= DimensionSize)
                 z += z < 0 ? DimensionSize : -DimensionSize;
 
             int neighborOldCount = neighbor.Count;

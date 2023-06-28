@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
+using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
@@ -76,6 +78,88 @@ public class Demo : Mod
 
     public override void Start()
     {
+        // TestUI.CreateCanvas();
+        // TestECS.Populate(ECSContext);
+        // CreateTestEntities();
+        CreateBrickTest();
+
+        Benchmark.Log();
+    }
+
+    private void CreateBrickTest()
+    {
+        var empty = new Brick(0);
+        var solid = new Brick(1);
+
+        BrickGrid grid = new(16);
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateBrickTest), "_CreateBrickGrid"))
+        {
+            for (int x = 0; x < 80; x++)
+            for (int y = 0; y < 80; y++)
+            for (int z = 0; z < 80; z++)
+            {
+                grid.Set(x, y, z, solid);
+            }
+        }
+
+        var triangles = new List<uint>();
+        var vertices = new List<Vector3>();
+        var colors = new List<Vector4>();
+        var uv = new List<Vector3>();
+        var normals = new List<Vector3>();
+
+        var cube = new Cube();
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateBrickTest), "_BuildBrickGridMesh"))
+        {
+            BuildBrickGridMesh(grid);
+        }
+
+        void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
+        {
+            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            {
+                if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
+                    BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+            }
+
+            for (int x = 0; x < gridToBuild.DimensionSize; x++)
+            for (int y = 0; y < gridToBuild.DimensionSize; y++)
+            for (int z = 0; z < gridToBuild.DimensionSize; z++)
+            {
+                if (gridToBuild.Bricks[x, y, z].Equals(solid))
+                {
+                    colors.AddRange(cube.Colors);
+                    normals.AddRange(cube.Normals);
+                    uv.AddRange(cube.UV);
+
+                    foreach (uint tri in cube.Triangles)
+                        triangles.Add(tri + (uint)vertices.Count);
+
+                    foreach (Vector3 vertex in cube.Vertices)
+                        vertices.Add(vertex + new Vector3(x, y, z) + offset);
+                }
+            }
+        }
+
+        var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
+
+        var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
+        var texture = new Texture("metal_panel", LocalPathService.Textures.At("block/metal_panel.png"));
+        var material = new Material(shader, texture);
+
+        var renderer = new MeshRenderer(mesh, material);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Brick Entity", "bricks"), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, -40, 200), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
+            .Build();
+    }
+
+    private void CreateTestEntities()
+    {
         var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
 
         var astronautTexture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
@@ -118,11 +202,6 @@ public class Demo : Mod
                 }
             }
         }
-
-        // TestUI.CreateCanvas();
-        // TestECS.Populate(ECSContext);
-
-        Benchmark.Log();
     }
 
     public override void Unload()

@@ -46,6 +46,8 @@ internal class GLRenderContext : IRenderContext
         WindowContext = windowContext;
         GLContext = glContext;
 
+        GL.FrontFace(FrontFaceDirection.CW);
+
         Camera = new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f);
         WindowContext.Loaded += OnWindowLoaded;
         WindowContext.Render += OnWindowRender;

@@ -8,6 +8,6 @@ public class RoundaboutSystem : ComponentSystem
     protected override void Update(Entity entity, float deltaTime)
     {
         TransformComponent transform = entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
-        transform.Rotation += new Vector3(0, 5 * deltaTime, 0);
+        transform.Rotation += new Vector3(0, deltaTime, 0);
     }
 }
