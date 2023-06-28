@@ -11,7 +11,7 @@ namespace Swordfish.Editor.UI;
 
 public class StatsWindow : CanvasElement
 {
-    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext) : base("Stats")
+    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext) : base("Stats")
     {
         Flags = ImGuiNET.ImGuiWindowFlags.NoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse | ImGuiNET.ImGuiWindowFlags.NoBackground | ImGuiNET.ImGuiWindowFlags.NoTitleBar;
 
@@ -38,6 +38,10 @@ public class StatsWindow : CanvasElement
         AddDeltaToFramerateDisplay("Main FPS", ref windowContext.UpdateDelta.Changed);
         AddDeltaToFramerateDisplay("Render FPS", ref windowContext.RenderDelta.Changed);
         AddDeltaToFramerateDisplay("ECS FPS", ref ecsContext.Delta.Changed);
+
+        Content.Add(new DividerElement());
+
+        AddIntDisplay("Draw Calls", ref renderContext.DrawCalls.Changed);
     }
 
     private void AddDeltaToFramerateDisplay(string title, ref EventHandler<DataChangedEventArgs<double>> statHandler)
@@ -78,6 +82,19 @@ public class StatsWindow : CanvasElement
         {
             sampler.Record(e.NewValue);
             displayElement.Label = sampler.Average.ToString("F4");
+        };
+
+        Content.Add(displayElement);
+    }
+
+    private void AddIntDisplay(string title, ref EventHandler<DataChangedEventArgs<int>> handler) {
+        TextElement displayElement = new(title);
+
+        Sampler sampler = new();
+        handler += (sender, e) =>
+        {
+            sampler.Record(e.NewValue);
+            displayElement.Label = sampler.Average.ToString("F0");
         };
 
         Content.Add(displayElement);

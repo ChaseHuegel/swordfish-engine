@@ -19,6 +19,8 @@ namespace Swordfish.Graphics;
 
 internal class GLRenderContext : IRenderContext
 {
+    public DataBinding<int> DrawCalls { get; } = new();
+
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
     private static readonly Matrix4x4 ReflectionMatrix = new(
@@ -61,17 +63,21 @@ internal class GLRenderContext : IRenderContext
 
     private void OnWindowRender(double delta)
     {
+        int drawCalls = 0;
         var view = Camera.Transform.ToMatrix4x4() * ReflectionMatrix;
         var projection = Camera.GetProjection();
 
         if (RenderTargets.IsEmpty)
             return;
 
-        RenderInstancedTargets(view, projection);
+        drawCalls += RenderInstancedTargets(view, projection);
+
+        DrawCalls.Set(drawCalls);
     }
 
-    private unsafe void RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
+    private unsafe int RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
     {
+        int drawCalls = 0;
         foreach (var instancedTarget in InstancedRenderTargets)
         {
             GLRenderTarget target = instancedTarget.Key;
@@ -100,7 +106,10 @@ internal class GLRenderContext : IRenderContext
 
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
+            drawCalls++;
         }
+
+        return drawCalls;
     }
 
     public void RefreshRenderTargets()

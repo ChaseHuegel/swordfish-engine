@@ -31,21 +31,23 @@ public class Editor : Plugin
     public override string Name => "Swordfish Editor";
     public override string Description => "Visual editor for the Swordfish engine.";
 
-    private IWindowContext WindowContext;
-    private static IECSContext ECSContext;
-    private static IFileService FileService;
-    private static IPathService PathService;
+    private readonly IWindowContext WindowContext;
+    private readonly IECSContext ECSContext;
+    private readonly IFileService FileService;
+    private readonly IPathService PathService;
+    private readonly IRenderContext RenderContext;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext)
     {
         WindowContext = windowContext;
         FileService = fileService;
         ECSContext = ecsContext;
         PathService = pathService;
+        RenderContext = renderContext;
 
         ECSContext.BindSystem<HierarchySystem>();
 
@@ -73,7 +75,7 @@ public class Editor : Plugin
             WindowContext.Close
         );
 
-        StatsWindow statsWindow = new(WindowContext, ECSContext);
+        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext);
 
         MenuElement menu = new()
         {
