@@ -1,6 +1,7 @@
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
+using Swordfish.Util;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -22,7 +23,8 @@ internal sealed class BufferObject<TData> : Handle
         Bind();
         fixed (void* dataPtr = data)
         {
-            GL.BufferData(BufferType, (nuint)(data.Length * sizeof(TData)), dataPtr, usage);
+            nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
+            GL.BufferData(BufferType, bufferSize, dataPtr, usage);
         }
     }
 

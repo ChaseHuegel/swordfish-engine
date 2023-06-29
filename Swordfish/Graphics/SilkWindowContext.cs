@@ -92,6 +92,11 @@ public class SilkWindowContext : IWindowContext
         };
         Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
 
+        if (GLDebug.TryCreateGLOutput())
+            Debugger.Log("attached OpenGL debug output", LogType.CONTINUED);
+        else
+            Debugger.Log("unable to attach OpenGL debug output, logs will be minimal and generic", LogType.CONTINUED);
+
         UIContext.Initialize();
         Loaded?.Invoke();
     }

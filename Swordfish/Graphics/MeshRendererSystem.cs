@@ -1,5 +1,6 @@
 using Swordfish.ECS;
 using Swordfish.Library.Extensions;
+using Swordfish.Util;
 
 namespace Swordfish.Graphics;
 
@@ -22,8 +23,8 @@ public class MeshRendererSystem : ComponentSystem
 
         if (!renderComponent.Bound)
         {
-            RenderContext.Bind(renderComponent.MeshRenderer!);
             renderComponent.Bound = true;
+            RenderContext.Bind(renderComponent.MeshRenderer!);
         }
 
         renderComponent.MeshRenderer!.Transform.Position = transform.Position;

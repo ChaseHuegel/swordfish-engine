@@ -31,10 +31,38 @@ public class BrickGrid
         Bricks = new Brick[dimensionSize, dimensionSize, dimensionSize];
     }
 
+    public Brick Get(int x, int y, int z)
+    {
+        if (TryGetNeighbor(x, y, z, out BrickGrid neighbor))
+        {
+            if (x >= DimensionSize)
+                x += x < 0 ? DimensionSize : -DimensionSize;
+
+            if (y >= DimensionSize)
+                y += y < 0 ? DimensionSize : -DimensionSize;
+
+            if (z >= DimensionSize)
+                z += z < 0 ? DimensionSize : -DimensionSize;
+
+            return neighbor.Get(x, y, z);
+        }
+
+        if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
+            return default;
+
+        lock (LockObject)
+        {
+            return Bricks[x, y, z];
+        }
+    }
+
     public bool Set(int x, int y, int z, Brick brick)
     {
+        int previousCount = Count;
+
         if (TryGetOrAddNeighbor(x, y, z, out BrickGrid neighbor))
         {
+            Vector3 newPoint = new Vector3(x, y, z);
             if (x >= DimensionSize)
                 x += x < 0 ? DimensionSize : -DimensionSize;
 
@@ -48,10 +76,13 @@ public class BrickGrid
             bool success = neighbor.Set(x, y, z, brick);
 
             NeighorBrickCount += neighbor.Count - neighborOldCount;
-            //  TODO cascade CenterOfMass?
 
+            UpdateCenterOfMass(previousCount, newPoint);
             return success;
         }
+
+        if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
+            return false;
 
         lock (LockObject)
         {
@@ -59,15 +90,21 @@ public class BrickGrid
             if (currentBrick != brick)
             {
                 int newBrickCount = BrickCount + (brick == Brick.EMPTY ? -1 : 1);
-                CenterOfMass = ((CenterOfMass * BrickCount) + new Vector3(x, y, z)) / newBrickCount;
 
                 Bricks[x, y, z] = brick;
                 BrickCount = newBrickCount;
+
+                UpdateCenterOfMass(previousCount, new Vector3(x, y, z));
             }
         }
 
         Dirty = true;
         return true;
+    }
+
+    private void UpdateCenterOfMass(int previousCount, Vector3 newPoint)
+    {
+        CenterOfMass = ((CenterOfMass * previousCount) + newPoint) / Count;
     }
 
     private void Build()
@@ -130,6 +167,32 @@ public class BrickGrid
 
             if (neighbor == null)
                 NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor = new BrickGrid(DimensionSize);
+
+            return true;
+        }
+
+        neighbor = this;
+        return false;
+    }
+
+    private bool TryGetNeighbor(int x, int y, int z, out BrickGrid neighbor)
+    {
+        int xOffset = x >> 4;
+        int yOffset = y >> 4;
+        int zOffset = z >> 4;
+
+        Vector3 targetNeighbor = new(
+            xOffset != 0 ? (xOffset < 0 ? 0 : 2) : 1,
+            yOffset != 0 ? (yOffset < 0 ? 0 : 2) : 1,
+            zOffset != 0 ? (zOffset < 0 ? 0 : 2) : 1
+        );
+
+        if (targetNeighbor != Vector3.One)
+        {
+            neighbor = NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z];
+
+            if (neighbor == null)
+                return false;
 
             return true;
         }

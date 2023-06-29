@@ -4,6 +4,25 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal static class GLUtil
 {
+    public static bool HasCapabilities(this GL gl, int major, int minor, params string[] extensions)
+    {
+        string versionString = gl.GetStringS(StringName.Version);
+        Version version = new(versionString.Split(' ')[0]);
+
+        return version >= new Version(major, minor) || gl.HasExtensions(extensions);
+    }
+
+    public static bool HasExtensions(this GL gl, params string[] extensions)
+    {
+        string[] supportedExtensions = gl.GetExtensions();
+
+        foreach (string extension in extensions)
+            if (!supportedExtensions.Contains(extension))
+                return false;
+
+        return true;
+    }
+
     public static string[] GetExtensions(this GL gl)
     {
         List<string> extensions = new();

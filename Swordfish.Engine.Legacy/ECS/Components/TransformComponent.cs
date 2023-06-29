@@ -51,7 +51,6 @@ namespace Swordfish.Engine.ECS
             }
         }
 
-
         public void Rotate(Vector3 axis, float angle)
         {
             orientation = Quaternion.FromAxisAngle(orientation * axis, MathHelper.DegreesToRadians(-angle)) * orientation;

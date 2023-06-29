@@ -2,11 +2,19 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal static class MeshExtensions
 {
+    private const int MaxVertices = int.MaxValue / GLRenderTarget.VertexDataLength;
+
     public static float[] GetRawVertexData(this Mesh mesh)
     {
-        float[] vertexData = new float[mesh.Vertices.Length * GLRenderTarget.VertexDataLength];
+        int vertexCount = mesh.Vertices.Length;
+        if (vertexCount > MaxVertices)
+            throw new InvalidOperationException($"Meshes cannot exceed {MaxVertices} vertices.");
 
-        for (int i = 0; i < mesh.Vertices.Length; i++)
+        //  Throw on int overflows to be safe
+        int dataLength = checked(vertexCount * GLRenderTarget.VertexDataLength);
+        float[] vertexData = new float[dataLength];
+
+        for (int i = 0; i < vertexCount; i++)
         {
             int dataOffset = i * GLRenderTarget.VertexDataLength;
 
