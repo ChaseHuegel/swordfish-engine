@@ -42,28 +42,28 @@ public class Slope : Mesh
         Vertices = new Vector3[]
         {
             //  Top
-            new Vector3(0, 1, 1),
-            new Vector3(1, 1, 1),
-            new Vector3(1, 0, 0),
-            new Vector3(0, 0, 0),
+            new Vector3(-0.5f, 0.5f, 0.5f),
+            new Vector3(0.5f, 0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
             //  Bottom
-            new Vector3(0, 0, 1),
-            new Vector3(1, 0, 1),
-            new Vector3(1, 0, 0),
-            new Vector3(0, 0, 0),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
             //  South
-            new Vector3(0, 1, 1),
-            new Vector3(1, 1, 1),
-            new Vector3(1, 0, 1),
-            new Vector3(0, 0, 1),
+            new Vector3(-0.5f, 0.5f, 0.5f),
+            new Vector3(0.5f, 0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
             // East
-            new Vector3(1, 1, 1),
-            new Vector3(1, 0, 1),
-            new Vector3(1, 0, 0),
+            new Vector3(0.5f, 0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, 0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
             // West
-            new Vector3(0, 1, 1),
-            new Vector3(0, 0, 1),
-            new Vector3(0, 0, 0),
+            new Vector3(-0.5f, 0.5f, 0.5f),
+            new Vector3(-0.5f, -0.5f, 0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
         };
 
         Colors = new Vector4[]

@@ -115,7 +115,7 @@ public class Demo : Mod
         var slope = new Slope();
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateStressTest), "_BuildBrickGridMesh"))
         {
-            BuildBrickGridMesh(grid, -grid.CenterOfMass - new Vector3(0.5f));
+            BuildBrickGridMesh(grid, -grid.CenterOfMass);
         }
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
@@ -182,9 +182,9 @@ public class Demo : Mod
         var solid = new Brick(1);
 
         BrickGrid grid = new(16);
-        using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_CreateBrickGrid"))
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            TryLoadVoxelObject("mainMenuVoxObj.svo", out grid!);
+            grid = FileService.Parse<BrickGrid>(LocalPathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
         }
 
         var triangles = new List<uint>();
@@ -195,9 +195,11 @@ public class Demo : Mod
 
         var cube = new Cube();
         var slope = new Slope();
+        var thruster = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket.obj"));
+        var thrusterBlock = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket_internal.obj"));
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
         {
-            BuildBrickGridMesh(grid, -grid.CenterOfMass - new Vector3(0.5f));
+            BuildBrickGridMesh(grid, -grid.CenterOfMass);
         }
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
@@ -224,16 +226,27 @@ public class Demo : Mod
                     || gridToBuild.Get(x, y, z - 1).Equals(empty))
                 )
                 {
-                    Mesh brickMesh = brick.ID == 1 ? cube : slope;
+                    Mesh brickMesh = MeshFromBrickID(brick.ID);
                     colors.AddRange(brickMesh.Colors);
                     normals.AddRange(brickMesh.Normals);
                     uv.AddRange(brickMesh.UV);
+
+                    Mesh MeshFromBrickID(int id)
+                    {
+                        return id switch
+                        {
+                            2 => slope,
+                            3 => thruster,
+                            4 => thrusterBlock,
+                            _ => cube,
+                        };
+                    }
 
                     foreach (uint tri in brickMesh.Triangles)
                         triangles.Add(tri + (uint)vertices.Count);
 
                     foreach (Vector3 vertex in brickMesh.Vertices)
-                        vertices.Add(Vector3.Transform(vertex - new Vector3(0.5f), brick.GetQuaternion()) + new Vector3(0.5f) + new Vector3(x, y, z) + offset);
+                        vertices.Add(Vector3.Transform(vertex, brick.GetQuaternion()) + new Vector3(x, y, z) + offset);
                 }
             }
         }
@@ -307,76 +320,5 @@ public class Demo : Mod
     {
         Debugger.Log("Dumping the log.");
         Debugger.Dump();
-    }
-
-    private bool TryLoadVoxelObject(string fileName, out BrickGrid? brickGrid)
-    {
-        IPath path = LocalPathService.Resources.At("saves").At(fileName);
-
-        if (!path.FileExists())
-        {
-            brickGrid = null;
-            return false;
-        }
-
-        using (Stream stream = FileService.Open(path))
-        using (StreamReader file = new(stream))
-        {
-            string name = file.ReadLine()!;
-
-            string[] parts = file.ReadLine()!.Split(',');
-            int chunksX = int.Parse(parts[0]);
-            int chunksY = int.Parse(parts[1]);
-            int chunksZ = int.Parse(parts[2]);
-
-            brickGrid = new BrickGrid(16);
-
-            while (file.EndOfStream == false)
-            {
-                Brick brick = new(0);
-                int x = 0, y = 0, z = 0;
-
-                string entry = file.ReadLine()!;
-                string[] sections = entry.Split('/');
-
-                for (int i = 0; i < sections.Length; i++)
-                {
-                    string[] section = sections[i].Split(':');
-                    string tag = section[0];
-                    string value = section[1];
-
-                    switch (tag)
-                    {
-                        case "v":
-                            if (value.Contains("SLOPE"))
-                                brick = new Brick(2);
-                            else
-                                brick = new Brick(1);
-                            break;
-
-                        case "p":
-                            parts = value.Split(',');
-                            x = int.Parse(parts[0]);
-                            y = int.Parse(parts[1]);
-                            z = int.Parse(parts[2]);
-                            break;
-
-                        case "r":
-                            brick.Rotation = (Direction)Enum.Parse(typeof(Direction), value);
-                            break;
-
-                        case "o":
-                            brick.Orientation = (Direction)Enum.Parse(typeof(Direction), value);
-                            break;
-                    }
-                }
-
-                if (brick.ID > 0 && x >= 0 && y >= 0 && z >= 0)
-                    brickGrid.Set(x, y, z, brick);
-            }
-        }
-
-
-        return brickGrid.Count > 0;
     }
 }
