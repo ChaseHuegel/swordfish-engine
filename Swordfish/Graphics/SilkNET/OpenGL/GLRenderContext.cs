@@ -1,18 +1,12 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics.SilkNET;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using Swordfish.Library.Util;
-using Swordfish.Util;
 using Shader = Swordfish.Graphics.SilkNET.Shader;
 
 namespace Swordfish.Graphics;
@@ -20,6 +14,8 @@ namespace Swordfish.Graphics;
 internal class GLRenderContext : IRenderContext
 {
     public DataBinding<int> DrawCalls { get; } = new();
+
+    public DataBinding<bool> Wireframe { get; set; } = new();
 
     //  Reflects the Z axis.
     //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
@@ -105,6 +101,7 @@ internal class GLRenderContext : IRenderContext
             target.VertexArrayObject.Bind();
 
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
+            GL.PolygonMode(MaterialFace.FrontAndBack, Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
         }

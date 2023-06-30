@@ -258,7 +258,8 @@ public class Demo : Mod
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
-            DoubleFaced = false
+            DoubleFaced = false,
+            Wireframe = false
         };
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -308,7 +309,7 @@ public class Demo : Mod
 
                     ECSContext.EntityBuilder
                         .Attach(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null), IdentifierComponent.DefaultIndex)
-                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 15), Vector3.Zero), TransformComponent.DefaultIndex)
+                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Vector3.Zero), TransformComponent.DefaultIndex)
                         .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
                         .Build();
                 }

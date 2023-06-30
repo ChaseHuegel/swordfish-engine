@@ -158,6 +158,17 @@ public class Editor : Plugin
                                     statsWindow.Visible = !statsWindow.Visible;
                                 }
                             )
+                        ),
+                        new MenuItemElement("Toggle wireframe", new Shortcut(
+                                "Wireframe",
+                                "Editor",
+                                ShortcutModifiers.NONE,
+                                Key.F6,
+                                Shortcut.DefaultEnabled,
+                                () => {
+                                    RenderContext.Wireframe.Set(!RenderContext.Wireframe);
+                                }
+                            )
                         )
                     }
                 },

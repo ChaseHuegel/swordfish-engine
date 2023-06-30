@@ -7,6 +7,8 @@ public interface IRenderContext
 {
     DataBinding<int> DrawCalls { get; }
 
+    DataBinding<bool> Wireframe { get; set; }
+
     void RefreshRenderTargets();
 
     void Bind(Shader shader);

@@ -42,6 +42,7 @@ public class StatsWindow : CanvasElement
         Content.Add(new DividerElement());
 
         AddIntDisplay("Draw Calls", ref renderContext.DrawCalls.Changed);
+        AddToStringDisplay("Wireframe", ref renderContext.Wireframe.Changed);
     }
 
     private void AddDeltaToFramerateDisplay(string title, ref EventHandler<DataChangedEventArgs<double>> statHandler)
@@ -49,7 +50,8 @@ public class StatsWindow : CanvasElement
         TextElement displayElement = new(title);
 
         Sampler sampler = new();
-        statHandler += (sender, e) =>
+        statHandler += OnDataChanged;
+        void OnDataChanged(object? sender, DataChangedEventArgs<double> e)
         {
             double value = 1000d / (e.NewValue * 1000d);
             sampler.Record(value);
@@ -64,7 +66,8 @@ public class StatsWindow : CanvasElement
         TextElement displayElement = new(title);
 
         Sampler sampler = new();
-        statHandler += (sender, e) =>
+        statHandler += OnDataChanged;
+        void OnDataChanged(object? sender, DataChangedEventArgs<double> e)
         {
             double value = e.NewValue * 1000d;
             sampler.Record(value);
@@ -74,11 +77,13 @@ public class StatsWindow : CanvasElement
         Content.Add(displayElement);
     }
 
-    private void AddDeltaDisplay(string title, ref EventHandler<DataChangedEventArgs<double>> statHandler) {
+    private void AddDeltaDisplay(string title, ref EventHandler<DataChangedEventArgs<double>> statHandler)
+    {
         TextElement displayElement = new(title);
 
         Sampler sampler = new();
-        statHandler += (sender, e) =>
+        statHandler += OnDataChanged;
+        void OnDataChanged(object? sender, DataChangedEventArgs<double> e)
         {
             sampler.Record(e.NewValue);
             displayElement.Label = sampler.Average.ToString("F4");
@@ -87,15 +92,30 @@ public class StatsWindow : CanvasElement
         Content.Add(displayElement);
     }
 
-    private void AddIntDisplay(string title, ref EventHandler<DataChangedEventArgs<int>> handler) {
+    private void AddIntDisplay(string title, ref EventHandler<DataChangedEventArgs<int>> handler)
+    {
         TextElement displayElement = new(title);
 
         Sampler sampler = new();
-        handler += (sender, e) =>
+        handler += OnDataChanged;
+        void OnDataChanged(object? sender, DataChangedEventArgs<int> e)
         {
             sampler.Record(e.NewValue);
             displayElement.Label = sampler.Average.ToString("F0");
         };
+
+        Content.Add(displayElement);
+    }
+
+    private void AddToStringDisplay<T>(string title, ref EventHandler<DataChangedEventArgs<T>> handler)
+    {
+        TextElement displayElement = new(title);
+
+        handler += OnDataChanged;
+        void OnDataChanged(object? sender, DataChangedEventArgs<T> e)
+        {
+            displayElement.Label = e.NewValue?.ToString() ?? "null";
+        }
 
         Content.Add(displayElement);
     }
