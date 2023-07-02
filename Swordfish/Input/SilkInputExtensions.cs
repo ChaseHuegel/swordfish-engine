@@ -1,9 +1,32 @@
 using Silk.NET.Input;
 
-namespace Swordfish.Input;
+namespace Swordfish.Util;
 
-public static class SilkKeyExtensions
+public static class SilkInputExtensions
 {
+    public static Library.IO.CursorState ToCursorState(this CursorMode cursorMode)
+    {
+        return cursorMode switch
+        {
+            CursorMode.Normal => Library.IO.CursorState.NORMAL,
+            CursorMode.Hidden => Library.IO.CursorState.HIDDEN,
+            CursorMode.Disabled => Library.IO.CursorState.LOCKED,
+            CursorMode.Raw => Library.IO.CursorState.LOCKED,
+            _ => Library.IO.CursorState.NORMAL,
+        };
+    }
+
+    public static Library.IO.MouseButton ToSwordfishMouseButton(this MouseButton silkMouseButton)
+    {
+        return silkMouseButton switch
+        {
+            MouseButton.Left => Library.IO.MouseButton.LEFT,
+            MouseButton.Right => Library.IO.MouseButton.RIGHT,
+            MouseButton.Middle => Library.IO.MouseButton.MIDDLE,
+            _ => Library.IO.MouseButton.UNKNOWN,
+        };
+    }
+
     public static Library.IO.Key ToSwordfishKey(this Key key) => key switch
     {
         Key.Backspace => Library.IO.Key.BACKSPACE,

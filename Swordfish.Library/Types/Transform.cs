@@ -45,6 +45,27 @@ namespace Swordfish.Library.Types
         private Vector3 scale;
         private Matrix4x4 matrix4x4;
 
+        public Vector3 GetForward()
+        {
+            //  TODO this is expensive
+            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
+            return Vector3.Transform(Vector3.UnitZ, orientation);
+        }
+
+        public Vector3 GetRight()
+        {
+            //  TODO this is expensive
+            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
+            return Vector3.Transform(Vector3.UnitX, orientation);
+        }
+
+        public Vector3 GetUp()
+        {
+            //  TODO this is expensive
+            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
+            return Vector3.Transform(Vector3.UnitY, orientation);
+        }
+
         public void Translate(Vector3 translation)
         {
             Position += translation;
@@ -69,14 +90,14 @@ namespace Swordfish.Library.Types
             if (!dirty)
                 return matrix4x4;
 
-            float cosY = MathS.Cos(Rotation.Y);
-            float sinY = MathS.Sin(Rotation.Y);
+            float cosY = MathS.Cos(Rotation.Y * MathS.DegreesToRadians);
+            float sinY = MathS.Sin(Rotation.Y * MathS.DegreesToRadians);
 
-            float cosP = MathS.Cos(Rotation.X);
-            float sinP = MathS.Sin(Rotation.X);
+            float cosP = MathS.Cos(Rotation.X * MathS.DegreesToRadians);
+            float sinP = MathS.Sin(Rotation.X * MathS.DegreesToRadians);
 
-            float cosR = MathS.Cos(Rotation.Z);
-            float sinR = MathS.Sin(Rotation.Z);
+            float cosR = MathS.Cos(Rotation.Z * MathS.DegreesToRadians);
+            float sinR = MathS.Sin(Rotation.Z * MathS.DegreesToRadians);
 
             var matrix = Matrix4x4.Identity;
 

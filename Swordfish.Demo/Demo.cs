@@ -74,7 +74,7 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        ecsContext.BindSystem<RoundaboutSystem>();
+        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
@@ -228,7 +228,6 @@ public class Demo : Mod
                 {
                     Mesh brickMesh = MeshFromBrickID(brick.ID);
                     colors.AddRange(brickMesh.Colors);
-                    normals.AddRange(brickMesh.Normals);
                     uv.AddRange(brickMesh.UV);
 
                     Mesh MeshFromBrickID(int id)
@@ -245,6 +244,9 @@ public class Demo : Mod
                     foreach (uint tri in brickMesh.Triangles)
                         triangles.Add(tri + (uint)vertices.Count);
 
+                    foreach (Vector3 normal in brickMesh.Normals)
+                        normals.Add(Vector3.Transform(normal, brick.GetQuaternion()));
+
                     foreach (Vector3 vertex in brickMesh.Vertices)
                         vertices.Add(Vector3.Transform(vertex, brick.GetQuaternion()) + new Vector3(x, y, z) + offset);
                 }
@@ -253,7 +255,7 @@ public class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
+        var shader = new Shader("textured", LocalPathService.Shaders.At("lighted.glsl"));
         var texture = new Texture("metal_panel", LocalPathService.Textures.At("block/metal_panel.png"));
         var material = new Material(shader, texture);
 

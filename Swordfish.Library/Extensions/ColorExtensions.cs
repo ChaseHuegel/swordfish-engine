@@ -14,5 +14,14 @@ namespace Swordfish.Library.Extensions
                 color.A / byte.MaxValue
             );
         }
+
+        public static Vector3 ToVector3(this Color color)
+        {
+            return new Vector3(
+                color.R / byte.MaxValue,
+                color.G / byte.MaxValue,
+                color.B / byte.MaxValue
+            );
+        }
     }
 }

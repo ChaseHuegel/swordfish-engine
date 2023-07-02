@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
 using Swordfish.ECS;
@@ -36,18 +37,21 @@ public class Editor : Plugin
     private readonly IFileService FileService;
     private readonly IPathService PathService;
     private readonly IRenderContext RenderContext;
+    private readonly IInputService InputService;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext)
+
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService)
     {
         WindowContext = windowContext;
         FileService = fileService;
         ECSContext = ecsContext;
         PathService = pathService;
         RenderContext = renderContext;
+        InputService = inputService;
 
         ECSContext.BindSystem<HierarchySystem>();
 
@@ -65,6 +69,8 @@ public class Editor : Plugin
     public override void Start()
     {
         WindowContext.Maximize();
+
+        WindowContext.Update += OnUpdate;
 
         Shortcut exitShortcut = new(
             "Exit",
@@ -578,5 +584,47 @@ public class Editor : Plugin
             if (Hierarchy != null)
                 Populate = false;
         }
+    }
+
+    private Vector2 lastMousePos;
+    private void OnUpdate(double delta)
+    {
+        const float mouseSensitivity = 50f;
+        const float cameraSpeed = 10;
+        Camera camera = RenderContext.Camera.Get();
+
+        if (InputService.IsMouseHeld(MouseButton.RIGHT))
+        {
+            InputService.CursorState = CursorState.LOCKED;
+            Vector2 cursorDelta = InputService.CursorDelta;
+            camera.Transform.Rotate(new Vector3(cursorDelta.Y, cursorDelta.X, 0) * mouseSensitivity * (float)delta);
+        }
+        else
+        {
+            InputService.CursorState = CursorState.NORMAL;
+        }
+
+        lastMousePos = InputService.CursorPosition;
+
+        var forward = camera.Transform.GetForward();
+        var right = camera.Transform.GetRight();
+
+        if (InputService.IsKeyHeld(Key.W))
+            camera.Transform.Position += forward * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.S))
+            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.D))
+            camera.Transform.Position += right * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.A))
+            camera.Transform.Position -= right * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.E))
+            camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+
+        if (InputService.IsKeyHeld(Key.Q))
+            camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
     }
 }

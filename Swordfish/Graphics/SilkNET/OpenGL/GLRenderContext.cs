@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
@@ -13,6 +14,8 @@ namespace Swordfish.Graphics;
 
 internal class GLRenderContext : IRenderContext
 {
+    public DataBinding<Camera> Camera { get; set; } = new();
+
     public DataBinding<int> DrawCalls { get; } = new();
 
     public DataBinding<bool> Wireframe { get; set; } = new();
@@ -30,7 +33,7 @@ internal class GLRenderContext : IRenderContext
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
     private ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
 
-    private readonly Camera Camera;
+    private readonly Transform ViewTransform = new();
 
     private readonly GL GL;
     private readonly IWindowContext WindowContext;
@@ -46,7 +49,7 @@ internal class GLRenderContext : IRenderContext
 
         GL.FrontFace(FrontFaceDirection.CW);
 
-        Camera = new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f);
+        Camera.Set(new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f));
         WindowContext.Loaded += OnWindowLoaded;
         WindowContext.Render += OnWindowRender;
         WindowContext.Resized += OnWindowResized;
@@ -60,8 +63,16 @@ internal class GLRenderContext : IRenderContext
     private void OnWindowRender(double delta)
     {
         int drawCalls = 0;
-        var view = Camera.Transform.ToMatrix4x4() * ReflectionMatrix;
-        var projection = Camera.GetProjection();
+
+        Camera cameraCached = Camera.Get();
+        //  Inverse the camera position when calculating view to move it into the same coordinate system as models.
+        //  Without doing this, the camera's axis are inverse of the models.
+        ViewTransform.Position = new Vector3(cameraCached.Transform.Position.X, cameraCached.Transform.Position.Y, -cameraCached.Transform.Position.Z);
+        ViewTransform.Rotation = -cameraCached.Transform.Rotation;
+        ViewTransform.Scale = cameraCached.Transform.Scale;
+
+        Matrix4x4.Invert(ViewTransform.ToMatrix4x4() * ReflectionMatrix, out Matrix4x4 view);
+        var projection = Camera.Get().GetProjection();
 
         if (RenderTargets.IsEmpty)
             return;
@@ -93,9 +104,11 @@ internal class GLRenderContext : IRenderContext
             for (int n = 0; n < target.Materials.Length; n++)
             {
                 GLMaterial material = target.Materials[n];
+                ShaderProgram shader = material.ShaderProgram;
                 material.Use();
-                material.ShaderProgram.SetUniform("view", view);
-                material.ShaderProgram.SetUniform("projection", projection);
+
+                shader.SetUniform("view", view);
+                shader.SetUniform("projection", projection);
             }
 
             target.VertexArrayObject.Bind();
@@ -140,7 +153,7 @@ internal class GLRenderContext : IRenderContext
 
     private void OnWindowResized(Vector2 newSize)
     {
-        Camera.AspectRatio = newSize.GetRatio();
+        Camera.Get().AspectRatio = newSize.GetRatio();
     }
 
     private ShaderProgram BindShader(Shader shader)

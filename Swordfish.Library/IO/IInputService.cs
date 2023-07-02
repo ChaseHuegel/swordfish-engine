@@ -13,6 +13,7 @@ namespace Swordfish.Library.IO
         InputDevice[] UnknownDevices { get; }
 
         EventHandler<ClickedEventArgs> Clicked { get; set; }
+        EventHandler<ClickedEventArgs> DoubleClicked { get; set; }
         EventHandler<ScrolledEventArgs> Scrolled { get; set; }
         EventHandler<KeyEventArgs> KeyPressed { get; set; }
         EventHandler<KeyEventArgs> KeyReleased { get; set; }
@@ -20,8 +21,8 @@ namespace Swordfish.Library.IO
         EventHandler<InputButtonEventArgs> ButtonReleased { get; set; }
 
         CursorState CursorState { get; set; }
-        Vector3 CursorDelta { get; }
-        Vector3 CursorPosition { get; set; }
+        Vector2 CursorDelta { get; }
+        Vector2 CursorPosition { get; set; }
 
         bool IsMouseHeld(MouseButton mouseButton);
         bool IsMousePressed(MouseButton mouseButton);
