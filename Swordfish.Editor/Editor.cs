@@ -589,7 +589,7 @@ public class Editor : Plugin
     private Vector2 lastMousePos;
     private void OnUpdate(double delta)
     {
-        const float mouseSensitivity = 50f;
+        const float mouseSensitivity = 0.05f;
         const float cameraSpeed = 10;
         Camera camera = RenderContext.Camera.Get();
 
@@ -597,7 +597,7 @@ public class Editor : Plugin
         {
             InputService.CursorState = CursorState.LOCKED;
             Vector2 cursorDelta = InputService.CursorDelta;
-            camera.Transform.Rotate(new Vector3(cursorDelta.Y, cursorDelta.X, 0) * mouseSensitivity * (float)delta);
+            camera.Transform.Rotate(new Vector3(cursorDelta.Y, cursorDelta.X, 0) * mouseSensitivity);
         }
         else
         {
