@@ -19,6 +19,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IEquatable<TexImage2D>
 
         Bind();
 
+        //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
         GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
         SetDefaultParameters();
     }
