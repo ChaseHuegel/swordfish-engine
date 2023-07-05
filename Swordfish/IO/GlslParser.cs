@@ -1,12 +1,14 @@
 using System.Text;
-using Silk.NET.OpenGL;
+using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Shader = Swordfish.Graphics.Shader;
+using SilkShaderType = Silk.NET.OpenGL.ShaderType;
 
 namespace Swordfish.IO;
 
-internal class GlslParser : IFileParser<ShaderProgram>
+internal class GlslParser : IFileParser<Shader>
 {
     public string[] SupportedExtensions { get; } = new string[] {
         ".glsl"
@@ -20,10 +22,16 @@ internal class GlslParser : IFileParser<ShaderProgram>
     }
 
     object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public ShaderProgram Parse(IFileService fileService, IPath file)
+    public Shader Parse(IFileService fileService, IPath file)
     {
+        var name = file.GetFileNameWithoutExtension();
+
         (string vertexSource, string fragmentSource) = ParseVertAndFrag(fileService, file);
-        return GLContext.CreateShaderProgram(file.GetFileNameWithoutExtension(), vertexSource, fragmentSource);
+
+        var vertex = new ShaderSource(name + ".vertex", vertexSource, Graphics.ShaderType.Vertex);
+        var fragment = new ShaderSource(name + ".fragment", fragmentSource, Graphics.ShaderType.Fragment);
+
+        return new Shader(name, vertex, fragment);
     }
 
     private static (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
@@ -120,11 +128,11 @@ void main()
         for (int i = includedSources.Count - 1; i >= 0; i--)
             combinedSources.Insert(2, includedSources[i]);
 
-        combinedSources.Insert(1, $"#define {ShaderType.VertexShader.GetDirective()}");
+        combinedSources.Insert(1, $"#define {SilkShaderType.VertexShader.GetDirective()}");
         string vertexSource = string.Join(Environment.NewLine, combinedSources);
 
         combinedSources.RemoveAt(1);
-        combinedSources.Insert(1, $"#define {ShaderType.FragmentShader.GetDirective()}");
+        combinedSources.Insert(1, $"#define {SilkShaderType.FragmentShader.GetDirective()}");
         string fragmentSource = string.Join(Environment.NewLine, combinedSources);
 
         return (vertexSource, fragmentSource);
