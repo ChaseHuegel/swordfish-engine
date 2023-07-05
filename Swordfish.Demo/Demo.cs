@@ -285,6 +285,17 @@ public class Demo : Mod
             grid = FileService.Parse<BrickGrid>(LocalPathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
         }
 
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
+        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\"));
+        var material = new Material(shader, textureArray);
+
+        var renderOptions = new RenderOptions {
+            DoubleFaced = false,
+            Wireframe = false
+        };
+
+        var metalPanelTex = textureArray.IndexOf("metal_panel");
+
         var triangles = new List<uint>();
         var vertices = new List<Vector3>();
         var colors = new List<Vector4>();
@@ -339,7 +350,10 @@ public class Demo : Mod
                     }
 
                     foreach (Vector3 texCoord in brickMesh.UV)
-                        uv.Add(new Vector3(texCoord.X, texCoord.Y, 18));
+                    {
+                        int textureIndex = textureArray.IndexOf(brick.Name);
+                        uv.Add(new Vector3(texCoord.X, texCoord.Y, textureIndex >= 0 ? textureIndex : metalPanelTex));
+                    }
 
                     foreach (uint tri in brickMesh.Triangles)
                         triangles.Add(tri + (uint)vertices.Count);
@@ -354,16 +368,6 @@ public class Demo : Mod
         }
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
-
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\"));
-        var material = new Material(shader, textureArray);
-
-        var renderOptions = new RenderOptions {
-            DoubleFaced = false,
-            Wireframe = false
-        };
-
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         ECSContext.EntityBuilder

@@ -9,6 +9,7 @@ public struct Brick : IEquatable<Brick>
 
     public static readonly Brick EMPTY = new(UNDEFINED_ID);
 
+    public string Name;
     public readonly ushort ID;
     public Direction Rotation;
     public Direction Orientation;
@@ -16,6 +17,7 @@ public struct Brick : IEquatable<Brick>
     public Brick(ushort id)
     {
         ID = id;
+        Name = null!;
     }
 
     public bool Equals(Brick other) => other.ID == ID;
