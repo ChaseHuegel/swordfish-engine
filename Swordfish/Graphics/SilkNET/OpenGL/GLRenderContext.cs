@@ -162,8 +162,13 @@ internal class GLRenderContext : IRenderContext
     {
         if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
         {
-            //  TODO hardcoding this expectation of 0 and 1 is fragile
-            handle = GLContext.CreateShaderProgram(shader.Name, shader.Sources[0], shader.Sources[1]);
+            if (!shader.TryGetSource(ShaderType.Vertex, out ShaderSource? vertex))
+                Debugger.Log($"Binding shader {shader.Name} without a vertex shader!", LogType.ERROR);
+
+            if (!shader.TryGetSource(ShaderType.Fragment, out ShaderSource? fragment))
+                Debugger.Log($"Binding shader {shader.Name} without a fragment shader!", LogType.ERROR);
+
+            handle = GLContext.CreateShaderProgram(shader.Name, vertex!.Source, fragment!.Source);
             LinkedHandles.TryAdd(shader, handle);
         }
 

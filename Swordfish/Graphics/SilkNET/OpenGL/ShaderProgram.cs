@@ -25,8 +25,8 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
             Debugger.Log($"No fragment source provided for shader '{Name}'.", LogType.ERROR);
 
         //  TODO instead of hardcoding vert/frag requirements these should be extracted into a Shader type
-        uint vertexHandle = CreateShaderHandle(ShaderType.VertexShader, vertexSource);
-        uint fragmentHandle = CreateShaderHandle(ShaderType.FragmentShader, fragmentSource);
+        uint vertexHandle = CreateShaderHandle(Silk.NET.OpenGL.ShaderType.VertexShader, vertexSource);
+        uint fragmentHandle = CreateShaderHandle(Silk.NET.OpenGL.ShaderType.FragmentShader, fragmentSource);
 
         GL.AttachShader(Handle, vertexHandle);
         GL.AttachShader(Handle, fragmentHandle);
@@ -150,7 +150,7 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
         return location != -1;
     }
 
-    private unsafe uint CreateShaderHandle(ShaderType shaderType, string source)
+    private unsafe uint CreateShaderHandle(Silk.NET.OpenGL.ShaderType shaderType, string source)
     {
         uint handle = GL.CreateShader(shaderType);
         GL.ShaderSource(handle, source);
