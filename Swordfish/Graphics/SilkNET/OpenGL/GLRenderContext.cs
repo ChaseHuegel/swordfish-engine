@@ -158,17 +158,23 @@ internal class GLRenderContext : IRenderContext
         Camera.Get().AspectRatio = newSize.GetRatio();
     }
 
+    private ShaderComponent BindShaderSource(ShaderSource shaderSource)
+    {
+        if (!LinkedHandles.TryGetValue(shaderSource, out IHandle? handle))
+        {
+            handle = GLContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
+            LinkedHandles.TryAdd(shaderSource, handle);
+        }
+
+        return Unsafe.As<ShaderComponent>(handle);
+    }
+
     private ShaderProgram BindShader(Shader shader)
     {
         if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
         {
-            if (!shader.TryGetSource(ShaderType.Vertex, out ShaderSource? vertex))
-                Debugger.Log($"Binding shader {shader.Name} without a vertex shader!", LogType.ERROR);
-
-            if (!shader.TryGetSource(ShaderType.Fragment, out ShaderSource? fragment))
-                Debugger.Log($"Binding shader {shader.Name} without a fragment shader!", LogType.ERROR);
-
-            handle = GLContext.CreateShaderProgram(shader.Name, vertex!.Source, fragment!.Source);
+            ShaderComponent[] shaderComponents = shader.Sources.Select(BindShaderSource).ToArray();
+            handle = GLContext.CreateShaderProgram(shader.Name, shaderComponents);
             LinkedHandles.TryAdd(shader, handle);
         }
 

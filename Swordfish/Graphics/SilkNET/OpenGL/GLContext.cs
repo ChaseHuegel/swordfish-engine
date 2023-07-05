@@ -16,9 +16,14 @@ internal unsafe partial class GLContext
         GLThread = synchronizationContext;
     }
 
-    public ShaderProgram CreateShaderProgram(string name, string vertexSource, string fragmentSource)
+    public ShaderComponent CreateShaderComponent(string name, Silk.NET.OpenGL.ShaderType type, string source)
     {
-        return GLThread.WaitForResult(SharderProgramArgs.Factory, new SharderProgramArgs(GL, name, vertexSource, fragmentSource));
+        return GLThread.WaitForResult(SharderComponentArgs.Factory, new SharderComponentArgs(GL, name, type, source));
+    }
+
+    public ShaderProgram CreateShaderProgram(string name, ShaderComponent[] shaderComponents)
+    {
+        return GLThread.WaitForResult(SharderProgramArgs.Factory, new SharderProgramArgs(GL, name, shaderComponents));
     }
 
     public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)

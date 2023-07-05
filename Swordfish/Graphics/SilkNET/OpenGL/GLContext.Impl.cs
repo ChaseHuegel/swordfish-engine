@@ -10,20 +10,39 @@ internal unsafe partial class GLContext
     {
         private readonly GL gl;
         private readonly string name;
-        private readonly string vertexSource;
-        private readonly string fragmentSource;
+        private readonly ShaderComponent[] shaderComponents;
 
-        public SharderProgramArgs(GL gl, string name, string vertexSource, string fragmentSource)
+        public SharderProgramArgs(GL gl, string name, ShaderComponent[] shaderComponents)
         {
             this.gl = gl;
             this.name = name;
-            this.vertexSource = vertexSource;
-            this.fragmentSource = fragmentSource;
+            this.shaderComponents = shaderComponents;
         }
 
         public static ShaderProgram Factory(SharderProgramArgs args)
         {
-            return new ShaderProgram(args.gl, args.name, args.vertexSource, args.fragmentSource);
+            return new ShaderProgram(args.gl, args.name, args.shaderComponents);
+        }
+    }
+
+    private readonly struct SharderComponentArgs
+    {
+        private readonly GL gl;
+        private readonly string name;
+        private readonly Silk.NET.OpenGL.ShaderType type;
+        private readonly string source;
+
+        public SharderComponentArgs(GL gl, string name, Silk.NET.OpenGL.ShaderType type, string source)
+        {
+            this.gl = gl;
+            this.name = name;
+            this.type = type;
+            this.source = source;
+        }
+
+        public static ShaderComponent Factory(SharderComponentArgs args)
+        {
+            return new ShaderComponent(args.gl, args.name, args.type, args.source);
         }
     }
 

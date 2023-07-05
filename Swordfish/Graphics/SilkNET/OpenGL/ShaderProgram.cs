@@ -12,31 +12,19 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
     private readonly GL GL;
     private readonly Dictionary<string, int> UniformLocations;
 
-    public ShaderProgram(GL gl, string name, string vertexSource, string fragmentSource)
+    public ShaderProgram(GL gl, string name, ShaderComponent[] components)
     {
         GL = gl;
         Name = name;
         UniformLocations = new Dictionary<string, int>();
 
-        if (vertexSource.Length == 0)
-            Debugger.Log($"No vertex source provided for shader '{Name}'.", LogType.ERROR);
-
-        if (fragmentSource.Length == 0)
-            Debugger.Log($"No fragment source provided for shader '{Name}'.", LogType.ERROR);
-
-        //  TODO instead of hardcoding vert/frag requirements these should be extracted into a Shader type
-        uint vertexHandle = CreateShaderHandle(Silk.NET.OpenGL.ShaderType.VertexShader, vertexSource);
-        uint fragmentHandle = CreateShaderHandle(Silk.NET.OpenGL.ShaderType.FragmentShader, fragmentSource);
-
-        GL.AttachShader(Handle, vertexHandle);
-        GL.AttachShader(Handle, fragmentHandle);
+        for (int i = 0; i < components.Length; i++)
+            GL.AttachShader(Handle, components[i].Handle);
 
         GL.LinkProgram(Handle);
 
-        GL.DetachShader(Handle, vertexHandle);
-        GL.DetachShader(Handle, fragmentHandle);
-        GL.DeleteShader(vertexHandle);
-        GL.DeleteShader(fragmentHandle);
+        for (int i = 0; i < components.Length; i++)
+            GL.DetachShader(Handle, components[i].Handle);
 
         GL.GetProgram(Handle, GLEnum.LinkStatus, out int status);
         if (status != 0)
@@ -148,19 +136,6 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
             Debugger.Log($"Uniform '{uniform}' not found in the shader '{Name}'.", LogType.WARNING);
 
         return location != -1;
-    }
-
-    private unsafe uint CreateShaderHandle(Silk.NET.OpenGL.ShaderType shaderType, string source)
-    {
-        uint handle = GL.CreateShader(shaderType);
-        GL.ShaderSource(handle, source);
-        GL.CompileShader(handle);
-
-        string shaderError = GL.GetShaderInfoLog(handle);
-        if (!string.IsNullOrWhiteSpace(shaderError))
-            Debugger.Log($"Failed to compile {shaderType} '{Name}'.\n{shaderError}", LogType.ERROR);
-
-        return handle;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
