@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
@@ -160,8 +161,8 @@ public class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
-        var texture = new Texture("metal_panel", LocalPathService.Textures.At("block/metal_panel.png"));
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("block/metal_panel.png"));
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -256,8 +257,8 @@ public class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = new Shader("textured", LocalPathService.Shaders.At("lighted.glsl"));
-        var texture = new Texture("metal_panel", LocalPathService.Textures.At("block/metal_panel.png"));
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("block/metal_panel.png"));
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -355,9 +356,9 @@ public class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = new Shader("textured", LocalPathService.Shaders.At("lightedArray.glsl"));
-        var texture = new Texture("blocks", LocalPathService.Textures.At("block\\"));
-        var material = new Material(shader, texture);
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
+        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block"));
+        var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions {
             DoubleFaced = false,
@@ -375,14 +376,14 @@ public class Demo : Mod
 
     private void CreateTestEntities()
     {
-        var shader = new Shader("textured", LocalPathService.Shaders.At("textured.glsl"));
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
 
-        var astronautTexture = new Texture("astronaut", LocalPathService.Textures.At("astronaut.png"));
-        var chortTexture = new Texture("chort", LocalPathService.Textures.At("chort.png"));
-        var hubertTexture = new Texture("hubert", LocalPathService.Textures.At("hubert.png"));
-        var haroldTexture = new Texture("harold", LocalPathService.Textures.At("harold.png"));
-        var melvinTexture = new Texture("melvin", LocalPathService.Textures.At("melvin.png"));
-        var womanTexture = new Texture("woman", LocalPathService.Textures.At("woman.png"));
+        var astronautTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"));
+        var chortTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("chort.png"));
+        var hubertTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("hubert.png"));
+        var haroldTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("harold.png"));
+        var melvinTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("melvin.png"));
+        var womanTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("woman.png"));
 
         var astronautMaterial = new Material(shader, astronautTexture);
         var chortMaterial = new Material(shader, chortTexture);

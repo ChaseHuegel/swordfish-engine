@@ -1,23 +1,25 @@
 using Swordfish.Library.Annotations;
-using Swordfish.Library.Diagnostics;
-using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics;
 
 public class Texture : Handle
 {
-    public readonly string Name;
+    public string Name { get; protected set; }
+    public int Width { get; protected set; }
+    public int Height { get; protected set; }
+    public bool Mipmaps { get; protected set; }
+    public byte[] Pixels { get; protected set; }
 
-    internal readonly IPath Source;
+    public Texture([NotNull] byte[] pixels, int width, int height, bool mipmaps)
+        : this("unknown", pixels, width, height, mipmaps) { }
 
-    public Texture([NotNull] string name, [NotNull] IPath source)
+    public Texture([NotNull] string name, [NotNull] byte[] pixels, int width, int height, bool mipmaps)
     {
         Name = name;
-
-        if (!source.FileExists() || !source.DirectoryExists())
-            Debugger.Log($"No source provided for {GetType()} '{Name}'.", LogType.ERROR);
-
-        Source = source;
+        Pixels = pixels;
+        Width = width;
+        Height = height;
+        Mipmaps = mipmaps;
     }
 
     protected override void OnDisposed()

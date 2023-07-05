@@ -173,10 +173,10 @@ internal class GLRenderContext : IRenderContext
     {
         if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
         {
-            if (texture.Source.IsDirectory())
-                handle = FileService.Parse<TexImage3D>(texture.Source);
+            if (texture is TextureArray textureArray)
+                handle = GLContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, textureArray.Mipmaps);
             else
-                handle = FileService.Parse<TexImage2D>(texture.Source);
+                handle = GLContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, texture.Mipmaps);
 
             LinkedHandles.TryAdd(texture, handle);
         }
