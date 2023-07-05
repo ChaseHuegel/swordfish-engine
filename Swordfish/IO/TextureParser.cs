@@ -12,13 +12,6 @@ namespace Swordfish.IO
             ".png"
         };
 
-        private readonly GLContext GLContext;
-
-        public TextureParser(GLContext glContext)
-        {
-            GLContext = glContext;
-        }
-
         object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
         public unsafe Texture Parse(IFileService fileService, IPath file)
         {

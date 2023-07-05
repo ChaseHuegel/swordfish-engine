@@ -356,7 +356,7 @@ public class Demo : Mod
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
         var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block"));
+        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\`"));
         var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions {
