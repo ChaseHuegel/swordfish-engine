@@ -1,11 +1,12 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
 
 namespace Swordfish.IO
 {
-    internal class TextureParser : IFileParser<TexImage2D>
+    internal class TextureParser : IFileParser<Texture>
     {
         public string[] SupportedExtensions { get; } = new string[] {
             ".png"
@@ -19,7 +20,7 @@ namespace Swordfish.IO
         }
 
         object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-        public unsafe TexImage2D Parse(IFileService fileService, IPath file)
+        public unsafe Texture Parse(IFileService fileService, IPath file)
         {
             using Stream stream = fileService.Open(file);
             using StreamReader reader = new(stream);
@@ -30,7 +31,7 @@ namespace Swordfish.IO
             byte[] pixels = new byte[sizeof(Rgba32) * image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
-            return GLContext.CreateTexImage2D(name, pixels, (uint)image.Width, (uint)image.Height);
+            return new Texture(name, pixels, image.Width, image.Height, true);
         }
     }
 }
