@@ -1,5 +1,4 @@
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
 
 namespace Swordfish.IO
