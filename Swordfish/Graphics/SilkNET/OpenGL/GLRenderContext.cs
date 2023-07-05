@@ -8,7 +8,7 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using Shader = Swordfish.Graphics.SilkNET.Shader;
+using Shader = Swordfish.Graphics.Shader;
 
 namespace Swordfish.Graphics;
 
@@ -162,7 +162,8 @@ internal class GLRenderContext : IRenderContext
     {
         if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
         {
-            handle = FileService.Parse<ShaderProgram>(shader.Source);
+            //  TODO hardcoding this expectation of 0 and 1 is fragile
+            handle = GLContext.CreateShaderProgram(shader.Name, shader.Sources[0], shader.Sources[1]);
             LinkedHandles.TryAdd(shader, handle);
         }
 

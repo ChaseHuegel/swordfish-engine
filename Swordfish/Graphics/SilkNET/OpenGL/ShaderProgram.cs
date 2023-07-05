@@ -24,6 +24,7 @@ internal sealed class ShaderProgram : ManagedHandle<uint>, IEquatable<ShaderProg
         if (fragmentSource.Length == 0)
             Debugger.Log($"No fragment source provided for shader '{Name}'.", LogType.ERROR);
 
+        //  TODO instead of hardcoding vert/frag requirements these should be extracted into a Shader type
         uint vertexHandle = CreateShaderHandle(ShaderType.VertexShader, vertexSource);
         uint fragmentHandle = CreateShaderHandle(ShaderType.FragmentShader, fragmentSource);
 

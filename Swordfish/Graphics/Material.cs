@@ -1,5 +1,3 @@
-using Swordfish.Graphics.SilkNET;
-
 namespace Swordfish.Graphics;
 
 public class Material : Handle

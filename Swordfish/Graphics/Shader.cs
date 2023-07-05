@@ -1,23 +1,19 @@
 using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.IO;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics;
 
 public sealed class Shader : Handle
 {
     public readonly string Name;
 
-    internal readonly IPath Source;
+    //  TODO introduce a ref type instead of copying shader source code everywhere
+    internal readonly string[] Sources;
 
-    public Shader([NotNull] string name, [NotNull] IPath source)
+    public Shader([NotNull] string name, [NotNull] string[] sources)
     {
         Name = name;
-
-        if (!source.FileExists())
-            Debugger.Log($"No source provided for shader '{Name}'.", LogType.ERROR);
-
-        Source = source;
+        Sources = sources;
     }
 
     protected override void OnDisposed()
