@@ -83,7 +83,8 @@ public class Demo : Mod
         // TestECS.Populate(ECSContext);
         // CreateTestEntities();
         // CreateStressTest();
-        CreateShipTest();
+        // CreateShipTest();
+        CreateVoxelTest();
 
         Benchmark.Log();
     }
@@ -257,6 +258,105 @@ public class Demo : Mod
 
         var shader = new Shader("textured", LocalPathService.Shaders.At("lighted.glsl"));
         var texture = new Texture("metal_panel", LocalPathService.Textures.At("block/metal_panel.png"));
+        var material = new Material(shader, texture);
+
+        var renderOptions = new RenderOptions {
+            DoubleFaced = false,
+            Wireframe = false
+        };
+
+        var renderer = new MeshRenderer(mesh, material, renderOptions);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
+            .Build();
+    }
+
+    private void CreateVoxelTest()
+    {
+        var empty = new Brick(0);
+        var solid = new Brick(1);
+
+        BrickGrid grid = new(16);
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
+        {
+            grid = FileService.Parse<BrickGrid>(LocalPathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
+        }
+
+        var triangles = new List<uint>();
+        var vertices = new List<Vector3>();
+        var colors = new List<Vector4>();
+        var uv = new List<Vector3>();
+        var normals = new List<Vector3>();
+
+        var cube = new Cube();
+        var slope = new Slope();
+        var thruster = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket.obj"));
+        var thrusterBlock = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket_internal.obj"));
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
+        {
+            BuildBrickGridMesh(grid, -grid.CenterOfMass);
+        }
+
+        void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
+        {
+            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            {
+                if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
+                    BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+            }
+
+            for (int x = 0; x < gridToBuild.DimensionSize; x++)
+            for (int y = 0; y < gridToBuild.DimensionSize; y++)
+            for (int z = 0; z < gridToBuild.DimensionSize; z++)
+            {
+                var brick = gridToBuild.Bricks[x, y, z];
+                if (!brick.Equals(empty) &&
+                    (gridToBuild.Get(x + 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x - 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x, y + 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y - 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y, z + 1).Equals(empty)
+                    || gridToBuild.Get(x, y, z - 1).Equals(empty))
+                )
+                {
+                    Mesh brickMesh = MeshFromBrickID(brick.ID);
+                    colors.AddRange(brickMesh.Colors);
+
+                    Mesh MeshFromBrickID(int id)
+                    {
+                        return id switch
+                        {
+                            2 => slope,
+                            3 => thruster,
+                            4 => thrusterBlock,
+                            _ => cube,
+                        };
+                    }
+
+                    foreach (Vector3 texCoord in brickMesh.UV)
+                        uv.Add(new Vector3(texCoord.X, texCoord.Y, 18));
+
+                    foreach (uint tri in brickMesh.Triangles)
+                        triangles.Add(tri + (uint)vertices.Count);
+
+                    foreach (Vector3 normal in brickMesh.Normals)
+                        normals.Add(brickMesh != cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+
+                    foreach (Vector3 vertex in brickMesh.Vertices)
+                        vertices.Add((brickMesh != cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                }
+            }
+        }
+
+        var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
+
+        var shader = new Shader("textured", LocalPathService.Shaders.At("lightedArray.glsl"));
+        var texture = new Texture("blocks", LocalPathService.Textures.At("block\\"));
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {

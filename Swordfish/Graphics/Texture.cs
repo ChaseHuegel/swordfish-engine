@@ -14,8 +14,8 @@ public class Texture : Handle
     {
         Name = name;
 
-        if (!source.FileExists())
-            Debugger.Log($"No source provided for texture '{Name}'.", LogType.ERROR);
+        if (!source.FileExists() || !source.DirectoryExists())
+            Debugger.Log($"No source provided for {GetType()} '{Name}'.", LogType.ERROR);
 
         Source = source;
     }

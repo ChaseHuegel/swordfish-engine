@@ -1,6 +1,3 @@
-
-using System.IO;
-
 namespace Swordfish.Library.IO
 {
     public interface IFileParser

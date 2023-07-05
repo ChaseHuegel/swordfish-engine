@@ -1,25 +1,31 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 
 namespace Swordfish.Library.IO
 {
     public class FileService : IFileService
     {
-        private readonly ConcurrentDictionary<string, IFileParser> Parsers;
+        private readonly ConcurrentSwitchDictionary<string, Type, IFileParser> Parsers;
 
         public FileService(IEnumerable<IFileParser> parsers)
         {
-            Parsers = new ConcurrentDictionary<string, IFileParser>(StringComparer.OrdinalIgnoreCase);
+            Parsers = new ConcurrentSwitchDictionary<string, Type, IFileParser>();
 
             foreach (var parser in parsers)
+            {
                 foreach (var extension in parser.SupportedExtensions)
-                    Parsers.TryAdd(extension, parser);
+                {
+                    Type interfaceType = parser.GetType().GetInterfaces()[0];
+                    Type parserType = interfaceType.IsGenericType ? interfaceType.GenericTypeArguments[0] : parser.GetType();
+                    Parsers.TryAdd(extension.ToLowerInvariant(), parserType, parser);
+                }
+            }
         }
 
         public Stream Open(IPath path)
@@ -75,7 +81,7 @@ namespace Swordfish.Library.IO
         public TResult Parse<TResult>(IPath path)
         {
             string extension = path.GetExtension();
-            if (Parsers.TryGetValue(extension, out IFileParser parser))
+            if (Parsers.TryGetValue(extension.ToLowerInvariant(), typeof(TResult), out IFileParser parser))
             {
                 object parseResult = parser.Parse(this, path);
                 return parseResult is TResult typedResult ? typedResult : default;
@@ -87,7 +93,7 @@ namespace Swordfish.Library.IO
         public bool TryParse<TResult>(IPath path, out TResult result)
         {
             string extension = path.GetExtension();
-            if (Parsers.TryGetValue(extension, out IFileParser parser))
+            if (Parsers.TryGetValue(extension.ToLowerInvariant(), typeof(TResult), out IFileParser parser))
             {
                 object parseResult = parser.Parse(this, path);
 

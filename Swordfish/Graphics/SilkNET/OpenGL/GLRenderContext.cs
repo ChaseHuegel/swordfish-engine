@@ -169,15 +169,19 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<ShaderProgram>(handle);
     }
 
-    private TexImage2D BindTexture(Texture texture)
+    private IGLTexture BindTexture(Texture texture)
     {
         if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
         {
-            handle = FileService.Parse<TexImage2D>(texture.Source);
+            if (texture.Source.IsDirectory())
+                handle = FileService.Parse<TexImage3D>(texture.Source);
+            else
+                handle = FileService.Parse<TexImage2D>(texture.Source);
+
             LinkedHandles.TryAdd(texture, handle);
         }
 
-        return Unsafe.As<TexImage2D>(handle);
+        return Unsafe.As<IGLTexture>(handle);
     }
 
     private VertexArrayObject<float, uint> BindMesh(Mesh mesh)
@@ -197,11 +201,11 @@ internal class GLRenderContext : IRenderContext
         {
             ShaderProgram shaderProgram = BindShader(material.Shader);
 
-            TexImage2D[] texImages2D = new TexImage2D[material.Textures.Length];
+            IGLTexture[] textures = new IGLTexture[material.Textures.Length];
             for (int i = 0; i < material.Textures.Length; i++)
-                texImages2D[i] = BindTexture(material.Textures[i]);
+                textures[i] = BindTexture(material.Textures[i]);
 
-            handle = GLContext.CreateGLMaterial(shaderProgram, texImages2D);
+            handle = GLContext.CreateGLMaterial(shaderProgram, textures);
             LinkedHandles.TryAdd(material, handle);
         }
 

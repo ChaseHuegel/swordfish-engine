@@ -90,6 +90,7 @@ public static class SwordfishEngine
         resolver.Register<IFileService, FileService>(Reuse.Singleton);
         resolver.Register<IFileParser, GlslParser>(Reuse.Singleton);
         resolver.Register<IFileParser, TextureParser>(Reuse.Singleton);
+        resolver.Register<IFileParser, TextureArrayParser>(Reuse.Singleton);
         resolver.Register<IFileParser, OBJParser>(Reuse.Singleton);
         resolver.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton);
 

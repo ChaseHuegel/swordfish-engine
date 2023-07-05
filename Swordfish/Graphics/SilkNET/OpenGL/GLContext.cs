@@ -29,9 +29,17 @@ internal unsafe partial class GLContext
         }
     }
 
-    public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, params TexImage2D[] texImages2D)
+    public TexImage3D CreateTexImage3D(string name, byte[] pixels, uint width, uint height, uint depth, bool generateMipmaps = false)
     {
-        return GLThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, texImages2D));
+        fixed (byte* pixelPtr = pixels)
+        {
+            return GLThread.WaitForResult(TextureArrayArgs.Factory, new TextureArrayArgs(GL, name, pixelPtr, width, height, depth, generateMipmaps));
+        }
+    }
+
+    public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, params IGLTexture[] textures)
+    {
+        return GLThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures));
     }
 
     internal GLRenderTarget CreateGLRenderTarget(Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)

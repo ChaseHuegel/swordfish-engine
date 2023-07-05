@@ -52,20 +52,47 @@ internal unsafe partial class GLContext
         }
     }
 
+    private readonly struct TextureArrayArgs
+    {
+        private readonly GL gl;
+        private readonly string name;
+        private readonly byte* pixels;
+        private readonly uint width;
+        private readonly uint height;
+        private readonly uint depth;
+        private readonly bool generateMipmaps;
+
+        public TextureArrayArgs(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
+        {
+            this.gl = gl;
+            this.name = name;
+            this.width = width;
+            this.height = height;
+            this.depth = depth;
+            this.generateMipmaps = generateMipmaps;
+            this.pixels = pixels;
+        }
+
+        public static TexImage3D Factory(TextureArrayArgs args)
+        {
+            return new TexImage3D(args.gl, args.name, args.pixels, args.width, args.height, args.depth, args.generateMipmaps);
+        }
+    }
+
     private readonly struct GLMaterialArgs
     {
         private readonly ShaderProgram shaderProgram;
-        private readonly TexImage2D[] texImages2D;
+        private readonly IGLTexture[] textures;
 
-        public GLMaterialArgs(ShaderProgram shaderProgram, TexImage2D[] texImages2D)
+        public GLMaterialArgs(ShaderProgram shaderProgram, IGLTexture[] texImages2D)
         {
             this.shaderProgram = shaderProgram;
-            this.texImages2D = texImages2D;
+            this.textures = texImages2D;
         }
 
         public static GLMaterial Factory(GLMaterialArgs args)
         {
-            return new GLMaterial(args.shaderProgram, args.texImages2D);
+            return new GLMaterial(args.shaderProgram, args.textures);
         }
     }
 

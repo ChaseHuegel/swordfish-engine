@@ -10,9 +10,9 @@ internal sealed class GLMaterial : Handle
 {
     public ShaderProgram ShaderProgram { get; }
 
-    public TexImage2D[] Textures { get; }
+    public IGLTexture[] Textures { get; }
 
-    public GLMaterial(ShaderProgram shaderProgram, params TexImage2D[] textures)
+    public GLMaterial(ShaderProgram shaderProgram, params IGLTexture[] textures)
     {
         ShaderProgram = shaderProgram;
         Textures = textures;

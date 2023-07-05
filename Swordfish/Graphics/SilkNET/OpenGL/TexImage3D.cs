@@ -1,18 +1,17 @@
-using System;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
+internal sealed class TexImage3D : ManagedHandle<uint>, IGLTexture<TexImage3D>
 {
     public string Name { get; private set; }
 
     private readonly GL GL;
     private readonly byte MipmapLevels;
 
-    public unsafe TexImage2D(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
+    public unsafe TexImage3D(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
     {
         GL = gl;
         Name = name;
@@ -21,7 +20,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
         Bind();
 
         //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
-        GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
+        GL.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.Rgba, width, height, depth, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
         SetDefaultParameters();
     }
 
@@ -44,22 +43,22 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
         }
 
         GL.ActiveTexture(textureSlot);
-        GL.BindTexture(TextureTarget.Texture2D, Handle);
+        GL.BindTexture(TextureTarget.Texture2DArray, Handle);
     }
 
     private void SetDefaultParameters()
     {
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-        GL.GenerateMipmap(TextureTarget.Texture2D);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureBaseLevel, 0);
+        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMaxLevel, 0);
+        GL.GenerateMipmap(TextureTarget.Texture2DArray);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Equals(TexImage2D? other)
+    public bool Equals(TexImage3D? other)
     {
         return Handle.Equals(other?.Handle);
     }
@@ -70,7 +69,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
         if (ReferenceEquals(this, obj))
             return true;
 
-        if (obj is not TexImage2D other)
+        if (obj is not TexImage3D other)
             return false;
 
         return Equals(other);
