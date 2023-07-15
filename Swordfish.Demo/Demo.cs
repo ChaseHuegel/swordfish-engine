@@ -74,7 +74,7 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        // ecsContext.BindSystem<RoundaboutSystem>();
+        ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()

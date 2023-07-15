@@ -49,7 +49,7 @@ internal class GLRenderContext : IRenderContext
 
         GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
-        GL.Enable(GLEnum.FramebufferSrgb);
+        // GL.Enable(GLEnum.FramebufferSrgb);
 
         Camera.Set(new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f));
         WindowContext.Loaded += OnWindowLoaded;
