@@ -1,14 +1,13 @@
 using Xunit.Abstractions;
 
-namespace Swordfish.Tests
-{
-    public class TestBase
-    {
-        protected readonly ITestOutputHelper Output;
+namespace Swordfish.Tests;
 
-        public TestBase(ITestOutputHelper output)
-        {
-            Output = output;
-        }
+public class TestBase
+{
+    protected readonly ITestOutputHelper Output;
+
+    public TestBase(ITestOutputHelper output)
+    {
+        Output = output;
     }
 }
