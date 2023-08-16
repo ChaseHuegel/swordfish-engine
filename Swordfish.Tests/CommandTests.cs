@@ -3,18 +3,22 @@ using System.Threading.Tasks;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace Swordfish.Tests;
 
-public class CommandTests
+public class CommandTests : TestBase
 {
+    public CommandTests(ITestOutputHelper output) : base(output)
+    {
+    }
+
     private readonly CommandParser CommandParser = new('/', new HomeCommand());
 
     [Fact]
     public void TestHelpTextOutput()
     {
-        Console.WriteLine();
-        Console.WriteLine(CommandParser.GetHelpText());
+        Output.WriteLine(CommandParser.GetHelpText());
     }
 
     [Theory]
