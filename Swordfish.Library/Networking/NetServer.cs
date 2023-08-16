@@ -50,7 +50,7 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnSessionStarted(object sender, NetEventArgs e)
         {
-            Debugger.Log($"server->session [{e.Session}] joined from {e.EndPoint}");
+            Debugger.Log($"server->session [{e.Session}] connected from {e.EndPoint}");
         }
 
         public virtual void OnSessionRejected(object sender, NetEventArgs e)
@@ -60,7 +60,7 @@ namespace Swordfish.Library.Networking
 
         public virtual void OnSessionEnded(object sender, NetEventArgs e)
         {
-            Debugger.Log($"server->session [{e.Session}] left from {e.EndPoint}");
+            Debugger.Log($"server->session [{e.Session}] disconnected from {e.EndPoint}");
         }
     }
 }

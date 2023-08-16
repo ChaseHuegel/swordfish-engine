@@ -37,11 +37,6 @@ namespace Swordfish.Library.Networking
             TimeoutTimer.Start();
         }
 
-        public void Handshake()
-        {
-            Send(HandshakePacket.New);
-        }
-
         public virtual void OnPacketSent(object sender, NetEventArgs e)
         {
         }

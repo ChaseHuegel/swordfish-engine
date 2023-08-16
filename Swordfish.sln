@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Library", "Swordf
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "swordfish.Editor", "Swordfish.Editor\Swordfish.Editor.csproj", "{8A669530-0673-4015-8C6F-37D8B73819C7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Tests", "swordfish.tests\Swordfish.Tests.csproj", "{6E65476F-686B-4D75-912D-98141EC33982}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -42,5 +44,9 @@ Global
 		{8A669530-0673-4015-8C6F-37D8B73819C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A669530-0673-4015-8C6F-37D8B73819C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A669530-0673-4015-8C6F-37D8B73819C7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6E65476F-686B-4D75-912D-98141EC33982}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6E65476F-686B-4D75-912D-98141EC33982}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6E65476F-686B-4D75-912D-98141EC33982}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6E65476F-686B-4D75-912D-98141EC33982}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

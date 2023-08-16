@@ -29,6 +29,8 @@ namespace Swordfish.Library.Networking
 
         private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
 
+        private string Secret { get; set; }
+
         private ThreadWorker ThreadWorker { get; set; }
 
         private UdpClient Udp { get; set; }
@@ -107,12 +109,8 @@ namespace Swordfish.Library.Networking
         /// </summary>
         public virtual bool ValidateEndPoints => true;
 
-        /// <summary>
-        /// Returns whether sessions will be validated.
-        /// <para/>
-        /// true if <see cref="ValidateIDs"/> and/or <see cref="ValidateEndPoints"/>.
-        /// </summary>
-        public bool ValidateSessions => ValidateIDs || ValidateEndPoints;
+        public Func<EndPoint, string, bool> HandshakeValidateCallback { get; set; }
+        public Func<EndPoint, string, bool> HandshakeAcceptCallback { get; set; }
 
         public EventHandler<NetEventArgs> PacketSent;
         public EventHandler<NetEventArgs> PacketAccepted;
@@ -129,21 +127,21 @@ namespace Swordfish.Library.Networking
         /// Initialize a NetController that automatically binds.
         /// This should be used by a client or client-as-server.
         /// </summary>
-        public NetController() => Initialize(default);
+        public NetController() : this(settings: default) { }
 
         /// <summary>
         /// Initialize a NetController that automatically binds and communicates with a host.
         /// This should be used by a client.
         /// </summary>
         /// <param name="defaultHost">the host to communicate with</param>
-        public NetController(Host defaultHost) => Initialize(new NetControllerSettings(defaultHost));
+        public NetController(Host defaultHost) : this(new NetControllerSettings(defaultHost)) { }
 
         /// <summary>
         /// Initialize a NetController bound to a port.
         /// This should be used by a server or client-as-server.
         /// </summary>
         /// <param name="port">the port to bind to</param>
-        public NetController(int port) => Initialize(new NetControllerSettings(port));
+        public NetController(int port) : this(new NetControllerSettings(port)) { }
 
         /// <summary>
         /// Initialize a NetController bound to an address and port. 
@@ -151,16 +149,20 @@ namespace Swordfish.Library.Networking
         /// </summary>
         /// <param name="address">the <see cref="IPAddress"/> to bind to</param>
         /// <param name="port">the port to bind to</param>
-        public NetController(IPAddress address, int port) => Initialize(new NetControllerSettings(address, port));
+        public NetController(IPAddress address, int port) : this(new NetControllerSettings(address, port)) { }
 
         /// <summary>
         /// Initialize a NetController using the provided settings.
         /// </summary>
-        public NetController(NetControllerSettings settings) => Initialize(settings);
+        public NetController(NetControllerSettings settings)
+        {
+            Stats = new NetStatsService();
+            HandshakeAcceptCallback = DefaultHandshakeAcceptCallback;
+            Initialize(settings);
+        }
 
         private void Initialize(NetControllerSettings settings)
         {
-            Stats = new NetStatsService();
             Settings = settings;
 
             Udp?.Close();
@@ -382,6 +384,11 @@ namespace Swordfish.Library.Networking
             Udp.BeginReceive(new AsyncCallback(OnReceive), null);
         }
 
+        private bool DefaultHandshakeAcceptCallback(EndPoint endPoint, string secret)
+        {
+            return Secret == secret;
+        }
+
         private void OnKeepAlive(object sender, ElapsedEventArgs e)
         {
             Broadcast<PingPacket>();
@@ -516,11 +523,28 @@ namespace Swordfish.Library.Networking
                 if (session != Session) Send(packet, session);
         }
 
+        public void Connect(string hostname, int port, string secret = null)
+        {
+            Connect(new IPEndPoint(NetUtils.GetHostAddress(hostname), port), secret);
+        }
+
+        public void Connect(IPEndPoint endPoint, string secret = null)
+        {
+            if (IsConnected)
+                Debugger.Log("Tried to connect but there is already an active connection.", LogType.WARNING);
+            else
+            {
+                Secret = secret ?? Guid.NewGuid().ToString();
+                Send(Handshake.BeginPacket.New(secret), endPoint);
+            }
+        }
+
         public void Disconnect()
         {
             if (IsConnected)
             {
                 Debugger.Log($"NetController session [{Session}] disconnected.");
+                Secret = null;
                 Broadcast<DisconnectPacket>();
                 Disconnected?.Invoke(this, NetEventArgs.Empty);
             }
