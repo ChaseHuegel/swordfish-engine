@@ -8,5 +8,6 @@ namespace Swordfish.Integrations
         public const string DiagramProject = "\uf542";
         public const string Terminal = "\uf120";
         public const string CircleQuestion = "\uf059";
+        public const string Minus = "\uf068";
     }
 }

@@ -1,23 +1,21 @@
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
+using Swordfish.Util;
 
-namespace Swordfish.Graphics.SilkNET;
+namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-public sealed class BufferObject<TData> : IDisposable
+internal sealed class BufferObject<TData> : Handle
     where TData : unmanaged
 {
+    private readonly GL GL;
     public readonly int Length;
-
-    private GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-    private GL gl;
-
     private readonly uint Handle;
     private readonly BufferTargetARB BufferType;
 
-    private volatile bool Disposed;
-
-    public unsafe BufferObject(Span<TData> data, BufferTargetARB bufferType)
+    public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
     {
+        GL = gl;
         Length = data.Length;
         BufferType = bufferType;
         Handle = GL!.GenBuffer();
@@ -25,25 +23,19 @@ public sealed class BufferObject<TData> : IDisposable
         Bind();
         fixed (void* dataPtr = data)
         {
-            GL.BufferData(BufferType, (nuint)(data.Length * sizeof(TData)), dataPtr, BufferUsageARB.StaticDraw);
+            nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
+            GL.BufferData(BufferType, bufferSize, dataPtr, usage);
         }
     }
 
-    public void Dispose()
+    protected override void OnDisposed()
     {
-        if (Disposed)
-        {
-            Debugger.Log($"Attempted to dispose {this} but it is already disposed.", LogType.WARNING);
-            return;
-        }
-
-        Disposed = true;
         GL.DeleteBuffer(Handle);
     }
 
     public void Bind()
     {
-        if (Disposed)
+        if (IsDisposed)
         {
             Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;

@@ -1,12 +1,22 @@
-using Swordfish.Graphics.SilkNET;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
 public interface IRenderContext
 {
-    void Initialize();
+    DataBinding<Camera> Camera { get; set; }
 
-    void Render(double delta);
+    DataBinding<int> DrawCalls { get; }
 
-    void Bind(RenderTarget renderTarget);
+    DataBinding<bool> Wireframe { get; set; }
+
+    void RefreshRenderTargets();
+
+    void Bind(Shader shader);
+
+    void Bind(Texture texture);
+
+    void Bind(Mesh mesh);
+
+    void Bind(MeshRenderer meshRenderer);
 }

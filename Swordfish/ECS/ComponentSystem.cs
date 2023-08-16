@@ -31,8 +31,12 @@ public abstract class ComponentSystem
         if (Modified)
         {
             Entities = Filter.Length > 0 ? world.GetEntities(Filter) : world.GetEntities();
-            Modified = false;
-            OnModified();
+            //  ! TODO This is because of some kind of race condition. This needs to be resolved because 0 entities is a valid modified state.
+            if (Entities.Length > 0)
+            {
+                Modified = false;
+                OnModified();
+            }
         }
 
         for (int i = 0; i < Entities.Length; i++)

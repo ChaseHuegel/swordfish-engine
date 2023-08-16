@@ -1,9 +1,13 @@
 using System.Numerics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
 public interface IWindowContext
 {
+    DataBinding<double> UpdateDelta { get; }
+    DataBinding<double> RenderDelta { get; }
+
     Vector2 Resolution { get; }
     Vector2 MonitorResolution { get; }
 
@@ -13,6 +17,7 @@ public interface IWindowContext
     Action<double>? Update { get; set; }
     Action? Focused { get; set; }
     Action? Unfocused { get; set; }
+    Action<Vector2>? Resized { get; set; }
 
     Vector2 GetSize();
 
@@ -21,9 +26,4 @@ public interface IWindowContext
     void Minimize();
     void Maximize();
     void Fullscreen();
-}
-
-public interface IWindowContext<TApi> : IWindowContext
-{
-    TApi API { get; }
 }

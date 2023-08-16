@@ -1,4 +1,4 @@
-Size = 32
+Size = 12
 MinUnicode = "f000"
 MaxUnicode = "ffff"
 IsIcons = true

@@ -72,7 +72,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
         float width = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
         if (Wrap) ImGui.PushTextWrapPos(width - labelWidth);
 
-        if (Text != null && Text.StartsWith('-'))
+        if (Text != null && Text.StartsWith("- "))
             ImGui.BulletText(Text.TrimStart('-', ' '));
         else
             ImGui.TextUnformatted(Text);

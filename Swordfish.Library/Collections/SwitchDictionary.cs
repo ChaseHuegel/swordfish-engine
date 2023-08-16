@@ -65,6 +65,10 @@ namespace Swordfish.Library.Collections
             return false;
         }
 
+        public bool TryGetValue(TKey1 key1, TKey2 key2, out TValue value) => TryGetValue(key1, out value) || TryGetValue(key2, out value);
+
+        public bool TryGetValue(TKey2 key2, TKey1 key1, out TValue value) => TryGetValue(key2, out value) || TryGetValue(key1, out value);
+
         public bool TryGetValue(TKey1 key1, out TValue value) => dictonary.TryGetValue(key1, out value);
 
         public bool TryGetValue(TKey2 key2, out TValue value) => dictonary.TryGetValue(link[key2], out value);

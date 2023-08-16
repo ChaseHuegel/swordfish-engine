@@ -1,12 +1,4 @@
-using System;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using OpenTK.Mathematics;
-using Swordfish.ECS;
-using Swordfish.Engine.Physics;
 using Swordfish.Library.Collections;
-using Swordfish.Library.Diagnostics;
 using Xunit;
 using Xunit.Abstractions;
 

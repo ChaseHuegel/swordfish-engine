@@ -1,24 +1,24 @@
 using System.Drawing;
 using System.Numerics;
 using Silk.NET.Core;
-using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using Swordfish.Graphics.SilkNET;
-using Swordfish.Input;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.UI;
 using Swordfish.Util;
-
 using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
 
-public class SilkWindowContext : IWindowContext<GL>
+public class SilkWindowContext : IWindowContext
 {
-    public GL API => GL!;
+    public DataBinding<double> UpdateDelta { get; } = new();
+    public DataBinding<double> RenderDelta { get; } = new();
 
     public Vector2 Resolution => new(Window.Size.X, Window.Size.Y);
 
@@ -30,20 +30,21 @@ public class SilkWindowContext : IWindowContext<GL>
     public Action<double>? Update { get; set; }
     public Action? Focused { get; set; }
     public Action? Unfocused { get; set; }
+    public Action<Vector2>? Resized { get; set; }
 
     private IWindow Window { get; }
-    private IRenderContext Renderer { get; }
     private IUIContext UIContext { get; }
     private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
 
-    private GL? GL;
+    private readonly GL GL;
+    private readonly SynchronizationContext MainThread;
 
-    public SilkWindowContext(IRenderContext renderer, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, GL gl, IPathService pathService)
+    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IPathService pathService)
     {
         GL = gl;
+        MainThread = mainThread;
         Window = window;
-        Renderer = renderer;
         UIContext = uiContext;
         InputService = inputService;
         ShortcutService = shortcutService;
@@ -91,7 +92,11 @@ public class SilkWindowContext : IWindowContext<GL>
         };
         Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
 
-        Renderer.Initialize();
+        if (GLDebug.TryCreateGLOutput())
+            Debugger.Log("attached OpenGL debug output", LogType.CONTINUED);
+        else
+            Debugger.Log("unable to attach OpenGL debug output, logs will be minimal and generic", LogType.CONTINUED);
+
         UIContext.Initialize();
         Loaded?.Invoke();
     }
@@ -103,27 +108,27 @@ public class SilkWindowContext : IWindowContext<GL>
 
     public void Close()
     {
-        Window.Close();
+        MainThread.WaitFor(Window.Close);
     }
 
     public void SetWindowed()
     {
-        Window.WindowState = WindowState.Normal;
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Normal);
     }
 
     public void Minimize()
     {
-        Window.WindowState = WindowState.Minimized;
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Minimized);
     }
 
     public void Maximize()
     {
-        Window.WindowState = WindowState.Maximized;
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Maximized);
     }
 
     public void Fullscreen()
     {
-        Window.WindowState = WindowState.Fullscreen;
+        MainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
     }
 
     private void OnClose()
@@ -134,11 +139,14 @@ public class SilkWindowContext : IWindowContext<GL>
 
     private void OnUpdate(double delta)
     {
+        UpdateDelta.Set(delta);
         Update?.Invoke(delta);
     }
 
     private void OnRender(double delta)
     {
+        RenderDelta.Set(delta);
+
         GL.ClearColor(Color.CornflowerBlue);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
@@ -149,8 +157,6 @@ public class SilkWindowContext : IWindowContext<GL>
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
-        Renderer.Render(delta);
-
         Render?.Invoke(delta);
 
         GLDebug.TryCollectAllGLErrors("OnRender");
@@ -159,6 +165,7 @@ public class SilkWindowContext : IWindowContext<GL>
     private void OnResize(Vector2D<int> size)
     {
         GL.Viewport(size);
+        Resized?.Invoke(new Vector2(size.X, size.Y));
     }
 
     private void OnFocusChanged(bool obj)

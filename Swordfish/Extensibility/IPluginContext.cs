@@ -7,7 +7,7 @@ public interface IPluginContext
 {
     IEnumerable<Type> GetRegisteredTypes();
 
-    void InvokeStart(IEnumerable<IPlugin> plugins);
+    void Activate(IEnumerable<IPlugin> plugins);
 
     void Register(params Assembly[] assemblies);
 

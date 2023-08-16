@@ -23,23 +23,16 @@ public class PluginContext : IPluginContext
         return PluginTypes.Keys;
     }
 
-    public void InvokeStart(IEnumerable<IPlugin> plugins)
+    public void Activate(IEnumerable<IPlugin> plugins)
     {
-        //  TODO plugins should be given their own threads
-        //  TODO re-enable this once the GL renderer is made thread-safe
-        // Parallel.ForEach(plugins, ForEachPlugin);
-        // ThreadPool.QueueUserWorkItem(WorkCallback);
-        // void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
-
-        foreach (var plugin in plugins)
-        {
-            ForEachPlugin(plugin, null, 0);
-        }
+        ThreadPool.QueueUserWorkItem(WorkCallback);
+        void WorkCallback(object? state) => Parallel.ForEach(plugins, ForEachPlugin);
 
         void ForEachPlugin(IPlugin plugin, ParallelLoopState loopState, long index)
         {
             if (Debugger.TryInvoke(plugin.Start, $"{LOAD_ERROR} {GetSimpleTypeString(plugin)} '{plugin.Name}'"))
             {
+                ActivePlugins.TryAdd(plugin.GetType(), plugin);
                 Debugger.Log($"{LOAD_SUCCESS} {GetSimpleTypeString(plugin)} '{plugin.Name}'");
                 Debugger.Log(string.IsNullOrWhiteSpace(plugin.Description) ? MISSING_DESCRIPTION : plugin.Description, LogType.CONTINUED);
             }

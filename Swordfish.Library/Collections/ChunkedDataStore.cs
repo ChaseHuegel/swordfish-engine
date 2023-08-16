@@ -162,7 +162,9 @@ namespace Swordfish.Library.Collections
             int ptrIndex = 0;
             for (int i = LowestPtr; i < HighestPtr; i++)
             {
-                if (Data[i * ChunkOffset] != null)
+                //  TODO this can throw index out of range without ptrIndex < length.
+                //  ! This is a bandaid hiding a race issue that results in not all entities being rendered when hit
+                if (Data[i * ChunkOffset] != null && ptrIndex < ptrs.Length)
                     ptrs[ptrIndex++] = i;
             }
 

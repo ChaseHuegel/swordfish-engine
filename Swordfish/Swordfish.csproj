@@ -23,7 +23,6 @@
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
     <PreserveCompilationContext>false</PreserveCompilationContext>
     <PreserveCompilationReferences>false</PreserveCompilationReferences>
-    <ProduceReferenceAssemblyInOutDir>true</ProduceReferenceAssemblyInOutDir>
     <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
@@ -45,6 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="PInvoke.Kernel32" Version="0.7.124" />
     <PackageReference Include="Samboy063.Tomlet" Version="3.2.2" />
     <PackageReference Include="Silk.NET" Version="2.16.0" />
     <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.16.0" />

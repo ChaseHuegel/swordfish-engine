@@ -2,7 +2,7 @@ namespace Swordfish.Library.IO
 {
     public enum MouseButton
     {
-        NONE,
+        UNKNOWN,
         LEFT,
         RIGHT,
         MIDDLE

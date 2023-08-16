@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
 using Swordfish.ECS;
+using Swordfish.Editor.UI;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
@@ -30,21 +32,26 @@ public class Editor : Plugin
     public override string Name => "Swordfish Editor";
     public override string Description => "Visual editor for the Swordfish engine.";
 
-    private IWindowContext WindowContext;
-    private static IECSContext ECSContext;
-    private static IFileService FileService;
-    private static IPathService PathService;
+    private readonly IWindowContext WindowContext;
+    private readonly IECSContext ECSContext;
+    private readonly IFileService FileService;
+    private readonly IPathService PathService;
+    private readonly IRenderContext RenderContext;
+    private readonly IInputService InputService;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService)
+
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService)
     {
         WindowContext = windowContext;
         FileService = fileService;
         ECSContext = ecsContext;
         PathService = pathService;
+        RenderContext = renderContext;
+        InputService = inputService;
 
         ECSContext.BindSystem<HierarchySystem>();
 
@@ -63,6 +70,8 @@ public class Editor : Plugin
     {
         WindowContext.Maximize();
 
+        WindowContext.Update += OnUpdate;
+
         Shortcut exitShortcut = new(
             "Exit",
             "General",
@@ -71,6 +80,8 @@ public class Editor : Plugin
             Shortcut.DefaultEnabled,
             WindowContext.Close
         );
+
+        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext);
 
         MenuElement menu = new()
         {
@@ -92,7 +103,7 @@ public class Editor : Plugin
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
                                         outputPath = outputPath.At("NewPlugin.cs");
-                                        Stream fileToCopy = FileService.Read(new Path("manifest://Templates/NewPlugin.cstemplate"));
+                                        Stream fileToCopy = FileService.Open(new Path("manifest://Templates/NewPlugin.cstemplate"));
                                         FileService.Write(outputPath, fileToCopy);
                                         FileWrite?.Invoke();
                                     }
@@ -141,7 +152,32 @@ public class Editor : Plugin
                     }
                 },
                 new MenuItemElement("Edit"),
-                new MenuItemElement("View"),
+                new MenuItemElement("View") {
+                    Content = {
+                        new MenuItemElement("Stats", new Shortcut(
+                                "Stats",
+                                "Editor",
+                                ShortcutModifiers.NONE,
+                                Key.F5,
+                                Shortcut.DefaultEnabled,
+                                () => {
+                                    statsWindow.Visible = !statsWindow.Visible;
+                                }
+                            )
+                        ),
+                        new MenuItemElement("Toggle wireframe", new Shortcut(
+                                "Wireframe",
+                                "Editor",
+                                ShortcutModifiers.NONE,
+                                Key.F6,
+                                Shortcut.DefaultEnabled,
+                                () => {
+                                    RenderContext.Wireframe.Set(!RenderContext.Wireframe);
+                                }
+                            )
+                        )
+                    }
+                },
                 new MenuItemElement("Tools"),
                 new MenuItemElement("Run"),
                 new MenuItemElement("Help"),
@@ -268,87 +304,16 @@ public class Editor : Plugin
 
             if (args.NewValue is DataTreeNode<Entity> entityNode)
             {
-                var components = entityNode.Data.Get().GetComponents();
+                var entity = entityNode.Data.Get();
+                BuildInpsectorView(inspector, entity);
+
+                var components = entity.GetComponents();
                 foreach (var component in components)
                 {
                     if (component == null)
                         continue;
 
-                    var componentType = component.GetType();
-                    var group = new PaneElement(componentType.Name.ToTitle())
-                    {
-                        Constraints = {
-                            Width = new FillConstraint()
-                        }
-                    };
-
-                    var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
-                    var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
-
-                    var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
-                    var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
-
-                    var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
-                    var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
-
-                    var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
-                    var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
-
-                    if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
-                    {
-                        var publicGroup = new ColorBlockElement(Color.White);
-                        group.Content.Add(publicGroup);
-
-                        foreach (var property in publicInstanceProperties)
-                            publicGroup.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in publicInstanceFields)
-                            publicGroup.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
-                    {
-                        var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
-                        group.Content.Add(staticBlock);
-
-                        staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in publicStaticProperties)
-                            staticBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in publicStaticFields)  //  Ignore backing fields
-                            staticBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
-                    {
-                        var privateBlock = new ColorBlockElement(Color.SlateGray);
-                        group.Content.Add(privateBlock);
-
-                        privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in privateInstanceProperties)
-                            privateBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in privateInstanceFields)
-                            privateBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
-                    {
-                        var privateStaticBlock = new ColorBlockElement(Color.SteelBlue);
-                        group.Content.Add(privateStaticBlock);
-
-                        privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
-
-                        foreach (var property in privateStaticProperties)
-                            privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
-
-                        foreach (var field in privateStaticFields)
-                            privateStaticBlock.Content.Add(FieldViewFactory(component, field));
-                    }
-
-                    inspector.Content.Add(group);
+                    BuildInpsectorView(inspector, component);
                 }
             }
             else if (args.NewValue is DataTreeNode<Path> pathNode)
@@ -425,6 +390,133 @@ public class Editor : Plugin
         };
     }
 
+    private static void BuildInpsectorView(ContentElement contentElement, object component, int depth = 0)
+    {
+        //  TODO setting this too far can result in throws due to reflection hitting something it shouldn't
+        //  TODO setting this too deep (really beyond 2) is noisey and mostly useless since there is no filtering of what is displayed yet
+        const int maxDepth = 1;
+        if (depth > maxDepth)
+            return;
+        else
+            depth++;
+
+        var componentType = component.GetType();
+        var group = new PaneElement(componentType.Name.ToTitle())
+        {
+            Constraints = {
+                Width = new FillConstraint()
+            }
+        };
+
+        var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+        var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+
+        var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+        var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+
+        var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
+        var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
+
+        var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
+        var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
+
+        if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
+        {
+            var publicGroup = new ColorBlockElement(Color.White);
+            group.Content.Add(publicGroup);
+
+            foreach (var property in publicInstanceProperties)
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(publicGroup, property.GetValue(component)!, depth);
+                else
+                    publicGroup.Content.Add(PropertyViewFactory(component, property));
+            }
+
+            foreach (var field in publicInstanceFields)
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(publicGroup, field.GetValue(component)!, depth);
+                else
+                    publicGroup.Content.Add(FieldViewFactory(component, field));
+            }
+        }
+
+        if (publicStaticProperties.Length > 0 || publicStaticFields.Length > 0)
+        {
+            var staticBlock = new ColorBlockElement(Color.CornflowerBlue);
+            group.Content.Add(staticBlock);
+
+            staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in publicStaticProperties)
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(staticBlock, property.GetValue(component)!, depth);
+                else
+                    staticBlock.Content.Add(PropertyViewFactory(component, property));
+            }
+
+            foreach (var field in publicStaticFields)  //  Ignore backing fields
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(staticBlock, field.GetValue(component)!, depth);
+                else
+                    staticBlock.Content.Add(FieldViewFactory(component, field));
+            }
+        }
+
+        if (privateInstanceProperties.Length > 0 || privateInstanceFields.Length > 0)
+        {
+            var privateBlock = new ColorBlockElement(Color.SlateGray);
+            group.Content.Add(privateBlock);
+
+            privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in privateInstanceProperties)
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateBlock, property.GetValue(component)!, depth);
+                else
+                    privateBlock.Content.Add(PropertyViewFactory(component, property));
+            }
+
+            foreach (var field in privateInstanceFields)
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateBlock, field.GetValue(component)!, depth);
+                else
+                    privateBlock.Content.Add(FieldViewFactory(component, field));
+            }
+        }
+
+        if (privateStaticProperties.Length > 0 || privateStaticFields.Length > 0)
+        {
+            var privateStaticBlock = new ColorBlockElement(Color.SteelBlue);
+            group.Content.Add(privateStaticBlock);
+
+            privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
+
+            foreach (var property in privateStaticProperties)
+            {
+                if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateStaticBlock, property.GetValue(component)!, depth);
+                else
+                    privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+            }
+
+            foreach (var field in privateStaticFields)
+            {
+                if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                    BuildInpsectorView(privateStaticBlock, field.GetValue(component)!, depth);
+                else
+                    privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+            }
+        }
+
+        contentElement.Content.Add(group);
+    }
+
     private static PaneElement FieldViewFactory(object component, FieldInfo field)
     {
         return MemberViewFactory(
@@ -492,5 +584,47 @@ public class Editor : Plugin
             if (Hierarchy != null)
                 Populate = false;
         }
+    }
+
+    private Vector2 lastMousePos;
+    private void OnUpdate(double delta)
+    {
+        const float mouseSensitivity = 0.05f;
+        const float cameraSpeed = 10;
+        Camera camera = RenderContext.Camera.Get();
+
+        if (InputService.IsMouseHeld(MouseButton.RIGHT))
+        {
+            InputService.CursorState = CursorState.LOCKED;
+            Vector2 cursorDelta = InputService.CursorDelta;
+            camera.Transform.Rotate(new Vector3(cursorDelta.Y, cursorDelta.X, 0) * mouseSensitivity);
+        }
+        else
+        {
+            InputService.CursorState = CursorState.NORMAL;
+        }
+
+        lastMousePos = InputService.CursorPosition;
+
+        var forward = camera.Transform.GetForward();
+        var right = camera.Transform.GetRight();
+
+        if (InputService.IsKeyHeld(Key.W))
+            camera.Transform.Position += forward * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.S))
+            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.D))
+            camera.Transform.Position += right * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.A))
+            camera.Transform.Position -= right * cameraSpeed * (float)delta;
+
+        if (InputService.IsKeyHeld(Key.E))
+            camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+
+        if (InputService.IsKeyHeld(Key.Q))
+            camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
     }
 }
