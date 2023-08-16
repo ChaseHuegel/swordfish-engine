@@ -3,130 +3,129 @@ using Swordfish.Library.BehaviorTrees;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace Swordfish.Tests
-{
-    public class BehaviorTreeTests : TestBase
-    {
-        private readonly BehaviorTree<TestTarget> Tree;
+namespace Swordfish.Tests;
 
-        public BehaviorTreeTests(ITestOutputHelper output) : base(output)
-        {
-            Tree = new BehaviorTree<TestTarget>(
-                new BehaviorSelector(
-                    new BehaviorSequence(
-                        new TargetIsNull(),
+public class BehaviorTreeTests : TestBase
+{
+    private readonly BehaviorTree<TestTarget> Tree;
+
+    public BehaviorTreeTests(ITestOutputHelper output) : base(output)
+    {
+        Tree = new BehaviorTree<TestTarget>(
+            new BehaviorSelector(
+                new BehaviorSequence(
+                    new TargetIsNull(),
+                    new DummyAction()
+                ),
+                new IfTargetIsTest(
+                    new DummyAction()
+                ),
+                new IfTargetIsTest(
+                    new DummyAction()
+                ),
+                new IfTargetIsTest(
+                    new DummyAction()
+                ),
+                new IfTargetIsTest(
+                    new DummyAction()
+                ),
+                new IfTargetIsTest(
+                    new DummyAction()
+                ),
+                new IfTargetIsDelay(
+                    new BehaviorDelay(1f,
                         new DummyAction()
-                    ),
-                    new IfTargetIsTest(
-                        new DummyAction()
-                    ),
-                    new IfTargetIsTest(
-                        new DummyAction()
-                    ),
-                    new IfTargetIsTest(
-                        new DummyAction()
-                    ),
-                    new IfTargetIsTest(
-                        new DummyAction()
-                    ),
-                    new IfTargetIsTest(
-                        new DummyAction()
-                    ),
-                    new IfTargetIsDelay(
-                        new BehaviorDelay(1f,
-                            new DummyAction()
-                        )
                     )
                 )
-            );
+            )
+        );
+    }
+
+    [Fact]
+    public void BenchmarkEntryTick()
+    {
+        TestTarget target = null;
+
+        Stopwatch sw = Stopwatch.StartNew();
+        //  1k behaviors being ticked 60x/sec assuming 60fps
+        for (int i = 0; i < 60 * 1000; i++)
+            Tree.Tick(target, 0f);
+        Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
+    }
+
+    [Fact]
+    public void BenchmarkBranchedTick()
+    {
+        var target = new TestTarget(TestTarget.State.DELAY);
+
+        Stopwatch sw = Stopwatch.StartNew();
+        //  1k behaviors being ticked 60x/sec assuming 60fps
+        for (int i = 0; i < 60 * 1000; i++)
+            Tree.Tick(target, 0f);
+        Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
+    }
+
+    [Fact]
+    public void BehaviorGateSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(new TestTarget(TestTarget.State.TEST), 0f));
+
+    [Fact]
+    public void BehaviorSequencedConditionSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(null, 0f));
+
+    [Fact]
+    public void BehaviorTreeTickFailed() => Assert.Equal(BehaviorState.FAILED, Tree.Tick(new TestTarget(), 0f));
+
+    private class TestTarget
+    {
+        public enum State
+        {
+            NONE,
+            TEST,
+            DELAY
         }
 
-        [Fact]
-        public void BenchmarkEntryTick()
-        {
-            TestTarget target = null;
+        public State CurrentState;
 
-            Stopwatch sw = Stopwatch.StartNew();
-            //  1k behaviors being ticked 60x/sec assuming 60fps
-            for (int i = 0; i < 60 * 1000; i++)
-                Tree.Tick(target, 0f);
-            Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
+        public TestTarget() { }
+
+        public TestTarget(State state)
+        {
+            CurrentState = state;
         }
+    }
 
-        [Fact]
-        public void BenchmarkBranchedTick()
+    private class TargetIsNull : BehaviorCondition<TestTarget>
+    {
+        public override bool Check(TestTarget target, float delta)
         {
-            var target = new TestTarget(TestTarget.State.DELAY);
-
-            Stopwatch sw = Stopwatch.StartNew();
-            //  1k behaviors being ticked 60x/sec assuming 60fps
-            for (int i = 0; i < 60 * 1000; i++)
-                Tree.Tick(target, 0f);
-            Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
+            return target == null;
         }
+    }
 
-        [Fact]
-        public void BehaviorGateSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(new TestTarget(TestTarget.State.TEST), 0f));
+    private class IfTargetIsTest : BehaviorGate<TestTarget>
+    {
+        public IfTargetIsTest(BehaviorNode child) : base(child) { }
 
-        [Fact]
-        public void BehaviorSequencedConditionSuccess() => Assert.Equal(BehaviorState.SUCCESS, Tree.Tick(null, 0f));
-
-        [Fact]
-        public void BehaviorTreeTickFailed() => Assert.Equal(BehaviorState.FAILED, Tree.Tick(new TestTarget(), 0f));
-
-        private class TestTarget
+        public override bool Check(TestTarget target, float delta)
         {
-            public enum State
-            {
-                NONE,
-                TEST,
-                DELAY
-            }
-
-            public State CurrentState;
-
-            public TestTarget() { }
-
-            public TestTarget(State state)
-            {
-                CurrentState = state;
-            }
+            return target.CurrentState == TestTarget.State.TEST;
         }
+    }
 
-        private class TargetIsNull : BehaviorCondition<TestTarget>
+    private class IfTargetIsDelay : BehaviorGate<TestTarget>
+    {
+        public IfTargetIsDelay(BehaviorNode child) : base(child) { }
+
+        public override bool Check(TestTarget target, float delta)
         {
-            public override bool Check(TestTarget target, float delta)
-            {
-                return target == null;
-            }
+            return target.CurrentState == TestTarget.State.DELAY;
         }
+    }
 
-        private class IfTargetIsTest : BehaviorGate<TestTarget>
+    private class DummyAction : BehaviorNode<TestTarget>
+    {
+        public override BehaviorState Evaluate(TestTarget target, float delta)
         {
-            public IfTargetIsTest(BehaviorNode child) : base(child) { }
-
-            public override bool Check(TestTarget target, float delta)
-            {
-                return target.CurrentState == TestTarget.State.TEST;
-            }
-        }
-
-        private class IfTargetIsDelay : BehaviorGate<TestTarget>
-        {
-            public IfTargetIsDelay(BehaviorNode child) : base(child) { }
-
-            public override bool Check(TestTarget target, float delta)
-            {
-                return target.CurrentState == TestTarget.State.DELAY;
-            }
-        }
-
-        private class DummyAction : BehaviorNode<TestTarget>
-        {
-            public override BehaviorState Evaluate(TestTarget target, float delta)
-            {
-                return BehaviorState.SUCCESS;
-            }
+            return BehaviorState.SUCCESS;
         }
     }
 }
