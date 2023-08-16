@@ -12,6 +12,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Threading;
 using Swordfish.UI;
 
 namespace Swordfish;
@@ -27,13 +28,15 @@ public static class SwordfishEngine
         private set => kernel = value;
     }
 
-    public static SynchronizationManager SyncManager;
-    private static IWindow MainWindow;
+    public static ThreadContext MainThreadContext { get; }
+    private static IWindow MainWindow { get; }
 
     static SwordfishEngine()
     {
         Version = typeof(SwordfishEngine).Assembly.GetName().Version!;
-        SyncManager = new SynchronizationManager();
+
+        MainThreadContext = ThreadContext.PinCurrentThread();
+        SynchronizationContext.SetSynchronizationContext(MainThreadContext);
 
         var options = WindowOptions.Default;
         options.Size = new Vector2D<int>(800, 600);
@@ -74,7 +77,7 @@ public static class SwordfishEngine
 
         resolver.RegisterInstance<GL>(gl);
         resolver.RegisterInstance<IWindow>(MainWindow);
-        resolver.RegisterInstance<SynchronizationContext>(SyncManager);
+        resolver.RegisterInstance<SynchronizationContext>(MainThreadContext);
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.Register<IRenderContext, GLRenderContext>(Reuse.Singleton);
@@ -120,6 +123,6 @@ public static class SwordfishEngine
 
     private static void OnWindowUpdate(double obj)
     {
-        SyncManager.Process();
+        MainThreadContext.ProcessMessageQueue();
     }
 }

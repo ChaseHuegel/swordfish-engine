@@ -1,13 +1,12 @@
 using Swordfish.ECS;
-using Swordfish.Library.Extensions;
-using Swordfish.Util;
 
 namespace Swordfish.Graphics;
 
 [ComponentSystem(typeof(MeshRendererComponent), typeof(TransformComponent))]
 public class MeshRendererSystem : ComponentSystem
 {
-    private static IRenderContext RenderContext => renderContext ??= SwordfishEngine.SyncManager.WaitForResult(SwordfishEngine.Kernel.Get<IRenderContext>);
+    //  TODO ECS needs to be refactored to using DI
+    private static IRenderContext RenderContext => renderContext ??= SwordfishEngine.Kernel.Get<IRenderContext>();
     private static IRenderContext? renderContext;
 
     protected override void OnUpdated()

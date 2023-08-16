@@ -1,18 +1,12 @@
-using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.IO;
-using System.Linq;
 using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
