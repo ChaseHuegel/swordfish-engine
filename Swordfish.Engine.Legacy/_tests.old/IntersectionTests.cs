@@ -1,3 +1,5 @@
+using OpenTK.Mathematics;
+using Swordfish.Engine.Physics;
 using Xunit;
 using Xunit.Abstractions;
 
