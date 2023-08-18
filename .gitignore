@@ -6,6 +6,7 @@
 **/nuget/
 **/plugins/
 **/mods/
+**/.packages/
 
 *.log
 NuGet.config

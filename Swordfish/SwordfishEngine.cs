@@ -17,10 +17,30 @@ using Swordfish.UI;
 
 namespace Swordfish;
 
-public static class SwordfishEngine
+public class SwordfishEngine
 {
-    public static Version Version { get; private set; }
+    public enum EngineState
+    {
+        Stopped,
+        Starting,
+        Started,
+        Initializing,
+        Initialized,
+        Loading,
+        Loaded,
+        Waking,
+        Awake,
+        Running,
+        Closing,
+        Closed,
+        Stopping
+    }
 
+    //  ? Should there be an injected metadata service to contain additional details?
+    public static Version Version => version ??= typeof(SwordfishEngine).Assembly.GetName().Version!;
+    private static Version version;
+
+    //  TODO making this non-static requires refactoring ECS to use DI
     private static Kernel? kernel;
     public static Kernel Kernel
     {
@@ -28,12 +48,37 @@ public static class SwordfishEngine
         private set => kernel = value;
     }
 
-    public static ThreadContext MainThreadContext { get; }
-    private static IWindow MainWindow { get; }
+    public ThreadContext MainThreadContext { get; set; }
+    public EngineState State { get; private set; }
+    private IWindow MainWindow { get; set; }
+    private int ExitCode { get; set; }
 
-    static SwordfishEngine()
+    public void Stop(int exitCode = 0)
     {
-        Version = typeof(SwordfishEngine).Assembly.GetName().Version!;
+        TransitionState(EngineState.Initialized, EngineState.Stopping);
+        ExitCode = exitCode;
+        MainWindow.Close();
+    }
+
+    public int Run(params string[] args)
+    {
+        TransitionState(EngineState.Stopped, EngineState.Starting);
+
+#if WINDOWS
+        if (args.Contains("-debug") && !Kernel32.AttachConsole(-1))
+            Kernel32.AllocConsole();
+#endif
+
+        TransitionState(EngineState.Starting, EngineState.Started);
+        Initialize();
+        MainWindow.Run();
+        TransitionState(EngineState.Closed, EngineState.Stopped);
+        return ExitCode;
+    }
+
+    private void Initialize()
+    {
+        TransitionState(EngineState.Started, EngineState.Initializing);
 
         MainThreadContext = ThreadContext.PinCurrentThread();
         SynchronizationContext.SetSynchronizationContext(MainThreadContext);
@@ -48,20 +93,14 @@ public static class SwordfishEngine
         MainWindow.Load += OnWindowLoaded;
         MainWindow.Closing += OnWindowClosing;
         MainWindow.Update += OnWindowUpdate;
+
+        TransitionState(EngineState.Initializing, EngineState.Initialized);
     }
 
-    static void Main(string[] args)
+    private void OnWindowLoaded()
     {
-#if WINDOWS
-        if (args.Contains("-debug") && !Kernel32.AttachConsole(-1))
-            Kernel32.AllocConsole();
-#endif
+        TransitionState(EngineState.Initialized, EngineState.Loading);
 
-        MainWindow.Run();
-    }
-
-    private static void OnWindowLoaded()
-    {
         var enginePathService = new PathService();
         var pluginContext = new PluginContext();
         var inputContext = MainWindow.CreateInput();
@@ -100,11 +139,16 @@ public static class SwordfishEngine
         resolver.ValidateAndThrow();
         Kernel = new Kernel(resolver);
 
-        Start();
+        TransitionState(EngineState.Loading, EngineState.Loaded);
+        Awake();
     }
 
-    private static void Start()
+    private void Awake()
     {
+        TransitionState(EngineState.Loaded, EngineState.Waking);
+
+        Kernel.Get<IRenderContext>();
+
         IEnumerable<IPlugin> plugins = Kernel.GetAll<IPlugin>();
 
         //  Touch each plugin to trigger the ctor
@@ -113,16 +157,36 @@ public static class SwordfishEngine
 
         Kernel.Get<IECSContext>().Start();
         Kernel.Get<IPluginContext>().Activate(plugins);
+
+        TransitionState(EngineState.Waking, EngineState.Awake);
     }
 
-    private static void OnWindowClosing()
+    private void OnWindowClosing()
     {
+        TransitionState(EngineState.Initialized, EngineState.Closing);
+
         Kernel.Get<IPluginContext>().UnloadAll();
         Kernel.Get<IECSContext>().Stop();
+
+        TransitionState(EngineState.Closing, EngineState.Closed);
     }
 
-    private static void OnWindowUpdate(double obj)
+    private void OnWindowUpdate(double obj)
     {
+        if (State != EngineState.Running)
+            TransitionState(EngineState.Awake, EngineState.Running);
+
         MainThreadContext.ProcessMessageQueue();
+    }
+
+    private void TransitionState(EngineState expectedState, EngineState newState)
+    {
+        //  If we are trying to transition to incompatible states that is a fatal issue,
+        //  something will certainly go horribly wrong if it hasn't already. Burn it down!
+        if (State < expectedState)
+            throw new FatalAlertException($"Unable to transition to state {newState}, current state is: {State} but expected {expectedState}.");
+
+        Debugger.Log($"Engine state transitioning from {State} to {newState}.");
+        State = newState;
     }
 }

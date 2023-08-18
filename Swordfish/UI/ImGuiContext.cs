@@ -128,7 +128,7 @@ public class ImGuiContext : IUIContext
                 fonts.Add(font);
         }
 
-        if (!fonts[0].IsDefault)
+        if (fonts.Count == 0 || !fonts[0].IsDefault)
             ImGui.GetIO().Fonts.AddFontDefault();
 
         foreach (Font font in fonts)

@@ -1,3 +1,4 @@
+using System.IO;
 using System.Drawing;
 using Silk.NET.Core;
 using SixLabors.ImageSharp.PixelFormats;
@@ -7,6 +8,7 @@ using Image = SixLabors.ImageSharp.Image;
 
 namespace Swordfish.Util;
 
+//  TODO create IFileParsers from this
 public static class Imaging
 {
     /// <inheritdoc cref="Load"/>
@@ -20,6 +22,22 @@ public static class Imaging
         byte[] buffer = stream.ToArray();
 
         return Load(buffer);
+    }
+
+    /// <inheritdoc cref="Load"/>
+    /// <remarks>This is useful when trying to load an unsupported image type, such as ICO.</remarks>
+    public static RawImage LoadAsPng(Stream stream)
+    {
+        using (stream)
+        {
+            using var conversionStream = new MemoryStream();
+            using var bitmap = new Bitmap(stream);
+
+            bitmap.Save(conversionStream, System.Drawing.Imaging.ImageFormat.Png);
+            byte[] buffer = conversionStream.ToArray();
+
+            return Load(buffer);
+        }
     }
 
     /// <summary>

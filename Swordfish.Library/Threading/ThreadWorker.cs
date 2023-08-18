@@ -22,6 +22,11 @@ namespace Swordfish.Library.Threading
         public float DeltaTime { get; private set; }
         private float elapsedTime;
 
+        public static ThreadWorker Start(Action handler, string name = "")
+        {
+            return new ThreadWorker(handler, name);
+        }
+
         public ThreadWorker(Action handler, string name = "")
         {
             handleOnce = handler;
