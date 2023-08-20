@@ -8,6 +8,7 @@ using Silk.NET.Windowing;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Threading;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.UI.Elements;
@@ -25,6 +26,8 @@ public class ImGuiContext : IUIContext
     public DataBinding<IConstraint> ScaleConstraint { get; set; } = new DataBinding<IConstraint>(new AbsoluteConstraint(1f));
     public DataBinding<float> FontScale { get; } = new DataBinding<float>(1f);
     public DataBinding<float> FontDisplaySize { get; } = new DataBinding<float>();
+
+    public ThreadContext ThreadContext { get; private set; }
 
     private DataBinding<float> Scale { get; } = new DataBinding<float>(1f);
     private ImGuiController Controller { get; set; }
@@ -57,6 +60,8 @@ public class ImGuiContext : IUIContext
 
     public void Initialize()
     {
+        ThreadContext = ThreadContext.PinCurrentThread();
+
         Window.Closing += Cleanup;
         Window.Render += Render;
 
@@ -90,6 +95,8 @@ public class ImGuiContext : IUIContext
 
         MenuBar?.Render();
         Controller?.Render();
+
+        ThreadContext.ProcessMessageQueue();
     }
 
     private List<Font> LoadFontsFromDisk()

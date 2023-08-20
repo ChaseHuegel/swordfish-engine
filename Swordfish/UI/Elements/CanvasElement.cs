@@ -7,7 +7,6 @@ namespace Swordfish.UI.Elements;
 public class CanvasElement : AbstractPaneElement
 {
     private static IWindowContext WindowContext => SwordfishEngine.Kernel.Get<IWindowContext>();
-    private static IUIContext UIContext => SwordfishEngine.Kernel.Get<IUIContext>();
 
     public bool Open { get; set; } = true;
 

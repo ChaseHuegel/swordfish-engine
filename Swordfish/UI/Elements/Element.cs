@@ -4,6 +4,8 @@ namespace Swordfish.UI.Elements;
 
 public abstract class Element : IElement
 {
+    protected static IUIContext UIContext => SwordfishEngine.Kernel.Get<IUIContext>();
+
     private static ulong NewUid() => Interlocked.Increment(ref CurrentUid);
     private static ulong CurrentUid;
 
