@@ -32,13 +32,13 @@ namespace Swordfish.Library.IO
             return builder.ToString();
         }
 
-        public async Task<bool> TryRunAsync(string line)
+        public async Task<CommandResult> TryRunAsync(string line)
         {
             if (string.IsNullOrWhiteSpace(line))
-                return false;
+                return new CommandResult(CommandState.Failure, line, null);
 
             if (Indicator != default && !line.StartsWith(Indicator))
-                return false;
+                return new CommandResult(CommandState.Failure, line, null);
 
             var lineStart = Indicator != default ? 1 : 0;
             var parts = line[lineStart..]
@@ -49,11 +49,11 @@ namespace Swordfish.Library.IO
 
             foreach (Command command in Commands)
             {
-                if (await command.TryInvokeAsync(args))
-                    return true;
+                if (await command.TryInvokeAsync(args) == CommandState.Success)
+                    return new CommandResult(CommandState.Success, line, command);
             }
 
-            return false;
+            return new CommandResult(CommandState.Failure, line, null);
         }
     }
 }

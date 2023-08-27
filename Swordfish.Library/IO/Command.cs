@@ -29,21 +29,21 @@ namespace Swordfish.Library.IO
             return Task.FromResult(CommandState.Failure);
         }
 
-        public async Task<bool> TryInvokeAsync(ReadOnlyQueue<string> args)
+        public async Task<CommandState> TryInvokeAsync(ReadOnlyQueue<string> args)
         {
             if (!args.TryTake(Option))
-                return false;
+                return CommandState.Failure;
 
             if (await InvokeAsync(args) == CommandState.Success)
-                return true;
+                return CommandState.Success;
 
             foreach (var cmd in Subcommands)
             {
-                if (await cmd.TryInvokeAsync(args))
-                    return true;
+                if (await cmd.TryInvokeAsync(args) == CommandState.Success)
+                    return CommandState.Success;
             }
 
-            return false;
+            return CommandState.Failure;
         }
 
         public string GetHelpText()
