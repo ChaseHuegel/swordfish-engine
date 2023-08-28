@@ -93,7 +93,10 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
         if (Text != null && Text.StartsWith("- "))
             ImGui.BulletText(Text.TrimStart('-', ' '));
         else if (ImGui.InputText(UniqueName, ref text, (uint)Length, ImGuiInputTextFlags.EnterReturnsTrue))
+        {
+            Unfocus();
             UIContext.ThreadContext.Post(InputCallback!, this);
+        }
 
         if (Wrap) ImGui.PopTextWrapPos();
 

@@ -9,6 +9,9 @@ public abstract class Element : IElement
     private static ulong NewUid() => Interlocked.Increment(ref CurrentUid);
     private static ulong CurrentUid;
 
+    private volatile bool Focusing;
+    private volatile bool Unfocusing;
+
     public ulong Uid { get; }
 
     public bool Enabled { get; set; } = true;
@@ -35,8 +38,33 @@ public abstract class Element : IElement
             ImGui.SameLine();
 
         ImGui.BeginDisabled(!Enabled);
+
+        if (Unfocusing)
+        {
+            ImGui.SetKeyboardFocusHere(-1);
+            Unfocusing = false;
+        }
+
+        if (Focusing)
+        {
+            ImGui.SetWindowFocus();
+            ImGui.SetKeyboardFocusHere();
+            Focusing = false;
+        }
+
         OnRender();
+
         ImGui.EndDisabled();
+    }
+
+    public void Focus()
+    {
+        Focusing = true;
+    }
+
+    public void Unfocus()
+    {
+        Unfocusing = true;
     }
 
 }
