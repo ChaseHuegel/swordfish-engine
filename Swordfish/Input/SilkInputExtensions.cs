@@ -130,6 +130,7 @@ public static class SilkInputExtensions
         Key.ControlRight => Library.IO.Key.RIGHT_CONTROL,
         Key.AltLeft => Library.IO.Key.LEFT_ALT,
         Key.AltRight => Library.IO.Key.RIGHT_ALT,
+        Key.Slash => Library.IO.Key.SLASH,
         _ => Library.IO.Key.NONE
     };
 }

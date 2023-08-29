@@ -116,6 +116,7 @@ namespace Swordfish.Library.IO
         RIGHT_CONTROL = 163,
         LEFT_ALT = 164,
         RIGHT_ALT = 165,
+        SLASH
     }
 
     public static class KeyExtensions
