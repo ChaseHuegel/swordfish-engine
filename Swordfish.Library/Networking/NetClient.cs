@@ -2,7 +2,6 @@ using System;
 using System.Timers;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
 {
@@ -22,7 +21,7 @@ namespace Swordfish.Library.Networking
             Debugger.Log($"Client started on {this.Session.EndPoint}");
 
             this.PacketSent += OnPacketSent;
-            this.PacketReceived += OnPacketReceived;
+            this.PacketReceived += OnPacketReceivedInternal;
             this.PacketAccepted += OnPacketAccepted;
             this.PacketRejected += OnPacketRejected;
             this.PacketUnknown += OnPacketUnknown;
@@ -37,26 +36,31 @@ namespace Swordfish.Library.Networking
             TimeoutTimer.Start();
         }
 
-        public virtual void OnPacketSent(object sender, NetEventArgs e)
-        {
-        }
-
-        public virtual void OnPacketReceived(object sender, NetEventArgs e)
+        private void OnPacketReceivedInternal(object sender, NetEventArgs e)
         {
             TimeoutTimer.Stop();
             TimeoutTimer.Start();
+            OnPacketReceived(sender, e);
         }
 
-        public virtual void OnPacketAccepted(object sender, NetEventArgs e)
+        protected virtual void OnPacketSent(object sender, NetEventArgs e)
         {
         }
 
-        public virtual void OnPacketRejected(object sender, NetEventArgs e)
+        protected virtual void OnPacketReceived(object sender, NetEventArgs e)
+        {
+        }
+
+        protected virtual void OnPacketAccepted(object sender, NetEventArgs e)
+        {
+        }
+
+        protected virtual void OnPacketRejected(object sender, NetEventArgs e)
         {
             Debugger.Log($"client->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
         }
 
-        public virtual void OnPacketUnknown(object sender, NetEventArgs e)
+        protected virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
             Debugger.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }

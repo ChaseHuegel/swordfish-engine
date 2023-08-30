@@ -4,11 +4,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using Needlefish;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Packets;
 using Swordfish.Library.Threading;
+using Timer = System.Timers.Timer;
 
 namespace Swordfish.Library.Networking
 {
@@ -27,7 +30,12 @@ namespace Swordfish.Library.Networking
             public byte[] OriginalBuffer;
         }
 
+
+        private const int ERR_WSAETIMEDOUT = 10060;
+
         private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
+
+        private ManualResetEvent ConnectSignal { get; } = new ManualResetEvent(false);
 
         private string Secret { get; set; }
 
@@ -144,7 +152,7 @@ namespace Swordfish.Library.Networking
         public NetController(int port) : this(new NetControllerSettings(port)) { }
 
         /// <summary>
-        /// Initialize a NetController bound to an address and port. 
+        /// Initialize a NetController bound to an address and port.
         /// This should always be used by a server.
         /// </summary>
         /// <param name="address">the <see cref="IPAddress"/> to bind to</param>
@@ -523,12 +531,12 @@ namespace Swordfish.Library.Networking
                 if (session != Session) Send(packet, session);
         }
 
-        public void Connect(string hostname, int port, string secret = null)
+        public void BeginConnect(string hostname, int port, string secret = null)
         {
-            Connect(new IPEndPoint(NetUtils.GetHostAddress(hostname), port), secret);
+            BeginConnect(new IPEndPoint(NetUtils.GetHostAddress(hostname), port), secret);
         }
 
-        public void Connect(IPEndPoint endPoint, string secret = null)
+        public void BeginConnect(IPEndPoint endPoint, string secret = null)
         {
             if (IsConnected)
                 Debugger.Log("Tried to connect but there is already an active connection.", LogType.WARNING);
@@ -536,6 +544,85 @@ namespace Swordfish.Library.Networking
             {
                 Secret = secret ?? Guid.NewGuid().ToString();
                 Send(Handshake.BeginPacket.New(secret), endPoint);
+            }
+        }
+
+        public void Connect(string hostname, int port, string secret = null)
+        {
+            Connect(new IPEndPoint(NetUtils.GetHostAddress(hostname), port), secret);
+        }
+
+        public void Connect(IPEndPoint endPoint, string secret = null)
+        {
+            bool timedOut = false;
+            ConnectSignal.Reset();
+            Connected += OnConnected;
+            Disconnected += OnDisconnected;
+
+            BeginConnect(endPoint, secret);
+
+            if (!IsConnected)
+                ConnectSignal.WaitOne();
+
+            Connected -= OnConnected;
+            Disconnected -= OnDisconnected;
+
+            if (timedOut)
+                throw new SocketException(ERR_WSAETIMEDOUT);
+
+            void OnConnected(object sender, NetEventArgs e)
+            {
+                if (e.EndPoint.Equals(endPoint))
+                    ConnectSignal.Set();
+            }
+
+            void OnDisconnected(object sender, NetEventArgs e)
+            {
+                if (e.EndPoint.Equals(endPoint))
+                {
+                    timedOut = true;
+                    ConnectSignal.Set();
+                }
+            }
+        }
+
+        public Task ConnectAsync(string hostname, int port, string secret = null)
+        {
+            return ConnectAsync(new IPEndPoint(NetUtils.GetHostAddress(hostname), port), secret);
+        }
+
+        public Task ConnectAsync(IPEndPoint endPoint, string secret = null)
+        {
+            var connectCompletionSource = new TaskCompletionSource<bool>();
+
+            Connected += CompleteOnConnected;
+            Disconnected += ThrowOnDisconnected;
+            connectCompletionSource.Task.ContinueWith(CleanupListenersOnContinue);
+
+            try {
+                BeginConnect(endPoint, secret);
+            } catch (Exception ex) {
+                connectCompletionSource.TrySetException(ex);
+            }
+
+            return connectCompletionSource.Task;
+
+            void CompleteOnConnected(object sender, NetEventArgs e)
+            {
+                if (e.EndPoint.Equals(endPoint))
+                    connectCompletionSource.TrySetResult(true);
+            }
+
+            void ThrowOnDisconnected(object sender, NetEventArgs e)
+            {
+                if (e.EndPoint.Equals(endPoint))
+                    connectCompletionSource.TrySetException(new SocketException(ERR_WSAETIMEDOUT));
+            }
+
+            void CleanupListenersOnContinue(Task<bool> task)
+            {
+                Connected -= CompleteOnConnected;
+                Disconnected -= ThrowOnDisconnected;
             }
         }
 

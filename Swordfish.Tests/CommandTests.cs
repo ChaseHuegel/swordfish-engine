@@ -22,12 +22,12 @@ public class CommandTests : TestBase
     }
 
     [Theory]
-    [InlineData("/home set myhome", true)]
-    [InlineData("home set myhome", false)]
-    [InlineData("this isn't a command", false)]
-    public async Task TestCommand(string command, bool expectedResult)
+    [InlineData("/home set myhome", CommandState.Success)]
+    [InlineData("home set myhome", CommandState.Failure)]
+    [InlineData("this isn't a command", CommandState.Failure)]
+    public async Task TestCommand(string command, CommandState expectedResult)
     {
-        var res = await CommandParser.TryRunAsync(command);
+        var res = (await CommandParser.TryRunAsync(command)).State;
         Assert.Equal(expectedResult, res);
     }
 

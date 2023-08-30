@@ -78,7 +78,7 @@ namespace Swordfish.Library.Networking
 
             net.Session.ID = packet.AcceptedSessionID;
             Debugger.Log($"Joined [{serverSession}] with session [{net.Session}]");
-            net.Connected?.Invoke(net, NetEventArgs.Empty);
+            net.Connected?.Invoke(net, e);
         }
     }
 }

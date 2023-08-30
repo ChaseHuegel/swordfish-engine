@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Swordfish.Library.BehaviorTrees
@@ -28,5 +29,21 @@ namespace Swordfish.Library.BehaviorTrees
         public override BehaviorState Evaluate(object target, float delta) => Evaluate((TTarget)target, delta);
 
         public abstract BehaviorState Evaluate(TTarget target, float delta);
+    }
+
+    public class BehaviorDynamic<TTarget> : BehaviorNode<TTarget>, IBehaviorAction
+        where TTarget : class
+    {
+        private readonly Func<TTarget, float, BehaviorState> Func;
+
+        public BehaviorDynamic(Func<TTarget, float, BehaviorState> func)
+        {
+            Func = func;
+        }
+
+        public override BehaviorState Evaluate(TTarget target, float delta)
+        {
+            return Func(target, delta);
+        }
     }
 }
