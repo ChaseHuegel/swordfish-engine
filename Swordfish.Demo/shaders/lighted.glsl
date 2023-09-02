@@ -4,7 +4,7 @@ inout vec3 normal;
 
 uniform sampler2D texture0;
 
-uniform vec3 globalLightDirection = vec3(30, 45, 0);
+uniform vec3 globalLightDirection = vec3(45, 0, 0);
 uniform vec4 globalLightColor = vec4(1, 1, 1, 1);
 
 uniform float ambientLightning = 0.1;
