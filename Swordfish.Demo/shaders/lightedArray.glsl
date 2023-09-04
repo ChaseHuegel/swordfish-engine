@@ -4,7 +4,7 @@ inout vec3 normal;
 
 uniform sampler2DArray texture0;
 
-uniform vec3 globalLightPosition = vec3(0, 1, 1);
+uniform vec3 globalLightPosition = vec3(0, 1, 0.25);
 uniform vec3 globalLightColor = vec3(1, 1, 1);
 
 uniform float ambientLightning = 0.5;
