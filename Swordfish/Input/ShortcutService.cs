@@ -34,13 +34,13 @@ public class ShortcutService : IShortcutService
     {
         ShortcutModifiers modifiers = ShortcutModifiers.NONE;
 
-        if (InputService.IsKeyHeld(Key.LEFT_CONTROL))
+        if (InputService.IsKeyHeld(Key.CONTROL))
             modifiers |= ShortcutModifiers.CONTROL;
 
-        if (InputService.IsKeyHeld(Key.LEFT_SHIFT))
+        if (InputService.IsKeyHeld(Key.SHIFT))
             modifiers |= ShortcutModifiers.SHIFT;
 
-        if (InputService.IsKeyHeld(Key.LEFT_ALT))
+        if (InputService.IsKeyHeld(Key.ALT))
             modifiers |= ShortcutModifiers.ALT;
 
         foreach (Shortcut shortcut in Shortcuts)

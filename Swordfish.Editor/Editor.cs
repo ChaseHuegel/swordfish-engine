@@ -590,7 +590,12 @@ public class Editor : Plugin
     private void OnUpdate(double delta)
     {
         const float mouseSensitivity = 0.05f;
-        const float cameraSpeed = 10;
+        const float cameraBaseSpeed = 10;
+
+        float cameraSpeed = cameraBaseSpeed;
+        if (InputService.IsKeyHeld(Key.SHIFT))
+            cameraSpeed *= 2f;
+
         Camera camera = RenderContext.Camera.Get();
 
         if (InputService.IsMouseHeld(MouseButton.RIGHT))

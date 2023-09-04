@@ -238,7 +238,7 @@ public class SilkInputService : IInputService
 
             case CursorState.LOCKED:
                 MainMouse.Cursor.IsConfined = false;
-                MainMouse.Cursor.CursorMode = CursorMode.Raw;
+                MainMouse.Cursor.CursorMode = CursorMode.Disabled;
                 break;
 
             case CursorState.CAPTURED:

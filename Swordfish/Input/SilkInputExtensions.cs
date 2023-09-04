@@ -124,12 +124,12 @@ public static class SilkInputExtensions
         Key.F24 => Library.IO.Key.F24,
         Key.NumLock => Library.IO.Key.NUMLOCK,
         Key.ScrollLock => Library.IO.Key.SCROLL_LOCK,
-        Key.ShiftLeft => Library.IO.Key.LEFT_SHIFT,
-        Key.ShiftRight => Library.IO.Key.RIGHT_SHIFT,
-        Key.ControlLeft => Library.IO.Key.LEFT_CONTROL,
-        Key.ControlRight => Library.IO.Key.RIGHT_CONTROL,
-        Key.AltLeft => Library.IO.Key.LEFT_ALT,
-        Key.AltRight => Library.IO.Key.RIGHT_ALT,
+        Key.ShiftLeft => Library.IO.Key.SHIFT,
+        Key.ShiftRight => Library.IO.Key.SHIFT,
+        Key.ControlLeft => Library.IO.Key.CONTROL,
+        Key.ControlRight => Library.IO.Key.CONTROL,
+        Key.AltLeft => Library.IO.Key.ALT,
+        Key.AltRight => Library.IO.Key.ALT,
         Key.Slash => Library.IO.Key.SLASH,
         _ => Library.IO.Key.NONE
     };

@@ -36,7 +36,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Manifest\**\*.*"/>
+    <EmbeddedResource Include="Manifest\**\*.*" />
+  </ItemGroup>
+  <ItemGroup>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="LibNoise" Version="0.2.0" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Numerics;
+using LibNoise.Primitive;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
 using Swordfish.ECS;
@@ -78,7 +79,11 @@ public class Demo : Mod
         // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        CreateVoxelTest();
+        // CreateVoxelTest();
+        CreateTerrainTest();
+
+        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, 0);
+        RenderContext.Camera.Get().Transform.Rotation = new Vector3(30, 0, 0);
 
         Benchmark.Log();
     }
@@ -366,6 +371,122 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
+            .Build();
+    }
+
+    private void CreateTerrainTest()
+    {
+        var empty = new Brick(0);
+        var solid = new Brick(1) {
+            Name = "rock"
+        };
+
+        var simplex = new SimplexPerlin();
+
+        BrickGrid grid = new(16);
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateTerrainTest), "_CreateBrickGrid"))
+        {
+            const int size = 64;
+            for (int x = 0; x < size; x++)
+            for (int z = 0; z < size; z++)
+            {
+                const float scale = 0.05f;
+                var value = simplex.GetValue(x * scale, z * scale) + 1f;
+                int depth = (int)(value * 5) + 20;
+                for (int y = 0; y < depth; y++)
+                    grid.Set(x, y, z, solid);
+            }
+        }
+
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
+        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\"));
+        var material = new Material(shader, textureArray);
+
+        var renderOptions = new RenderOptions {
+            DoubleFaced = false,
+            Wireframe = false
+        };
+
+        var metalPanelTex = textureArray.IndexOf("metal_panel");
+
+        var triangles = new List<uint>();
+        var vertices = new List<Vector3>();
+        var colors = new List<Vector4>();
+        var uv = new List<Vector3>();
+        var normals = new List<Vector3>();
+
+        var cube = new Cube();
+        var slope = new Slope();
+        var thruster = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket.obj"));
+        var thrusterBlock = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket_internal.obj"));
+        using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
+        {
+            BuildBrickGridMesh(grid, -grid.CenterOfMass);
+        }
+
+        void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
+        {
+            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            {
+                if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
+                    BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+            }
+
+            for (int x = 0; x < gridToBuild.DimensionSize; x++)
+            for (int y = 0; y < gridToBuild.DimensionSize; y++)
+            for (int z = 0; z < gridToBuild.DimensionSize; z++)
+            {
+                var brick = gridToBuild.Bricks[x, y, z];
+                if (!brick.Equals(empty) &&
+                    (gridToBuild.Get(x + 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x - 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x, y + 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y - 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y, z + 1).Equals(empty)
+                    || gridToBuild.Get(x, y, z - 1).Equals(empty))
+                )
+                {
+                    Mesh brickMesh = MeshFromBrickID(brick.ID);
+                    colors.AddRange(brickMesh.Colors);
+
+                    Mesh MeshFromBrickID(int id)
+                    {
+                        return id switch
+                        {
+                            2 => slope,
+                            3 => thruster,
+                            4 => thrusterBlock,
+                            _ => cube,
+                        };
+                    }
+
+                    foreach (Vector3 texCoord in brickMesh.UV)
+                    {
+                        int textureIndex = textureArray.IndexOf(brick.Name);
+                        uv.Add(new Vector3(texCoord.X, texCoord.Y, textureIndex >= 0 ? textureIndex : metalPanelTex));
+                    }
+
+                    foreach (uint tri in brickMesh.Triangles)
+                        triangles.Add(tri + (uint)vertices.Count);
+
+                    foreach (Vector3 normal in brickMesh.Normals)
+                        normals.Add(brickMesh != cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+
+                    foreach (Vector3 vertex in brickMesh.Vertices)
+                        vertices.Add((brickMesh != cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                }
+            }
+        }
+
+        var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
+        var renderer = new MeshRenderer(mesh, material, renderOptions);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Terrain", "bricks"), IdentifierComponent.DefaultIndex)
             .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();

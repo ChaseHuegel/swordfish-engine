@@ -110,12 +110,6 @@ namespace Swordfish.Library.IO
         F24 = 135,
         NUMLOCK = 144,
         SCROLL_LOCK = 145,
-        LEFT_SHIFT = 160,
-        RIGHT_SHIFT = 161,
-        LEFT_CONTROL = 162,
-        RIGHT_CONTROL = 163,
-        LEFT_ALT = 164,
-        RIGHT_ALT = 165,
         SLASH
     }
 
