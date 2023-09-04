@@ -4,11 +4,11 @@ inout vec3 normal;
 
 uniform sampler2DArray texture0;
 
-uniform vec3 globalLightDirection = vec3(30, 45, 0);
-uniform vec4 globalLightColor = vec4(1, 1, 1, 1);
+uniform vec3 globalLightPosition = vec3(0, 1, 1);
+uniform vec3 globalLightColor = vec3(1, 1, 1);
 
-uniform float ambientLightning = 0.1;
-uniform vec4 ambientLightColor = vec4(1, 1, 1, 1);
+uniform float ambientLightning = 0.5;
+uniform vec3 ambientLightColor = vec3(1, 1, 1);
 
 vec4 vertex()
 {
@@ -24,11 +24,14 @@ vec4 fragment()
     if (texSample.a == 0)
         discard;
 
-    float directionalValue = max(dot(normal, normalize(globalLightDirection)), 0.0);
-    vec4 diffuse = directionalValue * globalLightColor;
+    vec3 surfaceToLight = normalize(globalLightPosition);
+    float directionalValue = max(0.0, dot(normal, surfaceToLight));
+    vec3 diffuse = directionalValue * globalLightColor;
 
-    vec4 ambientLight = ambientLightning * ambientLightColor;
-    ambientLight.a = 1;
+    vec3 ambientLight = ambientLightning * ambientLightColor;
 
-    return texSample * (ambientLight + diffuse) * VertexColor;
+    vec3 lightValue = min(ambientLight + diffuse, vec3(1));
+    vec4 lighting = vec4(lightValue, 1.0);
+
+    return texSample * lighting * VertexColor;
 }
