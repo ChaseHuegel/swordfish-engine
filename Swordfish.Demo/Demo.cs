@@ -388,13 +388,13 @@ public class Demo : Mod
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateTerrainTest), "_CreateBrickGrid"))
         {
-            const int size = 64;
+            const int size = 200;
             for (int x = 0; x < size; x++)
             for (int z = 0; z < size; z++)
             {
                 const float scale = 0.05f;
                 var value = simplex.GetValue(x * scale, z * scale) + 1f;
-                int depth = (int)(value * 5) + 20;
+                int depth = (int)(value * 3) + 1;
                 for (int y = 0; y < depth; y++)
                     grid.Set(x, y, z, solid);
             }
