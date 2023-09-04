@@ -586,15 +586,18 @@ public class Editor : Plugin
         }
     }
 
-    private Vector2 lastMousePos;
+    private float _cameraSpeedModifier = 1f;
     private void OnUpdate(double delta)
     {
         const float mouseSensitivity = 0.05f;
         const float cameraBaseSpeed = 10;
 
-        float cameraSpeed = cameraBaseSpeed;
         if (InputService.IsKeyHeld(Key.SHIFT))
-            cameraSpeed *= 2f;
+            _cameraSpeedModifier += (float)delta;
+        else
+            _cameraSpeedModifier = 1f;
+
+        float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
 
         Camera camera = RenderContext.Camera.Get();
 
@@ -608,8 +611,6 @@ public class Editor : Plugin
         {
             InputService.CursorState = CursorState.NORMAL;
         }
-
-        lastMousePos = InputService.CursorPosition;
 
         var forward = camera.Transform.GetForward();
         var right = camera.Transform.GetRight();
