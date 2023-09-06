@@ -33,18 +33,21 @@ public class BrickGrid
 
     public Brick Get(int x, int y, int z)
     {
-        if (TryGetNeighbor(x, y, z, out BrickGrid neighbor))
+        if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
         {
-            if (x >= DimensionSize)
-                x += x < 0 ? DimensionSize : -DimensionSize;
+            if (TryGetNeighbor(x, y, z, out BrickGrid neighbor))
+            {
+                if (x >= DimensionSize)
+                    x += x < 0 ? DimensionSize : -DimensionSize;
 
-            if (y >= DimensionSize)
-                y += y < 0 ? DimensionSize : -DimensionSize;
+                if (y >= DimensionSize)
+                    y += y < 0 ? DimensionSize : -DimensionSize;
 
-            if (z >= DimensionSize)
-                z += z < 0 ? DimensionSize : -DimensionSize;
+                if (z >= DimensionSize)
+                    z += z < 0 ? DimensionSize : -DimensionSize;
 
-            return neighbor.Get(x, y, z);
+                return neighbor.Get(x, y, z);
+            }
         }
 
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
@@ -60,25 +63,28 @@ public class BrickGrid
     {
         int previousCount = Count;
 
-        if (TryGetOrAddNeighbor(x, y, z, out BrickGrid neighbor))
+        if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
         {
-            Vector3 newPoint = new Vector3(x, y, z);
-            if (x >= DimensionSize)
-                x += x < 0 ? DimensionSize : -DimensionSize;
+            if (TryGetOrAddNeighbor(x, y, z, out BrickGrid neighbor))
+            {
+                Vector3 newPoint = new Vector3(x, y, z);
+                if (x >= DimensionSize)
+                    x += x < 0 ? DimensionSize : -DimensionSize;
 
-            if (y >= DimensionSize)
-                y += y < 0 ? DimensionSize : -DimensionSize;
+                if (y >= DimensionSize)
+                    y += y < 0 ? DimensionSize : -DimensionSize;
 
-            if (z >= DimensionSize)
-                z += z < 0 ? DimensionSize : -DimensionSize;
+                if (z >= DimensionSize)
+                    z += z < 0 ? DimensionSize : -DimensionSize;
 
-            int neighborOldCount = neighbor.Count;
-            bool success = neighbor.Set(x, y, z, brick);
+                int neighborOldCount = neighbor.Count;
+                bool success = neighbor.Set(x, y, z, brick);
 
-            NeighorBrickCount += neighbor.Count - neighborOldCount;
+                NeighorBrickCount += neighbor.Count - neighborOldCount;
 
-            UpdateCenterOfMass(previousCount, newPoint);
-            return success;
+                UpdateCenterOfMass(previousCount, newPoint);
+                return success;
+            }
         }
 
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
@@ -107,10 +113,10 @@ public class BrickGrid
         CenterOfMass = ((CenterOfMass * previousCount) + newPoint) / Count;
     }
 
-    private void Build()
+    public bool Build()
     {
         if (Building || !Dirty)
-            return;
+            return false;
 
         Dirty = false;
         Building = true;
@@ -147,6 +153,7 @@ public class BrickGrid
         }
 
         Building = false;
+        return true;
     }
 
     private bool TryGetOrAddNeighbor(int x, int y, int z, out BrickGrid neighbor)
@@ -166,7 +173,16 @@ public class BrickGrid
             neighbor = NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z];
 
             if (neighbor == null)
-                NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor = new BrickGrid(DimensionSize);
+            {
+                Vector3 targetThis = new(
+                    Math.Abs(targetNeighbor.X - 2),
+                    Math.Abs(targetNeighbor.Y - 2),
+                    Math.Abs(targetNeighbor.Z - 2)
+                );
+                neighbor = new BrickGrid(DimensionSize);
+                neighbor.NeighborGrids[(int)targetThis.X, (int)targetThis.Y, (int)targetThis.Z] = this;
+                NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor;
+            }
 
             return true;
         }

@@ -632,5 +632,11 @@ public class Editor : Plugin
 
         if (InputService.IsKeyHeld(Key.Q))
             camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
+
+        if (InputService.IsKeyPressed(Key.UP_ARROW))
+            camera.Transform.Position += new Vector3(0, 1, 0);
+
+        if (InputService.IsKeyPressed(Key.DOWN_ARROW))
+            camera.Transform.Position -= new Vector3(0, 1, 0);
     }
 }
