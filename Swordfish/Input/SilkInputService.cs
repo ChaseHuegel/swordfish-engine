@@ -13,7 +13,7 @@ namespace Swordfish.Input;
 
 public class SilkInputService : IInputService
 {
-    private const int InputBufferMs = 10;
+    private const int InputBufferMs = 1;
 
     public InputDevice[] Devices { get; private set; } = Array.Empty<InputDevice>();
 
@@ -165,13 +165,13 @@ public class SilkInputService : IInputService
     public bool IsKeyPressed(Key key)
     {
         InputRecord inputRecord = KeyInputMap[key];
-        return inputRecord.Count > 0 && inputRecord.LastInput.ElapsedMilliseconds <= InputBufferMs;
+        return inputRecord.LastInput.ElapsedMilliseconds < InputBufferMs;
     }
 
     public bool IsKeyReleased(Key key)
     {
         InputRecord inputRecord = KeyInputMap[key];
-        return inputRecord.Count == 0 && inputRecord.LastRelease.ElapsedMilliseconds <= InputBufferMs;
+        return inputRecord.LastRelease.ElapsedMilliseconds < InputBufferMs;
     }
 
     public bool IsMouseHeld(MouseButton mouseButton)
@@ -182,13 +182,13 @@ public class SilkInputService : IInputService
     public bool IsMousePressed(MouseButton mouseButton)
     {
         InputRecord inputRecord = MouseInputMap[mouseButton];
-        return inputRecord.Count > 0 && inputRecord.LastInput.ElapsedMilliseconds <= InputBufferMs;
+        return inputRecord.LastInput.ElapsedMilliseconds <= InputBufferMs;
     }
 
     public bool IsMouseReleased(MouseButton mouseButton)
     {
         InputRecord inputRecord = MouseInputMap[mouseButton];
-        return inputRecord.Count == 0 && inputRecord.LastRelease.ElapsedMilliseconds <= InputBufferMs;
+        return inputRecord.LastRelease.ElapsedMilliseconds <= InputBufferMs;
     }
 
     public void SetAxisDeadzone(InputAxis axis, float deadzone)
