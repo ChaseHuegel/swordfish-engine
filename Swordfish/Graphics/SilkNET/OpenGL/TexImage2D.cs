@@ -5,7 +5,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
+internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
 {
     public string Name { get; private set; }
 
@@ -18,7 +18,7 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
         Name = name;
         MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
-        Bind();
+        Activate();
 
         //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
         GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
@@ -30,21 +30,31 @@ internal sealed class TexImage2D : ManagedHandle<uint>, IGLTexture<TexImage2D>
         return GL.GenTexture();
     }
 
-    protected override void OnDisposed()
+    protected override void FreeHandle()
     {
         GL.DeleteTexture(Handle);
     }
 
-    public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
+    protected override void BindHandle()
+    {
+        GL.BindTexture(TextureTarget.Texture2D, Handle);
+    }
+
+    protected override void UnbindHandle()
+    {
+        GL.BindTexture(TextureTarget.Texture2D, 0);
+    }
+
+    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
+            Debugger.Log($"Attempted to use {this} but it is disposed.", LogType.ERROR);
             return;
         }
 
         GL.ActiveTexture(textureSlot);
-        GL.BindTexture(TextureTarget.Texture2D, Handle);
+        Bind();
     }
 
     private void SetDefaultParameters()

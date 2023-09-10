@@ -148,16 +148,6 @@ public class SilkWindowContext : IWindowContext
     {
         RenderDelta.Set(delta);
 
-        GL.ClearColor(Color.CornflowerBlue);
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-        GL.Enable(EnableCap.DepthTest);
-        GL.Enable(EnableCap.CullFace);
-        GL.CullFace(CullFaceMode.Back);
-        GL.Enable(EnableCap.Blend);
-        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-
         Render?.Invoke(delta);
 
         GLDebug.TryCollectAllGLErrors("OnRender");

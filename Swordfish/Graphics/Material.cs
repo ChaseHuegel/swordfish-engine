@@ -1,3 +1,5 @@
+using Swordfish.Library.Types;
+
 namespace Swordfish.Graphics;
 
 public class Material : Handle

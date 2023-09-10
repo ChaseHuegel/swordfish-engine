@@ -1,8 +1,7 @@
-using System.Reflection;
-using System.Reflection.Metadata;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -34,11 +33,11 @@ internal sealed class GLMaterial : Handle
             return;
         }
 
-        ShaderProgram.Use();
+        ShaderProgram.Activate();
 
         for (int i = 0; i < Textures.Length; i++)
         {
-            Textures[i].Bind(TextureUnit.Texture0 + i);
+            Textures[i].Activate(TextureUnit.Texture0 + i);
             ShaderProgram.SetUniform("texture" + i, i);
         }
     }

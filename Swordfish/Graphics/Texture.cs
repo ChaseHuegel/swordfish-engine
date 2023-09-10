@@ -1,4 +1,5 @@
 using Swordfish.Library.Annotations;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 

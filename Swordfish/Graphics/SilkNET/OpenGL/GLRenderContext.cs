@@ -8,7 +8,6 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using Shader = Swordfish.Graphics.Shader;
 
 namespace Swordfish.Graphics;
 
@@ -65,6 +64,8 @@ internal class GLRenderContext : IRenderContext
     private void OnWindowRender(double delta)
     {
         int drawCalls = 0;
+        if (RenderTargets.IsEmpty)
+            return;
 
         Camera cameraCached = Camera.Get();
         //  Inverse the camera position when calculating view to move it into the same coordinate system as models.
@@ -76,8 +77,15 @@ internal class GLRenderContext : IRenderContext
         Matrix4x4.Invert(ViewTransform.ToMatrix4x4() * ReflectionMatrix, out Matrix4x4 view);
         var projection = Camera.Get().GetProjection();
 
-        if (RenderTargets.IsEmpty)
-            return;
+        GL.ClearColor(Color.CornflowerBlue);
+        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+        GL.Enable(EnableCap.DepthTest);
+        GL.Enable(EnableCap.CullFace);
+        GL.CullFace(CullFaceMode.Back);
+        GL.Enable(EnableCap.Blend);
+        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
         drawCalls += RenderInstancedTargets(view, projection);
 

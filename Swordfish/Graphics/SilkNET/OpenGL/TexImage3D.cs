@@ -4,7 +4,7 @@ using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class TexImage3D : ManagedHandle<uint>, IGLTexture<TexImage3D>
+internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
 {
     public string Name { get; private set; }
 
@@ -17,7 +17,7 @@ internal sealed class TexImage3D : ManagedHandle<uint>, IGLTexture<TexImage3D>
         Name = name;
         MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
-        Bind();
+        Activate();
 
         //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
         GL.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.Rgba, width, height, depth, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
@@ -29,12 +29,22 @@ internal sealed class TexImage3D : ManagedHandle<uint>, IGLTexture<TexImage3D>
         return GL.GenTexture();
     }
 
-    protected override void OnDisposed()
+    protected override void FreeHandle()
     {
         GL.DeleteTexture(Handle);
     }
 
-    public void Bind(TextureUnit textureSlot = TextureUnit.Texture0)
+    protected override void BindHandle()
+    {
+        GL.BindTexture(TextureTarget.Texture2DArray, Handle);
+    }
+
+    protected override void UnbindHandle()
+    {
+        GL.BindTexture(TextureTarget.Texture2DArray, 0);
+    }
+
+    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
     {
         if (IsDisposed)
         {
@@ -43,7 +53,7 @@ internal sealed class TexImage3D : ManagedHandle<uint>, IGLTexture<TexImage3D>
         }
 
         GL.ActiveTexture(textureSlot);
-        GL.BindTexture(TextureTarget.Texture2DArray, Handle);
+        Bind();
     }
 
     private void SetDefaultParameters()

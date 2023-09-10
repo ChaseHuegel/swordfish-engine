@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -16,13 +17,7 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
         GL = gl;
         Name = name;
         Type = type;
-
-        GL.ShaderSource(Handle, source);
-        GL.CompileShader(Handle);
-
-        string shaderError = GL.GetShaderInfoLog(Handle);
-        if (!string.IsNullOrWhiteSpace(shaderError))
-            Debugger.Log($"Failed to compile {type} '{Name}'.\n{shaderError}", LogType.ERROR);
+        Compile(source);
     }
 
     protected override uint CreateHandle()
@@ -30,9 +25,19 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
         return GL.CreateShader(Type);
     }
 
-    protected override void OnDisposed()
+    protected override void FreeHandle()
     {
         GL.DeleteShader(Handle);
+    }
+
+    public void Compile(string source)
+    {
+        GL.ShaderSource(Handle, source);
+        GL.CompileShader(Handle);
+
+        string shaderError = GL.GetShaderInfoLog(Handle);
+        if (!string.IsNullOrWhiteSpace(shaderError))
+            Debugger.Log($"Failed to compile {Type} '{Name}'.\n{shaderError}", LogType.ERROR);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 

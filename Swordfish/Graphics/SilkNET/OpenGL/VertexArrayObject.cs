@@ -10,7 +10,7 @@ internal sealed class VertexArrayObject32 : VertexArrayObject<float, uint>
         : base(gl, vertexBufferObject, elementBufferObject) { }
 }
 
-internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint>, IEquatable<VertexArrayObject<TVertexType, TElementType>>
+internal class VertexArrayObject<TVertexType, TElementType> : GLHandle, IEquatable<VertexArrayObject<TVertexType, TElementType>>
     where TVertexType : unmanaged
     where TElementType : unmanaged
 {
@@ -35,20 +35,19 @@ internal class VertexArrayObject<TVertexType, TElementType> : ManagedHandle<uint
         return GL.GenVertexArray();
     }
 
-    protected override void OnDisposed()
+    protected override void FreeHandle()
     {
         GL.DeleteVertexArray(Handle);
     }
 
-    public void Bind()
+    protected override void BindHandle()
     {
-        if (IsDisposed)
-        {
-            Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
-            return;
-        }
-
         GL.BindVertexArray(Handle);
+    }
+
+    protected override void UnbindHandle()
+    {
+        GL.BindVertexArray(0);
     }
 
     public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)

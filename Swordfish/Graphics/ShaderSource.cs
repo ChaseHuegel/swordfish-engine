@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
