@@ -79,10 +79,11 @@ public class Demo : Mod
         // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        CreateVoxelTest();
+        // CreateVoxelTest();
         // CreateTerrainTest();
+        CreateDonutDemo();
 
-        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, 0);
+        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
         RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
 
         Benchmark.Log();
@@ -434,6 +435,26 @@ public class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
         return mesh;
+    }
+
+    private void CreateDonutDemo()
+    {
+        var mesh = FileService.Parse<Mesh>(LocalPathService.Models.At("donut.obj"));
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+
+        var material = new Material(shader, texture);
+
+        var renderOptions = new RenderOptions
+        {
+            DoubleFaced = false
+        };
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Donut", null), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0f), Vector3.Zero, new Vector3(10f)), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
+            .Build();
     }
 
     private void CreateTestEntities()
