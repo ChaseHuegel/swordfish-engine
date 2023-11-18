@@ -3,7 +3,7 @@ using System;
 namespace Swordfish.Library.Networking.Attributes
 {
     /// <remarks>
-    /// Only handles packets received by a <see cref="Swordfish.Library.Networking.NetServer"/>.
+    /// Only handles packets received by a <see cref="NetServer"/>.
     /// </remarks>
     /// <inheritdoc/>
     [AttributeUsage(AttributeTargets.Method)]

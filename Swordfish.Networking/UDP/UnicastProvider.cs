@@ -1,26 +1,41 @@
 using System.Net;
 using System.Net.Sockets;
+using Swordfish.Networking.Messaging;
 
 namespace Swordfish.Networking.UDP;
 
-public class UnicastDataProvider : IDataReader<DataEventArgs>, IDataWriter<IPEndPoint>
+public class UnicastProvider : IReceiver<ArraySegment<byte>>, IWriter<ArraySegment<byte>, IPEndPoint>
 {
+    private volatile bool _startedListening;
+    private MessageQueue<ArraySegment<byte>> _packetQueue;
     protected UdpClient _udpClient;
 
-    public event EventHandler<DataEventArgs>? Received;
+    public event EventHandler<ArraySegment<byte>>? Received;
 
-    public UnicastDataProvider(AddressFamily addressFamily = AddressFamily.InterNetwork)
+    private UnicastProvider()
     {
-        _udpClient = new UdpClient(addressFamily);
+        _packetQueue = new MessageQueue<ArraySegment<byte>>();
+        _packetQueue.NewMessage += OnNewMessage;
+        _udpClient = null!;
     }
 
-    public UnicastDataProvider(int port, AddressFamily addressFamily = AddressFamily.InterNetwork)
+    public UnicastProvider(AddressFamily addressFamily = AddressFamily.InterNetwork) : this()
+    {
+        _udpClient = new UdpClient(0, addressFamily);
+    }
+
+    public UnicastProvider(int port, AddressFamily addressFamily = AddressFamily.InterNetwork) : this()
     {
         _udpClient = new UdpClient(port, addressFamily);
     }
 
-    public virtual void Start()
+    public virtual void BeginListening()
     {
+        if (_startedListening)
+            return;
+
+        _startedListening = true;
+        _packetQueue.Start();
         _udpClient.BeginReceive(OnReceived, null);
     }
 
@@ -28,23 +43,17 @@ public class UnicastDataProvider : IDataReader<DataEventArgs>, IDataWriter<IPEnd
     {
         Received = null;
         _udpClient.Dispose();
-        Dispose(true);
         GC.SuppressFinalize(this);
     }
 
-    public virtual void Send(ArraySegment<byte> buffer, IPEndPoint endPoint)
+    public void Send(ArraySegment<byte> buffer, IPEndPoint endPoint)
     {
         _udpClient.Send(buffer.Array, buffer.Count, endPoint);
     }
 
-    public virtual async Task SendAsync(ArraySegment<byte> buffer, IPEndPoint endPoint)
+    public async Task SendAsync(ArraySegment<byte> buffer, IPEndPoint endPoint)
     {
         await _udpClient.SendAsync(buffer.Array, buffer.Count, endPoint);
-    }
-
-    protected virtual void Dispose(bool disposing)
-    {
-        //  For inheritors to override.
     }
 
     private void OnReceived(IAsyncResult result)
@@ -69,13 +78,18 @@ public class UnicastDataProvider : IDataReader<DataEventArgs>, IDataWriter<IPEnd
         _udpClient.BeginReceive(OnReceived, null);
 
         if (buffer != null)
-            SafeInvokeReceived(new ArraySegment<byte>(buffer));
+            _packetQueue.Post(buffer);
+    }
+
+    private void OnNewMessage(object sender, ArraySegment<byte> e)
+    {
+        SafeInvokeReceived(e);
     }
 
     private void SafeInvokeReceived(ArraySegment<byte> data)
     {
         try {
-            Received?.Invoke(this, new DataEventArgs(data));
+            Received?.Invoke(this, data);
         } catch {
             //  Swallow exceptions thrown by listeners.
         }

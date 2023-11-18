@@ -36,7 +36,7 @@ public class ImGuiContext : IUIContext
     private IFileService FileService { get; set; }
     private IPathService PathService { get; set; }
 
-    public ImGuiContext(IWindow window, Silk.NET.Input.IInputContext inputContext, GL gl, IFileService fileService, IPathService pathService)
+    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileService fileService, IPathService pathService)
     {
         GL = gl;
         Window = window;

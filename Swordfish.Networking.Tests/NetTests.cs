@@ -1,5 +1,4 @@
 using System.Net;
-using System.Threading.Tasks;
 using Needlefish;
 using Swordfish.Library.Networking;
 using Swordfish.Networking;
@@ -34,14 +33,15 @@ public class NetTests : TestBase
         var client = new MessageService<PacketHeader, IPEndPoint>(unicastProvider, unicastProvider, needlefishSerializer, packetFilter);
         client.Start();
         client.Received += OnClientReceived;
-        client.Send(new PacketHeader(), IPEndPoint.Parse("127.0.0.1:1234"));
+        client.Send(new PacketHeader { PacketID = 10 }, IPEndPoint.Parse("127.0.0.1:1234"));
 
-        void OnServerReceived(object sender, PacketHeader packet)
+        void OnServerReceived(object? sender, PacketHeader packet)
         {
+            Assert.Equal(10, packet.PacketID);
             tcs.SetResult();
         }
 
-        void OnClientReceived(object sender, PacketHeader packet)
+        void OnClientReceived(object? sender, PacketHeader packet)
         {
             //  Do nothing
         }

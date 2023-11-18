@@ -114,8 +114,8 @@ public class SwordfishEngine
         resolver.RegisterInstance<IPluginContext>(pluginContext);
         resolver.RegisterMany(pluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
-        resolver.RegisterInstance<GL>(gl);
-        resolver.RegisterInstance<IWindow>(MainWindow);
+        resolver.RegisterInstance(gl);
+        resolver.RegisterInstance(MainWindow);
         resolver.RegisterInstance<SynchronizationContext>(MainThreadContext);
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
@@ -124,7 +124,7 @@ public class SwordfishEngine
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 
-        resolver.RegisterInstance<IInputContext>(inputContext);
+        resolver.RegisterInstance(inputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
         resolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 

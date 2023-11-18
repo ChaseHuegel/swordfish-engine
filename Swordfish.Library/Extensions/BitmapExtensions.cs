@@ -20,7 +20,7 @@ namespace Swordfish.Library.Extensions
             SmoothingMode smoothing = SmoothingMode.None,
             PixelOffsetMode offset = PixelOffsetMode.Half)
         {
-            using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(input))
+            using (Graphics g = System.Drawing.Graphics.FromImage(input))
             {
                 g.InterpolationMode = interpolation;
                 g.SmoothingMode = smoothing;
@@ -48,7 +48,7 @@ namespace Swordfish.Library.Extensions
                 new Point(0, input.Height),
             };
 
-            using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(input))
+            using (Graphics g = System.Drawing.Graphics.FromImage(input))
             {
                 g.DrawImage(input, points, rect, GraphicsUnit.Pixel, attributes);
             }

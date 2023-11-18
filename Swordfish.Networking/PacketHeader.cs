@@ -2,7 +2,7 @@ using Needlefish;
 
 namespace Swordfish.Networking;
 
-public class Packet : IDataBody
+public class PacketHeader : IDataBody
 {
     [DataField(0)]
     public int SessionID;

@@ -8,9 +8,9 @@ public struct NetEventArgs
 
     public int PacketID;
 
-    public Packet Packet;
+    public PacketHeader Packet;
 
     public IPEndPoint EndPoint;
 
-    public NetSession Session;
+    // public NetSession Session;
 }

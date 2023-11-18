@@ -1,8 +1,8 @@
 namespace Swordfish.Networking;
 
-public interface IMessageProcessor<TMessage>
+public interface IReceiver<TMessage> : IDisposable
 {
     event EventHandler<TMessage>? Received;
 
-    void Post(TMessage message);
+    void BeginListening();
 }

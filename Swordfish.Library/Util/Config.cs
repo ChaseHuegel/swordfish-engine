@@ -24,7 +24,7 @@ namespace Swordfish.Library.Util
             }
             catch (Exception e) when (e is FileNotFoundException || e is DirectoryNotFoundException)
             {
-                tomlString = TomletMain.DocumentFrom<T>(config).SerializedValue;
+                tomlString = TomletMain.DocumentFrom(config).SerializedValue;
                 Directory.CreateDirectory(Path.GetDirectoryName(path));
                 File.WriteAllText(path, tomlString);
                 Debugger.Log($"...{typeof(T).Name} was not found, created from default at '{Path.GetFileName(path)}'", LogType.WARNING);
