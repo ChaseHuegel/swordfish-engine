@@ -1,8 +1,8 @@
 namespace Swordfish.Networking;
 
-public interface ISerializer<TModel>
+public interface ISerializer<TModel> where TModel : new()
 {
-    ArraySegment<byte> Serialize(TModel target);
+    ArraySegment<byte> Serialize(object target);
 
-    T Deserialize<T>(ArraySegment<byte> data) where T : TModel, new();
+    TModel Deserialize(ArraySegment<byte> data);
 }

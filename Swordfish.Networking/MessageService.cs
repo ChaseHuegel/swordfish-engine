@@ -1,3 +1,4 @@
+using System;
 namespace Swordfish.Networking;
 
 public class MessageService<TMessage, TDestination> : IDisposable where TMessage : new()
@@ -31,21 +32,19 @@ public class MessageService<TMessage, TDestination> : IDisposable where TMessage
         _writer.Dispose();
     }
 
-    public void Send(TMessage message, TDestination destination)
+    public void Send(ArraySegment<byte> data, TDestination destination)
     {
-        ArraySegment<byte> data = _serializer.Serialize(message);
         _writer.Send(data, destination);
     }
 
-    public Task SendAsync(TMessage message, TDestination destination)
+    public Task SendAsync(ArraySegment<byte> data, TDestination destination)
     {
-        ArraySegment<byte> data = _serializer.Serialize(message);
         return _writer.SendAsync(data, destination);
     }
 
     private void OnDataRead(object sender, ArraySegment<byte> data)
     {
-        TMessage message = _serializer.Deserialize<TMessage>(data);
+        TMessage message = _serializer.Deserialize(data);
 
         if (_filter.Check(message))
             SafeInvokeReceived(message);

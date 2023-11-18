@@ -6,9 +6,7 @@ public struct NetEventArgs
 {
     public static NetEventArgs Empty => new();
 
-    public int PacketID;
-
-    public PacketHeader Packet;
+    public Packet Packet;
 
     public IPEndPoint EndPoint;
 

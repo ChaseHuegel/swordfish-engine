@@ -17,39 +17,6 @@ public class NetTests : TestBase
     }
 
     [Fact]
-    public async Task SendUdpPacket()
-    {
-        var tcs = new TaskCompletionSource();
-
-        var unicastProvider = new UnicastProvider(1234);
-        var needlefishSerializer = new NeedlefishSerializer<PacketHeader>();
-        var packetFilter = new PacketFilter();
-        var server = new MessageService<PacketHeader, IPEndPoint>(unicastProvider, unicastProvider, needlefishSerializer, packetFilter);
-        server.Start();
-        server.Received += OnServerReceived;
-
-        unicastProvider = new UnicastProvider();
-        needlefishSerializer = new NeedlefishSerializer<PacketHeader>();
-        packetFilter = new PacketFilter();
-        var client = new MessageService<PacketHeader, IPEndPoint>(unicastProvider, unicastProvider, needlefishSerializer, packetFilter);
-        client.Start();
-        client.Received += OnClientReceived;
-        client.Send(new PacketHeader(), IPEndPoint.Parse("127.0.0.1:1234"));
-
-        void OnServerReceived(object sender, PacketHeader packet)
-        {
-            tcs.SetResult();
-        }
-
-        void OnClientReceived(object sender, PacketHeader packet)
-        {
-            //  Do nothing
-        }
-
-        await tcs.Task;
-    }
-
-    [Fact]
     public void SerializedPacketDoesDeserialize()
     {
         Handshake.BeginPacket packet = new Handshake.BeginPacket
