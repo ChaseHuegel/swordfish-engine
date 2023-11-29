@@ -33,6 +33,7 @@ public class MessageQueue<TMessage> : IDisposable
         _threadWorker.Stop();
         _messages.Clear();
         _messageSignal.Set();
+        GC.SuppressFinalize(this);
     }
 
     public void Post(TMessage message)

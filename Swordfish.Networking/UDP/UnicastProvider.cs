@@ -43,6 +43,7 @@ public class UnicastProvider : IReceiver<ArraySegment<byte>>, IWriter<ArraySegme
     {
         Received = null;
         _udpClient.Dispose();
+        _packetQueue.Dispose();
         GC.SuppressFinalize(this);
     }
 
