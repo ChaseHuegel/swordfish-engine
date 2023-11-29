@@ -12,7 +12,7 @@ namespace Swordfish.Tests;
 
 public class NetTests : TestBase
 {
-    private class TestPacket
+    private class TestPacket : IPacketDefinition
     {
         public readonly string? Content;
 
@@ -24,6 +24,11 @@ public class NetTests : TestBase
         public TestPacket(string content)
         {
             Content = content;
+        }
+
+        public ushort GetPacketID()
+        {
+            return 100;
         }
     }
 
@@ -39,21 +44,20 @@ public class NetTests : TestBase
         var readerWriter = new UnicastProvider(1234);
         var serializer = new PacketSerializer();
         var filter = new PacketFilter();
-        var server = new MessageService<Packet, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
+        var server = new MessageService<Packet, IPacketDefinition, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
         server.Start();
         server.Received += OnServerReceived;
 
         readerWriter = new UnicastProvider();
         serializer = new PacketSerializer();
         filter = new PacketFilter();
-        var client = new MessageService<Packet, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
+        var client = new MessageService<Packet, IPacketDefinition, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
         client.Start();
         client.Received += OnClientReceived;
 
         for (int i = 0; i < 20; i++)
         {
-            var packet = serializer.Serialize(new TestPacket("Hello world!"));
-            client.Send(packet, IPEndPoint.Parse("127.0.0.1:1234"));
+            client.Send(new TestPacket("Hello world!"), IPEndPoint.Parse("127.0.0.1:1234"));
         }
 
         void OnServerReceived(object? sender, Packet packet)

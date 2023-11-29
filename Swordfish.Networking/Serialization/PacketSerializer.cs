@@ -1,8 +1,9 @@
 using Needlefish;
+using Swordfish.Library.Networking;
 
 namespace Swordfish.Networking.Serialization;
 
-public class PacketSerializer : ISerializer<Packet>
+public class PacketSerializer : ITypeSerializer<IPacketDefinition, Packet>
 {
     private const int OFFSET_SEQUENCE = 0;
     private const int OFFSET_ID = 1;
@@ -15,8 +16,15 @@ public class PacketSerializer : ISerializer<Packet>
 
     public ArraySegment<byte> Serialize(object target)
     {
-        //  Retrieve the packet type ID
-        ushort id = (ushort)target.GetType().Name.GetHashCode();
+        if (target is not IPacketDefinition packetDefinition)
+            throw new ArgumentException($"object must be of type {nameof(IPacketDefinition)}, but it was: {target.GetType()}.", nameof(target));
+
+        return Serialize(packetDefinition);
+    }
+
+    public ArraySegment<byte> Serialize(IPacketDefinition target)
+    {
+        ushort id = target.GetPacketID();
 
         //  Increment sequence
         byte sequence = 0;
