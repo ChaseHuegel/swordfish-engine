@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using Needlefish;
 using Swordfish.Library.Networking;
@@ -36,34 +37,45 @@ public class NetTests : TestBase
     {
     }
 
-    [Fact]
-    public async Task SendUdpPacket()
+    [Fact(Timeout = 10000)]
+    public async Task SendReceiveUdpPacket()
     {
         var tcs = new TaskCompletionSource();
+        int received = 0;
+        List<ushort> receivedSequences = new List<ushort>();
 
         var readerWriter = new UnicastProvider(1234);
         var serializer = new PacketSerializer();
-        var filter = new PacketFilter();
-        var server = new MessageService<Packet, IPacketDefinition, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
+        var filter = new PacketFilter<IPEndPoint>();
+        var server = new PacketService<IPEndPoint>(readerWriter, readerWriter, serializer, filter);
         server.Start();
         server.Received += OnServerReceived;
 
         readerWriter = new UnicastProvider();
         serializer = new PacketSerializer();
-        filter = new PacketFilter();
-        var client = new MessageService<Packet, IPacketDefinition, IPEndPoint>(readerWriter, readerWriter, serializer, filter);
+        filter = new PacketFilter<IPEndPoint>();
+        var client = new PacketService<IPEndPoint>(readerWriter, readerWriter, serializer, filter);
         client.Start();
         client.Received += OnClientReceived;
 
-        for (int i = 0; i < 20; i++)
+        Stopwatch overallTime = Stopwatch.StartNew();
+        Stopwatch sendTime = Stopwatch.StartNew();
+
+        const int PACKET_COUNT = 500;
+        for (int i = 0; i < PACKET_COUNT; i++)
         {
             client.Send(new TestPacket("Hello world!"), IPEndPoint.Parse("127.0.0.1:1234"));
         }
+        sendTime.Stop();
+        Stopwatch sendDoneToReceiveDone = Stopwatch.StartNew();
 
         void OnServerReceived(object? sender, Packet packet)
         {
+            received++;
             TestPacket testPacket = NeedlefishFormatter.Deserialize<TestPacket>(packet.Payload);
-            if (packet.Sequence == 19)
+            receivedSequences.Add(packet.Sequence);
+            Output.WriteLine($"Received #{received}: ID {packet.ID}, Sequence: {packet.Sequence}, Content: {testPacket.Content}");
+            if (received == PACKET_COUNT)
                 tcs.SetResult();
         }
 
@@ -73,6 +85,12 @@ public class NetTests : TestBase
         }
 
         await tcs.Task;
+        overallTime.Stop();
+        sendDoneToReceiveDone.Stop();
+        Output.WriteLine($"Elapsed: {overallTime.ElapsedMilliseconds / 1000f}s");
+        Output.WriteLine($"Time to send: {sendTime.ElapsedMilliseconds / 1000f}s");
+        Output.WriteLine($"Time between complete send and final receive: {sendDoneToReceiveDone.ElapsedMilliseconds / 1000f}s");
+        Assert.True(false);
     }
 
     [Fact]

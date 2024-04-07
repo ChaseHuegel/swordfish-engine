@@ -2,9 +2,9 @@ using Swordfish.Networking;
 
 namespace Swordfish.Tests;
 
-public class PacketFilter : IFilter<Packet>
+public class PacketFilter<TEndPoint> : IFilter<PacketReceivedArgs<TEndPoint>>
 {
-    public bool Check(Packet target)
+    public bool Check(PacketReceivedArgs<TEndPoint> target)
     {
         return true;
     }

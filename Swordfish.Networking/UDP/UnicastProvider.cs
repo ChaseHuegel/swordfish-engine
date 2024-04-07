@@ -4,17 +4,17 @@ using Swordfish.Networking.Messaging;
 
 namespace Swordfish.Networking.UDP;
 
-public class UnicastProvider : IReceiver<ArraySegment<byte>>, IWriter<ArraySegment<byte>, IPEndPoint>
+public class UnicastProvider : IReceiver<DataReceivedArgs<IPEndPoint>>, IWriter<ArraySegment<byte>, IPEndPoint>
 {
     private volatile bool _startedListening;
-    private MessageQueue<ArraySegment<byte>> _packetQueue;
+    private MessageQueue<DataReceivedArgs<IPEndPoint>> _packetQueue;
     protected UdpClient _udpClient;
 
-    public event EventHandler<ArraySegment<byte>>? Received;
+    public event EventHandler<DataReceivedArgs<IPEndPoint>>? Received;
 
     private UnicastProvider()
     {
-        _packetQueue = new MessageQueue<ArraySegment<byte>>();
+        _packetQueue = new MessageQueue<DataReceivedArgs<IPEndPoint>>();
         _packetQueue.NewMessage += OnNewMessage;
         _udpClient = null!;
     }
@@ -79,18 +79,18 @@ public class UnicastProvider : IReceiver<ArraySegment<byte>>, IWriter<ArraySegme
         _udpClient.BeginReceive(OnReceived, null);
 
         if (buffer != null)
-            _packetQueue.Post(buffer);
+            _packetQueue.Post(new DataReceivedArgs<IPEndPoint>(endPoint, buffer));
     }
 
-    private void OnNewMessage(object sender, ArraySegment<byte> e)
+    private void OnNewMessage(object sender, DataReceivedArgs<IPEndPoint> e)
     {
         SafeInvokeReceived(e);
     }
 
-    private void SafeInvokeReceived(ArraySegment<byte> data)
+    private void SafeInvokeReceived(DataReceivedArgs<IPEndPoint> e)
     {
         try {
-            Received?.Invoke(this, data);
+            Received?.Invoke(this, e);
         } catch {
             //  Swallow exceptions thrown by listeners.
         }
