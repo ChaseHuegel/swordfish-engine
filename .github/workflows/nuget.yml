@@ -16,7 +16,7 @@ jobs:
           PROJECT_FILE_PATH: Swordfish/Swordfish.csproj
           BUILD_CONFIGURATION: Release
           VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          NUGET_KEY: ${{secrets.NUGET_KEY}}
           NUGET_SOURCE: https://api.nuget.org
 
   nuget_library:
@@ -31,7 +31,7 @@ jobs:
           PROJECT_FILE_PATH: Swordfish.Library/Swordfish.Library.csproj
           BUILD_CONFIGURATION: Release
           VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          NUGET_KEY: ${{secrets.NUGET_KEY}}
           NUGET_SOURCE: https://api.nuget.org
 
   nuget_integrations:
@@ -46,5 +46,5 @@ jobs:
           PROJECT_FILE_PATH: Swordfish.Integrations/Swordfish.Integrations.csproj
           BUILD_CONFIGURATION: Release
           VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_API_KEY}}
+          NUGET_KEY: ${{secrets.NUGET_KEY}}
           NUGET_SOURCE: https://api.nuget.org
