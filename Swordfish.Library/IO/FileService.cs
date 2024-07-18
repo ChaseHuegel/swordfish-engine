@@ -11,11 +11,11 @@ namespace Swordfish.Library.IO
 {
     public class FileService : IFileService
     {
-        private readonly ConcurrentSwitchDictionary<string, Type, IFileParser> Parsers;
+        private readonly ConcurrentSwitchDictionary<Type, string, IFileParser> Parsers;
 
         public FileService(IEnumerable<IFileParser> parsers)
         {
-            Parsers = new ConcurrentSwitchDictionary<string, Type, IFileParser>();
+            Parsers = new ConcurrentSwitchDictionary<Type, string, IFileParser>();
 
             foreach (var parser in parsers)
             {
@@ -23,7 +23,7 @@ namespace Swordfish.Library.IO
                 {
                     Type interfaceType = parser.GetType().GetInterfaces()[0];
                     Type parserType = interfaceType.IsGenericType ? interfaceType.GenericTypeArguments[0] : parser.GetType();
-                    Parsers.TryAdd(extension.ToLowerInvariant(), parserType, parser);
+                    Parsers.TryAdd(parserType, extension.ToLowerInvariant(), parser);
                 }
             }
         }
@@ -81,7 +81,7 @@ namespace Swordfish.Library.IO
         public TResult Parse<TResult>(IPath path)
         {
             string extension = path.GetExtension();
-            if (Parsers.TryGetValue(extension.ToLowerInvariant(), typeof(TResult), out IFileParser parser))
+            if (Parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
             {
                 object parseResult = parser.Parse(this, path);
                 return parseResult is TResult typedResult ? typedResult : default;
@@ -93,7 +93,7 @@ namespace Swordfish.Library.IO
         public bool TryParse<TResult>(IPath path, out TResult result)
         {
             string extension = path.GetExtension();
-            if (Parsers.TryGetValue(extension.ToLowerInvariant(), typeof(TResult), out IFileParser parser))
+            if (Parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
             {
                 object parseResult = parser.Parse(this, path);
 
