@@ -1,50 +1,15 @@
-name: Push to NuGet
+name: NuGet
 on:
   push:
     branches:
       - main
 jobs:
-  nuget_engine:
-    name: Push Engine to NuGet
+  nuget:
+    name: Pack and Publish to NuGet
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: publish on version change
-        id: publish_nuget
-        uses: brandedoutcast/publish-nuget@v2
-        with:
-          PROJECT_FILE_PATH: Swordfish/Swordfish.csproj
-          BUILD_CONFIGURATION: Release
-          VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_KEY}}
-          NUGET_SOURCE: https://api.nuget.org
-
-  nuget_library:
-    name: Push Library to NuGet
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: publish on version change
-        id: publish_nuget
-        uses: brandedoutcast/publish-nuget@v2
-        with:
-          PROJECT_FILE_PATH: Swordfish.Library/Swordfish.Library.csproj
-          BUILD_CONFIGURATION: Release
-          VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_KEY}}
-          NUGET_SOURCE: https://api.nuget.org
-
-  nuget_integrations:
-    name: Push Integrations to NuGet
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: publish on version change
-        id: publish_nuget
-        uses: brandedoutcast/publish-nuget@v2
-        with:
-          PROJECT_FILE_PATH: Swordfish.Integrations/Swordfish.Integrations.csproj
-          BUILD_CONFIGURATION: Release
-          VERSION_REGEX: ^\s*<Version>(.*)<\/Version>\s*$
-          NUGET_KEY: ${{secrets.NUGET_KEY}}
-          NUGET_SOURCE: https://api.nuget.org
+      - name: Pack
+        run: dotnet pack -c Release -o .
+      - name: Push
+        run: dotnet nuget push *.nupkg --api-key ${{secrets.NUGET_KEY}} --source "https://api.nuget.org/v3/index.json" --skip-duplicate

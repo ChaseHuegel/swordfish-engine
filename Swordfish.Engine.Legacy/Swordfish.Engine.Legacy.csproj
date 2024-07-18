@@ -13,6 +13,7 @@
     <PackageId>Swordfish.Engine</PackageId>
     <Version>1.1.0</Version>
     <Authors>Chase Huegel</Authors>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
