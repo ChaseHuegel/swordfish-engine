@@ -14,7 +14,7 @@
     <PackageId>Swordfish</PackageId>
     <Version>2.1.20</Version>
     <Authors>Chase Huegel</Authors>
-    <ApplicationIcon>manifest/swordfish.ico</ApplicationIcon>
+    <ApplicationIcon>Manifest/swordfish.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup>
