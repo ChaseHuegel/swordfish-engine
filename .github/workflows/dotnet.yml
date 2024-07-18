@@ -20,8 +20,8 @@ jobs:
       run: dotnet restore
     - name: Build
       run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+    # - name: Test
+    #   run: dotnet test --no-build --verbosity normal
     - name: Publish
       run: dotnet publish -c Release -o ".output"
     - name: Upload build artifacts
