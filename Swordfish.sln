@@ -13,7 +13,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Library", "Swordf
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "swordfish.Editor", "Swordfish.Editor\Swordfish.Editor.csproj", "{8A669530-0673-4015-8C6F-37D8B73819C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Tests", "swordfish.tests\Swordfish.Tests.csproj", "{6E65476F-686B-4D75-912D-98141EC33982}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Tests", "Swordfish.Tests\Swordfish.Tests.csproj", "{6E65476F-686B-4D75-912D-98141EC33982}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
