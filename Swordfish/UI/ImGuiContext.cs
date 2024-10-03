@@ -47,7 +47,7 @@ public class ImGuiContext : IUIContext
         Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
         Controller.Update(0f);
 
-        OnFontScaleChanged(this, EventArgs.Empty);
+        OnFontScaleChanged(this, new DataChangedEventArgs<float>(1f, FontScale.Get()));
 
         Debugger.Log("UI initialized.");
         Debugger.Log($"using ImGui {ImGui.GetVersion()}", LogType.CONTINUED);
@@ -70,15 +70,15 @@ public class ImGuiContext : IUIContext
         ScaleConstraint.Changed += OnScalingConstraintChanged;
     }
 
-    private void OnScalingConstraintChanged(object? sender, EventArgs e)
+    private void OnScalingConstraintChanged(object? sender, DataChangedEventArgs<IConstraint> e)
     {
-        Scale.Set(ScaleConstraint.Get().GetValue(Window?.Monitor?.VideoMode.Resolution?.Y ?? 1f));
+        Scale.Set(e.NewValue.GetValue(Window?.Monitor?.VideoMode.Resolution?.Y ?? 1f));
     }
 
-    private void OnFontScaleChanged(object? sender, EventArgs e)
+    private void OnFontScaleChanged(object? sender, DataChangedEventArgs<float> e)
     {
-        ImGui.GetIO().FontGlobalScale = FontScale.Get() * Scale.Get();
-        FontDisplaySize.Set(ImGui.GetFontSize() * FontScale.Get() * Scale.Get());
+        ImGui.GetIO().FontGlobalScale = FontScale.Get() * e.NewValue;
+        FontDisplaySize.Set(ImGui.GetFontSize() * FontScale.Get() * e.NewValue);
     }
 
     private void Cleanup()

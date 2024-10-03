@@ -17,6 +17,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
 using Swordfish.Types.Constraints;
+using Swordfish.UI;
 using Swordfish.UI.Elements;
 
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
@@ -44,7 +45,7 @@ public class Editor : Plugin
     private Action FileWrite;
 
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -52,6 +53,9 @@ public class Editor : Plugin
         PathService = pathService;
         RenderContext = renderContext;
         InputService = inputService;
+
+        //  Scale off target height of 1080
+        uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
 
         ECSContext.BindSystem<HierarchySystem>();
 
