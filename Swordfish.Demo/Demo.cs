@@ -3,6 +3,7 @@ using System.Numerics;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
+using Swordfish.Demo.UI;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
@@ -69,19 +70,19 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        // ecsContext.BindSystem<RoundaboutSystem>();
+        ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
-        // TestUI.CreateCanvas();
+        TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        // CreateTestEntities();
+        CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
         // CreateVoxelTest();
         // CreateTerrainTest();
-        CreateDonutDemo();
+        // CreateDonutDemo();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
         RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);

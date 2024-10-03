@@ -17,9 +17,6 @@ public static class TestUI
 
     public static void CreateCanvas()
     {
-        //  Scale based on a target resolution
-        UIContext.ScaleConstraint.Set(new FactorConstraint(1080f));
-
         CanvasElement myCanvas = new("UI Test Canvas")
         {
             Constraints = new RectConstraints
