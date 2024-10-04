@@ -70,17 +70,17 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        ecsContext.BindSystem<RoundaboutSystem>();
+        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
-        TestUI.CreateCanvas();
+        // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        CreateTestEntities();
+        // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        // CreateVoxelTest();
+        CreateVoxelTest();
         // CreateTerrainTest();
         // CreateDonutDemo();
 
@@ -289,7 +289,7 @@ public class Demo : Mod
 
         var renderOptions = new RenderOptions {
             DoubleFaced = false,
-            Wireframe = false
+            Wireframe = false,
         };
 
         Mesh mesh = MeshBrickGrid(grid, textureArray);
@@ -297,6 +297,15 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
+            .Build();
+
+        mesh = MeshBrickGrid(grid, textureArray, true);
+        renderer = new MeshRenderer(mesh, material, renderOptions);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Ship Entity Transparent", "bricks"), IdentifierComponent.DefaultIndex)
             .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
@@ -349,7 +358,7 @@ public class Demo : Mod
             .Build();
     }
 
-    private Mesh MeshBrickGrid(BrickGrid grid, TextureArray textureArray)
+    private Mesh MeshBrickGrid(BrickGrid grid, TextureArray textureArray, bool transparent = false)
     {
         var empty = new Brick(0);
 
@@ -402,6 +411,15 @@ public class Demo : Mod
                             || gridToBuild.Get(x, y, z - 1).Equals(empty))
                         )
                         {
+                            if (transparent && !brick.Name.Contains("window") && !brick.Name.Contains("porthole"))
+                            {
+                                continue;
+                            }
+                            else if (!transparent && (brick.Name.Contains("window") || brick.Name.Contains("porthole")))
+                            {
+                                continue;
+                            }
+
                             Mesh brickMesh = MeshFromBrickID(brick.ID);
                             colors.AddRange(brickMesh.Colors);
 

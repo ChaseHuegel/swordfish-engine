@@ -6,4 +6,5 @@ public struct RenderOptions
 
     public bool DoubleFaced;
     public bool Wireframe;
+    public bool IgnoreDepth;
 }

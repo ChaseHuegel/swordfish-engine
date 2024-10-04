@@ -123,6 +123,7 @@ internal class GLRenderContext : IRenderContext
 
             target.VertexArrayObject.Bind();
 
+            GL.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
             GL.PolygonMode(MaterialFace.FrontAndBack, Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
