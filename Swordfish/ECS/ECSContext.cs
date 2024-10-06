@@ -35,6 +35,7 @@ public class ECSContext : IECSContext
     private ThreadWorker ThreadWorker { get; set; }
 
     internal bool Modified;
+    private readonly object ModifiedLock = new object();
 
     private bool Running;
     private readonly IndexLookup<Type> ComponentTypes;
@@ -87,25 +88,32 @@ public class ECSContext : IECSContext
     public void Reset()
     {
         Store = new ChunkedDataStore(MaxEntities, ComponentTypes.Count);
-        Modified = true;
+        lock (ModifiedLock)
+        {
+            Modified = true;
+        }
     }
 
     public void Update(float deltaTime)
     {
-        if (!Running)
-            throw new InvalidOperationException(REQ_START_MESSAGE);
-
-        Delta.Set(deltaTime);
-
-        foreach (ComponentSystem system in Systems)
+        lock (ModifiedLock)
         {
-            if (Modified)
+            if (!Running)
+                throw new InvalidOperationException(REQ_START_MESSAGE);
+
+            Delta.Set(deltaTime);
+
+            foreach (ComponentSystem system in Systems)
             {
-                system.Modified = true;
-                Modified = false;
+                if (Modified)
+                {
+                    system.Modified = true;
+                }
+
+                system.Update(this, deltaTime);
             }
 
-            system.Update(this, deltaTime);
+            Modified = false;
         }
     }
 
@@ -153,31 +161,40 @@ public class ECSContext : IECSContext
 
     public Entity CreateEntity()
     {
-        if (!Running)
-            throw new InvalidOperationException(REQ_START_MESSAGE);
+        lock (ModifiedLock)
+        {
+            if (!Running)
+                throw new InvalidOperationException(REQ_START_MESSAGE);
 
-        int ptr = Store.Add();
-        Modified = true;
-        return new Entity(ptr, this);
+            int ptr = Store.Add();
+            Modified = true;
+            return new Entity(ptr, this);
+        }
     }
 
     public Entity CreateEntity(object?[] components)
     {
-        if (!Running)
-            throw new InvalidOperationException(REQ_START_MESSAGE);
+        lock (ModifiedLock)
+        {
+            if (!Running)
+                throw new InvalidOperationException(REQ_START_MESSAGE);
 
-        int ptr = Store.Add(components);
-        Modified = true;
-        return new Entity(ptr, this);
+            int ptr = Store.Add(components);
+            Modified = true;
+            return new Entity(ptr, this);
+        }
     }
 
     public void RemoveEntity(Entity entity)
     {
-        if (!Running)
-            throw new InvalidOperationException(REQ_START_MESSAGE);
+        lock (ModifiedLock)
+        {
+            if (!Running)
+                throw new InvalidOperationException(REQ_START_MESSAGE);
 
-        Store.Remove(entity.Ptr);
-        Modified = true;
+            Store.Remove(entity.Ptr);
+            Modified = true;
+        }
     }
 
     public Entity[] GetEntities()
