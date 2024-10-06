@@ -1,5 +1,5 @@
-using System.Collections.Concurrent;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
@@ -10,8 +10,11 @@ internal class LineRenderer : IRenderStage
 {
     private ShaderProgram? ShaderProgram;
     private VertexArrayObject<float>? VAO;
-    private readonly float[] Vertices = new float[6];
+
     private readonly List<Line> Lines = new();
+    private readonly List<int> LineVertexOffsets = new();
+    private readonly List<uint> LineVertexCounts = new();
+    private readonly List<float> LineVertexData = new();
 
     private readonly GL GL;
     private readonly GLContext GLContext;
@@ -25,66 +28,104 @@ internal class LineRenderer : IRenderStage
         FileService = fileService;
         PathService = pathService;
 
-        Lines.Add(new Line(Vector3.Zero, new Vector3(10000, 0, 0), new Vector4(1f, 0f, 0f, 1f)));
-        Lines.Add(new Line(Vector3.Zero, new Vector3(-10000, 0, 0), new Vector4(1f, 0f, 0f, 0.25f)));
+        const int GRID_SIZE = 500;
 
-        Lines.Add(new Line(Vector3.Zero, new Vector3(0, 10000, 0), new Vector4(0f, 1f, 0f, 1f)));
-        Lines.Add(new Line(Vector3.Zero, new Vector3(0, -10000, 0), new Vector4(0f, 1f, 0f, 0.25f)));
+        AddLine(new Line(Vector3.Zero, new Vector3(GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 1f)));
+        AddLine(new Line(Vector3.Zero, new Vector3(-GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 0.25f)));
 
-        Lines.Add(new Line(Vector3.Zero, new Vector3(0, 0, 10000), new Vector4(0f, 0f, 1f, 1f)));
-        Lines.Add(new Line(Vector3.Zero, new Vector3(0, 0, -10000), new Vector4(0f, 0f, 1f, 0.25f)));
+        AddLine(new Line(Vector3.Zero, new Vector3(0, GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 1f)));
+        AddLine(new Line(Vector3.Zero, new Vector3(0, -GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 0.25f)));
 
-        for (int x = -100; x <= 100; x++)
+        AddLine(new Line(Vector3.Zero, new Vector3(0, 0, GRID_SIZE), new Vector4(0f, 0f, 1f, 1f)));
+        AddLine(new Line(Vector3.Zero, new Vector3(0, 0, -GRID_SIZE), new Vector4(0f, 0f, 1f, 0.25f)));
+
+        for (int x = -GRID_SIZE; x <= GRID_SIZE; x++)
         {
-            Lines.Add(new Line(new Vector3(x, 0, -100), new Vector3(x, 0, 100), new Vector4(0f, 0f, 0f, 0.1f)));
+            AddLine(new Line(new Vector3(x, 0, -GRID_SIZE), new Vector3(x, 0, GRID_SIZE), new Vector4(0f, 0f, 0f, 0.1f)));
         }
 
-        for (int z = -100; z <= 100; z++)
+        for (int z = -GRID_SIZE; z <= GRID_SIZE; z++)
         {
-            Lines.Add(new Line(new Vector3(-100, 0, z), new Vector3(100, 0, z), new Vector4(0f, 0f, 0f, 0.1f)));
+            AddLine(new Line(new Vector3(-GRID_SIZE, 0, z), new Vector3(GRID_SIZE, 0, z), new Vector4(0f, 0f, 0f, 0.1f)));
         }
     }
 
     public void Load()
     {
         Shader shader = FileService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
-        VAO = GLContext.CreateVertexArrayObject(Vertices);
+        VAO = GLContext.CreateVertexArrayObject(Array.Empty<float>());
 
         VAO.Bind();
         VAO.VertexBufferObject.Bind();
-        VAO.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 3, 0);
+        VAO.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 7, 0);
+        VAO.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
 
         ShaderProgram = ShaderToShaderProgram(shader);
         ShaderProgram.BindAttributeLocation("in_position", 0);
+        ShaderProgram.BindAttributeLocation("in_color", 1);
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public unsafe int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
-        int drawCalls = 0;
-        for (int i = 0; i < Lines.Count; i++)
+        ShaderProgram!.Activate();
+        ShaderProgram.SetUniform("view", view);
+        ShaderProgram.SetUniform("projection", projection);
+
+        VAO!.Bind();
+
+        for (int i = 0, n = 0; i < Lines.Count; i++, n += 14)
         {
             Line line = Lines[i];
+            LineVertexData[n + 0] = line.Start.X;
+            LineVertexData[n + 1] = line.Start.Y;
+            LineVertexData[n + 2] = line.Start.Z;
 
-            ShaderProgram!.Activate();
-            ShaderProgram.SetUniform("view", view);
-            ShaderProgram.SetUniform("projection", projection);
-            ShaderProgram.SetUniform("color", line.Color);
+            LineVertexData[n + 3] = line.Color.X;
+            LineVertexData[n + 4] = line.Color.Y;
+            LineVertexData[n + 5] = line.Color.Z;
+            LineVertexData[n + 6] = line.Color.W;
 
-            VAO!.Bind();
+            LineVertexData[n + 7] = line.End.X;
+            LineVertexData[n + 8] = line.End.Y;
+            LineVertexData[n + 9] = line.End.Z;
 
-            Vertices[0] = line.Start.X;
-            Vertices[1] = line.Start.Y;
-            Vertices[2] = line.Start.Z;
-            Vertices[3] = line.End.X;
-            Vertices[4] = line.End.Y;
-            Vertices[5] = line.End.Z;
-            VAO.VertexBufferObject.UpdateData(Vertices);
-
-            GL.DrawArrays(PrimitiveType.Lines, 0, 2);
-            drawCalls++;
+            LineVertexData[n + 10] = line.Color.X;
+            LineVertexData[n + 11] = line.Color.Y;
+            LineVertexData[n + 12] = line.Color.Z;
+            LineVertexData[n + 13] = line.Color.W;
         }
 
-        return drawCalls;
+        VAO.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(LineVertexData));
+        GL.MultiDrawArrays(PrimitiveType.Lines, CollectionsMarshal.AsSpan(LineVertexOffsets), CollectionsMarshal.AsSpan(LineVertexCounts), (uint)Lines.Count);
+        return 1;
+    }
+
+    public void AddLine(Line line)
+    {
+        LineVertexOffsets.Add(Lines.Count * 2);
+        LineVertexCounts.Add(2);
+
+        LineVertexData.Capacity += 14;
+
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+        LineVertexData.Add(0);
+
+        Lines.Add(line);
     }
 
     private ShaderProgram ShaderToShaderProgram(Shader shader)

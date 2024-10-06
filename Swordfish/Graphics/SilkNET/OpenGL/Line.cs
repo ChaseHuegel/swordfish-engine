@@ -1,6 +1,6 @@
 using System.Numerics;
 
-public struct Line
+public class Line
 {
     public Vector3 Start;
     public Vector3 End;

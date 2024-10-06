@@ -9,5 +9,5 @@ vec4 vertex()
 
 vec4 fragment()
 {
-    return color;
+    return VertexColor;
 }
