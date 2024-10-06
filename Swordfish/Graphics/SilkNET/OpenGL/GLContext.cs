@@ -52,6 +52,12 @@ internal unsafe partial class GLContext
         return GLThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(GL, transform, vertexArrayObject, modelsBufferObject, materials, renderOptions));
     }
 
+    internal VertexArrayObject<TVertexType> CreateVertexArrayObject<TVertexType>(TVertexType[] vertexData)
+        where TVertexType : unmanaged
+    {
+        return GLThread.WaitForResult(VertexArrayObjectArgs<TVertexType>.Factory, new VertexArrayObjectArgs<TVertexType>(GL, vertexData));
+    }
+
     internal VertexArrayObject<TVertexType, TElementType> CreateVertexArrayObject<TVertexType, TElementType>(TVertexType[] vertexData, TElementType[] indices)
         where TVertexType : unmanaged
         where TElementType : unmanaged

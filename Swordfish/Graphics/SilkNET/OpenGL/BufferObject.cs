@@ -9,18 +9,30 @@ internal sealed class BufferObject<TData> : GLHandle
     private readonly GL GL;
     public readonly int Length;
     private readonly BufferTargetARB BufferType;
+    private readonly BufferUsageARB Usage;
 
     public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
     {
         GL = gl;
         Length = data.Length;
         BufferType = bufferType;
+        Usage = usage;
 
         Bind();
         fixed (void* dataPtr = data)
         {
             nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
-            GL.BufferData(BufferType, bufferSize, dataPtr, usage);
+            GL.BufferData(BufferType, bufferSize, dataPtr, Usage);
+        }
+    }
+
+    public unsafe void UpdateData(Span<TData> data)
+    {
+        Bind();
+        fixed (void* dataPtr = data)
+        {
+            nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
+            GL.BufferData(BufferType, bufferSize, dataPtr, Usage);
         }
     }
 

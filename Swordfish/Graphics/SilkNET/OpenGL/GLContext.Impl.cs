@@ -140,6 +140,25 @@ internal unsafe partial class GLContext
         }
     }
 
+    private readonly struct VertexArrayObjectArgs<TVertexType>
+        where TVertexType : unmanaged
+    {
+        private readonly GL gl;
+        private readonly TVertexType[] vertexData;
+
+        public VertexArrayObjectArgs(GL gl, TVertexType[] vertexData)
+        {
+            this.gl = gl;
+            this.vertexData = vertexData;
+        }
+
+        public static VertexArrayObject<TVertexType> Factory(VertexArrayObjectArgs<TVertexType> args)
+        {
+            var vertexBufferObject = new BufferObject<TVertexType>(args.gl, args.vertexData, BufferTargetARB.ArrayBuffer);
+            return new VertexArrayObject<TVertexType>(args.gl, vertexBufferObject);
+        }
+    }
+
     private readonly struct VertexArrayObjectArgs<TVertexType, TElementType>
         where TVertexType : unmanaged
         where TElementType : unmanaged

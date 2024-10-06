@@ -119,8 +119,9 @@ public class SwordfishEngine
         resolver.RegisterInstance<SynchronizationContext>(MainThreadContext);
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
-        resolver.Register<IRenderContext, GLRenderContext>(Reuse.Singleton);
+        resolver.RegisterMany<GLRenderContext>(Reuse.Singleton);
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
+        resolver.Register<IRenderStage, LineRenderer>(Reuse.Singleton);
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
 

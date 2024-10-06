@@ -6,7 +6,6 @@ using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
@@ -37,29 +36,31 @@ internal class GLRenderContext : IRenderContext
     private readonly GL GL;
     private readonly IWindowContext WindowContext;
     private readonly GLContext GLContext;
-    private readonly IFileService FileService;
+    private readonly IRenderStage[] Renderers;
 
-    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IFileService fileService)
+    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
     {
         GL = gl;
-        FileService = fileService;
         WindowContext = windowContext;
         GLContext = glContext;
+        Renderers = renderers;
 
         GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
         // GL.Enable(GLEnum.FramebufferSrgb);
 
         Camera.Set(new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f));
-        WindowContext.Loaded += OnWindowLoaded;
         WindowContext.Render += OnWindowRender;
         WindowContext.Resized += OnWindowResized;
-    }
 
-    private void OnWindowLoaded()
-    {
+        for (int i = 0; i < Renderers.Length; i++)
+        {
+            Renderers[i].Load();
+        }
+
         Debugger.Log("Renderer initialized.");
     }
+
 
     private void OnWindowRender(double delta)
     {
@@ -88,6 +89,11 @@ internal class GLRenderContext : IRenderContext
         GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
         drawCalls += RenderInstancedTargets(view, projection);
+
+        for (int i = 0; i < Renderers.Length; i++)
+        {
+            drawCalls += Renderers[i].Render(delta, view, projection);
+        }
 
         DrawCalls.Set(drawCalls);
     }
@@ -167,7 +173,7 @@ internal class GLRenderContext : IRenderContext
         Camera.Get().AspectRatio = newSize.GetRatio();
     }
 
-    private ShaderComponent BindShaderSource(ShaderSource shaderSource)
+    internal ShaderComponent BindShaderSource(ShaderSource shaderSource)
     {
         if (!LinkedHandles.TryGetValue(shaderSource, out IHandle? handle))
         {
@@ -178,7 +184,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<ShaderComponent>(handle);
     }
 
-    private ShaderProgram BindShader(Shader shader)
+    internal ShaderProgram BindShader(Shader shader)
     {
         if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
         {
@@ -190,7 +196,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<ShaderProgram>(handle);
     }
 
-    private IGLTexture BindTexture(Texture texture)
+    internal IGLTexture BindTexture(Texture texture)
     {
         if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
         {
@@ -205,7 +211,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<IGLTexture>(handle);
     }
 
-    private VertexArrayObject<float, uint> BindMesh(Mesh mesh)
+    internal VertexArrayObject<float, uint> BindMesh(Mesh mesh)
     {
         if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
@@ -216,7 +222,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
-    private GLMaterial BindMaterial(Material material)
+    internal GLMaterial BindMaterial(Material material)
     {
         if (!LinkedHandles.TryGetValue(material, out IHandle? handle))
         {
@@ -233,7 +239,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    private unsafe GLRenderTarget BindMeshRenderer(MeshRenderer meshRenderer)
+    internal unsafe GLRenderTarget BindMeshRenderer(MeshRenderer meshRenderer)
     {
         if (!LinkedHandles.TryGetValue(meshRenderer, out IHandle? handle))
         {
@@ -263,7 +269,7 @@ internal class GLRenderContext : IRenderContext
         return Unsafe.As<GLRenderTarget>(handle);
     }
 
-    private BufferObject<Matrix4x4> BindToMBO(VertexArrayObject<float, uint> vao)
+    internal BufferObject<Matrix4x4> BindToMBO(VertexArrayObject<float, uint> vao)
     {
         if (!LinkedHandles.TryGetValue(vao, out IHandle? handle))
         {
