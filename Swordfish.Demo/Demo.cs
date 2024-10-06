@@ -70,19 +70,19 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        // ecsContext.BindSystem<RoundaboutSystem>();
+        ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        // CreateTestEntities();
+        CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
         CreateVoxelTest();
         // CreateTerrainTest();
-        // CreateDonutDemo();
+        CreateDonutDemo();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
         RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
@@ -471,7 +471,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Donut", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0f), Vector3.Zero, new Vector3(10f)), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0f, 10f, 0f), Vector3.Zero, new Vector3(10f)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
             .Build();
     }
