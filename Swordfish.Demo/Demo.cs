@@ -297,7 +297,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 0), Vector3.Zero), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
 
@@ -306,7 +306,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity Transparent", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 0), Vector3.Zero), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -378,7 +378,7 @@ public class Demo : Mod
         HashSet<BrickGrid> builtGrids = new();
         using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridMesh)))
         {
-            BuildBrickGridMesh(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z) - new Vector3(0.5f));
+            BuildBrickGridMesh(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z));
         }
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
