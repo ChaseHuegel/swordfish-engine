@@ -42,7 +42,7 @@ namespace Swordfish.Library.Types
         private bool dirty = true;
         private Vector3 position;
         private Vector3 rotation;
-        private Vector3 scale;
+        private Vector3 scale = Vector3.One;
         private Matrix4x4 matrix4x4;
 
         public Vector3 GetForward()
@@ -104,21 +104,22 @@ namespace Swordfish.Library.Types
             float sinRcosY = sinR * cosY;
             float sinYsinP = sinY * sinP;
 
-            matrix.M11 = cosY * cosR + sinYsinP * sinR;
+            matrix.M11 = (cosY * cosR + sinYsinP * sinR) * Scale.X;
             matrix.M21 = cosR * sinYsinP - sinRcosY;
             matrix.M31 = cosP * sinY;
 
             matrix.M12 = cosP * sinR;
-            matrix.M22 = cosR * cosP;
+            matrix.M22 = cosR * cosP * Scale.Y;
             matrix.M32 = -sinP;
 
             matrix.M13 = sinRcosY * sinP - sinY * cosR;
             matrix.M23 = sinY * sinR + cosR * cosY * sinP;
-            matrix.M33 = cosP * cosY;
+            matrix.M33 = cosP * cosY * Scale.Z;
 
             matrix.M41 = Position.X;
             matrix.M42 = Position.Y;
             matrix.M43 = Position.Z;
+            matrix.M44 = 1.0f;
 
             dirty = false;
             return matrix4x4 = matrix;
