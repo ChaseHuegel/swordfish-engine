@@ -70,19 +70,20 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        ecsContext.BindSystem<RoundaboutSystem>();
+        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        CreateTestEntities();
+        // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        CreateVoxelTest();
+        // CreateVoxelTest();
         // CreateTerrainTest();
-        CreateDonutDemo();
+        // CreateDonutDemo();
+        CreatePhysicsTest();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
         RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
@@ -519,6 +520,34 @@ public class Demo : Mod
                         .Build();
                 }
             }
+        }
+    }
+
+    private void CreatePhysicsTest()
+    {
+        var mesh = new Cube();
+        var renderOptions = new RenderOptions();
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+
+        var floorTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+        var floorMaterial = new Material(shader, floorTexture);
+
+        var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
+        var cubeMaterial = new Material(shader, cubeTexture);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Vector3.Zero, new Vector3(16, 0f, 16)), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+            .Build();
+
+        for (int i = 0; i < 40; i++)
+        {
+            ECSContext.EntityBuilder
+                .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
+                .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Vector3.Zero), TransformComponent.DefaultIndex)
+                .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+                .Build();
         }
     }
 
