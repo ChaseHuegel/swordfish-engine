@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
@@ -70,19 +72,21 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        ecsContext.BindSystem<RoundaboutSystem>();
+        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        CreateTestEntities();
+        // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        CreateVoxelTest();
-        // CreateTerrainTest();
-        CreateDonutDemo();
+        // CreateVoxelTest();
+        // for (int i = 0; i < 100; i++)
+        //     CreateTerrainTest();
+        // CreateDonutDemo();
+        CreatePhysicsTest();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
         RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
@@ -320,21 +324,26 @@ public class Demo : Mod
 
         var simplex = new SimplexPerlin();
 
+        float xScale = Math.Max(0.5f, Random.Shared.NextSingle());
+        float yScale = Math.Max(0.5f, Random.Shared.NextSingle());
+        float zScale = Math.Max(0.5f, Random.Shared.NextSingle());
+
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateTerrainTest), "_CreateBrickGrid"))
         {
-            const int size = 64;
+            int size = (int)(Random.Shared.NextSingle() * 50) + 30;
             for (int x = 0; x < size; x++)
                 for (int z = 0; z < size; z++)
                 {
-                    const float scale = 0.05f;
+                    const float scale = 0.07f;
                     var value = simplex.GetValue(x * scale, z * scale) + 1f;
-                    int depth = (int)(value * 3) + 40;
-                    for (int y = 0; y < depth; y++)
+                    for (int y = 0; y < size; y++)
                     {
-                        if (y < 35 && simplex.GetValue(x * scale, y * scale, z * scale) < -0.5f)
+                        float dist = Vector3.Distance(new Vector3(size / 2), new Vector3(x, y, z));
+                        if (dist >= size / 2 || simplex.GetValue(x * scale, y * scale, z * scale) < -0.5f)
                             continue;
-                        grid.Set(x, y, z, solid);
+
+                        grid.Set((int)(x * xScale), (int)(y * yScale), (int)(z * zScale), solid);
                     }
                 }
         }
@@ -353,7 +362,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Terrain", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 25), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(Random.Shared.NextSingle() * 1000 - 500, Random.Shared.NextSingle() * 1000 - 500, Random.Shared.NextSingle() * 1000 - 500), new Vector3(Random.Shared.NextSingle() * 360f, Random.Shared.NextSingle() * 360f, Random.Shared.NextSingle() * 360f)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -519,6 +528,34 @@ public class Demo : Mod
                         .Build();
                 }
             }
+        }
+    }
+
+    private void CreatePhysicsTest()
+    {
+        var mesh = new Cube();
+        var renderOptions = new RenderOptions();
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+
+        var floorTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+        var floorMaterial = new Material(shader, floorTexture);
+
+        var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
+        var cubeMaterial = new Material(shader, cubeTexture);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Vector3.Zero, new Vector3(16, 0f, 16)), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+            .Build();
+
+        for (int i = 0; i < 10; i++)
+        {
+            ECSContext.EntityBuilder
+                .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
+                .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Vector3.Zero), TransformComponent.DefaultIndex)
+                .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+                .Build();
         }
     }
 
