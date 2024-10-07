@@ -7,6 +7,7 @@ public class TransformComponent
 {
     public const int DefaultIndex = 1;
 
+    public Vector3 PositionOld;
     public Vector3 Position;
     public Vector3 Rotation;
     public Vector3 Scale = Vector3.One;

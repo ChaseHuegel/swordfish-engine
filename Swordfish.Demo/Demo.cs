@@ -550,7 +550,7 @@ public class Demo : Mod
             .Attach(new CollisionComponent(), CollisionComponent.DefaultIndex)
             .Build();
 
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 40; i++)
         {
             ECSContext.EntityBuilder
                 .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
