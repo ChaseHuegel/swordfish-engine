@@ -88,8 +88,8 @@ public class Demo : Mod
         // CreateDonutDemo();
         CreatePhysicsTest();
 
-        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
-        RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
+        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 1, -5);
+        RenderContext.Camera.Get().Transform.Rotation = new Vector3(0, 0, 0);
 
         Benchmark.Log();
     }
@@ -547,6 +547,7 @@ public class Demo : Mod
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
             .Attach(new TransformComponent(Vector3.Zero, Vector3.Zero, new Vector3(16, 0f, 16)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+            .Attach(new CollisionComponent(), CollisionComponent.DefaultIndex)
             .Build();
 
         for (int i = 0; i < 10; i++)
@@ -555,6 +556,8 @@ public class Demo : Mod
                 .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
                 .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Vector3.Zero), TransformComponent.DefaultIndex)
                 .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+                .Attach(new PhysicsComponent(), PhysicsComponent.DefaultIndex)
+                .Attach(new CollisionComponent(), CollisionComponent.DefaultIndex)
                 .Build();
         }
     }

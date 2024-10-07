@@ -4,7 +4,7 @@ public abstract class ComponentSystem
 {
     internal bool Modified { get; set; } = true;
 
-    private Entity[] Entities;
+    protected Entity[] Entities;
 
     internal Type[] Filter;
 
@@ -13,6 +13,7 @@ public abstract class ComponentSystem
     protected virtual void OnModified() { }
 
     protected virtual void OnUpdated() { }
+    protected virtual void Update(float deltaTime) { }
 
     public ComponentSystem()
     {
@@ -42,6 +43,7 @@ public abstract class ComponentSystem
         for (int i = 0; i < Entities.Length; i++)
             Update(Entities[i], deltaTime);
 
+        Update(deltaTime);
         OnUpdated();
     }
 
