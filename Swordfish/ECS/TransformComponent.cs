@@ -8,7 +8,7 @@ public class TransformComponent
     public const int DefaultIndex = 1;
 
     public Vector3 Position;
-    public Vector3 Rotation;
+    public Quaternion Rotation;
     public Vector3 Scale = Vector3.One;
 
     public TransformComponent() { }
@@ -18,13 +18,13 @@ public class TransformComponent
         Position = position;
     }
 
-    public TransformComponent(Vector3 position, Vector3 rotation)
+    public TransformComponent(Vector3 position, Quaternion rotation)
     {
         Position = position;
         Rotation = rotation;
     }
 
-    public TransformComponent(Vector3 position, Vector3 rotation, Vector3 scale)
+    public TransformComponent(Vector3 position, Quaternion rotation, Vector3 scale)
     {
         Position = position;
         Rotation = rotation;

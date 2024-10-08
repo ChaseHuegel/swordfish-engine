@@ -59,7 +59,7 @@ public class ECSContext : IECSContext
         BindComponent<PhysicsComponent>();
         BindComponent<MeshRendererComponent>();
 
-        BindSystem<PhysicsSystem>();
+        BindSystem<JoltPhysicsSystem>();
         BindSystem<MeshRendererSystem>();
 
         ThreadWorker = new ThreadWorker(Update, "ECS");
