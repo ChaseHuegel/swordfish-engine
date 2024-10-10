@@ -1,6 +1,7 @@
 using System.Numerics;
+using Swordfish.Graphics.SilkNET.OpenGL;
 
-namespace Swordfish.Graphics.SilkNET.OpenGL;
+namespace Swordfish.Graphics;
 
 public interface ILineRenderer
 {

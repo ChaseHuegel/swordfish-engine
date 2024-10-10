@@ -10,7 +10,6 @@ using Swordfish.ECS;
 using Swordfish.Editor.UI;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
