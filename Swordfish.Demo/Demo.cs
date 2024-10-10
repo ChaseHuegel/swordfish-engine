@@ -87,7 +87,7 @@ public class Demo : Mod
         CreatePhysicsTest();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, -15);
-        RenderContext.Camera.Get().Rotate(new Vector3(60, 0, 0));
+        RenderContext.Camera.Get().Transform.Rotate(new Vector3(60, 0, 0));
 
         Benchmark.Log();
     }
