@@ -18,15 +18,6 @@ internal class GLRenderContext : IRenderContext
 
     public DataBinding<bool> Wireframe { get; set; } = new();
 
-    //  Reflects the Z axis.
-    //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
-    private static readonly Matrix4x4 ReflectionMatrix = new(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, -1, 0,
-        0, 0, 0, 1
-    );
-
     private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
     private ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
@@ -69,14 +60,13 @@ internal class GLRenderContext : IRenderContext
             return;
 
         Camera cameraCached = Camera.Get();
-        //  Inverse the camera position when calculating view to move it into the same coordinate system as models.
-        //  Without doing this, the camera's axis are inverse of the models.
-        ViewTransform.Position = new Vector3(cameraCached.Transform.Position.X, cameraCached.Transform.Position.Y, -cameraCached.Transform.Position.Z);
+        ViewTransform.Position = cameraCached.Transform.Position;
         ViewTransform.Rotation = cameraCached.Transform.Rotation;
-        ViewTransform.Scale = cameraCached.Transform.Scale;
+        //  Reflect the camera's Z scale so +Z extends away from the viewer
+        ViewTransform.Scale = new Vector3(cameraCached.Transform.Scale.X, cameraCached.Transform.Scale.Y, -cameraCached.Transform.Scale.Z);
 
-        Matrix4x4.Invert(ViewTransform.ToMatrix4x4() * ReflectionMatrix, out Matrix4x4 view);
-        var projection = Camera.Get().GetProjection();
+        Matrix4x4.Invert(ViewTransform.ToMatrix4x4(), out Matrix4x4 view);
+        Matrix4x4 projection = Camera.Get().GetProjection();
 
         GL.ClearColor(Color.CornflowerBlue);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -86,7 +76,7 @@ internal class GLRenderContext : IRenderContext
         GL.CullFace(CullFaceMode.Back);
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+        GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
 
         drawCalls += RenderInstancedTargets(view, projection);
 

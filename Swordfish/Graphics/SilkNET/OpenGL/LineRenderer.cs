@@ -104,7 +104,7 @@ internal class LineRenderer : IRenderStage, ILineRenderer
 
     public Line CreateLine(Vector3 start, Vector3 end)
     {
-        return CreateLine(start, end, new Vector4(0f, 0f, 0f, 1f));
+        return CreateLine(start, end, Vector4.One);
     }
 
     public Line CreateLine(Vector3 start, Vector3 end, Vector4 color)
