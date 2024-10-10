@@ -22,6 +22,7 @@ internal class JoltPhysicsSystem : ComponentSystem
     private const float FIXED_TIMESTEP = 0.016f;
     private const float TIMESCALE = 1f;
     private float _accumulator = 0f;
+    private bool _accumulateUpdates = false;
 
     public PhysicsSystem _system;
     public BodyInterface _bodyInterface;
@@ -83,10 +84,23 @@ internal class JoltPhysicsSystem : ComponentSystem
     {
         _accumulator += deltaTime;
 
-        while (_accumulator >= FIXED_TIMESTEP)
+        float physicsDelta = FIXED_TIMESTEP * TIMESCALE;
+        int steps = Math.Max(1, (int)(1f * TIMESCALE));
+        if (_accumulateUpdates)
         {
-            _system.Update(FIXED_TIMESTEP * TIMESCALE, (int)(1 * TIMESCALE));
-            _accumulator -= FIXED_TIMESTEP;
+            while (_accumulator >= physicsDelta)
+            {
+                _system.Update(physicsDelta, steps);
+                _accumulator -= physicsDelta;
+            }
+        }
+        else
+        {
+            if (_accumulator >= physicsDelta)
+            {
+                _system.Update(physicsDelta, steps);
+                _accumulator -= physicsDelta;
+            }
         }
     }
 
