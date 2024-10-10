@@ -87,7 +87,7 @@ public class Demo : Mod
         CreatePhysicsTest();
 
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, -15);
-        RenderContext.Camera.Get().Transform.Rotate(new Vector3(60, 0, 0));
+        RenderContext.Camera.Get().Transform.Rotate(new Vector3(30, 0, 0));
 
         Benchmark.Log();
     }
@@ -538,7 +538,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0f, 16)), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0, 16)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
             .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static), PhysicsComponent.DefaultIndex)
             .Build();
