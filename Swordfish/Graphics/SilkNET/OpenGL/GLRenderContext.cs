@@ -72,7 +72,7 @@ internal class GLRenderContext : IRenderContext
         //  Inverse the camera position when calculating view to move it into the same coordinate system as models.
         //  Without doing this, the camera's axis are inverse of the models.
         ViewTransform.Position = new Vector3(cameraCached.Transform.Position.X, cameraCached.Transform.Position.Y, -cameraCached.Transform.Position.Z);
-        ViewTransform.Rotation = -cameraCached.Transform.Rotation;
+        ViewTransform.Rotation = cameraCached.Transform.Rotation;
         ViewTransform.Scale = cameraCached.Transform.Scale;
 
         Matrix4x4.Invert(ViewTransform.ToMatrix4x4() * ReflectionMatrix, out Matrix4x4 view);
