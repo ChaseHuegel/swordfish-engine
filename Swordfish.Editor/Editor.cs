@@ -45,7 +45,7 @@ public class Editor : Plugin
     private Action FileWrite;
 
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -57,8 +57,8 @@ public class Editor : Plugin
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
 
+        //  Setup the hierarchy
         ECSContext.BindSystem<HierarchySystem>();
-
         Hierarchy = new CanvasElement("Hierarchy")
         {
             Flags = EDITOR_CANVAS_FLAGS,
@@ -68,6 +68,28 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(0.8f)
             }
         };
+
+        //  Create the grid and axis display
+        const int GRID_SIZE = 500;
+
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 1f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(-GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 0.25f));
+
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 1f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, -GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 0.25f));
+
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, GRID_SIZE), new Vector4(0f, 0f, 1f, 1f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, -GRID_SIZE), new Vector4(0f, 0f, 1f, 0.25f));
+
+        for (int x = -GRID_SIZE; x <= GRID_SIZE; x++)
+        {
+            lineRenderer.CreateLine(new Vector3(x, 0, -GRID_SIZE), new Vector3(x, 0, GRID_SIZE), new Vector4(0f, 0f, 0f, 0.1f));
+        }
+
+        for (int z = -GRID_SIZE; z <= GRID_SIZE; z++)
+        {
+            lineRenderer.CreateLine(new Vector3(-GRID_SIZE, 0, z), new Vector3(GRID_SIZE, 0, z), new Vector4(0f, 0f, 0f, 0.1f));
+        }
     }
 
     public override void Start()
