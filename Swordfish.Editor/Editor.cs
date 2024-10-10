@@ -631,7 +631,8 @@ public class Editor : Plugin
         {
             InputService.CursorState = CursorState.LOCKED;
             Vector2 cursorDelta = InputService.CursorDelta;
-            camera.Transform.Rotate(new Vector3(cursorDelta.Y, cursorDelta.X, 0) * mouseSensitivity);
+            camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
+            camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
