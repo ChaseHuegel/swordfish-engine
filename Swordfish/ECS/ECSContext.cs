@@ -5,6 +5,7 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
+using Swordfish.Physics.Jolt;
 
 namespace Swordfish.ECS;
 

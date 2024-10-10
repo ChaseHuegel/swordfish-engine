@@ -1,9 +1,11 @@
 using JoltPhysicsSharp;
+using Swordfish.ECS;
+using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.ECS;
+namespace Swordfish.Physics.Jolt;
 
 [ComponentSystem(typeof(PhysicsComponent), typeof(TransformComponent))]
-public class JoltPhysicsSystem : ComponentSystem
+internal class JoltPhysicsSystem : ComponentSystem
 {
     private static class Layers
     {
@@ -21,7 +23,7 @@ public class JoltPhysicsSystem : ComponentSystem
     private const float TIMESCALE = 1f;
     private float _accumulator = 0f;
 
-    public JoltPhysicsSharp.PhysicsSystem _system;
+    public PhysicsSystem _system;
     public BodyInterface _bodyInterface;
 
     private PhysicsSystemSettings _settings = new()
@@ -36,34 +38,26 @@ public class JoltPhysicsSystem : ComponentSystem
     {
         if (!Foundation.Init(false))
         {
-            throw new Exception();
+            throw new Exception("Unable to initialize Jolt Foundation.");
         }
 
-        Foundation.SetTraceHandler(Console.WriteLine);
-
 #if DEBUG
+        Foundation.SetTraceHandler((message) => Debugger.Log(message));
+
         Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>
         {
             string message = inMessage ?? inExpression;
 
             string outMessage = $"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}";
 
-            Console.WriteLine(outMessage);
-
+            Debugger.LogError(outMessage, null);
             throw new Exception(outMessage);
         });
 #endif
 
         SetupCollisionFiltering();
-        _system = new JoltPhysicsSharp.PhysicsSystem(_settings);
+        _system = new PhysicsSystem(_settings);
         _bodyInterface = _system.BodyInterface;
-
-        _system.OnContactValidate += OnContactValidate;
-        _system.OnContactAdded += OnContactAdded;
-        _system.OnContactPersisted += OnContactPersisted;
-        _system.OnContactRemoved += OnContactRemoved;
-        _system.OnBodyActivated += OnBodyActivated;
-        _system.OnBodyDeactivated += OnBodyDeactivated;
     }
 
     protected virtual void SetupCollisionFiltering()
@@ -111,44 +105,11 @@ public class JoltPhysicsSystem : ComponentSystem
             BoxShape shape = new(transform.Scale / 2);
             using BodyCreationSettings creationSettings = new(shape, transform.Position, transform.Rotation, (MotionType)physics.BodyType, physics.Layer);
             body = _bodyInterface.CreateBody(creationSettings);
-            _bodyInterface.AddBody(body.ID, physics.BodyType == Physics.BodyType.Static ? Activation.DontActivate : Activation.Activate);
+            _bodyInterface.AddBody(body.ID, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
             physics.Body = body;
         }
 
         transform.Position = body.CenterOfMassPosition;
         transform.Rotation = body.Rotation;
-    }
-
-    protected virtual ValidateResult OnContactValidate(JoltPhysicsSharp.PhysicsSystem system, in Body body1, in Body body2, Double3 baseOffset, nint collisionResult)
-    {
-        Console.WriteLine("Contact validate callback");
-
-        // Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-        return ValidateResult.AcceptAllContactsForThisBodyPair;
-    }
-
-    protected virtual void OnContactAdded(JoltPhysicsSharp.PhysicsSystem system, in Body body1, in Body body2, in ContactManifold manifold, in ContactSettings settings)
-    {
-        Console.WriteLine("A contact was added");
-    }
-
-    protected virtual void OnContactPersisted(JoltPhysicsSharp.PhysicsSystem system, in Body body1, in Body body2, in ContactManifold manifold, in ContactSettings settings)
-    {
-        Console.WriteLine("A contact was persisted");
-    }
-
-    protected virtual void OnContactRemoved(JoltPhysicsSharp.PhysicsSystem system, ref SubShapeIDPair subShapePair)
-    {
-        Console.WriteLine("A contact was removed");
-    }
-
-    protected virtual void OnBodyActivated(JoltPhysicsSharp.PhysicsSystem system, in BodyID bodyID, ulong bodyUserData)
-    {
-        Console.WriteLine("A body got activated");
-    }
-
-    protected virtual void OnBodyDeactivated(JoltPhysicsSharp.PhysicsSystem system, in BodyID bodyID, ulong bodyUserData)
-    {
-        Console.WriteLine("A body went to sleep");
     }
 }
