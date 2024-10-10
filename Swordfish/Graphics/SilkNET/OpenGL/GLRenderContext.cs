@@ -28,6 +28,7 @@ internal class GLRenderContext : IRenderContext
     private readonly IWindowContext WindowContext;
     private readonly GLContext GLContext;
     private readonly IRenderStage[] Renderers;
+    private readonly ILineRenderer LineRenderer;
 
     public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
     {
@@ -35,6 +36,7 @@ internal class GLRenderContext : IRenderContext
         WindowContext = windowContext;
         GLContext = glContext;
         Renderers = renderers;
+        LineRenderer = renderers.OfType<ILineRenderer>().First();
 
         GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
@@ -129,6 +131,15 @@ internal class GLRenderContext : IRenderContext
         return drawCalls;
     }
 
+    private class DebugDisplay(Line forward, Line right, Line up)
+    {
+        public Line Forward = forward;
+        public Line Right = right;
+        public Line Up = up;
+    }
+
+    //  TODO do this better and only allocate in debug
+    private readonly Dictionary<Transform, DebugDisplay> TransformDebuggers = [];
     public void RefreshRenderTargets()
     {
         var instanceMap = new ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>>();
@@ -140,7 +151,26 @@ internal class GLRenderContext : IRenderContext
                 instanceMap.TryAdd(renderTarget, matrices);
             }
 
-            matrices.Add(renderTarget.Transform.ToMatrix4x4());
+            Transform transform = renderTarget.Transform;
+            if (!TransformDebuggers.TryGetValue(transform, out DebugDisplay? debugDisplay))
+            {
+                debugDisplay = new DebugDisplay(
+                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 0, 1, 1)),
+                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(1, 0, 0, 1)),
+                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 1, 0, 1))
+                );
+                TransformDebuggers.Add(transform, debugDisplay);
+            }
+
+            matrices.Add(transform.ToMatrix4x4());
+
+            debugDisplay.Forward.Start = transform.Position;
+            debugDisplay.Right.Start = transform.Position;
+            debugDisplay.Up.Start = transform.Position;
+
+            debugDisplay.Forward.End = transform.Position + transform.GetForward() * transform.Scale.Z * 2;
+            debugDisplay.Right.End = transform.Position + transform.GetRight() * transform.Scale.X * 2;
+            debugDisplay.Up.End = transform.Position + transform.GetUp() * transform.Scale.Y * 2;
         }
 
         InstancedRenderTargets = instanceMap;
