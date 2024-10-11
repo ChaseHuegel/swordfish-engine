@@ -43,7 +43,7 @@ public class ECSContext : IECSContext
     private readonly HashSet<ComponentSystem> Systems;
     private EntityBuilder? _EntityBuilder;
 
-    public ECSContext()
+    public ECSContext(ComponentSystem[] systems)
     {
         Debugger.Log($"Initializing ECS context.");
 
@@ -60,8 +60,12 @@ public class ECSContext : IECSContext
         BindComponent<PhysicsComponent>();
         BindComponent<MeshRendererComponent>();
 
-        BindSystem<JoltPhysicsSystem>();
         BindSystem<MeshRendererSystem>();
+
+        foreach (ComponentSystem system in systems)
+        {
+            BindSystem(system, system.GetType());
+        }
 
         ThreadWorker = new ThreadWorker(Update, "ECS");
     }
@@ -158,6 +162,24 @@ public class ECSContext : IECSContext
         Systems.Add(system);
 
         return (TSystem)system;
+    }
+
+    private ComponentSystem BindSystem(ComponentSystem system, Type type)
+    {
+        if (Running)
+            throw new InvalidOperationException(REQ_STOP_MESSAGE);
+
+        Debugger.Log($"Binding ECS system '{type}'.");
+
+        if (system == null)
+            throw new NullReferenceException();
+
+        if (Reflection.TryGetAttribute(type, out ComponentSystemAttribute attribute))
+            system.Filter = attribute.Filter;
+
+        Systems.Add(system);
+
+        return system;
     }
 
     public Entity CreateEntity()

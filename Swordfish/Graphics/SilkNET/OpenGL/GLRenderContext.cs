@@ -48,7 +48,7 @@ internal class GLRenderContext : IRenderContext
 
         for (int i = 0; i < Renderers.Length; i++)
         {
-            Renderers[i].Load();
+            Renderers[i].Load(this);
         }
 
         Debugger.Log("Renderer initialized.");
@@ -81,6 +81,11 @@ internal class GLRenderContext : IRenderContext
         GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
 
         drawCalls += RenderInstancedTargets(view, projection);
+
+        for (int i = 0; i < Renderers.Length; i++)
+        {
+            Renderers[i].PreRender(delta, view, projection);
+        }
 
         for (int i = 0; i < Renderers.Length; i++)
         {

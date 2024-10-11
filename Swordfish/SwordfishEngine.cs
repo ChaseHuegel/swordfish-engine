@@ -1,4 +1,5 @@
 using DryIoc;
+using JoltPhysicsSharp;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -13,6 +14,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
+using Swordfish.Physics.Jolt;
 using Swordfish.UI;
 
 namespace Swordfish;
@@ -121,9 +123,11 @@ public class SwordfishEngine
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.RegisterMany<GLRenderContext>(Reuse.Singleton);
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
-        resolver.RegisterMany<LineRenderer>(Reuse.Singleton);
+        resolver.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        resolver.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
+        resolver.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
 
         resolver.RegisterInstance<IInputContext>(inputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);

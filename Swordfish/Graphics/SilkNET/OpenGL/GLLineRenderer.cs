@@ -6,7 +6,7 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
 using Shader = Swordfish.Graphics.Shader;
 
-internal class LineRenderer : IRenderStage, ILineRenderer
+internal class GLLineRenderer : IRenderStage, ILineRenderer
 {
     private ShaderProgram? ShaderProgram;
     private VertexArrayObject<float>? VAO;
@@ -14,17 +14,17 @@ internal class LineRenderer : IRenderStage, ILineRenderer
     //  ! There will likely be lock contention issues later.
     private readonly object LinesLock = new();
 
-    private readonly List<Line> Lines = new();
-    private readonly List<int> LineVertexOffsets = new();
-    private readonly List<uint> LineVertexCounts = new();
-    private readonly List<float> LineVertexData = new();
+    private readonly List<Line> Lines = [];
+    private readonly List<int> LineVertexOffsets = [];
+    private readonly List<uint> LineVertexCounts = [];
+    private readonly List<float> LineVertexData = [];
 
     private readonly GL GL;
     private readonly GLContext GLContext;
     private readonly IFileService FileService;
     private readonly IPathService PathService;
 
-    public LineRenderer(GL gl, GLContext glContext, IFileService fileService, IPathService pathService)
+    public GLLineRenderer(GL gl, GLContext glContext, IFileService fileService, IPathService pathService)
     {
         GL = gl;
         GLContext = glContext;
@@ -32,7 +32,7 @@ internal class LineRenderer : IRenderStage, ILineRenderer
         PathService = pathService;
     }
 
-    public void Load()
+    public void Load(IRenderContext renderContext)
     {
         Shader shader = FileService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
         VAO = GLContext.CreateVertexArrayObject(Array.Empty<float>());
@@ -45,6 +45,10 @@ internal class LineRenderer : IRenderStage, ILineRenderer
         ShaderProgram = ShaderToShaderProgram(shader);
         ShaderProgram.BindAttributeLocation("in_position", 0);
         ShaderProgram.BindAttributeLocation("in_color", 1);
+    }
+
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    {
     }
 
     public unsafe int Render(double delta, Matrix4x4 view, Matrix4x4 projection)

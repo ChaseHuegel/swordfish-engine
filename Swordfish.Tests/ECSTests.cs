@@ -1,3 +1,4 @@
+using System;
 using System.Diagnostics;
 using Swordfish.ECS;
 using Xunit;
@@ -11,7 +12,7 @@ public class ECSTests : TestBase
 
     public ECSTests(ITestOutputHelper output) : base(output)
     {
-        ECSContext = new ECSContext();
+        ECSContext = new ECSContext([]);
         ECSContext.Start();
         ECSContext.CreateEntity();
     }

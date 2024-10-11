@@ -5,7 +5,7 @@ using Swordfish.Library.Diagnostics;
 namespace Swordfish.Physics.Jolt;
 
 [ComponentSystem(typeof(PhysicsComponent), typeof(TransformComponent))]
-internal class JoltPhysicsSystem : ComponentSystem
+internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
 {
     private static class Layers
     {
@@ -21,11 +21,12 @@ internal class JoltPhysicsSystem : ComponentSystem
 
     private const float FIXED_TIMESTEP = 0.016f;
     private const float TIMESCALE = 1f;
+
+    public PhysicsSystem System { get; }
+
     private float _accumulator = 0f;
     private bool _accumulateUpdates = false;
-
-    public PhysicsSystem _system;
-    public BodyInterface _bodyInterface;
+    private BodyInterface _bodyInterface;
 
     private PhysicsSystemSettings _settings = new()
     {
@@ -57,8 +58,8 @@ internal class JoltPhysicsSystem : ComponentSystem
 #endif
 
         SetupCollisionFiltering();
-        _system = new PhysicsSystem(_settings);
-        _bodyInterface = _system.BodyInterface;
+        System = new PhysicsSystem(_settings);
+        _bodyInterface = System.BodyInterface;
     }
 
     protected virtual void SetupCollisionFiltering()
@@ -90,7 +91,7 @@ internal class JoltPhysicsSystem : ComponentSystem
         {
             while (_accumulator >= physicsDelta)
             {
-                _system.Update(physicsDelta, steps);
+                System.Update(physicsDelta, steps);
                 _accumulator -= physicsDelta;
             }
         }
@@ -98,7 +99,7 @@ internal class JoltPhysicsSystem : ComponentSystem
         {
             if (_accumulator >= physicsDelta)
             {
-                _system.Update(physicsDelta, steps);
+                System.Update(physicsDelta, steps);
                 _accumulator -= physicsDelta;
             }
         }
