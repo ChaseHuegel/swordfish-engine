@@ -4,6 +4,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
 
@@ -11,7 +12,7 @@ namespace Swordfish.Editor.UI;
 
 public class StatsWindow : CanvasElement
 {
-    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext) : base("Stats")
+    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext, RenderSettings renderSettings) : base("Stats")
     {
         Flags = ImGuiNET.ImGuiWindowFlags.NoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse | ImGuiNET.ImGuiWindowFlags.NoBackground | ImGuiNET.ImGuiWindowFlags.NoTitleBar;
 
@@ -42,7 +43,7 @@ public class StatsWindow : CanvasElement
         Content.Add(new DividerElement());
 
         AddIntDisplay("Draw Calls", ref renderContext.DrawCalls.Changed);
-        AddToStringDisplay("Wireframe", ref renderContext.Wireframe.Changed);
+        AddToStringDisplay("Wireframe", ref renderSettings.Wireframe.Changed);
     }
 
     private void AddDeltaToFramerateDisplay(string title, ref EventHandler<DataChangedEventArgs<double>> statHandler)

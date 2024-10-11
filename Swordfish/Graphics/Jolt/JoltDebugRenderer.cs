@@ -1,11 +1,11 @@
 using System.Drawing;
 using System.Numerics;
 using JoltPhysicsSharp;
-using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Util;
+using Swordfish.Physics.Jolt;
+using Swordfish.Settings;
 
-namespace Swordfish.Physics.Jolt;
+namespace Swordfish.Graphics.Jolt;
 
 internal class JoltDebugRenderer : DebugRenderer, IRenderStage
 {
@@ -16,14 +16,16 @@ internal class JoltDebugRenderer : DebugRenderer, IRenderStage
         public Vector4 Color = color;
     }
 
+    private readonly DebugSettings _debugSettings;
     private readonly DrawSettings _drawSettings;
     private readonly ILineRenderer _lineRenderer;
     private readonly IJoltPhysics _joltPhysics;
     private List<DrawRequest> _drawBuffer = [];
     private List<Line> _lineCache = [];
 
-    public JoltDebugRenderer(ILineRenderer lineRenderer, IJoltPhysics joltPhysics)
+    public JoltDebugRenderer(DebugSettings debugSettings, ILineRenderer lineRenderer, IJoltPhysics joltPhysics)
     {
+        _debugSettings = debugSettings;
         _lineRenderer = lineRenderer;
         _joltPhysics = joltPhysics;
 
@@ -40,7 +42,10 @@ internal class JoltDebugRenderer : DebugRenderer, IRenderStage
 
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
-        _joltPhysics.System.DrawBodies(_drawSettings, this);
+        if (_debugSettings.Gizmos.Physics)
+        {
+            _joltPhysics.System.DrawBodies(_drawSettings, this);
+        }
 
         int drawRequestDifference = _drawBuffer.Count - _lineCache.Capacity;
         if (drawRequestDifference > 0)

@@ -16,6 +16,7 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Swordfish.Types.Constraints;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
@@ -39,13 +40,14 @@ public class Editor : Plugin
     private readonly IPathService PathService;
     private readonly IRenderContext RenderContext;
     private readonly IInputService InputService;
+    private readonly DebugSettings DebugSettings;
+    private readonly RenderSettings RenderSettings;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -53,6 +55,8 @@ public class Editor : Plugin
         PathService = pathService;
         RenderContext = renderContext;
         InputService = inputService;
+        DebugSettings = debugSettings;
+        RenderSettings = renderSettings;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -107,7 +111,16 @@ public class Editor : Plugin
             WindowContext.Close
         );
 
-        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext);
+        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext, RenderSettings)
+        {
+            Visible = DebugSettings.Stats
+        };
+
+        DebugSettings.Stats.Changed += OnStatsToggled;
+        void OnStatsToggled(object? sender, DataChangedEventArgs<bool> e)
+        {
+            statsWindow.Visible = e.NewValue;
+        }
 
         MenuElement menu = new()
         {
@@ -187,21 +200,58 @@ public class Editor : Plugin
                                 Key.F5,
                                 Shortcut.DefaultEnabled,
                                 () => {
-                                    statsWindow.Visible = !statsWindow.Visible;
+                                    DebugSettings.Stats.Set(!DebugSettings.Stats);
                                 }
                             )
                         ),
-                        new MenuItemElement("Toggle wireframe", new Shortcut(
+                        new MenuItemElement("Wireframe", new Shortcut(
                                 "Wireframe",
                                 "Editor",
                                 ShortcutModifiers.NONE,
                                 Key.F6,
                                 Shortcut.DefaultEnabled,
                                 () => {
-                                    RenderContext.Wireframe.Set(!RenderContext.Wireframe);
+                                    RenderSettings.Wireframe.Set(!RenderSettings.Wireframe);
                                 }
                             )
-                        )
+                        ),
+                        new MenuItemElement("Meshes", new Shortcut(
+                                "Hide Meshes",
+                                "Editor",
+                                ShortcutModifiers.NONE,
+                                Key.F7,
+                                Shortcut.DefaultEnabled,
+                                () => {
+                                    RenderSettings.HideMeshes.Set(!RenderSettings.HideMeshes);
+                                }
+                            )
+                        ),
+                        new MenuItemElement("Gizmos") {
+                            Content = {
+                                new MenuItemElement("Transform", new Shortcut(
+                                        "Transform Gizmos",
+                                        "Debug",
+                                        ShortcutModifiers.NONE,
+                                        Key.F8,
+                                        Shortcut.DefaultEnabled,
+                                        () => {
+                                            DebugSettings.Gizmos.Transforms.Set(!DebugSettings.Gizmos.Transforms);
+                                        }
+                                    )
+                                ),
+                                new MenuItemElement("Physics", new Shortcut(
+                                        "Physics Gizmos",
+                                        "Debug",
+                                        ShortcutModifiers.NONE,
+                                        Key.F9,
+                                        Shortcut.DefaultEnabled,
+                                        () => {
+                                            DebugSettings.Gizmos.Physics.Set(!DebugSettings.Gizmos.Physics);
+                                        }
+                                    )
+                                )
+                            }
+                        }
                     }
                 },
                 new MenuItemElement("Tools"),

@@ -7,6 +7,7 @@ using Silk.NET.Windowing;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Input;
 using Swordfish.IO;
@@ -15,6 +16,7 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
 using Swordfish.Physics.Jolt;
+using Swordfish.Settings;
 using Swordfish.UI;
 
 namespace Swordfish;
@@ -140,6 +142,13 @@ public class SwordfishEngine
         resolver.Register<IFileParser, TextureArrayParser>(Reuse.Singleton);
         resolver.Register<IFileParser, OBJParser>(Reuse.Singleton);
         resolver.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton);
+
+        var renderSettings = new RenderSettings();
+        var debugSettings = new DebugSettings();
+        debugSettings.Stats.Set(true);
+
+        resolver.RegisterInstance<RenderSettings>(renderSettings);
+        resolver.RegisterInstance<DebugSettings>(debugSettings);
 
         resolver.ValidateAndThrow();
         Kernel = new Kernel(resolver);

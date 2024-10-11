@@ -7,6 +7,7 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 
 namespace Swordfish.Graphics;
 
@@ -15,8 +16,6 @@ internal class GLRenderContext : IRenderContext
     public DataBinding<Camera> Camera { get; set; } = new();
 
     public DataBinding<int> DrawCalls { get; } = new();
-
-    public DataBinding<bool> Wireframe { get; set; } = new();
 
     private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
@@ -27,16 +26,22 @@ internal class GLRenderContext : IRenderContext
     private readonly GL GL;
     private readonly IWindowContext WindowContext;
     private readonly GLContext GLContext;
+    private readonly RenderSettings RenderSettings;
+    private readonly DebugSettings DebugSettings;
     private readonly IRenderStage[] Renderers;
     private readonly ILineRenderer LineRenderer;
 
-    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
+    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, RenderSettings renderSettings, DebugSettings debugSettings, IRenderStage[] renderers)
     {
         GL = gl;
         WindowContext = windowContext;
         GLContext = glContext;
+        RenderSettings = renderSettings;
+        DebugSettings = debugSettings;
         Renderers = renderers;
         LineRenderer = renderers.OfType<ILineRenderer>().First();
+
+        DebugSettings.Gizmos.Transforms.Changed += OnTransformGizmosToggled;
 
         GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
@@ -53,7 +58,6 @@ internal class GLRenderContext : IRenderContext
 
         Debugger.Log("Renderer initialized.");
     }
-
 
     private void OnWindowRender(double delta)
     {
@@ -97,6 +101,11 @@ internal class GLRenderContext : IRenderContext
 
     private unsafe int RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
     {
+        if (RenderSettings.HideMeshes)
+        {
+            return 0;
+        }
+
         int drawCalls = 0;
         foreach (var instancedTarget in InstancedRenderTargets)
         {
@@ -128,7 +137,7 @@ internal class GLRenderContext : IRenderContext
 
             GL.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
-            GL.PolygonMode(MaterialFace.FrontAndBack, Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+            GL.PolygonMode(MaterialFace.FrontAndBack, RenderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
         }
@@ -145,8 +154,25 @@ internal class GLRenderContext : IRenderContext
 
     //  TODO do this better and only allocate in debug
     private readonly Dictionary<Transform, DebugDisplay> TransformDebuggers = [];
+
+    private void OnTransformGizmosToggled(object? sender, DataChangedEventArgs<bool> e)
+    {
+        lock (TransformDebuggers)
+        {
+            foreach (DebugDisplay debugDisplay in TransformDebuggers.Values)
+            {
+                debugDisplay.Forward.Dispose();
+                debugDisplay.Right.Dispose();
+                debugDisplay.Up.Dispose();
+            }
+            TransformDebuggers.Clear();
+        }
+    }
+
     public void RefreshRenderTargets()
     {
+        bool drawTransforms = DebugSettings.Gizmos.Transforms;
+
         var instanceMap = new ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>>();
         foreach (GLRenderTarget renderTarget in RenderTargets)
         {
@@ -157,25 +183,33 @@ internal class GLRenderContext : IRenderContext
             }
 
             Transform transform = renderTarget.Transform;
-            if (!TransformDebuggers.TryGetValue(transform, out DebugDisplay? debugDisplay))
-            {
-                debugDisplay = new DebugDisplay(
-                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 0, 1, 1)),
-                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(1, 0, 0, 1)),
-                    LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 1, 0, 1))
-                );
-                TransformDebuggers.Add(transform, debugDisplay);
-            }
-
             matrices.Add(transform.ToMatrix4x4());
 
-            debugDisplay.Forward.Start = transform.Position;
-            debugDisplay.Right.Start = transform.Position;
-            debugDisplay.Up.Start = transform.Position;
+            if (!drawTransforms)
+            {
+                continue;
+            }
 
-            debugDisplay.Forward.End = transform.Position + transform.GetForward() * transform.Scale.Z * 2;
-            debugDisplay.Right.End = transform.Position + transform.GetRight() * transform.Scale.X * 2;
-            debugDisplay.Up.End = transform.Position + transform.GetUp() * transform.Scale.Y * 2;
+            lock (TransformDebuggers)
+            {
+                if (!TransformDebuggers.TryGetValue(transform, out DebugDisplay? debugDisplay))
+                {
+                    debugDisplay = new DebugDisplay(
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 0, 1, 1)),
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(1, 0, 0, 1)),
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 1, 0, 1))
+                    );
+                    TransformDebuggers.Add(transform, debugDisplay);
+                }
+
+                debugDisplay.Forward.Start = transform.Position;
+                debugDisplay.Right.Start = transform.Position;
+                debugDisplay.Up.Start = transform.Position;
+
+                debugDisplay.Forward.End = transform.Position + transform.GetForward() * transform.Scale.Z * 2;
+                debugDisplay.Right.End = transform.Position + transform.GetRight() * transform.Scale.X * 2;
+                debugDisplay.Up.End = transform.Position + transform.GetUp() * transform.Scale.Y * 2;
+            }
         }
 
         InstancedRenderTargets = instanceMap;
