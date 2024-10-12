@@ -20,7 +20,7 @@ Needlefish (My binary serializer) https://github.com/ChaseHuegel/needlefish
 # Current State
 The engine is undergoing a full rewrite to accomplish the follow:
 
-- Update to .NET 7.0
+- Update to .NET 8.0
 - Create an editor tool.
 - Switch to Silk.NET as the OpenGL wrapper.
 - Implement a full UI API.
