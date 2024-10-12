@@ -1,9 +1,6 @@
-using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Swordfish.Library.Util;
-using MemorizedCos = FastMath.MemoizedCos;
-using MemorizedSin = FastMath.MemoizedSin;
 
 namespace Swordfish.Library.Types
 {
@@ -19,7 +16,7 @@ namespace Swordfish.Library.Types
             }
         }
 
-        public Vector3 Rotation
+        public Quaternion Rotation
         {
             get => rotation;
             set
@@ -41,47 +38,46 @@ namespace Swordfish.Library.Types
 
         private bool dirty = true;
         private Vector3 position;
-        private Vector3 rotation;
+        private Quaternion rotation = Quaternion.Identity;
         private Vector3 scale = Vector3.One;
         private Matrix4x4 matrix4x4;
 
         public Vector3 GetForward()
         {
-            //  TODO this is expensive
-            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
-            return Vector3.Transform(Vector3.UnitZ, orientation);
+            return Vector3.Transform(Vector3.UnitZ, rotation);
         }
 
         public Vector3 GetRight()
         {
-            //  TODO this is expensive
-            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
-            return Vector3.Transform(Vector3.UnitX, orientation);
+            return Vector3.Transform(Vector3.UnitX, rotation);
         }
 
         public Vector3 GetUp()
         {
-            //  TODO this is expensive
-            var orientation = Quaternion.CreateFromYawPitchRoll(Rotation.Y * MathS.DegreesToRadians, Rotation.X * MathS.DegreesToRadians, Rotation.Z * MathS.DegreesToRadians);
-            return Vector3.Transform(Vector3.UnitY, orientation);
+            return Vector3.Transform(Vector3.UnitY, rotation);
         }
 
         public void Translate(Vector3 translation)
         {
             Position += translation;
-            dirty = true;
         }
 
-        public void Rotate(Vector3 rotation)
+        public void Rotate(Vector3 rotation, bool local = false)
         {
-            Rotation += rotation;
-            dirty = true;
+            Quaternion eulerQuaternion = Quaternion.CreateFromYawPitchRoll(rotation.Y * MathS.DegreesToRadians, rotation.X * MathS.DegreesToRadians, rotation.Z * MathS.DegreesToRadians);
+            if (local)
+            {
+                Rotation = Quaternion.Multiply(this.rotation, eulerQuaternion);
+            }
+            else
+            {
+                Rotation = Quaternion.Multiply(eulerQuaternion, this.rotation);
+            }
         }
 
         public void Scalar(Vector3 scale)
         {
             Scale *= scale;
-            dirty = true;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -90,36 +86,32 @@ namespace Swordfish.Library.Types
             if (!dirty)
                 return matrix4x4;
 
-            float cosY = MathS.Cos(Rotation.Y * MathS.DegreesToRadians);
-            float sinY = MathS.Sin(Rotation.Y * MathS.DegreesToRadians);
+            Vector3 forward = GetForward();
+            Vector3 up = GetUp();
+            Vector3 right = GetRight();
 
-            float cosP = MathS.Cos(Rotation.X * MathS.DegreesToRadians);
-            float sinP = MathS.Sin(Rotation.X * MathS.DegreesToRadians);
+            Matrix4x4 matrix = new Matrix4x4
+            {
+                M11 = right.X * scale.X,
+                M12 = right.Y * scale.X,
+                M13 = right.Z * scale.X,
+                M14 = 0,
 
-            float cosR = MathS.Cos(Rotation.Z * MathS.DegreesToRadians);
-            float sinR = MathS.Sin(Rotation.Z * MathS.DegreesToRadians);
+                M21 = up.X * scale.Y,
+                M22 = up.Y * scale.Y,
+                M23 = up.Z * scale.Y,
+                M24 = 0,
 
-            var matrix = Matrix4x4.Identity;
+                M31 = forward.X * scale.Z,
+                M32 = forward.Y * scale.Z,
+                M33 = forward.Z * scale.Z,
+                M34 = 0,
 
-            float sinRcosY = sinR * cosY;
-            float sinYsinP = sinY * sinP;
-
-            matrix.M11 = (cosY * cosR + sinYsinP * sinR) * Scale.X;
-            matrix.M21 = cosR * sinYsinP - sinRcosY;
-            matrix.M31 = cosP * sinY;
-
-            matrix.M12 = cosP * sinR;
-            matrix.M22 = cosR * cosP * Scale.Y;
-            matrix.M32 = -sinP;
-
-            matrix.M13 = sinRcosY * sinP - sinY * cosR;
-            matrix.M23 = sinY * sinR + cosR * cosY * sinP;
-            matrix.M33 = cosP * cosY * Scale.Z;
-
-            matrix.M41 = Position.X;
-            matrix.M42 = Position.Y;
-            matrix.M43 = Position.Z;
-            matrix.M44 = 1.0f;
+                M41 = position.X,
+                M42 = position.Y,
+                M43 = position.Z,
+                M44 = 1
+            };
 
             dirty = false;
             return matrix4x4 = matrix;

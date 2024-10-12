@@ -10,6 +10,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using Swordfish.Physics;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -70,22 +71,23 @@ public class Demo : Mod
         WindowContext = windowContext;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        ecsContext.BindSystem<RoundaboutSystem>();
+        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     public override void Start()
     {
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
-        CreateTestEntities();
+        // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        CreateVoxelTest();
+        // CreateVoxelTest();
         // CreateTerrainTest();
-        CreateDonutDemo();
+        // CreateDonutDemo();
+        CreatePhysicsTest();
 
-        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 30, -5);
-        RenderContext.Camera.Get().Transform.Rotation = new Vector3(60, 0, 0);
+        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, -15);
+        RenderContext.Camera.Get().Transform.Rotate(new Vector3(30, 0, 0));
 
         Benchmark.Log();
     }
@@ -173,7 +175,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Brick Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 300), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 300), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -270,7 +272,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 20), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 20), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -297,7 +299,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 0), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
 
@@ -306,7 +308,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity Transparent", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 0), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -353,7 +355,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Terrain", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 25), Vector3.Zero), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -471,7 +473,7 @@ public class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Donut", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0f, 10f, 0f), Vector3.Zero, new Vector3(10f)), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(new Vector3(0f, 10f, 0f), Quaternion.Identity, new Vector3(10f)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -514,11 +516,41 @@ public class Demo : Mod
 
                     ECSContext.EntityBuilder
                         .Attach(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null), IdentifierComponent.DefaultIndex)
-                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Vector3.Zero), TransformComponent.DefaultIndex)
+                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Quaternion.Identity), TransformComponent.DefaultIndex)
                         .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
                         .Build();
                 }
             }
+        }
+    }
+
+    private void CreatePhysicsTest()
+    {
+        var mesh = new Cube();
+        var renderOptions = new RenderOptions();
+        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+
+        var floorTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+        var floorMaterial = new Material(shader, floorTexture);
+
+        var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
+        var cubeMaterial = new Material(shader, cubeTexture);
+
+        ECSContext.EntityBuilder
+            .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0, 16)), TransformComponent.DefaultIndex)
+            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+            .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static), PhysicsComponent.DefaultIndex)
+            .Build();
+
+        for (int i = 0; i < 40; i++)
+        {
+            ECSContext.EntityBuilder
+                .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
+                .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
+                .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
+                .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic), PhysicsComponent.DefaultIndex)
+                .Build();
         }
     }
 

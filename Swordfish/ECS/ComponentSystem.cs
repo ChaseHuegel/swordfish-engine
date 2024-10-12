@@ -14,6 +14,8 @@ public abstract class ComponentSystem
 
     protected virtual void OnUpdated() { }
 
+    protected virtual void Update(float deltaTime) { }
+
     public ComponentSystem()
     {
         Filter = Array.Empty<Type>();
@@ -42,6 +44,7 @@ public abstract class ComponentSystem
         for (int i = 0; i < Entities.Length; i++)
             Update(Entities[i], deltaTime);
 
+        Update(deltaTime);
         OnUpdated();
     }
 

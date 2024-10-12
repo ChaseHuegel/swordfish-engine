@@ -41,20 +41,27 @@ public class PluginContext : IPluginContext
 
     public void Register(params Assembly[] assemblies)
     {
-        IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
-
-        foreach (Type type in types)
+        try
         {
-            if (!type.IsInterface && !type.IsAbstract && typeof(IPlugin).IsAssignableFrom(type))
-            {
-                if (IsLoaded(type))
-                {
-                    Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(type)} '{type}' at '{type.Assembly.Location}'", LogType.WARNING);
-                    continue;
-                }
+            IEnumerable<Type> types = assemblies.SelectMany(assembly => assembly.GetTypes());
 
-                PluginTypes.TryAdd(type, type.Assembly);
+            foreach (Type type in types)
+            {
+                if (!type.IsInterface && !type.IsAbstract && typeof(IPlugin).IsAssignableFrom(type))
+                {
+                    if (IsLoaded(type))
+                    {
+                        Debugger.Log($"{DUPLICATE_ERROR} {GetSimpleTypeString(type)} '{type}' at '{type.Assembly.Location}'", LogType.WARNING);
+                        continue;
+                    }
+
+                    PluginTypes.TryAdd(type, type.Assembly);
+                }
             }
+        }
+        catch (Exception ex)
+        {
+            Debugger.Log($"{LOAD_ERROR} {ex}", LogType.ERROR);
         }
     }
 

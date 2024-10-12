@@ -7,6 +7,7 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 
 namespace Swordfish.Graphics;
 
@@ -15,17 +16,6 @@ internal class GLRenderContext : IRenderContext
     public DataBinding<Camera> Camera { get; set; } = new();
 
     public DataBinding<int> DrawCalls { get; } = new();
-
-    public DataBinding<bool> Wireframe { get; set; } = new();
-
-    //  Reflects the Z axis.
-    //  In openGL, positive Z is coming towards to viewer. We want it to extend away.
-    private static readonly Matrix4x4 ReflectionMatrix = new(
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, -1, 0,
-        0, 0, 0, 1
-    );
 
     private readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
@@ -36,14 +26,22 @@ internal class GLRenderContext : IRenderContext
     private readonly GL GL;
     private readonly IWindowContext WindowContext;
     private readonly GLContext GLContext;
+    private readonly RenderSettings RenderSettings;
+    private readonly DebugSettings DebugSettings;
     private readonly IRenderStage[] Renderers;
+    private readonly ILineRenderer LineRenderer;
 
-    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
+    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, RenderSettings renderSettings, DebugSettings debugSettings, IRenderStage[] renderers)
     {
         GL = gl;
         WindowContext = windowContext;
         GLContext = glContext;
+        RenderSettings = renderSettings;
+        DebugSettings = debugSettings;
         Renderers = renderers;
+        LineRenderer = renderers.OfType<ILineRenderer>().First();
+
+        DebugSettings.Gizmos.Transforms.Changed += OnTransformGizmosToggled;
 
         GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
@@ -55,12 +53,11 @@ internal class GLRenderContext : IRenderContext
 
         for (int i = 0; i < Renderers.Length; i++)
         {
-            Renderers[i].Load();
+            Renderers[i].Load(this);
         }
 
         Debugger.Log("Renderer initialized.");
     }
-
 
     private void OnWindowRender(double delta)
     {
@@ -69,14 +66,13 @@ internal class GLRenderContext : IRenderContext
             return;
 
         Camera cameraCached = Camera.Get();
-        //  Inverse the camera position when calculating view to move it into the same coordinate system as models.
-        //  Without doing this, the camera's axis are inverse of the models.
-        ViewTransform.Position = new Vector3(cameraCached.Transform.Position.X, cameraCached.Transform.Position.Y, -cameraCached.Transform.Position.Z);
-        ViewTransform.Rotation = -cameraCached.Transform.Rotation;
-        ViewTransform.Scale = cameraCached.Transform.Scale;
+        ViewTransform.Position = cameraCached.Transform.Position;
+        ViewTransform.Rotation = cameraCached.Transform.Rotation;
+        //  Reflect the camera's Z scale so +Z extends away from the viewer
+        ViewTransform.Scale = new Vector3(cameraCached.Transform.Scale.X, cameraCached.Transform.Scale.Y, -cameraCached.Transform.Scale.Z);
 
-        Matrix4x4.Invert(ViewTransform.ToMatrix4x4() * ReflectionMatrix, out Matrix4x4 view);
-        var projection = Camera.Get().GetProjection();
+        Matrix4x4.Invert(ViewTransform.ToMatrix4x4(), out Matrix4x4 view);
+        Matrix4x4 projection = Camera.Get().GetProjection();
 
         GL.ClearColor(Color.CornflowerBlue);
         GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
@@ -86,9 +82,14 @@ internal class GLRenderContext : IRenderContext
         GL.CullFace(CullFaceMode.Back);
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+        GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
 
         drawCalls += RenderInstancedTargets(view, projection);
+
+        for (int i = 0; i < Renderers.Length; i++)
+        {
+            Renderers[i].PreRender(delta, view, projection);
+        }
 
         for (int i = 0; i < Renderers.Length; i++)
         {
@@ -100,6 +101,11 @@ internal class GLRenderContext : IRenderContext
 
     private unsafe int RenderInstancedTargets(Matrix4x4 view, Matrix4x4 projection)
     {
+        if (RenderSettings.HideMeshes)
+        {
+            return 0;
+        }
+
         int drawCalls = 0;
         foreach (var instancedTarget in InstancedRenderTargets)
         {
@@ -131,7 +137,7 @@ internal class GLRenderContext : IRenderContext
 
             GL.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
             GL.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
-            GL.PolygonMode(MaterialFace.FrontAndBack, Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+            GL.PolygonMode(MaterialFace.FrontAndBack, RenderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             GL.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
         }
@@ -139,8 +145,34 @@ internal class GLRenderContext : IRenderContext
         return drawCalls;
     }
 
+    private class DebugDisplay(Line forward, Line right, Line up)
+    {
+        public Line Forward = forward;
+        public Line Right = right;
+        public Line Up = up;
+    }
+
+    //  TODO do this better and only allocate in debug
+    private readonly Dictionary<Transform, DebugDisplay> TransformDebuggers = [];
+
+    private void OnTransformGizmosToggled(object? sender, DataChangedEventArgs<bool> e)
+    {
+        lock (TransformDebuggers)
+        {
+            foreach (DebugDisplay debugDisplay in TransformDebuggers.Values)
+            {
+                debugDisplay.Forward.Dispose();
+                debugDisplay.Right.Dispose();
+                debugDisplay.Up.Dispose();
+            }
+            TransformDebuggers.Clear();
+        }
+    }
+
     public void RefreshRenderTargets()
     {
+        bool drawTransforms = DebugSettings.Gizmos.Transforms;
+
         var instanceMap = new ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>>();
         foreach (GLRenderTarget renderTarget in RenderTargets)
         {
@@ -150,7 +182,34 @@ internal class GLRenderContext : IRenderContext
                 instanceMap.TryAdd(renderTarget, matrices);
             }
 
-            matrices.Add(renderTarget.Transform.ToMatrix4x4());
+            Transform transform = renderTarget.Transform;
+            matrices.Add(transform.ToMatrix4x4());
+
+            if (!drawTransforms)
+            {
+                continue;
+            }
+
+            lock (TransformDebuggers)
+            {
+                if (!TransformDebuggers.TryGetValue(transform, out DebugDisplay? debugDisplay))
+                {
+                    debugDisplay = new DebugDisplay(
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 0, 1, 1)),
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(1, 0, 0, 1)),
+                        LineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, new Vector4(0, 1, 0, 1))
+                    );
+                    TransformDebuggers.Add(transform, debugDisplay);
+                }
+
+                debugDisplay.Forward.Start = transform.Position;
+                debugDisplay.Right.Start = transform.Position;
+                debugDisplay.Up.Start = transform.Position;
+
+                debugDisplay.Forward.End = transform.Position + transform.GetForward() * transform.Scale.Z * 2;
+                debugDisplay.Right.End = transform.Position + transform.GetRight() * transform.Scale.X * 2;
+                debugDisplay.Up.End = transform.Position + transform.GetUp() * transform.Scale.Y * 2;
+            }
         }
 
         InstancedRenderTargets = instanceMap;

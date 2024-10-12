@@ -1,4 +1,5 @@
 using DryIoc;
+using JoltPhysicsSharp;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -6,6 +7,7 @@ using Silk.NET.Windowing;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
+using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Input;
 using Swordfish.IO;
@@ -13,6 +15,8 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Threading;
+using Swordfish.Physics.Jolt;
+using Swordfish.Settings;
 using Swordfish.UI;
 
 namespace Swordfish;
@@ -121,9 +125,11 @@ public class SwordfishEngine
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.RegisterMany<GLRenderContext>(Reuse.Singleton);
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
-        resolver.RegisterMany<LineRenderer>(Reuse.Singleton);
+        resolver.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        resolver.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
+        resolver.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
 
         resolver.RegisterInstance<IInputContext>(inputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
@@ -136,6 +142,13 @@ public class SwordfishEngine
         resolver.Register<IFileParser, TextureArrayParser>(Reuse.Singleton);
         resolver.Register<IFileParser, OBJParser>(Reuse.Singleton);
         resolver.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton);
+
+        var renderSettings = new RenderSettings();
+        var debugSettings = new DebugSettings();
+        debugSettings.Stats.Set(true);
+
+        resolver.RegisterInstance<RenderSettings>(renderSettings);
+        resolver.RegisterInstance<DebugSettings>(debugSettings);
 
         resolver.ValidateAndThrow();
         Kernel = new Kernel(resolver);
