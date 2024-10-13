@@ -16,13 +16,13 @@ namespace Swordfish.Library.Types
             }
         }
 
-        public Quaternion Rotation
+        public Quaternion Orientation
         {
-            get => rotation;
+            get => orientation;
             set
             {
                 dirty = true;
-                rotation = value;
+                orientation = value;
             }
         }
 
@@ -38,23 +38,23 @@ namespace Swordfish.Library.Types
 
         private bool dirty = true;
         private Vector3 position;
-        private Quaternion rotation = Quaternion.Identity;
+        private Quaternion orientation = Quaternion.Identity;
         private Vector3 scale = Vector3.One;
         private Matrix4x4 matrix4x4;
 
         public Vector3 GetForward()
         {
-            return Vector3.Transform(Vector3.UnitZ, rotation);
+            return Vector3.Transform(Vector3.UnitZ, orientation);
         }
 
         public Vector3 GetRight()
         {
-            return Vector3.Transform(Vector3.UnitX, rotation);
+            return Vector3.Transform(Vector3.UnitX, orientation);
         }
 
         public Vector3 GetUp()
         {
-            return Vector3.Transform(Vector3.UnitY, rotation);
+            return Vector3.Transform(Vector3.UnitY, orientation);
         }
 
         public void Translate(Vector3 translation)
@@ -67,11 +67,11 @@ namespace Swordfish.Library.Types
             Quaternion eulerQuaternion = Quaternion.CreateFromYawPitchRoll(rotation.Y * MathS.DegreesToRadians, rotation.X * MathS.DegreesToRadians, rotation.Z * MathS.DegreesToRadians);
             if (local)
             {
-                Rotation = Quaternion.Multiply(this.rotation, eulerQuaternion);
+                Orientation = Quaternion.Multiply(this.orientation, eulerQuaternion);
             }
             else
             {
-                Rotation = Quaternion.Multiply(eulerQuaternion, this.rotation);
+                Orientation = Quaternion.Multiply(eulerQuaternion, this.orientation);
             }
         }
 

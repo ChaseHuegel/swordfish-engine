@@ -27,7 +27,7 @@ public class MeshRendererSystem : ComponentSystem
         }
 
         renderComponent.MeshRenderer!.Transform.Position = transform.Position;
-        renderComponent.MeshRenderer!.Transform.Rotation = transform.Rotation;
+        renderComponent.MeshRenderer!.Transform.Orientation = transform.Orientation;
         renderComponent.MeshRenderer!.Transform.Scale = transform.Scale;
     }
 }

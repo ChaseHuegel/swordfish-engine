@@ -155,7 +155,7 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
             body = physics.Body.Value;
 
             transform.Position = body.CenterOfMassPosition;
-            transform.Rotation = body.Rotation;
+            transform.Orientation = body.Rotation;
 
             physics.Velocity = body.GetLinearVelocity();
             physics.Torque = body.GetAngularVelocity();
@@ -163,7 +163,7 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         else
         {
             BoxShape shape = new(transform.Scale / 2);
-            using BodyCreationSettings creationSettings = new(shape, transform.Position, transform.Rotation, (MotionType)physics.BodyType, physics.Layer);
+            using BodyCreationSettings creationSettings = new(shape, transform.Position, transform.Orientation, (MotionType)physics.BodyType, physics.Layer);
             body = _bodyInterface.CreateBody(creationSettings);
             _bodyInterface.AddBody(body.ID, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
             physics.Body = body;

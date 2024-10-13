@@ -39,12 +39,10 @@ public class Camera
     public Matrix4x4 GetView()
     {
         ViewTransform.Position = Transform.Position;
-        ViewTransform.Rotation = Transform.Rotation;
-        //  Reflect the camera's Z scale so +Z extends away from the viewer
-        ViewTransform.Scale = new Vector3(Transform.Scale.X, Transform.Scale.Y, Transform.Scale.Z);
+        ViewTransform.Orientation = Transform.Orientation;
+        ViewTransform.Scale = Transform.Scale;
 
         Matrix4x4.Invert(ViewTransform.ToMatrix4x4(), out Matrix4x4 view);
-
         return view;
     }
 

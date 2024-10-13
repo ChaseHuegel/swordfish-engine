@@ -83,7 +83,7 @@ public class Demo : Mod
         WindowContext = windowContext;
         Physics = physics;
         InputService = inputService;
-        ClickRayLine = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Color.Cyan.ToVector4());
+        ClickRayLine = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Color.Black.ToVector4());
 
         DebugText = new TextElement("");
         CanvasElement myCanvas = new("Demo Debug Canvas")
@@ -132,12 +132,11 @@ public class Demo : Mod
         ClickRayLine.Start = ray.Origin;
         ClickRayLine.End = raycast.Point;
         Pointer.Position = raycast.Point;
-        Pointer.Rotation = ray.Vector.ToLookRotation();
+        Pointer.Orientation = ray.Vector.ToLookOrientation();
 
         if (!raycast.Hit)
         {
             DebugText.Text = "Raycast missed.";
-            ClickRayLine.Color = Color.Crimson.ToVector4();
             return;
         }
 
@@ -146,7 +145,6 @@ public class Demo : Mod
         {
             physicsComponent.Velocity = ray.Vector * 5;
             DebugText.Text = $"Hit {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr}) / {physicsComponent.Velocity}";
-            ClickRayLine.Color = Color.Aqua.ToVector4();
         }
     }
 
