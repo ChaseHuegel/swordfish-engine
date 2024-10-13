@@ -643,7 +643,7 @@ public class Editor : Plugin
     {
         private bool Populate = false;
 
-        protected override void Update(Entity entity, float deltaTime)
+        protected override void UpdateEntity(Entity entity, float deltaTime)
         {
             if (Populate)
                 Hierarchy.Content.Add(new DataTreeNode<Entity>(entity.GetComponent<IdentifierComponent>()?.Name, entity));
@@ -681,8 +681,8 @@ public class Editor : Plugin
         {
             InputService.CursorState = CursorState.LOCKED;
             Vector2 cursorDelta = InputService.CursorDelta;
-            camera.Transform.Rotate(new Vector3(0, cursorDelta.X, 0) * mouseSensitivity, false);
-            camera.Transform.Rotate(new Vector3(cursorDelta.Y, 0, 0) * mouseSensitivity, true);
+            camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
+            camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
@@ -693,10 +693,10 @@ public class Editor : Plugin
         var right = camera.Transform.GetRight();
 
         if (InputService.IsKeyHeld(Key.W))
-            camera.Transform.Position += forward * cameraSpeed * (float)delta;
+            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
 
         if (InputService.IsKeyHeld(Key.S))
-            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+            camera.Transform.Position += forward * cameraSpeed * (float)delta;
 
         if (InputService.IsKeyHeld(Key.D))
             camera.Transform.Position += right * cameraSpeed * (float)delta;

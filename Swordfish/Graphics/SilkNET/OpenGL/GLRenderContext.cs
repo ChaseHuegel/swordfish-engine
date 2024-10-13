@@ -21,8 +21,6 @@ internal class GLRenderContext : IRenderContext
     private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
     private ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> InstancedRenderTargets = new();
 
-    private readonly Transform ViewTransform = new();
-
     private readonly GL GL;
     private readonly IWindowContext WindowContext;
     private readonly GLContext GLContext;
@@ -43,7 +41,7 @@ internal class GLRenderContext : IRenderContext
 
         DebugSettings.Gizmos.Transforms.Changed += OnTransformGizmosToggled;
 
-        GL.FrontFace(FrontFaceDirection.CW);
+        // GL.FrontFace(FrontFaceDirection.CW);
         //  TODO gamma correction should be handled via a post processing shader so its tunable
         // GL.Enable(GLEnum.FramebufferSrgb);
 
@@ -66,12 +64,8 @@ internal class GLRenderContext : IRenderContext
             return;
 
         Camera cameraCached = Camera.Get();
-        ViewTransform.Position = cameraCached.Transform.Position;
-        ViewTransform.Rotation = cameraCached.Transform.Rotation;
-        //  Reflect the camera's Z scale so +Z extends away from the viewer
-        ViewTransform.Scale = new Vector3(cameraCached.Transform.Scale.X, cameraCached.Transform.Scale.Y, -cameraCached.Transform.Scale.Z);
-
-        Matrix4x4.Invert(ViewTransform.ToMatrix4x4(), out Matrix4x4 view);
+        Matrix4x4 view = Camera.Get().GetView();
+        // Matrix4x4.Invert(view, out view);
         Matrix4x4 projection = Camera.Get().GetProjection();
 
         GL.ClearColor(Color.CornflowerBlue);
@@ -79,7 +73,7 @@ internal class GLRenderContext : IRenderContext
 
         GL.Enable(EnableCap.DepthTest);
         GL.Enable(EnableCap.CullFace);
-        GL.CullFace(CullFaceMode.Back);
+        // GL.CullFace(CullFaceMode.Back);
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);

@@ -13,9 +13,10 @@ public class PhysicsComponent
     public byte Layer;
 
     public Vector3 Velocity;
-    public Quaternion Torque;
+    public Vector3 Torque;
 
     internal Body? Body;
+    internal BodyID? BodyID;
 
     public PhysicsComponent(byte layer, BodyType type)
     {
@@ -23,7 +24,7 @@ public class PhysicsComponent
         BodyType = type;
     }
 
-    public PhysicsComponent(byte layer, BodyType type, Vector3 velocity, Quaternion torque)
+    public PhysicsComponent(byte layer, BodyType type, Vector3 velocity, Vector3 torque)
     {
         Layer = layer;
         BodyType = type;

@@ -180,6 +180,16 @@ namespace Swordfish.Library.Collections
                 action.Invoke(Data[ptr * ChunkOffset + i]);
         }
 
+        public void ForEachOf<T>(int chunkIndex, Action<T> action)
+        {
+            for (int i = LowestPtr; i < HighestPtr; i++)
+            {
+                int ptr = i * ChunkOffset + chunkIndex + 1;
+                if (Data[ptr] != null)
+                    action.Invoke((T)Data[ptr]);
+            }
+        }
+
         public IEnumerable<object> EnumerateAt(int ptr)
         {
             if (ptr == NullPtr)
@@ -188,6 +198,17 @@ namespace Swordfish.Library.Collections
             ptr = ptr * ChunkOffset;
             for (int i = 1; i <= ChunkSize; i++)
                 yield return Data[ptr + i];
+        }
+
+        public IEnumerable<DataPtr<T>> EnumerateEachOf<T>(int chunkIndex)
+        {
+            for (int i = LowestPtr; i < HighestPtr; i++)
+            {
+                int ptr = i * ChunkOffset + chunkIndex + 1;
+                object data = Data[ptr];
+                if (data != null)
+                    yield return new DataPtr<T>(ptr, (T)data);
+            }
         }
 
         private int AllocatePtr()

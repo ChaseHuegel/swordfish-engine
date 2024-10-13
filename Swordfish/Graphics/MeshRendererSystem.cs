@@ -15,7 +15,7 @@ public class MeshRendererSystem : ComponentSystem
         renderContext.RefreshRenderTargets();
     }
 
-    protected override void Update(Entity entity, float deltaTime)
+    protected override void UpdateEntity(Entity entity, float deltaTime)
     {
         MeshRendererComponent renderComponent = entity.World.Store.GetAt<MeshRendererComponent>(entity.Ptr, MeshRendererComponent.DefaultIndex);
         TransformComponent transform = entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);

@@ -1,11 +1,14 @@
+using System.Numerics;
+using Swordfish.Library.Extensions;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Threading;
 
 namespace Swordfish.Physics.Jolt;
 
 [ComponentSystem(typeof(PhysicsComponent), typeof(TransformComponent))]
-internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
+internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysics
 {
     private static class Layers
     {
@@ -22,11 +25,17 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
     private const float FIXED_TIMESTEP = 0.016f;
     private const float TIMESCALE = 1f;
 
+    public event EventHandler<EventArgs>? FixedUpdate;
+
     public PhysicsSystem System { get; }
 
     private float _accumulator = 0f;
     private bool _accumulateUpdates = false;
     private BodyInterface _bodyInterface;
+    private BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
+    private ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
+    private BodyFilter _bodyFilter = new SimpleBodyFilter();
+    private ThreadContext? _context;
 
     private PhysicsSystemSettings _settings = new()
     {
@@ -83,6 +92,8 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
 
     protected override void Update(float deltaTime)
     {
+        _context ??= ThreadContext.PinCurrentThread();
+
         _accumulator += deltaTime;
 
         float physicsDelta = FIXED_TIMESTEP * TIMESCALE;
@@ -91,7 +102,21 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
         {
             while (_accumulator >= physicsDelta)
             {
+                FixedUpdate?.Invoke(this, EventArgs.Empty);
+                _context.ProcessMessageQueue();
+
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    SyncJoltToEntity(Entities[i]);
+                }
+
                 System.Update(physicsDelta, steps);
+
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    SyncEntityToJolt(Entities[i]);
+                }
+
                 _accumulator -= physicsDelta;
             }
         }
@@ -99,13 +124,27 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
         {
             if (_accumulator >= physicsDelta)
             {
+                FixedUpdate?.Invoke(this, EventArgs.Empty);
+                _context.ProcessMessageQueue();
+
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    SyncJoltToEntity(Entities[i]);
+                }
+
                 System.Update(physicsDelta, steps);
+
+                for (int i = 0; i < Entities.Length; i++)
+                {
+                    SyncEntityToJolt(Entities[i]);
+                }
+
                 _accumulator -= physicsDelta;
             }
         }
     }
 
-    protected override void Update(Entity entity, float deltaTime)
+    private void SyncEntityToJolt(Entity entity)
     {
         PhysicsComponent physics = entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
         TransformComponent transform = entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
@@ -114,6 +153,12 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
         if (physics.Body.HasValue)
         {
             body = physics.Body.Value;
+
+            transform.Position = body.CenterOfMassPosition;
+            transform.Rotation = body.Rotation;
+
+            physics.Velocity = body.GetLinearVelocity();
+            physics.Torque = body.GetAngularVelocity();
         }
         else
         {
@@ -122,9 +167,33 @@ internal class JoltPhysicsSystem : ComponentSystem, IJoltPhysics
             body = _bodyInterface.CreateBody(creationSettings);
             _bodyInterface.AddBody(body.ID, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
             physics.Body = body;
+            physics.BodyID = body.ID;
+
+            _bodyInterface.SetLinearVelocity(body.ID, physics.Velocity);
+            _bodyInterface.SetAngularVelocity(body.ID, physics.Torque);
+        }
+    }
+
+    private void SyncJoltToEntity(Entity entity)
+    {
+        PhysicsComponent physics = entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
+        if (!physics.Body.HasValue)
+        {
+            return;
         }
 
-        transform.Position = body.CenterOfMassPosition;
-        transform.Rotation = body.Rotation;
+        Body body = physics.Body.Value;
+        _bodyInterface.SetLinearVelocity(body.ID, physics.Velocity);
+        _bodyInterface.SetAngularVelocity(body.ID, physics.Torque);
+    }
+
+    public RaycastResult Raycast(in Ray ray)
+    {
+        if (_context == null)
+        {
+            return default;
+        }
+
+        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(Entities, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
     }
 }

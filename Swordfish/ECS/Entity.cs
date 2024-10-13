@@ -7,7 +7,7 @@ public struct Entity
 {
     public const int Null = ChunkedDataStore.NullPtr;
 
-    public int Ptr { get; }
+    public int Ptr { get; } = Null;
     public ECSContext World { get; }
     public ChunkedDataStore Store { get; }
 
