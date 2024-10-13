@@ -113,8 +113,9 @@ namespace Swordfish.Library.Types
                 M44 = 1
             };
 
+            matrix4x4 = matrix;
             dirty = false;
-            return matrix4x4 = matrix;
+            return matrix;
         }
     }
 }
