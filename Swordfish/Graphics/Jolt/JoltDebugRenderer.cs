@@ -85,7 +85,7 @@ internal class JoltDebugRenderer : DebugRenderer, IRenderStage
     protected override void DrawLine(Vector3 from, Vector3 to, uint color)
     {
         Color argb = Color.FromArgb((int)color);
-        _drawBuffer.Add(new DrawRequest(from, to, new Vector4(argb.B, argb.G, argb.R, argb.A)));
+        _drawBuffer.Add(new DrawRequest(from, to, new Vector4(argb.R, argb.G, argb.B, argb.A)));
     }
 
     protected override void DrawText3D(Vector3 position, string? text, uint color, float height = 0.5F)
