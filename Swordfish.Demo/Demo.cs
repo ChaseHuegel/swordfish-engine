@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Numerics;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
@@ -8,16 +7,13 @@ using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types.Constraints;
 using Swordfish.UI.Elements;
-using Swordfish.Util;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
@@ -71,9 +67,7 @@ public class Demo : Mod
     private readonly IFileService FileService;
     private readonly IPhysics Physics;
     private readonly IInputService InputService;
-    private readonly Line ClickRayLine;
     private readonly TextElement DebugText;
-    private readonly TransformComponent Pointer = new(Vector3.Zero, Quaternion.Identity, Vector3.One);
 
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer)
     {
@@ -83,7 +77,6 @@ public class Demo : Mod
         WindowContext = windowContext;
         Physics = physics;
         InputService = inputService;
-        ClickRayLine = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Color.Black.ToVector4());
 
         DebugText = new TextElement("");
         CanvasElement myCanvas = new("Demo Debug Canvas")
@@ -116,6 +109,7 @@ public class Demo : Mod
         };
 
         inputService.Clicked += OnClick;
+        inputService.Scrolled += OnScroll;
         Physics.FixedUpdate += OnFixedUpdate;
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
@@ -129,23 +123,41 @@ public class Demo : Mod
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
         RaycastResult raycast = Physics.Raycast(ray * 100);
 
-        ClickRayLine.Start = ray.Origin;
-        ClickRayLine.End = raycast.Point;
-        Pointer.Position = raycast.Point;
-        Pointer.Orientation = ray.Vector.ToLookOrientation();
-
         if (!raycast.Hit)
         {
-            DebugText.Text = "Raycast missed.";
+            DebugText.Text = "";
             return;
         }
 
-        PhysicsComponent? physicsComponent = raycast.Entity.GetComponent<PhysicsComponent>();
-        if (physicsComponent != null)
+        DebugText.Text = $"Hovering {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
+
+        if (!InputService.IsMouseHeld(MouseButton.LEFT))
         {
-            physicsComponent.Velocity = ray.Vector * 5;
-            DebugText.Text = $"Hit {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr}) / {physicsComponent.Velocity}";
+            return;
         }
+
+        TransformComponent? transform = raycast.Entity.GetComponent<TransformComponent>();
+        if (transform == null)
+        {
+            return;
+        }
+
+        float scroll = _scrollBuffer;
+        transform.Position = raycast.Point;
+        if (scroll != 0)
+        {
+            transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
+            _scrollBuffer -= scroll;
+        }
+
+        PhysicsComponent? physics = raycast.Entity.GetComponent<PhysicsComponent>();
+        if (physics == null)
+        {
+            return;
+        }
+
+        physics.Velocity = Vector3.Zero;
+        physics.Torque = Vector3.Zero;
     }
 
     private void OnClick(object? sender, ClickedEventArgs e)
@@ -158,13 +170,42 @@ public class Demo : Mod
         Camera camera = RenderContext.Camera.Get();
         Vector2 cursorPos = InputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
+        RaycastResult raycast = Physics.Raycast(ray * 100);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent($"Projectile", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(ray.Origin, Quaternion.Identity), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(new MeshRenderer(projectileMesh, projectileMaterial, projectileRenderOptions)), MeshRendererComponent.DefaultIndex)
-            .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic) { Velocity = ray.Vector * 80 }, PhysicsComponent.DefaultIndex)
-            .Build();
+        if (!raycast.Hit)
+        {
+            return;
+        }
+    }
+
+    private volatile float _scrollBuffer = 0f;
+    private void OnScroll(object? sender, ScrolledEventArgs e)
+    {
+        Camera camera = RenderContext.Camera.Get();
+        Vector2 cursorPos = InputService.CursorPosition;
+        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
+        RaycastResult raycast = Physics.Raycast(ray * 100);
+
+        if (!raycast.Hit)
+        {
+            DebugText.Text = "";
+            return;
+        }
+
+        DebugText.Text = $"Hovering {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
+
+        if (!InputService.IsMouseHeld(MouseButton.LEFT))
+        {
+            return;
+        }
+
+        TransformComponent? transform = raycast.Entity.GetComponent<TransformComponent>();
+        if (transform == null)
+        {
+            return;
+        }
+
+        _scrollBuffer += e.Delta;
     }
 
     public override void Start()
@@ -617,10 +658,6 @@ public class Demo : Mod
         }
     }
 
-    private Mesh projectileMesh;
-    private Material projectileMaterial;
-    private RenderOptions projectileRenderOptions;
-
     private void CreatePhysicsTest()
     {
         var mesh = new Cube();
@@ -632,19 +669,6 @@ public class Demo : Mod
 
         var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
         var cubeMaterial = new Material(shader, cubeTexture);
-
-        var pointerTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("pt.png"));
-        var pointerMaterial = new Material(shader, pointerTexture);
-
-        projectileMesh = mesh;
-        projectileMaterial = cubeMaterial;
-        projectileRenderOptions = renderOptions;
-
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Pointer", null), IdentifierComponent.DefaultIndex)
-            .Attach(Pointer, TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, pointerMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
-            .Build();
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)

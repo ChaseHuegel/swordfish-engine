@@ -76,6 +76,7 @@ public class SilkInputService : IInputService
     private readonly IInputContext Context;
     private readonly ConcurrentDictionary<Key, InputRecord> KeyInputMap = new();
     private readonly ConcurrentDictionary<MouseButton, InputRecord> MouseInputMap = new();
+    private readonly InputRecord ScrollRecord = new();
 
     private class InputRecord
     {
@@ -139,7 +140,7 @@ public class SilkInputService : IInputService
 
     public float GetMouseScroll()
     {
-        return LastScroll;
+        return ScrollRecord.LastInput.ElapsedMilliseconds < InputBufferMs ? LastScroll : 0f;
     }
 
     public bool IsButtonHeld(InputButton button)
@@ -275,6 +276,8 @@ public class SilkInputService : IInputService
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
     {
         LastScroll = wheel.Y;
+        ScrollRecord.LastInput.Restart();
+
         Scrolled?.Invoke(
             new InputDevice(mouse.Index, mouse.Name),
             new ScrolledEventArgs(wheel.Y)
