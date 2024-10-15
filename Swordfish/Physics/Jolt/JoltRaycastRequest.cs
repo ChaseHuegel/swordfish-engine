@@ -2,6 +2,7 @@ using System.Numerics;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Physics.Jolt;
 
@@ -16,7 +17,7 @@ internal readonly struct JoltRaycastRequest(Entity[] entities, PhysicsSystem sys
 
     public static RaycastResult Invoke(JoltRaycastRequest args)
     {
-        bool rayHit = args.system.NarrowPhaseQuery.CastRay(args.ray.Origin, args.ray.Vector, out RayCastResult result, args.broadPhaseLayerFilter, args.objectLayerFilter, args.bodyFilter);
+        bool rayHit = args.system.NarrowPhaseQueryNoLock.CastRay(args.ray.Origin, args.ray.Vector, out RayCastResult result, args.broadPhaseLayerFilter, args.objectLayerFilter, args.bodyFilter);
         Vector3 hitPoint = rayHit ? args.ray.Origin + args.ray.Vector * result.Fraction : args.ray.Origin + args.ray.Vector;
 
         if (!rayHit)

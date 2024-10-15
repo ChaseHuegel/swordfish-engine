@@ -202,10 +202,10 @@ namespace Swordfish.Library.Collections
 
         public IEnumerable<DataPtr<T>> EnumerateEachOf<T>(int chunkIndex)
         {
-            for (int i = LowestPtr; i < HighestPtr; i++)
+            for (int ptr = LowestPtr; ptr < HighestPtr; ptr++)
             {
-                int ptr = i * ChunkOffset + chunkIndex + 1;
-                object data = Data[ptr];
+                int dataIndex = ptr * ChunkOffset + chunkIndex + 1;
+                object data = Data[dataIndex];
                 if (data != null)
                     yield return new DataPtr<T>(ptr, (T)data);
             }
