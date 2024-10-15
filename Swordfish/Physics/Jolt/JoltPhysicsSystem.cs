@@ -169,22 +169,22 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
             physics.Body = body;
             physics.BodyID = body.ID;
 
-            _bodyInterface.SetLinearVelocity(body.ID, physics.Velocity);
-            _bodyInterface.SetAngularVelocity(body.ID, physics.Torque);
+            SyncJoltToEntity(entity, physics, transform);
         }
     }
 
-    private void SyncJoltToEntity(Entity entity)
+    private void SyncJoltToEntity(Entity entity, PhysicsComponent? physics = null, TransformComponent? transform = null)
     {
-        PhysicsComponent physics = entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
+        physics ??= entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
         if (!physics.Body.HasValue)
         {
             return;
         }
 
         Body body = physics.Body.Value;
-        _bodyInterface.SetLinearVelocity(body.ID, physics.Velocity);
-        _bodyInterface.SetAngularVelocity(body.ID, physics.Torque);
+        transform ??= entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
+
+        _bodyInterface.SetPositionRotationAndVelocity(body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
     public RaycastResult Raycast(in Ray ray)
