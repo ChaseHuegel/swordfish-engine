@@ -25,7 +25,6 @@ internal readonly struct JoltRaycastRequest(Entity[] entities, PhysicsSystem sys
             return new RaycastResult(false, new Entity(), hitPoint);
         }
 
-        //  BUG this is not finding the correct Body
         ECSContext world = args.entities[0].World;
         DataPtr<PhysicsComponent> match = world.Store
             .EnumerateEachOf<PhysicsComponent>(PhysicsComponent.DefaultIndex)
