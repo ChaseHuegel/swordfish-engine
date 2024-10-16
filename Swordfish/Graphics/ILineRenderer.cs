@@ -5,11 +5,11 @@ namespace Swordfish.Graphics;
 
 public interface ILineRenderer
 {
-    Line CreateLine();
+    Line CreateLine(bool alwaysOnTop = false);
 
-    Line CreateLine(Vector3 start, Vector3 end);
+    Line CreateLine(Vector3 start, Vector3 end, bool alwaysOnTop = false);
 
-    Line CreateLine(Vector3 start, Vector3 end, Vector4 color);
+    Line CreateLine(Vector3 start, Vector3 end, Vector4 color, bool alwaysOnTop = false);
 
     void DeleteLine(Line line);
 }
