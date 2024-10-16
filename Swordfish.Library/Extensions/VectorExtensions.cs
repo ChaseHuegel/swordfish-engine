@@ -79,5 +79,16 @@ namespace Swordfish.Library.Extensions
         {
             return (eye - position).ToLookOrientation(up);
         }
+
+        public static Vector3 Slerp(this Vector3 start, Vector3 end, float t)
+        {
+            float dot = Math.Clamp(Vector3.Dot(start, end), -1.0f, 1.0f);
+            float radians = MathF.Acos(dot) * t;
+            float cos = MathF.Cos(radians);
+            float sin = MathF.Sin(radians);
+
+            Vector3 relative = Vector3.Normalize(end - start * dot);
+            return (start * cos) + (relative * sin);
+        }
     }
 }

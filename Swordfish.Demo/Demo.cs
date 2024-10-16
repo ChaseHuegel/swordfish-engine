@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Net.Sockets;
 using System.Numerics;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
@@ -10,6 +12,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types.Constraints;
@@ -18,7 +21,7 @@ using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
 
-public class Demo : Mod
+public partial class Demo : Mod
 {
     public override string Name => "Swordfish Demo";
     public override string Description => "A demo of the Swordfish engine.";
@@ -111,10 +114,17 @@ public class Demo : Mod
         inputService.Clicked += OnClick;
         inputService.Scrolled += OnScroll;
         Physics.FixedUpdate += OnFixedUpdate;
+        _positionGizmo = new PositionGizmo(lineRenderer);
+        _orientationGizmo = new OrientationGizmo(lineRenderer);
+        _scaleGizmo = new ScaleGizmo(lineRenderer);
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
         // ecsContext.BindSystem<RoundaboutSystem>();
     }
+
+    private PositionGizmo _positionGizmo;
+    private OrientationGizmo _orientationGizmo;
+    private ScaleGizmo _scaleGizmo;
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
@@ -149,6 +159,10 @@ public class Demo : Mod
             transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
             _scrollBuffer -= scroll;
         }
+
+        _positionGizmo.Render(transform);
+        _orientationGizmo.Render(transform);
+        _scaleGizmo.Render(transform);
 
         PhysicsComponent? physics = raycast.Entity.GetComponent<PhysicsComponent>();
         if (physics == null)
@@ -188,11 +202,8 @@ public class Demo : Mod
 
         if (!raycast.Hit)
         {
-            DebugText.Text = "";
             return;
         }
-
-        DebugText.Text = $"Hovering {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
 
         if (!InputService.IsMouseHeld(MouseButton.LEFT))
         {
