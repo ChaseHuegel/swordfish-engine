@@ -114,9 +114,9 @@ public partial class Demo : Mod
         inputService.Clicked += OnClick;
         inputService.Scrolled += OnScroll;
         Physics.FixedUpdate += OnFixedUpdate;
-        _positionGizmo = new PositionGizmo(lineRenderer);
-        _orientationGizmo = new OrientationGizmo(lineRenderer);
-        _scaleGizmo = new ScaleGizmo(lineRenderer);
+        _positionGizmo = new PositionGizmo(lineRenderer, RenderContext.Camera.Get());
+        _orientationGizmo = new OrientationGizmo(lineRenderer, RenderContext.Camera.Get());
+        _scaleGizmo = new ScaleGizmo(lineRenderer, RenderContext.Camera.Get());
 
         DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
         // ecsContext.BindSystem<RoundaboutSystem>();

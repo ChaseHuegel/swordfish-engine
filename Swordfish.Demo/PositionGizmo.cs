@@ -9,13 +9,16 @@ namespace Swordfish.Demo;
 public sealed class PositionGizmo : IDisposable
 {
     private readonly Line[] _lines;
+    private readonly Camera _camera;
 
-    public PositionGizmo(ILineRenderer lineRenderer)
+    public PositionGizmo(ILineRenderer lineRenderer, Camera camera)
     {
+        _camera = camera;
+
         _lines = new Line[9];
         for (int i = 0; i < _lines.Length; i++)
         {
-            _lines[i] = lineRenderer.CreateLine();
+            _lines[i] = lineRenderer.CreateLine(alwaysOnTop: true);
         }
     }
 
@@ -29,59 +32,62 @@ public sealed class PositionGizmo : IDisposable
 
     public void Render(TransformComponent transform)
     {
-        const float SIZE = 2f;
-
         Vector3 pos = transform.Position;
         Vector3 forward = transform.GetForward();
         Vector3 up = transform.GetUp();
         Vector3 right = transform.GetRight();
 
+        const float BASE_SIZE = 2f;
+        float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
+        float size = BASE_SIZE * scale;
+        float armSize = 0.5f * scale;
+
         //  X axis
         Line line = _lines[0];
         line.Start = pos;
-        line.End = pos + right * SIZE;
+        line.End = pos + right * size;
         line.Color = new Vector4(1, 0, 0, 1);
 
         Line armR = _lines[1];
         armR.Start = line.End;
-        armR.End = line.End - Vector3.Normalize(right + forward) * 0.5f;
+        armR.End = line.End - Vector3.Normalize(right + forward) * armSize;
         armR.Color = line.Color;
 
         Line armL = _lines[2];
         armL.Start = line.End;
-        armL.End = line.End - Vector3.Normalize(right - forward) * 0.5f;
+        armL.End = line.End - Vector3.Normalize(right - forward) * armSize;
         armL.Color = line.Color;
 
         //  Y axis
         line = _lines[3];
         line.Start = pos;
-        line.End = pos + up * SIZE;
+        line.End = pos + up * size;
         line.Color = new Vector4(0, 1, 0, 1);
 
         armR = _lines[4];
         armR.Start = line.End;
-        armR.End = line.End - Vector3.Normalize(up + right) * 0.5f;
+        armR.End = line.End - Vector3.Normalize(up + right) * armSize;
         armR.Color = line.Color;
 
         armL = _lines[5];
         armL.Start = line.End;
-        armL.End = line.End - Vector3.Normalize(up - right) * 0.5f;
+        armL.End = line.End - Vector3.Normalize(up - right) * armSize;
         armL.Color = line.Color;
 
         //  Z axis
         line = _lines[6];
         line.Start = pos;
-        line.End = pos + forward * SIZE;
+        line.End = pos + forward * size;
         line.Color = new Vector4(0, 0, 1, 1);
 
         armR = _lines[7];
         armR.Start = line.End;
-        armR.End = line.End - Vector3.Normalize(forward + right) * 0.5f;
+        armR.End = line.End - Vector3.Normalize(forward + right) * armSize;
         armR.Color = line.Color;
 
         armL = _lines[8];
         armL.Start = line.End;
-        armL.End = line.End - Vector3.Normalize(forward - right) * 0.5f;
+        armL.End = line.End - Vector3.Normalize(forward - right) * armSize;
         armL.Color = line.Color;
     }
 }
