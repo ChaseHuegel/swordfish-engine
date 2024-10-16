@@ -76,14 +76,14 @@ public class Editor : Plugin
         //  Create the grid and axis display
         const int GRID_SIZE = 500;
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 1f));
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(-GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 0.25f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(-GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 0.25f), alwaysOnTop: true);
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 1f));
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, -GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 0.25f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, -GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 0.25f), alwaysOnTop: true);
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, GRID_SIZE), new Vector4(0f, 0f, 1f, 1f));
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, -GRID_SIZE), new Vector4(0f, 0f, 1f, 0.25f));
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, GRID_SIZE), new Vector4(0f, 0f, 1f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, -GRID_SIZE), new Vector4(0f, 0f, 1f, 0.25f), alwaysOnTop: true);
 
         for (int x = -GRID_SIZE; x <= GRID_SIZE; x++)
         {
