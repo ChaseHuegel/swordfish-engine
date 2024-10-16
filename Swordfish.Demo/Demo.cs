@@ -683,7 +683,7 @@ public partial class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(1600, 0, 1600)), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0, 16)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
             .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static), PhysicsComponent.DefaultIndex)
             .Build();
