@@ -30,4 +30,19 @@ public class TransformComponent
         Orientation = orientation;
         Scale = scale;
     }
+
+    public Vector3 GetForward()
+    {
+        return Vector3.Transform(Vector3.UnitZ, Orientation);
+    }
+
+    public Vector3 GetRight()
+    {
+        return Vector3.Transform(Vector3.UnitX, Orientation);
+    }
+
+    public Vector3 GetUp()
+    {
+        return Vector3.Transform(Vector3.UnitY, Orientation);
+    }
 }
