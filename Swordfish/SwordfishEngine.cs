@@ -9,6 +9,7 @@ using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Input;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
@@ -124,6 +125,7 @@ public class SwordfishEngine
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.RegisterMany<GLRenderContext>(Reuse.Singleton);
+        resolver.Register<IRenderStage, GLInstancedRenderer>();
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
         resolver.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);

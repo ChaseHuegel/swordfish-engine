@@ -9,12 +9,6 @@ public class MeshRendererSystem : ComponentSystem
     private static IRenderContext RenderContext => renderContext ??= SwordfishEngine.Kernel.Get<IRenderContext>();
     private static IRenderContext? renderContext;
 
-    protected override void OnUpdated()
-    {
-        var renderContext = SwordfishEngine.Kernel.Get<IRenderContext>();
-        renderContext.RefreshRenderTargets();
-    }
-
     protected override void UpdateEntity(Entity entity, float deltaTime)
     {
         MeshRendererComponent renderComponent = entity.World.Store.GetAt<MeshRendererComponent>(entity.Ptr, MeshRendererComponent.DefaultIndex);

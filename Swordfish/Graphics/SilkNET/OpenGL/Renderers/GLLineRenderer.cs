@@ -1,10 +1,9 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics;
-using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
-using Shader = Swordfish.Graphics.Shader;
+
+namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 internal class GLLineRenderer : IRenderStage, ILineRenderer
 {
@@ -37,8 +36,13 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
         PathService = pathService;
     }
 
-    public void Load(IRenderContext renderContext)
+    public void Initialize(IRenderContext renderContext)
     {
+        if (renderContext is not GLRenderContext)
+        {
+            throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+        }
+
         Shader shader = FileService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
         VAO = GLContext.CreateVertexArrayObject(Array.Empty<float>());
 

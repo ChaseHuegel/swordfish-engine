@@ -36,7 +36,7 @@ internal class JoltDebugRenderer : DebugRenderer, IRenderStage
         };
     }
 
-    public void Load(IRenderContext renderContext)
+    public void Initialize(IRenderContext renderContext)
     {
     }
 

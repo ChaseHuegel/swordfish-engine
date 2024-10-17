@@ -8,8 +8,6 @@ public interface IRenderContext
 
     DataBinding<int> DrawCalls { get; }
 
-    void RefreshRenderTargets();
-
     void Bind(Shader shader);
 
     void Bind(Texture texture);
