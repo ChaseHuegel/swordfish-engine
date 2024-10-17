@@ -54,8 +54,6 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
         ShaderProgram = ShaderToShaderProgram(shader);
         ShaderProgram.BindAttributeLocation("in_position", 0);
         ShaderProgram.BindAttributeLocation("in_color", 1);
-
-        GL.Enable(GLEnum.LineSmooth);
     }
 
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
