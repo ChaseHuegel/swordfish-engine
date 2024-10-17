@@ -131,7 +131,7 @@ public partial class Demo : Mod
         Camera camera = RenderContext.Camera.Get();
         Vector2 cursorPos = InputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 100);
+        RaycastResult raycast = Physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
         {
@@ -184,7 +184,7 @@ public partial class Demo : Mod
         Camera camera = RenderContext.Camera.Get();
         Vector2 cursorPos = InputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 100);
+        RaycastResult raycast = Physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
         {
@@ -198,7 +198,7 @@ public partial class Demo : Mod
         Camera camera = RenderContext.Camera.Get();
         Vector2 cursorPos = InputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 100);
+        RaycastResult raycast = Physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
         {
