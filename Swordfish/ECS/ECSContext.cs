@@ -59,6 +59,7 @@ public class ECSContext : IECSContext
         BindComponent<TransformComponent>();
         BindComponent<PhysicsComponent>();
         BindComponent<MeshRendererComponent>();
+        BindComponent<ColliderComponent>();
 
         BindSystem<MeshRendererSystem>();
 

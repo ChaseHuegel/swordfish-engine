@@ -1,9 +1,11 @@
-using System.Numerics;
 using Swordfish.Library.Extensions;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
+using Swordfish.Library.Types.Shapes;
+using System.Numerics;
+using Plane = Swordfish.Library.Types.Shapes.Plane;
 
 namespace Swordfish.Physics.Jolt;
 
@@ -69,6 +71,16 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         SetupCollisionFiltering();
         System = new PhysicsSystem(_settings);
         _bodyInterface = System.BodyInterface;
+    }
+
+    public RaycastResult Raycast(in Ray ray)
+    {
+        if (_context == null)
+        {
+            return default;
+        }
+
+        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(Entities, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
     }
 
     protected virtual void SetupCollisionFiltering()
@@ -162,10 +174,16 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         }
         else
         {
-            BoxShape shape = new(transform.Scale / 2);
+            ColliderComponent collider = entity.World.Store.GetAt<ColliderComponent>(entity.Ptr, ColliderComponent.DefaultIndex);
+            if (collider == null || !TryGetJoltShape(collider, transform, out Shape shape))
+            {
+                return;
+            }
+
             using BodyCreationSettings creationSettings = new(shape, transform.Position, transform.Orientation, (MotionType)physics.BodyType, physics.Layer);
             body = _bodyInterface.CreateBody(creationSettings);
             _bodyInterface.AddBody(body.ID, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+            _bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.CollisionDetection);
             physics.Body = body;
             physics.BodyID = body.ID;
 
@@ -187,13 +205,34 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         _bodyInterface.SetPositionRotationAndVelocity(body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
-    public RaycastResult Raycast(in Ray ray)
+    private static bool TryGetJoltShape(ColliderComponent collider, TransformComponent transform, out Shape shape)
     {
-        if (_context == null)
+        switch (collider.Shape)
         {
-            return default;
+            case Box3 box3:
+                shape = new BoxShape(box3.Extents * 0.5f * transform.Scale);
+                return true;
+            case Box2 box2:
+                shape = new BoxShape(new Vector3(box2.Extents.X * 0.5f * transform.Scale.X, box2.Extents.Y * 0.5f * transform.Scale.Y, 0));
+                return true;
+            case Sphere sphere:
+                shape = new SphereShape(sphere.Radius * (transform.Scale.X + transform.Scale.Y + transform.Scale.Z) / 3);
+                return true;
+            case Circle circle:
+                shape = new SphereShape(circle.Radius * (transform.Scale.X + transform.Scale.Y) / 2);
+                return true;
+            case Capsule capsule:
+                shape = new CapsuleShape(capsule.Height * 0.5f * transform.Scale.Y, capsule.Radius * (transform.Scale.X + transform.Scale.Z) / 2);
+                return true;
+            case Cylinder cylinder:
+                shape = new CylinderShape(cylinder.Height * 0.5f * transform.Scale.Y, cylinder.Radius * (transform.Scale.X + transform.Scale.Z) / 2);
+                return true;
+            case Plane plane:
+                shape = new PlaneShape(new System.Numerics.Plane(plane.Normal, 0), null, plane.Extent * 0.5f * (transform.Scale.X + transform.Scale.Z) / 2);
+                return true;
         }
 
-        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(Entities, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
+        shape = null!;
+        return false;
     }
 }

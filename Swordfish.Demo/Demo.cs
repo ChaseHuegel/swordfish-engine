@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Net.Sockets;
 using System.Numerics;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
@@ -12,7 +10,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types.Constraints;
@@ -685,7 +683,8 @@ public partial class Demo : Mod
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
             .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0, 16)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
-            .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static), PhysicsComponent.DefaultIndex)
+            .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete), PhysicsComponent.DefaultIndex)
+            .Attach(new ColliderComponent(new Box3(Vector3.One)), ColliderComponent.DefaultIndex)
             .Build();
 
         for (int i = 0; i < 40; i++)
@@ -694,7 +693,8 @@ public partial class Demo : Mod
                 .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
                 .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
                 .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
-                .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic), PhysicsComponent.DefaultIndex)
+                .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete), PhysicsComponent.DefaultIndex)
+                .Attach(new ColliderComponent(new Box3(Vector3.One)), ColliderComponent.DefaultIndex)
                 .Build();
         }
     }
