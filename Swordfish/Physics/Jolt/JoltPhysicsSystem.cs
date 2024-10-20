@@ -235,7 +235,7 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
                 return true;
 
             case Plane plane:
-                joltShape = new PlaneShape(new System.Numerics.Plane(plane.Normal, 0), null, plane.Extent * 0.5f * (scale.X + scale.Z) / 2);
+                joltShape = new PlaneShape(new System.Numerics.Plane(plane.Normal, plane.Distance), null, 5_000);
                 return true;
 
             case CompoundShape compoundShape:

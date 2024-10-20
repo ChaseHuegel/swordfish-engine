@@ -5,12 +5,17 @@ namespace Swordfish.Library.Types.Shapes
     public struct Plane : IShape
     {
         public Vector3 Normal;
-        public float Extent;
+        public float Distance;
 
-        public Plane(Vector3 normal, float extent)
+        public Plane(Vector3 normal, float distance = 0f)
         {
             Normal = normal;
-            Extent = extent;
+            Distance = distance;
+        }
+
+        public Vector3 GetPosition()
+        {
+            return Normal * Distance;
         }
     }
 }

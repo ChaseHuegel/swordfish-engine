@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Types;
 using Swordfish.Library.Extensions;
 using Swordfish.Settings;
 

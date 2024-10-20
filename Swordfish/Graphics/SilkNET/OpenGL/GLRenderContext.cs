@@ -30,7 +30,7 @@ internal class GLRenderContext : IRenderContext
         GLContext = glContext;
         Renderers = renderers;
 
-        GL.ClearColor(Color.CornflowerBlue);
+        GL.ClearColor(Color.FromArgb(20, 21, 37));
         GL.Enable(EnableCap.DepthTest);
         GL.Enable(EnableCap.CullFace);
         GL.Enable(EnableCap.Blend);
