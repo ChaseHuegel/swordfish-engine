@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
+using DryIoc.FastExpressionCompiler.LightExpression;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
 using Swordfish.Demo.ECS;
@@ -224,7 +226,7 @@ public partial class Demo : Mod
         // CreateTestEntities();
         // CreateStressTest();
         // CreateShipTest();
-        // CreateVoxelTest();
+        CreateVoxelTest();
         // CreateTerrainTest();
         // CreateDonutDemo();
         CreatePhysicsTest();
@@ -440,18 +442,35 @@ public partial class Demo : Mod
         Mesh mesh = MeshBrickGrid(grid, textureArray);
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
+        Vector3[] brickLocations = PointsBrickGrid(grid);
+        Quaternion[] brickRotations = new Quaternion[brickLocations.Length];
+        IShape[] brickShapes = new IShape[brickLocations.Length];
+        for (int i = 0; i < brickLocations.Length; i++)
+        {
+            brickShapes[i] = new Box3(Vector3.One);
+            brickRotations[i] = Quaternion.Identity;
+        }
+
+        var transform = new TransformComponent(new Vector3(0, 10, 0), Quaternion.Identity);
+
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
+            .Attach(transform, TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
+            .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous), PhysicsComponent.DefaultIndex)
+            .Attach(new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)), ColliderComponent.DefaultIndex)
             .Build();
+
+        mesh = new Cube();
+        renderOptions = new RenderOptions();
+        shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
 
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Ship Entity Transparent", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
+            .Attach(transform, TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
     }
@@ -501,6 +520,54 @@ public partial class Demo : Mod
             .Attach(new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
             .Build();
+    }
+
+    private Vector3[] PointsBrickGrid(BrickGrid grid)
+    {
+        var empty = new Brick(0);
+
+        var points = new List<Vector3>();
+        HashSet<BrickGrid> builtGrids = [];
+
+        using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridPoints)))
+        {
+            BuildBrickGridPoints(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z));
+        }
+
+        void BuildBrickGridPoints(BrickGrid gridToBuild, Vector3 offset = default)
+        {
+            if (!builtGrids.Add(gridToBuild))
+                return;
+
+            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+                for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+                    for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+                    {
+                        var neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                        if (neighbor != null)
+                            BuildBrickGridPoints(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                    }
+
+            for (int x = 0; x < gridToBuild.DimensionSize; x++)
+                for (int y = 0; y < gridToBuild.DimensionSize; y++)
+                    for (int z = 0; z < gridToBuild.DimensionSize; z++)
+                    {
+                        var brick = gridToBuild.Bricks[x, y, z];
+                        if (!brick.Equals(empty) &&
+                            (gridToBuild.Get(x + 1, y, z).Equals(empty)
+                            || gridToBuild.Get(x - 1, y, z).Equals(empty)
+                            || gridToBuild.Get(x, y + 1, z).Equals(empty)
+                            || gridToBuild.Get(x, y - 1, z).Equals(empty)
+                            || gridToBuild.Get(x, y, z + 1).Equals(empty)
+                            || gridToBuild.Get(x, y, z - 1).Equals(empty))
+                        )
+                        {
+                            points.Add(new Vector3(x, y, z) + offset);
+                        }
+                    }
+        }
+
+        return [.. points];
     }
 
     private Mesh MeshBrickGrid(BrickGrid grid, TextureArray textureArray, bool transparent = false)
@@ -681,13 +748,13 @@ public partial class Demo : Mod
 
         ECSContext.EntityBuilder
             .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(16, 0, 16)), TransformComponent.DefaultIndex)
+            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)), TransformComponent.DefaultIndex)
             .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
             .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete), PhysicsComponent.DefaultIndex)
             .Attach(new ColliderComponent(new Box3(Vector3.One)), ColliderComponent.DefaultIndex)
             .Build();
 
-        for (int i = 0; i < 40; i++)
+        for (int i = 0; i < 100; i++)
         {
             ECSContext.EntityBuilder
                 .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
