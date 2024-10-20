@@ -23,6 +23,8 @@ Tomlet (TOML files) https://github.com/SamboyCoding/Tomlet
 
 Needlefish (My binary serializer) https://github.com/ChaseHuegel/needlefish
 
+JoltPhysicsSharp ([Jolt Physics](https://github.com/jrouwe/JoltPhysics) C# bindings) https://github.com/amerkoleci/JoltPhysicsSharp/tree/main
+
 # Current State
 The engine is undergoing a full rewrite to accomplish the follow:
 
