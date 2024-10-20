@@ -4,6 +4,12 @@
 [![](https://img.shields.io/nuget/v/Swordfish.Integrations?label=Integrations)](https://www.nuget.org/packages/Swordfish.Integrations/)
 [![](https://img.shields.io/nuget/v/Needlefish?label=Needlefish)](https://www.nuget.org/packages/Needlefish/)
 
+<p align="center">
+  <a href="">
+    <img alt="Swordfish" src="Swordfish/Manifest/banner.png">
+  </a>
+</p>
+
 # Using
 Silk.NET (OpenGL and ImGui wrappers) https://github.com/dotnet/Silk.NET
 
