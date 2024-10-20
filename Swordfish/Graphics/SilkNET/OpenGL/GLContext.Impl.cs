@@ -102,16 +102,18 @@ internal unsafe partial class GLContext
     {
         private readonly ShaderProgram shaderProgram;
         private readonly IGLTexture[] textures;
+        private readonly bool transparent;
 
-        public GLMaterialArgs(ShaderProgram shaderProgram, IGLTexture[] texImages2D)
+        public GLMaterialArgs(ShaderProgram shaderProgram, IGLTexture[] texImages2D, bool transparent)
         {
             this.shaderProgram = shaderProgram;
             this.textures = texImages2D;
+            this.transparent = transparent;
         }
 
         public static GLMaterial Factory(GLMaterialArgs args)
         {
-            return new GLMaterial(args.shaderProgram, args.textures);
+            return new GLMaterial(args.shaderProgram, args.textures, args.transparent);
         }
     }
 

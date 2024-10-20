@@ -97,12 +97,15 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         if (!other.Materials.SequenceEqual(Materials))
             return false;
 
+        if (!other.RenderOptions.Equals(RenderOptions))
+            return false;
+
         return true;
     }
 
     public override int GetHashCode()
     {
-        return VertexArrayObject.GetHashCode();
+        return HashCode.Combine(VertexArrayObject.GetHashCode(), Materials.Select(material => material.GetHashCode()).Aggregate(HashCode.Combine), RenderOptions.GetHashCode());
     }
 
     public override string? ToString()

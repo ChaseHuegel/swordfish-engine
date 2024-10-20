@@ -2,13 +2,15 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Types;
+using Swordfish.Library.Extensions;
 using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 internal unsafe class GLInstancedRenderer : IRenderStage
 {
-    private ConcurrentDictionary<GLRenderTarget, ConcurrentBag<Matrix4x4>> _instances = [];
+    private Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
+    private Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
 
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;
@@ -38,16 +40,29 @@ internal unsafe class GLInstancedRenderer : IRenderStage
         }
 
         _instances.Clear();
+        _transparentInstances.Clear();
         foreach (GLRenderTarget renderTarget in _renderTargets)
         {
-            if (!_instances.TryGetValue(renderTarget, out ConcurrentBag<Matrix4x4>? matrices))
+            List<Matrix4x4>? matrices;
+
+            if (renderTarget.Materials.Any(material => material.Transparent))
             {
-                matrices = [];
-                _instances.TryAdd(renderTarget, matrices);
+                if (!_transparentInstances.TryGetValue(renderTarget, out matrices))
+                {
+                    matrices = [];
+                    _transparentInstances.TryAdd(renderTarget, matrices);
+                }
+            }
+            else
+            {
+                if (!_instances.TryGetValue(renderTarget, out matrices))
+                {
+                    matrices = [];
+                    _instances.TryAdd(renderTarget, matrices);
+                }
             }
 
-            Transform transform = renderTarget.Transform;
-            matrices.Add(transform.ToMatrix4x4());
+            matrices.Add(renderTarget.Transform.ToMatrix4x4());
         }
     }
 
@@ -64,10 +79,24 @@ internal unsafe class GLInstancedRenderer : IRenderStage
         }
 
         int drawCalls = 0;
-        foreach (KeyValuePair<GLRenderTarget, ConcurrentBag<Matrix4x4>> instance in _instances)
+        drawCalls += Draw(view, projection, _instances, sort: false);
+        drawCalls += Draw(view, projection, _transparentInstances, sort: true);
+        return drawCalls;
+    }
+
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
+    {
+        if (instances.Count == 0)
+            return 0;
+
+        int drawCalls = 0;
+        var viewPosition = view.GetPosition();
+
+        foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
             GLRenderTarget target = instance.Key;
-            Matrix4x4[] models = [.. instance.Value];
+            IEnumerable<Matrix4x4> matrices = sort ? instance.Value.OrderBy(model => Vector3.DistanceSquared(model.GetPosition(), viewPosition)) : instance.Value;
+            Matrix4x4[] models = [.. matrices];
 
             target.ModelsBufferObject.Bind();
 
@@ -94,7 +123,7 @@ internal unsafe class GLInstancedRenderer : IRenderStage
 
             _gl.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
             _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
-            _gl.PolygonMode(MaterialFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+            _gl.PolygonMode(MaterialFace.Front, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
         }

@@ -461,10 +461,10 @@ public partial class Demo : Mod
             .Attach(new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)), ColliderComponent.DefaultIndex)
             .Build();
 
-        mesh = new Cube();
-        renderOptions = new RenderOptions();
-        shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
-
+        material = new Material(shader, textureArray)
+        {
+            Transparent = true
+        };
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
 

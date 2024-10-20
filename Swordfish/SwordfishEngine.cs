@@ -125,7 +125,7 @@ public class SwordfishEngine
         resolver.Register<GLContext>(Reuse.Singleton);
         resolver.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         resolver.RegisterMany<GLRenderContext>(Reuse.Singleton);
-        resolver.Register<IRenderStage, GLInstancedRenderer>();
+        resolver.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
         resolver.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);

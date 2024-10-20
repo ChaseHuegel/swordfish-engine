@@ -147,7 +147,7 @@ internal class GLRenderContext : IRenderContext
             for (int i = 0; i < material.Textures.Length; i++)
                 textures[i] = BindTexture(material.Textures[i]);
 
-            handle = GLContext.CreateGLMaterial(shaderProgram, textures);
+            handle = GLContext.CreateGLMaterial(shaderProgram, textures, material.Transparent);
             LinkedHandles.TryAdd(material, handle);
         }
 

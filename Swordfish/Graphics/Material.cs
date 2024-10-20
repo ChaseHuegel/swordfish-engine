@@ -8,6 +8,8 @@ public class Material : Handle
 
     public Texture[] Textures { get; set; }
 
+    public bool Transparent { get; set; }
+
     public Material(Shader shader, params Texture[] textures)
     {
         Shader = shader;

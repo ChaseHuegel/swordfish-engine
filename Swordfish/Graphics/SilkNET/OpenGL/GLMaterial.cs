@@ -11,10 +11,13 @@ internal sealed class GLMaterial : Handle
 
     public IGLTexture[] Textures { get; }
 
-    public GLMaterial(ShaderProgram shaderProgram, params IGLTexture[] textures)
+    public bool Transparent { get; }
+
+    public GLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, bool transparent)
     {
         ShaderProgram = shaderProgram;
         Textures = textures;
+        Transparent = transparent;
 
         if (textures.Length > 32)
             throw new ArgumentException("Length can not exceed 32.", nameof(textures));
@@ -45,7 +48,10 @@ internal sealed class GLMaterial : Handle
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(GLMaterial? other)
     {
-        return ShaderProgram.Equals(other?.ShaderProgram) && Textures.SequenceEqual(other.Textures);
+        if (other == null)
+            return false;
+
+        return Transparent.Equals(other.Transparent) && ShaderProgram.Equals(other.ShaderProgram) && Textures.SequenceEqual(other.Textures);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -62,7 +68,7 @@ internal sealed class GLMaterial : Handle
 
     public override int GetHashCode()
     {
-        return HashCode.Combine(ShaderProgram.GetHashCode(), Textures.GetHashCode());
+        return HashCode.Combine(Transparent.GetHashCode(), ShaderProgram.GetHashCode(), Textures.GetHashCode());
     }
 
     public override string? ToString()
