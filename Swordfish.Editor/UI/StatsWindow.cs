@@ -97,12 +97,10 @@ public class StatsWindow : CanvasElement
     {
         TextElement displayElement = new(title);
 
-        Sampler sampler = new();
         handler += OnDataChanged;
         void OnDataChanged(object? sender, DataChangedEventArgs<int> e)
         {
-            sampler.Record(e.NewValue);
-            displayElement.Label = sampler.Average.ToString("F0");
+            displayElement.Label = e.NewValue.ToString("F0");
         };
 
         Content.Add(displayElement);
