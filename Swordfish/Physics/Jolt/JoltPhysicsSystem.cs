@@ -105,8 +105,9 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public void Tick(float delta, DataStore store)
     {
-        _context ??= ThreadContext.PinCurrentThread();
         _store ??= store;
+        _context ??= ThreadContext.FromCurrentThread();
+        _context.SwitchToCurrentThread();
 
         _accumulator += delta;
 

@@ -85,7 +85,7 @@ public class SwordfishEngine
     {
         TransitionState(EngineState.Started, EngineState.Initializing);
 
-        MainThreadContext = ThreadContext.PinCurrentThread();
+        MainThreadContext = ThreadContext.FromCurrentThread();
         SynchronizationContext.SetSynchronizationContext(MainThreadContext);
 
         var options = WindowOptions.Default;

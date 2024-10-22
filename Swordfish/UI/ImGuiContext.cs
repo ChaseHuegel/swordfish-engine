@@ -60,7 +60,7 @@ public class ImGuiContext : IUIContext
 
     public void Initialize()
     {
-        ThreadContext = ThreadContext.PinCurrentThread();
+        ThreadContext = ThreadContext.FromCurrentThread();
 
         Window.Closing += Cleanup;
         Window.Render += Render;
