@@ -30,7 +30,12 @@ public class World(in byte chunkBitWidth = 16)
     {
         lock (_systemsLock)
         {
-            Parallel.ForEach(_systems, ParallelTick);
+            for (int i = 0; i < _systems.Count; i++)
+            {
+                _systems[i].Tick(delta, DataStore);
+            }
+            //  TODO the parallel is causing deadlocking
+            // Parallel.ForEach(_systems, ParallelTick);
         }
 
         void ParallelTick(IEntitySystem system, ParallelLoopState state, long index)
