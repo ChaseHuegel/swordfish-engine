@@ -2,16 +2,11 @@ using System.Numerics;
 
 namespace Swordfish.ECS;
 
-[Component]
-public class TransformComponent
+public struct TransformComponent : IDataComponent
 {
-    public const int DefaultIndex = 1;
-
     public Vector3 Position;
     public Quaternion Orientation;
     public Vector3 Scale = Vector3.One;
-
-    public TransformComponent() { }
 
     public TransformComponent(Vector3 position)
     {

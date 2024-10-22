@@ -5,11 +5,8 @@ using BodyType = Swordfish.Physics.BodyType;
 
 namespace Swordfish.ECS;
 
-[Component]
-public class PhysicsComponent
+public struct PhysicsComponent : IDataComponent
 {
-    public const int DefaultIndex = 2;
-
     public readonly byte Layer;
     public readonly BodyType BodyType;
     public readonly CollisionDetection CollisionDetection;

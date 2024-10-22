@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Swordfish.Integrations\Swordfish.Integrations.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
+    <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

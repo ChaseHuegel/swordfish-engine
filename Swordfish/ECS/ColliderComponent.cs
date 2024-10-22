@@ -2,10 +2,7 @@ using Swordfish.Library.Types.Shapes;
 
 namespace Swordfish.ECS;
 
-[Component]
-public class ColliderComponent(IShape shape)
+public readonly struct ColliderComponent(IShape shape) : IDataComponent
 {
-    public const int DefaultIndex = 4;
-
     public readonly IShape Shape = shape;
 }

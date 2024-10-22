@@ -1,75 +1,54 @@
-using System.Runtime.CompilerServices;
-using Swordfish.Library.Collections;
-
 namespace Swordfish.ECS;
 
 public struct Entity
 {
-    public const int Null = ChunkedDataStore.NullPtr;
+    public const int Null = 0;
 
     public int Ptr { get; } = Null;
-    public ECSContext World { get; }
-    public ChunkedDataStore Store { get; }
+    public DataStore DataStore { get; }
 
-    internal Entity(int ptr, ECSContext world)
+    public Entity(int ptr, DataStore dataStore)
     {
         Ptr = ptr;
-        World = world;
-        Store = world.Store;
+        DataStore = dataStore;
     }
 
-    public bool AddComponent<TComponent>() where TComponent : class, new()
-        => AddComponent<TComponent>(World.GetComponentIndex<TComponent>());
-
-    public void SetComponent<TComponent>(TComponent component) where TComponent : class
-        => SetComponent(World.GetComponentIndex<TComponent>(), component);
-
-    public TComponent? GetComponent<TComponent>() where TComponent : class
-        => GetComponent<TComponent>(World.GetComponentIndex<TComponent>());
-
-    public bool HasComponent<TComponent>() where TComponent : class
-        => HasComponent(World.GetComponentIndex<TComponent>());
-
-    public bool AddComponent<TComponent>(int componentIndex) where TComponent : class, new()
+    public bool AddComponent<T1>() where T1 : struct, IDataComponent
     {
-        if (HasComponent(componentIndex))
+        if (HasComponent<T1>())
             return false;
 
-        World.Store.Set(Ptr, componentIndex, new TComponent());
+        DataStore.AddOrUpdate(Ptr, default(T1));
         return true;
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public void SetComponent<TComponent>(int componentIndex, TComponent component) where TComponent : class
+    public void SetComponent<T1>(T1 component) where T1 : struct, IDataComponent
     {
-        World.Store.Set(Ptr, componentIndex, component);
+        DataStore.AddOrUpdate(Ptr, component);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public TComponent? GetComponent<TComponent>(int componentIndex) where TComponent : class
+    public bool HasComponent<T1>() where T1 : struct, IDataComponent
     {
-        return World.Store.GetAt(Ptr, componentIndex) as TComponent;
+        return DataStore.Query<T1>(Ptr, out _);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public bool HasComponent(int componentIndex)
+    public bool TryGetComponent<T1>(out T1 component1) where T1 : struct, IDataComponent
     {
-        return World.Store.HasAt(Ptr, componentIndex);
+        return DataStore.Query(Ptr, out component1);
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveOptimization)]
-    public object?[] GetComponents()
+    public T1? GetComponent<T1>() where T1 : struct, IDataComponent
     {
-        return World.Store.Get(Ptr);
+        if (DataStore.Query(Ptr, out T1 component1))
+        {
+            return component1;
+        }
+
+        return null;
     }
 
-    public void ForEachComponent(Action<object?> action)
+    public Span<IDataComponent> GetComponents()
     {
-        World.Store.ForEach(Ptr, action);
-    }
-
-    public IEnumerator<object?> GetEnumerator()
-    {
-        yield return World.Store.EnumerateAt(Ptr);
+        return DataStore.Get(Ptr);
     }
 }

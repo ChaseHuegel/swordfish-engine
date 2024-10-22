@@ -159,7 +159,7 @@ public class DataStore
         }
     }
 
-    public unsafe void Query<T1>(ForEach<T1> forEach) where T1 : struct, IDataComponent
+    public unsafe void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
         lock (_chunkAndStoreLock)
@@ -187,14 +187,14 @@ public class DataStore
                 int entity = ToGlobalSpace(componentIndex, chunkIndex);
                 T1 c1 = chunk.Components[componentIndex];
 
-                forEach(entity, ref c1);
+                forEach(delta, this, entity, ref c1);
 
                 chunk.Components[componentIndex] = c1;  //  TODO use a buffer to apply changes?
             }
         }
     }
 
-    public void Query<T1, T2>(ForEach<T1, T2> forEach)
+    public void Query<T1, T2>(float delta, ForEach<T1, T2> forEach)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
@@ -224,7 +224,7 @@ public class DataStore
         //  TODO test speed of using Parallel over chunks with low a chunkBitWidth.
         //  TODO determine if lots of chunks with small loops or few chunks with big loops is faster.
         //  TODO based on findings above, perhaps introduce a dynamic switch between Parallel and Synchronous iterations over chunks?
-        QueryDynamicInternal(chunks1, chunks2, forEach);
+        QueryDynamicInternal(delta, chunks1, chunks2, forEach);
     }
 
     public bool Query<T1>(int entity, out T1 component1) where T1 : struct, IDataComponent
@@ -242,7 +242,69 @@ public class DataStore
         }
     }
 
-    private void QueryDynamicInternal<T1, T2>(Span<Chunk<T1>> chunks1, Span<Chunk<T2>> chunks2, ForEach<T1, T2> forEach)
+    public unsafe bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
+    {
+        Span<Chunk<T1>> chunks;
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store))
+            {
+                entity = default!;
+                return false;
+            }
+            else
+            {
+                chunks = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store).Chunks);
+            }
+        }
+
+        for (int chunkIndex = 0; chunkIndex < chunks.Length; chunkIndex++)
+        {
+            Chunk<T1> chunk = chunks[chunkIndex];
+            for (int componentIndex = 0; componentIndex < chunk.Components.Length; componentIndex++)
+            {
+                if (!chunk.Exists[componentIndex])
+                {
+                    continue;
+                }
+
+                entity = ToGlobalSpace(componentIndex, chunkIndex);
+                T1 c1 = chunk.Components[componentIndex];
+
+                if (predicate(c1))
+                {
+                    return true;
+                }
+            }
+        }
+
+        entity = default!;
+        return false;
+    }
+
+    public Span<IDataComponent> Get(int entity)
+    {
+        (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+        List<IDataComponent> components = [];
+
+        lock (_chunkAndStoreLock)
+        {
+            foreach (KeyValuePair<Type, ChunkedStore> typeStore in _stores)
+            {
+                ChunkedStore<IDataComponent> store = Unsafe.As<ChunkedStore<IDataComponent>>(typeStore.Value);
+                if (!store.TryGetAt(chunkIndex, localEntity, out IDataComponent data))
+                {
+                    continue;
+                }
+
+                components.Add(data);
+            }
+        }
+
+        return CollectionsMarshal.AsSpan(components);
+    }
+
+    private void QueryDynamicInternal<T1, T2>(float delta, Span<Chunk<T1>> chunks1, Span<Chunk<T2>> chunks2, ForEach<T1, T2> forEach)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
@@ -261,16 +323,16 @@ public class DataStore
             //  TODO allow queries and systems to force parallelism so they caller can account for a heavy forEach.
             if (chunk1.Count > 30_000)
             {
-                ForEachParallelInternal(offset, components1, exists1, components2, exists2, forEach);
+                ForEachParallelInternal(delta, offset, components1, exists1, components2, exists2, forEach);
             }
             else
             {
-                ForEachSynchronousInternal(offset, components1, exists1, components2, exists2, forEach);
+                ForEachSynchronousInternal(delta, offset, components1, exists1, components2, exists2, forEach);
             }
         }
     }
 
-    private static void ForEachParallelInternal<T1, T2>(int offset, T1[] components1, bool[] exists1, T2[] components2, bool[] exists2, ForEach<T1, T2> forEach)
+    private void ForEachParallelInternal<T1, T2>(float delta, int offset, T1[] components1, bool[] exists1, T2[] components2, bool[] exists2, ForEach<T1, T2> forEach)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
@@ -283,11 +345,11 @@ public class DataStore
             }
 
             int entity = componentIndex + offset;
-            forEach(entity, ref components1[componentIndex], ref components2[componentIndex]);
+            forEach(delta, this, entity, ref components1[componentIndex], ref components2[componentIndex]);
         }
     }
 
-    private static void ForEachSynchronousInternal<T1, T2>(int offset, T1[] components1, bool[] exists1, T2[] components2, bool[] exists2, ForEach<T1, T2> forEach)
+    private void ForEachSynchronousInternal<T1, T2>(float delta, int offset, T1[] components1, bool[] exists1, T2[] components2, bool[] exists2, ForEach<T1, T2> forEach)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
@@ -299,7 +361,7 @@ public class DataStore
             }
 
             int entity = componentIndex + offset;
-            forEach(entity, ref components1[componentIndex], ref components2[componentIndex]);
+            forEach(delta, this, entity, ref components1[componentIndex], ref components2[componentIndex]);
         }
     }
 

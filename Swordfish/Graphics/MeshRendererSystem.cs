@@ -2,26 +2,20 @@ using Swordfish.ECS;
 
 namespace Swordfish.Graphics;
 
-[ComponentSystem(typeof(MeshRendererComponent), typeof(TransformComponent))]
-public class MeshRendererSystem : ComponentSystem
+public class MeshRendererSystem(in IRenderContext renderContext) : EntitySystem<MeshRendererComponent, TransformComponent>
 {
-    //  TODO ECS needs to be refactored to using DI
-    private static IRenderContext RenderContext => renderContext ??= SwordfishEngine.Kernel.Get<IRenderContext>();
-    private static IRenderContext? renderContext;
+    private IRenderContext _renderContext = renderContext;
 
-    protected override void UpdateEntity(Entity entity, float deltaTime)
+    protected override void OnTick(float delta, DataStore store, int entity, ref MeshRendererComponent rendererComponent, ref TransformComponent transformComponent)
     {
-        MeshRendererComponent renderComponent = entity.World.Store.GetAt<MeshRendererComponent>(entity.Ptr, MeshRendererComponent.DefaultIndex);
-        TransformComponent transform = entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
-
-        if (!renderComponent.Bound)
+        if (!rendererComponent.Bound)
         {
-            renderComponent.Bound = true;
-            RenderContext.Bind(renderComponent.MeshRenderer!);
+            rendererComponent.Bound = true;
+            _renderContext.Bind(rendererComponent.MeshRenderer!);
         }
 
-        renderComponent.MeshRenderer!.Transform.Position = transform.Position;
-        renderComponent.MeshRenderer!.Transform.Orientation = transform.Orientation;
-        renderComponent.MeshRenderer!.Transform.Scale = transform.Scale;
+        rendererComponent.MeshRenderer.Transform.Position = transformComponent.Position;
+        rendererComponent.MeshRenderer.Transform.Orientation = transformComponent.Orientation;
+        rendererComponent.MeshRenderer.Transform.Scale = transformComponent.Scale;
     }
 }
