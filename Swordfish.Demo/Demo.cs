@@ -140,30 +140,28 @@ public partial class Demo : Mod
             return;
         }
 
-        if (!raycast.Entity.TryGetComponent(out TransformComponent transform))
+        ECSContext.World.DataStore.Query<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
+        void UpdateTransform(float delta, DataStore store, int entity, ref TransformComponent transform)
         {
-            return;
+            float scroll = _scrollBuffer;
+            transform.Position = raycast.Point;
+            if (scroll != 0)
+            {
+                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
+                _scrollBuffer -= scroll;
+            }
+
+            _positionGizmo.Render(transform);
+            _orientationGizmo.Render(transform);
+            _scaleGizmo.Render(transform);
         }
 
-        float scroll = _scrollBuffer;
-        transform.Position = raycast.Point;
-        if (scroll != 0)
+        ECSContext.World.DataStore.Query<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
+        void UpdatePhysics(float delta, DataStore store, int entity, ref PhysicsComponent physics)
         {
-            transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
-            _scrollBuffer -= scroll;
+            physics.Velocity = Vector3.Zero;
+            physics.Torque = Vector3.Zero;
         }
-
-        _positionGizmo.Render(transform);
-        _orientationGizmo.Render(transform);
-        _scaleGizmo.Render(transform);
-
-        if (!raycast.Entity.TryGetComponent(out PhysicsComponent physics))
-        {
-            return;
-        }
-
-        physics.Velocity = Vector3.Zero;
-        physics.Torque = Vector3.Zero;
     }
 
     private void OnClick(object? sender, ClickedEventArgs e)

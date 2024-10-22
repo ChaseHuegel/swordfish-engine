@@ -29,17 +29,17 @@ public struct Entity
 
     public bool HasComponent<T1>() where T1 : struct, IDataComponent
     {
-        return DataStore.Query<T1>(Ptr, out _);
+        return DataStore.TryGet<T1>(Ptr, out _);
     }
 
     public bool TryGetComponent<T1>(out T1 component1) where T1 : struct, IDataComponent
     {
-        return DataStore.Query(Ptr, out component1);
+        return DataStore.TryGet(Ptr, out component1);
     }
 
     public T1? GetComponent<T1>() where T1 : struct, IDataComponent
     {
-        if (DataStore.Query(Ptr, out T1 component1))
+        if (DataStore.TryGet(Ptr, out T1 component1))
         {
             return component1;
         }

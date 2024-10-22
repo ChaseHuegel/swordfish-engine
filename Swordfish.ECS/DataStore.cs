@@ -227,18 +227,24 @@ public class DataStore
         QueryDynamicInternal(delta, chunks1, chunks2, forEach);
     }
 
-    public bool Query<T1>(int entity, out T1 component1) where T1 : struct, IDataComponent
+    public void Query<T1>(int entity, float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         lock (_chunkAndStoreLock)
         {
             if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store))
             {
-                component1 = default!;
-                return false;
+                return;
             }
 
+            var store1 = (ChunkedStore<T1>)store;
             (int chunkIndex, int localEntity) = ToChunkSpace(entity);
-            return ((ChunkedStore<T1>)store).TryGetAt(chunkIndex, localEntity, out component1);
+            if (!store1.TryGetAt(chunkIndex, localEntity, out T1 component1))
+            {
+                return;
+            }
+
+            forEach(delta, this, entity, ref component1);
+            store1.SetAt(chunkIndex, localEntity, component1, true);
         }
     }
 
@@ -280,6 +286,21 @@ public class DataStore
 
         entity = default!;
         return false;
+    }
+
+    public bool TryGet<T1>(int entity, out T1 component1) where T1 : struct, IDataComponent
+    {
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store))
+            {
+                component1 = default!;
+                return false;
+            }
+
+            (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+            return ((ChunkedStore<T1>)store).TryGetAt(chunkIndex, localEntity, out component1);
+        }
     }
 
     public Span<IDataComponent> Get(int entity)

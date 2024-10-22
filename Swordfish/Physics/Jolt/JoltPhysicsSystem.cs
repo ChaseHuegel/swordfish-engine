@@ -157,7 +157,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
         else
         {
-            if (!store.Query(entity, out ColliderComponent collider) || !TryGetJoltShape(collider.Shape, transform.Scale, out Shape shape))
+            if (!store.TryGet(entity, out ColliderComponent collider) || !TryGetJoltShape(collider.Shape, transform.Scale, out Shape shape))
             {
                 return;
             }
