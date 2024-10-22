@@ -268,7 +268,7 @@ public class DataStore
                     continue;
                 }
 
-                entity = ToGlobalSpace(componentIndex, chunkIndex);
+                entity = ToGlobalSpace(chunkIndex, componentIndex);
                 T1 c1 = chunk.Components[componentIndex];
 
                 if (predicate(c1))
