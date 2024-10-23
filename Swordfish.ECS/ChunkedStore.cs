@@ -3,9 +3,11 @@ namespace Swordfish.ECS;
 internal abstract class ChunkedStore()
 {
     public abstract void SetAt(int chunkIndex, int localEntity, bool exists);
+
+    public abstract bool TryGetAt(int chunkIndex, int localEntity, out IDataComponent data);
 }
 
-internal class ChunkedStore<T>(int chunkSize) : ChunkedStore
+internal class ChunkedStore<T>(int chunkSize) : ChunkedStore where T : struct, IDataComponent
 {
     private readonly int _chunkSize = chunkSize;
 
@@ -16,7 +18,7 @@ internal class ChunkedStore<T>(int chunkSize) : ChunkedStore
         SetAt(chunkIndex, localEntity, default!, exists);
     }
 
-    public void SetAt(int chunkIndex, int localEntity, T component1, bool exists)
+    public void SetAt(int chunkIndex, int localEntity, T data, bool exists)
     {
         Chunk<T> chunk;
         if (Chunks.Count <= chunkIndex)
@@ -37,10 +39,27 @@ internal class ChunkedStore<T>(int chunkSize) : ChunkedStore
             chunk = Chunks[chunkIndex];
         }
 
-        chunk.Components[localEntity] = component1;
+        chunk.Components[localEntity] = data;
         chunk.Exists[localEntity] = exists;
         chunk.Count += exists ? 1 : -1;
         //  TODO should chunks get cleaned up when they are empty?
+    }
+
+    public override bool TryGetAt(int chunkIndex, int localEntity, out IDataComponent data)
+    {
+        Chunk<T> chunk;
+        if (Chunks.Count <= chunkIndex)
+        {
+            data = default!;
+            return false;
+        }
+        else
+        {
+            chunk = Chunks[chunkIndex];
+        }
+
+        data = chunk.Components[localEntity];
+        return chunk.Exists[localEntity];
     }
 
     public bool TryGetAt(int chunkIndex, int localEntity, out T data)

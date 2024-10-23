@@ -184,7 +184,7 @@ public class DataStore
                     continue;
                 }
 
-                int entity = ToGlobalSpace(componentIndex, chunkIndex);
+                int entity = ToGlobalSpace(chunkIndex, componentIndex);
                 T1 c1 = chunk.Components[componentIndex];
 
                 forEach(delta, this, entity, ref c1);
@@ -312,8 +312,7 @@ public class DataStore
         {
             foreach (KeyValuePair<Type, ChunkedStore> typeStore in _stores)
             {
-                ChunkedStore<IDataComponent> store = Unsafe.As<ChunkedStore<IDataComponent>>(typeStore.Value);
-                if (!store.TryGetAt(chunkIndex, localEntity, out IDataComponent data))
+                if (!typeStore.Value.TryGetAt(chunkIndex, localEntity, out IDataComponent data))
                 {
                     continue;
                 }
