@@ -1,6 +1,6 @@
 namespace Swordfish.ECS;
 
-internal abstract class ChunkedStore()
+internal abstract class ChunkedStore
 {
     public abstract void SetAt(int chunkIndex, int localEntity, bool exists);
 
