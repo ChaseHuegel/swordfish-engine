@@ -62,7 +62,7 @@ public class Editor : Plugin
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
 
         //  Setup the hierarchy
-        ECSContext.BindSystem<HierarchySystem>();
+        ECSContext.World.AddSystem(new HierarchySystem());
         Hierarchy = new CanvasElement("Hierarchy")
         {
             Flags = EDITOR_CANVAS_FLAGS,
@@ -638,27 +638,24 @@ public class Editor : Plugin
         };
     }
 
-    [ComponentSystem]
-    public class HierarchySystem : ComponentSystem
+    public class HierarchySystem : IEntitySystem
     {
-        private bool Populate = false;
+        private readonly HashSet<int> PopulatedEntities = [];
 
-        protected override void UpdateEntity(Entity entity, float deltaTime)
+        public void Tick(float delta, DataStore store)
         {
-            if (Populate)
-                Hierarchy.Content.Add(new DataTreeNode<Entity>(entity.GetComponent<IdentifierComponent>()?.Name, entity));
+            store.Query<IdentifierComponent>(delta, ForEachEntity);
         }
 
-        protected override void OnModified()
+        private void ForEachEntity(float delta, DataStore store, int entity, ref IdentifierComponent identity)
         {
-            Hierarchy.Content.Clear();
-            Populate = true;
-        }
+            if (!PopulatedEntities.Add(entity))
+            {
+                return;
+            }
 
-        protected override void OnUpdated()
-        {
-            if (Hierarchy != null)
-                Populate = false;
+            //  TODO handle removed entities
+            Hierarchy.Content.Add(new DataTreeNode<Entity>(identity.Name, new Entity(entity, store)));
         }
     }
 

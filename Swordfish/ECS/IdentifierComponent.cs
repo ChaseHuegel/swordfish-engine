@@ -1,14 +1,9 @@
 namespace Swordfish.ECS;
 
-[Component]
-public class IdentifierComponent
+public struct IdentifierComponent : IDataComponent
 {
-    public const int DefaultIndex = 0;
-
     public string? Name;
     public string? Tag;
-
-    public IdentifierComponent() { }
 
     public IdentifierComponent(string? name)
     {

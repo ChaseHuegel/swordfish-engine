@@ -1,11 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Threading.Tasks;
-using DryIoc.FastExpressionCompiler.LightExpression;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
-using Swordfish.Demo.ECS;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
@@ -117,9 +114,6 @@ public partial class Demo : Mod
         _positionGizmo = new PositionGizmo(lineRenderer, RenderContext.Camera.Get());
         _orientationGizmo = new OrientationGizmo(lineRenderer, RenderContext.Camera.Get());
         _scaleGizmo = new ScaleGizmo(lineRenderer, RenderContext.Camera.Get());
-
-        DemoComponent.Index = ecsContext.BindComponent<DemoComponent>();
-        // ecsContext.BindSystem<RoundaboutSystem>();
     }
 
     private PositionGizmo _positionGizmo;
@@ -146,32 +140,28 @@ public partial class Demo : Mod
             return;
         }
 
-        TransformComponent? transform = raycast.Entity.GetComponent<TransformComponent>();
-        if (transform == null)
+        ECSContext.World.DataStore.Query<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
+        void UpdateTransform(float delta, DataStore store, int entity, ref TransformComponent transform)
         {
-            return;
+            float scroll = _scrollBuffer;
+            transform.Position = raycast.Point;
+            if (scroll != 0)
+            {
+                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
+                _scrollBuffer -= scroll;
+            }
+
+            _positionGizmo.Render(transform);
+            _orientationGizmo.Render(transform);
+            _scaleGizmo.Render(transform);
         }
 
-        float scroll = _scrollBuffer;
-        transform.Position = raycast.Point;
-        if (scroll != 0)
+        ECSContext.World.DataStore.Query<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
+        void UpdatePhysics(float delta, DataStore store, int entity, ref PhysicsComponent physics)
         {
-            transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
-            _scrollBuffer -= scroll;
+            physics.Velocity = Vector3.Zero;
+            physics.Torque = Vector3.Zero;
         }
-
-        _positionGizmo.Render(transform);
-        _orientationGizmo.Render(transform);
-        _scaleGizmo.Render(transform);
-
-        PhysicsComponent? physics = raycast.Entity.GetComponent<PhysicsComponent>();
-        if (physics == null)
-        {
-            return;
-        }
-
-        physics.Velocity = Vector3.Zero;
-        physics.Torque = Vector3.Zero;
     }
 
     private void OnClick(object? sender, ClickedEventArgs e)
@@ -318,11 +308,10 @@ public partial class Demo : Mod
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Brick Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 300), Quaternion.Identity), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Brick Entity", "bricks"));
+        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 300), Quaternion.Identity));
+        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
 
     private void CreateShipTest()
@@ -415,11 +404,10 @@ public partial class Demo : Mod
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 20), Quaternion.Identity), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Ship Entity", "bricks"));
+        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 20), Quaternion.Identity));
+        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
 
     private void CreateVoxelTest()
@@ -453,13 +441,12 @@ public partial class Demo : Mod
 
         var transform = new TransformComponent(new Vector3(0, 10, 0), Quaternion.Identity);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Ship Entity", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(transform, TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
-            .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous), PhysicsComponent.DefaultIndex)
-            .Attach(new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)), ColliderComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Ship Entity", "bricks"));
+        store.AddOrUpdate(entity, transform);
+        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
+        store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
 
         material = new Material(shader, textureArray)
         {
@@ -468,11 +455,9 @@ public partial class Demo : Mod
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Ship Entity Transparent", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(transform, TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
-            .Build();
+        entity = store.Create(new IdentifierComponent("Ship Entity Transparent", "bricks"));
+        store.AddOrUpdate(entity, transform);
+        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
 
     private void CreateTerrainTest()
@@ -515,11 +500,10 @@ public partial class Demo : Mod
         Mesh mesh = MeshBrickGrid(grid, textureArray);
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Terrain", "bricks"), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(renderer), MeshRendererComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Terrain", "bricks"));
+        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity));
+        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
 
     private Vector3[] PointsBrickGrid(BrickGrid grid)
@@ -681,11 +665,10 @@ public partial class Demo : Mod
             DoubleFaced = false
         };
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Donut", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(new Vector3(0f, 10f, 0f), Quaternion.Identity, new Vector3(10f)), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Donut", null));
+        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0f, 10f, 0f), Quaternion.Identity, new Vector3(10f)));
+        store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
     }
 
     private void CreateTestEntities()
@@ -724,11 +707,10 @@ public partial class Demo : Mod
                 {
                     var material = random.Select(astronautMaterial, chortMaterial, hubertMaterial, haroldMaterial, melvinMaterial, womanMaterial);
 
-                    ECSContext.EntityBuilder
-                        .Attach(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null), IdentifierComponent.DefaultIndex)
-                        .Attach(new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Quaternion.Identity), TransformComponent.DefaultIndex)
-                        .Attach(new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)), MeshRendererComponent.DefaultIndex)
-                        .Build();
+                    DataStore store = ECSContext.World.DataStore;
+                    int entity = store.Create(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null));
+                    store.AddOrUpdate(entity, new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Quaternion.Identity));
+                    store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
                 }
             }
         }
@@ -746,23 +728,20 @@ public partial class Demo : Mod
         var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
         var cubeMaterial = new Material(shader, cubeTexture);
 
-        ECSContext.EntityBuilder
-            .Attach(new IdentifierComponent("Floor", null), IdentifierComponent.DefaultIndex)
-            .Attach(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)), TransformComponent.DefaultIndex)
-            .Attach(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
-            .Attach(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete), PhysicsComponent.DefaultIndex)
-            .Attach(new ColliderComponent(new Box3(Vector3.One)), ColliderComponent.DefaultIndex)
-            .Build();
+        DataStore store = ECSContext.World.DataStore;
+        int entity = store.Create(new IdentifierComponent("Floor", null));
+        store.AddOrUpdate(entity, new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)));
+        store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        store.AddOrUpdate(entity, new ColliderComponent(new Box3(Vector3.One)));
 
         for (int i = 0; i < 100; i++)
         {
-            ECSContext.EntityBuilder
-                .Attach(new IdentifierComponent($"Phyics Body {i}", null), IdentifierComponent.DefaultIndex)
-                .Attach(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity), TransformComponent.DefaultIndex)
-                .Attach(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)), MeshRendererComponent.DefaultIndex)
-                .Attach(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete), PhysicsComponent.DefaultIndex)
-                .Attach(new ColliderComponent(new Box3(Vector3.One)), ColliderComponent.DefaultIndex)
-                .Build();
+            entity = store.Create(new IdentifierComponent($"Phyics Body {i}", null));
+            store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity));
+            store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
+            store.AddOrUpdate(entity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
+            store.AddOrUpdate(entity, new ColliderComponent(new Box3(Vector3.One)));
         }
     }
 

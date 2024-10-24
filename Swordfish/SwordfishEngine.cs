@@ -1,10 +1,10 @@
 using DryIoc;
-using JoltPhysicsSharp;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Swordfish.ECS;
+using Swordfish.Entities;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
@@ -85,7 +85,7 @@ public class SwordfishEngine
     {
         TransitionState(EngineState.Started, EngineState.Initializing);
 
-        MainThreadContext = ThreadContext.PinCurrentThread();
+        MainThreadContext = ThreadContext.FromCurrentThread();
         SynchronizationContext.SetSynchronizationContext(MainThreadContext);
 
         var options = WindowOptions.Default;
@@ -132,6 +132,7 @@ public class SwordfishEngine
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
         resolver.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
+        resolver.Register<IEntitySystem, MeshRendererSystem>();
 
         resolver.RegisterInstance<IInputContext>(inputContext);
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);

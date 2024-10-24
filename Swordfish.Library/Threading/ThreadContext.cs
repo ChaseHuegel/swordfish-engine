@@ -32,7 +32,7 @@ namespace Swordfish.Library.Threading
             }
         }
 
-        private readonly int ThreadId;
+        private int ThreadId;
         private readonly ConcurrentQueue<WorkItem> WorkQueue = new ConcurrentQueue<WorkItem>();
         private readonly ConcurrentQueue<BlockingWorkItem> SignaledWorkQueue = new ConcurrentQueue<BlockingWorkItem>();
 
@@ -41,7 +41,12 @@ namespace Swordfish.Library.Threading
             ThreadId = threadID;
         }
 
-        public static ThreadContext PinCurrentThread()
+        public void SwitchToCurrentThread()
+        {
+            ThreadId = Environment.CurrentManagedThreadId;
+        }
+
+        public static ThreadContext FromCurrentThread()
         {
             return new ThreadContext(Environment.CurrentManagedThreadId);
         }

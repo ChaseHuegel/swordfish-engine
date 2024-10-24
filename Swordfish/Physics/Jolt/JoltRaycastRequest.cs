@@ -1,14 +1,12 @@
 using System.Numerics;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
-using Swordfish.Library.Collections;
-using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Physics.Jolt;
 
-internal readonly struct JoltRaycastRequest(Entity[] entities, PhysicsSystem system, Ray ray, BroadPhaseLayerFilter broadPhaseLayerFilter, ObjectLayerFilter objectLayerFilter, BodyFilter bodyFilter)
+internal readonly struct JoltRaycastRequest(in DataStore store, in PhysicsSystem system, in Ray ray, in BroadPhaseLayerFilter broadPhaseLayerFilter, in ObjectLayerFilter objectLayerFilter, in BodyFilter bodyFilter)
 {
-    private readonly Entity[] entities = entities;
+    private readonly DataStore store = store;
     private readonly PhysicsSystem system = system;
     private readonly Ray ray = ray;
     private readonly BroadPhaseLayerFilter broadPhaseLayerFilter = broadPhaseLayerFilter;
@@ -25,17 +23,11 @@ internal readonly struct JoltRaycastRequest(Entity[] entities, PhysicsSystem sys
             return new RaycastResult(false, new Entity(), hitPoint);
         }
 
-        ECSContext world = args.entities[0].World;
-        DataPtr<PhysicsComponent> match = world.Store
-            .EnumerateEachOf<PhysicsComponent>(PhysicsComponent.DefaultIndex)
-            .FirstOrDefault(match => result.BodyID.Equals(match.Data.BodyID));
-
-        if (match.Ptr == Entity.Null)
+        if (args.store.Find<PhysicsComponent>(physicsComponent => result.BodyID.Equals(physicsComponent.BodyID), out int entity))
         {
-            return new RaycastResult(false, new Entity(), hitPoint);
+            return new RaycastResult(true, new Entity(entity, args.store), hitPoint);
         }
 
-        var entity = new Entity(match.Ptr, world);
-        return new RaycastResult(true, entity, hitPoint);
+        return new RaycastResult(false, default, hitPoint);
     }
 }

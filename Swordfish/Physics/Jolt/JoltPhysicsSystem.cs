@@ -10,8 +10,7 @@ using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
 
 namespace Swordfish.Physics.Jolt;
 
-[ComponentSystem(typeof(PhysicsComponent), typeof(TransformComponent))]
-internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysics
+internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
     private static class Layers
     {
@@ -39,6 +38,7 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
     private ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
     private BodyFilter _bodyFilter = new SimpleBodyFilter();
     private ThreadContext? _context;
+    private DataStore? _store;
 
     private PhysicsSystemSettings _settings = new()
     {
@@ -76,12 +76,12 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
 
     public RaycastResult Raycast(in Ray ray)
     {
-        if (_context == null)
+        if (_context == null || _store == null)
         {
             return default;
         }
 
-        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(Entities, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
+        return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
     }
 
     protected virtual void SetupCollisionFiltering()
@@ -103,11 +103,13 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         _settings.ObjectVsBroadPhaseLayerFilter = objectVsBroadPhaseLayerFilter;
     }
 
-    protected override void Update(float deltaTime)
+    public void Tick(float delta, DataStore store)
     {
-        _context ??= ThreadContext.PinCurrentThread();
+        _store ??= store;
+        _context ??= ThreadContext.FromCurrentThread();
+        _context.SwitchToCurrentThread();
 
-        _accumulator += deltaTime;
+        _accumulator += delta;
 
         float physicsDelta = FIXED_TIMESTEP * TIMESCALE;
         int steps = Math.Max(1, (int)(1f * TIMESCALE));
@@ -118,17 +120,9 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
                 FixedUpdate?.Invoke(this, EventArgs.Empty);
                 _context.ProcessMessageQueue();
 
-                for (int i = 0; i < Entities.Length; i++)
-                {
-                    SyncJoltToEntity(Entities[i]);
-                }
-
+                store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
                 System.Update(physicsDelta, steps);
-
-                for (int i = 0; i < Entities.Length; i++)
-                {
-                    SyncEntityToJolt(Entities[i]);
-                }
+                store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
 
                 _accumulator -= physicsDelta;
             }
@@ -140,28 +134,17 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
                 FixedUpdate?.Invoke(this, EventArgs.Empty);
                 _context.ProcessMessageQueue();
 
-                for (int i = 0; i < Entities.Length; i++)
-                {
-                    SyncJoltToEntity(Entities[i]);
-                }
-
+                store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
                 System.Update(physicsDelta, steps);
-
-                for (int i = 0; i < Entities.Length; i++)
-                {
-                    SyncEntityToJolt(Entities[i]);
-                }
+                store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
 
                 _accumulator -= physicsDelta;
             }
         }
     }
 
-    private void SyncEntityToJolt(Entity entity)
+    private void SyncEntityToJolt(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
-        PhysicsComponent physics = entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
-        TransformComponent transform = entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
-
         Body body;
         if (physics.Body.HasValue)
         {
@@ -175,8 +158,7 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
         }
         else
         {
-            ColliderComponent collider = entity.World.Store.GetAt<ColliderComponent>(entity.Ptr, ColliderComponent.DefaultIndex);
-            if (collider == null || !TryGetJoltShape(collider.Shape, transform.Scale, out Shape shape))
+            if (!store.TryGet(entity, out ColliderComponent collider) || !TryGetJoltShape(collider.Shape, transform.Scale, out Shape shape))
             {
                 return;
             }
@@ -188,21 +170,18 @@ internal partial class JoltPhysicsSystem : ComponentSystem, IJoltPhysics, IPhysi
             physics.Body = body;
             physics.BodyID = body.ID;
 
-            SyncJoltToEntity(entity, physics, transform);
+            SyncJoltToEntity(delta, store, entity, ref physics, ref transform);
         }
     }
 
-    private void SyncJoltToEntity(Entity entity, PhysicsComponent? physics = null, TransformComponent? transform = null)
+    private void SyncJoltToEntity(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
-        physics ??= entity.World.Store.GetAt<PhysicsComponent>(entity.Ptr, PhysicsComponent.DefaultIndex);
         if (!physics.Body.HasValue)
         {
             return;
         }
 
         Body body = physics.Body.Value;
-        transform ??= entity.World.Store.GetAt<TransformComponent>(entity.Ptr, TransformComponent.DefaultIndex);
-
         _bodyInterface.SetPositionRotationAndVelocity(body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
