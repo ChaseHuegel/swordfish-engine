@@ -13,31 +13,33 @@ public struct Entity
         DataStore = dataStore;
     }
 
-    public bool AddComponent<T1>() where T1 : struct, IDataComponent
+    public static implicit operator int(Entity entity) => entity.Ptr;
+
+    public bool Add<T1>() where T1 : struct, IDataComponent
     {
-        if (HasComponent<T1>())
+        if (Has<T1>())
             return false;
 
         DataStore.AddOrUpdate(Ptr, default(T1));
         return true;
     }
 
-    public void SetComponent<T1>(T1 component) where T1 : struct, IDataComponent
+    public void AddOrUpdate<T1>(T1 component) where T1 : struct, IDataComponent
     {
         DataStore.AddOrUpdate(Ptr, component);
     }
 
-    public bool HasComponent<T1>() where T1 : struct, IDataComponent
+    public bool Has<T1>() where T1 : struct, IDataComponent
     {
         return DataStore.TryGet<T1>(Ptr, out _);
     }
 
-    public bool TryGetComponent<T1>(out T1 component1) where T1 : struct, IDataComponent
+    public bool TryGet<T1>(out T1 component1) where T1 : struct, IDataComponent
     {
         return DataStore.TryGet(Ptr, out component1);
     }
 
-    public T1? GetComponent<T1>() where T1 : struct, IDataComponent
+    public T1? Get<T1>() where T1 : struct, IDataComponent
     {
         if (DataStore.TryGet(Ptr, out T1 component1))
         {
@@ -47,8 +49,13 @@ public struct Entity
         return null;
     }
 
-    public Span<IDataComponent> GetComponents()
+    public Span<IDataComponent> GetAllData()
     {
         return DataStore.Get(Ptr);
+    }
+
+    public void Destroy()
+    {
+        DataStore.Free(Ptr);
     }
 }

@@ -133,7 +133,7 @@ public partial class Demo : Mod
             return;
         }
 
-        DebugText.Text = $"Hovering {raycast.Entity.GetComponent<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
+        DebugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
 
         if (!InputService.IsMouseHeld(MouseButton.LEFT))
         {
@@ -200,7 +200,7 @@ public partial class Demo : Mod
             return;
         }
 
-        TransformComponent? transform = raycast.Entity.GetComponent<TransformComponent>();
+        TransformComponent? transform = raycast.Entity.Get<TransformComponent>();
         if (transform == null)
         {
             return;
@@ -309,7 +309,7 @@ public partial class Demo : Mod
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Brick Entity", "bricks"));
+        int entity = store.Alloc(new IdentifierComponent("Brick Entity", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 300), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
@@ -405,7 +405,7 @@ public partial class Demo : Mod
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Ship Entity", "bricks"));
+        int entity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 20), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
@@ -442,7 +442,7 @@ public partial class Demo : Mod
         var transform = new TransformComponent(new Vector3(0, 10, 0), Quaternion.Identity);
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Ship Entity", "bricks"));
+        int entity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
         store.AddOrUpdate(entity, transform);
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         store.AddOrUpdate(entity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
@@ -455,7 +455,7 @@ public partial class Demo : Mod
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        entity = store.Create(new IdentifierComponent("Ship Entity Transparent", "bricks"));
+        entity = store.Alloc(new IdentifierComponent("Ship Entity Transparent", "bricks"));
         store.AddOrUpdate(entity, transform);
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
@@ -501,7 +501,7 @@ public partial class Demo : Mod
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Terrain", "bricks"));
+        int entity = store.Alloc(new IdentifierComponent("Terrain", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
     }
@@ -666,7 +666,7 @@ public partial class Demo : Mod
         };
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Donut", null));
+        int entity = store.Alloc(new IdentifierComponent("Donut", null));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0f, 10f, 0f), Quaternion.Identity, new Vector3(10f)));
         store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
     }
@@ -708,7 +708,7 @@ public partial class Demo : Mod
                     var material = random.Select(astronautMaterial, chortMaterial, hubertMaterial, haroldMaterial, melvinMaterial, womanMaterial);
 
                     DataStore store = ECSContext.World.DataStore;
-                    int entity = store.Create(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null));
+                    int entity = store.Alloc(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null));
                     store.AddOrUpdate(entity, new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Quaternion.Identity));
                     store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
                 }
@@ -728,20 +728,21 @@ public partial class Demo : Mod
         var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
         var cubeMaterial = new Material(shader, cubeTexture);
 
-        DataStore store = ECSContext.World.DataStore;
-        int entity = store.Create(new IdentifierComponent("Floor", null));
-        store.AddOrUpdate(entity, new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)));
-        store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)));
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
-        store.AddOrUpdate(entity, new ColliderComponent(new Box3(Vector3.One)));
+        Entity entity = ECSContext.World.NewEntity();
+        entity.AddOrUpdate(new IdentifierComponent("Floor", null));
+        entity.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)));
+        entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)));
+        entity.AddOrUpdate(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
 
         for (int i = 0; i < 100; i++)
         {
-            entity = store.Create(new IdentifierComponent($"Phyics Body {i}", null));
-            store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity));
-            store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
-            store.AddOrUpdate(entity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
-            store.AddOrUpdate(entity, new ColliderComponent(new Box3(Vector3.One)));
+            entity = ECSContext.World.NewEntity();
+            entity.AddOrUpdate(new IdentifierComponent($"Phyics Body {i}", null));
+            entity.AddOrUpdate(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity));
+            entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
+            entity.AddOrUpdate(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
+            entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
         }
     }
 

@@ -7,7 +7,7 @@ public class DataStore
 {
     private readonly int _chunkBitWidth;
     private readonly int _chunkSize;
-    private readonly Dictionary<Type, ChunkedStore> _stores = [];   //  TODO not thread safe
+    private readonly Dictionary<Type, ChunkedStore> _stores = [];
     private readonly object _chunkAndStoreLock = new();
     private readonly Queue<int> _recycledEntities = new();
     private readonly object _recycleLock = new();
@@ -25,24 +25,33 @@ public class DataStore
         _chunkSize = 1 << chunkBitWidth;
     }
 
-    public int Create<T1>(T1 component1) where T1 : struct, IDataComponent
+    public int Alloc()
     {
         lock (_chunkAndStoreLock)
         {
-            int entity = NewEntity();
+            int entity = AllocNewEntity();
+            return entity;
+        }
+    }
+
+    public int Alloc<T1>(T1 component1) where T1 : struct, IDataComponent
+    {
+        lock (_chunkAndStoreLock)
+        {
+            int entity = AllocNewEntity();
             (int chunkIndex, int localEntity) = ToChunkSpace(entity);
             SetAt(chunkIndex, localEntity, component1, true);
             return entity;
         }
     }
 
-    public int Create<T1, T2>(T1 component1, T2 component2)
+    public int Alloc<T1, T2>(T1 component1, T2 component2)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
         lock (_chunkAndStoreLock)
         {
-            int entity = NewEntity();
+            int entity = AllocNewEntity();
             (int chunkIndex, int localEntity) = ToChunkSpace(entity);
             SetAt(chunkIndex, localEntity, component1, true);
             SetAt(chunkIndex, localEntity, component2, true);
@@ -50,7 +59,7 @@ public class DataStore
         }
     }
 
-    public void Delete(int entity)
+    public void Free(int entity)
     {
         lock (_chunkAndStoreLock)
         {
@@ -386,7 +395,7 @@ public class DataStore
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private int NewEntity()
+    private int AllocNewEntity()
     {
         lock (_recycleLock)
         {

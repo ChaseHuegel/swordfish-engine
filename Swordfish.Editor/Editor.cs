@@ -383,7 +383,7 @@ public class Editor : Plugin
                 var entity = entityNode.Data.Get();
                 BuildInpsectorView(inspector, entity);
 
-                var components = entity.GetComponents();
+                var components = entity.GetAllData();
                 foreach (var component in components)
                 {
                     if (component == null)

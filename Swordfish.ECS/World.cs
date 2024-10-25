@@ -7,6 +7,11 @@ public class World(in byte chunkBitWidth = 16)
 
     public readonly DataStore DataStore = new(chunkBitWidth);
 
+    public Entity NewEntity()
+    {
+        return new Entity(DataStore.Alloc(), DataStore);
+    }
+
     public bool AddSystem(IEntitySystem system)
     {
         lock (_systemsLock)
