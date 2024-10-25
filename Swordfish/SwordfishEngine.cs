@@ -131,6 +131,7 @@ public class SwordfishEngine
         resolver.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         resolver.Register<IECSContext, ECSContext>(Reuse.Singleton);
+        resolver.Register<IEntitySystem, ChildSystem>();
         resolver.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
         resolver.Register<IEntitySystem, MeshRendererSystem>();
 

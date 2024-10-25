@@ -442,11 +442,11 @@ public partial class Demo : Mod
         var transform = new TransformComponent(new Vector3(0, 10, 0), Quaternion.Identity);
 
         DataStore store = ECSContext.World.DataStore;
-        int entity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
-        store.AddOrUpdate(entity, transform);
-        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
-        store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
+        int shipEntity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
+        store.AddOrUpdate(shipEntity, transform);
+        store.AddOrUpdate(shipEntity, new MeshRendererComponent(renderer));
+        store.AddOrUpdate(shipEntity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
+        store.AddOrUpdate(shipEntity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
 
         material = new Material(shader, textureArray)
         {
@@ -455,9 +455,10 @@ public partial class Demo : Mod
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        entity = store.Alloc(new IdentifierComponent("Ship Entity Transparent", "bricks"));
-        store.AddOrUpdate(entity, transform);
-        store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
+        int transparencyEntity = store.Alloc(new IdentifierComponent("Ship Entity Transparent", "bricks"));
+        store.AddOrUpdate(transparencyEntity, transform);
+        store.AddOrUpdate(transparencyEntity, new MeshRendererComponent(renderer));
+        store.AddOrUpdate(transparencyEntity, new ChildComponent(shipEntity));
     }
 
     private void CreateTerrainTest()
