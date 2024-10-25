@@ -644,10 +644,10 @@ public class Editor : Plugin
 
         public void Tick(float delta, DataStore store)
         {
-            store.Query<IdentifierComponent>(delta, ForEachEntity);
+            store.Query(delta, ForEachEntity);
         }
 
-        private void ForEachEntity(float delta, DataStore store, int entity, ref IdentifierComponent identity)
+        private void ForEachEntity(float delta, DataStore store, int entity)
         {
             if (!PopulatedEntities.Add(entity))
             {
@@ -655,7 +655,8 @@ public class Editor : Plugin
             }
 
             //  TODO handle removed entities
-            Hierarchy.Content.Add(new DataTreeNode<Entity>(identity.Name, new Entity(entity, store)));
+            string? displayName = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name : $"<entity:{entity}>";
+            Hierarchy.Content.Add(new DataTreeNode<Entity>(displayName, new Entity(entity, store)));
         }
     }
 
