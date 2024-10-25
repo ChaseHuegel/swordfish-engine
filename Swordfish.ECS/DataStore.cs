@@ -63,14 +63,14 @@ public class DataStore
     {
         lock (_chunkAndStoreLock)
         {
-            (int chunkIndex, int localEntity) = ToChunkSpace(entity);
-            foreach (ChunkedStore store in _stores.Values)
-            {
-                store.SetAt(chunkIndex, localEntity, false);
-            }
-
             lock (_recycleLock)
             {
+                (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+                foreach (ChunkedStore store in _stores.Values)
+                {
+                    store.SetAt(chunkIndex, localEntity, false);
+                }
+
                 _recycledEntities.Enqueue(entity);
             }
         }
@@ -168,6 +168,24 @@ public class DataStore
         }
     }
 
+    public unsafe void Query(float delta, ForEach forEach)
+    {
+        lock (_chunkAndStoreLock)
+        {
+            lock (_recycleLock)
+            {
+                for (int i = 1; i <= _lastEntity; i++)
+                {
+                    if (_recycledEntities.Contains(i))
+                    {
+                        continue;
+                    }
+
+                    forEach(delta, this, i);
+                }
+            }
+        }
+    }
     public unsafe void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
@@ -403,9 +421,9 @@ public class DataStore
             {
                 return _recycledEntities.Dequeue();
             }
-        }
 
-        return Interlocked.Increment(ref _lastEntity);
+            return Interlocked.Increment(ref _lastEntity);
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
