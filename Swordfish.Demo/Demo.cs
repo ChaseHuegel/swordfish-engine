@@ -217,7 +217,7 @@ public partial class Demo : Mod
         // CreateStressTest();
         // CreateShipTest();
         CreateVoxelTest();
-        // CreateTerrainTest();
+        CreateTerrainTest();
         // CreateDonutDemo();
         CreatePhysicsTest();
 
@@ -439,7 +439,7 @@ public partial class Demo : Mod
             brickRotations[i] = Quaternion.Identity;
         }
 
-        var transform = new TransformComponent(new Vector3(0, 10, 0), Quaternion.Identity);
+        var transform = new TransformComponent(new Vector3(0, 200, 0), Quaternion.Identity);
 
         DataStore store = ECSContext.World.DataStore;
         int shipEntity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
@@ -501,10 +501,21 @@ public partial class Demo : Mod
         Mesh mesh = MeshBrickGrid(grid, textureArray);
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
+        Vector3[] brickLocations = PointsBrickGrid(grid);
+        Quaternion[] brickRotations = new Quaternion[brickLocations.Length];
+        Shape[] brickShapes = new Shape[brickLocations.Length];
+        for (int i = 0; i < brickLocations.Length; i++)
+        {
+            brickShapes[i] = new Box3(Vector3.One);
+            brickRotations[i] = Quaternion.Identity;
+        }
+
         DataStore store = ECSContext.World.DataStore;
         int entity = store.Alloc(new IdentifierComponent("Terrain", "bricks"));
-        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 25), Quaternion.Identity));
+        store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
     }
 
     private Vector3[] PointsBrickGrid(BrickGrid grid)
@@ -736,11 +747,11 @@ public partial class Demo : Mod
         entity.AddOrUpdate(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
         entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
 
-        for (int i = 0; i < 100; i++)
+        for (int i = 0; i < 1000; i++)
         {
             entity = ECSContext.World.NewEntity();
             entity.AddOrUpdate(new IdentifierComponent($"Phyics Body {i}", null));
-            entity.AddOrUpdate(new TransformComponent(new Vector3(0, 20 + i * 2, 0), Quaternion.Identity));
+            entity.AddOrUpdate(new TransformComponent(new Vector3(0, 200 + i * 2, 0), Quaternion.Identity));
             entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
             entity.AddOrUpdate(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
             entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
