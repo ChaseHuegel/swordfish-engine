@@ -3,7 +3,7 @@ using System.Numerics;
 
 namespace Swordfish.Library.Types.Shapes
 {
-    public struct Ellipse2 : IShape
+    public struct Ellipse2
     {
         public float A;
         public float B;
@@ -35,5 +35,7 @@ namespace Swordfish.Library.Types.Shapes
 
             return points;
         }
+
+        public static implicit operator Shape(Ellipse2 x) => new(x);
     }
 }

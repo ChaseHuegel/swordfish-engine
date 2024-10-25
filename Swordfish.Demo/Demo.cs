@@ -432,7 +432,7 @@ public partial class Demo : Mod
 
         Vector3[] brickLocations = PointsBrickGrid(grid);
         Quaternion[] brickRotations = new Quaternion[brickLocations.Length];
-        IShape[] brickShapes = new IShape[brickLocations.Length];
+        Shape[] brickShapes = new Shape[brickLocations.Length];
         for (int i = 0; i < brickLocations.Length; i++)
         {
             brickShapes[i] = new Box3(Vector3.One);

@@ -7,6 +7,9 @@ using Swordfish.Library.Types.Shapes;
 using System.Numerics;
 using Plane = Swordfish.Library.Types.Shapes.Plane;
 using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
+using JoltShape = JoltPhysicsSharp.Shape;
+using Shape = Swordfish.Library.Types.Shapes.Shape;
+using ShapeType = Swordfish.Library.Types.Shapes.ShapeType;
 
 namespace Swordfish.Physics.Jolt;
 
@@ -158,7 +161,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
         else
         {
-            if (!store.TryGet(entity, out ColliderComponent collider) || !TryGetJoltShape(collider.Shape, transform.Scale, out Shape shape))
+            if (!store.TryGet(entity, out ColliderComponent collider) || !TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
             {
                 return;
             }
@@ -185,58 +188,66 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         _bodyInterface.SetPositionRotationAndVelocity(body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
-    private static bool TryGetJoltShape(IShape shape, Vector3 scale, out Shape joltShape)
+    private static bool TryGetJoltShape(ColliderComponent collider, Vector3 scale, out JoltShape joltShape)
     {
-        switch (shape)
+        if (collider.CompoundShape.HasValue)
         {
-            case Box3 box3:
-                joltShape = new BoxShape(box3.Extents * 0.5f * scale);
-                return true;
+            CompoundShape compoundShape = collider.CompoundShape.Value;
+            var mutableCompoundShapeSettings = new MutableCompoundShapeSettings();
+            for (int i = 0; i < compoundShape.Shapes.Length; i++)
+            {
+                Shape childShape = compoundShape.Shapes[i];
 
-            case Box2 box2:
-                joltShape = new BoxShape(new Vector3(box2.Extents.X * 0.5f * scale.X, box2.Extents.Y * 0.5f * scale.Y, 0));
-                return true;
-
-            case Sphere sphere:
-                joltShape = new SphereShape(sphere.Radius * (scale.X + scale.Y + scale.Z) / 3);
-                return true;
-
-            case Circle circle:
-                joltShape = new SphereShape(circle.Radius * (scale.X + scale.Y) / 2);
-                return true;
-
-            case Capsule capsule:
-                joltShape = new CapsuleShape(capsule.Height * 0.5f * scale.Y, capsule.Radius * (scale.X + scale.Z) / 2);
-                return true;
-
-            case Cylinder cylinder:
-                joltShape = new CylinderShape(cylinder.Height * 0.5f * scale.Y, cylinder.Radius * (scale.X + scale.Z) / 2);
-                return true;
-
-            case Plane plane:
-                joltShape = new PlaneShape(new System.Numerics.Plane(plane.Normal, plane.Distance), null, 5_000);
-                return true;
-
-            case CompoundShape compoundShape:
-                var mutableCompoundShapeSettings = new MutableCompoundShapeSettings();
-                for (int i = 0; i < compoundShape.Shapes.Length; i++)
+                if (!TryGetJoltShape(childShape, scale, out JoltShape childJoltShape))
                 {
-                    IShape childShape = compoundShape.Shapes[i];
-                    if (childShape is CompoundShape)
-                    {
-                        //  Don't allow nesting compound shapes.
-                        // TODO raise or log an error.
-                        continue;
-                    }
-
-                    if (!TryGetJoltShape(childShape, scale, out Shape childJoltShape))
-                    {
-                        continue;
-                    }
-
-                    mutableCompoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
+                    continue;
                 }
-                joltShape = new MutableCompoundShape(mutableCompoundShapeSettings);
+
+                mutableCompoundShapeSettings.AddShape(compoundShape.Positions[i] * scale, compoundShape.Orientations[i], childJoltShape);
+            }
+            joltShape = new MutableCompoundShape(mutableCompoundShapeSettings);
+            return true;
+        }
+
+        if (!collider.Shape.HasValue)
+        {
+            joltShape = default!;
+            return false;
+        }
+
+        return TryGetJoltShape(collider.Shape.Value, scale, out joltShape);
+    }
+
+    private static bool TryGetJoltShape(Shape shape, Vector3 scale, out JoltShape joltShape)
+    {
+        switch (shape.Type)
+        {
+            case ShapeType.Box3:
+                joltShape = new BoxShape(shape.Box3.Extents * 0.5f * scale);
+                return true;
+
+            case ShapeType.Box2:
+                joltShape = new BoxShape(new Vector3(shape.Box2.Extents.X * 0.5f * scale.X, shape.Box2.Extents.Y * 0.5f * scale.Y, 0));
+                return true;
+
+            case ShapeType.Sphere:
+                joltShape = new SphereShape(shape.Sphere.Radius * (scale.X + scale.Y + scale.Z) / 3);
+                return true;
+
+            case ShapeType.Circle:
+                joltShape = new SphereShape(shape.Circle.Radius * (scale.X + scale.Y) / 2);
+                return true;
+
+            case ShapeType.Capsule:
+                joltShape = new CapsuleShape(shape.Capsule.Height * 0.5f * scale.Y, shape.Capsule.Radius * (scale.X + scale.Z) / 2);
+                return true;
+
+            case ShapeType.Cylinder:
+                joltShape = new CylinderShape(shape.Cylinder.Height * 0.5f * scale.Y, shape.Cylinder.Radius * (scale.X + scale.Z) / 2);
+                return true;
+
+            case ShapeType.Plane:
+                joltShape = new PlaneShape(new System.Numerics.Plane(shape.Plane.Normal, shape.Plane.Distance), null, 5_000);
                 return true;
         }
 

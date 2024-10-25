@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Swordfish.Library.Types.Shapes
 {
-    public struct Box2 : IShape
+    public struct Box2
     {
         public Vector2 Extents;
 
@@ -10,5 +10,7 @@ namespace Swordfish.Library.Types.Shapes
         {
             Extents = extents;
         }
+
+        public static implicit operator Shape(Box2 x) => new(x);
     }
 }

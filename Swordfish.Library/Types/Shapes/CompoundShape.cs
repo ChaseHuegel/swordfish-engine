@@ -2,13 +2,13 @@ using System.Numerics;
 
 namespace Swordfish.Library.Types.Shapes
 {
-    public struct CompoundShape : IShape
+    public unsafe readonly struct CompoundShape
     {
-        public IShape[] Shapes;
-        public Vector3[] Positions;
-        public Quaternion[] Orientations;
+        public readonly Shape[] Shapes;
+        public readonly Vector3[] Positions;
+        public readonly Quaternion[] Orientations;
 
-        public CompoundShape(IShape[] shapes, Vector3[] positions, Quaternion[] orientations)
+        public CompoundShape(Shape[] shapes, Vector3[] positions, Quaternion[] orientations)
         {
             Shapes = shapes;
             Positions = positions;

@@ -1,6 +1,6 @@
 namespace Swordfish.Library.Types.Shapes
 {
-    public struct Capsule : IShape
+    public struct Capsule
     {
         public float Height;
         public float Radius;
@@ -10,5 +10,7 @@ namespace Swordfish.Library.Types.Shapes
             Height = height;
             Radius = radius;
         }
+
+        public static implicit operator Shape(Capsule x) => new(x);
     }
 }

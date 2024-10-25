@@ -2,12 +2,19 @@ using Swordfish.Library.Types.Shapes;
 
 namespace Swordfish.ECS;
 
-public struct ColliderComponent : IDataComponent
+public readonly struct ColliderComponent : IDataComponent
 {
-    public IShape Shape;
+    public readonly Shape? Shape;
 
-    public ColliderComponent(IShape shape)
+    public readonly CompoundShape? CompoundShape;
+
+    public ColliderComponent(Shape shape)
     {
         Shape = shape;
+    }
+
+    public ColliderComponent(CompoundShape compoundShape)
+    {
+        CompoundShape = compoundShape;
     }
 }

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Swordfish.Library.Types.Shapes
 {
-    public struct Plane : IShape
+    public struct Plane
     {
         public Vector3 Normal;
         public float Distance;
@@ -17,5 +17,7 @@ namespace Swordfish.Library.Types.Shapes
         {
             return Normal * Distance;
         }
+
+        public static implicit operator Shape(Plane x) => new(x);
     }
 }
