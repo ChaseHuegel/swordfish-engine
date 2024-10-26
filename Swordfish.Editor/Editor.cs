@@ -17,7 +17,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
 

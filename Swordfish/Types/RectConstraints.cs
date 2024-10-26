@@ -2,7 +2,7 @@ using System.Numerics;
 using ImGuiNET;
 using Swordfish.Library.Constraints;
 
-namespace Swordfish.Types.Constraints;
+namespace Swordfish.Types;
 
 public class RectConstraints
 {

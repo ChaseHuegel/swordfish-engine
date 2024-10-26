@@ -12,7 +12,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI.Elements;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 

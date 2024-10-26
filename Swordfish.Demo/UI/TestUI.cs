@@ -1,7 +1,7 @@
 using System.Drawing;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
 

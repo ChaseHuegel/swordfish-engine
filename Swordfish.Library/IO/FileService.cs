@@ -140,7 +140,12 @@ namespace Swordfish.Library.IO
 
         public IPath[] GetFiles(IPath path, string searchPattern, SearchOption searchOption)
         {
-            string dir = path.GetDirectory().ToString();
+            var dir = path.GetDirectory().ToString();
+            if (!Directory.Exists(dir))
+            {
+                return [];
+            }
+            
             return Directory.GetFiles(dir, searchPattern, searchOption)
                 .Select(str => (IPath)new Path(str))
                 .ToArray();

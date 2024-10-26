@@ -6,23 +6,23 @@ namespace Swordfish.Library.Collections
 {
     public class Kernel
     {
-        private readonly Container Resolver;
+        private readonly IContainer _resolver;
 
-        public Kernel(Container baseResolver)
+        public Kernel(IContainer baseResolver)
         {
-            Resolver = baseResolver;
+            _resolver = baseResolver;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerable<TInterface> GetAll<TInterface>() where TInterface : class
         {
-            return Resolver.ResolveMany<TInterface>();
+            return _resolver.ResolveMany<TInterface>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TInterface Get<TInterface>() where TInterface : class
         {
-            return Resolver.Resolve<TInterface>();
+            return _resolver.Resolve<TInterface>();
         }
     }
 }

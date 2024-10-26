@@ -1,6 +1,6 @@
 using Silk.NET.Input;
 
-namespace Swordfish.Util;
+namespace Swordfish.Input;
 
 public static class SilkInputExtensions
 {

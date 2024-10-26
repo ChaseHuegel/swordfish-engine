@@ -1,9 +1,8 @@
-using Swordfish.ECS;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 
-namespace Swordfish.Entities;
+namespace Swordfish.ECS;
 
 public class ECSContext : IECSContext
 {
