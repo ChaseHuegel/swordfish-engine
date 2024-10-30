@@ -1,7 +1,7 @@
-﻿namespace Swordfish.AppEngine;
+﻿namespace Shoal;
 
 /// <summary>
-///     Exit codes 1-100 are reserved for use by AppEngine.
+///     Exit codes 1-100 are reserved for use by <see cref="AppEngine"/>.
 /// </summary>
 public enum ExitCode
 {

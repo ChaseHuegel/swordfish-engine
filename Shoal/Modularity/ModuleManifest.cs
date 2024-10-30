@@ -2,7 +2,7 @@
 // ReSharper disable UnusedAutoPropertyAccessor.Global
 // ReSharper disable UnusedMember.Global
 
-namespace Swordfish.AppEngine.Modding;
+namespace Shoal.Modularity;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class ModuleManifest(string id, string name) : TomlConfiguration<ModuleManifest>

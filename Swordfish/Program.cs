@@ -2,7 +2,7 @@ using DryIoc;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
-using Swordfish.AppEngine;
+using Shoal;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;
@@ -34,9 +34,10 @@ internal static class Program
     public static readonly ThreadContext MainThreadContext;
     public static readonly IWindow MainWindow;
 
-    private static readonly ILogger _logger = Engine.CreateLogger<Engine>();
-    private static readonly Engine _engine = new();
+    private static readonly ILogger _logger = AppEngine.CreateLogger(typeof(Program));
+    private static AppEngine? _engine;
     private static EngineState _state;
+    private static string[]? _args;
 
     static Program()
     {
@@ -53,7 +54,6 @@ internal static class Program
 
         MainWindow = Window.Create(options);
         MainWindow.Load += OnWindowLoaded;
-        MainWindow.Closing += OnWindowClosing;
         MainWindow.Update += OnWindowUpdate;
         TransitionState(EngineState.Initializing, EngineState.Initialized);
     }
@@ -61,6 +61,7 @@ internal static class Program
     private static int Main(string[] args)
     {
         TransitionState(EngineState.Initialized, EngineState.Starting);
+        _args = args;
 #if WINDOWS
         if (args.Contains("-debug") && !Kernel32.AttachConsole(-1))
             Kernel32.AllocConsole();
@@ -68,7 +69,21 @@ internal static class Program
         TransitionState(EngineState.Starting, EngineState.Started);
         
         MainWindow.Run();
+
+        TransitionState(EngineState.Started, EngineState.Closing);
+        if (_engine == null)
+        {
+            _logger.LogCritical($"The {nameof(AppEngine)} was null after closing the window, this is most unfortunate.");
+            return Crash();
+        }
+        
+        _engine.Container.Resolve<IPluginContext>().UnloadAll();
+        _engine.Container.Resolve<IECSContext>().Stop();
+        TransitionState(EngineState.Closing, EngineState.Closed);
+
+        _engine.Dispose();
         TransitionState(EngineState.Closed, EngineState.Stopped);
+
         return Environment.ExitCode;
     }
     
@@ -79,19 +94,27 @@ internal static class Program
         MainWindow.Close();
     }
 
-    internal static void Crash(int exitCode = (int)ExitCode.Crash)
+    internal static int Crash(int exitCode = (int)ExitCode.Crash)
     {
         //  TODO collect any useful information, such as active callstacks, and dump a crash report.
         Environment.Exit(exitCode);
+        return exitCode;
     }
     
     private static void OnWindowLoaded()
     {
         TransitionState(EngineState.Started, EngineState.Loading);
-        _engine.Start([]);
+        if (_args == null)
+        {
+            _logger.LogCritical("The window has loaded with null args, it must have bypassed the main entry point.");
+            Crash();
+            return;
+        }
+        
+        _engine = AppEngine.Build(_args, Console.Out);
         SwordfishEngine.Kernel = new Kernel(_engine.Container); //  TODO get rid of this
         TransitionState(EngineState.Loading, EngineState.Loaded);
-        
+
         TransitionState(EngineState.Loaded, EngineState.Waking);
         _engine.Container.Resolve<IRenderContext>();
 
@@ -115,14 +138,6 @@ internal static class Program
         }
 
         MainThreadContext.ProcessMessageQueue();
-    }
-    
-    private static void OnWindowClosing()
-    {
-        TransitionState(EngineState.Started, EngineState.Closing);
-        _engine.Container.Resolve<IPluginContext>().UnloadAll();
-        _engine.Container.Resolve<IECSContext>().Stop();
-        TransitionState(EngineState.Closing, EngineState.Closed);
     }
     
     private static void TransitionState(EngineState expectedState, EngineState newState)

@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.IO;
+namespace Shoal.IO;
 
 public static class Paths
 {

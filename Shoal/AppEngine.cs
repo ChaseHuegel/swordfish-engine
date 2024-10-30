@@ -1,25 +1,22 @@
-using Swordfish.AppEngine.Globalization;
+using Shoal.Globalization;
+using Shoal.Modularity;
 using Swordfish.Library.Events;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Serialization.Toml.Mappers;
 
-namespace Swordfish.AppEngine;
+namespace Shoal;
 
-// ReSharper disable once UnusedType.Global
-public sealed class Engine : IDisposable
+public sealed class AppEngine : IDisposable
 {
     private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-    private static readonly ILogger _logger = CreateLogger<Engine>();
+    private static readonly ILogger _logger = CreateLogger<AppEngine>();
 
-    // ReSharper disable once MemberCanBePrivate.Global
-    public IContainer? Container { get; private set; }
+    public IContainer Container { get; }
 
-    // ReSharper disable once UnusedMember.Global
-    // ReSharper disable once UnusedParameter.Global
-    public void Start(string[] args)
+    private AppEngine(in string[] args, in TextWriter output)
     {
-        IContainer coreContainer = CreateCoreContainer();
+        IContainer coreContainer = CreateCoreContainer(output);
         ActivateTomlMappers(coreContainer);
 
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
@@ -27,17 +24,37 @@ public sealed class Engine : IDisposable
 
         Container = modulesContainer;
     }
+    
+    public static AppEngine Build(in string[] args, in TextWriter output)
+    {
+        return new AppEngine(args, output);
+    }
 
     public void Dispose()
     {
-        Container?.Dispose();
+        Container.Dispose();
     }
 
-    private static IContainer CreateCoreContainer()
+    public static ILogger CreateLogger<T>()
+    {
+        return _loggerFactory.CreateLogger<T>();
+    }
+    
+    public static ILogger CreateLogger(Type type)
+    {
+        return _loggerFactory.CreateLogger(type);
+    }
+    
+    private static ILogger CreateLogger(Request request)
+    {
+        return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
+    }
+
+    private IContainer CreateCoreContainer(in TextWriter output)
     {
         IContainer container = new Container();
 
-        container.RegisterInstance(Console.Out);
+        container.RegisterInstance<TextWriter>(output);
 
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
@@ -192,15 +209,5 @@ public sealed class Engine : IDisposable
         {
             mapper.Register();
         }
-    }
-
-    private static ILogger CreateLogger(Request request)
-    {
-        return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
-    }
-
-    public static ILogger CreateLogger<T>()
-    {
-        return _loggerFactory.CreateLogger<T>();
     }
 }

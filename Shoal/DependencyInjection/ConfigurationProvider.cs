@@ -1,6 +1,8 @@
+using Shoal.IO;
+using Shoal.Modularity;
 using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.AppEngine.DependencyInjection;
+namespace Shoal.DependencyInjection;
 
 internal class ConfigurationProvider
 {

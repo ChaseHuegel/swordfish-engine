@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.Modding;
+namespace Shoal.Modularity;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class ModuleOptions(bool allowScriptCompilation, string[] loadOrder) : TomlConfiguration<ModuleOptions>

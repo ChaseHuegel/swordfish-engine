@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.Modding;
+namespace Shoal.Modularity;
 
 internal interface IModulesLoader
 {

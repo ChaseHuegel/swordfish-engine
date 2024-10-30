@@ -1,6 +1,6 @@
 using SmartFormat.Core.Settings;
 
-namespace Swordfish.AppEngine.DependencyInjection;
+namespace Shoal.DependencyInjection;
 
 internal static class SmartFormatterProvider
 {

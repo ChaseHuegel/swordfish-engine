@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.IO;
+namespace Shoal.IO;
 
 internal class ParsedFile<T>(IPath path, T value)
 {

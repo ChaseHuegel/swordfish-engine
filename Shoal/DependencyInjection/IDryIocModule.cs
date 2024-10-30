@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.DependencyInjection;
+namespace Shoal.DependencyInjection;
 
 public interface IDryIocModule
 {

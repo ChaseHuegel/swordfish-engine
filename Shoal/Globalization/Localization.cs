@@ -1,4 +1,4 @@
-namespace Swordfish.AppEngine.Globalization;
+namespace Shoal.Globalization;
 
 internal class Localization : ILocalizationProvider, ILocalization
 {

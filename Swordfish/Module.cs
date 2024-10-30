@@ -2,7 +2,7 @@
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
-using Swordfish.AppEngine.DependencyInjection;
+using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
 using Swordfish.Graphics;

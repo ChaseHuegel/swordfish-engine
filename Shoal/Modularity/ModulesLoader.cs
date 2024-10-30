@@ -1,6 +1,6 @@
 using Swordfish.Library.Util;
 
-namespace Swordfish.AppEngine.Modding;
+namespace Shoal.Modularity;
 
 internal class ModulesLoader(
     in ILogger logger,
