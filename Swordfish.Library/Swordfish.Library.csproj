@@ -20,6 +20,7 @@
   <ItemGroup>
     <PackageReference Include="DryIoc.dll" Version="5.3.3" />
     <PackageReference Include="FastMath" Version="1.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Needlefish" Version="1.2.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
     <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />

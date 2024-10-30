@@ -2,6 +2,7 @@ using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Logging.Console;
 using Shoal.Globalization;
 using Shoal.Modularity;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Events;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
@@ -11,6 +12,7 @@ namespace Shoal;
 
 public sealed class AppEngine : IDisposable
 {
+    private static readonly LogListener _logListener = new();
     private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(BuildLoggerFactory);
     private static readonly ILogger _logger = CreateLogger<AppEngine>();
 
@@ -54,6 +56,8 @@ public sealed class AppEngine : IDisposable
     
     private static void BuildLoggerFactory(ILoggingBuilder builder)
     {
+        builder.AddProvider(_logListener);
+        
         builder.AddSimpleConsole(options =>
         {
             options.IncludeScopes = true;
@@ -92,6 +96,7 @@ public sealed class AppEngine : IDisposable
         IContainer container = new Container();
 
         container.RegisterInstance<TextWriter>(output);
+        container.RegisterInstance<ILogListener>(_logListener);
 
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 

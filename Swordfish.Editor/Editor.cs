@@ -42,12 +42,13 @@ public class Editor : Plugin
     private readonly IInputService InputService;
     private readonly DebugSettings DebugSettings;
     private readonly RenderSettings RenderSettings;
+    private readonly ILogListener LogListener;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, ILogListener logListener)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -57,6 +58,7 @@ public class Editor : Plugin
         InputService = inputService;
         DebugSettings = debugSettings;
         RenderSettings = renderSettings;
+        LogListener = logListener;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -280,17 +282,29 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(0.2f)
             }
         };
+        
+        foreach (LoggerEventArgs record in LogListener.GetHistory())
+            OnNewLog(null, record);
 
         foreach (LogEventArgs record in Logger.History)
             PopulateLogLine(null, record);
 
         Logger.Logged += PopulateLogLine;
+        LogListener.NewLog += OnNewLog;
 
         void PopulateLogLine(object? sender, LogEventArgs args)
         {
             console.Content.Add(new TextElement(args.Line)
             {
-                Color = args.Type.GetColor()
+                Color = args.Type.GetColor(),
+            });
+        }
+        
+        void OnNewLog(object? sender, LoggerEventArgs e)
+        {
+            console.Content.Add(new TextElement($"{e.LogLevel}: {e.Log}")
+            {
+                Color = e.LogLevel.GetColor(),
             });
         }
 
