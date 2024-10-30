@@ -1,0 +1,4 @@
+﻿AllowScriptCompilation = false
+LoadOrder = [
+    "swordfish"
+]
