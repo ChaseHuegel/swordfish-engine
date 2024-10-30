@@ -37,7 +37,6 @@ internal static class Program
     private static readonly ILogger _logger = Engine.CreateLogger<Engine>();
     private static readonly Engine _engine = new();
     private static EngineState _state;
-    private static int _exitCode;
 
     static Program()
     {
@@ -70,14 +69,20 @@ internal static class Program
         
         MainWindow.Run();
         TransitionState(EngineState.Closed, EngineState.Stopped);
-        return _exitCode;
+        return Environment.ExitCode;
     }
     
     internal static void Stop(int exitCode = 0)
     {
         TransitionState(EngineState.Started, EngineState.Stopping);
-        _exitCode = exitCode;
+        Environment.ExitCode = exitCode;
         MainWindow.Close();
+    }
+
+    internal static void Crash(int exitCode = (int)ExitCode.Crash)
+    {
+        //  TODO collect any useful information, such as active callstacks, and dump a crash report.
+        Environment.Exit(exitCode);
     }
     
     private static void OnWindowLoaded()
@@ -125,9 +130,12 @@ internal static class Program
         //  If we are trying to transition to incompatible states that is a fatal issue,
         //  something will certainly go horribly wrong if it hasn't already. Burn it down!
         if (_state < expectedState)
-            throw new FatalAlertException($"Unable to transition to state {newState}, current state is: {_state} but expected {expectedState}.");
+        {
+            _logger.LogCritical("Unable to transition to state {newState}, current state is: {currentState} but expected {expectedState}.", newState, _state, expectedState);
+            Crash((int)ExitCode.BadState);
+        }
 
-        _logger.LogInformation("Engine state transitioning from {state} to {newState}.", _state, newState);
+        _logger.LogInformation("Engine state transitioning from {currentState} to {newState}.", _state, newState);
         _state = newState;
     }
 }

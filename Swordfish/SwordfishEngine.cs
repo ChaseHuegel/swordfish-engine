@@ -19,4 +19,9 @@ public static class SwordfishEngine
     {
         Program.Stop(exitCode);
     }
+
+    public static void Crash(int exitCode = (int)ExitCode.Crash)
+    {
+        Program.Crash(exitCode);
+    }
 }
