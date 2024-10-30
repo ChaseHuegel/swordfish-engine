@@ -93,7 +93,7 @@ public sealed class Engine : IDisposable
         {
             _logger.LogError(error.Value, "There was an error validating a container (service: {service}).", error.Key);
         }
-        Environment.Exit(1);
+        Environment.Exit((int)ExitCode.BadDependency);
     }
 
     private static void RegisterSerializers(Assembly assembly, IContainer container)
