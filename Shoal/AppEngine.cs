@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging.Console;
 using Shoal.Globalization;
 using Shoal.Modularity;
 using Swordfish.Library.Events;
@@ -9,7 +10,7 @@ namespace Shoal;
 
 public sealed class AppEngine : IDisposable
 {
-    private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+    private static readonly ILoggerFactory _loggerFactory = LoggerFactory.Create(BuildLoggerFactory);
     private static readonly ILogger _logger = CreateLogger<AppEngine>();
 
     public IContainer Container { get; }
@@ -48,6 +49,16 @@ public sealed class AppEngine : IDisposable
     private static ILogger CreateLogger(Request request)
     {
         return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
+    }
+    
+    private static void BuildLoggerFactory(ILoggingBuilder builder)
+    {
+        builder.AddSimpleConsole(options =>
+        {
+            options.IncludeScopes = true;
+            options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+            options.ColorBehavior = LoggerColorBehavior.Enabled;
+        });
     }
 
     private IContainer CreateCoreContainer(in TextWriter output)
