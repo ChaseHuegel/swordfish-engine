@@ -18,6 +18,7 @@ using Swordfish.UI;
 
 namespace Swordfish;
 
+// ReSharper disable once UnusedType.Global
 public class Module : IDryIocModule
 {
     public void Load(IContainer resolver)

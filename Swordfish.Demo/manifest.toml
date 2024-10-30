@@ -1,0 +1,9 @@
+﻿ID = "swordfish.demo"
+Name = "Swordfish Demo"
+Description = "The Swordfish engine demo."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+Assemblies = [
+    "Swordfish.Demo.dll",
+]

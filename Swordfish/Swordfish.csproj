@@ -48,6 +48,9 @@
 
   <ItemGroup>
     <None Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Update="assets\modules\swordfish\manifest.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
