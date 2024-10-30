@@ -19,10 +19,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Assets\**\*.*" CopyToOutputDirectory="Always" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
   </ItemGroup>
 
