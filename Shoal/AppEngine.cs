@@ -1,3 +1,4 @@
+using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Logging.Console;
 using Shoal.Globalization;
 using Shoal.Modularity;
@@ -58,6 +59,31 @@ public sealed class AppEngine : IDisposable
             options.IncludeScopes = true;
             options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
             options.ColorBehavior = LoggerColorBehavior.Enabled;
+        });
+
+        builder.AddFile(options =>
+        {
+            options.RootPath = AppContext.BaseDirectory;
+            options.BasePath = "logs";
+            options.DateFormat = "yyyy-MM-dd";
+            options.IncludeScopes = true;
+#if DEBUG
+            options.FileAccessMode = LogFileAccessMode.KeepOpenAndAutoFlush;
+#else
+            options.FileAccessMode = LogFileAccessMode.KeepOpen;
+#endif
+            options.Files =
+            [
+                new LogFileOptions
+                {
+                    Path = $"{DateTime.Now:yyyy-MM-dd_HHmm-ss}.log",
+                },
+                new LogFileOptions
+                {
+                    Path = "latest.log",
+                    MaxFileSize = 10_000_000,
+                },
+            ];
         });
     }
 
