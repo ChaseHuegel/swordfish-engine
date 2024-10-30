@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>0.0.1</Version>
+    <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
   <ItemGroup>
