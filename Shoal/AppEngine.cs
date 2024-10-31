@@ -47,15 +47,10 @@ public sealed class AppEngine : IDisposable
 
     public void Start()
     {
-        Parallel.ForEach(Container.ResolveMany<IEntryPoint>(), ForEachPlugin);
-        return;
-
-        void ForEachPlugin(IEntryPoint entryPoint, ParallelLoopState loopState, long index)
+        foreach (IEntryPoint entryPoint in Container.ResolveMany<IEntryPoint>())
         {
-            if (Debugger.TryInvoke(entryPoint.Run, $"Failed to run entry point '{entryPoint.GetType()}'"))
-            {
-                _logger.LogInformation("Ran entry point '{entryPoint}'", entryPoint.GetType());
-            }
+            _logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
+            Debugger.TryInvoke(entryPoint.Run, $"Failed to run entry point '{entryPoint.GetType()}'");
         }
     }
 

@@ -1,6 +1,6 @@
 ﻿AllowScriptCompilation = false
 LoadOrder = [
     "swordfish",
+    "swordfish.editor",
     "swordfish.demo",
-    "swordfish.editor"
 ]
