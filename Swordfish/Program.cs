@@ -139,7 +139,7 @@ internal static class Program
             Crash((int)ExitCode.BadState);
         }
 
-        _logger.LogInformation("Engine state transitioning from {currentState} to {newState}.", _state, newState);
+        _logger.LogDebug("Engine state transitioning from {currentState} to {newState}.", _state, newState);
         _state = newState;
     }
 }
