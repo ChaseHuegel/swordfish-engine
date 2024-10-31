@@ -1,13 +1,13 @@
 ﻿using DryIoc;
 using Shoal.DependencyInjection;
 
-namespace Swordfish.Demo;
+namespace Swordfish.Editor;
 
 // ReSharper disable once UnusedType.Global
 public class Module : IDryIocModule
 {
     public void Load(IContainer container)
     {
-        container.RegisterMany<Demo>();
+        container.RegisterMany<Editor>();
     }
 }
