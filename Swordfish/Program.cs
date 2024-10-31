@@ -75,7 +75,7 @@ internal static class Program
             return Crash();
         }
         
-        _engine.Container.Resolve<IECSContext>().Stop();
+        _engine.Container.Resolve<IECSContext>().Stop();    //  TODO turn this into a disposable
         TransitionState(EngineState.Closing, EngineState.Closed);
 
         _engine.Dispose();
@@ -113,8 +113,8 @@ internal static class Program
         TransitionState(EngineState.Loading, EngineState.Loaded);
 
         TransitionState(EngineState.Loaded, EngineState.Waking);
-        _engine.Container.Resolve<IRenderContext>();
-        _engine.Container.Resolve<IECSContext>().Start();
+        _engine.Container.Resolve<IRenderContext>();    //  TODO turn this into an entry point
+        _engine.Container.Resolve<IECSContext>().Start();   //  TODO turn this into an entry point
         _engine.Start();
         TransitionState(EngineState.Waking, EngineState.Awake);
     }
