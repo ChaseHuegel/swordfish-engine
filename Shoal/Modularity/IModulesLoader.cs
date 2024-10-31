@@ -2,5 +2,5 @@ namespace Shoal.Modularity;
 
 internal interface IModulesLoader
 {
-    void Load(Action<Assembly> hookCallback);
+    void Load(Action<ParsedFile<ModuleManifest>, Assembly> assemblyHookCallback);
 }

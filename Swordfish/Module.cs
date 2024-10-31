@@ -4,7 +4,6 @@ using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Shoal.DependencyInjection;
 using Swordfish.ECS;
-using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
@@ -24,16 +23,8 @@ public class Module : IDryIocModule
     public void Load(IContainer resolver)
     {
         var enginePathService = new PathService();
-        var pluginContext = new PluginContext();
         IInputContext inputContext = Program.MainWindow.CreateInput();
         GL gl = Program.MainWindow.CreateOpenGL();
-
-        pluginContext.RegisterFrom(enginePathService.Root);
-        pluginContext.RegisterFrom(enginePathService.Plugins, SearchOption.AllDirectories);
-        pluginContext.RegisterFrom(enginePathService.Mods, SearchOption.AllDirectories);
-        
-        resolver.RegisterInstance<IPluginContext>(pluginContext);
-        resolver.RegisterMany(pluginContext.GetRegisteredTypes(), Reuse.Singleton);
 
         resolver.RegisterInstance<GL>(gl);
         resolver.RegisterInstance<IWindow>(Program.MainWindow);

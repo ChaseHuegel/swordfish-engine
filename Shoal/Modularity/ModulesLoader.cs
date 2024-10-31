@@ -13,7 +13,7 @@ internal class ModulesLoader(
     private readonly ModuleOptions? _options = configurationProvider.GetModuleOptions()?.Value;
     private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests = configurationProvider.GetModuleManifests();
 
-    public void Load(Action<Assembly> hookCallback)
+    public void Load(Action<ParsedFile<ModuleManifest>, Assembly> assemblyHookCallback)
     {
         if (_manifests.Count == 0)
         {
@@ -54,7 +54,7 @@ internal class ModulesLoader(
 
         foreach (string id in _options.LoadOrder)
         {
-            ParsedFile<ModuleManifest>? manifestFile = _manifests.FirstOrDefault(manfiest => manfiest.Value.ID == id);
+            ParsedFile<ModuleManifest>? manifestFile = _manifests.FirstOrDefault(manifest => manifest.Value.ID == id);
             if (manifestFile == null)
             {
                 _logger.LogError("Tried to load module ID \"{id}\" from the load order but it could not be found. Is it missing a manifest?", id);
@@ -62,9 +62,7 @@ internal class ModulesLoader(
             }
 
             ModuleManifest manifest = manifestFile.Value;
-            IPath modDirectory = manifestFile.Path.GetDirectory();
-
-            Result<Exception?> result = LoadModule(hookCallback, _logger, _fileService, _options, manifest, modDirectory);
+            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _fileService, _options, manifestFile);
             if (result)
             {
                 _logger.LogInformation("Loaded module \"{name}\" ({id}), by \"{author}\": {description}", manifest.Name, manifest.ID, manifest.Author, manifest.Description);
@@ -76,16 +74,16 @@ internal class ModulesLoader(
         }
     }
 
-    private static Result<Exception?> LoadModule(Action<Assembly> hookCallback, ILogger logger, IFileService fileService, ModuleOptions options, ModuleManifest manifest, IPath directory)
+    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, IFileService fileService, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
     {
-        IPath rootPath = manifest.RootPathOverride ?? directory;
+        ModuleManifest manifest = manifestFile.Value;
+        IPath directory = manifestFile.GetRootPath();
 
         //  Compile any scripts into an assembly
-        IPath scriptsPath = manifest.ScriptsPath ?? new Path("Scripts/");
-        scriptsPath = rootPath.At(scriptsPath);
+        IPath scriptsPath = manifest.ScriptsPath ?? directory.At("Scripts/");
         if (scriptsPath.Exists())
         {
-            var scriptFiles = fileService.GetFiles(scriptsPath, SearchOption.AllDirectories);
+            IPath[]? scriptFiles = fileService.GetFiles(scriptsPath, SearchOption.AllDirectories);
             if (options.AllowScriptCompilation && scriptFiles.Length > 0)
             {
                 //  TODO implement script compilation
@@ -99,12 +97,12 @@ internal class ModulesLoader(
             return new Result<Exception?>(true, null);
         }
 
-        IPath assembliesPath = manifest.AssembliesPath ?? new Path("");
+        IPath assembliesPath = manifest.AssembliesPath ?? directory;
 
         var loadedAssemblies = new List<Assembly>();
         foreach (string assemblyName in manifest.Assemblies)
         {
-            IPath assemblyPath = rootPath.At(assembliesPath).At(assemblyName);
+            IPath assemblyPath = assembliesPath.At(assemblyName);
             try
             {
                 Assembly assembly = Assembly.LoadFrom(assemblyPath.ToString());
@@ -121,7 +119,7 @@ internal class ModulesLoader(
             try
             {
                 HookAssembly(assembly);
-                hookCallback.Invoke(assembly);
+                hookCallback.Invoke(manifestFile, assembly);
             }
             catch (Exception ex)
             {

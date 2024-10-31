@@ -6,9 +6,10 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Editor.UI;
-using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
@@ -26,13 +27,10 @@ using Path = Swordfish.Library.IO.Path;
 
 namespace Swordfish.Editor;
 
-public class Editor : Plugin
+public class Editor : IEntryPoint, IAutoActivate
 {
     private const ImGuiWindowFlags EDITOR_CANVAS_FLAGS = ImGuiWindowFlags.AlwaysAutoResize
         | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoCollapse;
-
-    public override string Name => "Swordfish Editor";
-    public override string Description => "Visual editor for the Swordfish engine.";
 
     private readonly IWindowContext WindowContext;
     private readonly IECSContext ECSContext;
@@ -43,12 +41,13 @@ public class Editor : Plugin
     private readonly DebugSettings DebugSettings;
     private readonly RenderSettings RenderSettings;
     private readonly ILogListener LogListener;
+    private readonly IModulePathService ModulePathService;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, ILogListener logListener)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, ILogListener logListener, IModulePathService modulePathService)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -59,6 +58,7 @@ public class Editor : Plugin
         DebugSettings = debugSettings;
         RenderSettings = renderSettings;
         LogListener = logListener;
+        ModulePathService = modulePathService;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -98,7 +98,7 @@ public class Editor : Plugin
         }
     }
 
-    public override void Start()
+    public void Run()
     {
         WindowContext.Maximize();
 
@@ -139,7 +139,7 @@ public class Editor : Plugin
                                     Shortcut.DefaultEnabled,
                                     () => {
                                         Debugger.Log("Creating new plugin");
-                                        IPath outputPath = LocalPathService.Root
+                                        IPath outputPath = ModulePathService.Root
                                             .At("Projects")
                                             .At("New Project")
                                             .At("Source").CreateDirectory();

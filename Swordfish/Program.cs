@@ -4,10 +4,8 @@ using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
 using Swordfish.ECS;
-using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
 
 namespace Swordfish;
@@ -77,7 +75,6 @@ internal static class Program
             return Crash();
         }
         
-        _engine.Container.Resolve<IPluginContext>().UnloadAll();
         _engine.Container.Resolve<IECSContext>().Stop();
         TransitionState(EngineState.Closing, EngineState.Closed);
 
@@ -117,16 +114,7 @@ internal static class Program
 
         TransitionState(EngineState.Loaded, EngineState.Waking);
         _engine.Container.Resolve<IRenderContext>();
-
-        //  Touch each plugin to trigger their ctor
-        List<IPlugin> plugins = _engine.Container.ResolveMany<IPlugin>().ToList();
-        foreach (IPlugin plugin in plugins)
-        {
-            _logger.LogInformation("Initialized plugin '{plugin}'.", plugin.Name);
-        }
-
         _engine.Container.Resolve<IECSContext>().Start();
-        _engine.Container.Resolve<IPluginContext>().Activate(plugins);
         _engine.Start();
         TransitionState(EngineState.Waking, EngineState.Awake);
     }
