@@ -18,9 +18,9 @@ using Swordfish.UI;
 namespace Swordfish;
 
 // ReSharper disable once UnusedType.Global
-public class Module : IDryIocModule
+public class Injector : IDryIocInjector
 {
-    public void Load(IContainer resolver)
+    public void Inject(IContainer resolver)
     {
         var enginePathService = new PathService();
         IInputContext inputContext = Program.MainWindow.CreateInput();

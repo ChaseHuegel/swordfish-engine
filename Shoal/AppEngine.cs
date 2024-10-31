@@ -269,13 +269,13 @@ public sealed class AppEngine : IDisposable
                 continue;
             }
 
-            if (!typeof(IDryIocModule).IsAssignableFrom(type))
+            if (!typeof(IDryIocInjector).IsAssignableFrom(type))
             {
                 continue;
             }
 
-            var containerModule = (IDryIocModule)Activator.CreateInstance(type)!;
-            containerModule.Load(container);
+            var containerModule = (IDryIocInjector)Activator.CreateInstance(type)!;
+            containerModule.Inject(container);
         }
     }
 
