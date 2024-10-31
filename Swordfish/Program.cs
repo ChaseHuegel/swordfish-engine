@@ -127,6 +127,7 @@ internal static class Program
 
         _engine.Container.Resolve<IECSContext>().Start();
         _engine.Container.Resolve<IPluginContext>().Activate(plugins);
+        _engine.Start();
         TransitionState(EngineState.Waking, EngineState.Awake);
     }
     

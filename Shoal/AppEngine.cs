@@ -26,6 +26,9 @@ public sealed class AppEngine : IDisposable
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
         ActivateTomlMappers(modulesContainer);
 
+        coreContainer.ResolveMany<IAutoActivate>();
+        modulesContainer.ResolveMany<IAutoActivate>();
+
         Container = modulesContainer;
     }
     
@@ -37,6 +40,20 @@ public sealed class AppEngine : IDisposable
     public void Dispose()
     {
         Container.Dispose();
+    }
+
+    public void Start()
+    {
+        Parallel.ForEach(Container.ResolveMany<IEntryPoint>(), ForEachPlugin);
+        return;
+
+        void ForEachPlugin(IEntryPoint entryPoint, ParallelLoopState loopState, long index)
+        {
+            if (Debugger.TryInvoke(entryPoint.Run, $"Failed to run entry point '{entryPoint.GetType()}'"))
+            {
+                _logger.LogInformation("Ran entry point '{entryPoint}'", entryPoint.GetType());
+            }
+        }
     }
 
     public static ILogger CreateLogger<T>()

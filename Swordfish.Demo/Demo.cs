@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using LibNoise.Primitive;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Extensibility;
@@ -18,7 +20,7 @@ using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
 
-public partial class Demo : Mod
+public class Demo : Mod
 {
     public override string Name => "Swordfish Demo";
     public override string Description => "A demo of the Swordfish engine.";
