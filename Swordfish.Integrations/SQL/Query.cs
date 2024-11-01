@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Swordfish.Library.Extensions;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Integrations.SQL
 {
@@ -31,7 +32,11 @@ namespace Swordfish.Integrations.SQL
 
         public QueryResult GetResult() => Database.Get(this);
 
-        public bool HasResult() => Database.Get(this).Exists();
+        public bool HasResult()
+        {
+            Result<QueryResult> queryResult = Database.Get(this);
+            return queryResult && queryResult.Value.Exists();
+        }
 
         public QueryResult GetRecord(string table, string column, string value) => Select(column).From(table).Where(column).Equals(value).GetResult();
 

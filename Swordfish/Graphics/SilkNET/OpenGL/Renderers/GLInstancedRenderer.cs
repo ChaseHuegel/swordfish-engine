@@ -122,7 +122,7 @@ internal unsafe class GLInstancedRenderer : IRenderStage
 
             _gl.Set(EnableCap.DepthTest, !target.RenderOptions.IgnoreDepth);
             _gl.Set(EnableCap.CullFace, !target.RenderOptions.DoubleFaced);
-            _gl.PolygonMode(MaterialFace.Front, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
+            _gl.PolygonMode(MaterialFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
         }

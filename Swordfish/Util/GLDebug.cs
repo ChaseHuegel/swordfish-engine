@@ -1,16 +1,16 @@
 using System.Runtime.InteropServices;
+using DryIoc.ImTools;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Util
 {
     public static class GLDebug
     {
-        private static GL GL => gl ??= SwordfishEngine.Kernel.Get<GL>();
-        private static GL gl;
-
-        private static DebugProc glErrorDelegate;
+        private static GL GL => _gl ??= SwordfishEngine.Kernel.Get<GL>();
+        private static GL? _gl;
 
         /// <summary>
         /// True if OpenGL debug output is supported on the current system; otherwise false.
@@ -18,84 +18,63 @@ namespace Swordfish.Util
         public static bool HasGLOutput { get; private set; }
 
         /// <summary>
-        /// Consumes the most recent GL error (if any) and pushes to the logger with specified title.
-        /// Automatically collects and forwards caller info for debugging.
+        /// Collects the most recent GL error, if there is one.
         /// </summary>
-        /// <param name="title"></param>
-        /// <param name="lineNumber"></param>
-        /// <param name="caller"></param>
-        /// <param name="callerPath"></param>
-        /// <returns>True if an error was collected; otherwise false</returns>
-        public static bool TryCollectGLError(string title)
+        public static Result<GLEnum> CollectGLError()
         {
             if (HasGLOutput)
-                return false;
-
-            GLEnum error = GL.GetError();
-            if (error != GLEnum.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false);
-
-                return true;
+                return new Result<GLEnum>(success: false, default);
             }
 
-            return false;
+            GLEnum error = GL.GetError();
+            if (error == GLEnum.NoError)
+            {
+                return new Result<GLEnum>(success: false, default);
+            }
+
+            return new Result<GLEnum>(success: true, error);
         }
 
         /// <summary>
-        /// Consumes all GL errors (if any) and pushes to the logger with specified title.
-        /// Automatically collects and forwards caller info for debugging.
+        /// Collects all GL errors, if there are any.
         /// </summary>
-        /// <param name="title"></param>
-        /// <param name="lineNumber"></param>
-        /// <param name="caller"></param>
-        /// <param name="callerPath"></param>
-        /// <returns>True if any errors were collected; otherwise false</returns>
-        public static bool TryCollectAllGLErrors(string title)
+        public static Result<GLEnum[]> TryCollectAllGLErrors()
         {
             if (HasGLOutput)
-                return false;
+            {
+                return new Result<GLEnum[]>(success: false, []);
+            }
 
-            bool hadError = false;
-
+            var errors = new List<GLEnum>();
+            
             GLEnum error = GL.GetError();
             while (error != GLEnum.NoError)
             {
-                Logger.Write(error.ToString(), $"OpenGL - {title}", LogType.ERROR, true, false);
+                errors.Add(error);
                 error = GL.GetError();
-                hadError = true;
             }
 
-            return hadError;
+            return new Result<GLEnum[]>(errors.Count > 0, errors.ToArray());
         }
 
-        public static bool TryCreateGLOutput()
+        public static bool TryCreateGLOutput(DebugProc debugProc)
         {
+            if (HasGLOutput)
+            {
+                return true;
+            }
+            
             HasGLOutput = GL.HasCapabilities(4, 3, "GL_KHR_debug");
-
             if (!HasGLOutput)
             {
-                glErrorDelegate = new DebugProc(GLErrorCallback);
-                GL.DebugMessageCallback(glErrorDelegate, IntPtr.Zero);
-                GL.Enable(EnableCap.DebugOutput);
-                GL.Enable(EnableCap.DebugOutputSynchronous);
+                return false;
             }
 
-            return HasGLOutput;
-        }
-
-        private static void GLErrorCallback(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
-        {
-            string output = Marshal.PtrToStringAnsi(message, length);
-
-            LogType logType = LogType.WARNING;
-
-            if (type == GLEnum.DebugTypeError)
-                logType = LogType.ERROR;
-            else
-                return;
-
-            Debugger.Log(output, "OpenGL", logType, true, true);
+            GL.DebugMessageCallback(debugProc, IntPtr.Zero);
+            GL.Enable(EnableCap.DebugOutput);
+            GL.Enable(EnableCap.DebugOutputSynchronous);
+            return true;
         }
     }
 }

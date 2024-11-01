@@ -49,7 +49,6 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to use {this} but it is disposed.", LogType.ERROR);
             return;
         }
 

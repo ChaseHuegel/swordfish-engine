@@ -38,12 +38,6 @@ namespace Swordfish.Library.Diagnostics
             return entries;
         }
 
-        public static void Log()
-        {
-            foreach (string entry in CollectOutput())
-                Debugger.Log(entry);
-        }
-
         public TimeSpan Timing => Stopwatch.Elapsed;
         public ByteSize Memory { get; private set; }
         public string Name { get; private set; }

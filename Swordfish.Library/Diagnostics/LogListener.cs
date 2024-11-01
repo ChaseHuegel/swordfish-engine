@@ -4,7 +4,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Swordfish.Library.Diagnostics;
 
-public class LogListener : ILoggerProvider, ILogListener
+public class LogListener : ILoggerProvider
 {
     public event EventHandler<LoggerEventArgs> NewLog;
 

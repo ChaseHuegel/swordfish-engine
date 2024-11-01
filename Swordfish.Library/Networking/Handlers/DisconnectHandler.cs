@@ -9,8 +9,7 @@ namespace Swordfish.Library.Networking.Handlers
         [PacketHandler]
         public static void AgnosticDisconnectHandler(NetController net, DisconnectPacket packet, NetEventArgs e)
         {
-            if (!net.TryRemoveSession(e.Session, SessionEndedReason.DISCONNECTED))
-                Debugger.Log($"Failed to end session for {e.EndPoint}.", LogType.WARNING);
+            net.TryRemoveSession(e.Session, SessionEndedReason.DISCONNECTED);
 
             if (net is NetClient && !net.IsConnected)
                 net.Disconnect();

@@ -1,11 +1,11 @@
-using System.Drawing;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Core;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
@@ -37,11 +37,12 @@ public class SilkWindowContext : IWindowContext
     private IUIContext UIContext { get; }
     private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
+    private ILogger Logger { get; }
 
     private readonly GL GL;
     private readonly SynchronizationContext MainThread;
 
-    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IFileService fileService)
+    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IFileService fileService, ILogger logger)
     {
         GL = gl;
         MainThread = mainThread;
@@ -49,6 +50,7 @@ public class SilkWindowContext : IWindowContext
         UIContext = uiContext;
         InputService = inputService;
         ShortcutService = shortcutService;
+        Logger = logger;
 
         Window.FocusChanged += OnFocusChanged;
         Window.Closing += OnClose;
@@ -81,22 +83,23 @@ public class SilkWindowContext : IWindowContext
             )
         );
 
-        Debugger.Log("Window initialized.");
-        Debugger.Log($"using OpenGL {GL.GetStringS(StringName.Version)}", LogType.CONTINUED);
-        Debugger.Log($"using GLSL {GL.GetStringS(StringName.ShadingLanguageVersion)}", LogType.CONTINUED);
-        Debugger.Log($"using GPU {GL.GetStringS(StringName.Renderer)} ({GL.GetStringS(StringName.Vendor)})", LogType.CONTINUED);
+        Logger.LogInformation("Window initialized using OpenGL {gl}, GLSL {glsl}, and Renderer {renderer}",
+            GL.GetStringS(StringName.Version),
+            GL.GetStringS(StringName.ShadingLanguageVersion),
+            GL.GetStringS(StringName.Renderer)
+        );
 
-        string[] openGLMetadata = new string[]
+        Logger.LogDebug("OpenGL MaxVertexAttribs: {maxVertexAttribs}", GL.GetInt(GetPName.MaxVertexAttribs));
+        Logger.LogDebug("OpenGL extensions: {extensions}", string.Join(", ", GL.GetExtensions()));
+
+        if (GLDebug.TryCreateGLOutput(GLDebugCallback))
         {
-            $"available extensions: {GL.GetExtensions().Length}",
-            $"max vertex attributes: {GL.GetInt(GetPName.MaxVertexAttribs)}",
-        };
-        Debugger.Log(string.Join(", ", openGLMetadata), LogType.CONTINUED);
-
-        if (GLDebug.TryCreateGLOutput())
-            Debugger.Log("attached OpenGL debug output", LogType.CONTINUED);
+            Logger.LogInformation("Attached OpenGL debug output.");
+        }
         else
-            Debugger.Log("unable to attach OpenGL debug output, logs will be minimal and generic", LogType.CONTINUED);
+        {
+            Logger.LogInformation("Unable to attach OpenGL debug output, its logs will be minimal and generic.");
+        }
 
         UIContext.Initialize();
         Loaded?.Invoke();
@@ -150,7 +153,7 @@ public class SilkWindowContext : IWindowContext
 
         Render?.Invoke(delta);
 
-        GLDebug.TryCollectAllGLErrors("OnRender");
+        GLDebug.TryCollectAllGLErrors();
     }
 
     private void OnResize(Vector2D<int> size)
@@ -159,11 +162,28 @@ public class SilkWindowContext : IWindowContext
         Resized?.Invoke(new Vector2(size.X, size.Y));
     }
 
-    private void OnFocusChanged(bool obj)
+    private void OnFocusChanged(bool focused)
     {
-        if (obj)
+        if (focused)
+        {
             Focused?.Invoke();
+        }
         else
+        {
             Unfocused?.Invoke();
+        }
+    }
+    
+    private void GLDebugCallback(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
+    {
+        string output = Marshal.PtrToStringAnsi(message, length);
+        if (type == GLEnum.DebugTypeError)
+        {
+            Logger.LogError("[OpenGL] {output}", output);
+        }
+        else
+        {
+            Logger.LogTrace("[OpenGL] {output}", output);
+        }
     }
 }

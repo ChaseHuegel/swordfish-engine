@@ -50,14 +50,11 @@ namespace Swordfish.Library.Threading
             stop = false;
             pause = false;
             thread.Start();
-
-            Debugger.Log($"Started thread '{thread.Name}'", "Threading");
         }
 
         public void Stop()
         {
             stop = true;
-            Debugger.Log($"Stopped thread '{thread.Name}'", "Threading");
         }
 
         public void Restart()
@@ -65,22 +62,16 @@ namespace Swordfish.Library.Threading
             stop = false;
             pause = false;
             thread.Start();
-
-            Debugger.Log($"Restarted thread '{thread.Name}'", "Threading");
         }
 
         public void Pause()
         {
             pause = true;
-
-            Debugger.Log($"Paused thread '{thread.Name}'", "Threading");
         }
 
         public void Unpause()
         {
             pause = false;
-
-            Debugger.Log($"Resumed thread '{thread.Name}'", "Threading");
         }
 
         public void TogglePause()
@@ -127,8 +118,6 @@ namespace Swordfish.Library.Threading
 
                 Thread.Sleep(200);  //	Sleep when paused
             }
-
-            Debugger.Log($"Closed thread '{thread.Name}'", "Threading");
             //	Stopped thread safely
         }
 

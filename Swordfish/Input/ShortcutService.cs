@@ -15,8 +15,6 @@ public class ShortcutService : IShortcutService
         Shortcuts = new LockedList<Shortcut>();
 
         InputService.KeyPressed += OnKeyPressed;
-
-        Debugger.Log("Shortcut service initialize.");
     }
 
     public bool RegisterShortcut(Shortcut shortcut)

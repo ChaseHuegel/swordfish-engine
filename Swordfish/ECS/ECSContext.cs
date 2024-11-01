@@ -1,4 +1,4 @@
-using Swordfish.Library.Diagnostics;
+using Microsoft.Extensions.Logging;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 
@@ -11,17 +11,18 @@ public class ECSContext : IECSContext
 
     public DataBinding<double> Delta { get; } = new();
 
-    public World World { get; private set; }
+    public World World { get; }
 
-    private ThreadWorker ThreadWorker { get; set; }
+    private bool _running;
+    private readonly ThreadWorker _threadWorker;
+    private readonly ILogger _logger;
 
-    private bool Running;
-
-    public ECSContext(IEntitySystem[] systems)
+    public ECSContext(IEntitySystem[] systems, ILogger logger)
     {
-        Debugger.Log($"Initializing ECS context.");
+        _logger = logger;
+        _logger.LogInformation("Initializing ECS context.");
 
-        Running = false;
+        _running = false;
         World = new World();
 
         foreach (IEntitySystem system in systems)
@@ -29,30 +30,34 @@ public class ECSContext : IECSContext
             World.AddSystem(system);
         }
 
-        ThreadWorker = new ThreadWorker(Update, "ECS");
+        _threadWorker = new ThreadWorker(Update, "ECS");
     }
 
     public void Start()
     {
-        if (Running)
+        if (_running)
+        {
             throw new InvalidOperationException(REQ_STOP_MESSAGE);
+        }
 
-        Debugger.Log($"Starting ECS context.");
-        Running = true;
-        ThreadWorker.Start();
+        _logger.LogInformation("Starting ECS context.");
+        _running = true;
+        _threadWorker.Start();
     }
 
     public void Stop()
     {
-        Debugger.Log($"Stopping ECS context.");
-        Running = false;
-        ThreadWorker?.Stop();
+        _logger.LogInformation("Stopping ECS context.");
+        _running = false;
+        _threadWorker.Stop();
     }
 
     public void Update(float delta)
     {
-        if (!Running)
+        if (!_running)
+        {
             throw new InvalidOperationException(REQ_START_MESSAGE);
+        }
 
         Delta.Set(delta);
         World.Tick(delta);

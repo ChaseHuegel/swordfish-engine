@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using LibNoise.Primitive;
+using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.Bricks;
@@ -66,8 +67,9 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly IInputService InputService;
     private readonly IModulePathService ModulePathService;
     private readonly TextElement DebugText;
+    private readonly ILogger Logger;
 
-    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService)
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService, ILogger logger)
     {
         FileService = fileService;
         ECSContext = ecsContext;
@@ -76,6 +78,7 @@ public class Demo : IEntryPoint, IAutoActivate
         Physics = physics;
         InputService = inputService;
         ModulePathService = modulePathService;
+        Logger = logger;
 
         DebugText = new TextElement("");
         CanvasElement myCanvas = new("Demo Debug Canvas")
@@ -223,7 +226,10 @@ public class Demo : IEntryPoint, IAutoActivate
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
         RenderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
 
-        Benchmark.Log();
+        foreach (string line in Benchmark.CollectOutput())
+        {
+            Logger.LogInformation("[Benchmark] {line}", line);
+        }
     }
 
     private void CreateStressTest()

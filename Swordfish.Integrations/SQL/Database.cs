@@ -1,7 +1,9 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
+using DryIoc.ImTools;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Integrations.SQL
 {
@@ -20,7 +22,7 @@ namespace Swordfish.Integrations.SQL
             };
         }
 
-        public static bool Put(Query query)
+        public static Result Put(Query query)
         {
             try
             {
@@ -31,17 +33,16 @@ namespace Swordfish.Integrations.SQL
                     cmd.CommandTimeout = query.Timeout;
                     cmd.ExecuteNonQuery();
 
-                    return true;
+                    return new Result(success: true);
                 }
             }
             catch (Exception ex)
             {
-                Debugger.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
-                return false;
+                return new Result(success: false, ex.ToString());
             }
         }
 
-        public static QueryResult Get(Query query)
+        public static Result<QueryResult> Get(Query query)
         {
             try
             {
@@ -53,13 +54,12 @@ namespace Swordfish.Integrations.SQL
                     SqlDataAdapter data = new SqlDataAdapter(cmd);
                     DataTable table = new DataTable();
                     data.Fill(table);
-                    return new QueryResult(table);
+                    return new Result<QueryResult>(success: true, new QueryResult(table));
                 }
             }
             catch (Exception ex)
             {
-                Debugger.Log($"Caught exception executing an SQL query! {ex}", LogType.ERROR);
-                return new QueryResult(null);
+                return new Result<QueryResult>(success: false, null, ex.ToString());
             }
         }
     }

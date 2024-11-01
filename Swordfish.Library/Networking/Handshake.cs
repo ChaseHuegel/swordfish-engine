@@ -37,8 +37,6 @@ namespace Swordfish.Library.Networking
                 if (!net.TryAddSession(e.EndPoint, out NetSession newSession))
                     return;
 
-                Debugger.Log($"{e.EndPoint} joined, assigning session: [{newSession}]");
-
                 AcceptPacket accept = new AcceptPacket()
                 {
                     AcceptedSessionID = newSession.ID,
@@ -48,10 +46,6 @@ namespace Swordfish.Library.Networking
 
                 net.Send(accept, e.EndPoint);
             }
-            else
-            {
-                Debugger.Log($"{e.EndPoint} tried to join, failed to validate handshake.", LogType.WARNING);
-            }
         }
 
         [PacketHandler]
@@ -59,25 +53,20 @@ namespace Swordfish.Library.Networking
         {
             if (net.IsConnected || net.Session.ID != NetSession.LocalOrUnassigned)
             {
-                //  ? is there a situation where we should accept a new session?
-                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but already have an active session with a host.", LogType.WARNING);
                 return;
             }
 
             if (!net.TryAddSession(e.EndPoint, packet.RemoteSessionID, out NetSession serverSession))
             {
-                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but failed to establish a session.", LogType.WARNING);
                 return;
             }
 
             if (!net.HandshakeAcceptCallback?.Invoke(e.EndPoint, packet.Secret) ?? true)
             {
-                Debugger.Log($"Recieved a session handshake from {e.EndPoint} but failed to validate secret.", LogType.WARNING);
                 return;
             }
 
             net.Session.ID = packet.AcceptedSessionID;
-            Debugger.Log($"Joined [{serverSession}] with session [{net.Session}]");
             net.Connected?.Invoke(net, e);
         }
     }

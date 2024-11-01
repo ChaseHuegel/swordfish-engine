@@ -6,6 +6,7 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
+using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.ECS;
@@ -40,14 +41,15 @@ public class Editor : IEntryPoint, IAutoActivate
     private readonly IInputService InputService;
     private readonly DebugSettings DebugSettings;
     private readonly RenderSettings RenderSettings;
-    private readonly ILogListener LogListener;
+    private readonly LogListener LogListener;
     private readonly IModulePathService ModulePathService;
+    private readonly ILogger Logger;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, ILogListener logListener, IModulePathService modulePathService)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, IModulePathService modulePathService, ILogger logger)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -59,6 +61,7 @@ public class Editor : IEntryPoint, IAutoActivate
         RenderSettings = renderSettings;
         LogListener = logListener;
         ModulePathService = modulePathService;
+        Logger = logger;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -138,7 +141,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                     Key.N,
                                     Shortcut.DefaultEnabled,
                                     () => {
-                                        Debugger.Log("Creating new plugin");
+                                        Logger.LogInformation("Creating new plugin");
                                         IPath outputPath = ModulePathService.Root
                                             .At("Projects")
                                             .At("New Project")
@@ -155,7 +158,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                     ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
-                                    () => Debugger.Log("Create new project")
+                                    () => Logger.LogInformation("Create new project")
                                 )),
                             }
                         },
@@ -168,7 +171,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             () => {
                                 if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
                                 {
-                                    Debugger.Log($"Opening {pathNode.Data.Get()}");
+                                    Logger.LogInformation("Opening {path}", pathNode.Data.Get());
                                     pathNode.Data.Get().TryOpenInDefaultApp();
                                 }
                             }
@@ -179,7 +182,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             ShortcutModifiers.CONTROL,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Debugger.Log("Save project")
+                            () => Logger.LogInformation("Save project")
                         )),
                         new MenuItemElement("Save As", new Shortcut(
                             "Save As",
@@ -187,7 +190,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Debugger.Log("Save project as")
+                            () => Logger.LogInformation("Save project as")
                         )),
                         new MenuItemElement("Exit", exitShortcut),
                     }
@@ -286,19 +289,7 @@ public class Editor : IEntryPoint, IAutoActivate
         foreach (LoggerEventArgs record in LogListener.GetHistory())
             OnNewLog(null, record);
 
-        foreach (LogEventArgs record in Logger.History)
-            PopulateLogLine(null, record);
-
-        Logger.Logged += PopulateLogLine;
         LogListener.NewLog += OnNewLog;
-
-        void PopulateLogLine(object? sender, LogEventArgs args)
-        {
-            console.Content.Add(new TextElement(args.Line)
-            {
-                Color = args.Type.GetColor(),
-            });
-        }
         
         void OnNewLog(object? sender, LoggerEventArgs e)
         {

@@ -124,8 +124,6 @@ public class SilkInputService : IInputService
 
         foreach (Key key in Enum.GetValues<Key>())
             KeyInputMap.TryAdd(key, new InputRecord());
-
-        Debugger.Log("Input initialized.");
     }
 
     public float GetAxis(InputAxis axis)

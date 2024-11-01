@@ -23,7 +23,7 @@ internal class GLRenderContext : IRenderContext
     private readonly GLContext GLContext;
     private readonly IRenderStage[] Renderers;
 
-    public unsafe GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
+    public GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
     {
         GL = gl;
         WindowContext = windowContext;
@@ -35,7 +35,7 @@ internal class GLRenderContext : IRenderContext
         GL.Enable(EnableCap.CullFace);
         GL.Enable(EnableCap.Blend);
         GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        GL.PolygonMode(MaterialFace.Front, PolygonMode.Fill);
+        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
         Camera.Set(new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f));
         WindowContext.Resized += OnWindowResized;
@@ -45,8 +45,6 @@ internal class GLRenderContext : IRenderContext
         {
             Renderers[i].Initialize(this);
         }
-
-        Debugger.Log("Renderer initialized.");
     }
 
     public void Bind(Shader shader) => BindShader(shader);

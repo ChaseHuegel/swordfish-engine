@@ -19,12 +19,16 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         UniformLocations = new Dictionary<string, int>();
 
         for (int i = 0; i < components.Length; i++)
+        {
             GL.AttachShader(Handle, components[i].Handle);
+        }
 
         GL.LinkProgram(Handle);
 
         for (int i = 0; i < components.Length; i++)
+        {
             GL.DetachShader(Handle, components[i].Handle);
+        }
 
         GL.GetProgram(Handle, GLEnum.LinkStatus, out int status);
         if (status != 0)
@@ -37,12 +41,11 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
                 int location = GL.GetUniformLocation(Handle, key);
                 UniformLocations.Add(key, location);
             }
-
-            Debugger.Log($"Created shader '{Name}'.\n\tUniforms: [{string.Join(", ", UniformLocations.Keys)}]");
         }
         else
         {
-            Debugger.Log($"Failed to link program for shader '{Name}'.\n{GL.GetProgramInfoLog(Handle)}", LogType.ERROR);
+            //  TODO dont want to throw
+            throw new GLException($"Failed to link program for shader '{Name}'.\n{GL.GetProgramInfoLog(Handle)}");
         }
     }
 
@@ -82,7 +85,10 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         int location = GL.GetAttribLocation(Handle, attribute);
 
         if (location < 0)
-            Debugger.Log($"Shader attribute '{attribute}' not found in shader '{Name}'.", LogType.ERROR);
+        {
+            //  TODO dont want to throw here
+            throw new GLException($"Shader attribute '{attribute}' not found in shader '{Name}'.");
+        }
 
         return (uint)location;
     }
@@ -137,7 +143,10 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         }
 
         if (location == -1)
-            Debugger.Log($"Uniform '{uniform}' not found in the shader '{Name}'.", LogType.WARNING);
+        {
+            //  TODO dont want to throw here
+            throw new GLException($"Uniform '{uniform}' not found in the shader '{Name}'.");
+        }
 
         return location != -1;
     }

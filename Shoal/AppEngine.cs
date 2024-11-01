@@ -8,6 +8,7 @@ using Swordfish.Library.Events;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Serialization.Toml.Mappers;
+using Swordfish.Library.Util;
 
 namespace Shoal;
 
@@ -50,7 +51,12 @@ public sealed class AppEngine : IDisposable
         foreach (IEntryPoint entryPoint in Container.ResolveMany<IEntryPoint>())
         {
             _logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
-            Debugger.TryInvoke(entryPoint.Run, $"Failed to run entry point '{entryPoint.GetType()}'");
+            
+            Result<Exception> result = Debugger.SafeInvoke(entryPoint.Run);
+            if (!result)
+            {
+                _logger.LogError(result.Value, "Failed to run entry point '{entryPoint}'", entryPoint.GetType());
+            }
         }
     }
 
@@ -116,7 +122,7 @@ public sealed class AppEngine : IDisposable
         IContainer container = new Container();
 
         container.RegisterInstance<TextWriter>(output);
-        container.RegisterInstance<ILogListener>(_logListener);
+        container.RegisterInstance<LogListener>(_logListener);
 
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 

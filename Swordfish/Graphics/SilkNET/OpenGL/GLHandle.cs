@@ -11,7 +11,6 @@ public abstract class GLHandle : ManagedHandle<uint>, IBindable
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;
         }
 
@@ -22,7 +21,6 @@ public abstract class GLHandle : ManagedHandle<uint>, IBindable
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to unbund {this} but it is disposed.", LogType.ERROR);
             return;
         }
 

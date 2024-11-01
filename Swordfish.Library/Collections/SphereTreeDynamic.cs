@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Library.Diagnostics;
@@ -45,8 +46,7 @@ public class SphereTreeDynamic<T>
     {
         if (minSize > size)
         {
-            minSize = size;
-            Debugger.Log($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}", LogType.WARNING);
+            throw new InvalidOperationException($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}");
         }
 
         Count = 0;
@@ -74,7 +74,6 @@ public class SphereTreeDynamic<T>
             //  Limit # of resize attempts to prevent an unreasonable stack
             if (resizeAttempts > 8)
             {
-                Debugger.Log($"SphereTree add failed, unable to grow the tree large enough after {resizeAttempts} attempts", LogType.ERROR);
                 return false;
             }
         }

@@ -65,7 +65,6 @@ namespace Swordfish.Library.Networking
 
         private void OnSessionElapsed(object sender, ElapsedEventArgs e)
         {
-            Debugger.Log($"Session [{this}] expired! Timeout: {Controller.SessionExpiration} Controller: {Controller}");
             ExpirationTimer.Stop();
             Controller.TryRemoveSession(this, SessionEndedReason.EXPIRED);
         }
