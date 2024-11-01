@@ -4,7 +4,7 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.ECS;
 
-public class ECSContext : IECSContext
+public class ECSContext : IECSContext, IDisposable
 {
     private const string REQ_START_MESSAGE = "The context must be started.";
     private const string REQ_STOP_MESSAGE = "The context must be stopped.";
@@ -45,13 +45,6 @@ public class ECSContext : IECSContext
         _threadWorker.Start();
     }
 
-    public void Stop()
-    {
-        _logger.LogInformation("Stopping ECS context.");
-        _running = false;
-        _threadWorker.Stop();
-    }
-
     public void Update(float delta)
     {
         if (!_running)
@@ -61,5 +54,12 @@ public class ECSContext : IECSContext
 
         Delta.Set(delta);
         World.Tick(delta);
+    }
+
+    public void Dispose()
+    {
+        _logger.LogInformation("Stopping ECS context.");
+        _running = false;
+        _threadWorker.Stop();
     }
 }

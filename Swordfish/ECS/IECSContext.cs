@@ -8,7 +8,6 @@ public interface IECSContext
     World World { get; }
 
     void Start();
-    void Stop();
 
     void Update(float delta);
 }

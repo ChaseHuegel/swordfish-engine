@@ -75,7 +75,6 @@ internal static class Program
             return Crash();
         }
         
-        _engine.Container.Resolve<IECSContext>().Stop();    //  TODO turn this into a disposable
         TransitionState(EngineState.Closing, EngineState.Closed);
 
         _engine.Dispose();
