@@ -32,7 +32,8 @@ namespace Swordfish.Library.Threading
             handleOnce = handler;
             thread = new Thread(new ThreadStart(handleOnce))
             {
-                Name = name == "" ? this.handle.Method.ToString() : name
+                Name = name == "" ? this.handle.Method.ToString() : name,
+                IsBackground = true,
             };
         }
 
@@ -41,7 +42,8 @@ namespace Swordfish.Library.Threading
             handle = handler;
             thread = new Thread(Tick)
             {
-                Name = name == "" ? this.handle.Method.ToString() : name
+                Name = name == "" ? this.handle.Method.ToString() : name,
+                IsBackground = true,
             };
         }
 
