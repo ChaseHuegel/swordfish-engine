@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
-using Silk.NET.Windowing;
+using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 
 namespace Swordfish.Diagnostics.SilkNET.OpenGL;
@@ -12,13 +12,13 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
 {
     private readonly GL _gl;
     private readonly ILogger _logger;
-    private readonly IWindow _window;
+    private readonly IWindowContext _windowContext;
 
-    public GLDebug(in GL gl, in ILogger logger, in IWindow window)
+    public GLDebug(in GL gl, in ILogger logger, in IWindowContext windowContext)
     {
         _gl = gl;
         _logger = logger;
-        _window = window;
+        _windowContext = windowContext;
         
         if (_gl.HasCapabilities(4, 3, "GL_KHR_debug"))
         {
@@ -29,13 +29,13 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
         else
         {
             _logger.LogWarning("OpenGL debug output is unsupported, logs for OpenGL will be minimal and generic.");
-            _window.Render += OnRender;
+            _windowContext.Render += OnRender;
         }
     }
     
     public void Dispose()
     {
-        _window.Render -= OnRender;
+        _windowContext.Render -= OnRender;
     }
 
     private void OnRender(double delta)

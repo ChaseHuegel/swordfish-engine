@@ -28,7 +28,7 @@ public class Injector : IDryIocInjector
         GL gl = Program.MainWindow.CreateOpenGL();
 
         resolver.RegisterInstance<GL>(gl);
-        resolver.RegisterMany<GLDebug>();
+        resolver.RegisterMany<GLDebug>(Reuse.Singleton);
         resolver.RegisterInstance<IWindow>(Program.MainWindow);
         resolver.RegisterInstance<SynchronizationContext>(Program.MainThreadContext);
         resolver.Register<GLContext>(Reuse.Singleton);
