@@ -33,24 +33,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="shaders\**\*.*">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="resources\**\*.*">
-      <Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-
-  <ItemGroup>
     <EmbeddedResource Include="Manifest\**\*.*"/>
   </ItemGroup>
 
   <ItemGroup>
     <None Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
-    <None Update="assets\modules\swordfish\manifest.toml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
 
   <ItemGroup>

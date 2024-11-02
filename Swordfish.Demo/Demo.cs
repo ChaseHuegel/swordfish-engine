@@ -330,7 +330,7 @@ public class Demo : IEntryPoint, IAutoActivate
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = FileService.Parse<BrickGrid>(ModulePathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
+            grid = FileService.Parse<BrickGrid>(ModulePathService.Root.At("saves").At("mainMenuVoxObj.svo"));
         }
 
         var triangles = new List<uint>();
@@ -423,7 +423,7 @@ public class Demo : IEntryPoint, IAutoActivate
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = FileService.Parse<BrickGrid>(ModulePathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
+            grid = FileService.Parse<BrickGrid>(ModulePathService.Root.At("saves").At("mainMenuVoxObj.svo"));
         }
 
         var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lightedArray.glsl"));

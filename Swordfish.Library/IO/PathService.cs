@@ -10,7 +10,6 @@ namespace Swordfish.Library.IO
         private const string SCREENSHOTS_FOLDER = "screenshots";
         private const string SHADERS_FOLDER = "shaders";
         private const string UI_FOLDER = "ui";
-        private const string RESOURCES_FOLDER = "resources";
         private const string FONTS_FOLDER = "fonts";
         private const string ICONS_FOLDER = "icons";
         private const string MODELS_FOLDER = "models";
@@ -23,11 +22,10 @@ namespace Swordfish.Library.IO
         public PathInfo Screenshots => Root.At(SCREENSHOTS_FOLDER).CreateDirectory();
         public PathInfo Shaders => Root.At(SHADERS_FOLDER).CreateDirectory();
         public PathInfo UI => Root.At(UI_FOLDER).CreateDirectory();
-        public PathInfo Resources => Root.At(RESOURCES_FOLDER).CreateDirectory();
-        public PathInfo Fonts => Resources.At(FONTS_FOLDER).CreateDirectory();
-        public PathInfo Icons => Resources.At(ICONS_FOLDER).CreateDirectory();
-        public PathInfo Models => Resources.At(MODELS_FOLDER).CreateDirectory();
-        public PathInfo Textures => Resources.At(TEXTURES_FOLDER).CreateDirectory();
+        public PathInfo Fonts => Root.At(FONTS_FOLDER).CreateDirectory();
+        public PathInfo Icons => Root.At(ICONS_FOLDER).CreateDirectory();
+        public PathInfo Models => Root.At(MODELS_FOLDER).CreateDirectory();
+        public PathInfo Textures => Root.At(TEXTURES_FOLDER).CreateDirectory();
 
         public PathService()
         {

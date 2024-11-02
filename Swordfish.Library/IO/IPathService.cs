@@ -18,8 +18,6 @@ namespace Swordfish.Library.IO
 
         PathInfo UI { get; }
 
-        PathInfo Resources { get; }
-
         PathInfo Fonts { get; }
 
         PathInfo Icons { get; }

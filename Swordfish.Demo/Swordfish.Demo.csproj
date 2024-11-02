@@ -26,12 +26,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="shaders\**\*.*">
-      <Link>shaders\%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="resources\**\*.*">
-      <Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    <Content Include="assets\**\*.*">
+      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Update="manifest.toml">
@@ -45,6 +41,10 @@
   
   <ItemGroup>
     <PackageReference Include="LibNoise" Version="0.2.0" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Folder Include="assets\" />
   </ItemGroup>
 
 </Project>
