@@ -6,10 +6,10 @@ namespace Swordfish.Library.Diagnostics;
 
 public class LogListener : ILoggerProvider
 {
-    public event EventHandler<LoggerEventArgs> NewLog;
+    public event EventHandler<LogEventArgs> NewLog;
 
 #if DEBUG
-    private readonly List<LoggerEventArgs> _history = [];
+    private readonly List<LogEventArgs> _history = [];
 #endif
     
     public ILogger CreateLogger(string categoryName)
@@ -17,7 +17,7 @@ public class LogListener : ILoggerProvider
         return new LogListenerLogger(this, categoryName);
     }
 
-    public LoggerEventArgs[] GetHistory()
+    public LogEventArgs[] GetHistory()
     {
 #if DEBUG
         lock (_history)
@@ -34,7 +34,7 @@ public class LogListener : ILoggerProvider
         //  Do nothing.
     }
     
-    internal void Raise(LoggerEventArgs e)
+    internal void Raise(LogEventArgs e)
     {
 #if DEBUG
         lock (_history)

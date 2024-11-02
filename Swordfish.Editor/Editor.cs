@@ -286,12 +286,12 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
         
-        foreach (LoggerEventArgs record in LogListener.GetHistory())
+        foreach (LogEventArgs record in LogListener.GetHistory())
             OnNewLog(null, record);
 
         LogListener.NewLog += OnNewLog;
         
-        void OnNewLog(object? sender, LoggerEventArgs e)
+        void OnNewLog(object? sender, LogEventArgs e)
         {
             console.Content.Add(new TextElement($"{e.LogLevel}: {e.Log}")
             {

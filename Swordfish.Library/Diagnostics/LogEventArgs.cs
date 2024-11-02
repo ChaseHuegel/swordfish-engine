@@ -2,7 +2,7 @@
 
 namespace Swordfish.Library.Diagnostics;
 
-public struct LoggerEventArgs(string categoryName, LogLevel logLevel, string log)
+public struct LogEventArgs(string categoryName, LogLevel logLevel, string log)
 {
     public readonly string Log = log;
 

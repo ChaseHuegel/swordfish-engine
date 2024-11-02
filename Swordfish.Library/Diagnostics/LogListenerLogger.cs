@@ -11,7 +11,7 @@ public class LogListenerLogger(in LogListener logListener, in string categoryNam
     public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception exception, Func<TState, Exception, string> formatter)
     {
         string log = formatter(state, exception);
-        _logListener.Raise(new LoggerEventArgs(_categoryName, logLevel, log));
+        _logListener.Raise(new LogEventArgs(_categoryName, logLevel, log));
     }
 
     public bool IsEnabled(LogLevel logLevel)

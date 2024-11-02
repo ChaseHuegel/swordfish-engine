@@ -22,9 +22,9 @@ public sealed class AppEngine : IDisposable
     
     private static readonly SwitchDictionary<string?, Assembly, IModulePathService> _modulePathServices = new();
 
-    private AppEngine(in string[] args, in TextWriter output)
+    private AppEngine(in string[] args)
     {
-        IContainer coreContainer = CreateCoreContainer(output);
+        IContainer coreContainer = CreateCoreContainer();
         ActivateTomlMappers(coreContainer);
 
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
@@ -36,9 +36,9 @@ public sealed class AppEngine : IDisposable
         Container = modulesContainer;
     }
     
-    public static AppEngine Build(in string[] args, in TextWriter output)
+    public static AppEngine Build(in string[] args)
     {
-        return new AppEngine(args, output);
+        return new AppEngine(args);
     }
 
     public void Dispose()
@@ -117,11 +117,10 @@ public sealed class AppEngine : IDisposable
         });
     }
 
-    private IContainer CreateCoreContainer(in TextWriter output)
+    private IContainer CreateCoreContainer()
     {
         IContainer container = new Container();
 
-        container.RegisterInstance<TextWriter>(output);
         container.RegisterInstance<LogListener>(_logListener);
 
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);

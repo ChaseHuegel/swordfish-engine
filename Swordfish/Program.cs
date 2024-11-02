@@ -107,7 +107,7 @@ internal static class Program
             return;
         }
         
-        _engine = AppEngine.Build(_args, Console.Out);
+        _engine = AppEngine.Build(_args);
         SwordfishEngine.Kernel = new Kernel(_engine.Container); //  TODO get rid of this
         TransitionState(EngineState.Loading, EngineState.Loaded);
 
