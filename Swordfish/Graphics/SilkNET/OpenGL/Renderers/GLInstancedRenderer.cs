@@ -28,6 +28,7 @@ internal unsafe class GLInstancedRenderer : IRenderStage
             throw new NotSupportedException($"{nameof(GLInstancedRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
 
+        //  TODO this is bad
         _renderTargets = gLRenderContext.RenderTargets;
     }
 

@@ -112,7 +112,6 @@ internal static class Program
         TransitionState(EngineState.Loading, EngineState.Loaded);
 
         TransitionState(EngineState.Loaded, EngineState.Waking);
-        _engine.Container.Resolve<IRenderContext>();    //  TODO turn this into an entry point
         _engine.Start();
         TransitionState(EngineState.Waking, EngineState.Awake);
     }

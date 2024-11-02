@@ -2,6 +2,8 @@ using System.Collections.Concurrent;
 using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
@@ -9,7 +11,8 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal class GLRenderContext : IRenderContext
+// ReSharper disable once ClassNeverInstantiated.Global
+internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate
 {
     public DataBinding<Camera> Camera { get; set; } = new();
 
@@ -43,8 +46,15 @@ internal class GLRenderContext : IRenderContext
 
         for (int i = 0; i < Renderers.Length; i++)
         {
+            //  TODO there has to be a better way to do this without a circular dependency
             Renderers[i].Initialize(this);
         }
+    }
+    
+    public void Dispose()
+    {
+        WindowContext.Resized -= OnWindowResized;
+        WindowContext.Render -= OnWindowRender;
     }
 
     public void Bind(Shader shader) => BindShader(shader);
