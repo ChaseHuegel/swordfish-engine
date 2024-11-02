@@ -167,7 +167,7 @@ public sealed class AppEngine : IDisposable
         parentContainer.Resolve<IModulesLoader>().Load(AssemblyHookCallback);
 
         container.Register<CommandParser>(Reuse.Singleton, made: Made.Of(() => new CommandParser(Arg.Index<char>(0), Arg.Of<Command[]>()), _ => '\0'));
-        container.Register<IModulePathService>(Made.Of(() => GetModulePathService(Arg.Index<Request>(0)), request => request));
+        container.RegisterMany<IModulePathService>(Made.Of(() => GetModulePathService(Arg.Index<Request>(0)), request => request));
         
         ValidateContainerOrDie(container);
         return container;
