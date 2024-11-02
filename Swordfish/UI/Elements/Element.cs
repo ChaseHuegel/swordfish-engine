@@ -12,7 +12,7 @@ public abstract class Element : IElement
     private volatile bool Focusing;
     private volatile bool Unfocusing;
 
-    public ulong Uid { get; }
+    public ulong UID { get; }
 
     public bool Enabled { get; set; } = true;
 
@@ -26,7 +26,7 @@ public abstract class Element : IElement
 
     public Element()
     {
-        Uid = NewUid();
+        UID = NewUid();
     }
 
     public void Render()

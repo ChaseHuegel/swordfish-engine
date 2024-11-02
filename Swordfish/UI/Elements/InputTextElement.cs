@@ -14,7 +14,7 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
 {
     public string? Name { get; set; }
 
-    public string UniqueName => uniqueName ??= Name + "##" + Uid;
+    public string UniqueName => uniqueName ??= Name + "##" + UID;
     private string? uniqueName;
 
     public EventHandler<string?>? Submit;
