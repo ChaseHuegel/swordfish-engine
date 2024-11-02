@@ -28,7 +28,7 @@ namespace Swordfish.Library.IO
             }
         }
 
-        public Stream Open(IPath path)
+        public Stream Open(PathInfo path)
         {
             switch (path.Scheme)
             {
@@ -51,7 +51,7 @@ namespace Swordfish.Library.IO
             return File.Open(path.ToString(), FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
-        public byte[] ReadBytes(IPath path)
+        public byte[] ReadBytes(PathInfo path)
         {
             using (Stream stream = Open(path))
             using (MemoryStream memoryStream = new MemoryStream())
@@ -61,7 +61,7 @@ namespace Swordfish.Library.IO
             }
         }
 
-        public string ReadString(IPath path)
+        public string ReadString(PathInfo path)
         {
             using (Stream stream = Open(path))
             using (StreamReader reader = new StreamReader(stream))
@@ -70,7 +70,7 @@ namespace Swordfish.Library.IO
             }
         }
 
-        public void Write(IPath path, Stream stream)
+        public void Write(PathInfo path, Stream stream)
         {
             using (Stream output = File.Open(path.ToString(), FileMode.OpenOrCreate, FileAccess.Write))
             {
@@ -78,7 +78,7 @@ namespace Swordfish.Library.IO
             }
         }
 
-        public TResult Parse<TResult>(IPath path)
+        public TResult Parse<TResult>(PathInfo path)
         {
             string extension = path.GetExtension();
             if (Parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
@@ -90,7 +90,7 @@ namespace Swordfish.Library.IO
             return default;
         }
 
-        public bool TryParse<TResult>(IPath path, out TResult result)
+        public bool TryParse<TResult>(PathInfo path, out TResult result)
         {
             string extension = path.GetExtension();
             if (Parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
@@ -123,22 +123,22 @@ namespace Swordfish.Library.IO
             throw new NotImplementedException();
         }
 
-        public IPath[] GetFiles(IPath path)
+        public PathInfo[] GetFiles(PathInfo path)
         {
             return GetFiles(path, "*", SearchOption.TopDirectoryOnly);
         }
 
-        public IPath[] GetFiles(IPath path, string searchPattern)
+        public PathInfo[] GetFiles(PathInfo path, string searchPattern)
         {
             return GetFiles(path, searchPattern, SearchOption.TopDirectoryOnly);
         }
 
-        public IPath[] GetFiles(IPath path, SearchOption searchOption)
+        public PathInfo[] GetFiles(PathInfo path, SearchOption searchOption)
         {
             return GetFiles(path, "*", searchOption);
         }
 
-        public IPath[] GetFiles(IPath path, string searchPattern, SearchOption searchOption)
+        public PathInfo[] GetFiles(PathInfo path, string searchPattern, SearchOption searchOption)
         {
             var dir = path.GetDirectory().ToString();
             if (!Directory.Exists(dir))
@@ -147,7 +147,7 @@ namespace Swordfish.Library.IO
             }
             
             return Directory.GetFiles(dir, searchPattern, searchOption)
-                .Select(str => (IPath)new Path(str))
+                .Select(str => new PathInfo(str))
                 .ToArray();
         }
     }

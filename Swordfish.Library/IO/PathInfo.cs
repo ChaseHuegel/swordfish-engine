@@ -1,55 +1,53 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using Swordfish.Library.Annotations;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Library.IO
 {
-    public struct Path : IPath
+    public readonly struct PathInfo
     {
         public string OriginalString { get; }
 
-        public string Value { get; set; }
+        public string Value { get; }
 
-        [NotNull]
         public string Scheme { get; }
 
-        public Path(string value)
+        public PathInfo(string value)
         {
             OriginalString = value;
 
-            int schemeEndIndex = value.IndexOf("://");
-            Value = schemeEndIndex > 0 ? value.Substring(schemeEndIndex + 3) : value;
-            Scheme = schemeEndIndex > 0 ? value.Substring(0, schemeEndIndex).ToLowerInvariant() : string.Empty;
+            int schemeEndIndex = value.IndexOf("://", StringComparison.Ordinal);
+            Value = schemeEndIndex > 0 ? value[(schemeEndIndex + 3)..] : value;
+            Scheme = schemeEndIndex > 0 ? value[..schemeEndIndex].ToLowerInvariant() : string.Empty;
         }
 
-        public IPath At(string value)
+        public PathInfo At(string value)
         {
-            return new Path(System.IO.Path.Combine(Scheme, Value, value));
+            return new PathInfo(Path.Combine(Scheme, Value, value));
         }
 
-        public IPath At(params string[] values)
+        public PathInfo At(params string[] values)
         {
             string[] joinedValues = new string[values.Length + 2];
             joinedValues[0] = Scheme;
             joinedValues[1] = OriginalString;
             values.CopyTo(joinedValues, 1);
 
-            return new Path(System.IO.Path.Combine(joinedValues));
+            return new PathInfo(Path.Combine(joinedValues));
         }
 
-        public IPath At(IPath path)
+        public PathInfo At(PathInfo path)
         {
-            return new Path(System.IO.Path.Combine(Scheme, Value, path.ToString()));
+            return new PathInfo(Path.Combine(Scheme, Value, path.ToString()));
         }
 
-        public IPath GetDirectory()
+        public PathInfo GetDirectory()
         {
-            return new Path(System.IO.Path.GetDirectoryName(OriginalString));
+            return new PathInfo(Path.GetDirectoryName(OriginalString));
         }
 
-        public IPath CreateDirectory()
+        public PathInfo CreateDirectory()
         {
             Directory.CreateDirectory(Value);
             return this;
@@ -57,27 +55,27 @@ namespace Swordfish.Library.IO
 
         public string GetFileName()
         {
-            return System.IO.Path.GetFileName(OriginalString);
+            return Path.GetFileName(OriginalString);
         }
 
         public string GetFileNameWithoutExtension()
         {
-            return System.IO.Path.GetFileNameWithoutExtension(OriginalString);
+            return Path.GetFileNameWithoutExtension(OriginalString);
         }
 
         public string GetExtension()
         {
-            return System.IO.Path.GetExtension(OriginalString);
+            return Path.GetExtension(OriginalString);
         }
 
         public string GetDirectoryName()
         {
-            return System.IO.Path.GetDirectoryName(OriginalString);
+            return Path.GetDirectoryName(OriginalString);
         }
 
         public bool IsFile()
         {
-            return !string.IsNullOrEmpty(System.IO.Path.GetFileName(OriginalString));
+            return !string.IsNullOrEmpty(Path.GetFileName(OriginalString));
         }
 
         public bool IsDirectory()

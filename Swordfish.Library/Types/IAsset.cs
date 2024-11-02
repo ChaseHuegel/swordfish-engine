@@ -7,6 +7,6 @@ namespace Swordfish.Library.Types
     {
         string Name { get; set; }
 
-        IPath Path { get; }
+        PathInfo Path { get; }
     }
 }

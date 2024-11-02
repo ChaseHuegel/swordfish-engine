@@ -9,12 +9,12 @@ namespace Swordfish.IO
             string.Empty
         };
 
-        object IFileParser.Parse(IFileService fileService, IPath path) => Parse(fileService, path);
-        public unsafe TextureArray Parse(IFileService fileService, IPath path)
+        object IFileParser.Parse(IFileService fileService, PathInfo path) => Parse(fileService, path);
+        public unsafe TextureArray Parse(IFileService fileService, PathInfo path)
         {
             string name = path.GetDirectoryName();
 
-            IPath[] files = fileService.GetFiles(path);
+            PathInfo[] files = fileService.GetFiles(path);
             Texture[] textures = files.Select(fileService.Parse<Texture>).ToArray();
 
             return new TextureArray(name, textures.ToArray(), true);

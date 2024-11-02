@@ -101,26 +101,26 @@ internal sealed partial class ImGuiContext : IUIContext
     private List<Font> LoadFontsFromDisk()
     {
         List<Font> fonts = new();
-        Dictionary<string, IPath> fontFiles = new();
+        Dictionary<string, PathInfo> fontFiles = new();
 
-        IPath[] files = FileService.GetFiles(PathService.Fonts, SearchOption.AllDirectories);
+        PathInfo[] files = FileService.GetFiles(PathService.Fonts, SearchOption.AllDirectories);
 
-        IPath[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
+        PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 
-        foreach (IPath path in files.Where(file => file.GetExtension() == ".otf"))
+        foreach (PathInfo path in files.Where(file => file.GetExtension() == ".otf"))
             fontFiles.TryAdd(path.GetFileNameWithoutExtension(), path);
 
-        foreach (IPath path in files.Where(file => file.GetExtension() == ".ttf"))
+        foreach (PathInfo path in files.Where(file => file.GetExtension() == ".ttf"))
             fontFiles.TryAdd(path.GetFileNameWithoutExtension(), path);
 
         Logger.LogInformation("Loading fonts from {fontCount} files and {configCount} configs...", fontFiles.Count, configFiles.Length);
 
-        foreach (IPath configFile in configFiles)
+        foreach (PathInfo configFile in configFiles)
         {
             string fontName = configFile.GetFileNameWithoutExtension();
 
             //  Check there is an matching font file for this config
-            if (!fontFiles.TryGetValue(fontName, out IPath? fontFile))
+            if (!fontFiles.TryGetValue(fontName, out PathInfo fontFile))
                 continue;
 
             string content = FileService.ReadString(configFile);
@@ -156,7 +156,7 @@ internal sealed partial class ImGuiContext : IUIContext
         return fonts;
     }
 
-    public static unsafe ImFontPtr LoadFont(IPath fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
+    public static unsafe ImFontPtr LoadFont(PathInfo fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
     {
         ImFontConfigPtr config = ImGuiNative.ImFontConfig_ImFontConfig();
 

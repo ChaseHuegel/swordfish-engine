@@ -4,28 +4,28 @@ namespace Swordfish.Library.IO
 {
     public interface IPathService
     {
-        IPath Root { get; }
+        PathInfo Root { get; }
 
-        IPath Plugins { get; }
+        PathInfo Plugins { get; }
 
-        IPath Mods { get; }
+        PathInfo Mods { get; }
 
-        IPath Config { get; }
+        PathInfo Config { get; }
 
-        IPath Screenshots { get; }
+        PathInfo Screenshots { get; }
 
-        IPath Shaders { get; }
+        PathInfo Shaders { get; }
 
-        IPath UI { get; }
+        PathInfo UI { get; }
 
-        IPath Resources { get; }
+        PathInfo Resources { get; }
 
-        IPath Fonts { get; }
+        PathInfo Fonts { get; }
 
-        IPath Icons { get; }
+        PathInfo Icons { get; }
 
-        IPath Models { get; }
+        PathInfo Models { get; }
 
-        IPath Textures { get; }
+        PathInfo Textures { get; }
     }
 }

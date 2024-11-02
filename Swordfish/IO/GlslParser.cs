@@ -24,8 +24,8 @@ internal class GlslParser : IFileParser<Shader>
         Logger = logger;
     }
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public Shader Parse(IFileService fileService, IPath file)
+    object IFileParser.Parse(IFileService fileService, PathInfo file) => Parse(fileService, file);
+    public Shader Parse(IFileService fileService, PathInfo file)
     {
         var name = file.GetFileNameWithoutExtension();
 
@@ -37,7 +37,7 @@ internal class GlslParser : IFileParser<Shader>
         return new Shader(name, vertex, fragment);
     }
 
-    private (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
+    private (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, PathInfo file)
     {
         string shaderName = file.GetFileNameWithoutExtension();
 
@@ -53,7 +53,7 @@ internal class GlslParser : IFileParser<Shader>
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
         {
-            IPath includedFile = file.GetDirectory().At(includedFiles[0]);
+            PathInfo includedFile = file.GetDirectory().At(includedFiles[0]);
             includedFiles.RemoveAt(0);
 
             ProcessSource(fileService, includedFile, out string? inheritedVersionDirective, out string? includedSource, ref includedFiles);
@@ -145,7 +145,7 @@ void main()
         return (vertexSource, fragmentSource);
     }
 
-    private static void ProcessSource(IFileService fileService, IPath file, out string? versionDirective, out string? source, ref List<string> includedFiles)
+    private static void ProcessSource(IFileService fileService, PathInfo file, out string? versionDirective, out string? source, ref List<string> includedFiles)
     {
         versionDirective = null;
         source = null;

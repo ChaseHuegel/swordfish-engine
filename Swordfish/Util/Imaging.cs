@@ -13,7 +13,7 @@ public static class Imaging
 {
     /// <inheritdoc cref="Load"/>
     /// <remarks>This is useful when trying to load an unsupported image type, such as ICO.</remarks>
-    public static RawImage LoadAsPng(IPath path)
+    public static RawImage LoadAsPng(PathInfo path)
     {
         using var stream = new MemoryStream();
         using var bitmap = new Bitmap(path.OriginalString);
@@ -45,7 +45,7 @@ public static class Imaging
     /// </summary>
     /// <param name="path">Path to load an image from.</param>
     /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
-    public static RawImage Load(IPath path)
+    public static RawImage Load(PathInfo path)
     {
         var image = Image.Load<Rgba32>(path.OriginalString);
         return image.ToRawImage();

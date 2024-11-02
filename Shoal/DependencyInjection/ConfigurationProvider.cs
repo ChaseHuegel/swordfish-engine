@@ -24,7 +24,7 @@ internal class ConfigurationProvider
             throw new FatalAlertException("At least one module manifest must be present.");
         }
 
-        IPath modOptionsPath = Paths.Config.At(FILE_MODULE_OPTIONS);
+        PathInfo modOptionsPath = Paths.Config.At(FILE_MODULE_OPTIONS);
         if (fileService.TryParse(modOptionsPath, out ModuleOptions modOptions))
         {
             _modOptions = new ParsedFile<ModuleOptions>(modOptionsPath, modOptions);
@@ -53,12 +53,12 @@ internal class ConfigurationProvider
 
     private static ParsedFile<Language>[] LoadLanguages(IFileService fileService)
     {
-        IPath[] langFiles = fileService.GetFiles(Paths.Lang, "*.toml", SearchOption.AllDirectories);
+        PathInfo[] langFiles = fileService.GetFiles(Paths.Lang, "*.toml", SearchOption.AllDirectories);
 
         var languages = new List<ParsedFile<Language>>();
         for (int i = 0; i < langFiles.Length; i++)
         {
-            IPath path = langFiles[i];
+            PathInfo path = langFiles[i];
             if (fileService.TryParse(path, out Language language))
             {
                 languages.Add(new ParsedFile<Language>(path, language));
@@ -70,12 +70,12 @@ internal class ConfigurationProvider
 
     private static ParsedFile<ModuleManifest>[] LoadManifests(IFileService fileService)
     {
-        IPath[] files = fileService.GetFiles(Paths.Modules, "manifest.toml", SearchOption.AllDirectories);
+        PathInfo[] files = fileService.GetFiles(Paths.Modules, "manifest.toml", SearchOption.AllDirectories);
 
         var manifests = new List<ParsedFile<ModuleManifest>>();
         for (int i = 0; i < files.Length; i++)
         {
-            IPath file = files[i];
+            PathInfo file = files[i];
             if (fileService.TryParse(file, out ModuleManifest manifest))
             {
                 manifests.Add(new ParsedFile<ModuleManifest>(file, manifest));

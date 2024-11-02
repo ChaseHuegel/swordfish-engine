@@ -11,8 +11,8 @@ namespace Swordfish.IO
             ".png"
         };
 
-        object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-        public unsafe Texture Parse(IFileService fileService, IPath file)
+        object IFileParser.Parse(IFileService fileService, PathInfo file) => Parse(fileService, file);
+        public unsafe Texture Parse(IFileService fileService, PathInfo file)
         {
             using Stream stream = fileService.Open(file);
             using StreamReader reader = new(stream);

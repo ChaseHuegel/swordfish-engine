@@ -23,9 +23,6 @@ using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
 
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
-using Path = Swordfish.Library.IO.Path;
-
 namespace Swordfish.Editor;
 
 public class Editor : IEntryPoint, IAutoActivate
@@ -142,12 +139,12 @@ public class Editor : IEntryPoint, IAutoActivate
                                     Shortcut.DefaultEnabled,
                                     () => {
                                         Logger.LogInformation("Creating new plugin");
-                                        IPath outputPath = ModulePathService.Root
+                                        PathInfo outputPath = ModulePathService.Root
                                             .At("Projects")
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
                                         outputPath = outputPath.At("NewPlugin.cs");
-                                        Stream fileToCopy = FileService.Open(new Path("manifest://Templates/NewPlugin.cstemplate"));
+                                        Stream fileToCopy = FileService.Open(new PathInfo("manifest://Templates/NewPlugin.cstemplate"));
                                         FileService.Write(outputPath, fileToCopy);
                                         FileWrite?.Invoke();
                                     }
@@ -169,7 +166,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             Key.O,
                             Shortcut.DefaultEnabled,
                             () => {
-                                if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
+                                if (TreeNode.Selected.Get() is DataTreeNode<PathInfo> pathNode)
                                 {
                                     Logger.LogInformation("Opening {path}", pathNode.Data.Get());
                                     pathNode.Data.Get().TryOpenInDefaultApp();
@@ -327,7 +324,7 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             List<IElement> removalList = new();
 
-            if (element is DataTreeNode<Path> node)
+            if (element is DataTreeNode<PathInfo> node)
             {
                 string? path = node.Data.Get().ToString();
                 if (!Directory.Exists(path) && !File.Exists(path))
@@ -337,7 +334,7 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (TreeNode child in element.Content.OfType<DataTreeNode<Path>>())
+            foreach (TreeNode child in element.Content.OfType<DataTreeNode<PathInfo>>())
             {
                 removalList.AddRange(RefreshContentRecursively(child));
             }
@@ -349,7 +346,7 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             foreach (string dir in Directory.GetDirectories(path))
             {
-                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(dir), new Path(dir));
+                DataTreeNode<PathInfo> node = new(Path.GetFileName(dir), new PathInfo(dir));
                 PopulateDirectory(node, dir);
                 root.Content.Add(node);
             }
@@ -361,7 +358,7 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             foreach (string file in Directory.GetFiles(directory, "*.*"))
             {
-                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(file), new Path(file));
+                DataTreeNode<PathInfo> node = new(Path.GetFileName(file), new PathInfo(file));
                 root.Content.Add(node);
             }
 
@@ -397,7 +394,7 @@ public class Editor : IEntryPoint, IAutoActivate
                     BuildInpsectorView(inspector, component);
                 }
             }
-            else if (args.NewValue is DataTreeNode<Path> pathNode)
+            else if (args.NewValue is DataTreeNode<PathInfo> pathNode)
             {
                 if (!File.Exists(pathNode.Data.Get().OriginalString))
                     return;
@@ -420,7 +417,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Width = new FillConstraint()
                             },
                             Content = {
-                                new TextElement(System.IO.Path.GetFileNameWithoutExtension(fileInfo.Name))
+                                new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name))
                             }
                         },
                         new PaneElement("Size")

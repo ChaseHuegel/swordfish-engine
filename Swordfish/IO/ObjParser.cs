@@ -10,8 +10,8 @@ internal class OBJParser : IFileParser<Mesh>
         ".obj"
     };
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public Mesh Parse(IFileService fileService, IPath file)
+    object IFileParser.Parse(IFileService fileService, PathInfo file) => Parse(fileService, file);
+    public Mesh Parse(IFileService fileService, PathInfo file)
     {
         using Stream stream = fileService.Open(file);
         using StreamReader reader = new(stream);

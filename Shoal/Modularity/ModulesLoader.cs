@@ -77,13 +77,13 @@ internal class ModulesLoader(
     private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, IFileService fileService, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
     {
         ModuleManifest manifest = manifestFile.Value;
-        IPath directory = manifestFile.GetRootPath();
+        PathInfo directory = manifestFile.GetRootPath();
 
         //  Compile any scripts into an assembly
-        IPath scriptsPath = manifest.ScriptsPath ?? directory.At("Scripts/");
+        PathInfo scriptsPath = manifest.ScriptsPath ?? directory.At("Scripts/");
         if (scriptsPath.Exists())
         {
-            IPath[]? scriptFiles = fileService.GetFiles(scriptsPath, SearchOption.AllDirectories);
+            PathInfo[]? scriptFiles = fileService.GetFiles(scriptsPath, SearchOption.AllDirectories);
             if (options.AllowScriptCompilation && scriptFiles.Length > 0)
             {
                 //  TODO implement script compilation
@@ -97,12 +97,12 @@ internal class ModulesLoader(
             return new Result<Exception?>(true, null);
         }
 
-        IPath assembliesPath = manifest.AssembliesPath ?? directory;
+        PathInfo assembliesPath = manifest.AssembliesPath ?? directory;
 
         var loadedAssemblies = new List<Assembly>();
         foreach (string assemblyName in manifest.Assemblies)
         {
-            IPath assemblyPath = assembliesPath.At(assemblyName);
+            PathInfo assemblyPath = assembliesPath.At(assemblyName);
             try
             {
                 Assembly assembly = Assembly.LoadFrom(assemblyPath.ToString());

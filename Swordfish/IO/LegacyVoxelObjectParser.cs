@@ -9,8 +9,8 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
         ".svo"
     };
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public BrickGrid Parse(IFileService fileService, IPath file)
+    object IFileParser.Parse(IFileService fileService, PathInfo file) => Parse(fileService, file);
+    public BrickGrid Parse(IFileService fileService, PathInfo file)
     {
         using Stream stream = fileService.Open(file);
         using StreamReader reader = new(stream);

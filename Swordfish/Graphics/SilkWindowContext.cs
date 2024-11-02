@@ -12,7 +12,6 @@ using Swordfish.Library.Types;
 using Swordfish.UI;
 using Swordfish.Util;
 using Key = Swordfish.Library.IO.Key;
-using Path = Swordfish.Library.IO.Path;
 
 namespace Swordfish.Graphics;
 
@@ -61,7 +60,7 @@ public class SilkWindowContext : IWindowContext
         Window.Center();
 
         //  TODO refactor "manifest" files. Its now confusing with Module manifests.
-        RawImage icon = Imaging.LoadAsPng(fileService.Open(new Path("manifest://swordfish.ico")));
+        RawImage icon = Imaging.LoadAsPng(fileService.Open(new PathInfo("manifest://swordfish.ico")));
         Window.SetWindowIcon(ref icon);
 
         ShortcutService.RegisterShortcut(new Shortcut(

@@ -151,7 +151,6 @@ public sealed class AppEngine : IDisposable
         container.RegisterMany<TomlParser<ModuleManifest>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<PathTomlMapper>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<PathInterfaceTomlMapper>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterDelegate(SmartFormatterProvider.Resolve);
         container.Register<ILocalizationProvider, Localization>(Reuse.Singleton);
