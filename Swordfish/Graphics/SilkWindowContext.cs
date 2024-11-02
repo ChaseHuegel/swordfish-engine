@@ -60,6 +60,7 @@ public class SilkWindowContext : IWindowContext
 
         Window.Center();
 
+        //  TODO refactor "manifest" files. Its now confusing with Module manifests.
         RawImage icon = Imaging.LoadAsPng(fileService.Open(new Path("manifest://swordfish.ico")));
         Window.SetWindowIcon(ref icon);
 
@@ -91,15 +92,6 @@ public class SilkWindowContext : IWindowContext
 
         Logger.LogDebug("OpenGL MaxVertexAttribs: {maxVertexAttribs}", GL.GetInt(GetPName.MaxVertexAttribs));
         Logger.LogDebug("OpenGL extensions: {extensions}", string.Join(", ", GL.GetExtensions()));
-
-        if (GLDebug.TryCreateGLOutput(GLDebugCallback))
-        {
-            Logger.LogInformation("Attached OpenGL debug output.");
-        }
-        else
-        {
-            Logger.LogInformation("Unable to attach OpenGL debug output, its logs will be minimal and generic.");
-        }
 
         UIContext.Initialize();
         Loaded?.Invoke();
@@ -152,8 +144,6 @@ public class SilkWindowContext : IWindowContext
         RenderDelta.Set(delta);
 
         Render?.Invoke(delta);
-
-        GLDebug.TryCollectAllGLErrors();
     }
 
     private void OnResize(Vector2D<int> size)
@@ -171,19 +161,6 @@ public class SilkWindowContext : IWindowContext
         else
         {
             Unfocused?.Invoke();
-        }
-    }
-    
-    private void GLDebugCallback(GLEnum source, GLEnum type, int id, GLEnum severity, int length, nint message, nint userParam)
-    {
-        string output = Marshal.PtrToStringAnsi(message, length);
-        if (type == GLEnum.DebugTypeError)
-        {
-            Logger.LogError("[OpenGL] {output}", output);
-        }
-        else
-        {
-            Logger.LogTrace("[OpenGL] {output}", output);
         }
     }
 }

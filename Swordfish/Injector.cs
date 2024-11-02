@@ -3,6 +3,7 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
 using Shoal.DependencyInjection;
+using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
@@ -27,6 +28,7 @@ public class Injector : IDryIocInjector
         GL gl = Program.MainWindow.CreateOpenGL();
 
         resolver.RegisterInstance<GL>(gl);
+        resolver.RegisterMany<GLDebug>();
         resolver.RegisterInstance<IWindow>(Program.MainWindow);
         resolver.RegisterInstance<SynchronizationContext>(Program.MainThreadContext);
         resolver.Register<GLContext>(Reuse.Singleton);
