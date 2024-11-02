@@ -22,13 +22,27 @@ public abstract class ContentElement : Element, IContentElement
         if (e.OldItems != null && e.Action != NotifyCollectionChangedAction.Move)
         {
             foreach (IElement element in e.OldItems)
+            {
                 element.Parent = null;
+
+                if (element is IInternalElement internalElement)
+                {
+                    internalElement.SetUIContext(null);
+                }
+            }
         }
 
         if (e.NewItems != null)
         {
             foreach (IElement element in e.NewItems)
+            {
                 element.Parent = this;
+                
+                if (element is IInternalElement internalElement)
+                {
+                    internalElement.SetUIContext(UIContext);
+                }
+            }
         }
     }
 
@@ -43,7 +57,9 @@ public abstract class ContentElement : Element, IContentElement
         }
 
         if (AutoScroll && ImGui.GetScrollY() >= ImGui.GetScrollMaxY())
+        {
             ImGui.SetScrollHereY(1f);
+        }
     }
 
     protected virtual void RenderContentSeparator()

@@ -2,11 +2,12 @@ using ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public class MenuElement : AbstractPaneElement
+public class MenuBarElement : AbstractPaneElement
 {
-    public MenuElement() : base(string.Empty)
+    public MenuBarElement(IUIContext uiContext) : base(string.Empty)
     {
-        UIContext.Elements.Add(this);
+        UIContext = uiContext;
+        UIContext.Add(this);
     }
 
     protected override void OnRender()

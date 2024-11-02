@@ -3,7 +3,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.UI.Elements;
 
-public class MenuItemElement : ContentElement, INameProperty
+public class MenuBarItemElement : ContentElement, INameProperty
 {
     private static IShortcutService ShortcutService => s_ShortcutService ??= SwordfishEngine.Kernel.Get<IShortcutService>();
     private static IShortcutService? s_ShortcutService;
@@ -12,12 +12,12 @@ public class MenuItemElement : ContentElement, INameProperty
 
     public Shortcut Shortcut { get; private set; }
 
-    public MenuItemElement(string? name)
+    public MenuBarItemElement(string? name)
     {
         Name = name;
     }
 
-    public MenuItemElement(string? name, Shortcut shortcut) : this(name)
+    public MenuBarItemElement(string? name, Shortcut shortcut) : this(name)
     {
         shortcut.IsEnabled = ShortcutIsEnabled;
         ShortcutService.RegisterShortcut(shortcut);

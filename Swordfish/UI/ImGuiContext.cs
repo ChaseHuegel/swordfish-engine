@@ -16,11 +16,11 @@ using Tomlet;
 
 namespace Swordfish.UI;
 
-internal sealed class ImGuiContext : IUIContext
+internal sealed partial class ImGuiContext : IUIContext
 {
     private GL GL;
 
-    public LockedList<IElement> Elements { get; } = new();
+    private LockedList<IElement> Elements { get; } = new();
 
     public DataBinding<IConstraint> ScaleConstraint { get; } = new(new AbsoluteConstraint(1f));
     public DataBinding<float> FontScale { get; } = new(1f);

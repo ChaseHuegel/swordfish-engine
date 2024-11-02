@@ -15,6 +15,7 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types;
+using Swordfish.UI;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.Demo;
@@ -68,8 +69,9 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly IModulePathService ModulePathService;
     private readonly TextElement DebugText;
     private readonly ILogger Logger;
+    private readonly IUIContext UIContext;
 
-    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService, ILogger logger)
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService, ILogger logger, IUIContext uiContext)
     {
         FileService = fileService;
         ECSContext = ecsContext;
@@ -79,9 +81,10 @@ public class Demo : IEntryPoint, IAutoActivate
         InputService = inputService;
         ModulePathService = modulePathService;
         Logger = logger;
+        UIContext = uiContext;
 
         DebugText = new TextElement("");
-        CanvasElement myCanvas = new("Demo Debug Canvas")
+        CanvasElement myCanvas = new(UIContext, "Demo Debug Canvas")
         {
             Constraints = new RectConstraints
             {

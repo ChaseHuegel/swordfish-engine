@@ -10,9 +10,10 @@ public class CanvasElement : AbstractPaneElement
 
     public bool Open { get; set; } = true;
 
-    public CanvasElement(string name) : base(name)
+    public CanvasElement(IUIContext uiContext, string name) : base(name)
     {
-        UIContext.Elements.Add(this);
+        UIContext = uiContext;
+        UIContext.Add(this);
     }
 
     protected override void OnRender()

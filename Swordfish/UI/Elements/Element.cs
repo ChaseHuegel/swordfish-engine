@@ -2,9 +2,9 @@ using ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public abstract class Element : IElement
+public abstract class Element : IElement, IInternalElement
 {
-    protected static IUIContext UIContext => SwordfishEngine.Kernel.Get<IUIContext>();
+    protected IUIContext? UIContext { get; set; }
 
     private static ulong NewUid() => Interlocked.Increment(ref CurrentUid);
     private static ulong CurrentUid;
@@ -27,6 +27,11 @@ public abstract class Element : IElement
     public Element()
     {
         UID = NewUid();
+    }
+
+    void IInternalElement.SetUIContext(IUIContext? uiContext)
+    {
+        UIContext = uiContext;
     }
 
     public void Render()

@@ -8,8 +8,6 @@ namespace Swordfish.UI;
 
 public interface IUIContext
 {
-    LockedList<IElement> Elements { get; }
-
     DataBinding<IConstraint> ScaleConstraint { get; }
 
     DataBinding<float> FontScale { get; }
@@ -19,4 +17,9 @@ public interface IUIContext
     ThreadContext ThreadContext { get; }
 
     void Initialize();
+
+    void Add(IElement element);
+    
+    CanvasElement NewCanvas(string name);
+    MenuBarElement NewMenuBar();
 }
