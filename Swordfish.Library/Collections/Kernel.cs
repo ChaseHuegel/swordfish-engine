@@ -4,25 +4,20 @@ using DryIoc;
 
 namespace Swordfish.Library.Collections
 {
-    public class Kernel
+    public class Kernel(in IContainer baseResolver)
     {
-        private readonly Container Resolver;
-
-        public Kernel(Container baseResolver)
-        {
-            Resolver = baseResolver;
-        }
+        private readonly IContainer _resolver = baseResolver;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerable<TInterface> GetAll<TInterface>() where TInterface : class
         {
-            return Resolver.ResolveMany<TInterface>();
+            return _resolver.ResolveMany<TInterface>();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public TInterface Get<TInterface>() where TInterface : class
         {
-            return Resolver.Resolve<TInterface>();
+            return _resolver.Resolve<TInterface>();
         }
     }
 }

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Library.Diagnostics;
@@ -45,8 +46,7 @@ namespace Swordfish.Library.Collections
         {
             if (minSize > size)
             {
-                minSize = size;
-                Debugger.Log($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}", LogType.WARNING);
+                throw new InvalidOperationException($"SphereTree minimum size must be equal-greater than the tree size. Provided: {minSize} Using: {size}");
             }
 
             Count = 0;

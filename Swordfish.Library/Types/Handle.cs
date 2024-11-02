@@ -13,7 +13,6 @@ namespace Swordfish.Library.Types
         {
             if (IsDisposed)
             {
-                Debugger.Log($"Attempted to dispose a {GetType()} that was already disposed.", LogType.WARNING);
                 return;
             }
 

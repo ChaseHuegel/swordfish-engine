@@ -5,6 +5,10 @@ namespace Swordfish.UI
 {
     public struct Font
     {
+        public Font()
+        {
+        }
+
         public int Size;
 
         public string MinUnicode;

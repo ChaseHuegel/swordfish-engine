@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Shoal\Shoal.csproj" />
     <ProjectReference Include="..\Swordfish.Integrations\Swordfish.Integrations.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
@@ -13,7 +14,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Swordfish</PackageId>
-    <Version>2.1.20</Version>
+    <Version>3.0.0</Version>
     <Authors>Chase Huegel</Authors>
     <ApplicationIcon>Manifest/swordfish.ico</ApplicationIcon>
   </PropertyGroup>
@@ -46,8 +47,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Update="assets\modules\swordfish\manifest.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="PInvoke.Kernel32" Version="0.7.124" />
-    <PackageReference Include="Samboy063.Tomlet" Version="3.2.2" />
+    <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
     <PackageReference Include="Silk.NET" Version="2.16.0" />
     <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.16.0" />
     <PackageReference Include="SixLabors.ImageSharp" Version="2.1.3" />

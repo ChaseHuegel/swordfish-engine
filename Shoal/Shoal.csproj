@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Version>1.0.0</Version>
+    <Authors>Chase Huegel</Authors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Karambolo.Extensions.Logging.File" Version="3.6.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
+    <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
+    <PackageReference Include="SmartFormat.NET" Version="3.4.0" />
+    <PackageReference Include="Swordfish.Library" Version="2.5.14" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,14 @@
+﻿ID = "swordfish"
+Name = "Swordfish"
+Description = "The Swordfish engine."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+
+RootPathOverride = ""
+ScriptsPath = "scripts/"
+AssembliesPath = ""
+
+Assemblies = [
+    "Swordfish.dll",
+]

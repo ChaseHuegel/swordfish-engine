@@ -5,7 +5,7 @@ using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.Editor.UI;

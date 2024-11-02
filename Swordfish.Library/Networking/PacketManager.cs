@@ -54,22 +54,20 @@ namespace Swordfish.Library.Networking
                     {
                         if (!logged)
                         {
-                            Debugger.Log($"Registering packet handlers from assembly '{assembly}'...");
                             logged = true;
                         }
 
-                        if (IsValidHandlerParameters(method.GetParameters()))
+                        if (!IsValidHandlerParameters(method.GetParameters()))
                         {
-                            if (packetHandlerAttribute.PacketType == null)
-                                packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
+                            continue;
+                        }
 
-                            GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
-                            Debugger.Log($"{TruncateToString($"{method.DeclaringType}.{method.Name}")}" + $" to {TruncateToString(packetHandlerAttribute.PacketType)}", LogType.CONTINUED);
-                        }
-                        else
+                        if (packetHandlerAttribute.PacketType == null)
                         {
-                            Debugger.Log($"Ignoring {TruncateToString(method.DeclaringType)} decorated as a PacketHandler with invalid signature.", LogType.WARNING);
+                            packetHandlerAttribute.PacketType = method.DeclaringType is IDataBody ? method.DeclaringType : method.GetParameters()[1].ParameterType;
                         }
+
+                        GetPacketDefinition(packetHandlerAttribute.PacketType).Handlers.Add(new PacketHandler(method, packetHandlerAttribute));
                     }
                 }
         }
@@ -84,29 +82,25 @@ namespace Swordfish.Library.Networking
                 {
                     if (!logged)
                     {
-                        Debugger.Log($"Registering packets from assembly '{assembly}'...");
                         logged = true;
                     }
 
-                    if (typeof(IDataBody).IsAssignableFrom(type))
+                    if (!typeof(IDataBody).IsAssignableFrom(type))
                     {
-                        int id = packetAttribute.PacketID ?? type.FullName.ToSeed();
-                        PacketDefinition definition = new PacketDefinition
-                        {
-                            ID = id,
-                            Type = type,
-                            RequiresSession = packetAttribute.RequiresSession,
-                            Ordered = packetAttribute.Ordered,
-                            Reliable = packetAttribute.Reliable
-                        };
+                        continue;
+                    }
 
-                        PacketDefinitions.Add(id, definition.Type, definition);
-                        Debugger.Log(definition, LogType.CONTINUED);
-                    }
-                    else
+                    int id = packetAttribute.PacketID ?? type.FullName.ToSeed();
+                    PacketDefinition definition = new PacketDefinition
                     {
-                        Debugger.Log($"Ignoring {type} decorated as a packet but does not implement {typeof(IDataBody)}", LogType.WARNING);
-                    }
+                        ID = id,
+                        Type = type,
+                        RequiresSession = packetAttribute.RequiresSession,
+                        Ordered = packetAttribute.Ordered,
+                        Reliable = packetAttribute.Reliable
+                    };
+
+                    PacketDefinitions.Add(id, definition.Type, definition);
                 }
             }
         }

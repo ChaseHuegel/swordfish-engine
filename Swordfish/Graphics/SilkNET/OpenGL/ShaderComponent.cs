@@ -37,7 +37,10 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
 
         string shaderError = GL.GetShaderInfoLog(Handle);
         if (!string.IsNullOrWhiteSpace(shaderError))
-            Debugger.Log($"Failed to compile {Type} '{Name}'.\n{shaderError}", LogType.ERROR);
+        {
+            //  TODO dont want to throw
+            throw new GLException($"Failed to compile {Type} '{Name}'.\n{shaderError}");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

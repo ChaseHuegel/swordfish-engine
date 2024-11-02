@@ -6,7 +6,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PackageId>Swordfish.Library</PackageId>
-    <Version>2.5.14</Version>
+    <Version>2.6.0</Version>
     <Authors>Chase Huegel</Authors>
     <LangVersion>12</LangVersion>
   </PropertyGroup>
@@ -20,9 +20,10 @@
   <ItemGroup>
     <PackageReference Include="DryIoc.dll" Version="5.3.3" />
     <PackageReference Include="FastMath" Version="1.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     <PackageReference Include="Needlefish" Version="1.2.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
-    <PackageReference Include="Samboy063.Tomlet" Version="1.3.3" />
+    <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
     <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 

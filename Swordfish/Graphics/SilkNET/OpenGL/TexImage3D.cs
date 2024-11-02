@@ -48,7 +48,6 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to bind {this} but it is disposed.", LogType.ERROR);
             return;
         }
 

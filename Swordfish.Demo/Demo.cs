@@ -2,9 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using LibNoise.Primitive;
+using Microsoft.Extensions.Logging;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
-using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
@@ -12,17 +14,13 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI.Elements;
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Demo;
 
-public partial class Demo : Mod
+public class Demo : IEntryPoint, IAutoActivate
 {
-    public override string Name => "Swordfish Demo";
-    public override string Description => "A demo of the Swordfish engine.";
-
     private static readonly uint[] Triangles =
     {
         3, 1, 0,
@@ -67,9 +65,11 @@ public partial class Demo : Mod
     private readonly IFileService FileService;
     private readonly IPhysics Physics;
     private readonly IInputService InputService;
+    private readonly IModulePathService ModulePathService;
     private readonly TextElement DebugText;
+    private readonly ILogger Logger;
 
-    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer)
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileService fileService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService, ILogger logger)
     {
         FileService = fileService;
         ECSContext = ecsContext;
@@ -77,6 +77,8 @@ public partial class Demo : Mod
         WindowContext = windowContext;
         Physics = physics;
         InputService = inputService;
+        ModulePathService = modulePathService;
+        Logger = logger;
 
         DebugText = new TextElement("");
         CanvasElement myCanvas = new("Demo Debug Canvas")
@@ -209,7 +211,7 @@ public partial class Demo : Mod
         _scrollBuffer += e.Delta;
     }
 
-    public override void Start()
+    public void Run()
     {
         // TestUI.CreateCanvas();
         // TestECS.Populate(ECSContext);
@@ -224,7 +226,10 @@ public partial class Demo : Mod
         RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
         RenderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
 
-        Benchmark.Log();
+        foreach (string line in Benchmark.CollectOutput())
+        {
+            Logger.LogInformation("[Benchmark] {line}", line);
+        }
     }
 
     private void CreateStressTest()
@@ -298,8 +303,8 @@ public partial class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
-        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("block/metal_panel.png"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(ModulePathService.Textures.At("block/metal_panel.png"));
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -322,7 +327,7 @@ public partial class Demo : Mod
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = FileService.Parse<BrickGrid>(LocalPathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
+            grid = FileService.Parse<BrickGrid>(ModulePathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
         }
 
         var triangles = new List<uint>();
@@ -333,8 +338,8 @@ public partial class Demo : Mod
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket_internal.obj"));
+        var thruster = FileService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket.obj"));
+        var thrusterBlock = FileService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket_internal.obj"));
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
         {
             BuildBrickGridMesh(grid, -grid.CenterOfMass);
@@ -393,8 +398,8 @@ public partial class Demo : Mod
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
-        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("block/metal_panel.png"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(ModulePathService.Textures.At("block/metal_panel.png"));
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -415,11 +420,11 @@ public partial class Demo : Mod
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = FileService.Parse<BrickGrid>(LocalPathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
+            grid = FileService.Parse<BrickGrid>(ModulePathService.Resources.At("saves").At("mainMenuVoxObj.svo"));
         }
 
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lightedArray.glsl"));
+        var textureArray = FileService.Parse<TextureArray>(ModulePathService.Textures.At("block\\"));
         var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions {
@@ -489,8 +494,8 @@ public partial class Demo : Mod
                 }
         }
 
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = FileService.Parse<TextureArray>(LocalPathService.Textures.At("block\\"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lightedArray.glsl"));
+        var textureArray = FileService.Parse<TextureArray>(ModulePathService.Textures.At("block\\"));
         var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions
@@ -580,8 +585,8 @@ public partial class Demo : Mod
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = FileService.Parse<Mesh>(LocalPathService.Models.At("thruster_rocket_internal.obj"));
+        var thruster = FileService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket.obj"));
+        var thrusterBlock = FileService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket_internal.obj"));
 
         HashSet<BrickGrid> builtGrids = new();
         using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridMesh)))
@@ -666,9 +671,9 @@ public partial class Demo : Mod
 
     private void CreateDonutDemo()
     {
-        var mesh = FileService.Parse<Mesh>(LocalPathService.Models.At("donut.obj"));
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("lighted.glsl"));
-        var texture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+        var mesh = FileService.Parse<Mesh>(ModulePathService.Models.At("donut.obj"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
+        var texture = FileService.Parse<Texture>(ModulePathService.Textures.At("test.png"));
 
         var material = new Material(shader, texture);
 
@@ -685,14 +690,14 @@ public partial class Demo : Mod
 
     private void CreateTestEntities()
     {
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("textured.glsl"));
 
-        var astronautTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("astronaut.png"));
-        var chortTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("chort.png"));
-        var hubertTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("hubert.png"));
-        var haroldTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("harold.png"));
-        var melvinTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("melvin.png"));
-        var womanTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("woman.png"));
+        var astronautTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("astronaut.png"));
+        var chortTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("chort.png"));
+        var hubertTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("hubert.png"));
+        var haroldTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("harold.png"));
+        var melvinTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("melvin.png"));
+        var womanTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("woman.png"));
 
         var astronautMaterial = new Material(shader, astronautTexture);
         var chortMaterial = new Material(shader, chortTexture);
@@ -732,12 +737,12 @@ public partial class Demo : Mod
     {
         var mesh = new Cube();
         var renderOptions = new RenderOptions();
-        var shader = FileService.Parse<Shader>(LocalPathService.Shaders.At("textured.glsl"));
+        var shader = FileService.Parse<Shader>(ModulePathService.Shaders.At("textured.glsl"));
 
-        var floorTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("test.png"));
+        var floorTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("test.png"));
         var floorMaterial = new Material(shader, floorTexture);
 
-        var cubeTexture = FileService.Parse<Texture>(LocalPathService.Textures.At("block").At("metal_panel.png"));
+        var cubeTexture = FileService.Parse<Texture>(ModulePathService.Textures.At("block").At("metal_panel.png"));
         var cubeMaterial = new Material(shader, cubeTexture);
 
         Entity entity = ECSContext.World.NewEntity();
@@ -756,11 +761,5 @@ public partial class Demo : Mod
             entity.AddOrUpdate(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
             entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
         }
-    }
-
-    public override void Unload()
-    {
-        Debugger.Log("Dumping the log.");
-        Debugger.Dump();
     }
 }

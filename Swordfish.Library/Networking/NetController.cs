@@ -223,11 +223,10 @@ namespace Swordfish.Library.Networking
                 SessionExpiration = settings.SessionExpiration;
 
                 Udp.BeginReceive(new AsyncCallback(OnReceive), null);
-                Debugger.Log($"NetController session started [{Session}] with settings [{settings}]");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                Debugger.Log($"NetController failed to start with settings [{settings}]\n{ex}", LogType.ERROR);
+                // ignored
             }
         }
 
@@ -384,7 +383,6 @@ namespace Swordfish.Library.Networking
             }
             catch (Exception e)
             {
-                Debugger.Log(e, LogType.ERROR);
                 PacketUnknown?.Invoke(this, netEventArgs);
             }
 
@@ -539,12 +537,12 @@ namespace Swordfish.Library.Networking
         public void BeginConnect(IPEndPoint endPoint, string secret = null)
         {
             if (IsConnected)
-                Debugger.Log("Tried to connect but there is already an active connection.", LogType.WARNING);
-            else
             {
-                Secret = secret ?? Guid.NewGuid().ToString();
-                Send(Handshake.BeginPacket.New(secret), endPoint);
+                return;
             }
+
+            Secret = secret ?? Guid.NewGuid().ToString();
+            Send(Handshake.BeginPacket.New(secret), endPoint);
         }
 
         public void Connect(string hostname, int port, string secret = null)
@@ -628,17 +626,14 @@ namespace Swordfish.Library.Networking
 
         public void Disconnect()
         {
-            if (IsConnected)
+            if (!IsConnected)
             {
-                Debugger.Log($"NetController session [{Session}] disconnected.");
-                Secret = null;
-                Broadcast<DisconnectPacket>();
-                Disconnected?.Invoke(this, NetEventArgs.Empty);
+                return;
             }
-            else
-            {
-                Debugger.Log("Tried to disconnect but there are no active sessions to disconnect from.", LogType.WARNING);
-            }
+
+            Secret = null;
+            Broadcast<DisconnectPacket>();
+            Disconnected?.Invoke(this, NetEventArgs.Empty);
         }
 
         /// <summary>
@@ -728,8 +723,6 @@ namespace Swordfish.Library.Networking
 
             if (Sessions.TryRemove(session.EndPoint, out _))
             {
-                Debugger.Log($"Session [{session}] ended [{reason}]");
-
                 if (session.ID != NetSession.LocalOrUnassigned)
                 {
                     //  Inform the session holder they've been disconnected.

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
 using ImGuiNET;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
@@ -23,34 +24,35 @@ public class ImGuiContext : IUIContext
     public LockedList<IElement> Elements { get; } = new();
     public IMenuBarElement? MenuBar { get; set; }
 
-    public DataBinding<IConstraint> ScaleConstraint { get; set; } = new DataBinding<IConstraint>(new AbsoluteConstraint(1f));
-    public DataBinding<float> FontScale { get; } = new DataBinding<float>(1f);
-    public DataBinding<float> FontDisplaySize { get; } = new DataBinding<float>();
+    public DataBinding<IConstraint> ScaleConstraint { get; } = new(new AbsoluteConstraint(1f));
+    public DataBinding<float> FontScale { get; } = new(1f);
+    public DataBinding<float> FontDisplaySize { get; } = new();
 
     public ThreadContext ThreadContext { get; private set; }
 
-    private DataBinding<float> Scale { get; } = new DataBinding<float>(1f);
-    private ImGuiController Controller { get; set; }
-    private IWindow Window { get; set; }
-    private IInputContext InputContext { get; set; }
-    private IFileService FileService { get; set; }
-    private IPathService PathService { get; set; }
+    private DataBinding<float> Scale { get; } = new(1f);
+    private ImGuiController Controller { get; }
+    private IWindow Window { get; }
+    private IInputContext InputContext { get; }
+    private IFileService FileService { get; }
+    private IPathService PathService { get; }
+    private ILogger Logger { get; }
 
-    public ImGuiContext(IWindow window, Silk.NET.Input.IInputContext inputContext, GL gl, IFileService fileService, IPathService pathService)
+    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileService fileService, IPathService pathService, ILogger logger)
     {
         GL = gl;
         Window = window;
         InputContext = inputContext;
         FileService = fileService;
         PathService = pathService;
+        Logger = logger;
 
         Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
         Controller.Update(0f);
 
         OnFontScaleChanged(this, new DataChangedEventArgs<float>(1f, FontScale.Get()));
 
-        Debugger.Log("UI initialized.");
-        Debugger.Log($"using ImGui {ImGui.GetVersion()}", LogType.CONTINUED);
+        Logger.LogInformation("Using ImGui {ImGui}", ImGui.GetVersion());
     }
 
     private void ConfigureImGuiIO()
@@ -114,7 +116,7 @@ public class ImGuiContext : IUIContext
         foreach (IPath path in files.Where(file => file.GetExtension() == ".ttf"))
             fontFiles.TryAdd(path.GetFileNameWithoutExtension(), path);
 
-        Debugger.Log($"Loading fonts from {fontFiles.Count} files and {configFiles.Length} configs...");
+        Logger.LogInformation("Loading fonts from {fontCount} files and {configCount} configs...", fontFiles.Count, configFiles.Length);
 
         foreach (IPath configFile in configFiles)
         {
@@ -150,10 +152,10 @@ public class ImGuiContext : IUIContext
                 )
             );
 
-            Debugger.Log($"Loaded font '{font.Name}'. Size: {font.Size} Unicode: {font.MinUnicode}-{font.MaxUnicode} Icons: {font.IsIcons} Default: {font.IsDefault}", LogType.CONTINUED);
+            Logger.LogInformation("Loaded font '{Name}'. Size: {Size} Unicode: {MinUnicode}-{MaxUnicode} Icons: {IsIcons} Default: {IsDefault}", font.Name, font.Size, font.MinUnicode, font.MaxUnicode, font.IsIcons, font.IsDefault);
         }
 
-        Debugger.Log($"...fonts loaded: {fonts.Count}", LogType.CONTINUED);
+        Logger.LogInformation("Loaded {count} fonts", fonts.Count);
         return fonts;
     }
 

@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Diagnostics;
@@ -15,10 +16,12 @@ internal class GlslParser : IFileParser<Shader>
     };
 
     private readonly GLContext GLContext;
+    private readonly ILogger Logger;
 
-    public GlslParser(GLContext glContext)
+    public GlslParser(GLContext glContext, ILogger logger)
     {
         GLContext = glContext;
+        Logger = logger;
     }
 
     object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
@@ -34,7 +37,7 @@ internal class GlslParser : IFileParser<Shader>
         return new Shader(name, vertex, fragment);
     }
 
-    private static (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
+    private (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
     {
         string shaderName = file.GetFileNameWithoutExtension();
 
@@ -58,16 +61,20 @@ internal class GlslParser : IFileParser<Shader>
             versionDirective ??= inheritedVersionDirective;
 
             if (includedSource != null)
+            {
                 includedSources.Add(includedSource);
+            }
             else
-                Debugger.Log($"Shader '{shaderName}' includes '{includedFile.GetFileNameWithoutExtension}' that was empty or failed to parse.", LogType.WARNING);
+            {
+                Logger.LogWarning("Shader '{shaderName}' includes '{includedFile}' that was empty or failed to parse.", shaderName, includedFile.GetFileNameWithoutExtension());
+            }
         }
 
         //  Ensure we have a version
         if (versionDirective == null)
         {
             versionDirective = "#version 330 core";
-            Debugger.Log($"A #version directive was not found for shader '{shaderName}'; defaulting to {versionDirective}'.", LogType.WARNING);
+            Logger.LogWarning("A #version directive was not found for shader '{shaderName}'; defaulting to {versionDirective}'.", shaderName, versionDirective);
         }
 
         //  The min required attributes for functionality

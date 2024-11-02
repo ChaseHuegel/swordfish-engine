@@ -109,9 +109,8 @@ namespace Swordfish.Library.IO
                 Verb = "open"
             };
 
-            return Debugger.TryInvoke(
-                () => Process.Start(processStartInfo),
-                "Failed to open path in the default application."
+            return Debugger.SafeInvoke(
+                () => Process.Start(processStartInfo)
             );
         }
 

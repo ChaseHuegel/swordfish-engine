@@ -1,60 +1,46 @@
-using Swordfish.ECS;
-using Swordfish.Library.Diagnostics;
+using Microsoft.Extensions.Logging;
+using Shoal.Modularity;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 
-namespace Swordfish.Entities;
+namespace Swordfish.ECS;
 
-public class ECSContext : IECSContext
+public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 {
-    private const string REQ_START_MESSAGE = "The context must be started.";
-    private const string REQ_STOP_MESSAGE = "The context must be stopped.";
-
     public DataBinding<double> Delta { get; } = new();
+    public World World { get; }
 
-    public World World { get; private set; }
+    private readonly ThreadWorker _threadWorker;
+    private readonly ILogger _logger;
 
-    private ThreadWorker ThreadWorker { get; set; }
-
-    private bool Running;
-
-    public ECSContext(IEntitySystem[] systems)
+    public ECSContext(IEntitySystem[] systems, ILogger logger)
     {
-        Debugger.Log($"Initializing ECS context.");
+        _logger = logger;
+        _threadWorker = new ThreadWorker(Update, "ECS");
 
-        Running = false;
         World = new World();
-
         foreach (IEntitySystem system in systems)
         {
             World.AddSystem(system);
         }
-
-        ThreadWorker = new ThreadWorker(Update, "ECS");
+        
+        _logger.LogInformation("Initialized ECS.");
     }
 
-    public void Start()
+    public void Run()
     {
-        if (Running)
-            throw new InvalidOperationException(REQ_STOP_MESSAGE);
-
-        Debugger.Log($"Starting ECS context.");
-        Running = true;
-        ThreadWorker.Start();
+        _threadWorker.Start();
+        _logger.LogInformation("Started ECS thread.");
     }
 
-    public void Stop()
+    public void Dispose()
     {
-        Debugger.Log($"Stopping ECS context.");
-        Running = false;
-        ThreadWorker?.Stop();
+        _threadWorker.Stop();
+        _logger.LogInformation("Stopped ECS thread.");
     }
-
-    public void Update(float delta)
+    
+    private void Update(float delta)
     {
-        if (!Running)
-            throw new InvalidOperationException(REQ_START_MESSAGE);
-
         Delta.Set(delta);
         World.Tick(delta);
     }

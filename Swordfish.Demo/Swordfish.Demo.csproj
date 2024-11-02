@@ -10,7 +10,7 @@
   <PropertyGroup>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TargetFramework>net8.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/mods/$(AssemblyName)</OutputPath>
+    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/assets/modules/swordfish.demo</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -34,13 +34,15 @@
       <Link>resources\%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <None Update="manifest.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="Manifest\**\*.*" />
   </ItemGroup>
-  <ItemGroup>
-  </ItemGroup>
+  
   <ItemGroup>
     <PackageReference Include="LibNoise" Version="0.2.0" />
   </ItemGroup>

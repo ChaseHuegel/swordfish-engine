@@ -1,5 +1,6 @@
 using System.Numerics;
-using Swordfish.Graphics;
+
+namespace Swordfish.Graphics;
 
 public interface IRenderStage
 {

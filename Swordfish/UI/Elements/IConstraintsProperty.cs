@@ -1,4 +1,4 @@
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 
 namespace Swordfish.UI.Elements;
 

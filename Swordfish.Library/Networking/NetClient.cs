@@ -18,8 +18,6 @@ namespace Swordfish.Library.Networking
 
         private void Initialize(TimeSpan timeout)
         {
-            Debugger.Log($"Client started on {this.Session.EndPoint}");
-
             this.PacketSent += OnPacketSent;
             this.PacketReceived += OnPacketReceivedInternal;
             this.PacketAccepted += OnPacketAccepted;
@@ -57,12 +55,10 @@ namespace Swordfish.Library.Networking
 
         protected virtual void OnPacketRejected(object sender, NetEventArgs e)
         {
-            Debugger.Log($"client->reject {e.PacketID} from {e.EndPoint}", LogType.WARNING);
         }
 
         protected virtual void OnPacketUnknown(object sender, NetEventArgs e)
         {
-            Debugger.Log($"client->unknown '{e.Packet.ToString().TruncateUpTo(60).Append("[...]")}' from {e.EndPoint}", LogType.WARNING);
         }
 
         private void OnTimeout(object sender, ElapsedEventArgs e)

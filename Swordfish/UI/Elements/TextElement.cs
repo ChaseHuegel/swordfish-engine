@@ -3,7 +3,7 @@ using System.Numerics;
 using ImGuiNET;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Extensions;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 
 namespace Swordfish.UI.Elements;
 

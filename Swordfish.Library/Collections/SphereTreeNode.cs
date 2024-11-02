@@ -477,7 +477,6 @@ namespace Swordfish.Library.Collections
         {
             if (!HasChildren)
             {
-                Debugger.Log($"SphereTree attempted consuming NULL child nodes", LogType.WARNING);
                 return;
             }
 

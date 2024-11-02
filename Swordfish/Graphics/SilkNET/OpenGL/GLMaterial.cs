@@ -32,7 +32,6 @@ internal sealed class GLMaterial : Handle
     {
         if (IsDisposed)
         {
-            Debugger.Log($"Attempted to use {this} but it is disposed.", LogType.ERROR);
             return;
         }
 

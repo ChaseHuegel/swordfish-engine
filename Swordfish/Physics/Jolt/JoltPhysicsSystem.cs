@@ -5,6 +5,7 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types.Shapes;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Plane = Swordfish.Library.Types.Shapes.Plane;
 using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
 using JoltShape = JoltPhysicsSharp.Shape;
@@ -34,7 +35,9 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public PhysicsSystem System { get; }
 
-    private float _accumulator = 0f;
+    private readonly ILogger _logger;
+    
+    private float _accumulator;
     private bool _accumulateUpdates = false;
     private BodyInterface _bodyInterface;
     private BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
@@ -51,24 +54,25 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         NumBodyMutexes = 0
     };
 
-    public JoltPhysicsSystem()
+    public JoltPhysicsSystem(ILogger logger)
     {
+        _logger = logger;
+        
         if (!Foundation.Init(false))
         {
+            _logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
             throw new Exception("Unable to initialize Jolt Foundation.");
         }
 
 #if DEBUG
-        Foundation.SetTraceHandler((message) => Debugger.Log(message));
+        Foundation.SetTraceHandler((message) => _logger.LogDebug("Jolt debug: {message}", message));
 
         Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>
         {
+            // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
             string message = inMessage ?? inExpression;
-
-            string outMessage = $"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}";
-
-            Debugger.LogError(outMessage, null);
-            throw new Exception(outMessage);
+            _logger.LogError("[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}", inFile, inLine, message);
+            throw new Exception($"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}");    //  TODO is this necessary?
         });
 #endif
 
@@ -87,7 +91,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
     }
 
-    protected virtual void SetupCollisionFiltering()
+    private void SetupCollisionFiltering()
     {
         // We use only 2 layers: one for non-moving objects and one for moving objects
         ObjectLayerPairFilterTable objectLayerPairFilter = new(2);

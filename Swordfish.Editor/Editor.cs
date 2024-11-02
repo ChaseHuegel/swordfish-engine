@@ -6,9 +6,11 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using ImGuiNET;
+using Microsoft.Extensions.Logging;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Editor.UI;
-using Swordfish.Extensibility;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
@@ -17,7 +19,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Reflection;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
-using Swordfish.Types.Constraints;
+using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
 
@@ -26,13 +28,10 @@ using Path = Swordfish.Library.IO.Path;
 
 namespace Swordfish.Editor;
 
-public class Editor : Plugin
+public class Editor : IEntryPoint, IAutoActivate
 {
     private const ImGuiWindowFlags EDITOR_CANVAS_FLAGS = ImGuiWindowFlags.AlwaysAutoResize
         | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoCollapse;
-
-    public override string Name => "Swordfish Editor";
-    public override string Description => "Visual editor for the Swordfish engine.";
 
     private readonly IWindowContext WindowContext;
     private readonly IECSContext ECSContext;
@@ -42,12 +41,15 @@ public class Editor : Plugin
     private readonly IInputService InputService;
     private readonly DebugSettings DebugSettings;
     private readonly RenderSettings RenderSettings;
+    private readonly LogListener LogListener;
+    private readonly IModulePathService ModulePathService;
+    private readonly ILogger Logger;
 
     private static CanvasElement Hierarchy;
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings)
+    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, IModulePathService modulePathService, ILogger logger)
     {
         WindowContext = windowContext;
         FileService = fileService;
@@ -57,6 +59,9 @@ public class Editor : Plugin
         InputService = inputService;
         DebugSettings = debugSettings;
         RenderSettings = renderSettings;
+        LogListener = logListener;
+        ModulePathService = modulePathService;
+        Logger = logger;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -96,7 +101,7 @@ public class Editor : Plugin
         }
     }
 
-    public override void Start()
+    public void Run()
     {
         WindowContext.Maximize();
 
@@ -136,8 +141,8 @@ public class Editor : Plugin
                                     Key.N,
                                     Shortcut.DefaultEnabled,
                                     () => {
-                                        Debugger.Log("Creating new plugin");
-                                        IPath outputPath = LocalPathService.Root
+                                        Logger.LogInformation("Creating new plugin");
+                                        IPath outputPath = ModulePathService.Root
                                             .At("Projects")
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
@@ -153,7 +158,7 @@ public class Editor : Plugin
                                     ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
-                                    () => Debugger.Log("Create new project")
+                                    () => Logger.LogInformation("Create new project")
                                 )),
                             }
                         },
@@ -166,7 +171,7 @@ public class Editor : Plugin
                             () => {
                                 if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
                                 {
-                                    Debugger.Log($"Opening {pathNode.Data.Get()}");
+                                    Logger.LogInformation("Opening {path}", pathNode.Data.Get());
                                     pathNode.Data.Get().TryOpenInDefaultApp();
                                 }
                             }
@@ -177,7 +182,7 @@ public class Editor : Plugin
                             ShortcutModifiers.CONTROL,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Debugger.Log("Save project")
+                            () => Logger.LogInformation("Save project")
                         )),
                         new MenuItemElement("Save As", new Shortcut(
                             "Save As",
@@ -185,7 +190,7 @@ public class Editor : Plugin
                             ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Debugger.Log("Save project as")
+                            () => Logger.LogInformation("Save project as")
                         )),
                         new MenuItemElement("Exit", exitShortcut),
                     }
@@ -280,17 +285,17 @@ public class Editor : Plugin
                 Height = new RelativeConstraint(0.2f)
             }
         };
+        
+        foreach (LoggerEventArgs record in LogListener.GetHistory())
+            OnNewLog(null, record);
 
-        foreach (LogEventArgs record in Logger.History)
-            PopulateLogLine(null, record);
-
-        Logger.Logged += PopulateLogLine;
-
-        void PopulateLogLine(object? sender, LogEventArgs args)
+        LogListener.NewLog += OnNewLog;
+        
+        void OnNewLog(object? sender, LoggerEventArgs e)
         {
-            console.Content.Add(new TextElement(args.Line)
+            console.Content.Add(new TextElement($"{e.LogLevel}: {e.Log}")
             {
-                Color = args.Type.GetColor()
+                Color = e.LogLevel.GetColor(),
             });
         }
 

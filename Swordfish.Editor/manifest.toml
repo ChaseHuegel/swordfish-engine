@@ -1,0 +1,9 @@
+﻿ID = "swordfish.editor"
+Name = "Swordfish Editor"
+Description = "The Swordfish engine editor."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+Assemblies = [
+    "Swordfish.Editor.dll",
+]

@@ -2,14 +2,6 @@ using System.Reflection;
 
 namespace Swordfish.Library.IO
 {
-    public class RootedPathService : PathService
-    {
-        public RootedPathService(string root)
-        {
-            this.root = new Path(root);
-        }
-    }
-
     public class PathService : IPathService
     {
         private const string PLUGINS_FOLDER = "plugins";
