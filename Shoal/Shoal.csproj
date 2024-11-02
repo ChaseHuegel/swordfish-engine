@@ -5,7 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Swordfish.Compilation\Swordfish.Compilation.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
   </ItemGroup>
 

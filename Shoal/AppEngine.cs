@@ -1,5 +1,6 @@
 using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Logging.Console;
+using Shoal.CommandLine;
 using Shoal.Globalization;
 using Shoal.Modularity;
 using Swordfish.Library.Collections;
@@ -24,7 +25,21 @@ public sealed class AppEngine : IDisposable
 
     private AppEngine(in string[] args)
     {
-        IContainer coreContainer = CreateCoreContainer();
+        CommandLineArgs commandLineArgs;
+        try
+        {
+            var commandLineParser = new CommandLineParser();
+            commandLineArgs = commandLineParser.Parse(args);
+
+            _logger.LogInformation("Using command line arguments: {commandLineArgs}.", commandLineArgs);
+        }
+        catch (Exception ex)
+        {
+            commandLineArgs = CommandLineArgs.Empty;
+            _logger.LogError(ex, "Failed to parse command line arguments.");
+        }
+        
+        IContainer coreContainer = CreateCoreContainer(commandLineArgs);
         ActivateTomlMappers(coreContainer);
 
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
@@ -117,10 +132,11 @@ public sealed class AppEngine : IDisposable
         });
     }
 
-    private IContainer CreateCoreContainer()
+    private IContainer CreateCoreContainer(CommandLineArgs args)
     {
         IContainer container = new Container();
 
+        container.RegisterInstance<CommandLineArgs>(args);
         container.RegisterInstance<LogListener>(_logListener);
 
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
