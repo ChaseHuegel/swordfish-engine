@@ -15,7 +15,7 @@ public abstract class AbstractPaneElement : ContentElement, IUniqueNameProperty,
 
     protected ITooltipProperty TooltipProperty => this;
 
-    public string UniqueName => uniqueName ??= Name + "##" + Uid;
+    public string UniqueName => uniqueName ??= Name + "##" + UID;
     private string? uniqueName;
 
     public AbstractPaneElement(string? name)

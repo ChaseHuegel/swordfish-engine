@@ -17,7 +17,7 @@ public static class TestUI
 
     public static void CreateCanvas()
     {
-        CanvasElement myCanvas = new("UI Test Canvas")
+        CanvasElement myCanvas = new(UIContext, "UI Test Canvas")
         {
             Constraints = new RectConstraints
             {

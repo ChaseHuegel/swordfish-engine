@@ -6,13 +6,14 @@ using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
 using Swordfish.Types;
+using Swordfish.UI;
 using Swordfish.UI.Elements;
 
 namespace Swordfish.Editor.UI;
 
 public class StatsWindow : CanvasElement
 {
-    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext, RenderSettings renderSettings) : base("Stats")
+    public StatsWindow(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext, RenderSettings renderSettings, IUIContext uiContext) : base(uiContext, "Stats")
     {
         Flags = ImGuiNET.ImGuiWindowFlags.NoResize | ImGuiNET.ImGuiWindowFlags.NoCollapse | ImGuiNET.ImGuiWindowFlags.NoBackground | ImGuiNET.ImGuiWindowFlags.NoTitleBar;
 

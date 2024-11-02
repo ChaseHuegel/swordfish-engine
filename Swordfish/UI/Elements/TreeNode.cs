@@ -11,7 +11,7 @@ public class TreeNode : ContentElement, IUniqueNameProperty
 
     public bool Selectable { get; set; } = true;
 
-    public string UniqueName => uniqueName ??= Name + "##" + Uid;
+    public string UniqueName => uniqueName ??= Name + "##" + UID;
     private string? uniqueName;
 
     public TreeNode(string? name)

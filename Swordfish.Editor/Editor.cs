@@ -39,6 +39,7 @@ public class Editor : IEntryPoint, IAutoActivate
     private readonly IPathService PathService;
     private readonly IRenderContext RenderContext;
     private readonly IInputService InputService;
+    private readonly IUIContext UIContext;
     private readonly DebugSettings DebugSettings;
     private readonly RenderSettings RenderSettings;
     private readonly LogListener LogListener;
@@ -57,6 +58,7 @@ public class Editor : IEntryPoint, IAutoActivate
         PathService = pathService;
         RenderContext = renderContext;
         InputService = inputService;
+        UIContext = uiContext;
         DebugSettings = debugSettings;
         RenderSettings = renderSettings;
         LogListener = logListener;
@@ -68,14 +70,12 @@ public class Editor : IEntryPoint, IAutoActivate
 
         //  Setup the hierarchy
         ECSContext.World.AddSystem(new HierarchySystem());
-        Hierarchy = new CanvasElement("Hierarchy")
+        Hierarchy = UIContext.NewCanvas("Hierarchy");
+        Hierarchy.Flags = EDITOR_CANVAS_FLAGS;
+        Hierarchy.Constraints = new RectConstraints
         {
-            Flags = EDITOR_CANVAS_FLAGS,
-            Constraints = new RectConstraints
-            {
-                Width = new RelativeConstraint(0.15f),
-                Height = new RelativeConstraint(0.8f)
-            }
+            Width = new RelativeConstraint(0.15f),
+            Height = new RelativeConstraint(0.8f),
         };
 
         //  Create the grid and axis display
@@ -116,7 +116,7 @@ public class Editor : IEntryPoint, IAutoActivate
             WindowContext.Close
         );
 
-        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext, RenderSettings)
+        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext, RenderSettings, UIContext)
         {
             Visible = DebugSettings.Stats
         };
@@ -127,14 +127,14 @@ public class Editor : IEntryPoint, IAutoActivate
             statsWindow.Visible = e.NewValue;
         }
 
-        MenuElement menu = new()
+        MenuBarElement menuBar = new(UIContext)
         {
             Content = {
-                new MenuItemElement("File") {
+                new MenuBarItemElement("File") {
                     Content = {
-                        new MenuItemElement("New") {
+                        new MenuBarItemElement("New") {
                             Content = {
-                                new MenuItemElement("Plugin", new Shortcut(
+                                new MenuBarItemElement("Plugin", new Shortcut(
                                     "New Plugin",
                                     "Editor",
                                     ShortcutModifiers.CONTROL,
@@ -152,7 +152,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         FileWrite?.Invoke();
                                     }
                                 )),
-                                new MenuItemElement("Project", new Shortcut(
+                                new MenuBarItemElement("Project", new Shortcut(
                                     "New Project",
                                     "Editor",
                                     ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
@@ -162,7 +162,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 )),
                             }
                         },
-                        new MenuItemElement("Open", new Shortcut(
+                        new MenuBarItemElement("Open", new Shortcut(
                             "Open",
                             "Editor",
                             ShortcutModifiers.CONTROL,
@@ -176,7 +176,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             }
                         )),
-                        new MenuItemElement("Save", new Shortcut(
+                        new MenuBarItemElement("Save", new Shortcut(
                             "Save",
                             "Editor",
                             ShortcutModifiers.CONTROL,
@@ -184,7 +184,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             Shortcut.DefaultEnabled,
                             () => Logger.LogInformation("Save project")
                         )),
-                        new MenuItemElement("Save As", new Shortcut(
+                        new MenuBarItemElement("Save As", new Shortcut(
                             "Save As",
                             "Editor",
                             ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
@@ -192,13 +192,13 @@ public class Editor : IEntryPoint, IAutoActivate
                             Shortcut.DefaultEnabled,
                             () => Logger.LogInformation("Save project as")
                         )),
-                        new MenuItemElement("Exit", exitShortcut),
+                        new MenuBarItemElement("Exit", exitShortcut),
                     }
                 },
-                new MenuItemElement("Edit"),
-                new MenuItemElement("View") {
+                new MenuBarItemElement("Edit"),
+                new MenuBarItemElement("View") {
                     Content = {
-                        new MenuItemElement("Stats", new Shortcut(
+                        new MenuBarItemElement("Stats", new Shortcut(
                                 "Stats",
                                 "Editor",
                                 ShortcutModifiers.NONE,
@@ -209,7 +209,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             )
                         ),
-                        new MenuItemElement("Wireframe", new Shortcut(
+                        new MenuBarItemElement("Wireframe", new Shortcut(
                                 "Wireframe",
                                 "Editor",
                                 ShortcutModifiers.NONE,
@@ -220,7 +220,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             )
                         ),
-                        new MenuItemElement("Meshes", new Shortcut(
+                        new MenuBarItemElement("Meshes", new Shortcut(
                                 "Hide Meshes",
                                 "Editor",
                                 ShortcutModifiers.NONE,
@@ -231,9 +231,9 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             )
                         ),
-                        new MenuItemElement("Gizmos") {
+                        new MenuBarItemElement("Gizmos") {
                             Content = {
-                                new MenuItemElement("Transform", new Shortcut(
+                                new MenuBarItemElement("Transform", new Shortcut(
                                         "Transform Gizmos",
                                         "Debug",
                                         ShortcutModifiers.NONE,
@@ -244,7 +244,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         }
                                     )
                                 ),
-                                new MenuItemElement("Physics", new Shortcut(
+                                new MenuBarItemElement("Physics", new Shortcut(
                                         "Physics Gizmos",
                                         "Debug",
                                         ShortcutModifiers.NONE,
@@ -259,9 +259,9 @@ public class Editor : IEntryPoint, IAutoActivate
                         }
                     }
                 },
-                new MenuItemElement("Tools"),
-                new MenuItemElement("Run"),
-                new MenuItemElement("Help"),
+                new MenuBarItemElement("Tools"),
+                new MenuBarItemElement("Run"),
+                new MenuBarItemElement("Help"),
                 new TextElement("Swordfish Engine " + SwordfishEngine.Version)
                 {
                     Wrap = false,
@@ -273,7 +273,7 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
 
-        CanvasElement console = new("Console")
+        CanvasElement console = new(UIContext, "Console")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             AutoScroll = true,
@@ -299,7 +299,7 @@ public class Editor : IEntryPoint, IAutoActivate
             });
         }
 
-        CanvasElement assetBrowser = new("Asset Browser")
+        CanvasElement assetBrowser = new(UIContext, "Asset Browser")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
@@ -368,7 +368,7 @@ public class Editor : IEntryPoint, IAutoActivate
             root.Content.Add(new DividerElement());
         }
 
-        CanvasElement inspector = new("Inspector")
+        CanvasElement inspector = new(UIContext, "Inspector")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints

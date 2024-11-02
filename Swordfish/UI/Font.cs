@@ -1,4 +1,3 @@
-using ImGuiNET;
 using Swordfish.Library.IO;
 
 namespace Swordfish.UI

@@ -1,6 +1,6 @@
 namespace Swordfish.UI.Elements;
 
-public interface IUniqueNameProperty : INameProperty, IUidProperty
+public interface IUniqueNameProperty : INameProperty, IUIDProperty
 {
     string UniqueName { get; }
 }
