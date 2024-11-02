@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <None Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Include="modules\**\*.*" CopyToOutputDirectory="Always"/>
   </ItemGroup>
 
   <ItemGroup>

@@ -10,7 +10,7 @@
   <PropertyGroup>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TargetFramework>net8.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/assets/modules/swordfish.demo</OutputPath>
+    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/modules/swordfish.demo</OutputPath>
   </PropertyGroup>
 
   <PropertyGroup>

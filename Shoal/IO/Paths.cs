@@ -10,5 +10,5 @@ public static class Paths
     public static PathInfo Assets => _assets ??= new PathInfo("assets/");
     public static PathInfo Config => _config ??= Assets.At("config/");
     public static PathInfo Lang => _lang ??= Assets.At("lang/");
-    public static PathInfo Modules => _modules ??= Assets.At("modules/");
+    public static PathInfo Modules => _modules ??= new PathInfo("modules/");
 }
