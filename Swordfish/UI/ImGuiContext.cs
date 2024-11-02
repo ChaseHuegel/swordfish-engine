@@ -8,21 +8,19 @@ using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
-using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Threading;
 using Swordfish.Library.IO;
+using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 using Swordfish.UI.Elements;
 using Tomlet;
 
 namespace Swordfish.UI;
 
-public class ImGuiContext : IUIContext
+internal sealed class ImGuiContext : IUIContext
 {
     private GL GL;
 
     public LockedList<IElement> Elements { get; } = new();
-    public IMenuBarElement? MenuBar { get; set; }
 
     public DataBinding<IConstraint> ScaleConstraint { get; } = new(new AbsoluteConstraint(1f));
     public DataBinding<float> FontScale { get; } = new(1f);
@@ -95,7 +93,6 @@ public class ImGuiContext : IUIContext
         foreach (IElement element in Elements.ToArray())
             element.Render();
 
-        MenuBar?.Render();
         Controller?.Render();
 
         ThreadContext.ProcessMessageQueue();
