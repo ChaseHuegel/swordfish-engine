@@ -4,6 +4,7 @@
 [![](https://img.shields.io/nuget/v/Swordfish.Integrations?label=Integrations)](https://www.nuget.org/packages/Swordfish.Integrations/)
 [![](https://img.shields.io/nuget/v/Swordfish.ECS?label=ECS)](https://www.nuget.org/packages/Swordfish.ECS/)
 [![](https://img.shields.io/nuget/v/Needlefish?label=Needlefish)](https://www.nuget.org/packages/Needlefish/)
+[![](https://img.shields.io/nuget/v/Shoal?label=Shoal)](https://www.nuget.org/packages/Shoal/)
 
 <p align="center">
   <a href="">
