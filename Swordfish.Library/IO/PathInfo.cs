@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Xml.Schema;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Library.IO
@@ -59,7 +58,7 @@ namespace Swordfish.Library.IO
 
         public PathInfo GetDirectory()
         {
-            return new PathInfo(Path.GetDirectoryName(Value));
+            return new PathInfo(Path.GetDirectoryName(Value) ?? string.Empty);
         }
 
         public PathInfo CreateDirectory()
