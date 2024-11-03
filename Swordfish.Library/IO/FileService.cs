@@ -57,7 +57,7 @@ namespace Swordfish.Library.IO
                     }
                     
                     int zipPathLength = zipPath.Value.Length;
-                    if (zipPath.Value.Length == path.Value.Length)
+                    if (zipPathLength == path.Value.Length)
                     {
                         throw new FileNotFoundException("Zip path does point include a file.", path.Value);
                     }
