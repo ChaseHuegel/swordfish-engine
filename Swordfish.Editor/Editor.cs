@@ -308,7 +308,7 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
 
-        PopulateDirectory(assetBrowser, PathService.Root.ToString());
+        PopulateDirectory(assetBrowser, PathService.Root);
 
         WindowContext.Focused += RefreshAssetBrowser;
         FileWrite += RefreshAssetBrowser;
@@ -326,7 +326,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
             if (element is DataTreeNode<PathInfo> node)
             {
-                string? path = node.Data.Get().ToString();
+                string? path = node.Data.Get();
                 if (!Directory.Exists(path) && !File.Exists(path))
                 {
                     removalList.Add(node);
@@ -396,10 +396,10 @@ public class Editor : IEntryPoint, IAutoActivate
             }
             else if (args.NewValue is DataTreeNode<PathInfo> pathNode)
             {
-                if (!File.Exists(pathNode.Data.Get().OriginalString))
+                if (!File.Exists(pathNode.Data.Get().Value))
                     return;
 
-                var fileInfo = new FileInfo(pathNode.Data.Get().OriginalString);
+                var fileInfo = new FileInfo(pathNode.Data.Get().Value);
                 var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
                 {
                     Constraints = {
@@ -457,7 +457,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Width = new FillConstraint()
                             },
                             Content = {
-                                new TextElement(pathNode.Data.Get().OriginalString)
+                                new TextElement(pathNode.Data.Get().ToString())
                             }
                         }
                     }

@@ -91,7 +91,7 @@ namespace Swordfish.Library.IO
 
         public void Write(PathInfo path, Stream stream)
         {
-            using (Stream output = File.Open(path.ToString(), FileMode.OpenOrCreate, FileAccess.Write))
+            using (Stream output = File.Open(path.Value, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 stream.CopyTo(output);
             }
@@ -159,7 +159,7 @@ namespace Swordfish.Library.IO
 
         public PathInfo[] GetFiles(PathInfo path, string searchPattern, SearchOption searchOption)
         {
-            var dir = path.GetDirectory().ToString();
+            string dir = path.GetDirectory().Value;
             if (!Directory.Exists(dir))
             {
                 return [];

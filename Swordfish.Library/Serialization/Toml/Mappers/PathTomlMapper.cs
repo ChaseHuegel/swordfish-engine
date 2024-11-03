@@ -10,7 +10,7 @@ public sealed class PathTomlMapper : TomlMapper<PathInfo>
 {
     protected override TomlValue Serialize(PathInfo path)
     {
-        return new TomlString(path.ToString());
+        return new TomlString(path.Value);
     }
 
     protected override PathInfo Deserialize(TomlValue value)

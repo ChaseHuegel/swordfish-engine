@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Xml.Schema;
 using Debugger = Swordfish.Library.Diagnostics.Debugger;
 
 namespace Swordfish.Library.IO
@@ -17,7 +18,7 @@ namespace Swordfish.Library.IO
         {
             Scheme = scheme;
             Value = value;
-            OriginalString = $"{scheme}://{value}";
+            OriginalString = value;
         }
 
         public PathInfo(string value)
@@ -28,6 +29,9 @@ namespace Swordfish.Library.IO
             Value = schemeEndIndex > 0 ? value[(schemeEndIndex + 3)..] : value;
             Scheme = schemeEndIndex > 0 ? value[..schemeEndIndex].ToLowerInvariant() : "file";
         }
+        
+        public static implicit operator PathInfo(string value) => new(value);
+        public static implicit operator string(PathInfo path) => path.Value;
 
         public PathInfo At(string value)
         {
@@ -45,7 +49,7 @@ namespace Swordfish.Library.IO
 
         public PathInfo At(PathInfo path)
         {
-            return new PathInfo(Scheme, Path.Combine(Value, path.ToString()));
+            return new PathInfo(Scheme, Path.Combine(Value, path.Value));
         }
 
         public PathInfo Normalize()

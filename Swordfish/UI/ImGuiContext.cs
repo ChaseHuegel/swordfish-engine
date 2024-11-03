@@ -185,7 +185,7 @@ internal sealed partial class ImGuiContext : IUIContext
         ImFontPtr ptr;
         try
         {
-            ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.ToString(), fontSize, config, charRangePtr);
+            ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.Value, fontSize, config, charRangePtr);
         }
         finally
         {
