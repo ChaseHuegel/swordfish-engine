@@ -49,14 +49,20 @@ namespace Swordfish.Library.IO
                     return assembly.GetManifestResourceStream(builder.ToString());
                 
                 case "zip":
-                    int zipPathLength = path.Value.IndexOf(".zip", StringComparison.Ordinal) + 4;
-                    string zipFilePath = path.Value[..zipPathLength];
-                    if (zipFilePath.Length == path.Value.Length)
+                    //  Walk back from the end until finding the archive file.
+                    PathInfo zipPath = path;
+                    while (!zipPath.FileExists())
+                    {
+                        zipPath = zipPath.GetDirectory();
+                    }
+                    
+                    int zipPathLength = zipPath.Value.Length;
+                    if (zipPath.Value.Length == path.Value.Length)
                     {
                         throw new FileNotFoundException("Zip path does point include a file.", path.Value);
                     }
 
-                    ZipArchive zip = ZipFile.OpenRead(zipFilePath);
+                    ZipArchive zip = ZipFile.OpenRead(zipPath.Value);
                     string zipEntryPath = path.Value[(zipPathLength + 1)..];
                     ZipArchiveEntry entry = zip.GetEntry(zipEntryPath);
                     if (entry == null)
@@ -121,11 +127,9 @@ namespace Swordfish.Library.IO
                     result = typedResult;
                     return true;
                 }
-                else
-                {
-                    result = default;
-                    return false;
-                }
+
+                result = default;
+                return false;
             }
 
             result = default;
