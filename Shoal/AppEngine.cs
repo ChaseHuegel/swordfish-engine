@@ -139,6 +139,7 @@ public sealed class AppEngine : IDisposable
         container.RegisterInstance<CommandLineArgs>(args);
         container.RegisterInstance<LogListener>(_logListener);
 
+        container.Register<VirtualFileSystem>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
         container.Register(Made.Of(() => CreateLogger(Arg.Index<Request>(0)), request => request));
@@ -163,6 +164,8 @@ public sealed class AppEngine : IDisposable
 
     private IContainer CreateModulesContainer(IContainer parentContainer)
     {
+        var vfs = parentContainer.Resolve<VirtualFileSystem>();
+        
         IContainer container = parentContainer.With();
         parentContainer.Resolve<IModulesLoader>().Load(AssemblyHookCallback);
 
@@ -174,6 +177,8 @@ public sealed class AppEngine : IDisposable
 
         void AssemblyHookCallback(ParsedFile<ModuleManifest> manifestFile, Assembly assembly)
         {
+            vfs.Mount(manifestFile.GetRootPath().At("assets"));
+            
             RegisterEventProcessors(assembly, container);
             RegisterSerializers(assembly, container);
             RegisterCommands(assembly, container);

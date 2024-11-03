@@ -1,7 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using Swordfish.Library.Collections.Filtering;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Library.IO;
 
@@ -10,15 +13,35 @@ public class VirtualFileSystem
     private readonly Dictionary<PathInfo, PathInfo> _files = [];
     private readonly HashSet<PathInfo> _folders = [];
     
-    public void Mount(PathInfo path)
+    public Result Mount(PathInfo path)
     {
         if (path.FileExists())
         {
-            ReadArchive(path);
-            return;
+            try
+            {
+                ReadArchive(path);
+                return Result.FromSuccess();
+            }
+            catch (Exception ex)
+            {
+                return Result.FromFailure($"Failed to mount an archive: {ex}");
+            }
+        }
+
+        if (!path.DirectoryExists())
+        {
+            return Result.FromFailure("No directory or archive was found at the mount path.");
         }
         
-        ReadDirectory(path);
+        try
+        {
+            ReadDirectory(path);
+            return Result.FromSuccess();
+        }
+        catch (Exception ex)
+        {
+            return Result.FromFailure($"Failed to mount a directory: {ex}");
+        }
     }
 
     public bool FileExists(PathInfo path)
