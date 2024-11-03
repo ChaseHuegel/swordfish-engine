@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <Content Include="assets\**\*.*">
-      <Link>%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <Link>assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <None Update="manifest.toml">
