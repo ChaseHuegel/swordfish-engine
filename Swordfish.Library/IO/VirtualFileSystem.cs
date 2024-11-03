@@ -91,8 +91,9 @@ public class VirtualFileSystem
 
             _files[relativePath] = path.At(relativePath).Normalize();
             
-            string folder = relativePath.GetDirectoryName() ?? string.Empty;
-            _folders.Add(new PathInfo(folder + "/"));
+            string directory = relativePath.GetDirectoryName() ?? string.Empty;
+            var folder = new PathInfo(directory + "/").Normalize();
+            _folders.Add(folder);
         }
     }
     

@@ -107,7 +107,7 @@ public readonly struct PathInfo : IEquatable<PathInfo>
 
     public bool DirectoryExists()
     {
-        return IsDirectory() && Directory.Exists(Value);
+        return Directory.Exists(Value);
     }
 
     public override string ToString()

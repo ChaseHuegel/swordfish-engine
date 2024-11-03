@@ -5,7 +5,7 @@ Author = "Chase Huegel"
 Website = "https://github.com/ChaseHuegel"
 Source = "https://github.com/ChaseHuegel/swordfish-engine"
 
-RootPathOverride = "assets"
+RootPathOverride = ""
 AssembliesPath = ""
 Assemblies = [
     "Swordfish.dll",
