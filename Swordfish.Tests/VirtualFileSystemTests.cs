@@ -47,24 +47,23 @@ public class VirtualFileSystemTests : TestBase
     [Fact]
     public void Mount_DirectoryAndArchive_NewestOverrides()
     {
-        var fileService = new FileService([]);
         var vfs = new VirtualFileSystem();
 
         vfs.Mount(new PathInfo(@"TestFiles/VirtualFileSystem\assets1"));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file1));
-        Assert.Equal("assets1", fileService.ReadString(file1));
+        Assert.Equal("assets1", file1.ReadString());
         
         vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem/assets2"));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file2));
-        Assert.Equal("assets2", fileService.ReadString(file2));
+        Assert.Equal("assets2", file2.ReadString());
         
         vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem\\assets3.zip"));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file3));
-        Assert.Equal("assets3", fileService.ReadString(file3));
+        Assert.Equal("assets3", file3.ReadString());
         
         vfs.Mount(new PathInfo(@"TestFiles/VirtualFileSystem/assets4.pak"));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file4));
-        Assert.Equal("assets4", fileService.ReadString(file4));
+        Assert.Equal("assets4", file4.ReadString());
     }
 
     [Fact]

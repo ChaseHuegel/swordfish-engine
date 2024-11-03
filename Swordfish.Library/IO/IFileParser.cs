@@ -4,11 +4,11 @@ namespace Swordfish.Library.IO
     {
         string[] SupportedExtensions { get; }
 
-        object Parse(IFileService fileService, PathInfo file);
+        object Parse(PathInfo file);
     }
 
     public interface IFileParser<TResult> : IFileParser
     {
-        new TResult Parse(IFileService fileService, PathInfo file);
+        new TResult Parse(PathInfo file);
     }
 }

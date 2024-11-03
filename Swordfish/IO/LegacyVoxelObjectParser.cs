@@ -5,14 +5,15 @@ namespace Swordfish.IO;
 
 internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
 {
-    public string[] SupportedExtensions { get; } = new string[] {
-        ".svo"
-    };
+    public string[] SupportedExtensions { get; } =
+    [
+        ".svo",
+    ];
 
-    object IFileParser.Parse(IFileService fileService, PathInfo file) => Parse(fileService, file);
-    public BrickGrid Parse(IFileService fileService, PathInfo file)
+    object IFileParser.Parse(PathInfo file) => Parse(file);
+    public BrickGrid Parse(PathInfo file)
     {
-        using Stream stream = fileService.Open(file);
+        using Stream stream = file.Open();
         using StreamReader reader = new(stream);
         return ParseFromReader(reader);
     }

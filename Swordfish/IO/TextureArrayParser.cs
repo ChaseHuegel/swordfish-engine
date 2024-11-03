@@ -5,17 +5,20 @@ namespace Swordfish.IO
 {
     internal class TextureArrayParser : IFileParser<TextureArray>
     {
-        public string[] SupportedExtensions { get; } = new string[] {
-            string.Empty
-        };
+        private readonly TextureParser _textureParser = new();
 
-        object IFileParser.Parse(IFileService fileService, PathInfo path) => Parse(fileService, path);
-        public unsafe TextureArray Parse(IFileService fileService, PathInfo path)
+        public string[] SupportedExtensions { get; } =
+        [
+            string.Empty,
+        ];
+
+        object IFileParser.Parse(PathInfo path) => Parse(path);
+        public TextureArray Parse(PathInfo path)
         {
             string name = path.GetDirectoryName();
 
-            PathInfo[] files = fileService.GetFiles(path);
-            Texture[] textures = files.Select(fileService.Parse<Texture>).ToArray();
+            PathInfo[] files = path.GetFiles();
+            Texture[] textures = files.Select(_textureParser.Parse).ToArray();
 
             return new TextureArray(name, textures.ToArray(), true);
         }

@@ -32,7 +32,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
     private readonly IWindowContext WindowContext;
     private readonly IECSContext ECSContext;
-    private readonly IFileService FileService;
+    private readonly IFileParseService _fileParseService;
     private readonly IPathService PathService;
     private readonly IRenderContext RenderContext;
     private readonly IInputService InputService;
@@ -47,10 +47,10 @@ public class Editor : IEntryPoint, IAutoActivate
 
     private Action FileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, IModulePathService modulePathService, ILogger logger)
+    public Editor(IWindowContext windowContext, IFileParseService fileParseService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, IModulePathService modulePathService, ILogger logger)
     {
         WindowContext = windowContext;
-        FileService = fileService;
+        _fileParseService = fileParseService;
         ECSContext = ecsContext;
         PathService = pathService;
         RenderContext = renderContext;
@@ -144,8 +144,9 @@ public class Editor : IEntryPoint, IAutoActivate
                                             .At("New Project")
                                             .At("Source").CreateDirectory();
                                         outputPath = outputPath.At("NewPlugin.cs");
-                                        Stream fileToCopy = FileService.Open(new PathInfo("manifest://Templates/NewPlugin.cstemplate"));
-                                        FileService.Write(outputPath, fileToCopy);
+                                        var template = new PathInfo("manifest://Templates/NewPlugin.cstemplate");
+                                        using Stream templateStream = template.Open();
+                                        outputPath.Write(templateStream);
                                         FileWrite?.Invoke();
                                     }
                                 )),

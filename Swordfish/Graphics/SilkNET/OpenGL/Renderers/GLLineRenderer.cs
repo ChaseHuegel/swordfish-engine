@@ -25,14 +25,14 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
 
     private readonly GL GL;
     private readonly GLContext GLContext;
-    private readonly IFileService FileService;
+    private readonly IFileParseService _fileParseService;
     private readonly IPathService PathService;
 
-    public GLLineRenderer(GL gl, GLContext glContext, IFileService fileService, IPathService pathService)
+    public GLLineRenderer(GL gl, GLContext glContext, IFileParseService fileParseService, IPathService pathService)
     {
         GL = gl;
         GLContext = glContext;
-        FileService = fileService;
+        _fileParseService = fileParseService;
         PathService = pathService;
     }
 
@@ -43,7 +43,7 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
             throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
 
-        Shader shader = FileService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
+        Shader shader = _fileParseService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
         VAO = GLContext.CreateVertexArrayObject(Array.Empty<float>());
 
         VAO.Bind();
