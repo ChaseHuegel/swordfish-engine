@@ -38,7 +38,25 @@ public class VirtualFileSystem
 
     public PathInfo[] GetFiles(PathInfo path, SearchOption searchOption)
     {
-        return [];
+        path = path.Normalize();
+        List<PathInfo> files = [];
+        
+        foreach ((PathInfo virtualPath, PathInfo absolutePath) in _files)
+        {
+            if (!virtualPath.Value.StartsWith(path.Value))
+            {
+                continue;
+            }
+
+            if (searchOption != SearchOption.AllDirectories && path.GetDirectory() != virtualPath.GetDirectory())
+            {
+                continue;
+            }
+
+            files.Add(absolutePath);
+        }
+        
+        return files.ToArray();
     }
 
     private void ReadDirectory(PathInfo path)
