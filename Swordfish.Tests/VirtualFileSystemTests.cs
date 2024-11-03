@@ -69,7 +69,7 @@ public class VirtualFileSystemTests : TestBase
     }
 
     [Fact]
-    public void Test_GetFiles_TopDirectory()
+    public void GetFiles_TopDirectory()
     {
         var vfs = new VirtualFileSystem();
         
@@ -81,7 +81,7 @@ public class VirtualFileSystemTests : TestBase
     }
     
     [Fact]
-    public void Test_GetFiles_AllDirectories()
+    public void GetFiles_AllDirectories()
     {
         var vfs = new VirtualFileSystem();
         
