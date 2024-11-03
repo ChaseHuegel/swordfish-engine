@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -46,9 +47,27 @@ namespace Swordfish.Library.IO
                     builder.Append(path.Value.Substitute('.', '/', '\\'));
 
                     return assembly.GetManifestResourceStream(builder.ToString());
+                
+                case "zip":
+                    int zipPathLength = path.Value.IndexOf(".zip", StringComparison.Ordinal) + 4;
+                    string zipFilePath = path.Value[..zipPathLength];
+                    if (zipFilePath.Length == path.Value.Length)
+                    {
+                        throw new FileNotFoundException("Zip path does point include a file.", path.Value);
+                    }
+
+                    ZipArchive zip = ZipFile.OpenRead(zipFilePath);
+                    string zipEntryPath = path.Value[(zipPathLength + 1)..];
+                    ZipArchiveEntry entry = zip.GetEntry(zipEntryPath);
+                    if (entry == null)
+                    {
+                        throw new FileNotFoundException("Zip entry not found.", path.Value);
+                    }
+                    
+                    return new ZipArchiveEntryStream(zip, entry.Open());
             }
 
-            return File.Open(path.ToString(), FileMode.Open, FileAccess.Read, FileShare.Read);
+            return File.Open(path.Value, FileMode.Open, FileAccess.Read, FileShare.Read);
         }
 
         public byte[] ReadBytes(PathInfo path)

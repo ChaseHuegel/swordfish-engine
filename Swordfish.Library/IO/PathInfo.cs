@@ -12,6 +12,13 @@ namespace Swordfish.Library.IO
         public string Value { get; }
 
         public string Scheme { get; }
+        
+        public PathInfo(string scheme, string value)
+        {
+            Scheme = scheme;
+            Value = value;
+            OriginalString = $"{scheme}://{value}";
+        }
 
         public PathInfo(string value)
         {
@@ -19,32 +26,36 @@ namespace Swordfish.Library.IO
 
             int schemeEndIndex = value.IndexOf("://", StringComparison.Ordinal);
             Value = schemeEndIndex > 0 ? value[(schemeEndIndex + 3)..] : value;
-            Scheme = schemeEndIndex > 0 ? value[..schemeEndIndex].ToLowerInvariant() : string.Empty;
+            Scheme = schemeEndIndex > 0 ? value[..schemeEndIndex].ToLowerInvariant() : "file";
         }
 
         public PathInfo At(string value)
         {
-            return new PathInfo(Path.Combine(Scheme, Value, value));
+            return new PathInfo(Scheme, Path.Combine(Value, value));
         }
 
         public PathInfo At(params string[] values)
         {
-            string[] joinedValues = new string[values.Length + 2];
-            joinedValues[0] = Scheme;
-            joinedValues[1] = OriginalString;
+            string[] joinedValues = new string[values.Length + 1];
+            joinedValues[0] = Value;
             values.CopyTo(joinedValues, 1);
 
-            return new PathInfo(Path.Combine(joinedValues));
+            return new PathInfo(Scheme, Path.Combine(joinedValues));
         }
 
         public PathInfo At(PathInfo path)
         {
-            return new PathInfo(Path.Combine(Scheme, Value, path.ToString()));
+            return new PathInfo(Scheme, Path.Combine(Value, path.ToString()));
+        }
+
+        public PathInfo Normalize()
+        {
+            return new PathInfo(Scheme, Value.Replace(@"\\", @"\").Replace('\\', '/'));
         }
 
         public PathInfo GetDirectory()
         {
-            return new PathInfo(Path.GetDirectoryName(OriginalString));
+            return new PathInfo(Path.GetDirectoryName(Value));
         }
 
         public PathInfo CreateDirectory()
@@ -55,27 +66,27 @@ namespace Swordfish.Library.IO
 
         public string GetFileName()
         {
-            return Path.GetFileName(OriginalString);
+            return Path.GetFileName(Value);
         }
 
         public string GetFileNameWithoutExtension()
         {
-            return Path.GetFileNameWithoutExtension(OriginalString);
+            return Path.GetFileNameWithoutExtension(Value);
         }
 
         public string GetExtension()
         {
-            return Path.GetExtension(OriginalString);
+            return Path.GetExtension(Value);
         }
 
         public string GetDirectoryName()
         {
-            return Path.GetDirectoryName(OriginalString);
+            return Path.GetDirectoryName(Value);
         }
 
         public bool IsFile()
         {
-            return !string.IsNullOrEmpty(Path.GetFileName(OriginalString));
+            return !string.IsNullOrEmpty(Path.GetFileName(Value));
         }
 
         public bool IsDirectory()
@@ -90,19 +101,19 @@ namespace Swordfish.Library.IO
 
         public bool FileExists()
         {
-            return IsFile() && File.Exists(OriginalString);
+            return IsFile() && File.Exists(Value);
         }
 
         public bool DirectoryExists()
         {
-            return IsDirectory() && Directory.Exists(OriginalString);
+            return IsDirectory() && Directory.Exists(Value);
         }
 
         public bool TryOpenInDefaultApp()
         {
             ProcessStartInfo processStartInfo = new ProcessStartInfo
             {
-                FileName = OriginalString,
+                FileName = Value,
                 UseShellExecute = true,
                 Verb = "open"
             };
@@ -113,5 +124,6 @@ namespace Swordfish.Library.IO
         }
 
         public override string ToString() => OriginalString;
+        public override int GetHashCode() => HashCode.Combine(Scheme.GetHashCode(), Value.GetHashCode());
     }
 }

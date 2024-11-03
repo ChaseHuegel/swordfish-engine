@@ -105,7 +105,7 @@ internal class ModulesLoader(
             PathInfo assemblyPath = assembliesPath.At(assemblyName);
             try
             {
-                Assembly assembly = Assembly.LoadFrom(assemblyPath.ToString());
+                Assembly assembly = Assembly.LoadFrom(assemblyPath.Value);
                 loadedAssemblies.Add(assembly);
             }
             catch (Exception ex)
