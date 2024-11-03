@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.IO.Compression;
 using Swordfish.Library.IO;
 using Xunit;
 using Xunit.Abstractions;
