@@ -5,6 +5,8 @@ namespace Swordfish.Library.IO;
 
 public readonly struct PathInfo : IEquatable<PathInfo>
 {
+    public static readonly PathInfo Empty = new("file", "");
+    
     public readonly string OriginalString;
 
     public readonly string Value;

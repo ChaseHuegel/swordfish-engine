@@ -21,8 +21,6 @@ public sealed class AppEngine : IDisposable
 
     public IContainer Container { get; }
     
-    private static readonly SwitchDictionary<string?, Assembly, IModulePathService> _modulePathServices = new();
-
     private AppEngine(in string[] args)
     {
         CommandLineArgs commandLineArgs;
@@ -88,11 +86,6 @@ public sealed class AppEngine : IDisposable
     private static ILogger CreateLogger(Request request)
     {
         return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
-    }
-    
-    private static IModulePathService GetModulePathService(Request request)
-    {
-        return _modulePathServices[request.Parent.ImplementationType.Assembly];
     }
     
     private static void BuildLoggerFactory(ILoggingBuilder builder)
@@ -170,7 +163,6 @@ public sealed class AppEngine : IDisposable
         parentContainer.Resolve<IModulesLoader>().Load(AssemblyHookCallback);
 
         container.Register<CommandParser>(Reuse.Singleton, made: Made.Of(() => new CommandParser(Arg.Index<char>(0), Arg.Of<Command[]>()), _ => '\0'));
-        container.RegisterMany<IModulePathService>(Made.Of(() => GetModulePathService(Arg.Index<Request>(0)), request => request));
         
         ValidateContainerOrDie(container);
         return container;
@@ -183,14 +175,6 @@ public sealed class AppEngine : IDisposable
             RegisterSerializers(assembly, container);
             RegisterCommands(assembly, container);
             RegisterDryIocModules(assembly, container);
-
-            if (_modulePathServices.ContainsKey(manifestFile.Value.ID))
-            {
-                return;
-            }
-
-            var modulePathService = new ModulePathService(manifestFile);
-            _modulePathServices.Add(manifestFile.Value.ID, assembly, modulePathService);
         }
     }
 

@@ -58,7 +58,7 @@ public class VirtualFileSystem
     {
         return _files.TryGetValue(path.Normalize(), out file);
     }
-
+    
     public PathInfo[] GetFiles(PathInfo path, SearchOption searchOption)
     {
         path = path.Normalize();

@@ -6,6 +6,7 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
@@ -33,16 +34,14 @@ internal sealed partial class ImGuiContext : IUIContext
     private IWindow Window { get; }
     private IInputContext InputContext { get; }
     private IFileParseService FileParseService { get; }
-    private IPathService PathService { get; }
     private ILogger Logger { get; }
 
-    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, IPathService pathService, ILogger logger)
+    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, ILogger logger)
     {
         GL = gl;
         Window = window;
         InputContext = inputContext;
         FileParseService = fileParseService;
-        PathService = pathService;
         Logger = logger;
 
         Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
@@ -105,7 +104,7 @@ internal sealed partial class ImGuiContext : IUIContext
         List<Font> fonts = new();
         Dictionary<string, PathInfo> fontFiles = new();
 
-        PathInfo[] files = PathService.Fonts.GetFiles(SearchOption.AllDirectories);
+        PathInfo[] files = Paths.Fonts.GetFiles(SearchOption.AllDirectories);
 
         PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 

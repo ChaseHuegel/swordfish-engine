@@ -1,40 +1,42 @@
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using Silk.NET.OpenGL;
+using Swordfish.IO;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal class GLLineRenderer : IRenderStage, ILineRenderer
+// ReSharper disable once ClassNeverInstantiated.Global
+internal sealed class GLLineRenderer(
+    in ILogger logger,
+    in GL gl,
+    in GLContext glContext,
+    in IFileParseService fileParseService,
+    in VirtualFileSystem vfs)
+    : IRenderStage, ILineRenderer
 {
-    private ShaderProgram? ShaderProgram;
-    private VertexArrayObject<float>? VAO;
+    private ShaderProgram? _shaderProgram;
+    private VertexArrayObject<float>? _vao;
 
     //  ! There will likely be lock contention issues later.
-    private readonly object LinesLock = new();
-    private readonly List<Line> Lines = [];
-    private readonly List<int> LineVertexOffsets = [];
-    private readonly List<uint> LineVertexCounts = [];
-    private readonly List<float> LineVertexData = [];
+    private readonly object _linesLock = new();
+    private readonly List<Line> _lines = [];
+    private readonly List<int> _lineVertexOffsets = [];
+    private readonly List<uint> _lineVertexCounts = [];
+    private readonly List<float> _lineVertexData = [];
 
-    private readonly object NoDepthLinesLock = new();
-    private readonly List<Line> NoDepthLines = [];
-    private readonly List<int> NoDepthLineVertexOffsets = [];
-    private readonly List<uint> NoDepthLineVertexCounts = [];
-    private readonly List<float> NoDepthLineVertexData = [];
+    private readonly object _noDepthLinesLock = new();
+    private readonly List<Line> _noDepthLines = [];
+    private readonly List<int> _noDepthLineVertexOffsets = [];
+    private readonly List<uint> _noDepthLineVertexCounts = [];
+    private readonly List<float> _noDepthLineVertexData = [];
 
-    private readonly GL GL;
-    private readonly GLContext GLContext;
-    private readonly IFileParseService _fileParseService;
-    private readonly IPathService PathService;
-
-    public GLLineRenderer(GL gl, GLContext glContext, IFileParseService fileParseService, IPathService pathService)
-    {
-        GL = gl;
-        GLContext = glContext;
-        _fileParseService = fileParseService;
-        PathService = pathService;
-    }
+    private readonly ILogger _logger = logger;
+    private readonly GL _gl = gl;
+    private readonly GLContext _glContext = glContext;
+    private readonly IFileParseService _fileParseService = fileParseService;
+    private readonly VirtualFileSystem _vfs = vfs;
 
     public void Initialize(IRenderContext renderContext)
     {
@@ -43,17 +45,28 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
             throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
 
-        Shader shader = _fileParseService.Parse<Shader>(PathService.Shaders.At("lines.glsl"));
-        VAO = GLContext.CreateVertexArrayObject(Array.Empty<float>());
+        if (!_vfs.TryGetFile(Paths.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))
+        {
+            _logger.LogError("The shader source for OpenGL lines was not found. OpenGL lines will not be rendered.");
+            return;
+        }
 
-        VAO.Bind();
-        VAO.VertexBufferObject.Bind();
-        VAO.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 7, 0);
-        VAO.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
+        if (!_fileParseService.TryParse(linesShaderFile, out Shader shader))
+        {
+            _logger.LogError("Failed to parse the OpenGL lines shader. OpenGL lines will not be rendered.");
+            return;
+        }
+        
+        _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
 
-        ShaderProgram = ShaderToShaderProgram(shader);
-        ShaderProgram.BindAttributeLocation("in_position", 0);
-        ShaderProgram.BindAttributeLocation("in_color", 1);
+        _vao.Bind();
+        _vao.VertexBufferObject.Bind();
+        _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 7, 0);
+        _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
+
+        _shaderProgram = ShaderToShaderProgram(shader);
+        _shaderProgram.BindAttributeLocation("in_position", 0);
+        _shaderProgram.BindAttributeLocation("in_color", 1);
     }
 
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -62,14 +75,19 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
 
     public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
-        ShaderProgram!.Activate();
-        ShaderProgram.SetUniform("view", view);
-        ShaderProgram.SetUniform("projection", projection);
+        if (_shaderProgram == null || _vao == null)
+        {
+            return 0;
+        }
+        
+        _shaderProgram.Activate();
+        _shaderProgram.SetUniform("view", view);
+        _shaderProgram.SetUniform("projection", projection);
 
-        VAO!.Bind();
+        _vao.Bind();
 
-        int drawCalls = DrawLines(VAO, LinesLock, Lines, LineVertexOffsets, LineVertexCounts, LineVertexData, true);
-        drawCalls += DrawLines(VAO, NoDepthLinesLock, NoDepthLines, NoDepthLineVertexOffsets, NoDepthLineVertexCounts, NoDepthLineVertexData, false);
+        int drawCalls = DrawLines(_vao, _linesLock, _lines, _lineVertexOffsets, _lineVertexCounts, _lineVertexData, true);
+        drawCalls += DrawLines(_vao, _noDepthLinesLock, _noDepthLines, _noDepthLineVertexOffsets, _noDepthLineVertexCounts, _noDepthLineVertexData, false);
 
         return drawCalls;
     }
@@ -88,20 +106,20 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
     {
         if (alwaysOnTop)
         {
-            return CreateLineInternal(NoDepthLinesLock, NoDepthLines, NoDepthLineVertexOffsets, NoDepthLineVertexCounts, NoDepthLineVertexData, start, end, color);
+            return CreateLineInternal(_noDepthLinesLock, _noDepthLines, _noDepthLineVertexOffsets, _noDepthLineVertexCounts, _noDepthLineVertexData, start, end, color);
         }
 
-        return CreateLineInternal(LinesLock, Lines, LineVertexOffsets, LineVertexCounts, LineVertexData, start, end, color);
+        return CreateLineInternal(_linesLock, _lines, _lineVertexOffsets, _lineVertexCounts, _lineVertexData, start, end, color);
     }
 
     public void DeleteLine(Line line)
     {
-        if (TryDeleteLine(LinesLock, Lines, LineVertexOffsets, LineVertexCounts, LineVertexData, line))
+        if (TryDeleteLine(_linesLock, _lines, _lineVertexOffsets, _lineVertexCounts, _lineVertexData, line))
         {
             return;
         }
 
-        TryDeleteLine(NoDepthLinesLock, NoDepthLines, NoDepthLineVertexOffsets, NoDepthLineVertexCounts, NoDepthLineVertexData, line);
+        TryDeleteLine(_noDepthLinesLock, _noDepthLines, _noDepthLineVertexOffsets, _noDepthLineVertexCounts, _noDepthLineVertexData, line);
     }
 
     private Line CreateLineInternal(object lockObject, List<Line> lines, List<int> vertexOffsets, List<uint> vertexCounts, List<float> vertexData, Vector3 start, Vector3 end, Vector4 color)
@@ -163,12 +181,12 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
     private ShaderProgram ShaderToShaderProgram(Shader shader)
     {
         ShaderComponent[] shaderComponents = shader.Sources.Select(ShaderSourceToShaderComponent).ToArray();
-        return GLContext.CreateShaderProgram(shader.Name, shaderComponents);
+        return _glContext.CreateShaderProgram(shader.Name, shaderComponents);
     }
 
     private ShaderComponent ShaderSourceToShaderComponent(ShaderSource shaderSource)
     {
-        return GLContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
+        return _glContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
     }
 
     private int DrawLines(VertexArrayObject<float> vao, object lockObject, List<Line> lines, List<int> vertexOffsets, List<uint> vertexCounts, List<float> vertexData, bool depthTest)
@@ -203,8 +221,8 @@ internal class GLLineRenderer : IRenderStage, ILineRenderer
             }
 
             vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertexData));
-            GL.Set(EnableCap.DepthTest, depthTest);
-            GL.MultiDrawArrays(PrimitiveType.Lines, CollectionsMarshal.AsSpan(vertexOffsets), CollectionsMarshal.AsSpan(vertexCounts), (uint)lines.Count);
+            _gl.Set(EnableCap.DepthTest, depthTest);
+            _gl.MultiDrawArrays(PrimitiveType.Lines, CollectionsMarshal.AsSpan(vertexOffsets), CollectionsMarshal.AsSpan(vertexCounts), (uint)lines.Count);
         }
 
         return 1;

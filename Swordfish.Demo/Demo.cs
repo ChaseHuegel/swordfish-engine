@@ -8,6 +8,7 @@ using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.IO;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
@@ -66,12 +67,12 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly IFileParseService _fileParseService;
     private readonly IPhysics Physics;
     private readonly IInputService InputService;
-    private readonly IModulePathService ModulePathService;
+    private readonly VirtualFileSystem VFS;
     private readonly TextElement DebugText;
     private readonly ILogger Logger;
     private readonly IUIContext UIContext;
 
-    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, IModulePathService modulePathService, ILogger logger, IUIContext uiContext)
+    public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, VirtualFileSystem vfs, ILogger logger, IUIContext uiContext)
     {
         _fileParseService = fileParseService;
         ECSContext = ecsContext;
@@ -79,7 +80,7 @@ public class Demo : IEntryPoint, IAutoActivate
         WindowContext = windowContext;
         Physics = physics;
         InputService = inputService;
-        ModulePathService = modulePathService;
+        VFS = vfs;
         Logger = logger;
         UIContext = uiContext;
 
@@ -306,8 +307,11 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
-        var texture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("block/metal_panel.png"));
+        VFS.TryGetFile(Paths.Shaders.At("lighted.glsl"), out PathInfo shaderPath);
+        VFS.TryGetFile(Paths.Textures.At("block/metal_panel.png"), out PathInfo texturePath);
+        
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
+        var texture = _fileParseService.Parse<Texture>(texturePath);
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -330,7 +334,8 @@ public class Demo : IEntryPoint, IAutoActivate
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = _fileParseService.Parse<BrickGrid>(ModulePathService.Root.At("saves").At("mainMenuVoxObj.svo"));
+            VFS.TryGetFile(new PathInfo("saves").At("mainMenuVoxObj.svo"), out PathInfo gridPath);
+            grid = _fileParseService.Parse<BrickGrid>(gridPath);
         }
 
         var triangles = new List<uint>();
@@ -338,11 +343,14 @@ public class Demo : IEntryPoint, IAutoActivate
         var colors = new List<Vector4>();
         var uv = new List<Vector3>();
         var normals = new List<Vector3>();
+        
+        VFS.TryGetFile(Paths.Models.At("thruster_rocket.obj"), out PathInfo thrusterPath);
+        VFS.TryGetFile(Paths.Models.At("thruster_rocket_internal.obj"), out PathInfo thrusterBlockPath);
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = _fileParseService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = _fileParseService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket_internal.obj"));
+        var thruster = _fileParseService.Parse<Mesh>(thrusterPath);
+        var thrusterBlock = _fileParseService.Parse<Mesh>(thrusterBlockPath);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
         {
             BuildBrickGridMesh(grid, -grid.CenterOfMass);
@@ -401,8 +409,11 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
 
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
-        var texture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("block/metal_panel.png"));
+        VFS.TryGetFile(Paths.Shaders.At("lighted.glsl"), out PathInfo shaderPath);
+        VFS.TryGetFile(Paths.Textures.At("block/metal_panel.png"), out PathInfo texturePath);
+        
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
+        var texture = _fileParseService.Parse<Texture>(texturePath);
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
@@ -423,11 +434,15 @@ public class Demo : IEntryPoint, IAutoActivate
         BrickGrid grid = new(16);
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
-            grid = _fileParseService.Parse<BrickGrid>(ModulePathService.Root.At("saves").At("mainMenuVoxObj.svo"));
+            VFS.TryGetFile(new PathInfo("saves").At("mainMenuVoxObj.svo"), out PathInfo gridPath);
+            grid = _fileParseService.Parse<BrickGrid>(gridPath);
         }
+        
+        VFS.TryGetFile(Paths.Shaders.At("lightedArray.glsl"), out PathInfo shaderPath); //  TODO TryGetFile becomes irrelevant here when FileParseService uses the VFS
+        VFS.TryGetDirectory(Paths.Textures.At("block\\"), out PathInfo texturePath);    //  TODO implement
 
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = _fileParseService.Parse<TextureArray>(ModulePathService.Textures.At("block\\"));
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
+        var textureArray = _fileParseService.Parse<TextureArray>(texturePath);
         var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions {
@@ -497,8 +512,11 @@ public class Demo : IEntryPoint, IAutoActivate
                 }
         }
 
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("lightedArray.glsl"));
-        var textureArray = _fileParseService.Parse<TextureArray>(ModulePathService.Textures.At("block\\"));
+        VFS.TryGetFile(Paths.Shaders.At("lightedArray.glsl"), out PathInfo shaderPath);
+        VFS.TryGetFile(Paths.Textures.At("block\\"), out PathInfo texturePath);
+        
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
+        var textureArray = _fileParseService.Parse<TextureArray>(texturePath);
         var material = new Material(shader, textureArray);
 
         var renderOptions = new RenderOptions
@@ -585,11 +603,14 @@ public class Demo : IEntryPoint, IAutoActivate
         var colors = new List<Vector4>();
         var uv = new List<Vector3>();
         var normals = new List<Vector3>();
+        
+        VFS.TryGetFile(Paths.Models.At("thruster_rocket.obj"), out PathInfo thrusterPath);
+        VFS.TryGetFile(Paths.Models.At("thruster_rocket_internal.obj"), out PathInfo thrusterBlockPath);
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = _fileParseService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = _fileParseService.Parse<Mesh>(ModulePathService.Models.At("thruster_rocket_internal.obj"));
+        var thruster = _fileParseService.Parse<Mesh>(thrusterPath);
+        var thrusterBlock = _fileParseService.Parse<Mesh>(thrusterBlockPath);
 
         HashSet<BrickGrid> builtGrids = new();
         using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridMesh)))
@@ -674,9 +695,13 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void CreateDonutDemo()
     {
-        var mesh = _fileParseService.Parse<Mesh>(ModulePathService.Models.At("donut.obj"));
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("lighted.glsl"));
-        var texture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("test.png"));
+        VFS.TryGetFile(Paths.Models.At("donut.obj"), out PathInfo meshPath);
+        VFS.TryGetFile(Paths.Shaders.At("lighted.glsl"), out PathInfo shaderPath);
+        VFS.TryGetFile(Paths.Textures.At("test.png"), out PathInfo texturePath);
+        
+        var mesh = _fileParseService.Parse<Mesh>(meshPath);
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
+        var texture = _fileParseService.Parse<Texture>(texturePath);
 
         var material = new Material(shader, texture);
 
@@ -693,14 +718,26 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void CreateTestEntities()
     {
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("textured.glsl"));
+        VFS.TryGetFile(Paths.Shaders.At("textured.glsl"), out PathInfo shaderPath);
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
 
-        var astronautTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("astronaut.png"));
-        var chortTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("chort.png"));
-        var hubertTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("hubert.png"));
-        var haroldTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("harold.png"));
-        var melvinTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("melvin.png"));
-        var womanTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("woman.png"));
+        VFS.TryGetFile(Paths.Textures.At("astronaut.png"), out PathInfo texturePath);
+        var astronautTexture = _fileParseService.Parse<Texture>(texturePath);
+        
+        VFS.TryGetFile(Paths.Textures.At("chort.png"), out texturePath);
+        var chortTexture = _fileParseService.Parse<Texture>(texturePath);
+
+        VFS.TryGetFile(Paths.Textures.At("hubert.png"), out texturePath);
+        var hubertTexture = _fileParseService.Parse<Texture>(texturePath);
+        
+        VFS.TryGetFile(Paths.Textures.At("harold.png"), out texturePath);
+        var haroldTexture = _fileParseService.Parse<Texture>(texturePath);
+        
+        VFS.TryGetFile(Paths.Textures.At("melvin.png"), out texturePath);
+        var melvinTexture = _fileParseService.Parse<Texture>(texturePath);
+        
+        VFS.TryGetFile(Paths.Textures.At("woman.png"), out texturePath);
+        var womanTexture = _fileParseService.Parse<Texture>(texturePath);
 
         var astronautMaterial = new Material(shader, astronautTexture);
         var chortMaterial = new Material(shader, chortTexture);
@@ -740,12 +777,15 @@ public class Demo : IEntryPoint, IAutoActivate
     {
         var mesh = new Cube();
         var renderOptions = new RenderOptions();
-        var shader = _fileParseService.Parse<Shader>(ModulePathService.Shaders.At("textured.glsl"));
+        VFS.TryGetFile(Paths.Shaders.At("textured.glsl"), out PathInfo shaderPath);
+        var shader = _fileParseService.Parse<Shader>(shaderPath);
 
-        var floorTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("test.png"));
+        VFS.TryGetFile(Paths.Textures.At("test.png"), out PathInfo texturePath);
+        var floorTexture = _fileParseService.Parse<Texture>(texturePath);
         var floorMaterial = new Material(shader, floorTexture);
 
-        var cubeTexture = _fileParseService.Parse<Texture>(ModulePathService.Textures.At("block").At("metal_panel.png"));
+        VFS.TryGetFile(Paths.Textures.At("block").At("metal_panel.png"), out texturePath);
+        var cubeTexture = _fileParseService.Parse<Texture>(texturePath);
         var cubeMaterial = new Material(shader, cubeTexture);
 
         Entity entity = ECSContext.World.NewEntity();
