@@ -2,14 +2,13 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Shader = Swordfish.Graphics.Shader;
 using SilkShaderType = Silk.NET.OpenGL.ShaderType;
 
 namespace Swordfish.IO;
 
-internal class GlslParser(in ILogger logger) : IFileParser<Shader>
+internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFileParser<Shader>
 {
     public string[] SupportedExtensions { get; } =
     [
@@ -17,6 +16,7 @@ internal class GlslParser(in ILogger logger) : IFileParser<Shader>
     ];
 
     private readonly ILogger _logger = logger;
+    private readonly VirtualFileSystem _vfs = vfs;
 
     object IFileParser.Parse(PathInfo file) => Parse(file);
     public Shader Parse(PathInfo file)
@@ -47,7 +47,9 @@ internal class GlslParser(in ILogger logger) : IFileParser<Shader>
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
         {
-            PathInfo includedFile = file.GetDirectory().At(includedFiles[0]);
+            PathInfo includePath = file.GetDirectory().At(includedFiles[0]);
+            PathInfo includedFile = _vfs.TryGetFile(includePath, out PathInfo virtualFile) ? virtualFile : includePath;
+            
             includedFiles.RemoveAt(0);
 
             ProcessSource(includedFile, out string? inheritedVersionDirective, out string? includedSource, ref includedFiles);
