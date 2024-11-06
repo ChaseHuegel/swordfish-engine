@@ -24,7 +24,7 @@ public readonly struct PathInfo : IEquatable<PathInfo>
     {
         OriginalString = value;
 
-        int schemeEndIndex = value.IndexOf("://", StringComparison.Ordinal);
+        int schemeEndIndex = value.Length > 3 ? value.IndexOf("://", StringComparison.Ordinal) : 0;
         Value = schemeEndIndex > 0 ? value[(schemeEndIndex + 3)..] : value;
         Scheme = schemeEndIndex > 0 ? value[..schemeEndIndex].ToLowerInvariant() : "file";
     }
