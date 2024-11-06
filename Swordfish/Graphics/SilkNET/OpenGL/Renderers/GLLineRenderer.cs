@@ -45,7 +45,7 @@ internal sealed class GLLineRenderer(
             throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
 
-        if (!_vfs.TryGetFile(Assets.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))
+        if (!_vfs.TryGetFile(AssetPaths.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))
         {
             _logger.LogError("The shader source for OpenGL lines was not found. OpenGL lines will not be rendered.");
             return;
