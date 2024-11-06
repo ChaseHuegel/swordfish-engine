@@ -59,6 +59,16 @@ public class VirtualFileSystem
         return _files.TryGetValue(path.Normalize(), out file);
     }
     
+    public bool TryGetDirectory(PathInfo path, out PathInfo directory)
+    {
+        return _folders.TryGetValue(path.Normalize(), out directory);
+    }
+
+    public bool TryResolvePath(PathInfo path, out PathInfo resolvedPath)
+    {
+        return TryGetFile(path, out resolvedPath) || TryGetDirectory(path, out resolvedPath);
+    }
+    
     public PathInfo[] GetFiles(PathInfo path, SearchOption searchOption)
     {
         path = path.Normalize();

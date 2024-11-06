@@ -304,7 +304,7 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
 
-        PopulateDirectory(assetBrowser, PathInfo.Empty);
+        PopulateDirectory(assetBrowser, AppDomain.CurrentDomain.BaseDirectory);
 
         _windowContext.Focused += RefreshAssetBrowser;
         _fileWrite += RefreshAssetBrowser;

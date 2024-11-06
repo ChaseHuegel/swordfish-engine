@@ -5,13 +5,15 @@ using Swordfish.Library.Collections;
 
 namespace Swordfish.Library.IO
 {
-    public class FileParseService : IFileParseService
+    public class VirtualFileParseService : IFileParseService
     {
         private readonly ConcurrentSwitchDictionary<Type, string, IFileParser> _parsers;
+        private readonly VirtualFileSystem _vfs;
 
-        public FileParseService(IEnumerable<IFileParser> parsers)
+        public VirtualFileParseService(IEnumerable<IFileParser> parsers, VirtualFileSystem vfs)
         {
             _parsers = new ConcurrentSwitchDictionary<Type, string, IFileParser>();
+            _vfs = vfs;
 
             foreach (IFileParser parser in parsers)
             {
@@ -26,22 +28,32 @@ namespace Swordfish.Library.IO
 
         public TResult Parse<TResult>(PathInfo path)
         {
-            string extension = path.GetExtension();
-            if (_parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
+            if (!_vfs.TryResolvePath(path, out PathInfo finalPath))
             {
-                object parseResult = parser.Parse(path);
-                return parseResult is TResult typedResult ? typedResult : default;
+                finalPath = path;
+            }
+            
+            string extension = finalPath.GetExtension();
+            if (!_parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
+            {
+                return default;
             }
 
-            return default;
+            object parseResult = parser.Parse(finalPath);
+            return parseResult is TResult typedResult ? typedResult : default;
         }
 
         public bool TryParse<TResult>(PathInfo path, out TResult result)
         {
-            string extension = path.GetExtension();
+            if (!_vfs.TryResolvePath(path, out PathInfo finalPath))
+            {
+                finalPath = path;
+            }
+            
+            string extension = finalPath.GetExtension();
             if (_parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
             {
-                object parseResult = parser.Parse(path);
+                object parseResult = parser.Parse(finalPath);
 
                 if (parseResult is TResult typedResult)
                 {

@@ -3,8 +3,9 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO
 {
-    internal class TextureArrayParser : IFileParser<TextureArray>
+    internal class TextureArrayParser(in VirtualFileSystem vfs) : IFileParser<TextureArray>
     {
+        private readonly VirtualFileSystem _vfs = vfs;
         private readonly TextureParser _textureParser = new();
 
         public string[] SupportedExtensions { get; } =
@@ -17,7 +18,7 @@ namespace Swordfish.IO
         {
             string name = path.GetDirectoryName();
 
-            PathInfo[] files = path.GetFiles();
+            PathInfo[] files = _vfs.GetFiles(path, SearchOption.AllDirectories);
             Texture[] textures = files.Select(_textureParser.Parse).ToArray();
 
             return new TextureArray(name, textures.ToArray(), true);

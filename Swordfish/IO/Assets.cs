@@ -2,8 +2,9 @@
 
 namespace Swordfish.IO;
 
-public static class Paths
+public static class Assets
 {
+    public static PathInfo Root { get; } = new("");
     public static PathInfo Shaders { get; } = new("shaders/");
     public static PathInfo Textures { get; } = new("textures/");
     public static PathInfo Fonts { get; } = new("fonts/");

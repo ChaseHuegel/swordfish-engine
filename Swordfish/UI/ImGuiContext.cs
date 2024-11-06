@@ -104,7 +104,7 @@ internal sealed partial class ImGuiContext : IUIContext
         List<Font> fonts = new();
         Dictionary<string, PathInfo> fontFiles = new();
 
-        PathInfo[] files = Paths.Fonts.GetFiles(SearchOption.AllDirectories);
+        PathInfo[] files = Assets.Fonts.GetFiles(SearchOption.AllDirectories);
 
         PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 
