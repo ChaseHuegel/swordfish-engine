@@ -35,14 +35,16 @@ internal sealed partial class ImGuiContext : IUIContext
     private IInputContext InputContext { get; }
     private IFileParseService FileParseService { get; }
     private ILogger Logger { get; }
+    private VirtualFileSystem VFS { get; }
 
-    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, ILogger logger)
+    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, ILogger logger, VirtualFileSystem vfs)
     {
         GL = gl;
         Window = window;
         InputContext = inputContext;
         FileParseService = fileParseService;
         Logger = logger;
+        VFS = vfs;
 
         Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
         Controller.Update(0f);
@@ -104,7 +106,7 @@ internal sealed partial class ImGuiContext : IUIContext
         List<Font> fonts = new();
         Dictionary<string, PathInfo> fontFiles = new();
 
-        PathInfo[] files = AssetPaths.Fonts.GetFiles(SearchOption.AllDirectories);
+        PathInfo[] files = VFS.GetFiles(AssetPaths.Fonts, SearchOption.AllDirectories);
 
         PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 
