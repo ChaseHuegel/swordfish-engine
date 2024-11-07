@@ -40,7 +40,7 @@ public class SilkWindowContext : IWindowContext
     private readonly GL GL;
     private readonly SynchronizationContext MainThread;
 
-    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, IFileParseService fileParseService, ILogger logger)
+    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, ILogger logger)
     {
         GL = gl;
         MainThread = mainThread;

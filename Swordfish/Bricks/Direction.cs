@@ -7,5 +7,5 @@ public enum Direction : uint
 		SOUTH,
 		WEST,
 		ABOVE,
-		BELOW
+		BELOW,
 }

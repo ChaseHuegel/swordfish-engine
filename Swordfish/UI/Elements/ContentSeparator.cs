@@ -4,5 +4,5 @@ public enum ContentSeparator
 {
     NONE,
     DIVIDER,
-    SPACER
+    SPACER,
 }

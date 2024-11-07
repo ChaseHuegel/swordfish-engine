@@ -12,9 +12,9 @@ public partial class ImGuiEx
 
     private struct Pane
     {
-        public Rect2 LabelRect;
-        public bool Border;
-        public bool Title;
+        public readonly Rect2 LabelRect;
+        public readonly bool Border;
+        public readonly bool Title;
 
         public Pane(Rect2 labelRect, bool border, bool title)
         {
@@ -59,18 +59,30 @@ public partial class ImGuiEx
 
         var effectiveSize = size;
         if (size.X < 0f)
+        {
             effectiveSize.X = ImGui.GetContentRegionAvail().X;
+        }
 
         ImGui.Dummy(new Vector2(effectiveSize.X - frameHeight * 0.5f, 0f));
 
         var frameHeightHalf = new Vector2(frameHeight * 0.5f, 0f);
 
-        if (title) ImGui.Dummy(frameHeightHalf);
+        if (title)
+        {
+            ImGui.Dummy(frameHeightHalf);
+        }
 
-        if (title) ImGui.SameLine(0f, 0f);
+        if (title)
+        {
+            ImGui.SameLine(0f, 0f);
+        }
+
         ImGui.BeginGroup();
 
-        if (title) ImGui.Dummy(frameHeightHalf);
+        if (title)
+        {
+            ImGui.Dummy(frameHeightHalf);
+        }
 
         Vector2 labelMin, labelMax;
         if (title)
@@ -123,9 +135,15 @@ public partial class ImGuiEx
         ImGui.EndGroup();
 
         ImGui.SameLine(0, 0);
-        if (pane.Title) ImGui.Dummy(new Vector2(frameHeight * 0.5f, 0f));
+        if (pane.Title)
+        {
+            ImGui.Dummy(new Vector2(frameHeight * 0.5f, 0f));
+        }
 
-        if (pane.Title) ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f - itemSpacing.Y));
+        if (pane.Title)
+        {
+            ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f - itemSpacing.Y));
+        }
 
         ImGui.EndGroup();
 
@@ -168,7 +186,9 @@ public partial class ImGuiEx
         ImGui.PopStyleVar(2);
 
         if (pane.Title)
+        {
             ImGui.Dummy(new Vector2(0f, frameHeight * 0.5f + itemSpacing.Y));
+        }
 
         ImGui.EndGroup();
     }

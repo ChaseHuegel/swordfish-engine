@@ -4,5 +4,5 @@ public enum ElementAlignment
 {
     VERTICAL,
     HORIZONTAL,
-    NONE
+    NONE,
 }

@@ -35,11 +35,11 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private readonly ILogger _logger;
     
     private float _accumulator;
-    private bool _accumulateUpdates = false;
-    private BodyInterface _bodyInterface;
-    private BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
-    private ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
-    private BodyFilter _bodyFilter = new SimpleBodyFilter();
+    private readonly bool _accumulateUpdates = false;
+    private readonly BodyInterface _bodyInterface;
+    private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
+    private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
+    private readonly BodyFilter _bodyFilter = new SimpleBodyFilter();
     private ThreadContext? _context;
     private DataStore? _store;
 
@@ -48,7 +48,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         MaxBodies = 65536,
         MaxBodyPairs = 65536,
         MaxContactConstraints = 65536,
-        NumBodyMutexes = 0
+        NumBodyMutexes = 0,
     };
 
     public JoltPhysicsSystem(ILogger logger)

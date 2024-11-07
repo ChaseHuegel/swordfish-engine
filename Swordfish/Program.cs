@@ -23,7 +23,7 @@ internal static class Program
         Running,
         Closing,
         Closed,
-        Stopping
+        Stopping,
     }
     
     public static readonly ThreadContext MainThreadContext;

@@ -19,7 +19,7 @@ namespace Swordfish.UI;
 
 internal sealed partial class ImGuiContext : IUIContext
 {
-    private GL GL;
+    private readonly GL GL;
 
     private LockedList<IElement> Elements { get; } = new();
 
@@ -190,7 +190,7 @@ internal sealed partial class ImGuiContext : IUIContext
             charRangeHandle = GCHandle.Alloc(new ushort[] {
                 charRange.Item1.Value,
                 charRange.Item2.Value,
-                0
+                0,
             }, GCHandleType.Pinned);
 
             charRangePtr = charRangeHandle.AddrOfPinnedObject();

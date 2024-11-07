@@ -7,35 +7,27 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.Jolt;
 
-internal class JoltDebugRenderer : DebugRenderer, IRenderStage
+internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRenderer lineRenderer, in IJoltPhysics joltPhysics)
+    : DebugRenderer, IRenderStage
 {
     private struct DrawRequest(Vector3 from, Vector3 to, Vector4 color)
     {
-        public Vector3 From = from;
-        public Vector3 To = to;
-        public Vector4 Color = color;
+        public readonly Vector3 From = from;
+        public readonly Vector3 To = to;
+        public readonly Vector4 Color = color;
     }
 
-    private readonly DebugSettings _debugSettings;
-    private readonly DrawSettings _drawSettings;
-    private readonly ILineRenderer _lineRenderer;
-    private readonly IJoltPhysics _joltPhysics;
-    private List<DrawRequest> _drawBuffer = [];
-    private List<Line> _lineCache = [];
-
-    public JoltDebugRenderer(DebugSettings debugSettings, ILineRenderer lineRenderer, IJoltPhysics joltPhysics)
+    private readonly List<DrawRequest> _drawBuffer = [];
+    private readonly List<Line> _lineCache = [];
+    private readonly DebugSettings _debugSettings = debugSettings;
+    private readonly ILineRenderer _lineRenderer = lineRenderer;
+    private readonly IJoltPhysics _joltPhysics = joltPhysics;
+    private readonly DrawSettings _drawSettings = new()
     {
-        _debugSettings = debugSettings;
-        _lineRenderer = lineRenderer;
-        _joltPhysics = joltPhysics;
-
-        _drawSettings = new DrawSettings
-        {
-            DrawShapeWireframe = true,
-            DrawVelocity = true,
-        };
-    }
-
+        DrawShapeWireframe = true,
+        DrawVelocity = true,
+    };
+    
     public void Initialize(IRenderContext renderContext)
     {
     }

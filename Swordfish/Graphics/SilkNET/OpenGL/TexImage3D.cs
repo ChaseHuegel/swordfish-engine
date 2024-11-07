@@ -8,7 +8,8 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
     public string Name { get; private set; }
 
     private readonly GL GL;
-    private readonly byte MipmapLevels;
+    // ReSharper disable once NotAccessedField.Local
+    private readonly byte MipmapLevels; //  TODO implement mipmaps
 
     public unsafe TexImage3D(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
     {
@@ -75,12 +76,11 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
-        if (obj is not TexImage3D other)
-            return false;
-
-        return Equals(other);
+        return obj is TexImage3D other && Equals(other);
     }
 
     public override int GetHashCode()
