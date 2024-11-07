@@ -49,7 +49,10 @@ public class BehaviorTreeTests : TestBase
         Stopwatch sw = Stopwatch.StartNew();
         //  1k behaviors being ticked 60x/sec assuming 60fps
         for (int i = 0; i < 60 * 1000; i++)
+        {
             Tree.Tick(target, 0f);
+        }
+
         Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
     }
 
@@ -61,7 +64,10 @@ public class BehaviorTreeTests : TestBase
         Stopwatch sw = Stopwatch.StartNew();
         //  1k behaviors being ticked 60x/sec assuming 60fps
         for (int i = 0; i < 60 * 1000; i++)
+        {
             Tree.Tick(target, 0f);
+        }
+
         Output.WriteLine($"Elapsed: {sw.Elapsed.TotalMilliseconds} ms");
     }
 
@@ -80,10 +86,10 @@ public class BehaviorTreeTests : TestBase
         {
             NONE,
             TEST,
-            DELAY
+            DELAY,
         }
 
-        public State CurrentState;
+        public readonly State CurrentState;
 
         public TestTarget() { }
 
