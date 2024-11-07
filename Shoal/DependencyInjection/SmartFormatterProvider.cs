@@ -18,7 +18,7 @@ internal static class SmartFormatterProvider
         {
             Localization = 
             {
-                LocalizationProvider = context.Resolve<ILocalizationProvider>()
+                LocalizationProvider = context.Resolve<ILocalizationProvider>(),
             },
         };
 
