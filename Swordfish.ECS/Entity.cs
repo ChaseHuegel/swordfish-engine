@@ -1,6 +1,6 @@
 namespace Swordfish.ECS;
 
-public struct Entity
+public readonly struct Entity
 {
     // ReSharper disable once MemberCanBePrivate.Global
     public const int Null = 0;
