@@ -5,6 +5,7 @@ public interface IEntitySystem
     void Tick(float delta, DataStore store);
 }
 
+// ReSharper disable once UnusedType.Global
 public abstract class EntitySystem<T1> : IEntitySystem
     where T1 : struct, IDataComponent
 {

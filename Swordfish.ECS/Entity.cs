@@ -2,46 +2,53 @@ namespace Swordfish.ECS;
 
 public struct Entity
 {
+    // ReSharper disable once MemberCanBePrivate.Global
     public const int Null = 0;
 
     public int Ptr { get; } = Null;
-    public DataStore DataStore { get; }
+
+    private readonly DataStore _dataStore;
 
     public Entity(int ptr, DataStore dataStore)
     {
         Ptr = ptr;
-        DataStore = dataStore;
+        _dataStore = dataStore;
     }
 
     public static implicit operator int(Entity entity) => entity.Ptr;
 
+    // ReSharper disable once UnusedMember.Global
     public bool Add<T1>() where T1 : struct, IDataComponent
     {
         if (Has<T1>())
+        {
             return false;
+        }
 
-        DataStore.AddOrUpdate(Ptr, default(T1));
+        _dataStore.AddOrUpdate(Ptr, default(T1));
         return true;
     }
 
     public void AddOrUpdate<T1>(T1 component) where T1 : struct, IDataComponent
     {
-        DataStore.AddOrUpdate(Ptr, component);
+        _dataStore.AddOrUpdate(Ptr, component);
     }
 
+    // ReSharper disable once MemberCanBePrivate.Global
     public bool Has<T1>() where T1 : struct, IDataComponent
     {
-        return DataStore.TryGet<T1>(Ptr, out _);
+        return _dataStore.TryGet<T1>(Ptr, out _);
     }
 
+    // ReSharper disable once UnusedMember.Global
     public bool TryGet<T1>(out T1 component1) where T1 : struct, IDataComponent
     {
-        return DataStore.TryGet(Ptr, out component1);
+        return _dataStore.TryGet(Ptr, out component1);
     }
 
     public T1? Get<T1>() where T1 : struct, IDataComponent
     {
-        if (DataStore.TryGet(Ptr, out T1 component1))
+        if (_dataStore.TryGet(Ptr, out T1 component1))
         {
             return component1;
         }
@@ -51,11 +58,12 @@ public struct Entity
 
     public Span<IDataComponent> GetAllData()
     {
-        return DataStore.Get(Ptr);
+        return _dataStore.Get(Ptr);
     }
 
+    // ReSharper disable once UnusedMember.Global
     public void Destroy()
     {
-        DataStore.Free(Ptr);
+        _dataStore.Free(Ptr);
     }
 }

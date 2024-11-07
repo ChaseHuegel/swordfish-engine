@@ -1,3 +1,3 @@
 namespace Swordfish.ECS;
 
-public interface IDataComponent { }
+public interface IDataComponent;

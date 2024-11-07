@@ -7,11 +7,11 @@ internal abstract class ChunkedStore
     public abstract bool TryGetAt(int chunkIndex, int localEntity, out IDataComponent data);
 }
 
-internal class ChunkedStore<T>(int chunkSize) : ChunkedStore where T : struct, IDataComponent
+internal class ChunkedStore<T>(in int chunkSize) : ChunkedStore where T : struct, IDataComponent
 {
-    private readonly int _chunkSize = chunkSize;
-
     public readonly List<Chunk<T>> Chunks = [];
+
+    private readonly int _chunkSize = chunkSize;
 
     public override void SetAt(int chunkIndex, int localEntity, bool exists)
     {
@@ -47,34 +47,26 @@ internal class ChunkedStore<T>(int chunkSize) : ChunkedStore where T : struct, I
 
     public override bool TryGetAt(int chunkIndex, int localEntity, out IDataComponent data)
     {
-        Chunk<T> chunk;
         if (Chunks.Count <= chunkIndex)
         {
             data = default!;
             return false;
         }
-        else
-        {
-            chunk = Chunks[chunkIndex];
-        }
 
+        Chunk<T> chunk = Chunks[chunkIndex];
         data = chunk.Components[localEntity];
         return chunk.Exists[localEntity];
     }
 
     public bool TryGetAt(int chunkIndex, int localEntity, out T data)
     {
-        Chunk<T> chunk;
         if (Chunks.Count <= chunkIndex)
         {
             data = default!;
             return false;
         }
-        else
-        {
-            chunk = Chunks[chunkIndex];
-        }
 
+        Chunk<T> chunk = Chunks[chunkIndex];
         data = chunk.Components[localEntity];
         return chunk.Exists[localEntity];
     }

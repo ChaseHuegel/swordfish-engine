@@ -12,7 +12,7 @@ public class DataStore
     private readonly Queue<int> _recycledEntities = new();
     private readonly object _recycleLock = new();
 
-    private int _lastEntity = 0;
+    private int _lastEntity;
 
     public DataStore(byte chunkBitWidth = 16)
     {
@@ -45,6 +45,7 @@ public class DataStore
         }
     }
 
+    // ReSharper disable once UnusedMember.Global
     public int Alloc<T1, T2>(T1 component1, T2 component2)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
@@ -96,6 +97,7 @@ public class DataStore
         }
     }
 
+    // ReSharper disable once UnusedMember.Global
     public void AddOrUpdate<T1, T2>(int entity, T1 component1, T2 component2)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
@@ -130,6 +132,7 @@ public class DataStore
         }
     }
 
+    // ReSharper disable once UnusedMember.Global
     public bool Remove<T1>(int entity) where T1 : struct, IDataComponent
     {
         lock (_chunkAndStoreLock)
@@ -145,6 +148,7 @@ public class DataStore
         }
     }
 
+    // ReSharper disable once UnusedMember.Global
     public bool Remove<T1, T2>(int entity)
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
@@ -156,7 +160,7 @@ public class DataStore
                 return false;
             }
 
-            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? storeB))
+            if (!_stores.TryGetValue(typeof(T2), out ChunkedStore? storeB))
             {
                 return false;
             }
@@ -168,13 +172,13 @@ public class DataStore
         }
     }
 
-    public unsafe void Query(float delta, ForEach forEach)
+    public void Query(float delta, ForEach forEach)
     {
         lock (_chunkAndStoreLock)
         {
             lock (_recycleLock)
             {
-                for (int i = 1; i <= _lastEntity; i++)
+                for (var i = 1; i <= _lastEntity; i++)
                 {
                     if (_recycledEntities.Contains(i))
                     {
@@ -186,7 +190,7 @@ public class DataStore
             }
         }
     }
-    public unsafe void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
+    public void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
         lock (_chunkAndStoreLock)
@@ -195,16 +199,14 @@ public class DataStore
             {
                 return;
             }
-            else
-            {
-                chunks = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store).Chunks);
-            }
+
+            chunks = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store).Chunks);
         }
 
-        for (int chunkIndex = 0; chunkIndex < chunks.Length; chunkIndex++)
+        for (var chunkIndex = 0; chunkIndex < chunks.Length; chunkIndex++)
         {
             Chunk<T1> chunk = chunks[chunkIndex];
-            for (int componentIndex = 0; componentIndex < chunk.Components.Length; componentIndex++)
+            for (var componentIndex = 0; componentIndex < chunk.Components.Length; componentIndex++)
             {
                 if (!chunk.Exists[componentIndex])
                 {
@@ -229,23 +231,13 @@ public class DataStore
         Span<Chunk<T2>> chunks2;
         lock (_chunkAndStoreLock)
         {
-            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store1))
+            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store1) || !_stores.TryGetValue(typeof(T2), out ChunkedStore? store2))
             {
                 return;
-            }
-            else
-            {
-                chunks1 = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store1).Chunks);
             }
 
-            if (!_stores.TryGetValue(typeof(T2), out ChunkedStore? store2))
-            {
-                return;
-            }
-            else
-            {
-                chunks2 = CollectionsMarshal.AsSpan(((ChunkedStore<T2>)store2).Chunks);
-            }
+            chunks1 = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store1).Chunks);
+            chunks2 = CollectionsMarshal.AsSpan(((ChunkedStore<T2>)store2).Chunks);
         }
 
         //  TODO test speed of using Parallel over chunks with low a chunkBitWidth.
@@ -275,7 +267,7 @@ public class DataStore
         }
     }
 
-    public unsafe bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
+    public bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
         lock (_chunkAndStoreLock)
@@ -285,16 +277,14 @@ public class DataStore
                 entity = default!;
                 return false;
             }
-            else
-            {
-                chunks = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store).Chunks);
-            }
+
+            chunks = CollectionsMarshal.AsSpan(((ChunkedStore<T1>)store).Chunks);
         }
 
-        for (int chunkIndex = 0; chunkIndex < chunks.Length; chunkIndex++)
+        for (var chunkIndex = 0; chunkIndex < chunks.Length; chunkIndex++)
         {
             Chunk<T1> chunk = chunks[chunkIndex];
-            for (int componentIndex = 0; componentIndex < chunk.Components.Length; componentIndex++)
+            for (var componentIndex = 0; componentIndex < chunk.Components.Length; componentIndex++)
             {
                 if (!chunk.Exists[componentIndex])
                 {
@@ -356,7 +346,7 @@ public class DataStore
         where T2 : struct, IDataComponent
     {
         int minChunks = Math.Min(chunks1.Length, chunks2.Length);
-        for (int chunkIndex = 0; chunkIndex < minChunks; chunkIndex++)
+        for (var chunkIndex = 0; chunkIndex < minChunks; chunkIndex++)
         {
             Chunk<T1> chunk1 = chunks1[chunkIndex];
             Chunk<T2> chunk2 = chunks2[chunkIndex];
@@ -367,7 +357,7 @@ public class DataStore
             int offset = _chunkSize * chunkIndex;
 
             //  ~30k entities with an empty forEach is when Parallel scheduling becomes cheaper and faster.
-            //  TODO allow queries and systems to force parallelism so they caller can account for a heavy forEach.
+            //  TODO allow queries and systems to force parallelism so the caller can account for a heavy forEach.
             if (chunk1.Count > 30_000)
             {
                 ForEachParallelInternal(delta, offset, components1, exists1, components2, exists2, forEach);
@@ -400,7 +390,7 @@ public class DataStore
         where T1 : struct, IDataComponent
         where T2 : struct, IDataComponent
     {
-        for (int componentIndex = 0; componentIndex < components1.Length; componentIndex++)
+        for (var componentIndex = 0; componentIndex < components1.Length; componentIndex++)
         {
             if (!exists1[componentIndex] || !exists2[componentIndex])
             {
