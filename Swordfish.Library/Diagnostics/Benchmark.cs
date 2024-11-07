@@ -54,9 +54,9 @@ public class Benchmark : IDisposable
         _stopwatch = Stopwatch.StartNew();
 #else
             //  This is to ignore compiler warnings for unused/unassigned values in release
-            GCStart = 0;
-            Stopwatch = null;
-            Disposed = Stopwatch == null || GCStart == 0 || Disposed;
+            _gcStart = 0;
+            _stopwatch = null;
+            _disposed = Stopwatch == null || GCStart == 0 || Disposed;
 #endif
     }
 
