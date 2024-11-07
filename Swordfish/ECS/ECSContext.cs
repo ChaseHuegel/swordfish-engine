@@ -5,6 +5,7 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.ECS;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 {
     public DataBinding<double> Delta { get; } = new();

@@ -5,13 +5,14 @@ using Swordfish.UI.ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public class TitleBarElement : TextElement
+public class TitleBarElement(in string text) : TextElement(text)
 {
     public bool Border { get; set; }
 
-    public TitleBarElement(string text) : base(text) { }
-
-    public TitleBarElement(string text, ConstraintAnchor anchor) : this(text, false, anchor) { }
+    // ReSharper disable once UnusedMember.Global
+    public TitleBarElement(string text, ConstraintAnchor anchor) : this(text, false, anchor)
+    {
+    }
 
     public TitleBarElement(string text, bool border) : this(text)
     {

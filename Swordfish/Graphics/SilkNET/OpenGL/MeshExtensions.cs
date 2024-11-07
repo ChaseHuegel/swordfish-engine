@@ -2,21 +2,23 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal static class MeshExtensions
 {
-    private const int MaxVertices = int.MaxValue / GLRenderTarget.VertexDataLength;
+    private const int MAX_VERTICES = int.MaxValue / GLRenderTarget.VERTEX_DATA_LENGTH;
 
     public static float[] GetRawVertexData(this Mesh mesh)
     {
         int vertexCount = mesh.Vertices.Length;
-        if (vertexCount > MaxVertices)
-            throw new InvalidOperationException($"Meshes cannot exceed {MaxVertices} vertices.");
+        if (vertexCount > MAX_VERTICES)
+        {
+            throw new InvalidOperationException($"Meshes cannot exceed {MAX_VERTICES} vertices.");
+        }
 
         //  Throw on int overflows to be safe
-        int dataLength = checked(vertexCount * GLRenderTarget.VertexDataLength);
-        float[] vertexData = new float[dataLength];
+        int dataLength = checked(vertexCount * GLRenderTarget.VERTEX_DATA_LENGTH);
+        var vertexData = new float[dataLength];
 
-        for (int i = 0; i < vertexCount; i++)
+        for (var i = 0; i < vertexCount; i++)
         {
-            int dataOffset = i * GLRenderTarget.VertexDataLength;
+            int dataOffset = i * GLRenderTarget.VERTEX_DATA_LENGTH;
 
             vertexData[dataOffset + 0] = mesh.Vertices[i].X;
             vertexData[dataOffset + 1] = mesh.Vertices[i].Y;
@@ -27,9 +29,9 @@ internal static class MeshExtensions
             vertexData[dataOffset + 5] = mesh.Colors[i].Z;
             vertexData[dataOffset + 6] = mesh.Colors[i].W;
 
-            vertexData[dataOffset + 7] = mesh.UV[i].X;
-            vertexData[dataOffset + 8] = mesh.UV[i].Y;
-            vertexData[dataOffset + 9] = mesh.UV[i].Z;
+            vertexData[dataOffset + 7] = mesh.Uv[i].X;
+            vertexData[dataOffset + 8] = mesh.Uv[i].Y;
+            vertexData[dataOffset + 9] = mesh.Uv[i].Z;
 
             vertexData[dataOffset + 10] = mesh.Normals[i].X;
             vertexData[dataOffset + 11] = mesh.Normals[i].Y;

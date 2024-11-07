@@ -5,48 +5,58 @@ namespace Swordfish.Input;
 
 public class ShortcutService : IShortcutService
 {
-    private readonly IInputService InputService;
-    private readonly LockedList<Shortcut> Shortcuts;
+    private readonly IInputService _inputService;
+    private readonly LockedList<Shortcut> _shortcuts;
 
     public ShortcutService(IInputService inputService)
     {
-        InputService = inputService;
-        Shortcuts = new LockedList<Shortcut>();
+        _inputService = inputService;
+        _shortcuts = [];
 
-        InputService.KeyPressed += OnKeyPressed;
+        _inputService.KeyPressed += OnKeyPressed;
     }
 
     public bool RegisterShortcut(Shortcut shortcut)
     {
-        if (!Shortcuts.Any(x => x.Name == shortcut.Name))
+        if (_shortcuts.Any(x => x.Name == shortcut.Name))
         {
-            Shortcuts.Add(shortcut);
-            return true;
+            return false;
         }
 
-        return false;
+        _shortcuts.Add(shortcut);
+        return true;
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
     {
-        ShortcutModifiers modifiers = ShortcutModifiers.NONE;
+        var modifiers = ShortcutModifiers.NONE;
 
-        if (InputService.IsKeyHeld(Key.CONTROL))
+        if (_inputService.IsKeyHeld(Key.CONTROL))
+        {
             modifiers |= ShortcutModifiers.CONTROL;
+        }
 
-        if (InputService.IsKeyHeld(Key.SHIFT))
+        if (_inputService.IsKeyHeld(Key.SHIFT))
+        {
             modifiers |= ShortcutModifiers.SHIFT;
+        }
 
-        if (InputService.IsKeyHeld(Key.ALT))
+        if (_inputService.IsKeyHeld(Key.ALT))
+        {
             modifiers |= ShortcutModifiers.ALT;
+        }
 
-        foreach (Shortcut shortcut in Shortcuts)
+        foreach (Shortcut shortcut in _shortcuts)
         {
             if (shortcut.IsEnabled != null && !shortcut.IsEnabled.Invoke())
+            {
                 continue;
+            }
 
             if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.NONE || modifiers == shortcut.Modifiers))
+            {
                 shortcut.Action?.Invoke();
+            }
         }
     }
 }

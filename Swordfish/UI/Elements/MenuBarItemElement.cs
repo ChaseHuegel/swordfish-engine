@@ -3,19 +3,14 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.UI.Elements;
 
-public class MenuBarItemElement : ContentElement, INameProperty
+public class MenuBarItemElement(in string? name) : ContentElement, INameProperty
 {
-    private static IShortcutService ShortcutService => s_ShortcutService ??= SwordfishEngine.Kernel.Get<IShortcutService>();
-    private static IShortcutService? s_ShortcutService;
+    private static IShortcutService ShortcutService => _sShortcutService ??= SwordfishEngine.Kernel.Get<IShortcutService>();
+    private static IShortcutService? _sShortcutService;
 
-    public string? Name { get; set; }
+    public string? Name { get; set; } = name;
 
-    public Shortcut Shortcut { get; private set; }
-
-    public MenuBarItemElement(string? name)
-    {
-        Name = name;
-    }
+    public Shortcut Shortcut { get; }
 
     public MenuBarItemElement(string? name, Shortcut shortcut) : this(name)
     {
@@ -29,7 +24,9 @@ public class MenuBarItemElement : ContentElement, INameProperty
         if (Content.Count == 0)
         {
             if (ImGui.MenuItem(Name, Shortcut.ToString(), false, Enabled))
+            {
                 Shortcut.Action?.Invoke();
+            }
         }
         else if (ImGui.BeginMenu(Name, true))
         {

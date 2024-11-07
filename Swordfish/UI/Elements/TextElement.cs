@@ -19,7 +19,7 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
     public Tooltip Tooltip { get; set; }
 
-    public RectConstraints Constraints { get; set; } = new RectConstraints();
+    public RectConstraints Constraints { get; set; } = new();
 
     protected ITooltipProperty TooltipProperty => this;
     protected IColorProperty ColorProperty => this;
@@ -70,14 +70,24 @@ public class TextElement : Element, ITextProperty, ILabelProperty, IColorPropert
 
         float labelWidth = ImGui.CalcTextSize(Label).X;
         float width = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
-        if (Wrap) ImGui.PushTextWrapPos(width - labelWidth);
+        if (Wrap)
+        {
+            ImGui.PushTextWrapPos(width - labelWidth);
+        }
 
         if (Text != null && Text.StartsWith("- "))
+        {
             ImGui.BulletText(Text.TrimStart('-', ' '));
+        }
         else
+        {
             ImGui.TextUnformatted(Text);
+        }
 
-        if (Wrap) ImGui.PopTextWrapPos();
+        if (Wrap)
+        {
+            ImGui.PopTextWrapPos();
+        }
 
         TooltipProperty.RenderTooltip();
 

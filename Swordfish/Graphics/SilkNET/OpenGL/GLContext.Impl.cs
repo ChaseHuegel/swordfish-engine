@@ -6,223 +6,184 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal unsafe partial class GLContext
 {
-    private readonly struct SharderProgramArgs
+    private readonly struct ShaderProgramArgs(
+        in GL gl,
+        in string name,
+        in ShaderComponent[] shaderComponents)
     {
-        private readonly GL gl;
-        private readonly string name;
-        private readonly ShaderComponent[] shaderComponents;
+        private readonly GL _gl = gl;
+        private readonly string _name = name;
+        private readonly ShaderComponent[] _shaderComponents = shaderComponents;
 
-        public SharderProgramArgs(GL gl, string name, ShaderComponent[] shaderComponents)
+        public static ShaderProgram Factory(ShaderProgramArgs args)
         {
-            this.gl = gl;
-            this.name = name;
-            this.shaderComponents = shaderComponents;
-        }
-
-        public static ShaderProgram Factory(SharderProgramArgs args)
-        {
-            return new ShaderProgram(args.gl, args.name, args.shaderComponents);
+            return new ShaderProgram(args._gl, args._name, args._shaderComponents);
         }
     }
 
-    private readonly struct SharderComponentArgs
+    private readonly struct ShaderComponentArgs(
+        in GL gl,
+        in string name,
+        in Silk.NET.OpenGL.ShaderType type,
+        in string source)
     {
-        private readonly GL gl;
-        private readonly string name;
-        private readonly Silk.NET.OpenGL.ShaderType type;
-        private readonly string source;
+        private readonly GL _gl = gl;
+        private readonly string _name = name;
+        private readonly Silk.NET.OpenGL.ShaderType _type = type;
+        private readonly string _source = source;
 
-        public SharderComponentArgs(GL gl, string name, Silk.NET.OpenGL.ShaderType type, string source)
+        public static ShaderComponent Factory(ShaderComponentArgs args)
         {
-            this.gl = gl;
-            this.name = name;
-            this.type = type;
-            this.source = source;
-        }
-
-        public static ShaderComponent Factory(SharderComponentArgs args)
-        {
-            return new ShaderComponent(args.gl, args.name, args.type, args.source);
+            return new ShaderComponent(args._gl, args._name, args._type, args._source);
         }
     }
 
-    private readonly struct TextureArgs
+    private readonly struct TextureArgs(
+        in GL gl,
+        in string name,
+        in byte* pixels,
+        in uint width,
+        in uint height,
+        in bool generateMipmaps)
     {
-        private readonly GL gl;
-        private readonly string name;
-        private readonly byte* pixels;
-        private readonly uint width;
-        private readonly uint height;
-        private readonly bool generateMipmaps;
-
-        public TextureArgs(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
-        {
-            this.gl = gl;
-            this.name = name;
-            this.width = width;
-            this.height = height;
-            this.generateMipmaps = generateMipmaps;
-            this.pixels = pixels;
-        }
+        private readonly GL _gl = gl;
+        private readonly string _name = name;
+        private readonly byte* _pixels = pixels;
+        private readonly uint _width = width;
+        private readonly uint _height = height;
+        private readonly bool _generateMipmaps = generateMipmaps;
 
         public static TexImage2D Factory(TextureArgs args)
         {
-            return new TexImage2D(args.gl, args.name, args.pixels, args.width, args.height, args.generateMipmaps);
+            return new TexImage2D(args._gl, args._name, args._pixels, args._width, args._height, args._generateMipmaps);
         }
     }
 
-    private readonly struct TextureArrayArgs
+    private readonly struct TextureArrayArgs(
+        in GL gl,
+        in string name,
+        in byte* pixels,
+        in uint width,
+        in uint height,
+        in uint depth,
+        in bool generateMipmaps)
     {
-        private readonly GL gl;
-        private readonly string name;
-        private readonly byte* pixels;
-        private readonly uint width;
-        private readonly uint height;
-        private readonly uint depth;
-        private readonly bool generateMipmaps;
-
-        public TextureArrayArgs(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
-        {
-            this.gl = gl;
-            this.name = name;
-            this.width = width;
-            this.height = height;
-            this.depth = depth;
-            this.generateMipmaps = generateMipmaps;
-            this.pixels = pixels;
-        }
+        private readonly GL _gl = gl;
+        private readonly string _name = name;
+        private readonly byte* _pixels = pixels;
+        private readonly uint _width = width;
+        private readonly uint _height = height;
+        private readonly uint _depth = depth;
+        private readonly bool _generateMipmaps = generateMipmaps;
 
         public static TexImage3D Factory(TextureArrayArgs args)
         {
-            return new TexImage3D(args.gl, args.name, args.pixels, args.width, args.height, args.depth, args.generateMipmaps);
+            return new TexImage3D(args._gl, args._name, args._pixels, args._width, args._height, args._depth, args._generateMipmaps);
         }
     }
 
-    private readonly struct GLMaterialArgs
+    private readonly struct GLMaterialArgs(
+        in ShaderProgram shaderProgram, 
+        in IGLTexture[] texImages2D, 
+        in bool transparent)
     {
-        private readonly ShaderProgram shaderProgram;
-        private readonly IGLTexture[] textures;
-        private readonly bool transparent;
-
-        public GLMaterialArgs(ShaderProgram shaderProgram, IGLTexture[] texImages2D, bool transparent)
-        {
-            this.shaderProgram = shaderProgram;
-            this.textures = texImages2D;
-            this.transparent = transparent;
-        }
+        private readonly ShaderProgram _shaderProgram = shaderProgram;
+        private readonly IGLTexture[] _textures = texImages2D;
+        private readonly bool _transparent = transparent;
 
         public static GLMaterial Factory(GLMaterialArgs args)
         {
-            return new GLMaterial(args.shaderProgram, args.textures, args.transparent);
+            return new GLMaterial(args._shaderProgram, args._textures, args._transparent);
         }
     }
 
-    private readonly struct GLRenderTargetArgs
+    private readonly struct GLRenderTargetArgs(
+        in GL gl,
+        in Transform transform,
+        in VertexArrayObject<float, uint> vertexArrayObject,
+        in BufferObject<Matrix4x4> modelsBufferObject,
+        in GLMaterial[] materials,
+        in RenderOptions renderOptions)
     {
-        private readonly GL gl;
-        private readonly Transform transform;
-        private readonly VertexArrayObject<float, uint> vertexArrayObject;
-        private readonly BufferObject<Matrix4x4> modelsBufferObject;
-        private readonly GLMaterial[] materials;
-        private readonly RenderOptions renderOptions;
-
-        public GLRenderTargetArgs(GL gl, Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
-        {
-            this.gl = gl;
-            this.transform = transform;
-            this.vertexArrayObject = vertexArrayObject;
-            this.modelsBufferObject = modelsBufferObject;
-            this.materials = materials;
-            this.renderOptions = renderOptions;
-        }
+        private readonly GL _gl = gl;
+        private readonly Transform _transform = transform;
+        private readonly VertexArrayObject<float, uint> _vertexArrayObject = vertexArrayObject;
+        private readonly BufferObject<Matrix4x4> _modelsBufferObject = modelsBufferObject;
+        private readonly GLMaterial[] _materials = materials;
+        private readonly RenderOptions _renderOptions = renderOptions;
 
         public static GLRenderTarget Factory(GLRenderTargetArgs args)
         {
-            return new GLRenderTarget(args.gl, args.transform, args.vertexArrayObject, args.modelsBufferObject, args.materials, args.renderOptions);
+            return new GLRenderTarget(args._gl, args._transform, args._vertexArrayObject, args._modelsBufferObject, args._materials, args._renderOptions);
         }
     }
 
-    private readonly struct VertexArrayObjectArgs<TVertexType>
+    private readonly struct VertexArrayObjectArgs<TVertexType>(
+        in GL gl, 
+        in TVertexType[] vertexData)
         where TVertexType : unmanaged
     {
-        private readonly GL gl;
-        private readonly TVertexType[] vertexData;
-
-        public VertexArrayObjectArgs(GL gl, TVertexType[] vertexData)
-        {
-            this.gl = gl;
-            this.vertexData = vertexData;
-        }
+        private readonly GL _gl = gl;
+        private readonly TVertexType[] _vertexData = vertexData;
 
         public static VertexArrayObject<TVertexType> Factory(VertexArrayObjectArgs<TVertexType> args)
         {
-            var vertexBufferObject = new BufferObject<TVertexType>(args.gl, args.vertexData, BufferTargetARB.ArrayBuffer);
-            return new VertexArrayObject<TVertexType>(args.gl, vertexBufferObject);
+            var vertexBufferObject = new BufferObject<TVertexType>(args._gl, args._vertexData, BufferTargetARB.ArrayBuffer);
+            return new VertexArrayObject<TVertexType>(args._gl, vertexBufferObject);
         }
     }
 
-    private readonly struct VertexArrayObjectArgs<TVertexType, TElementType>
+    private readonly struct VertexArrayObjectArgs<TVertexType, TElementType>(
+        in GL gl,
+        in TVertexType[] vertexData,
+        in TElementType[] indices)
         where TVertexType : unmanaged
         where TElementType : unmanaged
     {
-        private readonly GL gl;
-        private readonly TVertexType[] vertexData;
-        private readonly TElementType[] indices;
-
-        public VertexArrayObjectArgs(GL gl, TVertexType[] vertexData, TElementType[] indices)
-        {
-            this.gl = gl;
-            this.vertexData = vertexData;
-            this.indices = indices;
-        }
+        private readonly GL _gl = gl;
+        private readonly TVertexType[] _vertexData = vertexData;
+        private readonly TElementType[] _indices = indices;
 
         public static VertexArrayObject<TVertexType, TElementType> Factory(VertexArrayObjectArgs<TVertexType, TElementType> args)
         {
-            var vertexBufferObject = new BufferObject<TVertexType>(args.gl, args.vertexData, BufferTargetARB.ArrayBuffer);
-            var elementBufferObject = new BufferObject<TElementType>(args.gl, args.indices, BufferTargetARB.ElementArrayBuffer);
-            return new VertexArrayObject<TVertexType, TElementType>(args.gl, vertexBufferObject, elementBufferObject);
+            var vertexBufferObject = new BufferObject<TVertexType>(args._gl, args._vertexData, BufferTargetARB.ArrayBuffer);
+            var elementBufferObject = new BufferObject<TElementType>(args._gl, args._indices, BufferTargetARB.ElementArrayBuffer);
+            return new VertexArrayObject<TVertexType, TElementType>(args._gl, vertexBufferObject, elementBufferObject);
         }
     }
 
-    private readonly struct VertexArrayObject32Args
+    private readonly struct VertexArrayObject32Args(
+        in GL gl, 
+        in float[] vertexData, 
+        in uint[] indices)
     {
-        private readonly GL gl;
-        private readonly float[] vertexData;
-        private readonly uint[] indices;
-
-        public VertexArrayObject32Args(GL gl, float[] vertexData, uint[] indices)
-        {
-            this.gl = gl;
-            this.vertexData = vertexData;
-            this.indices = indices;
-        }
+        private readonly GL _gl = gl;
+        private readonly float[] _vertexData = vertexData;
+        private readonly uint[] _indices = indices;
 
         public static VertexArrayObject32 Factory(VertexArrayObject32Args args)
         {
-            var vertexBufferObject = new BufferObject<float>(args.gl, args.vertexData, BufferTargetARB.ArrayBuffer);
-            var elementBufferObject = new BufferObject<uint>(args.gl, args.indices, BufferTargetARB.ElementArrayBuffer);
-            return new VertexArrayObject32(args.gl, vertexBufferObject, elementBufferObject);
+            var vertexBufferObject = new BufferObject<float>(args._gl, args._vertexData, BufferTargetARB.ArrayBuffer);
+            var elementBufferObject = new BufferObject<uint>(args._gl, args._indices, BufferTargetARB.ElementArrayBuffer);
+            return new VertexArrayObject32(args._gl, vertexBufferObject, elementBufferObject);
         }
     }
 
-    private readonly struct BufferObjectArgs<TData> where TData : unmanaged
+    private readonly struct BufferObjectArgs<TData>(
+        in GL gl,
+        in TData[] data,
+        in BufferTargetARB bufferType,
+        in BufferUsageARB usage)
+        where TData : unmanaged
     {
-        private readonly GL gl;
-        private readonly TData[] data;
-        private readonly BufferTargetARB bufferType;
-        private readonly BufferUsageARB usage;
-
-        public BufferObjectArgs(GL gl, TData[] data, BufferTargetARB bufferType, BufferUsageARB usage)
-        {
-            this.gl = gl;
-            this.data = data;
-            this.bufferType = bufferType;
-            this.usage = usage;
-        }
+        private readonly GL _gl = gl;
+        private readonly TData[] _data = data;
+        private readonly BufferTargetARB _bufferType = bufferType;
+        private readonly BufferUsageARB _usage = usage;
 
         public static BufferObject<TData> Factory(BufferObjectArgs<TData> args)
         {
-            return new BufferObject<TData>(args.gl, args.data, args.bufferType, args.usage);
+            return new BufferObject<TData>(args._gl, args._data, args._bufferType, args._usage);
         }
     }
 }

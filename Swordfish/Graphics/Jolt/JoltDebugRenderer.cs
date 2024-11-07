@@ -43,13 +43,13 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         if (drawRequestDifference > 0)
         {
             _lineCache.Capacity = _drawBuffer.Count;
-            for (int i = 0; i < drawRequestDifference; i++)
+            for (var i = 0; i < drawRequestDifference; i++)
             {
                 _lineCache.Add(_lineRenderer.CreateLine());
             }
         }
 
-        for (int i = 0; i < _lineCache.Count; i++)
+        for (var i = 0; i < _lineCache.Count; i++)
         {
             if (i < _drawBuffer.Count)
             {
@@ -82,6 +82,6 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
 
     protected override void DrawText3D(Vector3 position, string? text, uint color, float height = 0.5F)
     {
-        return;
+        //  TODO implement this
     }
 }

@@ -1,11 +1,6 @@
 namespace Swordfish.ECS;
 
-public struct ChildComponent : IDataComponent
+public struct ChildComponent(in int parent) : IDataComponent
 {
-    public int Parent;
-
-    public ChildComponent(int parent)
-    {
-        Parent = parent;
-    }
+    public int Parent = parent;
 }

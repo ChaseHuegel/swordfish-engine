@@ -8,6 +8,7 @@ public struct TransformComponent : IDataComponent
     public Quaternion Orientation;
     public Vector3 Scale = Vector3.One;
 
+    // ReSharper disable once UnusedMember.Global
     public TransformComponent(Vector3 position)
     {
         Position = position;

@@ -1,25 +1,28 @@
 using Swordfish.Library.IO;
+// ReSharper disable UnassignedField.Global
 
 namespace Swordfish.UI
 {
     public struct Font
     {
+        // Tomlet requires an explicit constructor or it will throw on deserialization.
+        // ReSharper disable once UnusedMember.Global
         public Font()
         {
         }
 
-        public int Size;
+        public required int Size;
 
-        public string MinUnicode;
+        public required string MinUnicode;
 
-        public string MaxUnicode;
+        public required string MaxUnicode;
 
-        public bool IsIcons;
+        public required bool IsIcons;
 
-        public bool IsDefault;
+        public required bool IsDefault;
 
-        public string Name;
+        public required string Name;
 
-        public PathInfo Source;
+        public required PathInfo Source;
     }
 }

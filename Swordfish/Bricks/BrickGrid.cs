@@ -8,24 +8,27 @@ public class BrickGrid
 
     public Vector3 CenterOfMass { get; private set; }
 
+    // ReSharper disable once UnusedMember.Global
     public int Size { get; private set; }
 
-    public int Count => BrickCount + NeighorBrickCount;
+    public int Count => _brickCount + _neighborBrickCount;
 
     public readonly Brick[,,] Bricks;
-    public readonly BrickGrid[,,] NeighborGrids = new BrickGrid[3, 3, 3];
-    public readonly List<BrickGrid> Subgrids = new();
-    private readonly object LockObject = new();
+    public readonly BrickGrid?[,,] NeighborGrids = new BrickGrid[3, 3, 3];
+    public readonly List<BrickGrid> Subgrids = [];
+    private readonly object _lockObject = new();
 
-    private volatile int NeighorBrickCount;
-    private volatile int BrickCount;
-    private volatile bool Building;
-    private volatile bool Dirty;
+    private volatile int _neighborBrickCount;
+    private volatile int _brickCount;
+    private volatile bool _building;
+    private volatile bool _dirty;
 
     public BrickGrid(int dimensionSize)
     {
         if (dimensionSize % 4 != 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(dimensionSize), dimensionSize, "Value must be divisible by 4.");
+        }
 
         DimensionSize = dimensionSize;
         Bricks = new Brick[dimensionSize, dimensionSize, dimensionSize];
@@ -35,25 +38,33 @@ public class BrickGrid
     {
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
         {
-            if (TryGetNeighbor(x, y, z, out BrickGrid neighbor))
+            if (TryGetNeighbor(x, y, z, out BrickGrid? neighbor))
             {
                 if (x >= DimensionSize)
+                {
                     x += x < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 if (y >= DimensionSize)
+                {
                     y += y < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 if (z >= DimensionSize)
+                {
                     z += z < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 return neighbor.Get(x, y, z);
             }
         }
 
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
+        {
             return default;
+        }
 
-        lock (LockObject)
+        lock (_lockObject)
         {
             return Bricks[x, y, z];
         }
@@ -65,22 +76,28 @@ public class BrickGrid
 
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
         {
-            if (TryGetOrAddNeighbor(x, y, z, out BrickGrid neighbor))
+            if (TryGetOrAddNeighbor(x, y, z, out BrickGrid? neighbor))
             {
-                Vector3 newPoint = new Vector3(x, y, z);
+                var newPoint = new Vector3(x, y, z);
                 if (x >= DimensionSize)
+                {
                     x += x < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 if (y >= DimensionSize)
+                {
                     y += y < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 if (z >= DimensionSize)
+                {
                     z += z < 0 ? DimensionSize : -DimensionSize;
+                }
 
                 int neighborOldCount = neighbor.Count;
                 bool success = neighbor.Set(x, y, z, brick);
 
-                NeighorBrickCount += neighbor.Count - neighborOldCount;
+                Interlocked.Exchange(ref _neighborBrickCount, _neighborBrickCount + neighbor.Count - neighborOldCount);
 
                 UpdateCenterOfMass(previousCount, newPoint);
                 return success;
@@ -88,23 +105,25 @@ public class BrickGrid
         }
 
         if (x >= DimensionSize || y >= DimensionSize || z >= DimensionSize || x < 0 || y < 0 || z < 0)
+        {
             return false;
+        }
 
-        lock (LockObject)
+        lock (_lockObject)
         {
             Brick currentBrick = Bricks[x, y, z];
             if (currentBrick != brick)
             {
-                int newBrickCount = BrickCount + (brick == Brick.EMPTY ? -1 : 1);
+                int newBrickCount = _brickCount + (brick == Brick.Empty ? -1 : 1);
 
                 Bricks[x, y, z] = brick;
-                BrickCount = newBrickCount;
+                _brickCount = newBrickCount;
 
                 UpdateCenterOfMass(previousCount, new Vector3(x, y, z));
             }
         }
 
-        Dirty = true;
+        _dirty = true;
         return true;
     }
 
@@ -113,50 +132,56 @@ public class BrickGrid
         CenterOfMass = ((CenterOfMass * previousCount) + newPoint) / Count;
     }
 
+    //  TODO Is this useful anymore? Implement or remove.
+    // ReSharper disable once UnusedMember.Global
     public bool Build()
     {
-        if (Building || !Dirty)
-            return false;
-
-        Dirty = false;
-        Building = true;
-        lock (LockObject)
+        if (_building || !_dirty)
         {
-            for (int x = 0; x < DimensionSize; x++)
+            return false;
+        }
+
+        _dirty = false;
+        _building = true;
+        lock (_lockObject)
+        {
+            for (var x = 0; x < DimensionSize; x++)
             {
-                for (int y = 0; y < DimensionSize; y++)
+                for (var y = 0; y < DimensionSize; y++)
                 {
-                    for (int z = 0; z < DimensionSize; z++)
+                    for (var z = 0; z < DimensionSize; z++)
                     {
                         Bricks[x, y, z].Build();
                     }
                 }
             }
 
-            for (int i = 0; i < Subgrids.Count; i++)
+            for (var i = 0; i < Subgrids.Count; i++)
             {
                 Subgrids[i].Build();
             }
 
-            for (int x = 0; x < 3; x++)
+            for (var x = 0; x < 3; x++)
             {
-                for (int y = 0; y < 3; y++)
+                for (var y = 0; y < 3; y++)
                 {
-                    for (int z = 0; z < 3; z++)
+                    for (var z = 0; z < 3; z++)
                     {
-                        BrickGrid neighorGrid = NeighborGrids[x, y, z];
-                        if (neighorGrid != null && !neighorGrid.Building)
-                            neighorGrid.Build();
+                        BrickGrid? neighborGrid = NeighborGrids[x, y, z];
+                        if (neighborGrid != null && !neighborGrid._building)
+                        {
+                            neighborGrid.Build();
+                        }
                     }
                 }
             }
         }
 
-        Building = false;
+        _building = false;
         return true;
     }
 
-    private bool TryGetOrAddNeighbor(int x, int y, int z, out BrickGrid neighbor)
+    private bool TryGetOrAddNeighbor(int x, int y, int z, out BrickGrid? neighbor)
     {
         int xOffset = x >> 4;
         int yOffset = y >> 4;
@@ -171,19 +196,19 @@ public class BrickGrid
         if (targetNeighbor != Vector3.One)
         {
             neighbor = NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z];
-
-            if (neighbor == null)
+            if (neighbor != null)
             {
-                Vector3 targetThis = new(
-                    Math.Abs(targetNeighbor.X - 2),
-                    Math.Abs(targetNeighbor.Y - 2),
-                    Math.Abs(targetNeighbor.Z - 2)
-                );
-                neighbor = new BrickGrid(DimensionSize);
-                neighbor.NeighborGrids[(int)targetThis.X, (int)targetThis.Y, (int)targetThis.Z] = this;
-                NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor;
+                return true;
             }
 
+            Vector3 targetThis = new(
+                Math.Abs(targetNeighbor.X - 2),
+                Math.Abs(targetNeighbor.Y - 2),
+                Math.Abs(targetNeighbor.Z - 2)
+            );
+            neighbor = new BrickGrid(DimensionSize);
+            neighbor.NeighborGrids[(int)targetThis.X, (int)targetThis.Y, (int)targetThis.Z] = this;
+            NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z] = neighbor;
             return true;
         }
 
@@ -191,7 +216,7 @@ public class BrickGrid
         return false;
     }
 
-    private bool TryGetNeighbor(int x, int y, int z, out BrickGrid neighbor)
+    private bool TryGetNeighbor(int x, int y, int z, out BrickGrid? neighbor)
     {
         int xOffset = x >> 4;
         int yOffset = y >> 4;
@@ -206,11 +231,7 @@ public class BrickGrid
         if (targetNeighbor != Vector3.One)
         {
             neighbor = NeighborGrids[(int)targetNeighbor.X, (int)targetNeighbor.Y, (int)targetNeighbor.Z];
-
-            if (neighbor == null)
-                return false;
-
-            return true;
+            return neighbor != null;
         }
 
         neighbor = this;

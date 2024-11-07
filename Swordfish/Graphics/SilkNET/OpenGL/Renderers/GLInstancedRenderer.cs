@@ -72,7 +72,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             return 0;
         }
 
-        int drawCalls = 0;
+        var drawCalls = 0;
         drawCalls += Draw(view, projection, _instances, sort: false);
         drawCalls += Draw(view, projection, _transparentInstances, sort: true);
         return drawCalls;
@@ -85,8 +85,8 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             return 0;
         }
 
-        int drawCalls = 0;
-        var viewPosition = view.GetPosition();
+        var drawCalls = 0;
+        Vector3 viewPosition = view.GetPosition();
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
@@ -109,7 +109,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
-            for (int n = 0; n < target.Materials.Length; n++)
+            for (var n = 0; n < target.Materials.Length; n++)
             {
                 GLMaterial material = target.Materials[n];
                 ShaderProgram shader = material.ShaderProgram;

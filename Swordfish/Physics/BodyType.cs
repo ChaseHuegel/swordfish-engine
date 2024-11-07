@@ -1,3 +1,4 @@
+// ReSharper disable UnusedMember.Global
 namespace Swordfish.Physics;
 
 public enum BodyType

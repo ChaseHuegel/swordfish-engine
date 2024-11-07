@@ -3,11 +3,11 @@ using ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public class LayoutGroup : AbstractPaneElement
+// ReSharper disable once UnusedType.Global
+public class LayoutGroup() : AbstractPaneElement(string.Empty)
 {
+    // ReSharper disable once UnusedAutoPropertyAccessor.Global
     public ElementAlignment Layout { get; set; }
-
-    public LayoutGroup() : base(string.Empty) { }
 
     protected override void OnRender()
     {
@@ -19,7 +19,9 @@ public class LayoutGroup : AbstractPaneElement
         ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), false, Flags | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
 
         if (Layout == ElementAlignment.HORIZONTAL && ContentSeparator != ContentSeparator.NONE)
+        {
             ImGui.Columns(Content.Count, UniqueName + "_col", ContentSeparator == ContentSeparator.DIVIDER);
+        }
 
         base.OnRender();
 
@@ -31,9 +33,13 @@ public class LayoutGroup : AbstractPaneElement
         if (Layout == ElementAlignment.HORIZONTAL)
         {
             if (ContentSeparator == ContentSeparator.NONE)
+            {
                 ImGui.SameLine();
+            }
             else
+            {
                 ImGui.NextColumn();
+            }
         }
         else
         {

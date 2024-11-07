@@ -10,7 +10,9 @@ public interface ITooltipProperty
     void RenderTooltip()
     {
         if (string.IsNullOrWhiteSpace(Tooltip.Text))
+        {
             return;
+        }
 
         if (Tooltip.Help)
         {

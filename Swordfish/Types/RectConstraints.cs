@@ -36,40 +36,42 @@ public class RectConstraints
             yValue = Y?.GetValue(Max.Y) ?? 0f;
         }
 
-        if (Anchor != ConstraintAnchor.TOP_LEFT)
+        if (Anchor == ConstraintAnchor.TOP_LEFT)
         {
-            Vector2 dimensions = GetDimensions();
-            switch (Anchor)
-            {
-                case ConstraintAnchor.TOP_CENTER:
-                    xValue += (Max.X - dimensions.X) * anchorScale;
-                    break;
-                case ConstraintAnchor.TOP_RIGHT:
-                    xValue = Max.X - dimensions.X - xValue;
-                    break;
-                case ConstraintAnchor.CENTER_LEFT:
-                    yValue += (Max.Y - dimensions.Y) * anchorScale;
-                    break;
-                case ConstraintAnchor.CENTER:
-                    xValue += (Max.X - dimensions.X) * anchorScale;
-                    yValue += (Max.Y - dimensions.Y) * anchorScale;
-                    break;
-                case ConstraintAnchor.CENTER_RIGHT:
-                    xValue = Max.X - dimensions.X - xValue;
-                    yValue += (Max.Y - dimensions.Y) * anchorScale;
-                    break;
-                case ConstraintAnchor.BOTTOM_LEFT:
-                    yValue = Max.Y - dimensions.Y - yValue;
-                    break;
-                case ConstraintAnchor.BOTTOM_CENTER:
-                    xValue += (Max.X - dimensions.X) * anchorScale;
-                    yValue = Max.Y - dimensions.Y - yValue;
-                    break;
-                case ConstraintAnchor.BOTTOM_RIGHT:
-                    xValue = Max.X - dimensions.X - xValue;
-                    yValue = Max.Y - dimensions.Y - yValue;
-                    break;
-            }
+            return new Vector2(xValue, yValue);
+        }
+
+        Vector2 dimensions = GetDimensions();
+        switch (Anchor)
+        {
+            case ConstraintAnchor.TOP_CENTER:
+                xValue += (Max.X - dimensions.X) * anchorScale;
+                break;
+            case ConstraintAnchor.TOP_RIGHT:
+                xValue = Max.X - dimensions.X - xValue;
+                break;
+            case ConstraintAnchor.CENTER_LEFT:
+                yValue += (Max.Y - dimensions.Y) * anchorScale;
+                break;
+            case ConstraintAnchor.CENTER:
+                xValue += (Max.X - dimensions.X) * anchorScale;
+                yValue += (Max.Y - dimensions.Y) * anchorScale;
+                break;
+            case ConstraintAnchor.CENTER_RIGHT:
+                xValue = Max.X - dimensions.X - xValue;
+                yValue += (Max.Y - dimensions.Y) * anchorScale;
+                break;
+            case ConstraintAnchor.BOTTOM_LEFT:
+                yValue = Max.Y - dimensions.Y - yValue;
+                break;
+            case ConstraintAnchor.BOTTOM_CENTER:
+                xValue += (Max.X - dimensions.X) * anchorScale;
+                yValue = Max.Y - dimensions.Y - yValue;
+                break;
+            case ConstraintAnchor.BOTTOM_RIGHT:
+                xValue = Max.X - dimensions.X - xValue;
+                yValue = Max.Y - dimensions.Y - yValue;
+                break;
         }
 
         return new Vector2(xValue, yValue);
@@ -83,26 +85,27 @@ public class RectConstraints
         {
             yValue = Height?.GetValue(Max.Y) ?? 0f;
             xValue = Width?.GetValue(yValue) ?? 0f;
+            return new Vector2(xValue, yValue);
         }
-        else if (Height is AspectConstraint)
+
+        if (Height is AspectConstraint)
         {
             xValue = Width?.GetValue(Max.X) ?? 0f;
             yValue = Height?.GetValue(xValue) ?? 0f;
+            return new Vector2(xValue, yValue);
         }
-        else
-        {
-            xValue = Width switch
-            {
-                FillConstraint _ => ImGui.GetContentRegionAvail().X,
-                _ => Width?.GetValue(Max.X) ?? 0f,
-            };
 
-            yValue = Height switch
-            {
-                FillConstraint _ => ImGui.GetContentRegionAvail().Y,
-                _ => Height?.GetValue(Max.Y) ?? 0f,
-            };
-        }
+        xValue = Width switch
+        {
+            FillConstraint _ => ImGui.GetContentRegionAvail().X,
+            _ => Width?.GetValue(Max.X) ?? 0f,
+        };
+
+        yValue = Height switch
+        {
+            FillConstraint _ => ImGui.GetContentRegionAvail().Y,
+            _ => Height?.GetValue(Max.Y) ?? 0f,
+        };
 
         return new Vector2(xValue, yValue);
     }

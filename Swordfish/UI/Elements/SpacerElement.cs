@@ -4,6 +4,7 @@ using Swordfish.Library.Constraints;
 
 namespace Swordfish.UI.Elements;
 
+// ReSharper disable once UnusedType.Global
 public class SpacerElement : Element
 {
     public IConstraint? Width { get; set; }
@@ -16,7 +17,6 @@ public class SpacerElement : Element
     {
         Height = height;
     }
-
 
     public SpacerElement(IConstraint? width, IConstraint? height)
     {

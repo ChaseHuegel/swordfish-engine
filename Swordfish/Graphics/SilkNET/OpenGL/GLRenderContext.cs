@@ -6,6 +6,7 @@ using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -17,42 +18,42 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public DataBinding<int> DrawCalls { get; } = new();
 
     internal readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
-    private readonly ConcurrentDictionary<IHandle, IHandle> LinkedHandles = new();
+    private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
-    private readonly GL GL;
-    private readonly IWindowContext WindowContext;
-    private readonly GLContext GLContext;
-    private readonly IRenderStage[] Renderers;
+    private readonly GL _gl;
+    private readonly IWindowContext _windowContext;
+    private readonly GLContext _glContext;
+    private readonly IRenderStage[] _renderers;
 
     public GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
     {
-        GL = gl;
-        WindowContext = windowContext;
-        GLContext = glContext;
-        Renderers = renderers;
+        _gl = gl;
+        _windowContext = windowContext;
+        _glContext = glContext;
+        _renderers = renderers;
 
-        GL.ClearColor(Color.FromArgb(20, 21, 37));
-        GL.Enable(EnableCap.DepthTest);
-        GL.Enable(EnableCap.CullFace);
-        GL.Enable(EnableCap.Blend);
-        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+        _gl.ClearColor(Color.FromArgb(20, 21, 37));
+        _gl.Enable(EnableCap.DepthTest);
+        _gl.Enable(EnableCap.CullFace);
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        _gl.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
 
-        Camera.Set(new Camera(90, WindowContext.GetSize().GetRatio(), 0.001f, 1000f));
-        WindowContext.Resized += OnWindowResized;
-        WindowContext.Render += OnWindowRender;
+        Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.001f, 1000f));
+        _windowContext.Resized += OnWindowResized;
+        _windowContext.Render += OnWindowRender;
 
-        for (int i = 0; i < Renderers.Length; i++)
+        for (var i = 0; i < _renderers.Length; i++)
         {
             //  TODO there has to be a better way to do this without a circular dependency
-            Renderers[i].Initialize(this);
+            _renderers[i].Initialize(this);
         }
     }
     
     public void Dispose()
     {
-        WindowContext.Resized -= OnWindowResized;
-        WindowContext.Render -= OnWindowRender;
+        _windowContext.Resized -= OnWindowResized;
+        _windowContext.Render -= OnWindowRender;
     }
 
     public void Bind(Shader shader) => BindShader(shader);
@@ -63,8 +64,10 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void OnHandleDisposed(object? sender, EventArgs e)
     {
-        if (LinkedHandles.TryRemove(Unsafe.As<IHandle>(sender)!, out IHandle? internalHandle))
+        if (_linkedHandles.TryRemove(Unsafe.As<IHandle>(sender)!, out IHandle? internalHandle))
+        {
             internalHandle?.Dispose();
+        }
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -79,125 +82,140 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
-        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
-        for (int i = 0; i < Renderers.Length; i++)
+        for (var i = 0; i < _renderers.Length; i++)
         {
-            Renderers[i].PreRender(delta, view, projection);
+            _renderers[i].PreRender(delta, view, projection);
         }
 
-        int drawCalls = 0;
-        for (int i = 0; i < Renderers.Length; i++)
+        var drawCalls = 0;
+        for (var i = 0; i < _renderers.Length; i++)
         {
-            drawCalls += Renderers[i].Render(delta, view, projection);
+            drawCalls += _renderers[i].Render(delta, view, projection);
         }
         DrawCalls.Set(drawCalls);
     }
 
-    internal ShaderComponent BindShaderSource(ShaderSource shaderSource)
+    private ShaderComponent BindShaderSource(ShaderSource shaderSource)
     {
-        if (!LinkedHandles.TryGetValue(shaderSource, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(shaderSource, out IHandle? handle))
         {
-            handle = GLContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
-            LinkedHandles.TryAdd(shaderSource, handle);
+            return Unsafe.As<ShaderComponent>(handle);
         }
 
+        handle = _glContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
+        _linkedHandles.TryAdd(shaderSource, handle);
         return Unsafe.As<ShaderComponent>(handle);
     }
 
-    internal ShaderProgram BindShader(Shader shader)
+    private ShaderProgram BindShader(Shader shader)
     {
-        if (!LinkedHandles.TryGetValue(shader, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(shader, out IHandle? handle))
         {
-            ShaderComponent[] shaderComponents = shader.Sources.Select(BindShaderSource).ToArray();
-            handle = GLContext.CreateShaderProgram(shader.Name, shaderComponents);
-            LinkedHandles.TryAdd(shader, handle);
+            return Unsafe.As<ShaderProgram>(handle);
         }
 
+        ShaderComponent[] shaderComponents = shader.Sources.Select(BindShaderSource).ToArray();
+        handle = _glContext.CreateShaderProgram(shader.Name, shaderComponents);
+        _linkedHandles.TryAdd(shader, handle);
         return Unsafe.As<ShaderProgram>(handle);
     }
 
-    internal IGLTexture BindTexture(Texture texture)
+    private IGLTexture BindTexture(Texture texture)
     {
-        if (!LinkedHandles.TryGetValue(texture, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(texture, out IHandle? handle))
         {
-            if (texture is TextureArray textureArray)
-                handle = GLContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, textureArray.Mipmaps);
-            else
-                handle = GLContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, texture.Mipmaps);
-
-            LinkedHandles.TryAdd(texture, handle);
+            return Unsafe.As<IGLTexture>(handle);
         }
 
+        if (texture is TextureArray textureArray)
+        {
+            handle = _glContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, textureArray.Mipmaps);
+        }
+        else
+        {
+            handle = _glContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, texture.Mipmaps);
+        }
+
+        _linkedHandles.TryAdd(texture, handle);
         return Unsafe.As<IGLTexture>(handle);
     }
 
-    internal VertexArrayObject<float, uint> BindMesh(Mesh mesh)
+    private VertexArrayObject<float, uint> BindMesh(Mesh mesh)
     {
-        if (!LinkedHandles.TryGetValue(mesh, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(mesh, out IHandle? handle))
         {
-            handle = GLContext.CreateVertexArrayObject32(mesh.GetRawVertexData(), mesh.Triangles);
-            LinkedHandles.TryAdd(mesh, handle);
+            return Unsafe.As<VertexArrayObject<float, uint>>(handle);
         }
 
+        handle = _glContext.CreateVertexArrayObject32(mesh.GetRawVertexData(), mesh.Triangles);
+        _linkedHandles.TryAdd(mesh, handle);
         return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
-    internal GLMaterial BindMaterial(Material material)
+    private GLMaterial BindMaterial(Material material)
     {
-        if (!LinkedHandles.TryGetValue(material, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(material, out IHandle? handle))
         {
-            ShaderProgram shaderProgram = BindShader(material.Shader);
-
-            IGLTexture[] textures = new IGLTexture[material.Textures.Length];
-            for (int i = 0; i < material.Textures.Length; i++)
-                textures[i] = BindTexture(material.Textures[i]);
-
-            handle = GLContext.CreateGLMaterial(shaderProgram, textures, material.Transparent);
-            LinkedHandles.TryAdd(material, handle);
+            return Unsafe.As<GLMaterial>(handle);
         }
 
+        ShaderProgram shaderProgram = BindShader(material.Shader);
+
+        var textures = new IGLTexture[material.Textures.Length];
+        for (var i = 0; i < material.Textures.Length; i++)
+        {
+            textures[i] = BindTexture(material.Textures[i]);
+        }
+
+        handle = _glContext.CreateGLMaterial(shaderProgram, textures, material.Transparent);
+        _linkedHandles.TryAdd(material, handle);
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    internal unsafe GLRenderTarget BindMeshRenderer(MeshRenderer meshRenderer)
+    private void BindMeshRenderer(MeshRenderer meshRenderer)
     {
-        if (!LinkedHandles.TryGetValue(meshRenderer, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(meshRenderer, out IHandle? _))
         {
-            VertexArrayObject<float, uint> vao = BindMesh(meshRenderer.Mesh);
-            BufferObject<Matrix4x4> mbo = BindToMBO(vao);
-
-            GLMaterial[] glMaterials = new GLMaterial[meshRenderer.Materials.Length];
-            for (int i = 0; i < meshRenderer.Materials.Length; i++)
-                glMaterials[i] = BindMaterial(meshRenderer.Materials[i]);
-
-            GLRenderTarget renderTarget = GLContext.CreateGLRenderTarget(
-                meshRenderer.Transform,
-                vao,
-                mbo,
-                glMaterials,
-                meshRenderer.RenderOptions
-            );
-
-            handle = renderTarget;
-            if (LinkedHandles.TryAdd(meshRenderer, renderTarget))
-            {
-                RenderTargets.Add(renderTarget);
-                meshRenderer.Disposed += OnHandleDisposed;
-            }
+            return;
         }
 
-        return Unsafe.As<GLRenderTarget>(handle);
+        VertexArrayObject<float, uint> vao = BindMesh(meshRenderer.Mesh);
+        BufferObject<Matrix4x4> mbo = BindToMbo(vao);
+
+        var glMaterials = new GLMaterial[meshRenderer.Materials.Length];
+        for (var i = 0; i < meshRenderer.Materials.Length; i++)
+        {
+            glMaterials[i] = BindMaterial(meshRenderer.Materials[i]);
+        }
+
+        GLRenderTarget renderTarget = _glContext.CreateGLRenderTarget(
+            meshRenderer.Transform,
+            vao,
+            mbo,
+            glMaterials,
+            meshRenderer.RenderOptions
+        );
+
+        if (!_linkedHandles.TryAdd(meshRenderer, renderTarget))
+        {
+            return;
+        }
+
+        RenderTargets.Add(renderTarget);
+        meshRenderer.Disposed += OnHandleDisposed;
     }
 
-    internal BufferObject<Matrix4x4> BindToMBO(VertexArrayObject<float, uint> vao)
+    private BufferObject<Matrix4x4> BindToMbo(VertexArrayObject<float, uint> vao)
     {
-        if (!LinkedHandles.TryGetValue(vao, out IHandle? handle))
+        if (_linkedHandles.TryGetValue(vao, out IHandle? handle))
         {
-            handle = GLContext.CreateBufferObject(Array.Empty<Matrix4x4>(), BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
-            LinkedHandles.TryAdd(vao, handle);
+            return Unsafe.As<BufferObject<Matrix4x4>>(handle);
         }
 
+        handle = _glContext.CreateBufferObject(Array.Empty<Matrix4x4>(), BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
+        _linkedHandles.TryAdd(vao, handle);
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
 }

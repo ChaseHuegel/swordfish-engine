@@ -24,6 +24,7 @@ public struct PhysicsComponent : IDataComponent
         CollisionDetection = collisionDetection;
     }
 
+    // ReSharper disable once UnusedMember.Global
     public PhysicsComponent(byte layer, BodyType type, CollisionDetection collisionDetection, Vector3 velocity, Vector3 torque)
     {
         Layer = layer;

@@ -37,13 +37,13 @@ public class SilkWindowContext : IWindowContext
     private IShortcutService ShortcutService { get; }
     private ILogger Logger { get; }
 
-    private readonly GL GL;
-    private readonly SynchronizationContext MainThread;
+    private readonly GL _gl;
+    private readonly SynchronizationContext _mainThread;
 
     public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, ILogger logger)
     {
-        GL = gl;
-        MainThread = mainThread;
+        _gl = gl;
+        _mainThread = mainThread;
         Window = window;
         UIContext = uiContext;
         InputService = inputService;
@@ -83,13 +83,13 @@ public class SilkWindowContext : IWindowContext
         );
 
         Logger.LogInformation("Window initialized using OpenGL {gl}, GLSL {glsl}, and Renderer {renderer}",
-            GL.GetStringS(StringName.Version),
-            GL.GetStringS(StringName.ShadingLanguageVersion),
-            GL.GetStringS(StringName.Renderer)
+            _gl.GetStringS(StringName.Version),
+            _gl.GetStringS(StringName.ShadingLanguageVersion),
+            _gl.GetStringS(StringName.Renderer)
         );
 
-        Logger.LogDebug("OpenGL MaxVertexAttribs: {maxVertexAttribs}", GL.GetInt(GetPName.MaxVertexAttribs));
-        Logger.LogDebug("OpenGL extensions: {extensions}", string.Join(", ", GL.GetExtensions()));
+        Logger.LogDebug("OpenGL MaxVertexAttribs: {maxVertexAttribs}", _gl.GetInt(GetPName.MaxVertexAttribs));
+        Logger.LogDebug("OpenGL extensions: {extensions}", string.Join(", ", _gl.GetExtensions()));
 
         UIContext.Initialize();
         Loaded?.Invoke();
@@ -102,32 +102,32 @@ public class SilkWindowContext : IWindowContext
 
     public void Close()
     {
-        MainThread.WaitFor(Window.Close);
+        _mainThread.WaitFor(Window.Close);
     }
 
     public void SetWindowed()
     {
-        MainThread.WaitFor(() => Window.WindowState = WindowState.Normal);
+        _mainThread.WaitFor(() => Window.WindowState = WindowState.Normal);
     }
 
     public void Minimize()
     {
-        MainThread.WaitFor(() => Window.WindowState = WindowState.Minimized);
+        _mainThread.WaitFor(() => Window.WindowState = WindowState.Minimized);
     }
 
     public void Maximize()
     {
-        MainThread.WaitFor(() => Window.WindowState = WindowState.Maximized);
+        _mainThread.WaitFor(() => Window.WindowState = WindowState.Maximized);
     }
 
     public void Fullscreen()
     {
-        MainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
+        _mainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
     }
 
     private void OnClose()
     {
-        GL.Dispose();
+        _gl.Dispose();
         Closed?.Invoke();
     }
 
@@ -146,7 +146,7 @@ public class SilkWindowContext : IWindowContext
 
     private void OnResize(Vector2D<int> size)
     {
-        GL.Viewport(size);
+        _gl.Viewport(size);
         Resized?.Invoke(new Vector2(size.X, size.Y));
     }
 

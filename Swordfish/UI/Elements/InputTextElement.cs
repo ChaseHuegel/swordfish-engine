@@ -14,16 +14,16 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
 {
     public string? Name { get; set; }
 
-    public string UniqueName => uniqueName ??= Name + "##" + UID;
-    private string? uniqueName;
+    public string UniqueName => _uniqueName ??= Name + "##" + UID;
+    private string? _uniqueName;
 
     public EventHandler<string?>? Submit;
 
     public string? Text {
-        get => text;
-        set => text = value;
+        get => _text;
+        set => _text = value;
     }
-    private string? text;
+    private string? _text;
 
     public int Length { get; set; }
 
@@ -35,7 +35,7 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
 
     public Tooltip Tooltip { get; set; }
 
-    public RectConstraints Constraints { get; set; } = new RectConstraints();
+    public RectConstraints Constraints { get; set; } = new();
 
     protected ITooltipProperty TooltipProperty => this;
     protected IColorProperty ColorProperty => this;
@@ -88,17 +88,25 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
 
         float labelWidth = ImGui.CalcTextSize(Label).X;
         float width = Constraints.Width?.GetValue(Constraints.Max.X) ?? Constraints.Max.X;
-        if (Wrap) ImGui.PushTextWrapPos(width - labelWidth);
+        if (Wrap)
+        {
+            ImGui.PushTextWrapPos(width - labelWidth);
+        }
 
         if (Text != null && Text.StartsWith("- "))
+        {
             ImGui.BulletText(Text.TrimStart('-', ' '));
-        else if (ImGui.InputText(UniqueName, ref text, (uint)Length, ImGuiInputTextFlags.EnterReturnsTrue))
+        }
+        else if (ImGui.InputText(UniqueName, ref _text, (uint)Length, ImGuiInputTextFlags.EnterReturnsTrue))
         {
             Unfocus();
             UIContext.ThreadContext.Post(InputCallback!, this);
         }
 
-        if (Wrap) ImGui.PopTextWrapPos();
+        if (Wrap)
+        {
+            ImGui.PopTextWrapPos();
+        }
 
         TooltipProperty.RenderTooltip();
 
@@ -117,7 +125,7 @@ public class InputTextElement : Element, ITextProperty, ILabelProperty, IColorPr
     //  respected and we aren't invoking potentially state-changing code in-line.
     private void InputCallback(object target)
     {
-        InputTextElement inputText = Unsafe.As<InputTextElement>(target);
+        var inputText = Unsafe.As<InputTextElement>(target);
         inputText!.Submit?.Invoke(inputText, inputText.Text);
     }
 }

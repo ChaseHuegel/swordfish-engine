@@ -444,7 +444,7 @@ public class Demo : IEntryPoint, IAutoActivate
         int shipEntity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
         store.AddOrUpdate(shipEntity, transform);
         store.AddOrUpdate(shipEntity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(shipEntity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
+        store.AddOrUpdate(shipEntity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         store.AddOrUpdate(shipEntity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
 
         material = new Material(shader, textureArray)
@@ -516,7 +516,7 @@ public class Demo : IEntryPoint, IAutoActivate
         int entity = store.Alloc(new IdentifierComponent("Terrain", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NON_MOVING, BodyType.Static, CollisionDetection.Discrete));
         store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
     }
 
@@ -764,7 +764,7 @@ public class Demo : IEntryPoint, IAutoActivate
         entity.AddOrUpdate(new IdentifierComponent("Floor", null));
         entity.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)));
         entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)));
-        entity.AddOrUpdate(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        entity.AddOrUpdate(new PhysicsComponent(Layers.NON_MOVING, BodyType.Static, CollisionDetection.Discrete));
         entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
 
         for (var i = 0; i < 1000; i++)
@@ -773,7 +773,7 @@ public class Demo : IEntryPoint, IAutoActivate
             entity.AddOrUpdate(new IdentifierComponent($"Physics Body {i}", null));
             entity.AddOrUpdate(new TransformComponent(new Vector3(0, 200 + i * 2, 0), Quaternion.Identity));
             entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
-            entity.AddOrUpdate(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
+            entity.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Discrete));
             entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
         }
     }

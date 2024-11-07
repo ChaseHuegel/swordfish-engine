@@ -4,7 +4,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO;
 
-internal class OBJParser : IFileParser<Mesh>
+internal class ObjParser : IFileParser<Mesh>
 {
     public string[] SupportedExtensions { get; } =
     [
@@ -21,31 +21,33 @@ internal class OBJParser : IFileParser<Mesh>
 
     private static Mesh ParseFromReader(StreamReader reader, float scale = 1f)
     {
-        List<uint> vertexIndicies = new();
-        List<uint> uvIndicies = new();
-        List<uint> normalIndicies = new();
+        List<uint> vertexIndices = [];
+        List<uint> uvIndices = [];
+        List<uint> normalIndices = [];
 
-        List<Vector3> vertexData = new();
-        List<Vector3> normalData = new();
-        List<Vector3> uvData = new();
+        List<Vector3> vertexData = [];
+        List<Vector3> normalData = [];
+        List<Vector3> uvData = [];
 
-        List<uint> triangles = new();
-        List<Vector3> vertices = new();
-        List<Vector3> normals = new();
-        List<Vector3> uv = new();
-        List<Vector4> colors = new();
+        List<uint> triangles = [];
+        List<Vector3> vertices = [];
+        List<Vector3> normals = [];
+        List<Vector3> uv = [];
+        List<Vector4> colors = [];
 
         uint triangleIndex = 0;
 
         while (!reader.EndOfStream)
         {
-            List<string> entries = reader.ReadLine()?.ToLower().Split(' ').ToList() ?? new List<string>();
+            List<string> entries = reader.ReadLine()?.ToLower().Split(' ').ToList() ?? [];
 
             //  Remove any whitespace
             entries.RemoveAll(string.IsNullOrWhiteSpace);
 
             if (entries.Count <= 0)
+            {
                 continue;
+            }
 
             string token = entries[0];
             entries.RemoveAt(0);
@@ -68,22 +70,22 @@ internal class OBJParser : IFileParser<Mesh>
 
                 //  Triangles
                 case "f":
-                    List<string> values = new();
+                    List<string> values = [];
                     values.AddRange(entries[0].Split('/'));
                     values.AddRange(entries[1].Split('/'));
                     values.AddRange(entries[2].Split('/'));
 
-                    vertexIndicies.Add(uint.Parse(values[0]) - 1);
-                    uvIndicies.Add(uint.Parse(values[1]) - 1);
-                    normalIndicies.Add(uint.Parse(values[2]) - 1);
+                    vertexIndices.Add(uint.Parse(values[0]) - 1);
+                    uvIndices.Add(uint.Parse(values[1]) - 1);
+                    normalIndices.Add(uint.Parse(values[2]) - 1);
 
-                    vertexIndicies.Add(uint.Parse(values[3]) - 1);
-                    uvIndicies.Add(uint.Parse(values[4]) - 1);
-                    normalIndicies.Add(uint.Parse(values[5]) - 1);
+                    vertexIndices.Add(uint.Parse(values[3]) - 1);
+                    uvIndices.Add(uint.Parse(values[4]) - 1);
+                    normalIndices.Add(uint.Parse(values[5]) - 1);
 
-                    vertexIndicies.Add(uint.Parse(values[6]) - 1);
-                    uvIndicies.Add(uint.Parse(values[7]) - 1);
-                    normalIndicies.Add(uint.Parse(values[8]) - 1);
+                    vertexIndices.Add(uint.Parse(values[6]) - 1);
+                    uvIndices.Add(uint.Parse(values[7]) - 1);
+                    normalIndices.Add(uint.Parse(values[8]) - 1);
 
                     triangles.Add(triangleIndex);
                     triangles.Add(triangleIndex + 1);
@@ -93,20 +95,20 @@ internal class OBJParser : IFileParser<Mesh>
             }
         }
 
-        foreach (uint vertexIndex in vertexIndicies)
+        foreach (uint vertexIndex in vertexIndices)
         {
             Vector3 vertex = vertexData[(int)vertexIndex];
             vertices.Add(vertex * scale);
             colors.Add(new Vector4(1f));
         }
 
-        foreach (uint uvIndex in uvIndicies)
+        foreach (uint uvIndex in uvIndices)
         {
             Vector3 vt = uvData[(int)uvIndex];
             uv.Add(vt);
         }
 
-        foreach (uint normalIndex in normalIndicies)
+        foreach (uint normalIndex in normalIndices)
         {
             Vector3 normal = normalData[(int)normalIndex];
             normals.Add(normal);

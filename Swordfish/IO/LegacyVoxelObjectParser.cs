@@ -37,7 +37,7 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
             string entry = reader.ReadLine()!;
             string[] sections = entry.Split('/');
 
-            for (int i = 0; i < sections.Length; i++)
+            for (var i = 0; i < sections.Length; i++)
             {
                 string[] section = sections[i].Split(':');
                 string tag = section[0];
@@ -47,13 +47,22 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
                 {
                     case "v":
                         if (value.Contains("SLOPE"))
+                        {
                             brick = new Brick(2);
+                        }
                         else if (value.Equals("THRUSTER_ROCKET"))
+                        {
                             brick = new Brick(3);
+                        }
                         else if (value.Equals("THRUSTER_ROCKET_INTERNAL"))
+                        {
                             brick = new Brick(4);
+                        }
                         else
+                        {
                             brick = new Brick(1);
+                        }
+
                         brick.Name = value.ToLower();
                         break;
 
@@ -75,7 +84,9 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
             }
 
             if (brick.ID > 0 && x >= 0 && y >= 0 && z >= 0)
+            {
                 brickGrid.Set(x, y, z, brick);
+            }
         }
 
         return brickGrid;

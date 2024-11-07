@@ -5,43 +5,43 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
 {
-    public string Name { get; private set; }
+    public string Name { get; }
 
-    private readonly GL GL;
+    private readonly GL _gl;
     // ReSharper disable once NotAccessedField.Local
-    private readonly byte MipmapLevels; //  TODO implement mipmaps
+    private readonly byte _mipmapLevels; //  TODO implement mipmaps
 
     public unsafe TexImage2D(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
     {
-        GL = gl;
+        _gl = gl;
         Name = name;
-        MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+        _mipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
         Activate();
 
         //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
-        GL.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
         SetDefaultParameters();
     }
 
     protected override uint CreateHandle()
     {
-        return GL.GenTexture();
+        return _gl.GenTexture();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteTexture(Handle);
+        _gl.DeleteTexture(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.BindTexture(TextureTarget.Texture2D, Handle);
+        _gl.BindTexture(TextureTarget.Texture2D, Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.BindTexture(TextureTarget.Texture2D, 0);
+        _gl.BindTexture(TextureTarget.Texture2D, 0);
     }
 
     public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
@@ -51,19 +51,19 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
             return;
         }
 
-        GL.ActiveTexture(textureSlot);
+        _gl.ActiveTexture(textureSlot);
         Bind();
     }
 
     private void SetDefaultParameters()
     {
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-        GL.GenerateMipmap(TextureTarget.Texture2D);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
+        _gl.GenerateMipmap(TextureTarget.Texture2D);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -80,12 +80,7 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
             return true;
         }
 
-        if (obj is not TexImage2D other)
-        {
-            return false;
-        }
-
-        return Equals(other);
+        return obj is TexImage2D other && Equals(other);
     }
 
     public override int GetHashCode()

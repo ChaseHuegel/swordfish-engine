@@ -2,6 +2,6 @@ namespace Swordfish.Physics;
 
 public static class Layers
 {
-    public const byte NonMoving = 0;
-    public const byte Moving = 1;
+    public const byte NON_MOVING = 0;
+    public const byte MOVING = 1;
 };

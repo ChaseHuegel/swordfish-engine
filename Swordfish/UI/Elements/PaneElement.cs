@@ -4,11 +4,10 @@ using Swordfish.UI.ImGuiNET;
 
 namespace Swordfish.UI.Elements;
 
-public class PaneElement : AbstractPaneElement
+public class PaneElement(in string? name) : AbstractPaneElement(name)
 {
-    public PaneElement() : base(null) { }
-
-    public PaneElement(string? name) : base(name) { }
+    // ReSharper disable once UnusedMember.Global
+    public PaneElement() : this(null) { }
 
     protected override void OnRender()
     {

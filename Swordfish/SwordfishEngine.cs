@@ -15,11 +15,13 @@ public static class SwordfishEngine
     private static Version? _version;
     private static Kernel? _kernel;
 
+    // ReSharper disable once UnusedMember.Global
     public static void Stop(int exitCode = 0)
     {
         Program.Stop(exitCode);
     }
 
+    // ReSharper disable once UnusedMember.Global
     public static void Crash(int exitCode = (int)ExitCode.Crash)
     {
         Program.Crash(exitCode);

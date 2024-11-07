@@ -1,27 +1,22 @@
 using System.Numerics;
 using ImGuiNET;
 using Swordfish.Types;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.UI.ImGuiNET;
 
 //  Based on BeginGroupPanel by thedmd
 //      https://github.com/ocornut/imgui/issues/1496#issuecomment-655048353
-public partial class ImGuiEx
+// ReSharper disable once PartialTypeWithSinglePart
+public static partial class ImGuiEx
 {
-    private static readonly Stack<Pane> PaneStack = new();
+    private static readonly Stack<Pane> _paneStack = new();
 
-    private struct Pane
+    private struct Pane(in Rect2 labelRect, in bool border, in bool title)
     {
-        public readonly Rect2 LabelRect;
-        public readonly bool Border;
-        public readonly bool Title;
-
-        public Pane(Rect2 labelRect, bool border, bool title)
-        {
-            LabelRect = labelRect;
-            Border = border;
-            Title = title;
-        }
+        public readonly Rect2 LabelRect = labelRect;
+        public readonly bool Border = border;
+        public readonly bool Title = title;
     }
 
     /// <summary>
@@ -44,20 +39,20 @@ public partial class ImGuiEx
     /// <inheritdoc cref="BeginPane(string?)"/>
     public static void BeginPane(string? name, Vector2 size, bool border)
     {
-        var title = !string.IsNullOrWhiteSpace(name);
+        bool title = !string.IsNullOrWhiteSpace(name);
 
         ImGui.BeginGroup();
 
-        var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        Vector2 itemSpacing = ImGui.GetStyle().ItemSpacing;
 
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
 
-        var frameHeight = ImGui.GetFrameHeight();
+        float frameHeight = ImGui.GetFrameHeight();
 
         ImGui.BeginGroup();
 
-        var effectiveSize = size;
+        Vector2 effectiveSize = size;
         if (size.X < 0f)
         {
             effectiveSize.X = ImGui.GetContentRegionAvail().X;
@@ -108,7 +103,7 @@ public partial class ImGuiEx
 
         ImGui.PushItemWidth(Math.Max(0f, ImGui.CalcItemWidth() - frameHeight));
 
-        PaneStack.Push(
+        _paneStack.Push(
             new Pane
             (
                 new Rect2(labelMin, labelMax),
@@ -120,16 +115,16 @@ public partial class ImGuiEx
 
     public static void EndPane()
     {
-        var pane = PaneStack.Pop();
+        Pane pane = _paneStack.Pop();
 
         ImGui.PopItemWidth();
 
-        var itemSpacing = ImGui.GetStyle().ItemSpacing;
+        Vector2 itemSpacing = ImGui.GetStyle().ItemSpacing;
 
         ImGui.PushStyleVar(ImGuiStyleVar.FramePadding, Vector2.Zero);
         ImGui.PushStyleVar(ImGuiStyleVar.ItemSpacing, Vector2.Zero);
 
-        var frameHeight = ImGui.GetFrameHeight();
+        float frameHeight = ImGui.GetFrameHeight();
 
         ImGui.EndGroup();
         ImGui.EndGroup();
@@ -147,36 +142,36 @@ public partial class ImGuiEx
 
         ImGui.EndGroup();
 
-        var itemMin = ImGui.GetItemRectMin();
-        var itemMax = ImGui.GetItemRectMax();
+        Vector2 itemMin = ImGui.GetItemRectMin();
+        Vector2 itemMax = ImGui.GetItemRectMax();
 
-        var labelRect = pane.LabelRect;
+        Rect2 labelRect = pane.LabelRect;
         labelRect.Min.X -= itemSpacing.X;
         labelRect.Max.X += itemSpacing.X;
 
         if (pane.Border)
         {
-            var halfFrame = pane.Title ? new Vector2(frameHeight * 0.25f, frameHeight) * 0.5f : Vector2.Zero;
-            var frameRect = new Rect2(itemMin + halfFrame, itemMax - new Vector2(halfFrame.X, -halfFrame.Y));
-            for (int i = 0; i < 4; i++)
+            Vector2 halfFrame = pane.Title ? new Vector2(frameHeight * 0.25f, frameHeight) * 0.5f : Vector2.Zero;
+            var frameRect = new Rect2(itemMin + halfFrame, itemMax - halfFrame with { Y = -halfFrame.Y });
+            for (var i = 0; i < 4; i++)
             {
                 switch (i)
                 {
                     case 0:
-                        ImGui.PushClipRect(new Vector2(-float.MaxValue), new Vector2(labelRect.Min.X, float.MaxValue), true);
+                        ImGui.PushClipRect(new Vector2(-float.MaxValue), labelRect.Min with { Y = float.MaxValue }, true);
                         break;
                     case 1:
-                        ImGui.PushClipRect(new Vector2(labelRect.Max.X, -float.MaxValue), new Vector2(float.MaxValue), true);
+                        ImGui.PushClipRect(labelRect.Max with { Y = -float.MaxValue }, new Vector2(float.MaxValue), true);
                         break;
                     case 2:
-                        ImGui.PushClipRect(new Vector2(labelRect.Min.X, -float.MaxValue), new Vector2(labelRect.Max.X, labelRect.Min.Y), true);
+                        ImGui.PushClipRect(labelRect.Min with { Y = -float.MaxValue }, new Vector2(labelRect.Max.X, labelRect.Min.Y), true);
                         break;
                     case 3:
-                        ImGui.PushClipRect(new Vector2(labelRect.Min.X, labelRect.Max.Y), new Vector2(labelRect.Max.X, float.MaxValue), true);
+                        ImGui.PushClipRect(new Vector2(labelRect.Min.X, labelRect.Max.Y), labelRect.Max with { Y = float.MaxValue }, true);
                         break;
                 }
 
-                var drawList = ImGui.GetWindowDrawList();
+                ImDrawListPtr drawList = ImGui.GetWindowDrawList();
                 drawList.AddRect(frameRect.Min, frameRect.Max, ImGui.GetColorU32(ImGuiCol.Border), halfFrame.X);
 
                 ImGui.PopClipRect();

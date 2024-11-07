@@ -5,43 +5,43 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
 {
-    public string Name { get; private set; }
+    public string Name { get; }
 
-    private readonly GL GL;
+    private readonly GL _gl;
     // ReSharper disable once NotAccessedField.Local
-    private readonly byte MipmapLevels; //  TODO implement mipmaps
+    private readonly byte _mipmapLevels; //  TODO implement mipmaps
 
     public unsafe TexImage3D(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
     {
-        GL = gl;
+        _gl = gl;
         Name = name;
-        MipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+        _mipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
         Activate();
 
         //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
-        GL.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.Rgba, width, height, depth, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
+        _gl.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.Rgba, width, height, depth, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
         SetDefaultParameters();
     }
 
     protected override uint CreateHandle()
     {
-        return GL.GenTexture();
+        return _gl.GenTexture();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteTexture(Handle);
+        _gl.DeleteTexture(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.BindTexture(TextureTarget.Texture2DArray, Handle);
+        _gl.BindTexture(TextureTarget.Texture2DArray, Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.BindTexture(TextureTarget.Texture2DArray, 0);
+        _gl.BindTexture(TextureTarget.Texture2DArray, 0);
     }
 
     public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
@@ -51,19 +51,19 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
             return;
         }
 
-        GL.ActiveTexture(textureSlot);
+        _gl.ActiveTexture(textureSlot);
         Bind();
     }
 
     private void SetDefaultParameters()
     {
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureBaseLevel, 0);
-        GL.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMaxLevel, 0);
-        GL.GenerateMipmap(TextureTarget.Texture2DArray);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureBaseLevel, 0);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMaxLevel, 0);
+        _gl.GenerateMipmap(TextureTarget.Texture2DArray);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

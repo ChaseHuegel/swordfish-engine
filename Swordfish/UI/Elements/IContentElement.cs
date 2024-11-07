@@ -1,4 +1,5 @@
 using Swordfish.Library.Collections;
+// ReSharper disable UnusedMemberInSuper.Global
 
 namespace Swordfish.UI.Elements;
 
