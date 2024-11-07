@@ -14,7 +14,7 @@ internal sealed partial class ImGuiContext
         Elements.Add(element);
     }
 
-    public CanvasElement NewCanvas(string name)
+    public CanvasElement? NewCanvas(string name)
     {
         return new CanvasElement(this, name);
     }

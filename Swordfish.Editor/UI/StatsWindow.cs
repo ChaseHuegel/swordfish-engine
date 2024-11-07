@@ -58,7 +58,7 @@ public class StatsWindow : CanvasElement
             double value = 1000d / (e.NewValue * 1000d);
             sampler.Record(value);
             displayElement.Label = sampler.Average.ToString("F0");
-        };
+        }
 
         Content.Add(displayElement);
     }
@@ -74,7 +74,7 @@ public class StatsWindow : CanvasElement
             double value = e.NewValue * 1000d;
             sampler.Record(value);
             displayElement.Label = sampler.Average.ToString("F2") + "ms";
-        };
+        }
 
         Content.Add(displayElement);
     }
@@ -89,7 +89,7 @@ public class StatsWindow : CanvasElement
         {
             sampler.Record(e.NewValue);
             displayElement.Label = sampler.Average.ToString("F4");
-        };
+        }
 
         Content.Add(displayElement);
     }
@@ -102,7 +102,7 @@ public class StatsWindow : CanvasElement
         void OnDataChanged(object? sender, DataChangedEventArgs<int> e)
         {
             displayElement.Label = e.NewValue.ToString("F0");
-        };
+        }
 
         Content.Add(displayElement);
     }

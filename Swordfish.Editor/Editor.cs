@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Numerics;
@@ -25,6 +26,7 @@ using Swordfish.UI.Elements;
 
 namespace Swordfish.Editor;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class Editor : IEntryPoint, IAutoActivate
 {
     private const ImGuiWindowFlags EDITOR_CANVAS_FLAGS = ImGuiWindowFlags.AlwaysAutoResize
@@ -32,8 +34,6 @@ public class Editor : IEntryPoint, IAutoActivate
 
     private readonly IWindowContext _windowContext;
     private readonly IECSContext _ecsContext;
-    private readonly IFileParseService _fileParseService;
-    private readonly VirtualFileSystem _vfs;
     private readonly IRenderContext _renderContext;
     private readonly IInputService _inputService;
     private readonly IUIContext _uiContext;
@@ -42,16 +42,14 @@ public class Editor : IEntryPoint, IAutoActivate
     private readonly LogListener _logListener;
     private readonly ILogger _logger;
 
-    private static CanvasElement _hierarchy;
+    private static CanvasElement? _hierarchy;
 
-    private Action _fileWrite;
+    private Action? _fileWrite;
 
-    public Editor(IWindowContext windowContext, IFileParseService fileParseService, IECSContext ecsContext, VirtualFileSystem vfs, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, ILogger logger)
+    public Editor(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, ILogger logger)
     {
         _windowContext = windowContext;
-        _fileParseService = fileParseService;
         _ecsContext = ecsContext;
-        _vfs = vfs;
         _renderContext = renderContext;
         _inputService = inputService;
         _uiContext = uiContext;
@@ -63,7 +61,7 @@ public class Editor : IEntryPoint, IAutoActivate
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
 
-        //  Setup the hierarchy
+        //  Set up the hierarchy
         _ecsContext.World.AddSystem(new HierarchySystem());
         _hierarchy = _uiContext.NewCanvas("Hierarchy");
         _hierarchy.Flags = EDITOR_CANVAS_FLAGS;
@@ -122,6 +120,7 @@ public class Editor : IEntryPoint, IAutoActivate
             statsWindow.Visible = e.NewValue;
         }
 
+        // ReSharper disable once UnusedVariable
         MenuBarElement menuBar = new(_uiContext)
         {
             Content = {
@@ -161,12 +160,15 @@ public class Editor : IEntryPoint, IAutoActivate
                             ShortcutModifiers.CONTROL,
                             Key.O,
                             Shortcut.DefaultEnabled,
-                            () => {
-                                if (TreeNode.Selected.Get() is DataTreeNode<PathInfo> pathNode)
+                            () =>
+                            {
+                                if (TreeNode.Selected.Get() is not DataTreeNode<PathInfo> pathNode)
                                 {
-                                    _logger.LogInformation("Opening {path}", pathNode.Data.Get());
-                                    pathNode.Data.Get().TryOpenInDefaultApp();
+                                    return;
                                 }
+
+                                _logger.LogInformation("Opening {path}", pathNode.Data.Get());
+                                pathNode.Data.Get().TryOpenInDefaultApp();
                             }
                         )),
                         new MenuBarItemElement("Save", new Shortcut(
@@ -258,7 +260,7 @@ public class Editor : IEntryPoint, IAutoActivate
                 new TextElement("Swordfish Engine " + SwordfishEngine.Version)
                 {
                     Wrap = false,
-                    Constraints = new RectConstraints()
+                    Constraints = new RectConstraints
                     {
                         Anchor = ConstraintAnchor.TOP_RIGHT,
                     },
@@ -314,7 +316,7 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             List<IElement> removalList = RefreshContentRecursively(assetBrowser);
             removalList.Reverse();
-            foreach (var element in removalList)
+            foreach (IElement element in removalList)
             {
                 element.Parent?.Content.Remove(element);
             }
@@ -334,7 +336,7 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (TreeNode child in element.Content.OfType<DataTreeNode<PathInfo>>())
+            foreach (DataTreeNode<PathInfo> child in element.Content.OfType<DataTreeNode<PathInfo>>())
             {
                 removalList.AddRange(RefreshContentRecursively(child));
             }
@@ -380,99 +382,97 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             inspector.Content.Clear();
 
-            if (args.NewValue is DataTreeNode<Entity> entityNode)
+            switch (args.NewValue)
             {
-                var entity = entityNode.Data.Get();
-                BuildInpsectorView(inspector, entity);
-
-                var components = entity.GetAllData();
-                foreach (var component in components)
+                case DataTreeNode<Entity> entityNode:
                 {
-                    if (component == null)
+                    Entity entity = entityNode.Data.Get();
+                    BuildInspectorView(inspector, entity);
+
+                    Span<IDataComponent> components = entity.GetAllData();
+                    foreach (IDataComponent component in components)
                     {
-                        continue;
+                        BuildInspectorView(inspector, component);
                     }
 
-                    BuildInpsectorView(inspector, component);
+                    break;
                 }
-            }
-            else if (args.NewValue is DataTreeNode<PathInfo> pathNode)
-            {
-                if (!File.Exists(pathNode.Data.Get().Value))
-                {
+                case DataTreeNode<PathInfo> pathNode when !File.Exists(pathNode.Data.Get().Value):
                     return;
-                }
-
-                var fileInfo = new FileInfo(pathNode.Data.Get().Value);
-                var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
+                case DataTreeNode<PathInfo> pathNode:
                 {
-                    Constraints = {
-                        Width = new FillConstraint(),
-                    },
-                    Content = {
-                        new PaneElement($"File ({fileInfo.Extension})")
-                        {
-                            Tooltip = new Tooltip
+                    var fileInfo = new FileInfo(pathNode.Data.Get().Value);
+                    var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
+                    {
+                        Constraints = {
+                            Width = new FillConstraint(),
+                        },
+                        Content = {
+                            new PaneElement($"File ({fileInfo.Extension})")
                             {
-                                Text = fileInfo.Extension,
+                                Tooltip = new Tooltip
+                                {
+                                    Text = fileInfo.Extension,
+                                },
+                                Constraints = new RectConstraints
+                                {
+                                    Width = new FillConstraint(),
+                                },
+                                Content = {
+                                    new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name)),
+                                },
                             },
-                            Constraints = new RectConstraints()
+                            new PaneElement("Size")
                             {
-                                Width = new FillConstraint(),
+                                Constraints = new RectConstraints
+                                {
+                                    Width = new FillConstraint(),
+                                },
+                                Content = {
+                                    new TextElement(ByteSize.FromBytes(fileInfo.Length).ToString()),
+                                },
                             },
-                            Content = {
-                                new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name)),
+                            new PaneElement("Modified")
+                            {
+                                Constraints = new RectConstraints
+                                {
+                                    Width = new FillConstraint(),
+                                },
+                                Content = {
+                                    new TextElement(fileInfo.LastWriteTime.ToString(CultureInfo.InvariantCulture)),
+                                },
+                            },
+                            new PaneElement("Created")
+                            {
+                                Constraints = new RectConstraints
+                                {
+                                    Width = new FillConstraint(),
+                                },
+                                Content = {
+                                    new TextElement(fileInfo.CreationTime.ToString(CultureInfo.InvariantCulture)),
+                                },
+                            },
+                            new PaneElement("Location")
+                            {
+                                Constraints = new RectConstraints
+                                {
+                                    Width = new FillConstraint(),
+                                },
+                                Content = {
+                                    new TextElement(pathNode.Data.Get().ToString()),
+                                },
                             },
                         },
-                        new PaneElement("Size")
-                        {
-                            Constraints = new RectConstraints()
-                            {
-                                Width = new FillConstraint(),
-                            },
-                            Content = {
-                                new TextElement(ByteSize.FromBytes(fileInfo.Length).ToString()),
-                            },
-                        },
-                        new PaneElement("Modified")
-                        {
-                            Constraints = new RectConstraints()
-                            {
-                                Width = new FillConstraint(),
-                            },
-                            Content = {
-                                new TextElement(fileInfo.LastWriteTime.ToString()),
-                            },
-                        },
-                        new PaneElement("Created")
-                        {
-                            Constraints = new RectConstraints()
-                            {
-                                Width = new FillConstraint(),
-                            },
-                            Content = {
-                                new TextElement(fileInfo.CreationTime.ToString()),
-                            },
-                        },
-                        new PaneElement("Location")
-                        {
-                            Constraints = new RectConstraints()
-                            {
-                                Width = new FillConstraint(),
-                            },
-                            Content = {
-                                new TextElement(pathNode.Data.Get().ToString()),
-                            },
-                        },
-                    },
-                };
+                    };
 
-                inspector.Content.Add(group);
+                    inspector.Content.Add(group);
+                    break;
+                }
             }
         };
     }
 
-    private static void BuildInpsectorView(ContentElement contentElement, object component, int depth = 0)
+    private static void BuildInspectorView(ContentElement contentElement, object component, int depth = 0)
     {
         //  TODO setting this too far can result in throws due to reflection hitting something it shouldn't
         //  TODO setting this too deep (really beyond 2) is noisey and mostly useless since there is no filtering of what is displayed yet
@@ -481,12 +481,9 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             return;
         }
-        else
-        {
-            depth++;
-        }
+        depth++;
 
-        var componentType = component.GetType();
+        Type componentType = component.GetType();
         var group = new PaneElement(componentType.Name.ToTitle())
         {
             Constraints = {
@@ -494,28 +491,28 @@ public class Editor : IEntryPoint, IAutoActivate
             },
         };
 
-        var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
-        var publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+        PropertyInfo[]? publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
+        FieldInfo[]? publicStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
 
-        var publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
-        var publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+        PropertyInfo[]? publicInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
+        FieldInfo[]? publicInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PUBLIC_INSTANCE);
 
-        var privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
-        var privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
+        PropertyInfo[]? privateStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_STATIC);
+        FieldInfo[]? privateStaticFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_STATIC, true);    //  Ignore backing fields
 
-        var privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
-        var privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
+        PropertyInfo[]? privateInstanceProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE);
+        FieldInfo[]? privateInstanceFields = Reflection.GetFields(componentType, Reflection.BINDINGS_PRIVATE_INSTANCE, true);    //  Ignore backing fields
 
         if (publicInstanceProperties.Length > 0 || publicInstanceFields.Length > 0)
         {
             var publicGroup = new ColorBlockElement(Color.White);
             group.Content.Add(publicGroup);
 
-            foreach (var property in publicInstanceProperties)
+            foreach (PropertyInfo property in publicInstanceProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(publicGroup, property.GetValue(component)!, depth);
+                    BuildInspectorView(publicGroup, property.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -523,11 +520,11 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (var field in publicInstanceFields)
+            foreach (FieldInfo field in publicInstanceFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(publicGroup, field.GetValue(component)!, depth);
+                    BuildInspectorView(publicGroup, field.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -543,11 +540,11 @@ public class Editor : IEntryPoint, IAutoActivate
 
             staticBlock.Content.Add(new TitleBarElement("Static Members", false, ConstraintAnchor.TOP_CENTER));
 
-            foreach (var property in publicStaticProperties)
+            foreach (PropertyInfo property in publicStaticProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(staticBlock, property.GetValue(component)!, depth);
+                    BuildInspectorView(staticBlock, property.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -555,11 +552,11 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (var field in publicStaticFields)  //  Ignore backing fields
+            foreach (FieldInfo field in publicStaticFields)  //  Ignore backing fields
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(staticBlock, field.GetValue(component)!, depth);
+                    BuildInspectorView(staticBlock, field.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -575,11 +572,11 @@ public class Editor : IEntryPoint, IAutoActivate
 
             privateBlock.Content.Add(new TitleBarElement("Members (private)", false, ConstraintAnchor.TOP_CENTER));
 
-            foreach (var property in privateInstanceProperties)
+            foreach (PropertyInfo property in privateInstanceProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(privateBlock, property.GetValue(component)!, depth);
+                    BuildInspectorView(privateBlock, property.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -587,11 +584,11 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (var field in privateInstanceFields)
+            foreach (FieldInfo field in privateInstanceFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(privateBlock, field.GetValue(component)!, depth);
+                    BuildInspectorView(privateBlock, field.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -607,11 +604,11 @@ public class Editor : IEntryPoint, IAutoActivate
 
             privateStaticBlock.Content.Add(new TitleBarElement("Static Members (private)", false, ConstraintAnchor.TOP_CENTER));
 
-            foreach (var property in privateStaticProperties)
+            foreach (PropertyInfo property in privateStaticProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(privateStaticBlock, property.GetValue(component)!, depth);
+                    BuildInspectorView(privateStaticBlock, property.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -619,11 +616,11 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (var field in privateStaticFields)
+            foreach (FieldInfo field in privateStaticFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
                 {
-                    BuildInpsectorView(privateStaticBlock, field.GetValue(component)!, depth);
+                    BuildInspectorView(privateStaticBlock, field.GetValue(component)!, depth);
                 }
                 else
                 {
@@ -691,7 +688,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
         private void ForEachEntity(float delta, DataStore store, int entity)
         {
-            if (!_populatedEntities.Add(entity))
+            if (_hierarchy == null || !_populatedEntities.Add(entity))
             {
                 return;
             }
@@ -733,8 +730,8 @@ public class Editor : IEntryPoint, IAutoActivate
             _inputService.CursorState = CursorState.NORMAL;
         }
 
-        var forward = camera.Transform.GetForward();
-        var right = camera.Transform.GetRight();
+        Vector3 forward = camera.Transform.GetForward();
+        Vector3 right = camera.Transform.GetRight();
 
         if (_inputService.IsKeyHeld(Key.W))
         {
