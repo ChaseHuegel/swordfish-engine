@@ -276,7 +276,7 @@ public class Demo : IEntryPoint, IAutoActivate
                 Mesh brickMesh = brick.ID == 1 ? cube : slope;
                 colors.AddRange(brickMesh.Colors);
                 normals.AddRange(brickMesh.Normals);
-                uv.AddRange(brickMesh.UV);
+                uv.AddRange(brickMesh.Uv);
 
                 foreach (uint tri in brickMesh.Triangles)
                 {
@@ -360,7 +360,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
                 Mesh brickMesh = MeshFromBrickID(brick.ID);
                 colors.AddRange(brickMesh.Colors);
-                uv.AddRange(brickMesh.UV);
+                uv.AddRange(brickMesh.Uv);
 
                 Mesh MeshFromBrickID(int id)
                 {
@@ -543,7 +543,12 @@ public class Demo : IEntryPoint, IAutoActivate
             for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
             for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
-                BrickGrid neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                BrickGrid? neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                if (neighbor == null)
+                {
+                    continue;
+                }
+                
                 BuildBrickGridPoints(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
             }
 
@@ -603,7 +608,12 @@ public class Demo : IEntryPoint, IAutoActivate
             for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
             for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
-                BrickGrid neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                BrickGrid? neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                if (neighbor == null)
+                {
+                    continue;
+                }
+                
                 BuildBrickGridMesh(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
             }
 
@@ -647,7 +657,7 @@ public class Demo : IEntryPoint, IAutoActivate
                     };
                 }
 
-                foreach (Vector3 texCoord in brickMesh.UV)
+                foreach (Vector3 texCoord in brickMesh.Uv)
                 {
                     int textureIndex = textureArray.IndexOf(brick.Name);
                     uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : metalPanelTex });
