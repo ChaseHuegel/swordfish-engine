@@ -1,15 +1,11 @@
 using System.Collections.Generic;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
-public class ReadOnlyQueue<T>
+public class ReadOnlyQueue<T>(params T[] values)
 {
-    private readonly Queue<T> _queue;
-
-    public ReadOnlyQueue(params T[] values)
-    {
-        _queue = new Queue<T>(values);
-    }
+    private readonly Queue<T> _queue = new(values);
 
     public T Take()
     {

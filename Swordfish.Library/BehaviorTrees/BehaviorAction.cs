@@ -1,5 +1,6 @@
 namespace Swordfish.Library.BehaviorTrees;
 
+// ReSharper disable once UnusedType.Global
 public abstract class BehaviorAction<TTarget> : BehaviorNode<TTarget>, IBehaviorAction
     where TTarget : class
 {

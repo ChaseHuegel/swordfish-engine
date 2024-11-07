@@ -1,24 +1,25 @@
 using Swordfish.Library.Types;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Constraints;
 
 public class AbsoluteConstraint : IConstraint
 {
-    private float value;
-    private DataBinding<float> binding;
+    private readonly float _value;
+    private readonly DataBinding<float> _binding;
 
     public AbsoluteConstraint(float value)
     {
-        this.value = value;
+        _value = value;
     }
 
     public AbsoluteConstraint(DataBinding<float> binding)
     {
-        this.binding = binding;
+        _binding = binding;
     }
 
     public float GetValue(float max)
     {
-        return binding != null ? binding.Get() : value;
+        return _binding?.Get() ?? _value;
     }
 }

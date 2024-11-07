@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -21,17 +22,15 @@ public class LockedObservableCollection<T> : Collection<T>, INotifyCollectionCha
         }
     }
 
-    public bool IsReadOnly => false;
-
     public event NotifyCollectionChangedEventHandler CollectionChanged;
 
     public LockedObservableCollection()
     {
-        _observableCollection = new ObservableCollection<T>();
-        _observableCollection.CollectionChanged += OnCollectinChanged;
+        _observableCollection = [];
+        _observableCollection.CollectionChanged += OnCollectionChanged;
     }
 
-    private void OnCollectinChanged(object sender, NotifyCollectionChangedEventArgs e)
+    private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
     {
         CollectionChanged?.Invoke(sender, e);
     }

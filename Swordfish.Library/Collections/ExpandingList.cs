@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -8,30 +9,27 @@ namespace Swordfish.Library.Collections;
 /// Represents a non-shrinking typed list
 /// </summary>
 /// <typeparam name="T"></typeparam>
+// ReSharper disable once UnusedType.Global
 public class ExpandingList<T> : IEnumerable
 {
     private T[] _array = new T[1];
 
-    /// <summary>
-    /// Number of indices in the list
-    /// </summary>
-    public int Count = 0;
+    public int Count;
 
     /// <summary>
     /// Try adding an element to the list, ignoring duplicates
     /// </summary>
-    /// <param name="value"></param>
-    /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAdd(T value)
     {
-        if (!Contains(value))
+        if (Contains(value))
         {
-            Add(value);
-            return true;
+            return false;
         }
 
-        return false;
+        Add(value);
+        return true;
+
     }
 
     /// <summary>
@@ -77,17 +75,12 @@ public class ExpandingList<T> : IEnumerable
 
     //  Enumerator
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    public ExpandingListEnum GetEnumerator() => new(_array);
+    private ExpandingListEnumerator GetEnumerator() => new(_array);
 
-    public class ExpandingListEnum : IEnumerator
+    private class ExpandingListEnumerator(in T[] array) : IEnumerator
     {
-        private T[] _array = new T[1];
+        private readonly T[] _array = array;
         private int _position = -1;
-
-        public ExpandingListEnum(T[] array)
-        {
-            _array = array;
-        }
 
         public bool MoveNext()
         {
@@ -100,10 +93,7 @@ public class ExpandingList<T> : IEnumerable
             _position = -1;
         }
 
-        object IEnumerator.Current
-        {
-            get => Current;
-        }
+        object IEnumerator.Current => Current;
 
         public T Current
         {

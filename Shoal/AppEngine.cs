@@ -64,7 +64,7 @@ public sealed class AppEngine : IDisposable
         {
             _logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
             
-            Result<Exception> result = Debugger.SafeInvoke(entryPoint.Run);
+            Result<Exception> result = Safe.Invoke(entryPoint.Run);
             if (!result)
             {
                 _logger.LogError(result.Value, "Failed to run entry point '{entryPoint}'", entryPoint.GetType());

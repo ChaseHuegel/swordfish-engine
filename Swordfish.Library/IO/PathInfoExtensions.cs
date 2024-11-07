@@ -4,8 +4,9 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.IO;
 
@@ -78,23 +79,13 @@ public static class PathInfoExtensions
         using Stream output = File.Open(path.Value, FileMode.OpenOrCreate, FileAccess.Write);
         stream.CopyTo(output);
     }
-        
-    public static PathInfo[] GetFiles(this PathInfo path)
-    {
-        return GetFiles(path, "*", SearchOption.TopDirectoryOnly);
-    }
-
-    public static PathInfo[] GetFiles(this PathInfo path, string searchPattern)
-    {
-        return GetFiles(path, searchPattern, SearchOption.TopDirectoryOnly);
-    }
 
     public static PathInfo[] GetFiles(this PathInfo path, SearchOption searchOption)
     {
         return GetFiles(path, "*", searchOption);
     }
 
-    public static PathInfo[] GetFiles(this PathInfo path, string searchPattern, SearchOption searchOption)
+    public static PathInfo[] GetFiles(this PathInfo path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
     {
         string dir = path.GetDirectory().Value;
         if (!Directory.Exists(dir))
@@ -116,7 +107,7 @@ public static class PathInfoExtensions
             Verb = "open",
         };
 
-        return Debugger.SafeInvoke(
+        return Safe.Invoke(
             () => Process.Start(processStartInfo)
         );
     }

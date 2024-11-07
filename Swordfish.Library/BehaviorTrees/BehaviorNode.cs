@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
 
 namespace Swordfish.Library.BehaviorTrees;
 
@@ -9,12 +11,12 @@ public abstract class BehaviorNode
 
     public BehaviorNode(params BehaviorNode[] children)
     {
-        Children = new List<BehaviorNode>(children);
+        Children = [..children];
     }
 
     public BehaviorNode(IEnumerable<BehaviorNode> children)
     {
-        Children = new List<BehaviorNode>(children);
+        Children = [..children];
     }
 
     public abstract BehaviorState Evaluate(object target, float delta);

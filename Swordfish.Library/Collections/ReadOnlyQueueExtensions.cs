@@ -1,4 +1,5 @@
 using System;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -11,13 +12,14 @@ public static class ReadOnlyQueueExtensions
 
     public static bool TryTake(this ReadOnlyQueue<string> queue, string expected)
     {
-        if (queue.Peek().Equals(expected, StringComparison.OrdinalIgnoreCase))
+        if (!queue.Peek().Equals(expected, StringComparison.OrdinalIgnoreCase))
         {
-            queue.Take();
-            return true;
+            return false;
         }
 
-        return false;
+        queue.Take();
+        return true;
+
     }
 
     public static bool AssertTake(this ReadOnlyQueue<string> queue, string expected)
@@ -28,8 +30,7 @@ public static class ReadOnlyQueueExtensions
     public static bool AssertTake(
         this ReadOnlyQueue<string> queue,
         string expected,
-        StringComparison comparison
-    )
+        StringComparison comparison)
     {
         return queue.Take().Equals(expected, comparison);
     }

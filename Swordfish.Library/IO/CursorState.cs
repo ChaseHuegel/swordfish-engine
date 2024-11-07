@@ -2,8 +2,8 @@ namespace Swordfish.Library.IO;
 
 public enum CursorState
 {
-    NORMAL,
-    HIDDEN,
-    LOCKED,
-    CAPTURED,
+    Normal,
+    Hidden,
+    Locked,
+    Captured,
 }

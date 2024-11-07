@@ -223,22 +223,22 @@ public class SilkInputService : IInputService
     {
         switch (value)
         {
-            case CursorState.NORMAL:
+            case CursorState.Normal:
                 _mainMouse.Cursor.IsConfined = false;
                 _mainMouse.Cursor.CursorMode = CursorMode.Normal;
                 break;
 
-            case CursorState.HIDDEN:
+            case CursorState.Hidden:
                 _mainMouse.Cursor.IsConfined = false;
                 _mainMouse.Cursor.CursorMode = CursorMode.Hidden;
                 break;
 
-            case CursorState.LOCKED:
+            case CursorState.Locked:
                 _mainMouse.Cursor.IsConfined = false;
                 _mainMouse.Cursor.CursorMode = CursorMode.Disabled;
                 break;
 
-            case CursorState.CAPTURED:
+            case CursorState.Captured:
                 _mainMouse.Cursor.IsConfined = true;
                 _mainMouse.Cursor.CursorMode = CursorMode.Normal;
                 break;
@@ -247,7 +247,7 @@ public class SilkInputService : IInputService
 
     private CursorState GetCursorState()
     {
-        return _mainMouse.Cursor.IsConfined ? CursorState.CAPTURED : _mainMouse.Cursor.CursorMode.ToCursorState();
+        return _mainMouse.Cursor.IsConfined ? CursorState.Captured : _mainMouse.Cursor.CursorMode.ToCursorState();
     }
 
     private void OnClick(IMouse mouse, Silk.NET.Input.MouseButton button, Vector2 position)

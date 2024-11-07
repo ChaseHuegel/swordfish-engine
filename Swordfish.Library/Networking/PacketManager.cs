@@ -5,12 +5,13 @@ using Needlefish;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Networking.Attributes;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Networking;
 
-public class PacketManager
+public static class PacketManager
 {
-    private static SwitchDictionary<int, Type, PacketDefinition> PacketDefinitions = new();
+    private static readonly SwitchDictionary<int, Type, PacketDefinition> _packetDefinitions = new();
 
     static PacketManager()
     {
@@ -20,7 +21,7 @@ public class PacketManager
 
     public static void RegisterPacketDefinition(int id, PacketDefinition definition)
     {
-        PacketDefinitions.Add(id, definition.Type, definition);
+        _packetDefinitions.Add(id, definition.Type, definition);
     }
 
     public static void RegisterAssembly() => RegisterAssembly(Assembly.GetCallingAssembly());
@@ -99,16 +100,16 @@ public class PacketManager
                     Reliable = packetAttribute.Reliable,
                 };
 
-                PacketDefinitions.Add(id, definition.Type, definition);
+                _packetDefinitions.Add(id, definition.Type, definition);
             }
         }
     }
 
-    public static PacketDefinition GetPacketDefinition(int id) => PacketDefinitions[id];
+    public static PacketDefinition GetPacketDefinition(int id) => _packetDefinitions[id];
 
-    public static PacketDefinition GetPacketDefinition(Type type) => PacketDefinitions[type];
+    public static PacketDefinition GetPacketDefinition(Type type) => _packetDefinitions[type];
 
-    public static PacketDefinition GetPacketDefinition(IDataBody packet) => PacketDefinitions[packet.GetType()];
+    public static PacketDefinition GetPacketDefinition(IDataBody packet) => _packetDefinitions[packet.GetType()];
 
     private static bool IsValidHandlerParameters(ParameterInfo[] parameters)
     {

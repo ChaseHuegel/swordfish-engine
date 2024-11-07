@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+// ReSharper disable UnusedType.Global
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -18,17 +20,17 @@ public class SphereTree<T>
     /// <summary>
     /// Position of the tree
     /// </summary>
-    public Vector3 Position { get => _root.Position; }
+    public Vector3 Position => _root.Position;
 
     /// <summary>
     /// Size of the tree at the highest level
     /// </summary>
-    public float Size { get => _root.Size; }
+    public float Size => _root.Size;
 
     /// <summary>
     /// Minimum size nodes can be in the tree
     /// </summary>
-    public float MinimumSize { get => _root.MinSize; }
+    public float MinimumSize => _root.MinSize;
 
     /// <summary>
     /// Root node of the tree
@@ -94,28 +96,6 @@ public class SphereTree<T>
     {
         Count = 0;
         _root = new SphereTreeNode<T>(Position, Size, MinimumSize);
-    }
-
-    /// <summary>
-    /// Expand the tree by moving it in a direction, doubling its size, and mutating nodes appropriately
-    /// </summary>
-    /// <param name="offset">normal or non-normal direction to move the tree</param>
-    private void GrowTree(Vector3 offset)
-    {
-        Vector3 direction = Vector3.Normalize(offset);
-
-        if (_root.HasObjects())
-        {
-            _root.Shift(direction * _root.Size * 0.5f, 2);
-        }
-        else
-        {
-            _root.SetValues(_root.Position + direction * _root.Size * 0.5f, _root.Size * 2f, MinimumSize);
-        }
-
-        // TODO redistributing objects is causing a stack overflow, need another method
-
-        _root.RedistObjects();
     }
 
     /// <summary>

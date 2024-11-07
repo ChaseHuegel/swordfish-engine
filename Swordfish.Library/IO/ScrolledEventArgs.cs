@@ -1,15 +1,9 @@
-using System;
-
+// ReSharper disable UnusedMember.Global
 namespace Swordfish.Library.IO;
 
-public class ScrolledEventArgs : EventArgs
+public readonly struct ScrolledEventArgs(float delta)
 {
-    public static new readonly ScrolledEventArgs Empty = new(0f);
+    public static readonly ScrolledEventArgs Empty = new(0f);
 
-    public float Delta;
-
-    public ScrolledEventArgs(float delta)
-    {
-        Delta = delta;
-    }
+    public readonly float Delta = delta;
 }

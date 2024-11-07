@@ -6,7 +6,7 @@ namespace Swordfish.Library.Collections;
 public class LockedList<T> : IList<T>
 {
     private readonly object _lock = new();
-    private readonly List<T> _list = new();
+    private readonly List<T> _list = [];
 
     public T this[int index]
     {

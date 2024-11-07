@@ -3,13 +3,14 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.BehaviorTrees;
 
-public sealed class BehaviorSuffleSequence : BehaviorNode, IBehaviorCompositor
+// ReSharper disable once UnusedType.Global
+public sealed class BehaviorShuffleSequence : BehaviorNode, IBehaviorCompositor
 {
-    public BehaviorSuffleSequence(BehaviorNode child) : base(child) { }
+    public BehaviorShuffleSequence(BehaviorNode child) : base(child) { }
 
-    public BehaviorSuffleSequence(params BehaviorNode[] children) : base(children) { }
+    public BehaviorShuffleSequence(params BehaviorNode[] children) : base(children) { }
 
-    public BehaviorSuffleSequence(IEnumerable<BehaviorNode> children) : base(children) { }
+    public BehaviorShuffleSequence(IEnumerable<BehaviorNode> children) : base(children) { }
 
     public override BehaviorState Evaluate(object target, float delta)
     {
@@ -29,7 +30,8 @@ public sealed class BehaviorSuffleSequence : BehaviorNode, IBehaviorCompositor
             {
                 return BehaviorState.FAILED;
             }
-            else if (!running && state == BehaviorState.RUNNING)
+
+            if (!running && state == BehaviorState.RUNNING)
             {
                 running = true;
             }

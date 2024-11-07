@@ -11,6 +11,7 @@ using Needlefish;
 using Swordfish.Library.Networking.Packets;
 using Swordfish.Library.Threading;
 using Timer = System.Timers.Timer;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Networking;
 
@@ -32,7 +33,7 @@ public class NetController
 
     private const int ERR_WSAETIMEDOUT = 10060;
 
-    private static Func<int, SequencePair> SequencePairFactory = x => new SequencePair();
+    private static readonly Func<int, SequencePair> _sequencePairFactory = _ => new SequencePair();
 
     private ManualResetEvent ConnectSignal { get; } = new(false);
 
@@ -315,7 +316,7 @@ public class NetController
         try
         {
             PacketDefinition packetDefinition = PacketManager.GetPacketDefinition(packet.PacketID);
-            SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
+            SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, _sequencePairFactory);
 
             netEventArgs.PacketID = packet.PacketID;
 
@@ -369,19 +370,19 @@ public class NetController
                         case PacketHandlerType.SERVER:
                             if (this is NetServer)
                             {
-                                handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
+                                handler.Method.Invoke(null, [this, deserializeData, netEventArgs]);
                             }
 
                             break;
                         case PacketHandlerType.CLIENT:
                             if (this is NetClient)
                             {
-                                handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
+                                handler.Method.Invoke(null, [this, deserializeData, netEventArgs]);
                             }
 
                             break;
                         case PacketHandlerType.AGNOSTIC:
-                            handler.Method.Invoke(null, new object[] { this, deserializeData, netEventArgs });
+                            handler.Method.Invoke(null, [this, deserializeData, netEventArgs]);
                             break;
                     }
                 }
@@ -421,7 +422,7 @@ public class NetController
 
     private void RegisterReliablePacket(IPEndPoint endPoint, Packet packet, byte[] buffer)
     {
-        List<ReliablePacket> ReliablePacketListFactory(IPEndPoint arg) => new();
+        List<ReliablePacket> ReliablePacketListFactory(IPEndPoint arg) => [];
         List<ReliablePacket> reliablePackets = SentReliablePackets.GetOrAdd(endPoint, ReliablePacketListFactory);
         var reliablePacket = new ReliablePacket
         {
@@ -453,7 +454,7 @@ public class NetController
     private byte[] SignPacket(Packet packet, out PacketDefinition packetDefinition)
     {
         packetDefinition = PacketManager.GetPacketDefinition(packet);
-        SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, SequencePairFactory);
+        SequencePair currentSequence = PacketSequences.GetOrAdd(packetDefinition.ID, _sequencePairFactory);
 
         packet.SessionID = Session.ID;
         packet.PacketID = packetDefinition.ID;

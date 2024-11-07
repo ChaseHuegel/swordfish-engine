@@ -1,14 +1,17 @@
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Extensions;
 
+// ReSharper disable once UnusedType.Global
 public static class BitmapExtensions
 {
     /// <summary>
     /// Resize this bitmap
     /// </summary>
+    /// <param name="input">the bitmap to resize</param>
     /// <param name="width">new width in pixels</param>
     /// <param name="height">new height in pixels</param>
     /// <param name="interpolation">interpolation mode</param>
@@ -20,13 +23,11 @@ public static class BitmapExtensions
         SmoothingMode smoothing = SmoothingMode.None,
         PixelOffsetMode offset = PixelOffsetMode.Half)
     {
-        using (Graphics g = Graphics.FromImage(input))
-        {
-            g.InterpolationMode = interpolation;
-            g.SmoothingMode = smoothing;
-            g.PixelOffsetMode = offset;
-            g.DrawImage(input, 0, 0, width, height);
-        }
+        using Graphics graphics = Graphics.FromImage(input);
+        graphics.InterpolationMode = interpolation;
+        graphics.SmoothingMode = smoothing;
+        graphics.PixelOffsetMode = offset;
+        graphics.DrawImage(input, 0, 0, width, height);
     }
 
 
@@ -42,15 +43,13 @@ public static class BitmapExtensions
         var rect = new Rectangle(0, 0, input.Width, input.Height);
 
         Point[] points =
-        {
+        [
             new(0, 0),
             new(input.Width, 0),
             new(0, input.Height),
-        };
+        ];
 
-        using (Graphics g = Graphics.FromImage(input))
-        {
-            g.DrawImage(input, points, rect, GraphicsUnit.Pixel, attributes);
-        }
+        using Graphics graphics = Graphics.FromImage(input);
+        graphics.DrawImage(input, points, rect, GraphicsUnit.Pixel, attributes);
     }
 }

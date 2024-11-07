@@ -1,5 +1,6 @@
 namespace Swordfish.Library.BehaviorTrees;
 
+// ReSharper disable once UnusedType.Global
 public sealed class BehaviorRunner : BehaviorNode
 {
     private readonly IBehaviorJob[] _jobs;

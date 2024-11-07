@@ -1,7 +1,9 @@
 using System;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
+// ReSharper disable once UnusedType.Global
 public class IndexLookup<TKey> where TKey : class
 {
     public int Count { get; private set; }
@@ -27,12 +29,14 @@ public class IndexLookup<TKey> where TKey : class
 
         for (var i = 0; i < _keys.Length; i++)
         {
-            if (_keys[i] is null)
+            if (_keys[i] is not null)
             {
-                _keys[i] = key;
-                Count++;
-                return true;
+                continue;
             }
+
+            _keys[i] = key;
+            Count++;
+            return true;
         }
 
         return false;
@@ -42,12 +46,14 @@ public class IndexLookup<TKey> where TKey : class
     {
         for (var i = 0; i < _keys.Length; i++)
         {
-            if (_keys[i]?.Equals(key) ?? false)
+            if (!(_keys[i]?.Equals(key) ?? false))
             {
-                _keys[i] = null;
-                Count--;
-                return true;
+                continue;
             }
+
+            _keys[i] = null;
+            Count--;
+            return true;
         }
 
         return false;

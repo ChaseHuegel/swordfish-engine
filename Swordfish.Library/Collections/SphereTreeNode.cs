@@ -15,12 +15,10 @@ public struct SphereTreeObjectPair<T>
 
     public override bool Equals(object obj)
     {
-        if (!(obj is SphereTreeObjectPair<T>))
+        if (obj is not SphereTreeObjectPair<T> other)
         {
             return false;
         }
-
-        var other = (SphereTreeObjectPair<T>)obj;
 
         //  A pair is equal if its A-B are contained in this A-B regardless of combination order
         return (A.Equals(other.A) || A.Equals(other.B)) && (B.Equals(other.A) || B.Equals(other.B));
@@ -46,12 +44,12 @@ internal class SphereTreeNode<T>
     /// <summary>
     /// This node's children nodes
     /// </summary>
-    private SphereTreeNode<T>[] _children = null;
+    private SphereTreeNode<T>[] _children;
 
     /// <summary>
     /// True of this node has children nodes
     /// </summary>
-    public bool HasChildren { get => _children != null; }
+    public bool HasChildren => _children != null;
 
     /// <summary>
     /// Position of this node
@@ -71,12 +69,12 @@ internal class SphereTreeNode<T>
     /// <summary>
     /// SphereTreeObjects stored in this node
     /// </summary>
-    readonly List<SphereTreeObject> _objects = new();
+    private readonly List<SphereTreeObject> _objects = [];
 
     /// <summary>
     /// An object in a sphere tree
     /// </summary>
-    public struct SphereTreeObject
+    private struct SphereTreeObject
     {
         public Vector3 Position;
         public float Size;
@@ -139,14 +137,16 @@ internal class SphereTreeNode<T>
             return true;
         }
 
-        if (HasChildren)
+        if (!HasChildren)
         {
-            foreach (SphereTreeNode<T> child in _children)
+            return false;
+        }
+
+        foreach (SphereTreeNode<T> child in _children)
+        {
+            if (child.HasObjects())
             {
-                if (child.HasObjects())
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -177,14 +177,16 @@ internal class SphereTreeNode<T>
         }
 
         //  Check the children in the node
-        if (HasChildren)
+        if (!HasChildren)
         {
-            foreach (SphereTreeNode<T> child in _children)
+            return false;
+        }
+
+        foreach (SphereTreeNode<T> child in _children)
+        {
+            if (child.IsColliding(pos, size))
             {
-                if (child.IsColliding(pos, size))
-                {
-                    return true;
-                }
+                return true;
             }
         }
 
@@ -217,12 +219,14 @@ internal class SphereTreeNode<T>
         }
 
         //  Check the children in the node
-        if (HasChildren)
+        if (!HasChildren)
         {
-            foreach (SphereTreeNode<T> child in _children)
-            {
-                child.GetColliding(pos, size, results);
-            }
+            return results.Count > 0;
+        }
+
+        foreach (SphereTreeNode<T> child in _children)
+        {
+            child.GetColliding(pos, size, results);
         }
 
         return results.Count > 0;
@@ -256,12 +260,14 @@ internal class SphereTreeNode<T>
         }
 
         //  Check the children in the node
-        if (HasChildren)
+        if (!HasChildren)
         {
-            foreach (SphereTreeNode<T> child in _children)
-            {
-                child.CheckForCollisions(results);
-            }
+            return results.Count > 0;
+        }
+
+        foreach (SphereTreeNode<T> child in _children)
+        {
+            child.CheckForCollisions(results);
         }
 
         return results.Count > 0;
@@ -292,12 +298,14 @@ internal class SphereTreeNode<T>
         }
 
         //  Check the children in the node
-        if (HasChildren)
+        if (!HasChildren)
         {
-            foreach (SphereTreeNode<T> child in _children)
-            {
-                child.SweepForCollisions(results);
-            }
+            return results.Count > 0;
+        }
+
+        foreach (SphereTreeNode<T> child in _children)
+        {
+            child.SweepForCollisions(results);
         }
 
         return results.Count > 0;
@@ -323,7 +331,11 @@ internal class SphereTreeNode<T>
             }
         }
 
-        if (HasChildren)
+        if (!HasChildren)
+        {
+            return wasRemoved;
+        }
+
         {
             //  If we haven't removed the object, check the children
             for (var i = 0; !wasRemoved && i < MAX_OBJECTS; i++)
@@ -523,10 +535,8 @@ internal class SphereTreeNode<T>
                 {
                     return false;
                 }
-                else
-                {
-                    numOfObjects += child._objects.Count;
-                }
+
+                numOfObjects += child._objects.Count;
             }
         }
 
@@ -535,11 +545,9 @@ internal class SphereTreeNode<T>
         {
             return false;
         }
+        
         //  ...Otherwise, consume the children and their objects
-        else
-        {
-            ConsumeChildren();
-        }
+        ConsumeChildren();
 
         return true;
     }

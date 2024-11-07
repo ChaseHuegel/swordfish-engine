@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+// ReSharper disable UnusedMember.Global
 namespace Swordfish.Library.IO;
 
 public struct Shortcut
@@ -55,36 +56,37 @@ public struct Shortcut
 
     public override string ToString()
     {
-        if (Key != Key.NONE)
+        if (Key == Key.None)
         {
-            var builder = new StringBuilder();
-            var parts = new List<string>();
-
-            if (Modifiers != ShortcutModifiers.NONE)
-            {
-                if (Modifiers.HasFlag(ShortcutModifiers.CONTROL))
-                {
-                    parts.Add("Ctrl");
-                }
-
-                if (Modifiers.HasFlag(ShortcutModifiers.SHIFT))
-                {
-                    parts.Add("Shift");
-                }
-
-                if (Modifiers.HasFlag(ShortcutModifiers.ALT))
-                {
-                    parts.Add("Alt");
-                }
-
-                builder.Append(string.Join(", ", parts));
-                builder.Append(" + ");
-            }
-
-            builder.Append(Key.ToDisplayString());
-            return builder.ToString();
+            return string.Empty;
         }
 
-        return string.Empty;
+        var builder = new StringBuilder();
+        var parts = new List<string>();
+
+        if (Modifiers != ShortcutModifiers.None)
+        {
+            if (Modifiers.HasFlag(ShortcutModifiers.Control))
+            {
+                parts.Add("Ctrl");
+            }
+
+            if (Modifiers.HasFlag(ShortcutModifiers.Shift))
+            {
+                parts.Add("Shift");
+            }
+
+            if (Modifiers.HasFlag(ShortcutModifiers.Alt))
+            {
+                parts.Add("Alt");
+            }
+
+            builder.Append(string.Join(", ", parts));
+            builder.Append(" + ");
+        }
+
+        builder.Append(Key.ToDisplayString());
+        return builder.ToString();
+
     }
 }

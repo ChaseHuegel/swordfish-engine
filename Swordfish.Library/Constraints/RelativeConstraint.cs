@@ -1,16 +1,11 @@
 namespace Swordfish.Library.Constraints;
 
-public class RelativeConstraint : IConstraint
+public class RelativeConstraint(in float value) : IConstraint
 {
-    private float value;
-
-    public RelativeConstraint(float value)
-    {
-        this.value = value;
-    }
+    private readonly float _value = value;
 
     public float GetValue(float max)
     {
-        return max * value;
+        return max * _value;
     }
 }

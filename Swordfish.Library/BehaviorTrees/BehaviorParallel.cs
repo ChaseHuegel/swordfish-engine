@@ -2,6 +2,7 @@ using System.Collections.Generic;
 
 namespace Swordfish.Library.BehaviorTrees;
 
+// ReSharper disable once UnusedType.Global
 public sealed class BehaviorParallel : BehaviorNode, IBehaviorCompositor
 {
     public BehaviorParallel(BehaviorNode child) : base(child) { }

@@ -3,16 +3,13 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Diagnostics;
 
-//  TODO refactor this name
-public static class Debugger
+public static class Safe
 {
     /// <summary>
-    /// Tries to run an action, catching and logging exceptions.
+    ///     Tries to run an action, catching and logging exceptions.
     /// </summary>
-    /// <param name="action">The action to run.</param>
-    /// <param name="message">Optional message to log if an exception was caught.</param>
     /// <returns>True if successful; otherwise false.</returns>
-    public static Result<Exception> SafeInvoke(Action action)
+    public static Result<Exception> Invoke(Action action)
     {
         try
         {

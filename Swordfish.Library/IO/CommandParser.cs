@@ -7,15 +7,10 @@ using Swordfish.Library.Collections;
 
 namespace Swordfish.Library.IO;
 
-public class CommandParser
+public class CommandParser(params Command[] commands)
 {
-    private readonly List<Command> _commands;
+    private readonly List<Command> _commands = [..commands];
     private readonly char _indicator;
-
-    public CommandParser(params Command[] commands)
-    {
-        _commands = new List<Command>(commands);
-    }
 
     public CommandParser(char indicator, params Command[] commands)
         : this(commands)
@@ -49,7 +44,7 @@ public class CommandParser
         int lineStart = _indicator != default ? 1 : 0;
         string[] parts = line[lineStart..]
             .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-            .Select(str => str.Trim()).ToArray(); //  StringSplitOptions.TrimEntries is only available in net5.0+
+            .Select(str => str.Trim()).ToArray();
 
         var args = new ReadOnlyQueue<string>(parts);
 

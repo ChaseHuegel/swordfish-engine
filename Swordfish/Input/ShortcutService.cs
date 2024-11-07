@@ -29,21 +29,21 @@ public class ShortcutService : IShortcutService
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
     {
-        var modifiers = ShortcutModifiers.NONE;
+        var modifiers = ShortcutModifiers.None;
 
-        if (_inputService.IsKeyHeld(Key.CONTROL))
+        if (_inputService.IsKeyHeld(Key.Control))
         {
-            modifiers |= ShortcutModifiers.CONTROL;
+            modifiers |= ShortcutModifiers.Control;
         }
 
-        if (_inputService.IsKeyHeld(Key.SHIFT))
+        if (_inputService.IsKeyHeld(Key.Shift))
         {
-            modifiers |= ShortcutModifiers.SHIFT;
+            modifiers |= ShortcutModifiers.Shift;
         }
 
-        if (_inputService.IsKeyHeld(Key.ALT))
+        if (_inputService.IsKeyHeld(Key.Alt))
         {
-            modifiers |= ShortcutModifiers.ALT;
+            modifiers |= ShortcutModifiers.Alt;
         }
 
         foreach (Shortcut shortcut in _shortcuts)
@@ -53,7 +53,7 @@ public class ShortcutService : IShortcutService
                 continue;
             }
 
-            if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.NONE || modifiers == shortcut.Modifiers))
+            if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.None || modifiers == shortcut.Modifiers))
             {
                 shortcut.Action?.Invoke();
             }

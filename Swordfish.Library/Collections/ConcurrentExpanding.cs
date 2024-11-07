@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Runtime.CompilerServices;
 using System.Threading;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -9,24 +10,18 @@ namespace Swordfish.Library.Collections;
 /// Represents a thread-safe non-shrinking typed list
 /// </summary>
 /// <typeparam name="T"></typeparam>
+// ReSharper disable once UnusedType.Global
 public class ConcurrentExpanding<T> : IEnumerable
 {
-    private ReaderWriterLockSlim _listLock = new();
+    public int Count;
+
+    private readonly ReaderWriterLockSlim _listLock = new();
     private T[] _array = new T[1];
 
-    //  Deconstructor
     ~ConcurrentExpanding()
     {
-        if (_listLock != null)
-        {
-            _listLock.Dispose();
-        }
+        _listLock?.Dispose();
     }
-
-    /// <summary>
-    /// Number of indices in the list
-    /// </summary>
-    public int Count = 0;
 
     /// <summary>
     /// Try adding an element to the list, ignoring duplicates
@@ -36,13 +31,14 @@ public class ConcurrentExpanding<T> : IEnumerable
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryAdd(T value)
     {
-        if (!Contains(value))
+        if (Contains(value))
         {
-            Add(value);
-            return true;
+            return false;
         }
 
-        return false;
+        Add(value);
+        return true;
+
     }
 
     /// <summary>
@@ -116,17 +112,12 @@ public class ConcurrentExpanding<T> : IEnumerable
 
     //  Enumerator
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-    public ExpandingListEnum GetEnumerator() => new(_array);
+    private ExpandingListEnumerator GetEnumerator() => new(_array);
 
-    public class ExpandingListEnum : IEnumerator
+    private class ExpandingListEnumerator(in T[] array) : IEnumerator
     {
-        private T[] _array = new T[1];
+        private readonly T[] _array = array;
         private int _position = -1;
-
-        public ExpandingListEnum(T[] array)
-        {
-            _array = array;
-        }
 
         public bool MoveNext()
         {
@@ -139,10 +130,7 @@ public class ConcurrentExpanding<T> : IEnumerable
             _position = -1;
         }
 
-        object IEnumerator.Current
-        {
-            get => Current;
-        }
+        object IEnumerator.Current => Current;
 
         public T Current
         {

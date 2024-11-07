@@ -1,8 +1,10 @@
 ﻿using System.Collections.Generic;
 using Swordfish.Library.Types;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
+// ReSharper disable once UnusedType.Global
 public class ValueFieldCollection : ValueFieldCollection<string>
 {
 }
@@ -33,19 +35,20 @@ public class ValueFieldCollection<TIdentifier>
 
     public ValueField<TIdentifier> Get(TIdentifier identifier)
     {
-        return _items.TryGetValue(identifier, out ValueField<TIdentifier> attribute) ? attribute : null;
+        return _items.GetValueOrDefault(identifier);
     }
 
     public ValueField<TIdentifier> Add(TIdentifier identifier, float value, float max = 0f)
     {
-        if (!_items.ContainsKey(identifier))
+        if (_items.ContainsKey(identifier))
         {
-            var attribute = new ValueField<TIdentifier>(identifier, value, max);
-            _items.Add(identifier, attribute);
-            return attribute;
+            return null;
         }
 
-        return null;
+        var attribute = new ValueField<TIdentifier>(identifier, value, max);
+        _items.Add(identifier, attribute);
+        return attribute;
+
     }
 
     public bool TryAdd(TIdentifier identifier, float value, float max = 0f)
@@ -54,11 +57,9 @@ public class ValueFieldCollection<TIdentifier>
         {
             return false;
         }
-        else
-        {
-            _items.Add(identifier, new ValueField<TIdentifier>(identifier, value, max));
-            return true;
-        }
+
+        _items.Add(identifier, new ValueField<TIdentifier>(identifier, value, max));
+        return true;
     }
 
     public ValueField<TIdentifier> AddOrUpdate(TIdentifier identifier, float value, float max = 0f)
@@ -69,12 +70,10 @@ public class ValueFieldCollection<TIdentifier>
             field.Value = value;
             return field;
         }
-        else
-        {
-            field = new ValueField<TIdentifier>(identifier, value, max);
-            _items.Add(identifier, field);
-            return field;
-        }
+
+        field = new ValueField<TIdentifier>(identifier, value, max);
+        _items.Add(identifier, field);
+        return field;
     }
 
     public bool Remove(TIdentifier name)

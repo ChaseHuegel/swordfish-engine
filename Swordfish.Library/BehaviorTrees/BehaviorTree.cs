@@ -1,13 +1,9 @@
 namespace Swordfish.Library.BehaviorTrees;
 
-public sealed class BehaviorTree<TTarget> : BehaviorNode<TTarget> where TTarget : class
+public sealed class BehaviorTree<TTarget>(in BehaviorNode root) : BehaviorNode<TTarget>
+    where TTarget : class
 {
-    public readonly BehaviorNode Root;
-
-    public BehaviorTree(BehaviorNode root)
-    {
-        Root = root;
-    }
+    public readonly BehaviorNode Root = root;
 
     public override BehaviorState Evaluate(TTarget target, float delta)
     {

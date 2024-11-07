@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Swordfish.Library.Collections;
+// ReSharper disable UnusedType.Global
 
 namespace Swordfish.Library.IO;
 
@@ -11,11 +12,10 @@ public abstract class Command
     public abstract string Option { get; }
     public abstract string Description { get; }
     public abstract string ArgumentsHint { get; }
-    public Command[] Subcommands { get; private set; } = Array.Empty<Command>();
+    public Command[] Subcommands { get; }
     private Command _parent;
 
-    public Command()
-        : this(Array.Empty<Command>()) { }
+    public Command() : this([]) { }
 
     public Command(Command[] commands)
     {
@@ -91,11 +91,13 @@ public abstract class Command
         {
             //  If there is only a single subcommand, don't bother with formatting.
             string usage = Subcommands.First().GetUsage();
-            if (!string.IsNullOrWhiteSpace(usage))
+            if (string.IsNullOrWhiteSpace(usage))
             {
-                builder.Append(' ');
-                builder.Append(usage);
+                return builder.ToString();
             }
+
+            builder.Append(' ');
+            builder.Append(usage);
         }
         else
         {
@@ -128,26 +130,14 @@ public abstract class Command
     }
 }
 
-public abstract class Command<TSub0> : Command
-    where TSub0 : Command, new()
-{
-    public Command()
-        : base(new Command[] { new TSub0() }) { }
-}
+public abstract class Command<TSub0>() : Command([new TSub0()])
+    where TSub0 : Command, new();
 
-public abstract class Command<TSub0, TSub1> : Command
+public abstract class Command<TSub0, TSub1>() : Command([new TSub0(), new TSub1()])
+    where TSub0 : Command, new()
+    where TSub1 : Command, new();
+
+public abstract class Command<TSub0, TSub1, TSub2>() : Command([new TSub0(), new TSub1(), new TSub2()])
     where TSub0 : Command, new()
     where TSub1 : Command, new()
-{
-    public Command()
-        : base(new Command[] { new TSub0(), new TSub1() }) { }
-}
-
-public abstract class Command<TSub0, TSub1, TSub2> : Command
-    where TSub0 : Command, new()
-    where TSub1 : Command, new()
-    where TSub2 : Command, new()
-{
-    public Command()
-        : base(new Command[] { new TSub0(), new TSub1(), new TSub2() }) { }
-}
+    where TSub2 : Command, new();

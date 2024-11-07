@@ -7,7 +7,7 @@ public interface IFileParser
     object Parse(PathInfo file);
 }
 
-public interface IFileParser<TResult> : IFileParser
+public interface IFileParser<out TResult> : IFileParser
 {
     new TResult Parse(PathInfo file);
 }

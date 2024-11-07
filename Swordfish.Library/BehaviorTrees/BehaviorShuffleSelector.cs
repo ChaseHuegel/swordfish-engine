@@ -3,6 +3,7 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.BehaviorTrees;
 
+// ReSharper disable once UnusedType.Global
 public sealed class BehaviorShuffleSelector : BehaviorNode, IBehaviorCompositor
 {
     public BehaviorShuffleSelector(BehaviorNode child) : base(child) { }

@@ -140,7 +140,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         _debugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
 
-        if (!_inputService.IsMouseHeld(MouseButton.LEFT))
+        if (!_inputService.IsMouseHeld(MouseButton.Left))
         {
             return;
         }
@@ -182,7 +182,7 @@ public class Demo : IEntryPoint, IAutoActivate
             return;
         }
 
-        if (!_inputService.IsMouseHeld(MouseButton.LEFT))
+        if (!_inputService.IsMouseHeld(MouseButton.Left))
         {
             return;
         }

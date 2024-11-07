@@ -3,12 +3,13 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Swordfish.Library.Types;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Diagnostics;
 
 public class Benchmark : IDisposable
 {
-    public static ConcurrentDictionary<string, ConcurrentBag<Benchmark>> History { get; private set; } = new();
+    public static ConcurrentDictionary<string, ConcurrentBag<Benchmark>> History { get; } = new();
 
     public static Benchmark StartNew(string name) => new(name);
 
@@ -39,7 +40,7 @@ public class Benchmark : IDisposable
 
     public TimeSpan Timing => _stopwatch.Elapsed;
     public ByteSize Memory { get; private set; }
-    public string Name { get; private set; }
+    public string Name { get; }
 
     private bool _disposed;
     private readonly Stopwatch _stopwatch;
@@ -72,7 +73,7 @@ public class Benchmark : IDisposable
 
         _disposed = true;
 
-        ConcurrentBag<Benchmark> bag = History.GetOrAdd(Name, new ConcurrentBag<Benchmark>());
+        ConcurrentBag<Benchmark> bag = History.GetOrAdd(Name, []);
         bag.Add(this);
 #endif
     }

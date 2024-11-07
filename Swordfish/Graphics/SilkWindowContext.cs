@@ -65,7 +65,7 @@ public class SilkWindowContext : IWindowContext
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
                 "UI",
-                ShortcutModifiers.NONE,
+                ShortcutModifiers.None,
                 Key.F11,
                 Shortcut.DefaultEnabled,
                 () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal
@@ -75,8 +75,8 @@ public class SilkWindowContext : IWindowContext
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Alt Toggle Fullscreen",
                 "UI",
-                ShortcutModifiers.ALT,
-                Key.ENTER,
+                ShortcutModifiers.Alt,
+                Key.Enter,
                 Shortcut.DefaultEnabled,
                 () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal
             )

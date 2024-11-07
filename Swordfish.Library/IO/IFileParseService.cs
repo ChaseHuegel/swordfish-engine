@@ -1,4 +1,5 @@
 using System.IO;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.IO;
 

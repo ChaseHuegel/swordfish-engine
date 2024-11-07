@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Collections;
 
@@ -8,6 +9,7 @@ namespace Swordfish.Library.Collections;
 /// A dynamically sizing Octree made up of spherical nodes for detection collision or overlapping objects
 /// </summary>
 /// <typeparam name="T">type of objects stored in the tree</typeparam>
+// ReSharper disable once UnusedType.Global
 public class SphereTreeDynamic<T>
 {
     /// <summary>
@@ -18,17 +20,17 @@ public class SphereTreeDynamic<T>
     /// <summary>
     /// Position of the tree
     /// </summary>
-    public Vector3 Position { get => _root.Position; }
+    public Vector3 Position => _root.Position;
 
     /// <summary>
     /// Size of the tree at the highest level
     /// </summary>
-    public float Size { get => _root.Size; }
+    public float Size => _root.Size;
 
     /// <summary>
     /// Minimum size nodes can be in the tree
     /// </summary>
-    public float MinimumSize { get => _root.MinSize; }
+    public float MinimumSize => _root.MinSize;
 
     /// <summary>
     /// Root node of the tree
@@ -89,13 +91,14 @@ public class SphereTreeDynamic<T>
     /// <returns>true if object was removed; otherwise false</returns>
     public bool TryRemove(T obj)
     {
-        if (_root.TryRemove(obj))
+        if (!_root.TryRemove(obj))
         {
-            Count--;
-            return true;
+            return false;
         }
 
-        return false;
+        Count--;
+        return true;
+
     }
 
     /// <summary>

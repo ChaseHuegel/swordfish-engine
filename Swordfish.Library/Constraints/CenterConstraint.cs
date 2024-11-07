@@ -1,5 +1,6 @@
 namespace Swordfish.Library.Constraints;
 
+// ReSharper disable once UnusedType.Global
 public class CenterConstraint : IConstraint
 {
     public float GetValue(float max)

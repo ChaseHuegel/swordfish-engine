@@ -1,4 +1,4 @@
-using Swordfish.Library.Collections;
+using DryIoc;
 
 namespace Swordfish;
 
@@ -6,14 +6,14 @@ public static class SwordfishEngine
 {
     public static Version Version => _version ??= typeof(SwordfishEngine).Assembly.GetName().Version!;
 
-    public static Kernel Kernel
+    public static IContainer Container
     {
-        get => _kernel!;
-        internal set => _kernel = value;
+        get => _container!;
+        internal set => _container = value;
     }
 
     private static Version? _version;
-    private static Kernel? _kernel;
+    private static IContainer? _container;
 
     // ReSharper disable once UnusedMember.Global
     public static void Stop(int exitCode = 0)

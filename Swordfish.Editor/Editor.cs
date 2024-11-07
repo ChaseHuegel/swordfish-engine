@@ -103,8 +103,8 @@ public class Editor : IEntryPoint, IAutoActivate
         Shortcut exitShortcut = new(
             "Exit",
             "General",
-            ShortcutModifiers.NONE,
-            Key.ESC,
+            ShortcutModifiers.None,
+            Key.Esc,
             Shortcut.DefaultEnabled,
             _windowContext.Close
         );
@@ -131,7 +131,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 new MenuBarItemElement("Plugin", new Shortcut(
                                     "New Plugin",
                                     "Editor",
-                                    ShortcutModifiers.CONTROL,
+                                    ShortcutModifiers.Control,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
                                     () => {
@@ -147,7 +147,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 new MenuBarItemElement("Project", new Shortcut(
                                     "New Project",
                                     "Editor",
-                                    ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
+                                    ShortcutModifiers.Control | ShortcutModifiers.Shift,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
                                     () => _logger.LogInformation("Create new project")
@@ -157,7 +157,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Open", new Shortcut(
                             "Open",
                             "Editor",
-                            ShortcutModifiers.CONTROL,
+                            ShortcutModifiers.Control,
                             Key.O,
                             Shortcut.DefaultEnabled,
                             () =>
@@ -174,7 +174,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Save", new Shortcut(
                             "Save",
                             "Editor",
-                            ShortcutModifiers.CONTROL,
+                            ShortcutModifiers.Control,
                             Key.S,
                             Shortcut.DefaultEnabled,
                             () => _logger.LogInformation("Save project")
@@ -182,7 +182,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Save As", new Shortcut(
                             "Save As",
                             "Editor",
-                            ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
+                            ShortcutModifiers.Control | ShortcutModifiers.Shift,
                             Key.S,
                             Shortcut.DefaultEnabled,
                             () => _logger.LogInformation("Save project as")
@@ -196,7 +196,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Stats", new Shortcut(
                                 "Stats",
                                 "Editor",
-                                ShortcutModifiers.NONE,
+                                ShortcutModifiers.None,
                                 Key.F5,
                                 Shortcut.DefaultEnabled,
                                 () => {
@@ -207,7 +207,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Wireframe", new Shortcut(
                                 "Wireframe",
                                 "Editor",
-                                ShortcutModifiers.NONE,
+                                ShortcutModifiers.None,
                                 Key.F6,
                                 Shortcut.DefaultEnabled,
                                 () => {
@@ -218,7 +218,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         new MenuBarItemElement("Meshes", new Shortcut(
                                 "Hide Meshes",
                                 "Editor",
-                                ShortcutModifiers.NONE,
+                                ShortcutModifiers.None,
                                 Key.F7,
                                 Shortcut.DefaultEnabled,
                                 () => {
@@ -231,7 +231,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 new MenuBarItemElement("Transform", new Shortcut(
                                         "Transform Gizmos",
                                         "Debug",
-                                        ShortcutModifiers.NONE,
+                                        ShortcutModifiers.None,
                                         Key.F8,
                                         Shortcut.DefaultEnabled,
                                         () => {
@@ -242,7 +242,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 new MenuBarItemElement("Physics", new Shortcut(
                                         "Physics Gizmos",
                                         "Debug",
-                                        ShortcutModifiers.NONE,
+                                        ShortcutModifiers.None,
                                         Key.F9,
                                         Shortcut.DefaultEnabled,
                                         () => {
@@ -705,7 +705,7 @@ public class Editor : IEntryPoint, IAutoActivate
         const float mouseSensitivity = 0.05f;
         const float cameraBaseSpeed = 10;
 
-        if (_inputService.IsKeyHeld(Key.SHIFT))
+        if (_inputService.IsKeyHeld(Key.Shift))
         {
             _cameraSpeedModifier += (float)delta;
         }
@@ -718,16 +718,16 @@ public class Editor : IEntryPoint, IAutoActivate
 
         Camera camera = _renderContext.Camera.Get();
 
-        if (_inputService.IsMouseHeld(MouseButton.RIGHT))
+        if (_inputService.IsMouseHeld(MouseButton.Right))
         {
-            _inputService.CursorState = CursorState.LOCKED;
+            _inputService.CursorState = CursorState.Locked;
             Vector2 cursorDelta = _inputService.CursorDelta;
             camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
             camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
-            _inputService.CursorState = CursorState.NORMAL;
+            _inputService.CursorState = CursorState.Normal;
         }
 
         Vector3 forward = camera.Transform.GetForward();
@@ -763,12 +763,12 @@ public class Editor : IEntryPoint, IAutoActivate
             camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
         }
 
-        if (_inputService.IsKeyPressed(Key.UP_ARROW))
+        if (_inputService.IsKeyPressed(Key.UpArrow))
         {
             camera.Transform.Position += new Vector3(0, 1, 0);
         }
 
-        if (_inputService.IsKeyPressed(Key.DOWN_ARROW))
+        if (_inputService.IsKeyPressed(Key.DownArrow))
         {
             camera.Transform.Position -= new Vector3(0, 1, 0);
         }
