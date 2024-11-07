@@ -56,7 +56,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 }
             }
 
-            matrices.Add(renderTarget.Transform.ToMatrix4x4());
+            matrices.Add(renderTarget.Transform.ToMatrix4X4());
         }
     }
 

@@ -1,16 +1,10 @@
 using System.Numerics;
 
-namespace Swordfish.Library.Types.Shapes
+namespace Swordfish.Library.Types.Shapes;
+
+public struct Box2(in Vector2 extents)
 {
-    public struct Box2
-    {
-        public Vector2 Extents;
+    public Vector2 Extents = extents;
 
-        public Box2(Vector2 extents)
-        {
-            Extents = extents;
-        }
-
-        public static implicit operator Shape(Box2 x) => new(x);
-    }
+    public static implicit operator Shape(Box2 x) => new(x);
 }

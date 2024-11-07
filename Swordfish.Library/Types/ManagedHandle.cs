@@ -1,31 +1,31 @@
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types;
+
+public abstract class ManagedHandle<TType> : Handle
 {
-    public abstract class ManagedHandle<TType> : Handle
+    public TType Handle
     {
-        public TType Handle
+        get
         {
-            get
+            if (_handleCreated)
             {
-                if (!handleCreated)
-                {
-                    handle = CreateHandle();
-                    handleCreated = true;
-                }
-
-                return handle!;
+                return _handle!;
             }
+
+            _handle = CreateHandle();
+            _handleCreated = true;
+            return _handle!;
         }
+    }
 
-        private TType handle;
-        private bool handleCreated;
+    private TType _handle;
+    private bool _handleCreated;
 
-        protected abstract TType CreateHandle();
+    protected abstract TType CreateHandle();
 
-        protected abstract void FreeHandle();
+    protected abstract void FreeHandle();
 
-        protected override void OnDisposed()
-        {
-            FreeHandle();
-        }
+    protected override void OnDisposed()
+    {
+        FreeHandle();
     }
 }

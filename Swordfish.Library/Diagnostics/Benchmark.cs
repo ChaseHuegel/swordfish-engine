@@ -4,94 +4,96 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Swordfish.Library.Types;
 
-namespace Swordfish.Library.Diagnostics
+namespace Swordfish.Library.Diagnostics;
+
+public class Benchmark : IDisposable
 {
-    public class Benchmark : IDisposable
+    public static ConcurrentDictionary<string, ConcurrentBag<Benchmark>> History { get; private set; } = new();
+
+    public static Benchmark StartNew(string name) => new(name);
+
+    public static Benchmark StartNew(params string[] trace) => new(string.Join(".", trace));
+
+    public static List<string> CollectOutput()
     {
-        public static ConcurrentDictionary<string, ConcurrentBag<Benchmark>> History { get; private set; }
-            = new ConcurrentDictionary<string, ConcurrentBag<Benchmark>>();
-
-        public static Benchmark StartNew(string name) => new Benchmark(name);
-
-        public static Benchmark StartNew(params string[] trace) => new Benchmark(string.Join(".", trace));
-
-        public static List<string> CollectOutput()
-        {
-            List<string> entries = new List<string>();
+        var entries = new List<string>();
 #if DEBUG
-            foreach (var pair in History)
+        foreach (KeyValuePair<string, ConcurrentBag<Benchmark>> pair in History)
+        {
+            var count = 0;
+            var totalTime = new TimeSpan();
+            var totalMemory = new ByteSize();
+            while (pair.Value.TryTake(out Benchmark marker))
             {
-                int count = 0;
-                TimeSpan totalTime = new TimeSpan();
-                ByteSize totalMemory = new ByteSize();
-                while (pair.Value.TryTake(out Benchmark marker))
-                {
-                    totalTime += marker.Timing;
-                    totalMemory += marker.Memory;
-                    count++;
-                }
-
-                entries.Add($"{pair.Key} count: {count} time: {totalTime.TotalMilliseconds} ms gc: {totalMemory}");
+                totalTime += marker.Timing;
+                totalMemory += marker.Memory;
+                count++;
             }
-            entries.Sort();
-#endif
-            return entries;
+
+            entries.Add($"{pair.Key} count: {count} time: {totalTime.TotalMilliseconds} ms gc: {totalMemory}");
         }
+        entries.Sort();
+#endif
+        return entries;
+    }
 
-        public TimeSpan Timing => Stopwatch.Elapsed;
-        public ByteSize Memory { get; private set; }
-        public string Name { get; private set; }
+    public TimeSpan Timing => _stopwatch.Elapsed;
+    public ByteSize Memory { get; private set; }
+    public string Name { get; private set; }
 
-        private bool Disposed;
-        private readonly Stopwatch Stopwatch;
-        private readonly long GCStart;
+    private bool _disposed;
+    private readonly Stopwatch _stopwatch;
+    private readonly long _gcStart;
 
-        public Benchmark(string name)
-        {
-            Name = name;
+    public Benchmark(string name)
+    {
+        Name = name;
 #if DEBUG
-            GCStart = GC.GetTotalMemory(true);
-            Stopwatch = Stopwatch.StartNew();
+        _gcStart = GC.GetTotalMemory(true);
+        _stopwatch = Stopwatch.StartNew();
 #else
             //  This is to ignore compiler warnings for unused/unassigned values in release
             GCStart = 0;
             Stopwatch = null;
             Disposed = Stopwatch == null || GCStart == 0 || Disposed;
 #endif
-        }
+    }
 
-        public void Dispose()
-        {
+    public void Dispose()
+    {
 #if DEBUG
-            Stopwatch.Stop();
-            Memory = ByteSize.FromBytes(GC.GetTotalMemory(false) - GCStart);
+        _stopwatch.Stop();
+        Memory = ByteSize.FromBytes(GC.GetTotalMemory(false) - _gcStart);
 
-            if (Disposed)
-                return;
+        if (_disposed)
+        {
+            return;
+        }
 
-            Disposed = true;
+        _disposed = true;
 
-            var bag = History.GetOrAdd(Name, new ConcurrentBag<Benchmark>());
-            bag.Add(this);
+        ConcurrentBag<Benchmark> bag = History.GetOrAdd(Name, new ConcurrentBag<Benchmark>());
+        bag.Add(this);
 #endif
-        }
+    }
 
-        public override bool Equals(object obj)
+    public override bool Equals(object obj)
+    {
+        if (obj is Benchmark marker)
         {
-            if (obj is Benchmark marker)
-                return marker.Name.Equals(Name);
-
-            return false;
+            return marker.Name.Equals(Name);
         }
 
-        public override int GetHashCode()
-        {
-            return Name.GetHashCode();
-        }
+        return false;
+    }
 
-        public override string ToString()
-        {
-            return $"{Name} time: {Stopwatch?.Elapsed.TotalMilliseconds} ms gc: {Memory}";
-        }
+    public override int GetHashCode()
+    {
+        return Name.GetHashCode();
+    }
+
+    public override string ToString()
+    {
+        return $"{Name} time: {_stopwatch?.Elapsed.TotalMilliseconds} ms gc: {Memory}";
     }
 }

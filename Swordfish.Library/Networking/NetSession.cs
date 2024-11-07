@@ -1,69 +1,70 @@
 using System.Net;
 using System.Timers;
 
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public class NetSession
 {
-    public class NetSession
+    /// <summary>
+    /// The ID of a local or otherwise unassigned session.
+    /// </summary>
+    public const int LOCAL_OR_UNASSIGNED = 0;
+
+    public IPEndPoint EndPoint { get; set; }
+
+    public int ID { get; set; }
+
+    public NetController Controller { get; private set; }
+
+    private Timer _expirationTimer;
+
+    public NetSession(NetController controller)
     {
-        /// <summary>
-        /// The ID of a local or otherwise unassigned session.
-        /// </summary>
-        public const int LocalOrUnassigned = 0;
+        Controller = controller;
+        RefreshExpiration();
+    }
 
-        public IPEndPoint EndPoint { get; set; }
+    public bool IsValid() => ID != LOCAL_OR_UNASSIGNED && Controller != null;
 
-        public int ID { get; set; }
-
-        public NetController Controller { get; private set; }
-
-        private Timer ExpirationTimer;
-
-        public NetSession(NetController controller)
+    public void RefreshExpiration()
+    {
+        //  Local and orphan sessions can't expire
+        if (!IsValid())
         {
-            Controller = controller;
-            RefreshExpiration();
+            return;
         }
 
-        public bool IsValid() => ID != LocalOrUnassigned && Controller != null;
-
-        public void RefreshExpiration()
+        if (Controller.SessionExpiration.TotalMilliseconds > 0)
         {
-            //  Local and orphan sessions can't expire
-            if (!IsValid())
-                return;
-
-            if (Controller.SessionExpiration.TotalMilliseconds > 0)
+            if (_expirationTimer == null)
             {
-                if (ExpirationTimer == null)
-                {
-                    ExpirationTimer = new Timer(Controller.SessionExpiration.TotalMilliseconds);
-                    ExpirationTimer.Elapsed += OnSessionElapsed;
-                }
-
-                ExpirationTimer.Stop();
-                ExpirationTimer.Start();
+                _expirationTimer = new Timer(Controller.SessionExpiration.TotalMilliseconds);
+                _expirationTimer.Elapsed += OnSessionElapsed;
             }
-        }
 
-        public override string ToString()
-        {
-            return $"{ID}/{EndPoint}";
+            _expirationTimer.Stop();
+            _expirationTimer.Start();
         }
+    }
 
-        public override bool Equals(object obj)
-        {
-            return obj is NetSession other && this.ID == other.ID && (this?.EndPoint.Equals(other?.EndPoint) ?? false);
-        }
+    public override string ToString()
+    {
+        return $"{ID}/{EndPoint}";
+    }
 
-        public override int GetHashCode()
-        {
-            return ID.GetHashCode() ^ EndPoint.GetHashCode();
-        }
+    public override bool Equals(object obj)
+    {
+        return obj is NetSession other && ID == other.ID && (this?.EndPoint.Equals(other?.EndPoint) ?? false);
+    }
 
-        private void OnSessionElapsed(object sender, ElapsedEventArgs e)
-        {
-            ExpirationTimer.Stop();
-            Controller.TryRemoveSession(this, SessionEndedReason.EXPIRED);
-        }
+    public override int GetHashCode()
+    {
+        return ID.GetHashCode() ^ EndPoint.GetHashCode();
+    }
+
+    private void OnSessionElapsed(object sender, ElapsedEventArgs e)
+    {
+        _expirationTimer.Stop();
+        Controller.TryRemoveSession(this, SessionEndedReason.EXPIRED);
     }
 }

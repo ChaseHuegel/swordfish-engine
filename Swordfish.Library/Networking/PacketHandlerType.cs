@@ -1,9 +1,8 @@
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public enum PacketHandlerType
 {
-    public enum PacketHandlerType
-    {
-        AGNOSTIC,
-        CLIENT,
-        SERVER
-    }
+    AGNOSTIC,
+    CLIENT,
+    SERVER,
 }

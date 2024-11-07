@@ -1,33 +1,34 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class ReadOnlyQueue<T>
 {
-    public class ReadOnlyQueue<T>
+    private readonly Queue<T> _queue;
+
+    public ReadOnlyQueue(params T[] values)
     {
-        private readonly Queue<T> Queue;
+        _queue = new Queue<T>(values);
+    }
 
-        public ReadOnlyQueue(params T[] values)
+    public T Take()
+    {
+        return _queue.Dequeue();
+    }
+
+    public T Peek()
+    {
+        return _queue.Peek();
+    }
+
+    public T[] TakeAll()
+    {
+        var values = new T[_queue.Count];
+        for (var i = 0; i < values.Length; i++)
         {
-            Queue = new Queue<T>(values);
+            values[i] = _queue.Dequeue();
         }
 
-        public T Take()
-        {
-            return Queue.Dequeue();
-        }
-
-        public T Peek()
-        {
-            return Queue.Peek();
-        }
-
-        public T[] TakeAll()
-        {
-            T[] values = new T[Queue.Count];
-            for (int i = 0; i < values.Length; i++)
-                values[i] = Queue.Dequeue();
-
-            return values;
-        }
+        return values;
     }
 }

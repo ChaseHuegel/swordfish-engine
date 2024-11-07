@@ -18,22 +18,22 @@ public class SphereTreeDynamic<T>
     /// <summary>
     /// Position of the tree
     /// </summary>
-    public Vector3 Position { get => root.position; }
+    public Vector3 Position { get => _root.Position; }
 
     /// <summary>
     /// Size of the tree at the highest level
     /// </summary>
-    public float Size { get => root.size; }
+    public float Size { get => _root.Size; }
 
     /// <summary>
     /// Minimum size nodes can be in the tree
     /// </summary>
-    public float MinimumSize { get => root.minSize; }
+    public float MinimumSize { get => _root.MinSize; }
 
     /// <summary>
     /// Root node of the tree
     /// </summary>
-    private SphereTreeNode<T> root;
+    private SphereTreeNode<T> _root;
 
     /// <summary>
     /// Initialize a tree at a position with a size and minimum node size
@@ -49,7 +49,7 @@ public class SphereTreeDynamic<T>
         }
 
         Count = 0;
-        root = new SphereTreeNode<T>(pos, size, minSize);
+        _root = new SphereTreeNode<T>(pos, size, minSize);
     }
 
     /// <summary>
@@ -61,13 +61,13 @@ public class SphereTreeDynamic<T>
     /// <returns>true if object was added; otherwise false</returns>
     public bool TryAdd(T obj, Vector3 pos, float size)
     {
-        int resizeAttempts = 0;
+        var resizeAttempts = 0;
 
         //  Try adding the object, growing the tree on failed attempts
-        while (!root.TryAdd(obj, pos, size))
+        while (!_root.TryAdd(obj, pos, size))
         {
             //  ! TODO Dynamic sizing causing stack overflow when redistributing objects
-            GrowTree(pos - root.position);
+            GrowTree(pos - _root.Position);
             resizeAttempts++;
 
             //  Limit # of resize attempts to prevent an unreasonable stack
@@ -89,7 +89,7 @@ public class SphereTreeDynamic<T>
     /// <returns>true if object was removed; otherwise false</returns>
     public bool TryRemove(T obj)
     {
-        if (root.TryRemove(obj))
+        if (_root.TryRemove(obj))
         {
             Count--;
             return true;
@@ -104,7 +104,7 @@ public class SphereTreeDynamic<T>
     public void Clear()
     {
         Count = 0;
-        root = new SphereTreeNode<T>(Position, Size, MinimumSize);
+        _root = new SphereTreeNode<T>(Position, Size, MinimumSize);
     }
 
     /// <summary>
@@ -115,14 +115,18 @@ public class SphereTreeDynamic<T>
     {
         Vector3 direction = Vector3.Normalize(offset);
 
-        if (root.HasObjects())
-            root.Shift(direction * root.size * 0.5f, 2);
+        if (_root.HasObjects())
+        {
+            _root.Shift(direction * _root.Size * 0.5f, 2);
+        }
         else
-            root.SetValues(root.position + (direction * root.size * 0.5f), root.size * 2f, MinimumSize);
+        {
+            _root.SetValues(_root.Position + (direction * _root.Size * 0.5f), _root.Size * 2f, MinimumSize);
+        }
 
         // ! redistributing objects is causing a stack overflow, need another method
 
-        root.RedistObjects();
+        _root.RedistObjects();
     }
 
     /// <summary>
@@ -131,7 +135,7 @@ public class SphereTreeDynamic<T>
     /// <param name="pos">position of the sphere</param>
     /// <param name="size">size of the sphere</param>
     /// <returns>true if there is a collision; otherwise false</returns>
-    public bool IsColliding(Vector3 pos, float size) => root.IsColliding(pos, size);
+    public bool IsColliding(Vector3 pos, float size) => _root.IsColliding(pos, size);
 
     /// <summary>
     /// Retrieves collisions (if any) between a sphere and the tree
@@ -141,7 +145,7 @@ public class SphereTreeDynamic<T>
     /// <param name="size">size of the sphere</param>
     /// <param name="results">list of colliding objects</param>
     /// <returns>true if there is any collisions; otherwise false</returns>
-    public bool GetColliding(Vector3 pos, float size, List<T> results) => root.GetColliding(pos, size, results);
+    public bool GetColliding(Vector3 pos, float size, List<T> results) => _root.GetColliding(pos, size, results);
 
     /// <summary>
     /// Retrieves collisions (if any) in the tree
@@ -149,7 +153,7 @@ public class SphereTreeDynamic<T>
     /// </summary>
     /// <param name="results">list of colliding objects</param>
     /// <returns>true if there is any collisions; otherwise false</returns>
-    public bool CheckForCollisions(List<SphereTreeObjectPair<T>> results) => root.CheckForCollisions(results);
+    public bool CheckForCollisions(List<SphereTreeObjectPair<T>> results) => _root.CheckForCollisions(results);
 
     /// <summary>
     /// Performs an inaccurate, fast sweep using sphere bounding axis to detect possible collisions in the tree
@@ -157,5 +161,5 @@ public class SphereTreeDynamic<T>
     /// </summary>
     /// <param name="results">list of colliding objects</param>
     /// <returns>true if there is any collisions; otherwise false</returns>
-    public bool SweepForCollisions(List<SphereTreeObjectPair<T>> results) => root.SweepForCollisions(results);
+    public bool SweepForCollisions(List<SphereTreeObjectPair<T>> results) => _root.SweepForCollisions(results);
 }

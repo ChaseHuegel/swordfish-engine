@@ -15,7 +15,7 @@ public class Camera
         set
         {
             _fovDegrees = value;
-            _fovRadians = MathS.DegreesToRadians * value;
+            _fovRadians = MathS.DEGREES_TO_RADIANS * value;
         }
     }
 
@@ -42,7 +42,7 @@ public class Camera
         _viewTransform.Orientation = Transform.Orientation;
         _viewTransform.Scale = Transform.Scale;
 
-        Matrix4x4.Invert(_viewTransform.ToMatrix4x4(), out Matrix4x4 view);
+        Matrix4x4.Invert(_viewTransform.ToMatrix4X4(), out Matrix4x4 view);
         return view;
     }
 

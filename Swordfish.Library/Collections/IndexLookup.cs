@@ -1,72 +1,81 @@
 using System;
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class IndexLookup<TKey> where TKey : class
 {
-    public class IndexLookup<TKey> where TKey : class
+    public int Count { get; private set; }
+
+    private TKey[] _keys;
+
+    public IndexLookup()
     {
-        public int Count { get; private set; }
+        _keys = new TKey[1];
+    }
 
-        private TKey[] Keys;
+    public IndexLookup(int size)
+    {
+        _keys = new TKey[size];
+    }
 
-        public IndexLookup()
+    public bool Add(TKey key)
+    {
+        if (_keys.Length == Count)
         {
-            Keys = new TKey[1];
+            Array.Resize(ref _keys, _keys.Length * 2);
         }
 
-        public IndexLookup(int size)
+        for (var i = 0; i < _keys.Length; i++)
         {
-            Keys = new TKey[size];
-        }
-
-        public bool Add(TKey key)
-        {
-            if (Keys.Length == Count)
-                Array.Resize(ref Keys, Keys.Length * 2);
-
-            for (int i = 0; i < Keys.Length; i++)
+            if (_keys[i] is null)
             {
-                if (Keys[i] is null)
-                {
-                    Keys[i] = key;
-                    Count++;
-                    return true;
-                }
+                _keys[i] = key;
+                Count++;
+                return true;
             }
-
-            return false;
         }
 
-        public bool Remove(TKey key)
+        return false;
+    }
+
+    public bool Remove(TKey key)
+    {
+        for (var i = 0; i < _keys.Length; i++)
         {
-            for (int i = 0; i < Keys.Length; i++)
+            if (_keys[i]?.Equals(key) ?? false)
             {
-                if (Keys[i]?.Equals(key) ?? false)
-                {
-                    Keys[i] = null;
-                    Count--;
-                    return true;
-                }
+                _keys[i] = null;
+                Count--;
+                return true;
             }
-
-            return false;
         }
 
-        public int IndexOf(TKey key)
+        return false;
+    }
+
+    public int IndexOf(TKey key)
+    {
+        for (var i = 0; i < _keys.Length; i++)
         {
-            for (int i = 0; i < Keys.Length; i++)
-                if (Keys[i]?.Equals(key) ?? false)
-                    return i;
-
-            return -1;
+            if (_keys[i]?.Equals(key) ?? false)
+            {
+                return i;
+            }
         }
 
-        public bool Contains(TKey key)
+        return -1;
+    }
+
+    public bool Contains(TKey key)
+    {
+        for (var i = 0; i < _keys.Length; i++)
         {
-            for (int i = 0; i < Keys.Length; i++)
-                if (Keys[i]?.Equals(key) ?? false)
-                    return true;
-
-            return false;
+            if (_keys[i]?.Equals(key) ?? false)
+            {
+                return true;
+            }
         }
+
+        return false;
     }
 }

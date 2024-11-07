@@ -1,9 +1,8 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public enum BehaviorState
 {
-    public enum BehaviorState
-    {
-        RUNNING,
-        SUCCESS,
-        FAILED
-    }
+    RUNNING,
+    SUCCESS,
+    FAILED,
 }

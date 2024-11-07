@@ -1,26 +1,27 @@
 using System.Collections.Generic;
 
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public sealed class BehaviorSequence : BehaviorNode, IBehaviorCompositor
 {
-    public sealed class BehaviorSequence : BehaviorNode, IBehaviorCompositor
+    public BehaviorSequence(BehaviorNode child) : base(child) { }
+
+    public BehaviorSequence(params BehaviorNode[] children) : base(children) { }
+
+    public BehaviorSequence(IEnumerable<BehaviorNode> children) : base(children) { }
+
+    public override BehaviorState Evaluate(object target, float delta)
     {
-        public BehaviorSequence(BehaviorNode child) : base(child) { }
-
-        public BehaviorSequence(params BehaviorNode[] children) : base(children) { }
-
-        public BehaviorSequence(IEnumerable<BehaviorNode> children) : base(children) { }
-
-        public override BehaviorState Evaluate(object target, float delta)
+        for (var i = 0; i < Children.Count; i++)
         {
-            for (int i = 0; i < Children.Count; i++)
+            BehaviorState state = Children[i].Evaluate(target, delta);
+
+            if (state != BehaviorState.SUCCESS)
             {
-                BehaviorState state = Children[i].Evaluate(target, delta);
-
-                if (state != BehaviorState.SUCCESS)
-                    return state;
+                return state;
             }
-
-            return BehaviorState.SUCCESS;
         }
+
+        return BehaviorState.SUCCESS;
     }
 }

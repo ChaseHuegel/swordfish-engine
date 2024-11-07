@@ -1,17 +1,16 @@
-namespace Swordfish.Library.Constraints
+namespace Swordfish.Library.Constraints;
+
+public class FactorConstraint : IConstraint
 {
-    public class FactorConstraint : IConstraint
+    private float value;
+
+    public FactorConstraint(float value)
     {
-        private float value;
+        this.value = value;
+    }
 
-        public FactorConstraint(float value)
-        {
-            this.value = value;
-        }
-
-        public float GetValue(float max)
-        {
-            return max / value;
-        }
+    public float GetValue(float max)
+    {
+        return max / value;
     }
 }

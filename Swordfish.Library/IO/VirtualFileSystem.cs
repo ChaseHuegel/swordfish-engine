@@ -94,14 +94,14 @@ public class VirtualFileSystem
     private void ReadDirectory(PathInfo path)
     {
         string[] files = Directory.GetFiles(path.Value, "*", SearchOption.AllDirectories).ToArray();
-        for (int i = 0; i < files.Length; i++)
+        for (var i = 0; i < files.Length; i++)
         {
-            var relativePath = new PathInfo(path.Scheme, Path.GetRelativePath(path.Value, files[i])).Normalize();
+            PathInfo relativePath = new PathInfo(path.Scheme, Path.GetRelativePath(path.Value, files[i])).Normalize();
 
             _files[relativePath] = path.At(relativePath).Normalize();
             
             string directory = relativePath.GetDirectoryName() ?? string.Empty;
-            var folder = new PathInfo(directory + "/").Normalize();
+            PathInfo folder = new PathInfo(directory + "/").Normalize();
             _folders.Add(folder);
         }
     }
@@ -109,7 +109,7 @@ public class VirtualFileSystem
     private void ReadArchive(PathInfo path)
     {
         using ZipArchive zip = ZipFile.OpenRead(path.Value);
-        for (int i = 0; i < zip.Entries.Count; i++)
+        for (var i = 0; i < zip.Entries.Count; i++)
         {
             var entryPath = new PathInfo(zip.Entries[i].FullName);
             if (!entryPath.IsFile())
@@ -117,7 +117,7 @@ public class VirtualFileSystem
                 continue;
             }
             
-            var relativePath = entryPath.Normalize();
+            PathInfo relativePath = entryPath.Normalize();
             
             _files[relativePath] = new PathInfo("zip", path.Value).At(relativePath).Normalize();
             

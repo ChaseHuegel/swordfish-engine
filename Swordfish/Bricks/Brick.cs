@@ -122,6 +122,6 @@ public struct Brick(in ushort id) : IEquatable<Brick>
             _ => euler,
         };
 
-        return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DegreesToRadians, euler.X * MathS.DegreesToRadians, euler.Z * MathS.DegreesToRadians);
+        return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DEGREES_TO_RADIANS, euler.X * MathS.DEGREES_TO_RADIANS, euler.Z * MathS.DEGREES_TO_RADIANS);
     }
 }

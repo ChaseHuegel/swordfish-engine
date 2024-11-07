@@ -1,123 +1,122 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class LockedList<T> : IList<T>
 {
-    public class LockedList<T> : IList<T>
+    private readonly object _lock = new();
+    private readonly List<T> _list = new();
+
+    public T this[int index]
     {
-        private readonly object Lock = new object();
-        private readonly List<T> List = new List<T>();
-
-        public T this[int index]
+        get
         {
-            get
+            lock (_lock)
             {
-                lock (Lock)
-                {
-                    return List[index];
-                }
-            }
-            set
-            {
-                lock (Lock)
-                {
-                    List[index] = value;
-                }
+                return _list[index];
             }
         }
-
-        public int Count
+        set
         {
-            get
+            lock (_lock)
             {
-                lock (Lock)
-                {
-                    return List.Count;
-                }
+                _list[index] = value;
             }
         }
+    }
 
-        public bool IsReadOnly => false;
-
-        public void Add(T item)
+    public int Count
+    {
+        get
         {
-            lock (Lock)
+            lock (_lock)
             {
-                List.Add(item);
+                return _list.Count;
             }
         }
+    }
 
-        public void Clear()
+    public bool IsReadOnly => false;
+
+    public void Add(T item)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                List.Clear();
-            }
+            _list.Add(item);
         }
+    }
 
-        public bool Contains(T item)
+    public void Clear()
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                return List.Contains(item);
-            }
+            _list.Clear();
         }
+    }
 
-        public void CopyTo(T[] array, int arrayIndex)
+    public bool Contains(T item)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                //  ! This can throw, there is a race here
-                List.CopyTo(array, arrayIndex);
-            }
+            return _list.Contains(item);
         }
+    }
 
-        public IEnumerator<T> GetEnumerator()
+    public void CopyTo(T[] array, int arrayIndex)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                return List.GetEnumerator();
-            }
+            //  ! This can throw, there is a race here
+            _list.CopyTo(array, arrayIndex);
         }
+    }
 
-        public int IndexOf(T item)
+    public IEnumerator<T> GetEnumerator()
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                return List.IndexOf(item);
-            }
+            return _list.GetEnumerator();
         }
+    }
 
-        public void Insert(int index, T item)
+    public int IndexOf(T item)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                List.Insert(index, item);
-            }
+            return _list.IndexOf(item);
         }
+    }
 
-        public bool Remove(T item)
+    public void Insert(int index, T item)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                return List.Remove(item);
-            }
+            _list.Insert(index, item);
         }
+    }
 
-        public void RemoveAt(int index)
+    public bool Remove(T item)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                List.RemoveAt(index);
-            }
+            return _list.Remove(item);
         }
+    }
 
-        IEnumerator IEnumerable.GetEnumerator()
+    public void RemoveAt(int index)
+    {
+        lock (_lock)
         {
-            lock (Lock)
-            {
-                return List.GetEnumerator();
-            }
+            _list.RemoveAt(index);
+        }
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        lock (_lock)
+        {
+            return _list.GetEnumerator();
         }
     }
 }

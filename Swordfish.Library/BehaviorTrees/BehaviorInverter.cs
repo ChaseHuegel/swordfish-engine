@@ -1,24 +1,23 @@
 using System;
 
-namespace Swordfish.Library.BehaviorTrees
-{
-    public sealed class BehaviorInverter : BehaviorNode, IBehaviorDecorator
-    {
-        public BehaviorInverter(BehaviorNode child) : base(child) { }
+namespace Swordfish.Library.BehaviorTrees;
 
-        public override BehaviorState Evaluate(object target, float delta)
+public sealed class BehaviorInverter : BehaviorNode, IBehaviorDecorator
+{
+    public BehaviorInverter(BehaviorNode child) : base(child) { }
+
+    public override BehaviorState Evaluate(object target, float delta)
+    {
+        switch (Children[0].Evaluate(target, delta))
         {
-            switch (Children[0].Evaluate(target, delta))
-            {
-                case BehaviorState.RUNNING:
-                    return BehaviorState.RUNNING;
-                case BehaviorState.SUCCESS:
-                    return BehaviorState.FAILED;
-                case BehaviorState.FAILED:
-                    return BehaviorState.SUCCESS;
-                default:
-                    throw new NotImplementedException();
-            }
+            case BehaviorState.RUNNING:
+                return BehaviorState.RUNNING;
+            case BehaviorState.SUCCESS:
+                return BehaviorState.FAILED;
+            case BehaviorState.FAILED:
+                return BehaviorState.SUCCESS;
+            default:
+                throw new NotImplementedException();
         }
     }
 }

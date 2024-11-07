@@ -1,17 +1,16 @@
 
 using System;
 
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public class KeyEventArgs : EventArgs
 {
-    public class KeyEventArgs : EventArgs
+    public static new readonly KeyEventArgs Empty = new(Key.NONE);
+
+    public Key Key;
+
+    public KeyEventArgs(Key key)
     {
-        public static new readonly KeyEventArgs Empty = new KeyEventArgs(Key.NONE);
-
-        public Key Key;
-
-        public KeyEventArgs(Key key)
-        {
-            Key = key;
-        }
+        Key = key;
     }
 }

@@ -1,7 +1,6 @@
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public interface IShortcutService
 {
-    public interface IShortcutService
-    {
-        bool RegisterShortcut(Shortcut shortcut);
-    }
+    bool RegisterShortcut(Shortcut shortcut);
 }

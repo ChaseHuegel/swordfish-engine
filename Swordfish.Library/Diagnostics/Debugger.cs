@@ -1,28 +1,27 @@
 using System;
 using Swordfish.Library.Util;
 
-namespace Swordfish.Library.Diagnostics
+namespace Swordfish.Library.Diagnostics;
+
+//  TODO refactor this name
+public static class Debugger
 {
-    //  TODO refactor this name
-    public static class Debugger
+    /// <summary>
+    /// Tries to run an action, catching and logging exceptions.
+    /// </summary>
+    /// <param name="action">The action to run.</param>
+    /// <param name="message">Optional message to log if an exception was caught.</param>
+    /// <returns>True if successful; otherwise false.</returns>
+    public static Result<Exception> SafeInvoke(Action action)
     {
-        /// <summary>
-        /// Tries to run an action, catching and logging exceptions.
-        /// </summary>
-        /// <param name="action">The action to run.</param>
-        /// <param name="message">Optional message to log if an exception was caught.</param>
-        /// <returns>True if successful; otherwise false.</returns>
-        public static Result<Exception> SafeInvoke(Action action)
+        try
         {
-            try
-            {
-                action.Invoke();
-                return new Result<Exception>(success: true, null);
-            }
-            catch (Exception ex)
-            {
-                return new Result<Exception>(success: false, ex);
-            }
+            action.Invoke();
+            return new Result<Exception>(success: true, null);
+        }
+        catch (Exception ex)
+        {
+            return new Result<Exception>(success: false, ex);
         }
     }
 }

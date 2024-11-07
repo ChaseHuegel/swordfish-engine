@@ -1,9 +1,8 @@
-namespace Swordfish.Library.Types
-{
-    public interface IBindable
-    {
-        void Bind();
+namespace Swordfish.Library.Types;
 
-        void Unbind();
-    }
+public interface IBindable
+{
+    void Bind();
+
+    void Unbind();
 }

@@ -1,9 +1,8 @@
 using System;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types;
+
+public interface IHandle : IDisposable
 {
-    public interface IHandle : IDisposable
-    {
-        event EventHandler<EventArgs> Disposed;
-    }
+    event EventHandler<EventArgs> Disposed;
 }

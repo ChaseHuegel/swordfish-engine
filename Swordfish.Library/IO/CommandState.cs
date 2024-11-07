@@ -1,10 +1,9 @@
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public enum CommandState
 {
-    public enum CommandState
-    {
-        //  TODO Is InProgress necessary? Commands were going to use a BehaviorTree but are now async.
-        InProgress,
-        Success,
-        Failure,
-    }
+    //  TODO Is InProgress necessary? Commands were going to use a BehaviorTree but are now async.
+    InProgress,
+    Success,
+    Failure,
 }

@@ -1,26 +1,25 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public sealed class BehaviorWait : BehaviorNode, IBehaviorAction
 {
-    public sealed class BehaviorWait : BehaviorNode, IBehaviorAction
+    private readonly float _seconds;
+    private float _elapsed;
+
+    public BehaviorWait(float seconds)
     {
-        private readonly float Seconds;
-        private float Elapsed;
+        _seconds = seconds;
+    }
 
-        public BehaviorWait(float seconds)
+    public override BehaviorState Evaluate(object target, float delta)
+    {
+        _elapsed += delta;
+
+        if (_elapsed >= _seconds)
         {
-            Seconds = seconds;
+            _elapsed = 0f;
+            return BehaviorState.SUCCESS;
         }
 
-        public override BehaviorState Evaluate(object target, float delta)
-        {
-            Elapsed += delta;
-
-            if (Elapsed >= Seconds)
-            {
-                Elapsed = 0f;
-                return BehaviorState.SUCCESS;
-            }
-
-            return BehaviorState.RUNNING;
-        }
+        return BehaviorState.RUNNING;
     }
 }

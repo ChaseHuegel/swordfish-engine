@@ -1,45 +1,44 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public interface IBehaviorJob
 {
-    public interface IBehaviorJob
+    BehaviorState Tick(float delta);
+}
+
+public sealed class BehaviorJob<TTarget> : IBehaviorJob where TTarget : class
+{
+    private readonly BehaviorTree<TTarget> _tree;
+
+    private readonly TTarget _target;
+
+    public BehaviorJob(BehaviorTree<TTarget> tree, TTarget target)
     {
-        BehaviorState Tick(float delta);
+        _target = target;
+        _tree = tree;
     }
 
-    public sealed class BehaviorJob<TTarget> : IBehaviorJob where TTarget : class
+    public BehaviorState Tick(float delta)
     {
-        private readonly BehaviorTree<TTarget> Tree;
+        return _tree.Tick(_target, delta);
+    }
+}
 
-        private readonly TTarget Target;
+public abstract class AbstractBehaviorJob<TTarget> : IBehaviorJob where TTarget : class
+{
+    private readonly BehaviorTree<TTarget> _tree;
 
-        public BehaviorJob(BehaviorTree<TTarget> tree, TTarget target)
-        {
-            Target = target;
-            Tree = tree;
-        }
+    private readonly TTarget _target;
 
-        public BehaviorState Tick(float delta)
-        {
-            return Tree.Tick(Target, delta);
-        }
+    public AbstractBehaviorJob(TTarget target)
+    {
+        _target = target;
+        _tree = TreeFactory();
     }
 
-    public abstract class AbstractBehaviorJob<TTarget> : IBehaviorJob where TTarget : class
+    public BehaviorState Tick(float delta)
     {
-        private readonly BehaviorTree<TTarget> Tree;
-
-        private readonly TTarget Target;
-
-        public AbstractBehaviorJob(TTarget target)
-        {
-            Target = target;
-            Tree = TreeFactory();
-        }
-
-        public BehaviorState Tick(float delta)
-        {
-            return Tree.Tick(Target, delta);
-        }
-
-        protected abstract BehaviorTree<TTarget> TreeFactory();
+        return _tree.Tick(_target, delta);
     }
+
+    protected abstract BehaviorTree<TTarget> TreeFactory();
 }

@@ -1,7 +1,6 @@
-namespace Swordfish.Library.Constraints
+namespace Swordfish.Library.Constraints;
+
+public interface IConstraint
 {
-    public interface IConstraint
-    {
-        float GetValue(float max);
-    }
+    float GetValue(float max);
 }

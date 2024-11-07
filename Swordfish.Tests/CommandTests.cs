@@ -77,9 +77,13 @@ public class CommandTests : TestBase
             string arg1 = args.Take();
 
             if (arg1.Equals("all", StringComparison.OrdinalIgnoreCase))
+            {
                 Console.WriteLine($"Home delete all");
+            }
             else
+            {
                 Console.WriteLine($"Home delete {arg1}");
+            }
 
             return Task.FromResult(CommandState.Success);
         }

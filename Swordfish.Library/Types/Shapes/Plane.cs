@@ -1,23 +1,16 @@
 using System.Numerics;
 
-namespace Swordfish.Library.Types.Shapes
+namespace Swordfish.Library.Types.Shapes;
+
+public struct Plane(in Vector3 normal, in float distance = 0f)
 {
-    public struct Plane
+    public Vector3 Normal = normal;
+    public float Distance = distance;
+
+    public Vector3 GetPosition()
     {
-        public Vector3 Normal;
-        public float Distance;
-
-        public Plane(Vector3 normal, float distance = 0f)
-        {
-            Normal = normal;
-            Distance = distance;
-        }
-
-        public Vector3 GetPosition()
-        {
-            return Normal * Distance;
-        }
-
-        public static implicit operator Shape(Plane x) => new(x);
+        return Normal * Distance;
     }
+
+    public static implicit operator Shape(Plane x) => new(x);
 }

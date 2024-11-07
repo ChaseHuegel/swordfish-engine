@@ -1,14 +1,15 @@
 using System;
 
-namespace Swordfish.Library.Extensions
-{
-    public static class TypeExtensions
-    {
-        public static object GetDefault(this Type type) {
-            if (type.IsValueType)
-                return Activator.CreateInstance(type);
+namespace Swordfish.Library.Extensions;
 
-            return null;
+public static class TypeExtensions
+{
+    public static object GetDefault(this Type type) {
+        if (type.IsValueType)
+        {
+            return Activator.CreateInstance(type);
         }
+
+        return null;
     }
 }

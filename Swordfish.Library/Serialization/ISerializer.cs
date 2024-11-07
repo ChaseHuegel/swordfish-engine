@@ -1,4 +1,5 @@
-﻿namespace Swordfish.Library.Serialization;
+﻿// ReSharper disable UnusedMember.Global
+namespace Swordfish.Library.Serialization;
 
 public interface ISerializer<T>
 {

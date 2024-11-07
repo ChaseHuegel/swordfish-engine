@@ -5,62 +5,67 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 
-namespace Swordfish.Library.Extensions
+namespace Swordfish.Library.Extensions;
+
+public static class StackFrameExtensions
 {
-    public static class StackFrameExtensions
+    public static string ToFormattedString(this IEnumerable<StackFrame> stackFrames)
     {
-        public static string ToFormattedString(this IEnumerable<StackFrame> stackFrames)
+        var builder = new StringBuilder();
+
+        foreach (StackFrame frame in stackFrames)
         {
-            StringBuilder builder = new StringBuilder();
-
-            foreach (var frame in stackFrames)
-                frame.AppendStringBuilder(builder);
-
-            return builder.ToString();
+            frame.AppendStringBuilder(builder);
         }
 
-        public static string ToFormattedString(this StackFrame frame)
+        return builder.ToString();
+    }
+
+    public static string ToFormattedString(this StackFrame frame)
+    {
+        return frame.AppendStringBuilder().ToString();
+    }
+
+    private static StringBuilder AppendStringBuilder(this StackFrame frame, StringBuilder builder = null)
+    {
+        if (builder == null)
         {
-            return frame.AppendStringBuilder().ToString();
+            builder = new StringBuilder();
         }
 
-        private static StringBuilder AppendStringBuilder(this StackFrame frame, StringBuilder builder = null)
+        builder.Append(Environment.NewLine);
+        builder.Append("\t");
+
+        builder.Append("at ");
+        builder.Append(frame.GetMethod().DeclaringType);
+        builder.Append(".");
+        builder.Append(frame.GetMethod().Name);
+        builder.Append("(");
+        for (var i = 0; i < frame.GetMethod().GetParameters().Count(); i++)
         {
-            if (builder == null)
-                builder = new StringBuilder();
+            ParameterInfo parameter = frame.GetMethod().GetParameters()[i];
+            builder.Append(parameter.GetType());
+            builder.Append(" ");
+            builder.Append(parameter.Name);
 
-            builder.Append(Environment.NewLine);
-            builder.Append("\t");
+            if (i < frame.GetMethod().GetParameters().Count() - 1)
+            {
+                builder.Append(", ");
+            }
+        }
+        builder.Append(")");
 
-            builder.Append("at ");
-            builder.Append(frame.GetMethod().DeclaringType);
-            builder.Append(".");
-            builder.Append(frame.GetMethod().Name);
+        if (!string.IsNullOrWhiteSpace(frame.GetFileName()))
+        {
+            builder.Append(" in ");
+            builder.Append(frame.GetFileName());
             builder.Append("(");
-            for (int i = 0; i < frame.GetMethod().GetParameters().Count(); i++)
-            {
-                ParameterInfo parameter = frame.GetMethod().GetParameters()[i];
-                builder.Append(parameter.GetType());
-                builder.Append(" ");
-                builder.Append(parameter.Name);
-
-                if (i < frame.GetMethod().GetParameters().Count() - 1)
-                    builder.Append(", ");
-            }
+            builder.Append(frame.GetFileLineNumber());
+            builder.Append(",");
+            builder.Append(frame.GetFileColumnNumber());
             builder.Append(")");
-
-            if (!string.IsNullOrWhiteSpace(frame.GetFileName()))
-            {
-                builder.Append(" in ");
-                builder.Append(frame.GetFileName());
-                builder.Append("(");
-                builder.Append(frame.GetFileLineNumber());
-                builder.Append(",");
-                builder.Append(frame.GetFileColumnNumber());
-                builder.Append(")");
-            }
-
-            return builder;
         }
+
+        return builder;
     }
 }

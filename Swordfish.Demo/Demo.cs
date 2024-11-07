@@ -152,7 +152,7 @@ public class Demo : IEntryPoint, IAutoActivate
             transform.Position = raycast.Point;
             if (scroll != 0)
             {
-                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
+                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DEGREES_TO_RADIANS, 0, 0));
                 Interlocked.Exchange(ref _scrollBuffer, _scrollBuffer - scroll);
             }
 

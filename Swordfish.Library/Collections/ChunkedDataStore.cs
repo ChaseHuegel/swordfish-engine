@@ -2,247 +2,304 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class ChunkedDataStore
 {
-    public class ChunkedDataStore
+    public const int NULL_PTR = -1;
+
+    public int Size { get; }
+    public int ChunkSize { get; }
+    public int Count { get; private set; }
+
+    private readonly object[] _data;
+    private volatile int _highestPtr;
+    private volatile int _lowestPtr;
+    private volatile int _secondLowestPtr;
+    private readonly Queue<int> _recycledPtrs;
+    private readonly int _chunkOffset;
+
+    public ChunkedDataStore(int size, int chunkSize)
     {
-        public const int NullPtr = -1;
-
-        public int Size { get; }
-        public int ChunkSize { get; }
-        public int Count { get; private set; }
-
-        private readonly object[] Data;
-        private volatile int HighestPtr;
-        private volatile int LowestPtr;
-        private volatile int SecondLowestPtr;
-        private readonly Queue<int> RecycledPtrs;
-        private readonly int ChunkOffset;
-
-        public ChunkedDataStore(int size, int chunkSize)
+        if (chunkSize < 1)
         {
-            if (chunkSize < 1)
-                throw new ArgumentException($"{nameof(chunkSize)} must be greater than 0.");
-
-            Size = size;
-            ChunkSize = chunkSize;
-            ChunkOffset = chunkSize + 1;
-
-            Data = new object[Size * ChunkOffset];
-
-            Count = 0;
-            HighestPtr = 0;
-            LowestPtr = 0;
-            SecondLowestPtr = 0;
-            RecycledPtrs = new Queue<int>();
+            throw new ArgumentException($"{nameof(chunkSize)} must be greater than 0.");
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Add(int ptr = NullPtr)
+        Size = size;
+        ChunkSize = chunkSize;
+        _chunkOffset = chunkSize + 1;
+
+        _data = new object[Size * _chunkOffset];
+
+        Count = 0;
+        _highestPtr = 0;
+        _lowestPtr = 0;
+        _secondLowestPtr = 0;
+        _recycledPtrs = new Queue<int>();
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Add(int ptr = NULL_PTR)
+    {
+        if (ptr == NULL_PTR)
         {
-            if (ptr == NullPtr)
-                ptr = AllocatePtr();
-
-            Data[ptr * ChunkOffset] = true;
-            for (int i = 1; i <= ChunkSize; i++)
-                Data[ptr * ChunkOffset + i] = null;
-
-            return ptr;
+            ptr = AllocatePtr();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Add(object[] data, int ptr = NullPtr)
+        _data[ptr * _chunkOffset] = true;
+        for (var i = 1; i <= ChunkSize; i++)
         {
-            if (data.Length != ChunkSize)
-                throw new ArgumentException("Data length must be equal to chunk count.");
-
-            if (ptr == NullPtr)
-                ptr = AllocatePtr();
-
-            Data[ptr * ChunkOffset] = true;
-            for (int i = 0; i < ChunkSize; i++)
-                Data[ptr * ChunkOffset + i + 1] = data[i];
-
-            return ptr;
+            _data[ptr * _chunkOffset + i] = null;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int Add(Dictionary<int, object> chunks, int ptr = NullPtr)
+        return ptr;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Add(object[] data, int ptr = NULL_PTR)
+    {
+        if (data.Length != ChunkSize)
         {
-            if (ptr == NullPtr)
-                ptr = AllocatePtr();
-
-            Data[ptr * ChunkOffset] = true;
-            for (int i = 1; i <= ChunkSize; i++)
-                Data[ptr * ChunkOffset + i] = chunks.TryGetValue(i, out object chunk) ? chunk : null;
-
-            return ptr;
+            throw new ArgumentException("Data length must be equal to chunk count.");
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Set(int ptr, int chunkIndex, object chunk)
+        if (ptr == NULL_PTR)
         {
-            Data[ptr * ChunkOffset + chunkIndex + 1] = chunk;
+            ptr = AllocatePtr();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Remove(int ptr)
+        _data[ptr * _chunkOffset] = true;
+        for (var i = 0; i < ChunkSize; i++)
         {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
-
-            Data[ptr * ChunkOffset] = null;
-            for (int i = 1; i <= ChunkSize; i++)
-                Data[ptr * ChunkOffset + i] = null;
-
-            FreePtr(ptr);
+            _data[ptr * _chunkOffset + i + 1] = data[i];
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object[] Get(int ptr)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
+        return ptr;
+    }
 
-            object[] chunks = new object[ChunkSize];
-            Array.Copy(Data, ptr * ChunkOffset + 1, chunks, 0, ChunkSize);
-            return chunks;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int Add(Dictionary<int, object> chunks, int ptr = NULL_PTR)
+    {
+        if (ptr == NULL_PTR)
+        {
+            ptr = AllocatePtr();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public object GetAt(int ptr, int chunkIndex)
+        _data[ptr * _chunkOffset] = true;
+        for (var i = 1; i <= ChunkSize; i++)
         {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
-
-            return Data[ptr * ChunkOffset + chunkIndex + 1];
+            _data[ptr * _chunkOffset + i] = chunks.TryGetValue(i, out object chunk) ? chunk : null;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public T GetAt<T>(int ptr, int chunkIndex)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
+        return ptr;
+    }
 
-            return (T)Data[ptr * ChunkOffset + chunkIndex + 1];
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Set(int ptr, int chunkIndex, object chunk)
+    {
+        _data[ptr * _chunkOffset + chunkIndex + 1] = chunk;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Remove(int ptr)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ref object GetRefAt(int ptr, int chunkIndex)
+        _data[ptr * _chunkOffset] = null;
+        for (var i = 1; i <= ChunkSize; i++)
         {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
-
-            return ref Data[ptr * ChunkOffset + chunkIndex + 1];
+            _data[ptr * _chunkOffset + i] = null;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool Has(int ptr)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
+        FreePtr(ptr);
+    }
 
-            return Data[ptr * ChunkOffset] is true;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public object[] Get(int ptr)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool HasAt(int ptr, int chunkIndex)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
+        var chunks = new object[ChunkSize];
+        Array.Copy(_data, ptr * _chunkOffset + 1, chunks, 0, ChunkSize);
+        return chunks;
+    }
 
-            int index = ptr * ChunkOffset + chunkIndex + 1;
-            return Data[index] != null;
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public object GetAt(int ptr, int chunkIndex)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public int[] All()
+        return _data[ptr * _chunkOffset + chunkIndex + 1];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public T GetAt<T>(int ptr, int chunkIndex)
+    {
+        if (ptr == NULL_PTR)
         {
-            int[] ptrs = new int[Count];
-            int ptrIndex = 0;
-            for (int i = LowestPtr; i < HighestPtr; i++)
+            throw new NullReferenceException();
+        }
+
+        return (T)_data[ptr * _chunkOffset + chunkIndex + 1];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public ref object GetRefAt(int ptr, int chunkIndex)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
+        }
+
+        return ref _data[ptr * _chunkOffset + chunkIndex + 1];
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Has(int ptr)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
+        }
+
+        return _data[ptr * _chunkOffset] is true;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool HasAt(int ptr, int chunkIndex)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
+        }
+
+        int index = ptr * _chunkOffset + chunkIndex + 1;
+        return _data[index] != null;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public int[] All()
+    {
+        var ptrs = new int[Count];
+        var ptrIndex = 0;
+        for (int i = _lowestPtr; i < _highestPtr; i++)
+        {
+            //  TODO this can throw index out of range without ptrIndex < length.
+            //  ! This is a bandaid hiding a race issue that results in not all entities being rendered when hit
+            if (_data[i * _chunkOffset] != null && ptrIndex < ptrs.Length)
             {
-                //  TODO this can throw index out of range without ptrIndex < length.
-                //  ! This is a bandaid hiding a race issue that results in not all entities being rendered when hit
-                if (Data[i * ChunkOffset] != null && ptrIndex < ptrs.Length)
-                    ptrs[ptrIndex++] = i;
-            }
-
-            return ptrs;
-        }
-
-        public void ForEach(int ptr, Action<object> action)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
-
-            for (int i = 1; i <= ChunkSize; i++)
-                action.Invoke(Data[ptr * ChunkOffset + i]);
-        }
-
-        public void ForEachOf<T>(int chunkIndex, Action<T> action)
-        {
-            for (int i = LowestPtr; i < HighestPtr; i++)
-            {
-                int ptr = i * ChunkOffset + chunkIndex + 1;
-                if (Data[ptr] != null)
-                    action.Invoke((T)Data[ptr]);
+                ptrs[ptrIndex++] = i;
             }
         }
 
-        public IEnumerable<object> EnumerateAt(int ptr)
-        {
-            if (ptr == NullPtr)
-                throw new NullReferenceException();
+        return ptrs;
+    }
 
-            ptr = ptr * ChunkOffset;
-            for (int i = 1; i <= ChunkSize; i++)
-                yield return Data[ptr + i];
+    public void ForEach(int ptr, Action<object> action)
+    {
+        if (ptr == NULL_PTR)
+        {
+            throw new NullReferenceException();
         }
 
-        public IEnumerable<DataPtr<T>> EnumerateEachOf<T>(int chunkIndex)
+        for (var i = 1; i <= ChunkSize; i++)
         {
-            for (int ptr = LowestPtr; ptr < HighestPtr; ptr++)
+            action.Invoke(_data[ptr * _chunkOffset + i]);
+        }
+    }
+
+    public void ForEachOf<T>(int chunkIndex, Action<T> action)
+    {
+        for (int i = _lowestPtr; i < _highestPtr; i++)
+        {
+            int ptr = i * _chunkOffset + chunkIndex + 1;
+            if (_data[ptr] != null)
             {
-                int dataIndex = ptr * ChunkOffset + chunkIndex + 1;
-                object data = Data[dataIndex];
-                if (data != null)
-                    yield return new DataPtr<T>(ptr, (T)data);
+                action.Invoke((T)_data[ptr]);
             }
         }
+    }
 
-        private int AllocatePtr()
+    public IEnumerable<object> EnumerateAt(int ptr)
+    {
+        if (ptr == NULL_PTR)
         {
-            bool anyRecycledPtrs = RecycledPtrs.Count != 0;
-
-            if (HighestPtr > Size && !anyRecycledPtrs)
-                throw new OutOfMemoryException($"Exceeded maximum chunk allocations ({Size}).");
-
-            int ptr = anyRecycledPtrs ? RecycledPtrs.Dequeue() : HighestPtr++;
-
-            if (ptr < LowestPtr)
-                LowestPtr = ptr;
-
-            Count++;
-            return ptr;
+            throw new NullReferenceException();
         }
 
-        private void FreePtr(int ptr)
+        ptr = ptr * _chunkOffset;
+        for (var i = 1; i <= ChunkSize; i++)
         {
-            RecycledPtrs.Enqueue(ptr);
-            Count--;
+            yield return _data[ptr + i];
+        }
+    }
 
-            if (SecondLowestPtr < LowestPtr)
-                SecondLowestPtr = LowestPtr;
+    public IEnumerable<DataPtr<T>> EnumerateEachOf<T>(int chunkIndex)
+    {
+        for (int ptr = _lowestPtr; ptr < _highestPtr; ptr++)
+        {
+            int dataIndex = ptr * _chunkOffset + chunkIndex + 1;
+            object data = _data[dataIndex];
+            if (data != null)
+            {
+                yield return new DataPtr<T>(ptr, (T)data);
+            }
+        }
+    }
 
-            if (ptr == LowestPtr)
-                LowestPtr = SecondLowestPtr == ptr ? LowestPtr + 1 : SecondLowestPtr;
+    private int AllocatePtr()
+    {
+        bool anyRecycledPtrs = _recycledPtrs.Count != 0;
 
-            if (SecondLowestPtr < ptr)
-                SecondLowestPtr = ptr;
+        if (_highestPtr > Size && !anyRecycledPtrs)
+        {
+            throw new OutOfMemoryException($"Exceeded maximum chunk allocations ({Size}).");
+        }
 
-            if (ptr == SecondLowestPtr)
-                SecondLowestPtr++;
+        int ptr = anyRecycledPtrs ? _recycledPtrs.Dequeue() : _highestPtr++;
+
+        if (ptr < _lowestPtr)
+        {
+            _lowestPtr = ptr;
+        }
+
+        Count++;
+        return ptr;
+    }
+
+    private void FreePtr(int ptr)
+    {
+        _recycledPtrs.Enqueue(ptr);
+        Count--;
+
+        if (_secondLowestPtr < _lowestPtr)
+        {
+            _secondLowestPtr = _lowestPtr;
+        }
+
+        if (ptr == _lowestPtr)
+        {
+            _lowestPtr = _secondLowestPtr == ptr ? _lowestPtr + 1 : _secondLowestPtr;
+        }
+
+        if (_secondLowestPtr < ptr)
+        {
+            _secondLowestPtr = ptr;
+        }
+
+        if (ptr == _secondLowestPtr)
+        {
+            _secondLowestPtr++;
         }
     }
 }

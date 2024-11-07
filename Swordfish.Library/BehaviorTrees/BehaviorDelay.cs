@@ -1,26 +1,25 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public sealed class BehaviorDelay : BehaviorNode, IBehaviorDecorator
 {
-    public sealed class BehaviorDelay : BehaviorNode, IBehaviorDecorator
+    private readonly float _delay;
+    private float _elapsed;
+
+    public BehaviorDelay(float delay, BehaviorNode child) : base(child)
     {
-        private readonly float Delay;
-        private float Elapsed;
+        _delay = delay;
+    }
 
-        public BehaviorDelay(float delay, BehaviorNode child) : base(child)
+    public override BehaviorState Evaluate(object target, float delta)
+    {
+        _elapsed += delta;
+
+        if (_elapsed >= _delay)
         {
-            Delay = delay;
+            _elapsed = 0f;
+            return Children[0].Evaluate(target, delta);
         }
 
-        public override BehaviorState Evaluate(object target, float delta)
-        {
-            Elapsed += delta;
-
-            if (Elapsed >= Delay)
-            {
-                Elapsed = 0f;
-                return Children[0].Evaluate(target, delta);
-            }
-
-            return BehaviorState.RUNNING;
-        }
+        return BehaviorState.RUNNING;
     }
 }
