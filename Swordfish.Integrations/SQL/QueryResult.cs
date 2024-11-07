@@ -2,14 +2,9 @@ using System.Data;
 
 namespace Swordfish.Integrations.SQL
 {
-    public class QueryResult
+    public class QueryResult(in DataTable table)
     {
-        public DataTable Table { get; private set; }
-
-        public QueryResult(DataTable table)
-        {
-            Table = table;
-        }
+        private DataTable Table { get; } = table;
 
         public bool Exists()
         {

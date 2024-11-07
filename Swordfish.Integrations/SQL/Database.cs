@@ -2,6 +2,7 @@ using System;
 using System.Data;
 using System.Data.SqlClient;
 using Swordfish.Library.Util;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Integrations.SQL
 {
@@ -16,7 +17,7 @@ namespace Swordfish.Integrations.SQL
                 Name = name,
                 Address = address,
                 Port = port,
-                Timeout = timeout
+                Timeout = timeout,
             };
         }
 
@@ -24,15 +25,13 @@ namespace Swordfish.Integrations.SQL
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout)))
-                {
-                    connection.Open();
-                    SqlCommand cmd = new SqlCommand(query.ToString(), connection);
-                    cmd.CommandTimeout = query.Timeout;
-                    cmd.ExecuteNonQuery();
+                using var connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout));
+                connection.Open();
+                var cmd = new SqlCommand(query.ToString(), connection);
+                cmd.CommandTimeout = query.Timeout;
+                cmd.ExecuteNonQuery();
 
-                    return new Result(success: true);
-                }
+                return new Result(success: true);
             }
             catch (Exception ex)
             {
@@ -44,16 +43,14 @@ namespace Swordfish.Integrations.SQL
         {
             try
             {
-                using (SqlConnection connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout)))
-                {
-                    connection.Open();
-                    SqlCommand cmd = new SqlCommand(query.ToString(), connection);
-                    cmd.CommandTimeout = query.Timeout;
-                    SqlDataAdapter data = new SqlDataAdapter(cmd);
-                    DataTable table = new DataTable();
-                    data.Fill(table);
-                    return new Result<QueryResult>(success: true, new QueryResult(table));
-                }
+                using var connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout));
+                connection.Open();
+                var cmd = new SqlCommand(query.ToString(), connection);
+                cmd.CommandTimeout = query.Timeout;
+                var data = new SqlDataAdapter(cmd);
+                var table = new DataTable();
+                data.Fill(table);
+                return new Result<QueryResult>(success: true, new QueryResult(table));
             }
             catch (Exception ex)
             {
