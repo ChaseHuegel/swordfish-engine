@@ -1,8 +1,5 @@
-using System;
 using System.Net;
 using System.Timers;
-using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Networking.Packets;
 
 namespace Swordfish.Library.Networking
 {

@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.Library.IO
 {
     public enum CursorState

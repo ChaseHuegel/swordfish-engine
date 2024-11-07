@@ -1,5 +1,4 @@
 using System;
-using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Library.Types
 {

@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;

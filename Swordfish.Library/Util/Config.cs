@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using Swordfish.Library.Diagnostics;
 using Tomlet;
 
 namespace Swordfish.Library.Util

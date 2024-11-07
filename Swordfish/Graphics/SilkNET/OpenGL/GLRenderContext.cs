@@ -3,9 +3,7 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Shoal.DependencyInjection;
-using Shoal.Modularity;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 

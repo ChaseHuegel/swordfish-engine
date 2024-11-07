@@ -1,12 +1,9 @@
 using Swordfish.Library.Extensions;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
-using Swordfish.Library.Types.Shapes;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
-using Plane = Swordfish.Library.Types.Shapes.Plane;
 using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
 using JoltShape = JoltPhysicsSharp.Shape;
 using Shape = Swordfish.Library.Types.Shapes.Shape;

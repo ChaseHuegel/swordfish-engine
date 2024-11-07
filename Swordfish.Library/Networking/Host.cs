@@ -1,4 +1,3 @@
-using System;
 using System.Net;
 
 namespace Swordfish.Library.Networking

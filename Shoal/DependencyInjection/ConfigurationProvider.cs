@@ -1,4 +1,3 @@
-using Shoal.IO;
 using Shoal.Modularity;
 using Swordfish.Library.Diagnostics;
 

@@ -1,5 +1,3 @@
-using System.Numerics;
-
 namespace Swordfish.Library.Networking
 {
     public class NetStatsRecord

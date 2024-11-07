@@ -1,4 +1,3 @@
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
 using Swordfish.Library.Networking.Packets;
 

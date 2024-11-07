@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Library.Collections;
 

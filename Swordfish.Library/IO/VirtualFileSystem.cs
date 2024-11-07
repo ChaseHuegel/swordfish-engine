@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using Swordfish.Library.Collections.Filtering;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Library.IO;

@@ -1,5 +1,4 @@
 using System.Numerics;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Core;
 using Silk.NET.Maths;

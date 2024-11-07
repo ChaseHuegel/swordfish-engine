@@ -1,7 +1,6 @@
 using System;
 using System.Drawing;
 using Microsoft.Extensions.Logging;
-using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Library.Extensions
 {

@@ -1,10 +1,7 @@
-using DryIoc;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
-using Swordfish.ECS;
-using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Threading;
 

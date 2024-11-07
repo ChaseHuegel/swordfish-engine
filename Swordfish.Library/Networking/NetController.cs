@@ -8,7 +8,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
 using Needlefish;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Packets;
 using Swordfish.Library.Threading;
 using Timer = System.Timers.Timer;

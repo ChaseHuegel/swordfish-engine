@@ -1,4 +1,3 @@
-using System;
 using Needlefish;
 
 namespace Swordfish.Library.Networking

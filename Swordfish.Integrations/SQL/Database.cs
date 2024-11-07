@@ -1,8 +1,6 @@
 using System;
 using System.Data;
 using System.Data.SqlClient;
-using DryIoc.ImTools;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Integrations.SQL

@@ -1,6 +1,4 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Types

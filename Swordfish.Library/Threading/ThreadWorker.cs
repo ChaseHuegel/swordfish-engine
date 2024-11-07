@@ -2,8 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
-
 namespace Swordfish.Library.Threading
 {
     public class ThreadWorker

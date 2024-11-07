@@ -1,6 +1,4 @@
 using System;
-using System.Diagnostics;
-using System.IO;
 using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Diagnostics

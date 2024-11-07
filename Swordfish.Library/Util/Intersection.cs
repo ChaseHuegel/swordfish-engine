@@ -1,7 +1,6 @@
 using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using Swordfish.Library.Types.Shapes;
 using Plane = Swordfish.Library.Types.Shapes.Plane;
 
 namespace Swordfish.Library.Util

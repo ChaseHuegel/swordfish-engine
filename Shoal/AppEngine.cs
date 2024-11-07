@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Console;
 using Shoal.CommandLine;
 using Shoal.Globalization;
 using Shoal.Modularity;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Events;
 using Swordfish.Library.Serialization;

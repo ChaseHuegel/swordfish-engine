@@ -2,10 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using Silk.NET.Input;
-using Swordfish.Graphics;
 using Swordfish.Library.IO;
-using Swordfish.Util;
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
 using Key = Swordfish.Library.IO.Key;
 using MouseButton = Swordfish.Library.IO.MouseButton;
 

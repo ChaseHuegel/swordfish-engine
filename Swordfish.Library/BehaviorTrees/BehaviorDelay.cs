@@ -1,5 +1,3 @@
-using System;
-
 namespace Swordfish.Library.BehaviorTrees
 {
     public sealed class BehaviorDelay : BehaviorNode, IBehaviorDecorator

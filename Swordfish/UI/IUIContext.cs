@@ -1,4 +1,3 @@
-using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.Types;
 using Swordfish.Library.Threading;

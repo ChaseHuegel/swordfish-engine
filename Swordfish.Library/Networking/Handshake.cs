@@ -1,6 +1,3 @@
-using System;
-using System.Net;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
 
 namespace Swordfish.Library.Networking

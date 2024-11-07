@@ -1,7 +1,3 @@
-using System;
-using Swordfish.Library.Diagnostics;
-using Swordfish.Library.Extensions;
-
 namespace Swordfish.Library.Networking
 {
     public class NetServer : NetController
