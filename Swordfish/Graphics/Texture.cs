@@ -1,4 +1,3 @@
-using Swordfish.Library.Annotations;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
@@ -11,10 +10,10 @@ public class Texture : Handle
     public bool Mipmaps { get; protected set; }
     public byte[] Pixels { get; protected set; }
 
-    public Texture([NotNull] byte[] pixels, int width, int height, bool mipmaps)
+    public Texture(byte[] pixels, int width, int height, bool mipmaps)
         : this("unknown", pixels, width, height, mipmaps) { }
 
-    public Texture([NotNull] string name, [NotNull] byte[] pixels, int width, int height, bool mipmaps)
+    public Texture(string name, byte[] pixels, int width, int height, bool mipmaps)
     {
         Name = name;
         Pixels = pixels;

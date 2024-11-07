@@ -23,9 +23,6 @@ using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
 
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
-using Path = Swordfish.Library.IO.Path;
-
 namespace Swordfish.Editor;
 
 public class Editor : IEntryPoint, IAutoActivate
@@ -33,79 +30,77 @@ public class Editor : IEntryPoint, IAutoActivate
     private const ImGuiWindowFlags EDITOR_CANVAS_FLAGS = ImGuiWindowFlags.AlwaysAutoResize
         | ImGuiWindowFlags.NoMove | ImGuiWindowFlags.NoBringToFrontOnFocus | ImGuiWindowFlags.NoCollapse;
 
-    private readonly IWindowContext WindowContext;
-    private readonly IECSContext ECSContext;
-    private readonly IFileService FileService;
-    private readonly IPathService PathService;
-    private readonly IRenderContext RenderContext;
-    private readonly IInputService InputService;
-    private readonly IUIContext UIContext;
-    private readonly DebugSettings DebugSettings;
-    private readonly RenderSettings RenderSettings;
-    private readonly LogListener LogListener;
-    private readonly IModulePathService ModulePathService;
-    private readonly ILogger Logger;
+    private readonly IWindowContext _windowContext;
+    private readonly IECSContext _ecsContext;
+    private readonly IFileParseService _fileParseService;
+    private readonly VirtualFileSystem _vfs;
+    private readonly IRenderContext _renderContext;
+    private readonly IInputService _inputService;
+    private readonly IUIContext _uiContext;
+    private readonly DebugSettings _debugSettings;
+    private readonly RenderSettings _renderSettings;
+    private readonly LogListener _logListener;
+    private readonly ILogger _logger;
 
-    private static CanvasElement Hierarchy;
+    private static CanvasElement _hierarchy;
 
-    private Action FileWrite;
+    private Action _fileWrite;
 
-    public Editor(IWindowContext windowContext, IFileService fileService, IECSContext ecsContext, IPathService pathService, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, IModulePathService modulePathService, ILogger logger)
+    public Editor(IWindowContext windowContext, IFileParseService fileParseService, IECSContext ecsContext, VirtualFileSystem vfs, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, ILogger logger)
     {
-        WindowContext = windowContext;
-        FileService = fileService;
-        ECSContext = ecsContext;
-        PathService = pathService;
-        RenderContext = renderContext;
-        InputService = inputService;
-        UIContext = uiContext;
-        DebugSettings = debugSettings;
-        RenderSettings = renderSettings;
-        LogListener = logListener;
-        ModulePathService = modulePathService;
-        Logger = logger;
+        _windowContext = windowContext;
+        _fileParseService = fileParseService;
+        _ecsContext = ecsContext;
+        _vfs = vfs;
+        _renderContext = renderContext;
+        _inputService = inputService;
+        _uiContext = uiContext;
+        _debugSettings = debugSettings;
+        _renderSettings = renderSettings;
+        _logListener = logListener;
+        _logger = logger;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
 
         //  Setup the hierarchy
-        ECSContext.World.AddSystem(new HierarchySystem());
-        Hierarchy = UIContext.NewCanvas("Hierarchy");
-        Hierarchy.Flags = EDITOR_CANVAS_FLAGS;
-        Hierarchy.Constraints = new RectConstraints
+        _ecsContext.World.AddSystem(new HierarchySystem());
+        _hierarchy = _uiContext.NewCanvas("Hierarchy");
+        _hierarchy.Flags = EDITOR_CANVAS_FLAGS;
+        _hierarchy.Constraints = new RectConstraints
         {
             Width = new RelativeConstraint(0.15f),
             Height = new RelativeConstraint(0.8f),
         };
 
         //  Create the grid and axis display
-        const int GRID_SIZE = 500;
+        const int gridSize = 500;
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 1f), alwaysOnTop: true);
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(-GRID_SIZE, 0, 0), new Vector4(1f, 0f, 0f, 0.25f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(gridSize, 0, 0), new Vector4(1f, 0f, 0f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(-gridSize, 0, 0), new Vector4(1f, 0f, 0f, 0.25f), alwaysOnTop: true);
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 1f), alwaysOnTop: true);
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, -GRID_SIZE, 0), new Vector4(0f, 1f, 0f, 0.25f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, gridSize, 0), new Vector4(0f, 1f, 0f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, -gridSize, 0), new Vector4(0f, 1f, 0f, 0.25f), alwaysOnTop: true);
 
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, GRID_SIZE), new Vector4(0f, 0f, 1f, 1f), alwaysOnTop: true);
-        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, -GRID_SIZE), new Vector4(0f, 0f, 1f, 0.25f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, gridSize), new Vector4(0f, 0f, 1f, 1f), alwaysOnTop: true);
+        lineRenderer.CreateLine(Vector3.Zero, new Vector3(0, 0, -gridSize), new Vector4(0f, 0f, 1f, 0.25f), alwaysOnTop: true);
 
-        for (int x = -GRID_SIZE; x <= GRID_SIZE; x++)
+        for (int x = -gridSize; x <= gridSize; x++)
         {
-            lineRenderer.CreateLine(new Vector3(x, 0, -GRID_SIZE), new Vector3(x, 0, GRID_SIZE), new Vector4(0f, 0f, 0f, 0.1f));
+            lineRenderer.CreateLine(new Vector3(x, 0, -gridSize), new Vector3(x, 0, gridSize), new Vector4(0f, 0f, 0f, 0.1f));
         }
 
-        for (int z = -GRID_SIZE; z <= GRID_SIZE; z++)
+        for (int z = -gridSize; z <= gridSize; z++)
         {
-            lineRenderer.CreateLine(new Vector3(-GRID_SIZE, 0, z), new Vector3(GRID_SIZE, 0, z), new Vector4(0f, 0f, 0f, 0.1f));
+            lineRenderer.CreateLine(new Vector3(-gridSize, 0, z), new Vector3(gridSize, 0, z), new Vector4(0f, 0f, 0f, 0.1f));
         }
     }
 
     public void Run()
     {
-        WindowContext.Maximize();
+        _windowContext.Maximize();
 
-        WindowContext.Update += OnUpdate;
+        _windowContext.Update += OnUpdate;
 
         Shortcut exitShortcut = new(
             "Exit",
@@ -113,21 +108,21 @@ public class Editor : IEntryPoint, IAutoActivate
             ShortcutModifiers.NONE,
             Key.ESC,
             Shortcut.DefaultEnabled,
-            WindowContext.Close
+            _windowContext.Close
         );
 
-        StatsWindow statsWindow = new(WindowContext, ECSContext, RenderContext, RenderSettings, UIContext)
+        StatsWindow statsWindow = new(_windowContext, _ecsContext, _renderContext, _renderSettings, _uiContext)
         {
-            Visible = DebugSettings.Stats
+            Visible = _debugSettings.Stats
         };
 
-        DebugSettings.Stats.Changed += OnStatsToggled;
+        _debugSettings.Stats.Changed += OnStatsToggled;
         void OnStatsToggled(object? sender, DataChangedEventArgs<bool> e)
         {
             statsWindow.Visible = e.NewValue;
         }
 
-        MenuBarElement menuBar = new(UIContext)
+        MenuBarElement menuBar = new(_uiContext)
         {
             Content = {
                 new MenuBarItemElement("File") {
@@ -141,15 +136,13 @@ public class Editor : IEntryPoint, IAutoActivate
                                     Key.N,
                                     Shortcut.DefaultEnabled,
                                     () => {
-                                        Logger.LogInformation("Creating new plugin");
-                                        IPath outputPath = ModulePathService.Root
-                                            .At("Projects")
-                                            .At("New Project")
-                                            .At("Source").CreateDirectory();
+                                        _logger.LogInformation("Creating new plugin");
+                                        PathInfo outputPath = new PathInfo("projects").At("New Project").CreateDirectory();
                                         outputPath = outputPath.At("NewPlugin.cs");
-                                        Stream fileToCopy = FileService.Open(new Path("manifest://Templates/NewPlugin.cstemplate"));
-                                        FileService.Write(outputPath, fileToCopy);
-                                        FileWrite?.Invoke();
+                                        var template = new PathInfo("manifest://Templates/NewPlugin.cstemplate");
+                                        using Stream templateStream = template.Open();
+                                        outputPath.Write(templateStream);
+                                        _fileWrite?.Invoke();
                                     }
                                 )),
                                 new MenuBarItemElement("Project", new Shortcut(
@@ -158,7 +151,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                     ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                                     Key.N,
                                     Shortcut.DefaultEnabled,
-                                    () => Logger.LogInformation("Create new project")
+                                    () => _logger.LogInformation("Create new project")
                                 )),
                             }
                         },
@@ -169,9 +162,9 @@ public class Editor : IEntryPoint, IAutoActivate
                             Key.O,
                             Shortcut.DefaultEnabled,
                             () => {
-                                if (TreeNode.Selected.Get() is DataTreeNode<Path> pathNode)
+                                if (TreeNode.Selected.Get() is DataTreeNode<PathInfo> pathNode)
                                 {
-                                    Logger.LogInformation("Opening {path}", pathNode.Data.Get());
+                                    _logger.LogInformation("Opening {path}", pathNode.Data.Get());
                                     pathNode.Data.Get().TryOpenInDefaultApp();
                                 }
                             }
@@ -182,7 +175,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             ShortcutModifiers.CONTROL,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Logger.LogInformation("Save project")
+                            () => _logger.LogInformation("Save project")
                         )),
                         new MenuBarItemElement("Save As", new Shortcut(
                             "Save As",
@@ -190,7 +183,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             ShortcutModifiers.CONTROL | ShortcutModifiers.SHIFT,
                             Key.S,
                             Shortcut.DefaultEnabled,
-                            () => Logger.LogInformation("Save project as")
+                            () => _logger.LogInformation("Save project as")
                         )),
                         new MenuBarItemElement("Exit", exitShortcut),
                     }
@@ -205,7 +198,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Key.F5,
                                 Shortcut.DefaultEnabled,
                                 () => {
-                                    DebugSettings.Stats.Set(!DebugSettings.Stats);
+                                    _debugSettings.Stats.Set(!_debugSettings.Stats);
                                 }
                             )
                         ),
@@ -216,7 +209,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Key.F6,
                                 Shortcut.DefaultEnabled,
                                 () => {
-                                    RenderSettings.Wireframe.Set(!RenderSettings.Wireframe);
+                                    _renderSettings.Wireframe.Set(!_renderSettings.Wireframe);
                                 }
                             )
                         ),
@@ -227,7 +220,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Key.F7,
                                 Shortcut.DefaultEnabled,
                                 () => {
-                                    RenderSettings.HideMeshes.Set(!RenderSettings.HideMeshes);
+                                    _renderSettings.HideMeshes.Set(!_renderSettings.HideMeshes);
                                 }
                             )
                         ),
@@ -240,7 +233,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         Key.F8,
                                         Shortcut.DefaultEnabled,
                                         () => {
-                                            DebugSettings.Gizmos.Transforms.Set(!DebugSettings.Gizmos.Transforms);
+                                            _debugSettings.Gizmos.Transforms.Set(!_debugSettings.Gizmos.Transforms);
                                         }
                                     )
                                 ),
@@ -251,7 +244,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         Key.F9,
                                         Shortcut.DefaultEnabled,
                                         () => {
-                                            DebugSettings.Gizmos.Physics.Set(!DebugSettings.Gizmos.Physics);
+                                            _debugSettings.Gizmos.Physics.Set(!_debugSettings.Gizmos.Physics);
                                         }
                                     )
                                 )
@@ -273,7 +266,7 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
 
-        CanvasElement console = new(UIContext, "Console")
+        CanvasElement console = new(_uiContext, "Console")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             AutoScroll = true,
@@ -286,10 +279,10 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
         
-        foreach (LogEventArgs record in LogListener.GetHistory())
+        foreach (LogEventArgs record in _logListener.GetHistory())
             OnNewLog(null, record);
 
-        LogListener.NewLog += OnNewLog;
+        _logListener.NewLog += OnNewLog;
         
         void OnNewLog(object? sender, LogEventArgs e)
         {
@@ -299,7 +292,7 @@ public class Editor : IEntryPoint, IAutoActivate
             });
         }
 
-        CanvasElement assetBrowser = new(UIContext, "Asset Browser")
+        CanvasElement assetBrowser = new(_uiContext, "Asset Browser")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
@@ -311,10 +304,10 @@ public class Editor : IEntryPoint, IAutoActivate
             }
         };
 
-        PopulateDirectory(assetBrowser, PathService.Root.ToString());
+        PopulateDirectory(assetBrowser, AppDomain.CurrentDomain.BaseDirectory);
 
-        WindowContext.Focused += RefreshAssetBrowser;
-        FileWrite += RefreshAssetBrowser;
+        _windowContext.Focused += RefreshAssetBrowser;
+        _fileWrite += RefreshAssetBrowser;
         void RefreshAssetBrowser()
         {
             List<IElement> removalList = RefreshContentRecursively(assetBrowser);
@@ -327,9 +320,9 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             List<IElement> removalList = new();
 
-            if (element is DataTreeNode<Path> node)
+            if (element is DataTreeNode<PathInfo> node)
             {
-                string? path = node.Data.Get().ToString();
+                string? path = node.Data.Get();
                 if (!Directory.Exists(path) && !File.Exists(path))
                 {
                     removalList.Add(node);
@@ -337,7 +330,7 @@ public class Editor : IEntryPoint, IAutoActivate
                 }
             }
 
-            foreach (TreeNode child in element.Content.OfType<DataTreeNode<Path>>())
+            foreach (TreeNode child in element.Content.OfType<DataTreeNode<PathInfo>>())
             {
                 removalList.AddRange(RefreshContentRecursively(child));
             }
@@ -349,7 +342,7 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             foreach (string dir in Directory.GetDirectories(path))
             {
-                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(dir), new Path(dir));
+                DataTreeNode<PathInfo> node = new(Path.GetFileName(dir), new PathInfo(dir));
                 PopulateDirectory(node, dir);
                 root.Content.Add(node);
             }
@@ -361,14 +354,14 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             foreach (string file in Directory.GetFiles(directory, "*.*"))
             {
-                DataTreeNode<Path> node = new(System.IO.Path.GetFileName(file), new Path(file));
+                DataTreeNode<PathInfo> node = new(Path.GetFileName(file), new PathInfo(file));
                 root.Content.Add(node);
             }
 
             root.Content.Add(new DividerElement());
         }
 
-        CanvasElement inspector = new(UIContext, "Inspector")
+        CanvasElement inspector = new(_uiContext, "Inspector")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
@@ -397,12 +390,12 @@ public class Editor : IEntryPoint, IAutoActivate
                     BuildInpsectorView(inspector, component);
                 }
             }
-            else if (args.NewValue is DataTreeNode<Path> pathNode)
+            else if (args.NewValue is DataTreeNode<PathInfo> pathNode)
             {
-                if (!File.Exists(pathNode.Data.Get().OriginalString))
+                if (!File.Exists(pathNode.Data.Get().Value))
                     return;
 
-                var fileInfo = new FileInfo(pathNode.Data.Get().OriginalString);
+                var fileInfo = new FileInfo(pathNode.Data.Get().Value);
                 var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
                 {
                     Constraints = {
@@ -420,7 +413,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Width = new FillConstraint()
                             },
                             Content = {
-                                new TextElement(System.IO.Path.GetFileNameWithoutExtension(fileInfo.Name))
+                                new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name))
                             }
                         },
                         new PaneElement("Size")
@@ -460,7 +453,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 Width = new FillConstraint()
                             },
                             Content = {
-                                new TextElement(pathNode.Data.Get().OriginalString)
+                                new TextElement(pathNode.Data.Get().ToString())
                             }
                         }
                     }
@@ -645,7 +638,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
     public class HierarchySystem : IEntitySystem
     {
-        private readonly HashSet<int> PopulatedEntities = [];
+        private readonly HashSet<int> _populatedEntities = [];
 
         public void Tick(float delta, DataStore store)
         {
@@ -654,14 +647,14 @@ public class Editor : IEntryPoint, IAutoActivate
 
         private void ForEachEntity(float delta, DataStore store, int entity)
         {
-            if (!PopulatedEntities.Add(entity))
+            if (!_populatedEntities.Add(entity))
             {
                 return;
             }
 
             //  TODO handle removed entities
             string? displayName = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name : $"<entity:{entity}>";
-            Hierarchy.Content.Add(new DataTreeNode<Entity>(displayName, new Entity(entity, store)));
+            _hierarchy.Content.Add(new DataTreeNode<Entity>(displayName, new Entity(entity, store)));
         }
     }
 
@@ -671,52 +664,52 @@ public class Editor : IEntryPoint, IAutoActivate
         const float mouseSensitivity = 0.05f;
         const float cameraBaseSpeed = 10;
 
-        if (InputService.IsKeyHeld(Key.SHIFT))
+        if (_inputService.IsKeyHeld(Key.SHIFT))
             _cameraSpeedModifier += (float)delta;
         else
             _cameraSpeedModifier = 1f;
 
         float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
 
-        Camera camera = RenderContext.Camera.Get();
+        Camera camera = _renderContext.Camera.Get();
 
-        if (InputService.IsMouseHeld(MouseButton.RIGHT))
+        if (_inputService.IsMouseHeld(MouseButton.RIGHT))
         {
-            InputService.CursorState = CursorState.LOCKED;
-            Vector2 cursorDelta = InputService.CursorDelta;
+            _inputService.CursorState = CursorState.LOCKED;
+            Vector2 cursorDelta = _inputService.CursorDelta;
             camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
             camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
-            InputService.CursorState = CursorState.NORMAL;
+            _inputService.CursorState = CursorState.NORMAL;
         }
 
         var forward = camera.Transform.GetForward();
         var right = camera.Transform.GetRight();
 
-        if (InputService.IsKeyHeld(Key.W))
+        if (_inputService.IsKeyHeld(Key.W))
             camera.Transform.Position -= forward * cameraSpeed * (float)delta;
 
-        if (InputService.IsKeyHeld(Key.S))
+        if (_inputService.IsKeyHeld(Key.S))
             camera.Transform.Position += forward * cameraSpeed * (float)delta;
 
-        if (InputService.IsKeyHeld(Key.D))
+        if (_inputService.IsKeyHeld(Key.D))
             camera.Transform.Position += right * cameraSpeed * (float)delta;
 
-        if (InputService.IsKeyHeld(Key.A))
+        if (_inputService.IsKeyHeld(Key.A))
             camera.Transform.Position -= right * cameraSpeed * (float)delta;
 
-        if (InputService.IsKeyHeld(Key.E))
+        if (_inputService.IsKeyHeld(Key.E))
             camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
 
-        if (InputService.IsKeyHeld(Key.Q))
+        if (_inputService.IsKeyHeld(Key.Q))
             camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
 
-        if (InputService.IsKeyPressed(Key.UP_ARROW))
+        if (_inputService.IsKeyPressed(Key.UP_ARROW))
             camera.Transform.Position += new Vector3(0, 1, 0);
 
-        if (InputService.IsKeyPressed(Key.DOWN_ARROW))
+        if (_inputService.IsKeyPressed(Key.DOWN_ARROW))
             camera.Transform.Position -= new Vector3(0, 1, 0);
     }
 }

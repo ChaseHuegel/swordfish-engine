@@ -6,6 +6,7 @@ using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
@@ -32,18 +33,18 @@ internal sealed partial class ImGuiContext : IUIContext
     private ImGuiController Controller { get; }
     private IWindow Window { get; }
     private IInputContext InputContext { get; }
-    private IFileService FileService { get; }
-    private IPathService PathService { get; }
+    private IFileParseService FileParseService { get; }
     private ILogger Logger { get; }
+    private VirtualFileSystem VFS { get; }
 
-    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileService fileService, IPathService pathService, ILogger logger)
+    public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, ILogger logger, VirtualFileSystem vfs)
     {
         GL = gl;
         Window = window;
         InputContext = inputContext;
-        FileService = fileService;
-        PathService = pathService;
+        FileParseService = fileParseService;
         Logger = logger;
+        VFS = vfs;
 
         Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
         Controller.Update(0f);
@@ -91,7 +92,9 @@ internal sealed partial class ImGuiContext : IUIContext
         Controller?.Update((float)delta);
 
         foreach (IElement element in Elements.ToArray())
+        {
             element.Render();
+        }
 
         Controller?.Render();
 
@@ -101,41 +104,53 @@ internal sealed partial class ImGuiContext : IUIContext
     private List<Font> LoadFontsFromDisk()
     {
         List<Font> fonts = new();
-        Dictionary<string, IPath> fontFiles = new();
+        Dictionary<string, PathInfo> fontFiles = new();
 
-        IPath[] files = FileService.GetFiles(PathService.Fonts, SearchOption.AllDirectories);
+        PathInfo[] files = VFS.GetFiles(AssetPaths.Fonts, SearchOption.AllDirectories);
 
-        IPath[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
+        PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 
-        foreach (IPath path in files.Where(file => file.GetExtension() == ".otf"))
+        foreach (PathInfo path in files.Where(file => file.GetExtension() == ".otf"))
+        {
             fontFiles.TryAdd(path.GetFileNameWithoutExtension(), path);
+        }
 
-        foreach (IPath path in files.Where(file => file.GetExtension() == ".ttf"))
+        foreach (PathInfo path in files.Where(file => file.GetExtension() == ".ttf"))
+        {
             fontFiles.TryAdd(path.GetFileNameWithoutExtension(), path);
+        }
 
         Logger.LogInformation("Loading fonts from {fontCount} files and {configCount} configs...", fontFiles.Count, configFiles.Length);
 
-        foreach (IPath configFile in configFiles)
+        foreach (PathInfo configFile in configFiles)
         {
             string fontName = configFile.GetFileNameWithoutExtension();
 
             //  Check there is an matching font file for this config
-            if (!fontFiles.TryGetValue(fontName, out IPath? fontFile))
+            if (!fontFiles.TryGetValue(fontName, out PathInfo fontFile))
+            {
                 continue;
+            }
 
-            string content = FileService.ReadString(configFile);
-            Font font = TomletMain.To<Font>(content);
+            string content = configFile.ReadString();
+            var font = TomletMain.To<Font>(content);
             font.Name = fontName;
             font.Source = fontFile;
 
             if (font.IsDefault)
+            {
                 fonts.Insert(0, font);
+            }
             else
+            {
                 fonts.Add(font);
+            }
         }
 
         if (fonts.Count == 0 || !fonts[0].IsDefault)
+        {
             ImGui.GetIO().Fonts.AddFontDefault();
+        }
 
         foreach (Font font in fonts)
         {
@@ -156,7 +171,7 @@ internal sealed partial class ImGuiContext : IUIContext
         return fonts;
     }
 
-    public static unsafe ImFontPtr LoadFont(IPath fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
+    public static unsafe ImFontPtr LoadFont(PathInfo fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
     {
         ImFontConfigPtr config = ImGuiNative.ImFontConfig_ImFontConfig();
 
@@ -185,14 +200,16 @@ internal sealed partial class ImGuiContext : IUIContext
         ImFontPtr ptr;
         try
         {
-            ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.ToString(), fontSize, config, charRangePtr);
+            ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.Value, fontSize, config, charRangePtr);
         }
         finally
         {
             config.Destroy();
 
             if (charRangeHandle.IsAllocated)
+            {
                 charRangeHandle.Free();
+            }
         }
 
         return ptr;

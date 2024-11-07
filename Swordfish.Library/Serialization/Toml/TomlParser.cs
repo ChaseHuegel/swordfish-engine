@@ -3,13 +3,14 @@ using Tomlet;
 
 namespace Swordfish.Library.Serialization.Toml;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class TomlParser<T> : IFileParser<T>
 {
     public string[] SupportedExtensions { get; } = [".toml"];
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file)!;
-    public T Parse(IFileService fileService, IPath file)
+    object IFileParser.Parse(PathInfo file) => Parse(file)!;
+    public T Parse(PathInfo file)
     {
-        return TomletMain.To<T>(fileService.ReadString(file));
+        return TomletMain.To<T>(file.ReadString());
     }
 }

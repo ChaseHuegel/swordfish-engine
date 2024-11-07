@@ -3,19 +3,23 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO
 {
-    internal class TextureArrayParser : IFileParser<TextureArray>
+    internal class TextureArrayParser(in VirtualFileSystem vfs) : IFileParser<TextureArray>
     {
-        public string[] SupportedExtensions { get; } = new string[] {
-            string.Empty
-        };
+        private readonly VirtualFileSystem _vfs = vfs;
+        private readonly TextureParser _textureParser = new();
 
-        object IFileParser.Parse(IFileService fileService, IPath path) => Parse(fileService, path);
-        public unsafe TextureArray Parse(IFileService fileService, IPath path)
+        public string[] SupportedExtensions { get; } =
+        [
+            string.Empty,
+        ];
+
+        object IFileParser.Parse(PathInfo path) => Parse(path);
+        public TextureArray Parse(PathInfo path)
         {
             string name = path.GetDirectoryName();
 
-            IPath[] files = fileService.GetFiles(path);
-            Texture[] textures = files.Select(fileService.Parse<Texture>).ToArray();
+            PathInfo[] files = _vfs.GetFiles(path, SearchOption.AllDirectories);
+            Texture[] textures = files.Select(_textureParser.Parse).ToArray();
 
             return new TextureArray(name, textures.ToArray(), true);
         }

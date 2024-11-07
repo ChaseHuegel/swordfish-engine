@@ -7,20 +7,21 @@ namespace Swordfish.IO
 {
     internal class TextureParser : IFileParser<Texture>
     {
-        public string[] SupportedExtensions { get; } = new string[] {
-            ".png"
-        };
+        public string[] SupportedExtensions { get; } =
+        [
+            ".png",
+        ];
 
-        object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-        public unsafe Texture Parse(IFileService fileService, IPath file)
+        object IFileParser.Parse(PathInfo file) => Parse(file);
+        public unsafe Texture Parse(PathInfo file)
         {
-            using Stream stream = fileService.Open(file);
+            using Stream stream = file.Open();
             using StreamReader reader = new(stream);
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
 
             string name = file.GetFileNameWithoutExtension();
 
-            byte[] pixels = new byte[sizeof(Rgba32) * image.Width * image.Height];
+            var pixels = new byte[sizeof(Rgba32) * image.Width * image.Height];
             image.CopyPixelDataTo(pixels);
 
             return new Texture(name, pixels, image.Width, image.Height, true);

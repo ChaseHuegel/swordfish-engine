@@ -21,8 +21,6 @@ public sealed class AppEngine : IDisposable
 
     public IContainer Container { get; }
     
-    private static readonly SwitchDictionary<string?, Assembly, IModulePathService> _modulePathServices = new();
-
     private AppEngine(in string[] args)
     {
         CommandLineArgs commandLineArgs;
@@ -90,11 +88,6 @@ public sealed class AppEngine : IDisposable
         return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
     }
     
-    private static IModulePathService GetModulePathService(Request request)
-    {
-        return _modulePathServices[request.Parent.ImplementationType.Assembly];
-    }
-    
     private static void BuildLoggerFactory(ILoggingBuilder builder)
     {
         builder.AddProvider(_logListener);
@@ -139,19 +132,19 @@ public sealed class AppEngine : IDisposable
         container.RegisterInstance<CommandLineArgs>(args);
         container.RegisterInstance<LogListener>(_logListener);
 
+        container.Register<VirtualFileSystem>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
         container.Register(Made.Of(() => CreateLogger(Arg.Index<Request>(0)), request => request));
 
         container.Register<ConfigurationProvider>(Reuse.Singleton);
 
-        container.Register<IFileService, FileService>(Reuse.Singleton);
+        container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
         container.RegisterMany<TomlParser<Language>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<ModuleOptions>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<ModuleManifest>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<PathTomlMapper>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<PathInterfaceTomlMapper>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterDelegate(SmartFormatterProvider.Resolve);
         container.Register<ILocalizationProvider, Localization>(Reuse.Singleton);
@@ -164,29 +157,24 @@ public sealed class AppEngine : IDisposable
 
     private IContainer CreateModulesContainer(IContainer parentContainer)
     {
+        var vfs = parentContainer.Resolve<VirtualFileSystem>();
+        
         IContainer container = parentContainer.With();
         parentContainer.Resolve<IModulesLoader>().Load(AssemblyHookCallback);
 
         container.Register<CommandParser>(Reuse.Singleton, made: Made.Of(() => new CommandParser(Arg.Index<char>(0), Arg.Of<Command[]>()), _ => '\0'));
-        container.Register<IModulePathService>(Made.Of(() => GetModulePathService(Arg.Index<Request>(0)), request => request));
         
         ValidateContainerOrDie(container);
         return container;
 
         void AssemblyHookCallback(ParsedFile<ModuleManifest> manifestFile, Assembly assembly)
         {
+            vfs.Mount(manifestFile.GetRootPath().At("assets"));
+            
             RegisterEventProcessors(assembly, container);
             RegisterSerializers(assembly, container);
             RegisterCommands(assembly, container);
             RegisterDryIocModules(assembly, container);
-
-            if (_modulePathServices.ContainsKey(manifestFile.Value.ID))
-            {
-                return;
-            }
-
-            var modulePathService = new ModulePathService(manifestFile);
-            _modulePathServices.Add(manifestFile.Value.ID, assembly, modulePathService);
         }
     }
 

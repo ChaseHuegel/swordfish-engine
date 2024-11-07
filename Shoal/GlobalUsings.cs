@@ -12,4 +12,3 @@ global using Swordfish.Library.Configuration;
 global using Swordfish.Library.Globalization;
 global using Swordfish.Library.IO;
 global using Tomlet.Attributes;
-global using Path = Swordfish.Library.IO.Path;

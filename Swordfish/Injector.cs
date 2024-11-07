@@ -23,7 +23,6 @@ public class Injector : IDryIocInjector
 {
     public void Inject(IContainer resolver)
     {
-        var enginePathService = new PathService();
         IInputContext inputContext = Program.MainWindow.CreateInput();
         GL gl = Program.MainWindow.CreateOpenGL();
 
@@ -48,8 +47,7 @@ public class Injector : IDryIocInjector
         resolver.Register<IInputService, SilkInputService>(Reuse.Singleton);
         resolver.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        resolver.RegisterInstance<IPathService>(enginePathService);
-        resolver.Register<IFileService, FileService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        resolver.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IFileParser, GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IFileParser, TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         resolver.Register<IFileParser, TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);

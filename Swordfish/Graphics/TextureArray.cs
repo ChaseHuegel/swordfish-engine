@@ -1,4 +1,3 @@
-using Swordfish.Library.Annotations;
 using Swordfish.Library.Collections;
 
 namespace Swordfish.Graphics;
@@ -9,7 +8,7 @@ public class TextureArray : Texture
 
     private readonly SwitchDictionary<string, Texture, int> TextureIndices = new();
 
-    public TextureArray([NotNull] string name, [NotNull] Texture[] textures, bool mipmaps) : base(name, null!, 0, 0, mipmaps)
+    public TextureArray(string name, Texture[] textures, bool mipmaps) : base(name, null!, 0, 0, mipmaps)
     {
         Depth = textures.Length;
 

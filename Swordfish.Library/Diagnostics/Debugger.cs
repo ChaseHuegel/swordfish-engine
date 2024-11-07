@@ -5,6 +5,7 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Library.Diagnostics
 {
+    //  TODO refactor this name
     public static class Debugger
     {
         /// <summary>

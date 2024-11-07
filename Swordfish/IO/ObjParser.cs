@@ -6,14 +6,15 @@ namespace Swordfish.IO;
 
 internal class OBJParser : IFileParser<Mesh>
 {
-    public string[] SupportedExtensions { get; } = new string[] {
-        ".obj"
-    };
+    public string[] SupportedExtensions { get; } =
+    [
+        ".obj",
+    ];
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public Mesh Parse(IFileService fileService, IPath file)
+    object IFileParser.Parse(PathInfo file) => Parse(file);
+    public Mesh Parse(PathInfo file)
     {
-        using Stream stream = fileService.Open(file);
+        using Stream stream = file.Open();
         using StreamReader reader = new(stream);
         return ParseFromReader(reader);
     }

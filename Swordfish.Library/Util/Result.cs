@@ -9,8 +9,13 @@ public readonly struct Result(in bool success, in string? message = null)
 {
     public readonly bool Success = success;
     public readonly string? Message = message;
+    //  TODO add an exception
 
     public static implicit operator bool(Result result) => result.Success;
+    
+    public static Result FromSuccess(string? message = null) => new(true, message);
+
+    public static Result FromFailure(string? message = null) => new(false, message);
 }
 
 public readonly struct Result<T>(in bool success, in T value, in string? message = null)

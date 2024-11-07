@@ -26,13 +26,13 @@ internal class ModuleManifest(string id, string name) : TomlConfiguration<Module
     public string? Source { get; init; }
 
     [TomlProperty("RootPathOverride")]
-    public IPath? RootPathOverride { get; init; }
+    public PathInfo? RootPathOverride { get; init; }
 
     [TomlProperty("ScriptsPath")]
-    public IPath? ScriptsPath { get; init; }
+    public PathInfo? ScriptsPath { get; init; }
 
     [TomlProperty("AssembliesPath")]
-    public IPath? AssembliesPath { get; init; }
+    public PathInfo? AssembliesPath { get; init; }
 
     [TomlProperty("Assemblies")]
     public string[]? Assemblies { get; init; }

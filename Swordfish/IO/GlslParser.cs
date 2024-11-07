@@ -2,34 +2,28 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 using Shader = Swordfish.Graphics.Shader;
 using SilkShaderType = Silk.NET.OpenGL.ShaderType;
 
 namespace Swordfish.IO;
 
-internal class GlslParser : IFileParser<Shader>
+internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFileParser<Shader>
 {
-    public string[] SupportedExtensions { get; } = new string[] {
-        ".glsl"
-    };
+    public string[] SupportedExtensions { get; } =
+    [
+        ".glsl",
+    ];
 
-    private readonly GLContext GLContext;
-    private readonly ILogger Logger;
+    private readonly ILogger _logger = logger;
+    private readonly VirtualFileSystem _vfs = vfs;
 
-    public GlslParser(GLContext glContext, ILogger logger)
+    object IFileParser.Parse(PathInfo file) => Parse(file);
+    public Shader Parse(PathInfo file)
     {
-        GLContext = glContext;
-        Logger = logger;
-    }
+        string? name = file.GetFileNameWithoutExtension();
 
-    object IFileParser.Parse(IFileService fileService, IPath file) => Parse(fileService, file);
-    public Shader Parse(IFileService fileService, IPath file)
-    {
-        var name = file.GetFileNameWithoutExtension();
-
-        (string vertexSource, string fragmentSource) = ParseVertAndFrag(fileService, file);
+        (string vertexSource, string fragmentSource) = ParseVertAndFrag(file);
 
         var vertex = new ShaderSource(name + ".vertex", vertexSource, Graphics.ShaderType.Vertex);
         var fragment = new ShaderSource(name + ".fragment", fragmentSource, Graphics.ShaderType.Fragment);
@@ -37,15 +31,15 @@ internal class GlslParser : IFileParser<Shader>
         return new Shader(name, vertex, fragment);
     }
 
-    private (string vertexSource, string fragmentSource) ParseVertAndFrag(IFileService fileService, IPath file)
+    private (string vertexSource, string fragmentSource) ParseVertAndFrag(PathInfo file)
     {
         string shaderName = file.GetFileNameWithoutExtension();
 
-        List<string> includedFiles = new();
-        List<string> includedSources = new();
+        List<string> includedFiles = [];
+        List<string> includedSources = [];
 
         //  Process the original source
-        ProcessSource(fileService, file, out string? versionDirective, out string? source, ref includedFiles);
+        ProcessSource(file, out string? versionDirective, out string? source, ref includedFiles);
 
         if (source == null)
             throw new FormatException($"The shader '{shaderName}' was empty or failed to parse.");
@@ -53,10 +47,12 @@ internal class GlslParser : IFileParser<Shader>
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
         {
-            IPath includedFile = file.GetDirectory().At(includedFiles[0]);
+            PathInfo includePath = file.GetDirectory().At(includedFiles[0]);
+            PathInfo includedFile = _vfs.TryGetFile(includePath, out PathInfo virtualFile) ? virtualFile : includePath;
+            
             includedFiles.RemoveAt(0);
 
-            ProcessSource(fileService, includedFile, out string? inheritedVersionDirective, out string? includedSource, ref includedFiles);
+            ProcessSource(includedFile, out string? inheritedVersionDirective, out string? includedSource, ref includedFiles);
 
             versionDirective ??= inheritedVersionDirective;
 
@@ -66,7 +62,7 @@ internal class GlslParser : IFileParser<Shader>
             }
             else
             {
-                Logger.LogWarning("Shader '{shaderName}' includes '{includedFile}' that was empty or failed to parse.", shaderName, includedFile.GetFileNameWithoutExtension());
+                _logger.LogWarning("Shader '{shaderName}' includes '{includedFile}' that was empty or failed to parse.", shaderName, includedFile.GetFileNameWithoutExtension());
             }
         }
 
@@ -74,7 +70,7 @@ internal class GlslParser : IFileParser<Shader>
         if (versionDirective == null)
         {
             versionDirective = "#version 330 core";
-            Logger.LogWarning("A #version directive was not found for shader '{shaderName}'; defaulting to {versionDirective}'.", shaderName, versionDirective);
+            _logger.LogWarning("A #version directive was not found for shader '{shaderName}'; defaulting to {versionDirective}'.", shaderName, versionDirective);
         }
 
         //  The min required attributes for functionality
@@ -121,14 +117,14 @@ void main()
 #endif
 }";
 
-        List<string> combinedSources = new()
-        {
+        List<string> combinedSources =
+        [
             versionDirective,
             attributes,
             /* includes go here */
             source,
-            mainMethod
-        };
+            mainMethod,
+        ];
 
         //  Includes are added in reverse order so deeper
         //  dependencies are available to their dependents.
@@ -145,14 +141,14 @@ void main()
         return (vertexSource, fragmentSource);
     }
 
-    private static void ProcessSource(IFileService fileService, IPath file, out string? versionDirective, out string? source, ref List<string> includedFiles)
+    private static void ProcessSource(PathInfo file, out string? versionDirective, out string? source, ref List<string> includedFiles)
     {
         versionDirective = null;
         source = null;
-        includedFiles ??= new();
+        includedFiles ??= [];
         StringBuilder sourceBuilder = new();
 
-        using (Stream stream = fileService.Open(file))
+        using (Stream stream = file.Open())
         using (StreamReader reader = new(stream))
         {
             string? line = reader.ReadLine()?.Trim();

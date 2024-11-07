@@ -20,6 +20,6 @@ namespace Swordfish.UI
 
         public string Name;
 
-        public IPath Source;
+        public PathInfo Source;
     }
 }

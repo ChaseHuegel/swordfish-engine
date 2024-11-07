@@ -4,12 +4,12 @@ namespace Shoal.Modularity;
 
 internal class ModulesLoader(
     in ILogger logger,
-    in IFileService fileService,
+    in IFileParseService fileParseService,
     in ConfigurationProvider configurationProvider
 ) : IModulesLoader
 {
     private readonly ILogger _logger = logger;
-    private readonly IFileService _fileService = fileService;
+    private readonly IFileParseService _fileParseService = fileParseService;
     private readonly ModuleOptions? _options = configurationProvider.GetModuleOptions()?.Value;
     private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests = configurationProvider.GetModuleManifests();
 
@@ -62,7 +62,7 @@ internal class ModulesLoader(
             }
 
             ModuleManifest manifest = manifestFile.Value;
-            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _fileService, _options, manifestFile);
+            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _fileParseService, _options, manifestFile);
             if (result)
             {
                 _logger.LogInformation("Loaded module \"{name}\" ({id}), by \"{author}\": {description}", manifest.Name, manifest.ID, manifest.Author, manifest.Description);
@@ -74,16 +74,16 @@ internal class ModulesLoader(
         }
     }
 
-    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, IFileService fileService, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
+    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, IFileParseService fileParseService, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
     {
         ModuleManifest manifest = manifestFile.Value;
-        IPath directory = manifestFile.GetRootPath();
+        PathInfo directory = manifestFile.GetRootPath();
 
         //  Compile any scripts into an assembly
-        IPath scriptsPath = manifest.ScriptsPath ?? directory.At("Scripts/");
+        PathInfo scriptsPath = manifest.ScriptsPath ?? directory.At("Scripts/");
         if (scriptsPath.Exists())
         {
-            IPath[]? scriptFiles = fileService.GetFiles(scriptsPath, SearchOption.AllDirectories);
+            PathInfo[]? scriptFiles = scriptsPath.GetFiles(SearchOption.AllDirectories);
             if (options.AllowScriptCompilation && scriptFiles.Length > 0)
             {
                 //  TODO implement script compilation
@@ -97,15 +97,15 @@ internal class ModulesLoader(
             return new Result<Exception?>(true, null);
         }
 
-        IPath assembliesPath = manifest.AssembliesPath ?? directory;
+        PathInfo assembliesPath = manifest.AssembliesPath ?? directory;
 
         var loadedAssemblies = new List<Assembly>();
         foreach (string assemblyName in manifest.Assemblies)
         {
-            IPath assemblyPath = assembliesPath.At(assemblyName);
+            PathInfo assemblyPath = assembliesPath.At(assemblyName);
             try
             {
-                Assembly assembly = Assembly.LoadFrom(assemblyPath.ToString());
+                Assembly assembly = Assembly.LoadFrom(assemblyPath.Value);
                 loadedAssemblies.Add(assembly);
             }
             catch (Exception ex)

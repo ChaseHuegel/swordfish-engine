@@ -1,7 +1,7 @@
 namespace Shoal.IO;
 
-internal class ParsedFile<T>(IPath path, T value)
+internal class ParsedFile<T>(PathInfo path, T value)
 {
-    public readonly IPath Path = path;
+    public readonly PathInfo Path = path;
     public readonly T Value = value;
 }
