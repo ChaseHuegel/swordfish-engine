@@ -8,7 +8,7 @@ namespace Swordfish.Integrations.SQL
 {
     public static class Database
     {
-        private const string ConnectionString = "Data Source={0},{1};Initial Catalog={2};Trusted_Connection=True;Connection Timeout={3}";
+        private const string CONNECTION_STRING = "Data Source={0},{1};Initial Catalog={2};Trusted_Connection=True;Connection Timeout={3}";
 
         public static Query Query(string name, string address, int port, int timeout)
         {
@@ -25,7 +25,7 @@ namespace Swordfish.Integrations.SQL
         {
             try
             {
-                using var connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout));
+                using var connection = new SqlConnection(string.Format(CONNECTION_STRING, query.Address, query.Port, query.Name, query.Timeout));
                 connection.Open();
                 var cmd = new SqlCommand(query.ToString(), connection);
                 cmd.CommandTimeout = query.Timeout;
@@ -43,7 +43,7 @@ namespace Swordfish.Integrations.SQL
         {
             try
             {
-                using var connection = new SqlConnection(string.Format(ConnectionString, query.Address, query.Port, query.Name, query.Timeout));
+                using var connection = new SqlConnection(string.Format(CONNECTION_STRING, query.Address, query.Port, query.Name, query.Timeout));
                 connection.Open();
                 var cmd = new SqlCommand(query.ToString(), connection);
                 cmd.CommandTimeout = query.Timeout;

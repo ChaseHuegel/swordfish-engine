@@ -17,7 +17,7 @@ public interface ITooltipProperty
         if (Tooltip.Help)
         {
             ImGui.SameLine();
-            ImGui.TextDisabled(FontAwesome.CircleQuestion);
+            ImGui.TextDisabled(FontAwesome.CIRCLE_QUESTION);
         }
 
         if (ImGui.IsItemHovered())
