@@ -2,10 +2,11 @@ using System.Collections.Concurrent;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Networking;
 
-public static class NetUtils
+public static class Net
 {
     private static ConcurrentDictionary<string, IPAddress> CachedHostAddress { get; } = new();
     private static ConcurrentDictionary<string, IPAddress[]> CachedHostAddresses { get; } = new();
