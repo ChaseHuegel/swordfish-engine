@@ -5,6 +5,7 @@ namespace Shoal.Modularity;
 /// <summary>
 ///     A long-running object that executes on a dedicated thread upon the engine starting.
 /// </summary>
+// ReSharper disable once UnusedType.Global
 public abstract class ThreadedEntryPoint : IEntryPoint
 {
     protected virtual int TickRate => 64;

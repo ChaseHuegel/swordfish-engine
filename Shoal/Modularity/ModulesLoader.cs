@@ -62,7 +62,7 @@ internal class ModulesLoader(
             }
 
             ModuleManifest manifest = manifestFile.Value;
-            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _fileParseService, _options, manifestFile);
+            Result<Exception?> result = LoadModule(assemblyHookCallback, _logger, _options, manifestFile);
             if (result)
             {
                 _logger.LogInformation("Loaded module \"{name}\" ({id}), by \"{author}\": {description}", manifest.Name, manifest.ID, manifest.Author, manifest.Description);
@@ -74,7 +74,7 @@ internal class ModulesLoader(
         }
     }
 
-    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, IFileParseService fileParseService, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
+    private static Result<Exception?> LoadModule(Action<ParsedFile<ModuleManifest>, Assembly> hookCallback, ILogger logger, ModuleOptions options, ParsedFile<ModuleManifest> manifestFile)
     {
         ModuleManifest manifest = manifestFile.Value;
         PathInfo directory = manifestFile.GetRootPath();
@@ -130,6 +130,7 @@ internal class ModulesLoader(
         return new Result<Exception?>(true, null);
     }
 
+    // ReSharper disable once UnusedParameter.Local
     private static void HookAssembly(Assembly assembly)
     {
         //  TODO bind container, attach events, etc.

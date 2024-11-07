@@ -14,8 +14,10 @@ internal static class SmartFormatterProvider
             return _smartFormatter;
         }
 
-        SmartSettings settings = new() {
-            Localization = {
+        SmartSettings settings = new() 
+        {
+            Localization = 
+            {
                 LocalizationProvider = context.Resolve<ILocalizationProvider>()
             },
         };

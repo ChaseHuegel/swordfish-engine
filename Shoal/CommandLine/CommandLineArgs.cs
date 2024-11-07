@@ -1,4 +1,5 @@
 using System.Text;
+// ReSharper disable UnusedMember.Global
 
 namespace Shoal.CommandLine;
 
@@ -11,12 +12,12 @@ public class CommandLineArgs
     
     public CommandLineArgs(in string[] flags, in KeyValuePair<string,string[]>[] options)
     {
-        for (int i = 0; i < flags.Length; i++)
+        for (var i = 0; i < flags.Length; i++)
         {
             _flags.Add(flags[i]);
         }
         
-        for (int i = 0; i < options.Length; i++)
+        for (var i = 0; i < options.Length; i++)
         {
             KeyValuePair<string, string[]> collection = options[i];
             if (_options.ContainsKey(collection.Key))
@@ -62,7 +63,7 @@ public class CommandLineArgs
 
     public override string ToString()
     {
-        StringBuilder builder = new StringBuilder();
+        var builder = new StringBuilder();
 
         builder.Append("flags = [");
         builder.AppendJoin(", ", _flags.Select(flag => $"'{flag}'"));
@@ -71,7 +72,7 @@ public class CommandLineArgs
         builder.Append(", ");
         
         builder.Append("options = [");
-        int counter = 1;
+        var counter = 1;
         foreach (KeyValuePair<string, string[]> option in _options)
         {
             bool isCollection = option.Value.Length > 1;
