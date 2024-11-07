@@ -120,9 +120,9 @@ public class Demo : IEntryPoint, IAutoActivate
         _scaleGizmo = new ScaleGizmo(lineRenderer, RenderContext.Camera.Get());
     }
 
-    private PositionGizmo _positionGizmo;
-    private OrientationGizmo _orientationGizmo;
-    private ScaleGizmo _scaleGizmo;
+    private readonly PositionGizmo _positionGizmo;
+    private readonly OrientationGizmo _orientationGizmo;
+    private readonly ScaleGizmo _scaleGizmo;
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
@@ -187,6 +187,7 @@ public class Demo : IEntryPoint, IAutoActivate
     }
 
     private volatile float _scrollBuffer = 0f;
+
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
         Camera camera = RenderContext.Camera.Get();
