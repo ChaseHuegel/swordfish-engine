@@ -22,7 +22,7 @@ public class StatsWindow : CanvasElement
             X = new RelativeConstraint(0.15f),
             Y = new AbsoluteConstraint(0),
             Width = new AbsoluteConstraint(200),
-            Height = new AbsoluteConstraint(200)
+            Height = new AbsoluteConstraint(200),
         };
 
         AddDeltaDisplay("Main Delta", ref windowContext.UpdateDelta.Changed);

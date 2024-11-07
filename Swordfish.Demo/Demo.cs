@@ -26,7 +26,7 @@ public class Demo : IEntryPoint, IAutoActivate
     private static readonly uint[] Triangles =
     {
         3, 1, 0,
-        3, 2, 1
+        3, 2, 1,
     };
 
     private static readonly Vector3[] Vertices =
@@ -34,7 +34,7 @@ public class Demo : IEntryPoint, IAutoActivate
         new Vector3(0.5f,  0.5f, 0.0f),
         new Vector3(0.5f, -0.5f, 0.0f),
         new Vector3(-0.5f, -0.5f, 0.0f),
-        new Vector3(-0.5f,  0.5f, 0.0f)
+        new Vector3(-0.5f,  0.5f, 0.0f),
     };
 
     private static readonly Vector4[] Colors =
@@ -42,7 +42,7 @@ public class Demo : IEntryPoint, IAutoActivate
         Vector4.One,
         Vector4.One,
         Vector4.One,
-        Vector4.One
+        Vector4.One,
     };
 
     private static readonly Vector3[] UV =
@@ -50,7 +50,7 @@ public class Demo : IEntryPoint, IAutoActivate
         new Vector3(1f, 0f, 0f),
         new Vector3(1f, 1f, 0f),
         new Vector3(0f, 1f, 0f),
-        new Vector3(0f, 0f, 0f)
+        new Vector3(0f, 0f, 0f),
     };
 
     private static readonly Vector3[] Normals =
@@ -58,7 +58,7 @@ public class Demo : IEntryPoint, IAutoActivate
         new Vector3(1f),
         new Vector3(1f),
         new Vector3(1f),
-        new Vector3(1f)
+        new Vector3(1f),
     };
 
     private readonly IECSContext ECSContext;
@@ -91,25 +91,25 @@ public class Demo : IEntryPoint, IAutoActivate
                 X = new RelativeConstraint(0.2f),
                 Y = new RelativeConstraint(0.1f),
                 Width = new RelativeConstraint(0.1f),
-                Height = new RelativeConstraint(0.1f)
+                Height = new RelativeConstraint(0.1f),
             },
             Content = {
                 new PanelElement("Demo Debug Panel")
                 {
                     Constraints = new RectConstraints
                     {
-                        Height = new FillConstraint()
+                        Height = new FillConstraint(),
                     },
                     Tooltip = new Tooltip
                     {
                         Help = true,
-                        Text = "This is a panel for debugging in the demo."
+                        Text = "This is a panel for debugging in the demo.",
                     },
                     Content = {
                         DebugText,
-                    }
-                }
-            }
+                    },
+                },
+            },
         };
 
         inputService.Clicked += OnClick;
@@ -272,7 +272,9 @@ public class Demo : IEntryPoint, IAutoActivate
             for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
                 if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
+                {
                     BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                }
             }
 
             for (int x = 0; x < gridToBuild.DimensionSize; x++)
@@ -296,10 +298,14 @@ public class Demo : IEntryPoint, IAutoActivate
                     uv.AddRange(brickMesh.UV);
 
                     foreach (uint tri in brickMesh.Triangles)
+                    {
                         triangles.Add(tri + (uint)vertices.Count);
+                    }
 
                     foreach (Vector3 vertex in brickMesh.Vertices)
+                    {
                         vertices.Add(Vector3.Transform(vertex - new Vector3(0.5f), quaternion) + new Vector3(0.5f) + new Vector3(x, y, z) + offset);
+                    }
                 }
             }
         }
@@ -311,7 +317,7 @@ public class Demo : IEntryPoint, IAutoActivate
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
-            DoubleFaced = false
+            DoubleFaced = false,
         };
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -355,7 +361,9 @@ public class Demo : IEntryPoint, IAutoActivate
             for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
                 if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
+                {
                     BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                }
             }
 
             for (int x = 0; x < gridToBuild.DimensionSize; x++)
@@ -388,13 +396,19 @@ public class Demo : IEntryPoint, IAutoActivate
                     }
 
                     foreach (uint tri in brickMesh.Triangles)
+                    {
                         triangles.Add(tri + (uint)vertices.Count);
+                    }
 
                     foreach (Vector3 normal in brickMesh.Normals)
+                    {
                         normals.Add(Vector3.Transform(normal, brick.GetQuaternion()));
+                    }
 
                     foreach (Vector3 vertex in brickMesh.Vertices)
+                    {
                         vertices.Add(Vector3.Transform(vertex, brick.GetQuaternion()) + new Vector3(x, y, z) + offset);
+                    }
                 }
             }
         }
@@ -407,7 +421,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var renderOptions = new RenderOptions {
             DoubleFaced = false,
-            Wireframe = false
+            Wireframe = false,
         };
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -458,7 +472,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         material = new Material(shader, textureArray)
         {
-            Transparent = true
+            Transparent = true,
         };
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -473,7 +487,7 @@ public class Demo : IEntryPoint, IAutoActivate
     {
         var solid = new Brick(1)
         {
-            Name = "rock"
+            Name = "rock",
         };
 
         var simplex = new SimplexPerlin();
@@ -491,7 +505,10 @@ public class Demo : IEntryPoint, IAutoActivate
                     for (int y = 0; y < depth; y++)
                     {
                         if (y < 35 && simplex.GetValue(x * scale, y * scale, z * scale) < -0.5f)
+                        {
                             continue;
+                        }
+
                         grid.Set(x, y, z, solid);
                     }
                 }
@@ -504,7 +521,7 @@ public class Demo : IEntryPoint, IAutoActivate
         var renderOptions = new RenderOptions
         {
             DoubleFaced = false,
-            Wireframe = false
+            Wireframe = false,
         };
         Mesh mesh = MeshBrickGrid(grid, textureArray);
         var renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -541,7 +558,9 @@ public class Demo : IEntryPoint, IAutoActivate
         void BuildBrickGridPoints(BrickGrid gridToBuild, Vector3 offset = default)
         {
             if (!builtGrids.Add(gridToBuild))
+            {
                 return;
+            }
 
             for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
                 for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
@@ -549,7 +568,9 @@ public class Demo : IEntryPoint, IAutoActivate
                     {
                         var neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
                         if (neighbor != null)
+                        {
                             BuildBrickGridPoints(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                        }
                     }
 
             for (int x = 0; x < gridToBuild.DimensionSize; x++)
@@ -600,9 +621,13 @@ public class Demo : IEntryPoint, IAutoActivate
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
         {
             if (builtGrids.Contains(gridToBuild))
+            {
                 return;
+            }
             else
+            {
                 builtGrids.Add(gridToBuild);
+            }
 
             for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
                 for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
@@ -610,7 +635,9 @@ public class Demo : IEntryPoint, IAutoActivate
                     {
                         var neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
                         if (neighbor != null)
+                        {
                             BuildBrickGridMesh(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                        }
                     }
 
             for (int x = 0; x < gridToBuild.DimensionSize; x++)
@@ -657,13 +684,19 @@ public class Demo : IEntryPoint, IAutoActivate
                             }
 
                             foreach (uint tri in brickMesh.Triangles)
+                            {
                                 triangles.Add(tri + (uint)vertices.Count);
+                            }
 
                             foreach (Vector3 normal in brickMesh.Normals)
+                            {
                                 normals.Add(brickMesh != cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+                            }
 
                             foreach (Vector3 vertex in brickMesh.Vertices)
+                            {
                                 vertices.Add((brickMesh != cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                            }
                         }
                     }
         }
@@ -682,7 +715,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var renderOptions = new RenderOptions
         {
-            DoubleFaced = false
+            DoubleFaced = false,
         };
 
         DataStore store = ECSContext.World.DataStore;
@@ -713,7 +746,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var renderOptions = new RenderOptions
         {
-            DoubleFaced = true
+            DoubleFaced = true,
         };
 
         var random = new Randomizer();

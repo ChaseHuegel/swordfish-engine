@@ -113,7 +113,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
         StatsWindow statsWindow = new(_windowContext, _ecsContext, _renderContext, _renderSettings, _uiContext)
         {
-            Visible = _debugSettings.Stats
+            Visible = _debugSettings.Stats,
         };
 
         _debugSettings.Stats.Changed += OnStatsToggled;
@@ -153,7 +153,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                     Shortcut.DefaultEnabled,
                                     () => _logger.LogInformation("Create new project")
                                 )),
-                            }
+                            },
                         },
                         new MenuBarItemElement("Open", new Shortcut(
                             "Open",
@@ -186,7 +186,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             () => _logger.LogInformation("Save project as")
                         )),
                         new MenuBarItemElement("Exit", exitShortcut),
-                    }
+                    },
                 },
                 new MenuBarItemElement("Edit"),
                 new MenuBarItemElement("View") {
@@ -247,10 +247,10 @@ public class Editor : IEntryPoint, IAutoActivate
                                             _debugSettings.Gizmos.Physics.Set(!_debugSettings.Gizmos.Physics);
                                         }
                                     )
-                                )
-                            }
-                        }
-                    }
+                                ),
+                            },
+                        },
+                    },
                 },
                 new MenuBarItemElement("Tools"),
                 new MenuBarItemElement("Run"),
@@ -260,10 +260,10 @@ public class Editor : IEntryPoint, IAutoActivate
                     Wrap = false,
                     Constraints = new RectConstraints()
                     {
-                        Anchor = ConstraintAnchor.TOP_RIGHT
-                    }
-                }
-            }
+                        Anchor = ConstraintAnchor.TOP_RIGHT,
+                    },
+                },
+            },
         };
 
         CanvasElement console = new(_uiContext, "Console")
@@ -275,12 +275,14 @@ public class Editor : IEntryPoint, IAutoActivate
                 X = new RelativeConstraint(0f),
                 Y = new RelativeConstraint(0.8f),
                 Width = new RelativeConstraint(0.55f),
-                Height = new RelativeConstraint(0.2f)
-            }
+                Height = new RelativeConstraint(0.2f),
+            },
         };
         
         foreach (LogEventArgs record in _logListener.GetHistory())
+        {
             OnNewLog(null, record);
+        }
 
         _logListener.NewLog += OnNewLog;
         
@@ -300,8 +302,8 @@ public class Editor : IEntryPoint, IAutoActivate
                 X = new RelativeConstraint(0.55f),
                 Y = new RelativeConstraint(0.8f),
                 Width = new RelativeConstraint(0.28f),
-                Height = new RelativeConstraint(0.2f)
-            }
+                Height = new RelativeConstraint(0.2f),
+            },
         };
 
         PopulateDirectory(assetBrowser, AppDomain.CurrentDomain.BaseDirectory);
@@ -313,7 +315,9 @@ public class Editor : IEntryPoint, IAutoActivate
             List<IElement> removalList = RefreshContentRecursively(assetBrowser);
             removalList.Reverse();
             foreach (var element in removalList)
+            {
                 element.Parent?.Content.Remove(element);
+            }
         }
 
         List<IElement> RefreshContentRecursively(ContentElement element)
@@ -368,11 +372,11 @@ public class Editor : IEntryPoint, IAutoActivate
             {
                 Anchor = ConstraintAnchor.TOP_RIGHT,
                 Width = new RelativeConstraint(0.17f),
-                Height = new RelativeConstraint(1f)
-            }
+                Height = new RelativeConstraint(1f),
+            },
         };
 
-        TreeNode.Selected.Changed += (sender, args) =>
+        TreeNode.Selected.Changed += (_, args) =>
         {
             inspector.Content.Clear();
 
@@ -385,7 +389,9 @@ public class Editor : IEntryPoint, IAutoActivate
                 foreach (var component in components)
                 {
                     if (component == null)
+                    {
                         continue;
+                    }
 
                     BuildInpsectorView(inspector, component);
                 }
@@ -393,70 +399,72 @@ public class Editor : IEntryPoint, IAutoActivate
             else if (args.NewValue is DataTreeNode<PathInfo> pathNode)
             {
                 if (!File.Exists(pathNode.Data.Get().Value))
+                {
                     return;
+                }
 
                 var fileInfo = new FileInfo(pathNode.Data.Get().Value);
                 var group = new PaneElement(pathNode.Data.Get().GetType().ToString())
                 {
                     Constraints = {
-                        Width = new FillConstraint()
+                        Width = new FillConstraint(),
                     },
                     Content = {
                         new PaneElement($"File ({fileInfo.Extension})")
                         {
                             Tooltip = new Tooltip
                             {
-                                Text = fileInfo.Extension
+                                Text = fileInfo.Extension,
                             },
                             Constraints = new RectConstraints()
                             {
-                                Width = new FillConstraint()
+                                Width = new FillConstraint(),
                             },
                             Content = {
-                                new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name))
-                            }
+                                new TextElement(Path.GetFileNameWithoutExtension(fileInfo.Name)),
+                            },
                         },
                         new PaneElement("Size")
                         {
                             Constraints = new RectConstraints()
                             {
-                                Width = new FillConstraint()
+                                Width = new FillConstraint(),
                             },
                             Content = {
-                                new TextElement(ByteSize.FromBytes(fileInfo.Length).ToString())
-                            }
+                                new TextElement(ByteSize.FromBytes(fileInfo.Length).ToString()),
+                            },
                         },
                         new PaneElement("Modified")
                         {
                             Constraints = new RectConstraints()
                             {
-                                Width = new FillConstraint()
+                                Width = new FillConstraint(),
                             },
                             Content = {
-                                new TextElement(fileInfo.LastWriteTime.ToString())
-                            }
+                                new TextElement(fileInfo.LastWriteTime.ToString()),
+                            },
                         },
                         new PaneElement("Created")
                         {
                             Constraints = new RectConstraints()
                             {
-                                Width = new FillConstraint()
+                                Width = new FillConstraint(),
                             },
                             Content = {
-                                new TextElement(fileInfo.CreationTime.ToString())
-                            }
+                                new TextElement(fileInfo.CreationTime.ToString()),
+                            },
                         },
                         new PaneElement("Location")
                         {
                             Constraints = new RectConstraints()
                             {
-                                Width = new FillConstraint()
+                                Width = new FillConstraint(),
                             },
                             Content = {
-                                new TextElement(pathNode.Data.Get().ToString())
-                            }
-                        }
-                    }
+                                new TextElement(pathNode.Data.Get().ToString()),
+                            },
+                        },
+                    },
                 };
 
                 inspector.Content.Add(group);
@@ -470,16 +478,20 @@ public class Editor : IEntryPoint, IAutoActivate
         //  TODO setting this too deep (really beyond 2) is noisey and mostly useless since there is no filtering of what is displayed yet
         const int maxDepth = 1;
         if (depth > maxDepth)
+        {
             return;
+        }
         else
+        {
             depth++;
+        }
 
         var componentType = component.GetType();
         var group = new PaneElement(componentType.Name.ToTitle())
         {
             Constraints = {
-                Width = new FillConstraint()
-            }
+                Width = new FillConstraint(),
+            },
         };
 
         var publicStaticProperties = Reflection.GetProperties(componentType, Reflection.BINDINGS_PUBLIC_STATIC);
@@ -502,17 +514,25 @@ public class Editor : IEntryPoint, IAutoActivate
             foreach (var property in publicInstanceProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(publicGroup, property.GetValue(component)!, depth);
+                }
                 else
+                {
                     publicGroup.Content.Add(PropertyViewFactory(component, property));
+                }
             }
 
             foreach (var field in publicInstanceFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(publicGroup, field.GetValue(component)!, depth);
+                }
                 else
+                {
                     publicGroup.Content.Add(FieldViewFactory(component, field));
+                }
             }
         }
 
@@ -526,17 +546,25 @@ public class Editor : IEntryPoint, IAutoActivate
             foreach (var property in publicStaticProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(staticBlock, property.GetValue(component)!, depth);
+                }
                 else
+                {
                     staticBlock.Content.Add(PropertyViewFactory(component, property));
+                }
             }
 
             foreach (var field in publicStaticFields)  //  Ignore backing fields
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(staticBlock, field.GetValue(component)!, depth);
+                }
                 else
+                {
                     staticBlock.Content.Add(FieldViewFactory(component, field));
+                }
             }
         }
 
@@ -550,17 +578,25 @@ public class Editor : IEntryPoint, IAutoActivate
             foreach (var property in privateInstanceProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(privateBlock, property.GetValue(component)!, depth);
+                }
                 else
+                {
                     privateBlock.Content.Add(PropertyViewFactory(component, property));
+                }
             }
 
             foreach (var field in privateInstanceFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(privateBlock, field.GetValue(component)!, depth);
+                }
                 else
+                {
                     privateBlock.Content.Add(FieldViewFactory(component, field));
+                }
             }
         }
 
@@ -574,17 +610,25 @@ public class Editor : IEntryPoint, IAutoActivate
             foreach (var property in privateStaticProperties)
             {
                 if (property.PropertyType.IsClass && property.PropertyType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(privateStaticBlock, property.GetValue(component)!, depth);
+                }
                 else
+                {
                     privateStaticBlock.Content.Add(PropertyViewFactory(component, property));
+                }
             }
 
             foreach (var field in privateStaticFields)
             {
                 if (field.FieldType.IsClass && field.FieldType != typeof(string) && depth < maxDepth)
+                {
                     BuildInpsectorView(privateStaticBlock, field.GetValue(component)!, depth);
+                }
                 else
+                {
                     privateStaticBlock.Content.Add(FieldViewFactory(component, field));
+                }
             }
         }
 
@@ -620,19 +664,19 @@ public class Editor : IEntryPoint, IAutoActivate
             Tooltip = new Tooltip
             {
                 Text = signature,
-                MaxWidth = 300
+                MaxWidth = 300,
             },
             Constraints = new RectConstraints
             {
                 Anchor = ConstraintAnchor.TOP_CENTER,
-                Width = new RelativeConstraint(0.9f)
+                Width = new RelativeConstraint(0.9f),
             },
             Content = {
                 new TextElement(value?.ToString() ?? "null") {
                     Color = canWrite ? Color.White : Color.Gray,
-                    Label = type.Name
-                }
-            }
+                    Label = type.Name,
+                },
+            },
         };
     }
 
@@ -665,9 +709,13 @@ public class Editor : IEntryPoint, IAutoActivate
         const float cameraBaseSpeed = 10;
 
         if (_inputService.IsKeyHeld(Key.SHIFT))
+        {
             _cameraSpeedModifier += (float)delta;
+        }
         else
+        {
             _cameraSpeedModifier = 1f;
+        }
 
         float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
 
@@ -689,27 +737,43 @@ public class Editor : IEntryPoint, IAutoActivate
         var right = camera.Transform.GetRight();
 
         if (_inputService.IsKeyHeld(Key.W))
+        {
             camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+        }
 
         if (_inputService.IsKeyHeld(Key.S))
+        {
             camera.Transform.Position += forward * cameraSpeed * (float)delta;
+        }
 
         if (_inputService.IsKeyHeld(Key.D))
+        {
             camera.Transform.Position += right * cameraSpeed * (float)delta;
+        }
 
         if (_inputService.IsKeyHeld(Key.A))
+        {
             camera.Transform.Position -= right * cameraSpeed * (float)delta;
+        }
 
         if (_inputService.IsKeyHeld(Key.E))
+        {
             camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+        }
 
         if (_inputService.IsKeyHeld(Key.Q))
+        {
             camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
+        }
 
         if (_inputService.IsKeyPressed(Key.UP_ARROW))
+        {
             camera.Transform.Position += new Vector3(0, 1, 0);
+        }
 
         if (_inputService.IsKeyPressed(Key.DOWN_ARROW))
+        {
             camera.Transform.Position -= new Vector3(0, 1, 0);
+        }
     }
 }

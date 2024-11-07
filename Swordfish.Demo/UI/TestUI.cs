@@ -25,12 +25,12 @@ public static class TestUI
                 X = new AbsoluteConstraint(0),
                 Y = new AbsoluteConstraint(0),
                 Width = new CenterConstraint(),
-                Height = new CenterConstraint()
+                Height = new CenterConstraint(),
             },
             Content = {
                 CreateTextPanel(),
                 CreateLayoutGroupPanel(),
-            }
+            },
         };
     }
 
@@ -41,12 +41,12 @@ public static class TestUI
         {
             Constraints = new RectConstraints
             {
-                Height = new RelativeConstraint(0.3f)
+                Height = new RelativeConstraint(0.3f),
             },
             Tooltip = new Tooltip
             {
                 Help = true,
-                Text = "This is a panel for testing LayoutGroup elements."
+                Text = "This is a panel for testing LayoutGroup elements.",
             },
             Content = {
                     new LayoutGroup {
@@ -56,7 +56,7 @@ public static class TestUI
                         {
                             Anchor = ConstraintAnchor.TOP_CENTER,
                             Width = new FillConstraint(),
-                            Height = new AbsoluteConstraint(UIContext.FontDisplaySize)
+                            Height = new AbsoluteConstraint(UIContext.FontDisplaySize),
                         },
                         Content = {
                             new TextElement("This"),
@@ -64,7 +64,7 @@ public static class TestUI
                             new TextElement("a"),
                             new TextElement("horizontal"),
                             new TextElement("layout"),
-                        }
+                        },
                     },
                     new LayoutGroup {
                         Layout = ElementAlignment.HORIZONTAL,
@@ -87,7 +87,7 @@ public static class TestUI
                                     new TextElement("are"),
                                     new TextElement("a"),
                                     new TextElement("layout"),
-                                }
+                                },
                             },
                             new LayoutGroup {
                                 Layout = ElementAlignment.VERTICAL,
@@ -102,7 +102,7 @@ public static class TestUI
                                     new TextElement("inside"),
                                     new TextElement("horizontal"),
                                     new TextElement("group"),
-                                }
+                                },
                             },
                             new LayoutGroup {
                                 Layout = ElementAlignment.HORIZONTAL,
@@ -114,11 +114,11 @@ public static class TestUI
                                 },
                                 Content = {
                                     new TextElement("This is a horizontal layout."),
-                                }
+                                },
                             },
-                        }
+                        },
                     },
-                }
+                },
         };
     }
     #endregion
@@ -130,53 +130,53 @@ public static class TestUI
         {
             Constraints = new RectConstraints
             {
-                Height = new RelativeConstraint(0.5f)
+                Height = new RelativeConstraint(0.5f),
             },
             Tooltip = new Tooltip
             {
                 Help = true,
-                Text = "This is a panel for testing Text elements."
+                Text = "This is a panel for testing Text elements.",
             },
             Content = {
                 new TextElement("Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquet sagittis id consectetur purus ut faucibus pulvinar elementum. Libero enim sed faucibus turpis in eu. Mi in nulla posuere sollicitudin. Purus in massa tempor nec feugiat nisl pretium. In eu mi bibendum neque egestas congue. Dui nunc mattis enim ut tellus elementum. Cursus euismod quis viverra nibh cras pulvinar mattis nunc sed. Sed vulputate mi sit amet mauris commodo quis. Phasellus vestibulum lorem sed risus. Amet aliquam id diam maecenas ultricies mi."),
                 new DividerElement(),
                 new TextElement("Disabled text.") {
-                    Enabled = false
+                    Enabled = false,
                 },
                 new TextElement("-Bullet 1 (no whitespace)"),
                 new TextElement("- Bullet 2 (spaced)"),
                 new TextElement("-  Bullet 3 (tabbed)") {
                     Tooltip = new Tooltip {
-                        Text = "Bullets are created by simply preceding with a '-'"
-                    }
+                        Text = "Bullets are created by simply preceding with a '-'",
+                    },
                 },
                 new TextElement("Non visible text.") {
-                    Visible = false
+                    Visible = false,
                 },
                 new TextElement("Some colored text!") {
                     Color = Color.Green,
                     Tooltip = new Tooltip {
                         Help = true,
-                        Text = "There is text above this that has Visible = false."
-                    }
+                        Text = "There is text above this that has Visible = false.",
+                    },
                 },
                 new TextElement("This text has a label.") {
                     Label = "MyLabel",
                     Tooltip = new Tooltip {
-                        Text = "This has a tooltip."
-                    }
+                        Text = "This has a tooltip.",
+                    },
                 },
                 new TextElement("This one has a label and a help tooltip.") {
                     Label = "MyOtherLabel",
                     Tooltip = new Tooltip {
                         Help = true,
-                        Text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquet sagittis id consectetur purus ut faucibus pulvinar elementum. Libero enim sed faucibus turpis in eu. Mi in nulla posuere sollicitudin. Purus in massa tempor nec feugiat nisl pretium. In eu mi bibendum neque egestas congue. Dui nunc mattis enim ut tellus elementum. Cursus euismod quis viverra nibh cras pulvinar mattis nunc sed. Sed vulputate mi sit amet mauris commodo quis. Phasellus vestibulum lorem sed risus. Amet aliquam id diam maecenas ultricies mi."
-                    }
+                        Text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Aliquet sagittis id consectetur purus ut faucibus pulvinar elementum. Libero enim sed faucibus turpis in eu. Mi in nulla posuere sollicitudin. Purus in massa tempor nec feugiat nisl pretium. In eu mi bibendum neque egestas congue. Dui nunc mattis enim ut tellus elementum. Cursus euismod quis viverra nibh cras pulvinar mattis nunc sed. Sed vulputate mi sit amet mauris commodo quis. Phasellus vestibulum lorem sed risus. Amet aliquam id diam maecenas ultricies mi.",
+                    },
                 },
                 new TextElement("This text is horizontally aligned.") {
-                    Alignment = ElementAlignment.HORIZONTAL
+                    Alignment = ElementAlignment.HORIZONTAL,
                 },
-            }
+            },
         };
     }
     #endregion
