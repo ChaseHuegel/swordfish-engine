@@ -8,7 +8,7 @@ public class TokenMatcher<T>(in T type, in string regexPattern) where T : struct
 {
     private readonly Regex _regex = new(regexPattern);
 
-    public readonly T Type = type;
+    private readonly T _type = type;
 
     public Match<T> Match(string input, int startIndex = 0)
     {
@@ -18,7 +18,7 @@ public class TokenMatcher<T>(in T type, in string regexPattern) where T : struct
             return default;
         }
 
-        var token = new Token<T>(Type, match.Value);
+        var token = new Token<T>(_type, match.Value);
         return new Match<T>(true, match.Length, token);
     }
 }

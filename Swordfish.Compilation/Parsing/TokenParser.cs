@@ -8,7 +8,7 @@ namespace Swordfish.Compilation.Parsing;
 
 public abstract class TokenParser<TToken, TType> where TToken : struct
 {
-    private object _parseLock = new();
+    private readonly object _parseLock = new();
     private readonly Stack<Token<TToken>> _tokenStack = new();
     private Token<TToken> _lookaheadFirst;
     private Token<TToken> _lookaheadSecond;
@@ -17,6 +17,7 @@ public abstract class TokenParser<TToken, TType> where TToken : struct
     protected abstract Issue[] GetIssues();
     protected abstract TType CreateResult();
 
+    // ReSharper disable once VirtualMemberNeverOverridden.Global
     protected virtual void OnPostProcess()
     {
     }
@@ -62,6 +63,7 @@ public abstract class TokenParser<TToken, TType> where TToken : struct
         return token;
     }
 
+    // ReSharper disable once MemberCanBePrivate.Global
     protected void DiscardToken()
     {
         _lookaheadFirst = _lookaheadSecond;
@@ -87,6 +89,7 @@ public abstract class TokenParser<TToken, TType> where TToken : struct
         return true;
     }
 
+    // ReSharper disable once UnusedMember.Global
     protected void DiscardToken(TToken t)
     {
         if (!TryDiscardToken(t))
