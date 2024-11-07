@@ -16,7 +16,7 @@ public sealed class PositionGizmo : IDisposable
         _camera = camera;
 
         _lines = new Line[9];
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i] = lineRenderer.CreateLine(alwaysOnTop: true);
         }
@@ -24,7 +24,7 @@ public sealed class PositionGizmo : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i].Dispose();
         }
@@ -37,9 +37,9 @@ public sealed class PositionGizmo : IDisposable
         Vector3 up = transform.GetUp();
         Vector3 right = transform.GetRight();
 
-        const float BASE_SIZE = 2f;
+        const float baseSize = 2f;
         float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
-        float size = BASE_SIZE * scale;
+        float size = baseSize * scale;
         float armSize = 0.5f * scale;
 
         //  X axis

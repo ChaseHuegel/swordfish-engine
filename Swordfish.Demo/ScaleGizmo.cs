@@ -16,7 +16,7 @@ public sealed class ScaleGizmo : IDisposable
         _camera = camera;
 
         _lines = new Line[18];
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i] = lineRenderer.CreateLine(alwaysOnTop: true);
         }
@@ -24,7 +24,7 @@ public sealed class ScaleGizmo : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i].Dispose();
         }
@@ -37,9 +37,9 @@ public sealed class ScaleGizmo : IDisposable
         Vector3 up = transform.GetUp();
         Vector3 right = transform.GetRight();
 
-        const float BASE_SIZE = 0.85f;
+        const float baseSize = 0.85f;
         float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
-        float size = BASE_SIZE * scale;
+        float size = baseSize * scale;
         float handleSize = 0.35f * scale;
 
         //  X axis
@@ -76,67 +76,67 @@ public sealed class ScaleGizmo : IDisposable
         zx.Color = new Vector4(0, 0, 1, 1);
 
         //  XY plane
-        Line handleXY1 = _lines[6];
-        handleXY1.Start = pos + (right + up) * size - (up * handleSize);
-        handleXY1.End = pos + (right + up) * size - ((right + up) * handleSize);
-        handleXY1.Color = new Vector4(1, 1, 0, 1);
+        Line handleXy1 = _lines[6];
+        handleXy1.Start = pos + (right + up) * size - (up * handleSize);
+        handleXy1.End = pos + (right + up) * size - ((right + up) * handleSize);
+        handleXy1.Color = new Vector4(1, 1, 0, 1);
 
-        Line handleXY2 = _lines[7];
-        handleXY2.Start = pos + (right + up) * size - (right * handleSize);
-        handleXY2.End = pos + (right + up) * size - ((right + up) * handleSize);
-        handleXY2.Color = new Vector4(1, 1, 0, 1);
+        Line handleXy2 = _lines[7];
+        handleXy2.Start = pos + (right + up) * size - (right * handleSize);
+        handleXy2.End = pos + (right + up) * size - ((right + up) * handleSize);
+        handleXy2.Color = new Vector4(1, 1, 0, 1);
 
         //  XZ plane
-        Line handleXZ1 = _lines[8];
-        handleXZ1.Start = pos + (right + forward) * size - (forward * handleSize);
-        handleXZ1.End = pos + (right + forward) * size - ((right + forward) * handleSize);
-        handleXZ1.Color = new Vector4(1, 0, 1, 1);
+        Line handleXz1 = _lines[8];
+        handleXz1.Start = pos + (right + forward) * size - (forward * handleSize);
+        handleXz1.End = pos + (right + forward) * size - ((right + forward) * handleSize);
+        handleXz1.Color = new Vector4(1, 0, 1, 1);
 
-        Line handleXZ2 = _lines[9];
-        handleXZ2.Start = pos + (right + forward) * size - (right * handleSize);
-        handleXZ2.End = pos + (right + forward) * size - ((right + forward) * handleSize);
-        handleXZ2.Color = new Vector4(1, 0, 1, 1);
+        Line handleXz2 = _lines[9];
+        handleXz2.Start = pos + (right + forward) * size - (right * handleSize);
+        handleXz2.End = pos + (right + forward) * size - ((right + forward) * handleSize);
+        handleXz2.Color = new Vector4(1, 0, 1, 1);
 
         //  ZY plane
-        Line handleZY1 = _lines[10];
-        handleZY1.Start = pos + (up + forward) * size - (forward * handleSize);
-        handleZY1.End = pos + (up + forward) * size - ((up + forward) * handleSize);
-        handleZY1.Color = new Vector4(0, 1, 1, 1);
+        Line handleZy1 = _lines[10];
+        handleZy1.Start = pos + (up + forward) * size - (forward * handleSize);
+        handleZy1.End = pos + (up + forward) * size - ((up + forward) * handleSize);
+        handleZy1.Color = new Vector4(0, 1, 1, 1);
 
-        Line handleZY2 = _lines[11];
-        handleZY2.Start = pos + (up + forward) * size - (up * handleSize);
-        handleZY2.End = pos + (up + forward) * size - ((up + forward) * handleSize);
-        handleZY2.Color = new Vector4(0, 1, 1, 1);
+        Line handleZy2 = _lines[11];
+        handleZy2.Start = pos + (up + forward) * size - (up * handleSize);
+        handleZy2.End = pos + (up + forward) * size - ((up + forward) * handleSize);
+        handleZy2.Color = new Vector4(0, 1, 1, 1);
 
         //  XYZ handle
-        Line handleXYZ = _lines[12];
-        handleXYZ.Start = pos + right * handleSize;
-        handleXYZ.End = pos + (right + up) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        Line handleXyz = _lines[12];
+        handleXyz.Start = pos + right * handleSize;
+        handleXyz.End = pos + (right + up) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
 
-        handleXYZ = _lines[13];
-        handleXYZ.Start = pos + up * handleSize;
-        handleXYZ.End = pos + (right + up) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        handleXyz = _lines[13];
+        handleXyz.Start = pos + up * handleSize;
+        handleXyz.End = pos + (right + up) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
 
-        handleXYZ = _lines[14];
-        handleXYZ.Start = pos + forward * handleSize;
-        handleXYZ.End = pos + (forward + up) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        handleXyz = _lines[14];
+        handleXyz.Start = pos + forward * handleSize;
+        handleXyz.End = pos + (forward + up) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
 
-        handleXYZ = _lines[15];
-        handleXYZ.Start = pos + up * handleSize;
-        handleXYZ.End = pos + (forward + up) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        handleXyz = _lines[15];
+        handleXyz.Start = pos + up * handleSize;
+        handleXyz.End = pos + (forward + up) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
 
-        handleXYZ = _lines[16];
-        handleXYZ.Start = pos + forward * handleSize;
-        handleXYZ.End = pos + (forward + right) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        handleXyz = _lines[16];
+        handleXyz.Start = pos + forward * handleSize;
+        handleXyz.End = pos + (forward + right) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
 
-        handleXYZ = _lines[17];
-        handleXYZ.Start = pos + right * handleSize;
-        handleXYZ.End = pos + (forward + right) * handleSize;
-        handleXYZ.Color = new Vector4(1, 1, 1, 1);
+        handleXyz = _lines[17];
+        handleXyz.Start = pos + right * handleSize;
+        handleXyz.End = pos + (forward + right) * handleSize;
+        handleXyz.Color = new Vector4(1, 1, 1, 1);
     }
 }
