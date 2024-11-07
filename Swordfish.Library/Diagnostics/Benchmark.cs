@@ -56,7 +56,7 @@ public class Benchmark : IDisposable
             //  This is to ignore compiler warnings for unused/unassigned values in release
             _gcStart = 0;
             _stopwatch = null;
-            _disposed = Stopwatch == null || GCStart == 0 || Disposed;
+            _disposed = _stopwatch == null || _gcStart == 0 || _disposed;
 #endif
     }
 

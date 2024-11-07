@@ -25,7 +25,7 @@ public class LogListener : ILoggerProvider
             return _history.ToArray();
         }
 #else
-        return Array.Empty<LoggerEventArgs>();
+        return Array.Empty<LogEventArgs>();
 #endif
     }
 
