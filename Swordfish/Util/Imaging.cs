@@ -1,10 +1,12 @@
-using System.IO;
 using System.Drawing;
 using Silk.NET.Core;
+using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Library.IO;
 
 using Image = SixLabors.ImageSharp.Image;
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Swordfish.Util;
 
@@ -24,7 +26,6 @@ public static class Imaging
         return Load(buffer);
     }
 
-    /// <inheritdoc cref="Load"/>
     /// <remarks>This is useful when trying to load an unsupported image type, such as ICO.</remarks>
     public static RawImage LoadAsPng(Stream stream)
     {
@@ -47,18 +48,17 @@ public static class Imaging
     /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
     public static RawImage Load(PathInfo path)
     {
-        var image = Image.Load<Rgba32>(path.Value);
+        Image<Rgba32>? image = Image.Load<Rgba32>(path.Value);
         return image.ToRawImage();
     }
 
     /// <summary>
     ///     Loads an image buffer as a <see cref="RawImage"/>.
     /// </summary>
-    /// <param name="path">Path to load an image from.</param>
     /// <returns>The <see cref="RawImage"/> that was loaded.</returns>
     public static RawImage Load(byte[] buffer)
     {
-        var image = Image.Load<Rgba32>(buffer);
+        Image<Rgba32>? image = Image.Load<Rgba32>(buffer);
         return image.ToRawImage();
     }
 }

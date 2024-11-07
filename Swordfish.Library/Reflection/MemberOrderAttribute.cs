@@ -1,20 +1,20 @@
 using System;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.Reflection
+namespace Swordfish.Library.Reflection;
+
+[AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
+public class MemberOrderAttribute : Attribute
 {
-    [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property | AttributeTargets.Method)]
-    public class MemberOrderAttribute : Attribute
+    public int Index;
+
+    public MemberOrderAttribute()
     {
-        public int Index;
+        Index = int.MaxValue;
+    }
 
-        public MemberOrderAttribute()
-        {
-            Index = int.MaxValue;
-        }
-
-        public MemberOrderAttribute(int index)
-        {
-            Index = index;
-        }
+    public MemberOrderAttribute(int index)
+    {
+        Index = index;
     }
 }

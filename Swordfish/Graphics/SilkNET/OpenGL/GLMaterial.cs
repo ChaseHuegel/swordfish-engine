@@ -1,6 +1,5 @@
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
@@ -20,7 +19,9 @@ internal sealed class GLMaterial : Handle
         Transparent = transparent;
 
         if (textures.Length > 32)
+        {
             throw new ArgumentException("Length can not exceed 32.", nameof(textures));
+        }
     }
 
     protected override void OnDisposed()
@@ -37,7 +38,7 @@ internal sealed class GLMaterial : Handle
 
         ShaderProgram.Activate();
 
-        for (int i = 0; i < Textures.Length; i++)
+        for (var i = 0; i < Textures.Length; i++)
         {
             Textures[i].Activate(TextureUnit.Texture0 + i);
             ShaderProgram.SetUniform("texture" + i, i);
@@ -48,7 +49,9 @@ internal sealed class GLMaterial : Handle
     public bool Equals(GLMaterial? other)
     {
         if (other == null)
+        {
             return false;
+        }
 
         return Transparent.Equals(other.Transparent) && ShaderProgram.Equals(other.ShaderProgram) && Textures.SequenceEqual(other.Textures);
     }
@@ -57,12 +60,11 @@ internal sealed class GLMaterial : Handle
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
-        if (obj is not GLMaterial other)
-            return false;
-
-        return Equals(other);
+        return obj is GLMaterial other && Equals(other);
     }
 
     public override int GetHashCode()

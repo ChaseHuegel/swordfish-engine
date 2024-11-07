@@ -1,14 +1,13 @@
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public interface IFileParser
 {
-    public interface IFileParser
-    {
-        string[] SupportedExtensions { get; }
+    string[] SupportedExtensions { get; }
 
-        object Parse(PathInfo file);
-    }
+    object Parse(PathInfo file);
+}
 
-    public interface IFileParser<TResult> : IFileParser
-    {
-        new TResult Parse(PathInfo file);
-    }
+public interface IFileParser<out TResult> : IFileParser
+{
+    new TResult Parse(PathInfo file);
 }

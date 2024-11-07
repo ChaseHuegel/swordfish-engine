@@ -21,7 +21,7 @@ internal class CommandLineTokenParser : TokenParser<CommandLineToken, CommandLin
     
     protected override bool ReadNext()
     {
-        bool readToken = false;
+        var readToken = false;
         readToken |= TryDiscardToken(CommandLineToken.EqualsOrWhitespace);
         readToken |= TryReadArg();
         return readToken;

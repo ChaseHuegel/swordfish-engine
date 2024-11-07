@@ -42,26 +42,26 @@ public class ValueFieldTests : TestBase
     public void ModifiersAreOrdered()
     {
         ValueField valueField = new("test", 10f, 10f);
-        valueField.AddModifier("div", Modifier.DIVIDE, 1);
-        valueField.AddModifier("sub", Modifier.SUBTRACTION, 1);
-        valueField.AddModifier("mul", Modifier.MULTIPLY, 1);
-        valueField.AddModifier("add", Modifier.ADDITION, 1);
+        valueField.AddModifier("div", Modifier.Divide, 1);
+        valueField.AddModifier("sub", Modifier.Subtract, 1);
+        valueField.AddModifier("mul", Modifier.Multiply, 1);
+        valueField.AddModifier("add", Modifier.Addition, 1);
 
         var modifiers = valueField.GetModifiers();
-        Assert.Equal(Modifier.ADDITION, modifiers[0].Modifier);
-        Assert.Equal(Modifier.SUBTRACTION, modifiers[1].Modifier);
-        Assert.Equal(Modifier.MULTIPLY, modifiers[2].Modifier);
-        Assert.Equal(Modifier.DIVIDE, modifiers[3].Modifier);
+        Assert.Equal(Modifier.Addition, modifiers[0].Modifier);
+        Assert.Equal(Modifier.Subtract, modifiers[1].Modifier);
+        Assert.Equal(Modifier.Multiply, modifiers[2].Modifier);
+        Assert.Equal(Modifier.Divide, modifiers[3].Modifier);
     }
 
     [Fact]
     public void ModifiersApplyOrdered()
     {
         ValueField valueField = new("test", 10f, 20f);
-        valueField.AddModifier("div", Modifier.DIVIDE, 2);
-        valueField.AddModifier("sub", Modifier.SUBTRACTION, 5);
-        valueField.AddModifier("mul", Modifier.MULTIPLY, 2);
-        valueField.AddModifier("add", Modifier.ADDITION, 8);
+        valueField.AddModifier("div", Modifier.Divide, 2);
+        valueField.AddModifier("sub", Modifier.Subtract, 5);
+        valueField.AddModifier("mul", Modifier.Multiply, 2);
+        valueField.AddModifier("add", Modifier.Addition, 8);
         Assert.Equal(13, valueField.Value);
     }
 }

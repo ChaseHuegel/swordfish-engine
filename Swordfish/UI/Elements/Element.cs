@@ -6,11 +6,11 @@ public abstract class Element : IElement, IInternalElement
 {
     protected IUIContext? UIContext { get; set; }
 
-    private static ulong NewUid() => Interlocked.Increment(ref CurrentUid);
-    private static ulong CurrentUid;
+    private static ulong NewUid() => Interlocked.Increment(ref _currentUid);
+    private static ulong _currentUid;
 
-    private volatile bool Focusing;
-    private volatile bool Unfocusing;
+    private volatile bool _focus;
+    private volatile bool _unfocus;
 
     public ulong UID { get; }
 
@@ -37,24 +37,28 @@ public abstract class Element : IElement, IInternalElement
     public void Render()
     {
         if (!Visible)
+        {
             return;
+        }
 
         if (Alignment == ElementAlignment.HORIZONTAL)
+        {
             ImGui.SameLine();
+        }
 
         ImGui.BeginDisabled(!Enabled);
 
-        if (Unfocusing)
+        if (_unfocus)
         {
             ImGui.SetKeyboardFocusHere(-1);
-            Unfocusing = false;
+            _unfocus = false;
         }
 
-        if (Focusing)
+        if (_focus)
         {
             ImGui.SetWindowFocus();
             ImGui.SetKeyboardFocusHere();
-            Focusing = false;
+            _focus = false;
         }
 
         OnRender();
@@ -62,14 +66,16 @@ public abstract class Element : IElement, IInternalElement
         ImGui.EndDisabled();
     }
 
+    // ReSharper disable once UnusedMember.Global
     public void Focus()
     {
-        Focusing = true;
+        _focus = true;
     }
 
+    // ReSharper disable once MemberCanBeProtected.Global
     public void Unfocus()
     {
-        Unfocusing = true;
+        _unfocus = true;
     }
 
 }

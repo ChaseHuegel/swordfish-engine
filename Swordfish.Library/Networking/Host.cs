@@ -1,73 +1,73 @@
-using System;
 using System.Net;
 
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public class Host
 {
-    public class Host
+    private string _mHostname;
+    private IPAddress _mAddress;
+    private int _mPort;
+    private IPEndPoint _mEndPoint;
+
+    public string Hostname
     {
-        private string m_Hostname;
-        private IPAddress m_Address;
-        private int m_Port;
-        private IPEndPoint m_EndPoint;
-
-        public string Hostname
+        get => _mHostname;
+        set
         {
-            get => m_Hostname;
-            set
-            {
-                m_Hostname = value;
-                m_Address = NetUtils.GetHostAddress(value);
-                UpdateEndPoint();
-            }
+            _mHostname = value;
+            _mAddress = NetUtils.GetHostAddress(value);
+            UpdateEndPoint();
         }
+    }
 
-        public IPAddress Address
+    public IPAddress Address
+    {
+        get => _mAddress;
+        set
         {
-            get => m_Address;
-            set
-            {
-                m_Address = value;
-                m_Hostname = string.Empty;
-                UpdateEndPoint();
-            }
+            _mAddress = value;
+            _mHostname = string.Empty;
+            UpdateEndPoint();
         }
+    }
 
-        public int Port
+    public int Port
+    {
+        get => _mPort;
+        set
         {
-            get => m_Port;
-            set
-            {
-                m_Port = value;
-                UpdateEndPoint();
-            }
+            _mPort = value;
+            UpdateEndPoint();
         }
+    }
 
-        public IPEndPoint EndPoint
+    public IPEndPoint EndPoint
+    {
+        get => _mEndPoint;
+        set
         {
-            get => m_EndPoint;
-            set
-            {
-                m_EndPoint = value;
-                m_Address = value.Address;
-                m_Hostname = string.Empty;
-                m_Port = value.Port;
-            }
+            _mEndPoint = value;
+            _mAddress = value.Address;
+            _mHostname = string.Empty;
+            _mPort = value.Port;
         }
+    }
 
-        private void UpdateEndPoint()
+    private void UpdateEndPoint()
+    {
+        if (_mEndPoint == null)
         {
-            if (m_EndPoint == null)
-                m_EndPoint = new IPEndPoint(m_Address, m_Port);
-            else
-            {
-                m_EndPoint.Address = m_Address;
-                m_EndPoint.Port = m_Port;
-            }
+            _mEndPoint = new IPEndPoint(_mAddress, _mPort);
         }
+        else
+        {
+            _mEndPoint.Address = _mAddress;
+            _mEndPoint.Port = _mPort;
+        }
+    }
 
-        public override string ToString()
-        {
-            return $"{(string.IsNullOrEmpty(Hostname) ? Address.ToString() : Hostname)}:{Port}";
-        }
+    public override string ToString()
+    {
+        return $"{(string.IsNullOrEmpty(Hostname) ? Address.ToString() : Hostname)}:{Port}";
     }
 }

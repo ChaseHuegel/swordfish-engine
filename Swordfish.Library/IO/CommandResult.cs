@@ -1,23 +1,16 @@
 using System.Diagnostics.CodeAnalysis;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public readonly struct CommandResult(in CommandState state, in string originalString, in Command command)
 {
-    public readonly struct CommandResult
-    {
-        public bool IsSuccessState => State == CommandState.Success;
+    public bool IsSuccessState => State == CommandState.Success;
 
-        public readonly CommandState State;
+    public readonly CommandState State = state;
 
-        public readonly string OriginalString;
+    public readonly string OriginalString = originalString;
 
-        [MaybeNull]
-        public readonly Command Command;
-
-        public CommandResult(CommandState state, string originalString, Command command)
-        {
-            State = state;
-            OriginalString = originalString;
-            Command = command;
-        }
-    }
+    [MaybeNull]
+    public readonly Command Command = command;
 }

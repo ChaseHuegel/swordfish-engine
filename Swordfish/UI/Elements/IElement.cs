@@ -1,3 +1,4 @@
+// ReSharper disable UnusedMemberInSuper.Global
 namespace Swordfish.UI.Elements;
 
 public interface IElement : IUIDProperty

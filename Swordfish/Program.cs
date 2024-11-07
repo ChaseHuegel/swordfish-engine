@@ -1,10 +1,7 @@
-using DryIoc;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
-using Swordfish.ECS;
-using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Threading;
 
@@ -26,7 +23,7 @@ internal static class Program
         Running,
         Closing,
         Closed,
-        Stopping
+        Stopping,
     }
     
     public static readonly ThreadContext MainThreadContext;
@@ -108,7 +105,7 @@ internal static class Program
         }
         
         _engine = AppEngine.Build(_args);
-        SwordfishEngine.Kernel = new Kernel(_engine.Container); //  TODO get rid of this
+        SwordfishEngine.Container = _engine.Container; //  TODO get rid of this
         TransitionState(EngineState.Loading, EngineState.Loaded);
 
         TransitionState(EngineState.Loaded, EngineState.Waking);

@@ -1,45 +1,44 @@
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderComponent>
 {
-    public string Name { get; private set; }
+    public string Name { get; }
 
-    private readonly GL GL;
-    private readonly Silk.NET.OpenGL.ShaderType Type;
+    private readonly GL _gl;
+    private readonly Silk.NET.OpenGL.ShaderType _type;
 
     public ShaderComponent(GL gl, string name, Silk.NET.OpenGL.ShaderType type, string source)
     {
-        GL = gl;
+        _gl = gl;
         Name = name;
-        Type = type;
+        _type = type;
         Compile(source);
     }
 
     protected override uint CreateHandle()
     {
-        return GL.CreateShader(Type);
+        return _gl.CreateShader(_type);
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteShader(Handle);
+        _gl.DeleteShader(Handle);
     }
 
     public void Compile(string source)
     {
-        GL.ShaderSource(Handle, source);
-        GL.CompileShader(Handle);
+        _gl.ShaderSource(Handle, source);
+        _gl.CompileShader(Handle);
 
-        string shaderError = GL.GetShaderInfoLog(Handle);
+        string shaderError = _gl.GetShaderInfoLog(Handle);
         if (!string.IsNullOrWhiteSpace(shaderError))
         {
             //  TODO dont want to throw
-            throw new GLException($"Failed to compile {Type} '{Name}'.\n{shaderError}");
+            throw new GLException($"Failed to compile {_type} '{Name}'.\n{shaderError}");
         }
     }
 
@@ -53,12 +52,11 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
-        if (obj is not ShaderComponent other)
-            return false;
-
-        return Equals(other);
+        return obj is ShaderComponent other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -66,7 +64,7 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
         return (int)Handle;
     }
 
-    public override string? ToString()
+    public override string ToString()
     {
         return base.ToString() + $"[{Handle}]";
     }

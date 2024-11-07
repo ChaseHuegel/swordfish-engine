@@ -9,5 +9,5 @@ public enum ShapeType
     Cylinder,
     Ellipse2,
     Plane,
-    Sphere
+    Sphere,
 }

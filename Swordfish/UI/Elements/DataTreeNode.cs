@@ -4,7 +4,7 @@ namespace Swordfish.UI.Elements;
 
 public class DataTreeNode<T> : TreeNode
 {
-    public DataBinding<T> Data { get; private set; } = new();
+    public DataBinding<T> Data { get; } = new();
 
     public DataTreeNode(string? name, T data) : base(name)
     {

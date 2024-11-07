@@ -5,5 +5,5 @@ public enum ShaderType
     Vertex,
     Fragment,
     Compute,
-    Geometry
+    Geometry,
 }

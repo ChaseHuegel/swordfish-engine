@@ -1,12 +1,9 @@
 using Swordfish.Library.Extensions;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Threading;
-using Swordfish.Library.Types.Shapes;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
-using Plane = Swordfish.Library.Types.Shapes.Plane;
 using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
 using JoltShape = JoltPhysicsSharp.Shape;
 using Shape = Swordfish.Library.Types.Shapes.Shape;
@@ -14,18 +11,19 @@ using ShapeType = Swordfish.Library.Types.Shapes.ShapeType;
 
 namespace Swordfish.Physics.Jolt;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
     private static class Layers
     {
-        public static readonly ObjectLayer NonMoving = (ObjectLayer)Physics.Layers.NonMoving;
-        public static readonly ObjectLayer Moving = (ObjectLayer)Physics.Layers.Moving;
+        public static readonly ObjectLayer NonMoving = Physics.Layers.NON_MOVING;
+        public static readonly ObjectLayer Moving = Physics.Layers.MOVING;
     };
 
     private static class BroadPhaseLayers
     {
-        public static readonly BroadPhaseLayer NonMoving = (BroadPhaseLayer)Physics.Layers.NonMoving;
-        public static readonly BroadPhaseLayer Moving = (BroadPhaseLayer)Physics.Layers.Moving;
+        public static readonly BroadPhaseLayer NonMoving = Physics.Layers.NON_MOVING;
+        public static readonly BroadPhaseLayer Moving = Physics.Layers.MOVING;
     };
 
     private const float FIXED_TIMESTEP = 0.016f;
@@ -34,44 +32,40 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     public event EventHandler<EventArgs>? FixedUpdate;
 
     public PhysicsSystem System { get; }
-
-    private readonly ILogger _logger;
     
-    private float _accumulator;
-    private bool _accumulateUpdates = false;
-    private BodyInterface _bodyInterface;
-    private BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
-    private ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
-    private BodyFilter _bodyFilter = new SimpleBodyFilter();
+    private readonly bool _accumulateUpdates = false;   //  TODO make this a configurable option
+    private readonly BodyInterface _bodyInterface;
+    private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
+    private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
+    private readonly BodyFilter _bodyFilter = new SimpleBodyFilter();
+
     private ThreadContext? _context;
     private DataStore? _store;
-
+    private float _accumulator;
     private PhysicsSystemSettings _settings = new()
     {
         MaxBodies = 65536,
         MaxBodyPairs = 65536,
         MaxContactConstraints = 65536,
-        NumBodyMutexes = 0
+        NumBodyMutexes = 0,
     };
 
     public JoltPhysicsSystem(ILogger logger)
     {
-        _logger = logger;
-        
-        if (!Foundation.Init(false))
+        if (!Foundation.Init(doublePrecision: false))
         {
-            _logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
+            logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
             throw new Exception("Unable to initialize Jolt Foundation.");
         }
 
 #if DEBUG
-        Foundation.SetTraceHandler((message) => _logger.LogDebug("Jolt debug: {message}", message));
+        Foundation.SetTraceHandler(message => logger.LogDebug("Jolt debug: {message}", message));
 
         Foundation.SetAssertFailureHandler((inExpression, inMessage, inFile, inLine) =>
         {
             // ReSharper disable once NullCoalescingConditionIsAlwaysNotNullAccordingToAPIContract
             string message = inMessage ?? inExpression;
-            _logger.LogError("[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}", inFile, inLine, message);
+            logger.LogError("[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}", inFile, inLine, message);
             throw new Exception($"[JoltPhysics] Assertion failure at {inFile}:{inLine}: {message}");    //  TODO is this necessary?
         });
 #endif
@@ -118,7 +112,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         _accumulator += delta;
 
-        float physicsDelta = FIXED_TIMESTEP * TIMESCALE;
+        const float physicsDelta = FIXED_TIMESTEP * TIMESCALE;  //  TODO allow modifying TIMESCALE
         int steps = Math.Max(1, (int)(1f * TIMESCALE));
         if (_accumulateUpdates)
         {
@@ -136,17 +130,19 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
         else
         {
-            if (_accumulator >= physicsDelta)
+            if (_accumulator < physicsDelta)
             {
-                FixedUpdate?.Invoke(this, EventArgs.Empty);
-                _context.ProcessMessageQueue();
-
-                store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
-                System.Update(physicsDelta, steps);
-                store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
-
-                _accumulator -= physicsDelta;
+                return;
             }
+
+            FixedUpdate?.Invoke(this, EventArgs.Empty);
+            _context.ProcessMessageQueue();
+
+            store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
+            System.Update(physicsDelta, steps);
+            store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
+
+            _accumulator -= physicsDelta;
         }
     }
 
@@ -198,7 +194,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             CompoundShape compoundShape = collider.CompoundShape.Value;
             var mutableCompoundShapeSettings = new MutableCompoundShapeSettings();
-            for (int i = 0; i < compoundShape.Shapes.Length; i++)
+            for (var i = 0; i < compoundShape.Shapes.Length; i++)
             {
                 Shape childShape = compoundShape.Shapes[i];
 
@@ -213,13 +209,13 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             return true;
         }
 
-        if (!collider.Shape.HasValue)
+        if (collider.Shape.HasValue)
         {
-            joltShape = default!;
-            return false;
+            return TryGetJoltShape(collider.Shape.Value, scale, out joltShape);
         }
 
-        return TryGetJoltShape(collider.Shape.Value, scale, out joltShape);
+        joltShape = default!;
+        return false;
     }
 
     private static bool TryGetJoltShape(Shape shape, Vector3 scale, out JoltShape joltShape)
@@ -251,7 +247,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 return true;
 
             case ShapeType.Plane:
-                joltShape = new PlaneShape(new System.Numerics.Plane(shape.Plane.Normal, shape.Plane.Distance), null, 5_000);
+                joltShape = new PlaneShape(new Plane(shape.Plane.Normal, shape.Plane.Distance), null, 5_000);
                 return true;
         }
 

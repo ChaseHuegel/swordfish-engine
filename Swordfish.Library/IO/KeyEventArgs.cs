@@ -1,17 +1,10 @@
 
-using System;
+// ReSharper disable UnusedMember.Global
+namespace Swordfish.Library.IO;
 
-namespace Swordfish.Library.IO
+public readonly struct KeyEventArgs(Key key)
 {
-    public class KeyEventArgs : EventArgs
-    {
-        public static new readonly KeyEventArgs Empty = new KeyEventArgs(Key.NONE);
+    public static readonly KeyEventArgs Empty = new(Key.None);
 
-        public Key Key;
-
-        public KeyEventArgs(Key key)
-        {
-            Key = key;
-        }
-    }
+    public readonly Key Key = key;
 }

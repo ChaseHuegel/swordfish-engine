@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging.Console;
 using Shoal.CommandLine;
 using Shoal.Globalization;
 using Shoal.Modularity;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Events;
 using Swordfish.Library.Serialization;
@@ -65,7 +64,7 @@ public sealed class AppEngine : IDisposable
         {
             _logger.LogInformation("Running entry point '{entryPoint}'.", entryPoint.GetType());
             
-            Result<Exception> result = Debugger.SafeInvoke(entryPoint.Run);
+            Result<Exception> result = Safe.Invoke(entryPoint.Run);
             if (!result)
             {
                 _logger.LogError(result.Value, "Failed to run entry point '{entryPoint}'", entryPoint.GetType());

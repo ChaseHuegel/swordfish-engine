@@ -1,72 +1,72 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
 {
-    public string Name { get; private set; }
+    public string Name { get; }
 
-    private readonly GL GL;
-    private readonly Dictionary<string, int> UniformLocations;
+    private readonly GL _gl;
+    private readonly Dictionary<string, int> _uniformLocations;
 
     public ShaderProgram(GL gl, string name, ShaderComponent[] components)
     {
-        GL = gl;
+        _gl = gl;
         Name = name;
-        UniformLocations = new Dictionary<string, int>();
+        _uniformLocations = new Dictionary<string, int>();
 
-        for (int i = 0; i < components.Length; i++)
+        for (var i = 0; i < components.Length; i++)
         {
-            GL.AttachShader(Handle, components[i].Handle);
+            _gl.AttachShader(Handle, components[i].Handle);
         }
 
-        GL.LinkProgram(Handle);
+        _gl.LinkProgram(Handle);
 
-        for (int i = 0; i < components.Length; i++)
+        for (var i = 0; i < components.Length; i++)
         {
-            GL.DetachShader(Handle, components[i].Handle);
+            _gl.DetachShader(Handle, components[i].Handle);
         }
 
-        GL.GetProgram(Handle, GLEnum.LinkStatus, out int status);
+        _gl.GetProgram(Handle, GLEnum.LinkStatus, out int status);
         if (status != 0)
         {
-            GL.GetProgram(Handle, GLEnum.ActiveUniforms, out int uniformCount);
+            _gl.GetProgram(Handle, GLEnum.ActiveUniforms, out int uniformCount);
 
             for (uint i = 0; i < uniformCount; i++)
             {
-                string key = GL.GetActiveUniform(Handle, i, out _, out _);
-                int location = GL.GetUniformLocation(Handle, key);
-                UniformLocations.Add(key, location);
+                string key = _gl.GetActiveUniform(Handle, i, out _, out _);
+                int location = _gl.GetUniformLocation(Handle, key);
+                _uniformLocations.Add(key, location);
             }
         }
         else
         {
             //  TODO dont want to throw
-            throw new GLException($"Failed to link program for shader '{Name}'.\n{GL.GetProgramInfoLog(Handle)}");
+            throw new GLException($"Failed to link program for shader '{Name}'.\n{_gl.GetProgramInfoLog(Handle)}");
         }
     }
 
     protected override uint CreateHandle()
     {
-        return GL.CreateProgram();
+        return _gl.CreateProgram();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteProgram(Handle);
+        _gl.DeleteProgram(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.UseProgram(Handle);
+        _gl.UseProgram(Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.UseProgram(0);
+        _gl.UseProgram(0);
     }
 
     public void Activate()
@@ -74,15 +74,14 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         Bind();
     }
 
-    public uint BindAttributeLocation(string attribute, uint location)
+    public void BindAttributeLocation(string attribute, uint location)
     {
-        GL.BindAttribLocation(Handle, location, attribute);
-        return location;
+        _gl.BindAttribLocation(Handle, location, attribute);
     }
 
     public uint GetAttributeLocation(string attribute)
     {
-        int location = GL.GetAttribLocation(Handle, attribute);
+        int location = _gl.GetAttribLocation(Handle, attribute);
 
         if (location < 0)
         {
@@ -101,45 +100,57 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
     public void SetUniform(string uniform, int value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.Uniform1(location, value);
+        {
+            _gl.Uniform1(location, value);
+        }
     }
 
     public void SetUniform(string uniform, float value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.Uniform1(location, value);
+        {
+            _gl.Uniform1(location, value);
+        }
     }
 
     public void SetUniform(string uniform, Vector2 value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.Uniform2(location, value.X, value.Y);
+        {
+            _gl.Uniform2(location, value.X, value.Y);
+        }
     }
 
     public void SetUniform(string uniform, Vector3 value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.Uniform3(location, value.X, value.Y, value.Z);
+        {
+            _gl.Uniform3(location, value.X, value.Y, value.Z);
+        }
     }
 
     public void SetUniform(string uniform, Vector4 value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.Uniform4(location, value.X, value.Y, value.Z, value.W);
+        {
+            _gl.Uniform4(location, value.X, value.Y, value.Z, value.W);
+        }
     }
 
     public unsafe void SetUniform(string uniform, Matrix4x4 value)
     {
         if (TryGetUniform(uniform, out int location))
-            GL.UniformMatrix4(location, 1, false, (float*)&value);
+        {
+            _gl.UniformMatrix4(location, 1, false, (float*)&value);
+        }
     }
 
     private bool TryGetUniform(string uniform, out int location)
     {
-        if (!UniformLocations.TryGetValue(uniform, out location))
+        if (!_uniformLocations.TryGetValue(uniform, out location))
         {
-            location = GL.GetUniformLocation(Handle, uniform);
-            UniformLocations.Add(uniform, location);
+            location = _gl.GetUniformLocation(Handle, uniform);
+            _uniformLocations.Add(uniform, location);
         }
 
         if (location == -1)
@@ -161,12 +172,11 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
-        if (obj is not ShaderProgram other)
-            return false;
-
-        return Equals(other);
+        return obj is ShaderProgram other && Equals(other);
     }
 
     public override int GetHashCode()
@@ -174,7 +184,7 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         return (int)Handle;
     }
 
-    public override string? ToString()
+    public override string ToString()
     {
         return base.ToString() + $"[{Handle}]";
     }

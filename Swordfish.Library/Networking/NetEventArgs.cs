@@ -1,18 +1,17 @@
 using System;
 using System.Net;
 
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public class NetEventArgs : EventArgs
 {
-    public class NetEventArgs : EventArgs
-    {
-        public static new NetEventArgs Empty => new NetEventArgs();
+    public static new NetEventArgs Empty => new();
 
-        public int PacketID;
+    public int PacketID;
 
-        public Packet Packet;
+    public Packet Packet;
 
-        public IPEndPoint EndPoint;
+    public IPEndPoint EndPoint;
 
-        public NetSession Session;
-    }
+    public NetSession Session;
 }

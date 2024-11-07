@@ -3,12 +3,14 @@ using System.Linq;
 
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
 
 namespace Swordfish.Integrations.SQL
 {
     public class Query
     {
-        private List<string> Entries = new List<string>();
+        private readonly List<string> _entries = [];
 
         public string Name { get; set; }
         public string Address { get; set; }
@@ -17,13 +19,13 @@ namespace Swordfish.Integrations.SQL
 
         private Query AddSimpleParameter(string value)
         {
-            Entries.Add(value);
+            _entries.Add(value);
             return this;
         }
 
         private Query AppendParameter(string value)
         {
-            Entries[Entries.Count - 1] = Entries[Entries.Count - 1] + value;
+            _entries[^1] += value;
             return this;
         }
 
@@ -72,7 +74,7 @@ namespace Swordfish.Integrations.SQL
 
         public override string ToString()
         {
-            return string.Join(" ", Entries);
+            return string.Join(" ", _entries);
         }
     }
 }

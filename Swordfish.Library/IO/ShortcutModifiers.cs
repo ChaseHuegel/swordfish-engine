@@ -1,13 +1,12 @@
 using System;
 
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+[Flags]
+public enum ShortcutModifiers
 {
-    [Flags]
-    public enum ShortcutModifiers
-    {
-        NONE = 0,
-        CONTROL = 1,
-        SHIFT = 2,
-        ALT = 4
-    }
+    None = 0,
+    Control = 1,
+    Shift = 2,
+    Alt = 4,
 }

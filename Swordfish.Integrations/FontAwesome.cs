@@ -1,3 +1,4 @@
+// ReSharper disable UnusedMember.Global
 namespace Swordfish.Integrations
 {
     public static class FontAwesome

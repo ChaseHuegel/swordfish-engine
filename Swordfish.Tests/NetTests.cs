@@ -16,7 +16,7 @@ public class NetTests : TestBase
     {
         Handshake.BeginPacket packet = new Handshake.BeginPacket
         {
-            Secret = "test"
+            Secret = "test",
         };
 
         byte[] buffer = NeedlefishFormatter.Serialize(packet);

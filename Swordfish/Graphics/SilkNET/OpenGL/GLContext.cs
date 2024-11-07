@@ -5,32 +5,26 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal unsafe partial class GLContext
+internal unsafe partial class GLContext(in GL gl, in SynchronizationContext synchronizationContext)
 {
-    private readonly GL GL;
-    private readonly SynchronizationContext GLThread;
-
-    public GLContext(GL gl, SynchronizationContext synchronizationContext)
-    {
-        GL = gl;
-        GLThread = synchronizationContext;
-    }
+    private readonly GL _gl = gl;
+    private readonly SynchronizationContext _glThread = synchronizationContext;
 
     public ShaderComponent CreateShaderComponent(string name, Silk.NET.OpenGL.ShaderType type, string source)
     {
-        return GLThread.WaitForResult(SharderComponentArgs.Factory, new SharderComponentArgs(GL, name, type, source));
+        return _glThread.WaitForResult(ShaderComponentArgs.Factory, new ShaderComponentArgs(_gl, name, type, source));
     }
 
     public ShaderProgram CreateShaderProgram(string name, ShaderComponent[] shaderComponents)
     {
-        return GLThread.WaitForResult(SharderProgramArgs.Factory, new SharderProgramArgs(GL, name, shaderComponents));
+        return _glThread.WaitForResult(ShaderProgramArgs.Factory, new ShaderProgramArgs(_gl, name, shaderComponents));
     }
 
     public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
     {
         fixed (byte* pixelPtr = pixels)
         {
-            return GLThread.WaitForResult(TextureArgs.Factory, new TextureArgs(GL, name, pixelPtr, width, height, generateMipmaps));
+            return _glThread.WaitForResult(TextureArgs.Factory, new TextureArgs(_gl, name, pixelPtr, width, height, generateMipmaps));
         }
     }
 
@@ -38,41 +32,41 @@ internal unsafe partial class GLContext
     {
         fixed (byte* pixelPtr = pixels)
         {
-            return GLThread.WaitForResult(TextureArrayArgs.Factory, new TextureArrayArgs(GL, name, pixelPtr, width, height, depth, generateMipmaps));
+            return _glThread.WaitForResult(TextureArrayArgs.Factory, new TextureArrayArgs(_gl, name, pixelPtr, width, height, depth, generateMipmaps));
         }
     }
 
     public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, bool transparent)
     {
-        return GLThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
+        return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
     }
 
     internal GLRenderTarget CreateGLRenderTarget(Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
-        return GLThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(GL, transform, vertexArrayObject, modelsBufferObject, materials, renderOptions));
+        return _glThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(_gl, transform, vertexArrayObject, modelsBufferObject, materials, renderOptions));
     }
 
     internal VertexArrayObject<TVertexType> CreateVertexArrayObject<TVertexType>(TVertexType[] vertexData)
         where TVertexType : unmanaged
     {
-        return GLThread.WaitForResult(VertexArrayObjectArgs<TVertexType>.Factory, new VertexArrayObjectArgs<TVertexType>(GL, vertexData));
+        return _glThread.WaitForResult(VertexArrayObjectArgs<TVertexType>.Factory, new VertexArrayObjectArgs<TVertexType>(_gl, vertexData));
     }
 
     internal VertexArrayObject<TVertexType, TElementType> CreateVertexArrayObject<TVertexType, TElementType>(TVertexType[] vertexData, TElementType[] indices)
         where TVertexType : unmanaged
         where TElementType : unmanaged
     {
-        return GLThread.WaitForResult(VertexArrayObjectArgs<TVertexType, TElementType>.Factory, new VertexArrayObjectArgs<TVertexType, TElementType>(GL, vertexData, indices));
+        return _glThread.WaitForResult(VertexArrayObjectArgs<TVertexType, TElementType>.Factory, new VertexArrayObjectArgs<TVertexType, TElementType>(_gl, vertexData, indices));
     }
 
     internal VertexArrayObject32 CreateVertexArrayObject32(float[] vertexData, uint[] indices)
     {
-        return GLThread.WaitForResult(VertexArrayObject32Args.Factory, new VertexArrayObject32Args(GL, vertexData, indices));
+        return _glThread.WaitForResult(VertexArrayObject32Args.Factory, new VertexArrayObject32Args(_gl, vertexData, indices));
     }
 
     internal BufferObject<TData> CreateBufferObject<TData>(TData[] data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
         where TData : unmanaged
     {
-        return GLThread.WaitForResult(BufferObjectArgs<TData>.Factory, new BufferObjectArgs<TData>(GL, data, bufferType, usage));
+        return _glThread.WaitForResult(BufferObjectArgs<TData>.Factory, new BufferObjectArgs<TData>(_gl, data, bufferType, usage));
     }
 }

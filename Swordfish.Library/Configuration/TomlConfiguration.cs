@@ -9,6 +9,7 @@ public abstract class TomlConfiguration<T>
         return TomletMain.TomlStringFrom(this);
     }
 
+    // ReSharper disable once UnusedMember.Global
     public static T FromString(string value)
     {
         return TomletMain.To<T>(value);

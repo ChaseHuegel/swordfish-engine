@@ -12,6 +12,7 @@ public class World(in byte chunkBitWidth = 16)
         return new Entity(DataStore.Alloc(), DataStore);
     }
 
+    // ReSharper disable once UnusedMethodReturnValue.Global
     public bool AddSystem(IEntitySystem system)
     {
         lock (_systemsLock)

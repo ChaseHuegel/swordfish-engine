@@ -1,7 +1,6 @@
-namespace Swordfish.Library.BehaviorTrees
-{
-    public interface IBehaviorCompositor
-    {
+namespace Swordfish.Library.BehaviorTrees;
 
-    }
+public interface IBehaviorCompositor
+{
+
 }

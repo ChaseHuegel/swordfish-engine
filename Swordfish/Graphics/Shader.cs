@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
@@ -17,9 +16,9 @@ public sealed class Shader : Handle
 
     public bool TryGetSource(ShaderType type, out ShaderSource? source)
     {
-        for (int i = 0; i < Sources.Length; i++)
+        for (var i = 0; i < Sources.Length; i++)
         {
-            var shaderSource = Sources[i];
+            ShaderSource? shaderSource = Sources[i];
             if (shaderSource.Type == type)
             {
                 source = shaderSource;

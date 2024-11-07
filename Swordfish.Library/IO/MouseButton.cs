@@ -1,10 +1,9 @@
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public enum MouseButton
 {
-    public enum MouseButton
-    {
-        UNKNOWN,
-        LEFT,
-        RIGHT,
-        MIDDLE
-    }
+    Unknown,
+    Left,
+    Right,
+    Middle,
 }

@@ -107,7 +107,7 @@ public static class StringExtensions
     {
         var builder = new StringBuilder();
 
-        for (int i = 0; i < values.Length; i++)
+        for (var i = 0; i < values.Length; i++)
         {
             string value = values[i];
             if (string.IsNullOrEmpty(value))

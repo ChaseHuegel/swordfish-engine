@@ -1,33 +1,30 @@
 using System.Collections.Generic;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class ReadOnlyQueue<T>(params T[] values)
 {
-    public class ReadOnlyQueue<T>
+    private readonly Queue<T> _queue = new(values);
+
+    public T Take()
     {
-        private readonly Queue<T> Queue;
+        return _queue.Dequeue();
+    }
 
-        public ReadOnlyQueue(params T[] values)
+    public T Peek()
+    {
+        return _queue.Peek();
+    }
+
+    public T[] TakeAll()
+    {
+        var values = new T[_queue.Count];
+        for (var i = 0; i < values.Length; i++)
         {
-            Queue = new Queue<T>(values);
+            values[i] = _queue.Dequeue();
         }
 
-        public T Take()
-        {
-            return Queue.Dequeue();
-        }
-
-        public T Peek()
-        {
-            return Queue.Peek();
-        }
-
-        public T[] TakeAll()
-        {
-            T[] values = new T[Queue.Count];
-            for (int i = 0; i < values.Length; i++)
-                values[i] = Queue.Dequeue();
-
-            return values;
-        }
+        return values;
     }
 }

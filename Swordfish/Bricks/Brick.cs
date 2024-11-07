@@ -3,22 +3,17 @@ using Swordfish.Library.Util;
 
 namespace Swordfish.Bricks;
 
-public struct Brick : IEquatable<Brick>
+public struct Brick(in ushort id) : IEquatable<Brick>
 {
+    // ReSharper disable once MemberCanBePrivate.Global
     public const ushort UNDEFINED_ID = 0;
 
-    public static readonly Brick EMPTY = new(UNDEFINED_ID);
+    public static readonly Brick Empty = new(UNDEFINED_ID);
 
-    public string Name;
-    public readonly ushort ID;
+    public string? Name = null;
+    public readonly ushort ID = id;
     public Direction Rotation;
     public Direction Orientation;
-
-    public Brick(ushort id)
-    {
-        ID = id;
-        Name = null!;
-    }
 
     public bool Equals(Brick other) => other.ID == ID;
 
@@ -32,57 +27,60 @@ public struct Brick : IEquatable<Brick>
 
     public void Build()
     {
-
+        //  TODO implement
     }
 
+    // ReSharper disable once UnusedMember.Global
     public Vector3 GetDirectionModifier()
     {
         Vector3 modifier = Vector3.One;
 
         switch (Rotation)
         {
-            case Direction.NORTH:
+            case Direction.North:
                 break;
-            case Direction.EAST:
+            case Direction.East:
                 modifier = new Vector3(-1, 1, -1);
                 break;
-            case Direction.SOUTH:
+            case Direction.South:
                 modifier = new Vector3(1, 1, -1);
                 break;
-            case Direction.WEST:
+            case Direction.West:
                 modifier = new Vector3(1, 1, -1);
                 break;
-            case Direction.ABOVE:
+            case Direction.Above:
                 modifier = new Vector3(1, -1, -1);
                 break;
-            case Direction.BELOW:
+            case Direction.Below:
                 modifier = new Vector3(1, -1, 1);
                 break;
         }
 
-        if (ID == 2)
+        if (ID != 2)    //  TODO hacky harcoded value for the demo
         {
-            switch (Orientation)
-            {
-                case Direction.NORTH:
-                    modifier *= new Vector3(-1, -1, 1);
-                    break;
-                case Direction.EAST:
-                    modifier *= new Vector3(1, -1, -1);
-                    break;
-                case Direction.SOUTH:
-                    modifier *= new Vector3(-1, -1, -1);
-                    break;
-                case Direction.WEST:
-                    modifier *= new Vector3(1, -1, -1);
-                    break;
-                case Direction.ABOVE:
-                    modifier *= new Vector3(-1, 1, -1);
-                    break;
-                case Direction.BELOW:
-                    modifier *= new Vector3(-1, 1, 1);
-                    break;
-            }
+            return modifier;
+        }
+
+        switch (Orientation)
+        {
+            case Direction.North:
+                modifier *= new Vector3(-1, -1, 1);
+                break;
+            case Direction.East:
+                modifier *= new Vector3(1, -1, -1);
+                break;
+            case Direction.South:
+                modifier *= new Vector3(-1, -1, -1);
+                break;
+            case Direction.West:
+                modifier *= new Vector3(1, -1, -1);
+                break;
+            case Direction.Above:
+                modifier *= new Vector3(-1, 1, -1);
+                break;
+            case Direction.Below:
+                modifier *= new Vector3(-1, 1, 1);
+                break;
         }
 
         return modifier;
@@ -94,47 +92,36 @@ public struct Brick : IEquatable<Brick>
 
         switch (Rotation)
         {
-            case Direction.NORTH:
+            case Direction.North:
                 break;
-            case Direction.EAST:
+            case Direction.East:
                 euler = new Vector3(0, 90, 0);
                 break;
-            case Direction.SOUTH:
+            case Direction.South:
                 euler = new Vector3(0, 180, 0);
                 break;
-            case Direction.WEST:
+            case Direction.West:
                 euler = new Vector3(0, 270, 0);
                 break;
-            case Direction.ABOVE:
+            case Direction.Above:
                 euler = new Vector3(-90, 0, 0);
                 break;
-            case Direction.BELOW:
+            case Direction.Below:
                 euler = new Vector3(90, 0, 0);
                 break;
         }
 
-        switch (Orientation)
+        euler = Orientation switch
         {
-            case Direction.NORTH:
-                euler = new Vector3(euler.X, euler.Y, euler.Z + 90);
-                break;
-            case Direction.EAST:
-                euler = new Vector3(euler.X, euler.Y + 90, euler.Z + 90);
-                break;
-            case Direction.SOUTH:
-                euler = new Vector3(euler.X, euler.Y + 180, euler.Z - 90);
-                break;
-            case Direction.WEST:
-                euler = new Vector3(euler.X, euler.Y - 90, euler.Z - 90);
-                break;
-            case Direction.ABOVE:
-                euler = new Vector3(euler.X - 90, euler.Y, euler.Z + 90);
-                break;
-            case Direction.BELOW:
-                euler = new Vector3(euler.X + 90, euler.Y + 180, euler.Z - 90);
-                break;
-        }
+            Direction.North => euler with { Z = euler.Z + 90 },
+            Direction.East => new Vector3(euler.X, euler.Y + 90, euler.Z + 90),
+            Direction.South => new Vector3(euler.X, euler.Y + 180, euler.Z - 90),
+            Direction.West => new Vector3(euler.X, euler.Y - 90, euler.Z - 90),
+            Direction.Above => new Vector3(euler.X - 90, euler.Y, euler.Z + 90),
+            Direction.Below => new Vector3(euler.X + 90, euler.Y + 180, euler.Z - 90),
+            _ => euler,
+        };
 
-        return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DegreesToRadians, euler.X * MathS.DegreesToRadians, euler.Z * MathS.DegreesToRadians);
+        return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DEGREES_TO_RADIANS, euler.X * MathS.DEGREES_TO_RADIANS, euler.Z * MathS.DEGREES_TO_RADIANS);
     }
 }

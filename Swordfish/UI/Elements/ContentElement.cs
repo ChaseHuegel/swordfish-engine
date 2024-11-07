@@ -8,11 +8,11 @@ public abstract class ContentElement : Element, IContentElement
 {
     public virtual ContentSeparator ContentSeparator { get; set; }
 
-    public LockedObservableCollection<IElement> Content { get; } = new();
+    public LockedObservableCollection<IElement> Content { get; } = [];
 
     public bool AutoScroll { get; set; }
 
-    public ContentElement() : base()
+    protected ContentElement()
     {
         Content.CollectionChanged += OnCollectionChanged;
     }
@@ -32,16 +32,18 @@ public abstract class ContentElement : Element, IContentElement
             }
         }
 
-        if (e.NewItems != null)
+        if (e.NewItems == null)
         {
-            foreach (IElement element in e.NewItems)
+            return;
+        }
+
+        foreach (IElement element in e.NewItems)
+        {
+            element.Parent = this;
+            
+            if (element is IInternalElement internalElement)
             {
-                element.Parent = this;
-                
-                if (element is IInternalElement internalElement)
-                {
-                    internalElement.SetUIContext(UIContext);
-                }
+                internalElement.SetUIContext(UIContext);
             }
         }
     }
@@ -71,8 +73,6 @@ public abstract class ContentElement : Element, IContentElement
                 break;
             case ContentSeparator.SPACER:
                 ImGui.Spacing();
-                break;
-            default:
                 break;
         }
     }

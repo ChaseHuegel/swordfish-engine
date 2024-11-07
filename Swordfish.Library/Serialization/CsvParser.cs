@@ -2,14 +2,15 @@
 
 namespace Swordfish.Library.Serialization;
 
+// ReSharper disable once UnusedType.Global
 public class CsvParser : IParser
 {
     public List<byte[]> Parse(byte[] data)
     {
         var dataPackets = new List<byte[]>();
 
-        int offset = 0;
-        for (int i = 0; i < data.Length; i++)
+        var offset = 0;
+        for (var i = 0; i < data.Length; i++)
         {
             if (data[i] == ',')
             {

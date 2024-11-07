@@ -1,16 +1,9 @@
-namespace Swordfish.Library.Types.Shapes
+namespace Swordfish.Library.Types.Shapes;
+
+public struct Cylinder(in float height, in float radius)
 {
-    public struct Cylinder
-    {
-        public float Height;
-        public float Radius;
+    public float Height = height;
+    public float Radius = radius;
 
-        public Cylinder(float height, float radius)
-        {
-            Height = height;
-            Radius = radius;
-        }
-
-        public static implicit operator Shape(Cylinder x) => new(x);
-    }
+    public static implicit operator Shape(Cylinder x) => new(x);
 }

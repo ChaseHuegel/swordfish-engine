@@ -1,53 +1,62 @@
 using Swordfish.Library.Collections;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
 
 namespace Swordfish.Input;
 
 public class ShortcutService : IShortcutService
 {
-    private readonly IInputService InputService;
-    private readonly LockedList<Shortcut> Shortcuts;
+    private readonly IInputService _inputService;
+    private readonly LockedList<Shortcut> _shortcuts;
 
     public ShortcutService(IInputService inputService)
     {
-        InputService = inputService;
-        Shortcuts = new LockedList<Shortcut>();
+        _inputService = inputService;
+        _shortcuts = [];
 
-        InputService.KeyPressed += OnKeyPressed;
+        _inputService.KeyPressed += OnKeyPressed;
     }
 
     public bool RegisterShortcut(Shortcut shortcut)
     {
-        if (!Shortcuts.Any(x => x.Name == shortcut.Name))
+        if (_shortcuts.Any(x => x.Name == shortcut.Name))
         {
-            Shortcuts.Add(shortcut);
-            return true;
+            return false;
         }
 
-        return false;
+        _shortcuts.Add(shortcut);
+        return true;
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
     {
-        ShortcutModifiers modifiers = ShortcutModifiers.NONE;
+        var modifiers = ShortcutModifiers.None;
 
-        if (InputService.IsKeyHeld(Key.CONTROL))
-            modifiers |= ShortcutModifiers.CONTROL;
+        if (_inputService.IsKeyHeld(Key.Control))
+        {
+            modifiers |= ShortcutModifiers.Control;
+        }
 
-        if (InputService.IsKeyHeld(Key.SHIFT))
-            modifiers |= ShortcutModifiers.SHIFT;
+        if (_inputService.IsKeyHeld(Key.Shift))
+        {
+            modifiers |= ShortcutModifiers.Shift;
+        }
 
-        if (InputService.IsKeyHeld(Key.ALT))
-            modifiers |= ShortcutModifiers.ALT;
+        if (_inputService.IsKeyHeld(Key.Alt))
+        {
+            modifiers |= ShortcutModifiers.Alt;
+        }
 
-        foreach (Shortcut shortcut in Shortcuts)
+        foreach (Shortcut shortcut in _shortcuts)
         {
             if (shortcut.IsEnabled != null && !shortcut.IsEnabled.Invoke())
+            {
                 continue;
+            }
 
-            if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.NONE || modifiers == shortcut.Modifiers))
+            if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.None || modifiers == shortcut.Modifiers))
+            {
                 shortcut.Action?.Invoke();
+            }
         }
     }
 }

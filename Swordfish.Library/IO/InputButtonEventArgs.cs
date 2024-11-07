@@ -1,17 +1,10 @@
 
-using System;
+// ReSharper disable UnusedMember.Global
+namespace Swordfish.Library.IO;
 
-namespace Swordfish.Library.IO
+public readonly struct InputButtonEventArgs(InputButton button)
 {
-    public class InputButtonEventArgs : EventArgs
-    {
-        public static new readonly InputButtonEventArgs Empty = new InputButtonEventArgs(new InputButton());
+    public static readonly InputButtonEventArgs Empty = new(new InputButton());
 
-        public InputButton Button;
-
-        public InputButtonEventArgs(InputButton button)
-        {
-            Button = button;
-        }
-    }
+    public readonly InputButton Button = button;
 }

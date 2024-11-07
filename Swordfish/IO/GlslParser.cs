@@ -25,8 +25,8 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
 
         (string vertexSource, string fragmentSource) = ParseVertAndFrag(file);
 
-        var vertex = new ShaderSource(name + ".vertex", vertexSource, Graphics.ShaderType.Vertex);
-        var fragment = new ShaderSource(name + ".fragment", fragmentSource, Graphics.ShaderType.Fragment);
+        var vertex = new ShaderSource(name + ".vertex", vertexSource, ShaderType.Vertex);
+        var fragment = new ShaderSource(name + ".fragment", fragmentSource, ShaderType.Fragment);
 
         return new Shader(name, vertex, fragment);
     }
@@ -42,7 +42,9 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         ProcessSource(file, out string? versionDirective, out string? source, ref includedFiles);
 
         if (source == null)
+        {
             throw new FormatException($"The shader '{shaderName}' was empty or failed to parse.");
+        }
 
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
@@ -96,7 +98,7 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         attributesBuilder.AppendLine("in vec3 VertexNormal;");
         attributesBuilder.AppendLine("out vec4 FragColor;");
         attributesBuilder.AppendLine("#endif");
-        string attributes = attributesBuilder.ToString();
+        var attributes = attributesBuilder.ToString();
 
         //  The entry point for the shader
         const string mainMethod = @"
@@ -129,7 +131,9 @@ void main()
         //  Includes are added in reverse order so deeper
         //  dependencies are available to their dependents.
         for (int i = includedSources.Count - 1; i >= 0; i--)
+        {
             combinedSources.Insert(2, includedSources[i]);
+        }
 
         combinedSources.Insert(1, $"#define {SilkShaderType.VertexShader.GetDirective()}");
         string vertexSource = string.Join(Environment.NewLine, combinedSources);
@@ -154,7 +158,9 @@ void main()
             string? line = reader.ReadLine()?.Trim();
 
             if (line == null)
+            {
                 return;
+            }
 
             if (line.StartsWith("#version", StringComparison.OrdinalIgnoreCase))
             {
@@ -162,7 +168,7 @@ void main()
                 line = reader.ReadLine()?.Trim();
             }
 
-            bool inDefaultMethod = false;
+            var inDefaultMethod = false;
             int openBraces = 0, closeBraces = 0;
             while (line != null)
             {
@@ -199,10 +205,14 @@ void main()
                 }
 
                 if (line.Contains('{'))
+                {
                     openBraces++;
+                }
 
                 if (line.Contains('}'))
+                {
                     closeBraces++;
+                }
 
                 if (inDefaultMethod && openBraces > 0 && closeBraces > 0 && openBraces == closeBraces)
                 {

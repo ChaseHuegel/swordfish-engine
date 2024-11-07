@@ -19,7 +19,7 @@ namespace Swordfish.UI;
 
 internal sealed partial class ImGuiContext : IUIContext
 {
-    private GL GL;
+    private readonly GL _gl;
 
     private LockedList<IElement> Elements { get; } = new();
 
@@ -27,7 +27,7 @@ internal sealed partial class ImGuiContext : IUIContext
     public DataBinding<float> FontScale { get; } = new(1f);
     public DataBinding<float> FontDisplaySize { get; } = new();
 
-    public ThreadContext ThreadContext { get; private set; }
+    public ThreadContext ThreadContext { get; }
 
     private DataBinding<float> Scale { get; } = new(1f);
     private ImGuiController Controller { get; }
@@ -35,18 +35,20 @@ internal sealed partial class ImGuiContext : IUIContext
     private IInputContext InputContext { get; }
     private IFileParseService FileParseService { get; }
     private ILogger Logger { get; }
-    private VirtualFileSystem VFS { get; }
+    private VirtualFileSystem Vfs { get; }
 
     public ImGuiContext(IWindow window, IInputContext inputContext, GL gl, IFileParseService fileParseService, ILogger logger, VirtualFileSystem vfs)
     {
-        GL = gl;
+        _gl = gl;
         Window = window;
         InputContext = inputContext;
         FileParseService = fileParseService;
         Logger = logger;
-        VFS = vfs;
+        Vfs = vfs;
 
-        Controller = new ImGuiController(GL, Window, InputContext, ConfigureImGuiIO);
+        ThreadContext = ThreadContext.FromCurrentThread();
+        
+        Controller = new ImGuiController(_gl, Window, InputContext, ConfigureImGuiIO);
         Controller.Update(0f);
 
         OnFontScaleChanged(this, new DataChangedEventArgs<float>(1f, FontScale.Get()));
@@ -61,7 +63,7 @@ internal sealed partial class ImGuiContext : IUIContext
 
     public void Initialize()
     {
-        ThreadContext = ThreadContext.FromCurrentThread();
+        ThreadContext.SwitchToCurrentThread();
 
         Window.Closing += Cleanup;
         Window.Render += Render;
@@ -84,29 +86,29 @@ internal sealed partial class ImGuiContext : IUIContext
 
     private void Cleanup()
     {
-        Controller?.Dispose();
+        Controller.Dispose();
     }
 
     private void Render(double delta)
     {
-        Controller?.Update((float)delta);
+        Controller.Update((float)delta);
 
         foreach (IElement element in Elements.ToArray())
         {
             element.Render();
         }
 
-        Controller?.Render();
+        Controller.Render();
 
         ThreadContext.ProcessMessageQueue();
     }
 
-    private List<Font> LoadFontsFromDisk()
+    private void LoadFontsFromDisk()
     {
-        List<Font> fonts = new();
+        List<Font> fonts = [];
         Dictionary<string, PathInfo> fontFiles = new();
 
-        PathInfo[] files = VFS.GetFiles(AssetPaths.Fonts, SearchOption.AllDirectories);
+        PathInfo[] files = Vfs.GetFiles(AssetPaths.Fonts, SearchOption.AllDirectories);
 
         PathInfo[] configFiles = files.Where(file => file.GetExtension() == ".toml").ToArray();
 
@@ -126,7 +128,7 @@ internal sealed partial class ImGuiContext : IUIContext
         {
             string fontName = configFile.GetFileNameWithoutExtension();
 
-            //  Check there is an matching font file for this config
+            //  Check there is a matching font file for this config
             if (!fontFiles.TryGetValue(fontName, out PathInfo fontFile))
             {
                 continue;
@@ -168,10 +170,9 @@ internal sealed partial class ImGuiContext : IUIContext
         }
 
         Logger.LogInformation("Loaded {count} fonts", fonts.Count);
-        return fonts;
     }
 
-    public static unsafe ImFontPtr LoadFont(PathInfo fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
+    private static unsafe void LoadFont(PathInfo fontFile, float fontSize, bool mergeMode, (ushort?, ushort?) charRange)
     {
         ImFontConfigPtr config = ImGuiNative.ImFontConfig_ImFontConfig();
 
@@ -190,17 +191,16 @@ internal sealed partial class ImGuiContext : IUIContext
             charRangeHandle = GCHandle.Alloc(new ushort[] {
                 charRange.Item1.Value,
                 charRange.Item2.Value,
-                0
+                0,
             }, GCHandleType.Pinned);
 
             charRangePtr = charRangeHandle.AddrOfPinnedObject();
         }
 
 
-        ImFontPtr ptr;
         try
         {
-            ptr = ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.Value, fontSize, config, charRangePtr);
+            ImGui.GetIO().Fonts.AddFontFromFileTTF(fontFile.Value, fontSize, config, charRangePtr);
         }
         finally
         {
@@ -211,8 +211,6 @@ internal sealed partial class ImGuiContext : IUIContext
                 charRangeHandle.Free();
             }
         }
-
-        return ptr;
     }
 
 }

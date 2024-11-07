@@ -1,14 +1,8 @@
-namespace Swordfish.Library.Types.Shapes
+namespace Swordfish.Library.Types.Shapes;
+
+public struct Circle(in float radius)
 {
-    public struct Circle
-    {
-        public float Radius;
+    public float Radius = radius;
 
-        public Circle(float radius)
-        {
-            Radius = radius;
-        }
-
-        public static implicit operator Shape(Circle x) => new(x);
-    }
+    public static implicit operator Shape(Circle x) => new(x);
 }

@@ -1,58 +1,58 @@
 using System;
 using System.Linq;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.Diagnostics
+namespace Swordfish.Library.Diagnostics;
+
+public class Sampler(in int length = 60)
 {
-    public class Sampler
-    {
-        public int Length => SampleCount;
+    public int Length { get; private set; }
 
-        public double Average {
-            get {
-                lock (Lock)
-                {
-                    return Total / SampleCount;
-                }
-            }
-        }
-
-        private readonly object Lock = new object();
-        private readonly double[] Samples;
-
-        private int SampleCount;
-        private int CurrentIndex;
-        private double Total;
-
-        public Sampler(int length = 60)
-        {
-            Samples = new double[length];
-        }
-
-        public void Record(double value)
-        {
-            lock (Lock)
+    public double Average {
+        get {
+            lock (_lock)
             {
-                Total -= Samples[CurrentIndex];
-                Total += value;
-
-                Samples[CurrentIndex] = value;
-
-                CurrentIndex++;
-                if (CurrentIndex >= Samples.Length)
-                    CurrentIndex = 0;
-
-                if (SampleCount < Samples.Length)
-                    SampleCount++;
+                return _total / Length;
             }
         }
+    }
 
-        public Sample GetSnapshot() {
-            lock (Lock) {
-                double[] sortedSamples = Samples[..SampleCount].OrderBy(d => d).ToArray();
-                double median = sortedSamples[Math.Clamp((SampleCount - 1) / 2, 0, SampleCount)];
+    private readonly object _lock = new();
+    private readonly double[] _samples = new double[length];
 
-                return new Sample(Average, median, sortedSamples[SampleCount - 1], sortedSamples[0]);
+    private int _currentIndex;
+    private double _total;
+
+    public void Record(double value)
+    {
+        lock (_lock)
+        {
+            _total -= _samples[_currentIndex];
+            _total += value;
+
+            _samples[_currentIndex] = value;
+
+            _currentIndex++;
+            if (_currentIndex >= _samples.Length)
+            {
+                _currentIndex = 0;
             }
+
+            if (Length < _samples.Length)
+            {
+                Length++;
+            }
+        }
+    }
+
+    public Sample GetSnapshot()
+    {
+        lock (_lock) 
+        {
+            double[] sortedSamples = _samples[..Length].OrderBy(d => d).ToArray();
+            double median = sortedSamples[Math.Clamp((Length - 1) / 2, 0, Length)];
+
+            return new Sample(Average, median, sortedSamples[Length - 1], sortedSamples[0]);
         }
     }
 }

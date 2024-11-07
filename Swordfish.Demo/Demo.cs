@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using LibNoise.Primitive;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -18,72 +19,73 @@ using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
+// ReSharper disable UnusedMember.Local
 
 namespace Swordfish.Demo;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class Demo : IEntryPoint, IAutoActivate
 {
-    private static readonly uint[] Triangles =
-    {
+    private static readonly uint[] _triangles =
+    [
         3, 1, 0,
-        3, 2, 1
-    };
+        3, 2, 1,
+    ];
 
-    private static readonly Vector3[] Vertices =
-    {
-        new Vector3(0.5f,  0.5f, 0.0f),
-        new Vector3(0.5f, -0.5f, 0.0f),
-        new Vector3(-0.5f, -0.5f, 0.0f),
-        new Vector3(-0.5f,  0.5f, 0.0f)
-    };
+    private static readonly Vector3[] _vertices =
+    [
+        new(0.5f,  0.5f, 0.0f),
+        new(0.5f, -0.5f, 0.0f),
+        new(-0.5f, -0.5f, 0.0f),
+        new(-0.5f,  0.5f, 0.0f),
+    ];
 
-    private static readonly Vector4[] Colors =
-    {
+    private static readonly Vector4[] _colors =
+    [
         Vector4.One,
         Vector4.One,
         Vector4.One,
-        Vector4.One
-    };
+        Vector4.One,
+    ];
 
-    private static readonly Vector3[] UV =
-    {
-        new Vector3(1f, 0f, 0f),
-        new Vector3(1f, 1f, 0f),
-        new Vector3(0f, 1f, 0f),
-        new Vector3(0f, 0f, 0f)
-    };
+    private static readonly Vector3[] _uv =
+    [
+        new(1f, 0f, 0f),
+        new(1f, 1f, 0f),
+        new(0f, 1f, 0f),
+        new(0f, 0f, 0f),
+    ];
 
-    private static readonly Vector3[] Normals =
-    {
-        new Vector3(1f),
-        new Vector3(1f),
-        new Vector3(1f),
-        new Vector3(1f)
-    };
+    private static readonly Vector3[] _normals =
+    [
+        new(1f),
+        new(1f),
+        new(1f),
+        new(1f),
+    ];
 
-    private readonly IECSContext ECSContext;
-    private readonly IRenderContext RenderContext;
-    private readonly IWindowContext WindowContext;
+    private readonly IECSContext _ecsContext;
+    private readonly IRenderContext _renderContext;
+    private readonly IWindowContext _windowContext;
     private readonly IFileParseService _fileParseService;
-    private readonly IPhysics Physics;
-    private readonly IInputService InputService;
-    private readonly TextElement DebugText;
-    private readonly ILogger Logger;
-    private readonly IUIContext UIContext;
+    private readonly IPhysics _physics;
+    private readonly IInputService _inputService;
+    private readonly TextElement _debugText;
+    private readonly ILogger _logger;
 
     public Demo(IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger, IUIContext uiContext)
     {
         _fileParseService = fileParseService;
-        ECSContext = ecsContext;
-        RenderContext = renderContext;
-        WindowContext = windowContext;
-        Physics = physics;
-        InputService = inputService;
-        Logger = logger;
-        UIContext = uiContext;
+        _ecsContext = ecsContext;
+        _renderContext = renderContext;
+        _windowContext = windowContext;
+        _physics = physics;
+        _inputService = inputService;
+        _logger = logger;
 
-        DebugText = new TextElement("");
-        CanvasElement myCanvas = new(UIContext, "Demo Debug Canvas")
+        _debugText = new TextElement("");
+        // ReSharper disable once UnusedVariable
+        CanvasElement myCanvas = new(uiContext, "Demo Debug Canvas")
         {
             Constraints = new RectConstraints
             {
@@ -91,68 +93,67 @@ public class Demo : IEntryPoint, IAutoActivate
                 X = new RelativeConstraint(0.2f),
                 Y = new RelativeConstraint(0.1f),
                 Width = new RelativeConstraint(0.1f),
-                Height = new RelativeConstraint(0.1f)
+                Height = new RelativeConstraint(0.1f),
             },
             Content = {
                 new PanelElement("Demo Debug Panel")
                 {
                     Constraints = new RectConstraints
                     {
-                        Height = new FillConstraint()
+                        Height = new FillConstraint(),
                     },
                     Tooltip = new Tooltip
                     {
                         Help = true,
-                        Text = "This is a panel for debugging in the demo."
+                        Text = "This is a panel for debugging in the demo.",
                     },
                     Content = {
-                        DebugText,
-                    }
-                }
-            }
+                        _debugText,
+                    },
+                },
+            },
         };
 
-        inputService.Clicked += OnClick;
         inputService.Scrolled += OnScroll;
-        Physics.FixedUpdate += OnFixedUpdate;
-        _positionGizmo = new PositionGizmo(lineRenderer, RenderContext.Camera.Get());
-        _orientationGizmo = new OrientationGizmo(lineRenderer, RenderContext.Camera.Get());
-        _scaleGizmo = new ScaleGizmo(lineRenderer, RenderContext.Camera.Get());
+        _physics.FixedUpdate += OnFixedUpdate;
+        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
+        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
+        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
     }
 
-    private PositionGizmo _positionGizmo;
-    private OrientationGizmo _orientationGizmo;
-    private ScaleGizmo _scaleGizmo;
+    private readonly PositionGizmo _positionGizmo;
+    private readonly OrientationGizmo _orientationGizmo;
+    private readonly ScaleGizmo _scaleGizmo;
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
-        Camera camera = RenderContext.Camera.Get();
-        Vector2 cursorPos = InputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 1000);
+        Camera camera = _renderContext.Camera.Get();
+        Vector2 cursorPos = _inputService.CursorPosition;
+        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
         {
-            DebugText.Text = "";
+            _debugText.Text = "";
             return;
         }
 
-        DebugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
+        _debugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
 
-        if (!InputService.IsMouseHeld(MouseButton.LEFT))
+        if (!_inputService.IsMouseHeld(MouseButton.Left))
         {
             return;
         }
 
-        ECSContext.World.DataStore.Query<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
+        _ecsContext.World.DataStore.Query<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
         void UpdateTransform(float delta, DataStore store, int entity, ref TransformComponent transform)
         {
             float scroll = _scrollBuffer;
             transform.Position = raycast.Point;
             if (scroll != 0)
             {
-                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DegreesToRadians, 0, 0));
-                _scrollBuffer -= scroll;
+                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DEGREES_TO_RADIANS, 0, 0));
+                Interlocked.Exchange(ref _scrollBuffer, _scrollBuffer - scroll);
             }
 
             _positionGizmo.Render(transform);
@@ -160,7 +161,7 @@ public class Demo : IEntryPoint, IAutoActivate
             _scaleGizmo.Render(transform);
         }
 
-        ECSContext.World.DataStore.Query<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
+        _ecsContext.World.DataStore.Query<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
         void UpdatePhysics(float delta, DataStore store, int entity, ref PhysicsComponent physics)
         {
             physics.Velocity = Vector3.Zero;
@@ -168,38 +169,20 @@ public class Demo : IEntryPoint, IAutoActivate
         }
     }
 
-    private void OnClick(object? sender, ClickedEventArgs e)
-    {
-        if (e.MouseButton != MouseButton.LEFT)
-        {
-            return;
-        }
-
-        Camera camera = RenderContext.Camera.Get();
-        Vector2 cursorPos = InputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 1000);
-
-        if (!raycast.Hit)
-        {
-            return;
-        }
-    }
-
-    private volatile float _scrollBuffer = 0f;
+    private volatile float _scrollBuffer;
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
-        Camera camera = RenderContext.Camera.Get();
-        Vector2 cursorPos = InputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)WindowContext.Resolution.X, (int)WindowContext.Resolution.Y);
-        RaycastResult raycast = Physics.Raycast(ray * 1000);
+        Camera camera = _renderContext.Camera.Get();
+        Vector2 cursorPos = _inputService.CursorPosition;
+        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
         {
             return;
         }
 
-        if (!InputService.IsMouseHeld(MouseButton.LEFT))
+        if (!_inputService.IsMouseHeld(MouseButton.Left))
         {
             return;
         }
@@ -210,7 +193,7 @@ public class Demo : IEntryPoint, IAutoActivate
             return;
         }
 
-        _scrollBuffer += e.Delta;
+        Interlocked.Exchange(ref _scrollBuffer, _scrollBuffer + e.Delta);
     }
 
     public void Run()
@@ -225,12 +208,12 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateDonutDemo();
         CreatePhysicsTest();
 
-        RenderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
-        RenderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
+        _renderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
+        _renderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
 
         foreach (string line in Benchmark.CollectOutput())
         {
-            Logger.LogInformation("[Benchmark] {line}", line);
+            _logger.LogInformation("[Benchmark] {line}", line);
         }
     }
 
@@ -243,9 +226,9 @@ public class Demo : IEntryPoint, IAutoActivate
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateStressTest), "_CreateBrickGrid"))
         {
             const int size = 200;
-            for (int x = 0; x < size; x++)
-            for (int y = 0; y < size; y++)
-            for (int z = 0; z < size; z++)
+            for (var x = 0; x < size; x++)
+            for (var y = 0; y < size; y++)
+            for (var z = 0; z < size; z++)
             {
                 grid.Set(x, y, z, solid);
             }
@@ -266,39 +249,43 @@ public class Demo : IEntryPoint, IAutoActivate
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
         {
-            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
-            for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
-            for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            for (var nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
-                if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
-                    BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
             }
 
-            for (int x = 0; x < gridToBuild.DimensionSize; x++)
-            for (int y = 0; y < gridToBuild.DimensionSize; y++)
-            for (int z = 0; z < gridToBuild.DimensionSize; z++)
+            for (var x = 0; x < gridToBuild.DimensionSize; x++)
+            for (var y = 0; y < gridToBuild.DimensionSize; y++)
+            for (var z = 0; z < gridToBuild.DimensionSize; z++)
             {
-                var brick = gridToBuild.Bricks[x, y, z];
-                var quaternion = brick.GetQuaternion();
-                if (!brick.Equals(empty) &&
-                    (gridToBuild.Get(x + 1, y, z).Equals(empty)
-                    || gridToBuild.Get(x - 1, y, z).Equals(empty)
-                    || gridToBuild.Get(x, y + 1, z).Equals(empty)
-                    || gridToBuild.Get(x, y - 1, z).Equals(empty)
-                    || gridToBuild.Get(x, y, z + 1).Equals(empty)
-                    || gridToBuild.Get(x, y, z - 1).Equals(empty))
-                )
+                Brick brick = gridToBuild.Bricks[x, y, z];
+                Quaternion quaternion = brick.GetQuaternion();
+                if (brick.Equals(empty) ||
+                    (!gridToBuild.Get(x + 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x - 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x, y + 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y - 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y, z + 1).Equals(empty)
+                     && !gridToBuild.Get(x, y, z - 1).Equals(empty)))
                 {
-                    Mesh brickMesh = brick.ID == 1 ? cube : slope;
-                    colors.AddRange(brickMesh.Colors);
-                    normals.AddRange(brickMesh.Normals);
-                    uv.AddRange(brickMesh.UV);
+                    continue;
+                }
 
-                    foreach (uint tri in brickMesh.Triangles)
-                        triangles.Add(tri + (uint)vertices.Count);
+                Mesh brickMesh = brick.ID == 1 ? cube : slope;
+                colors.AddRange(brickMesh.Colors);
+                normals.AddRange(brickMesh.Normals);
+                uv.AddRange(brickMesh.Uv);
 
-                    foreach (Vector3 vertex in brickMesh.Vertices)
-                        vertices.Add(Vector3.Transform(vertex - new Vector3(0.5f), quaternion) + new Vector3(0.5f) + new Vector3(x, y, z) + offset);
+                foreach (uint tri in brickMesh.Triangles)
+                {
+                    triangles.Add(tri + (uint)vertices.Count);
+                }
+
+                foreach (Vector3 vertex in brickMesh.Vertices)
+                {
+                    vertices.Add(Vector3.Transform(vertex - new Vector3(0.5f), quaternion) + new Vector3(0.5f) + new Vector3(x, y, z) + offset);
                 }
             }
         }
@@ -310,12 +297,12 @@ public class Demo : IEntryPoint, IAutoActivate
         var material = new Material(shader, texture);
 
         var renderOptions = new RenderOptions {
-            DoubleFaced = false
+            DoubleFaced = false,
         };
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        DataStore store = ECSContext.World.DataStore;
+        DataStore store = _ecsContext.World.DataStore;
         int entity = store.Alloc(new IdentifierComponent("Brick Entity", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 300), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
@@ -324,9 +311,8 @@ public class Demo : IEntryPoint, IAutoActivate
     private void CreateShipTest()
     {
         var empty = new Brick(0);
-        var solid = new Brick(1);
 
-        BrickGrid grid = new(16);
+        BrickGrid grid;
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
             grid = _fileParseService.Parse<BrickGrid>(AssetPaths.Root.At("saves").At("mainMenuVoxObj.svo"));
@@ -349,51 +335,57 @@ public class Demo : IEntryPoint, IAutoActivate
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
         {
-            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
-            for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
-            for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            for (var nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
             {
-                if (gridToBuild.NeighborGrids[nX, nY, nZ] != null)
-                    BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+                BuildBrickGridMesh(gridToBuild.NeighborGrids[nX, nY, nZ], new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
             }
 
-            for (int x = 0; x < gridToBuild.DimensionSize; x++)
-            for (int y = 0; y < gridToBuild.DimensionSize; y++)
-            for (int z = 0; z < gridToBuild.DimensionSize; z++)
+            for (var x = 0; x < gridToBuild.DimensionSize; x++)
+            for (var y = 0; y < gridToBuild.DimensionSize; y++)
+            for (var z = 0; z < gridToBuild.DimensionSize; z++)
             {
-                var brick = gridToBuild.Bricks[x, y, z];
-                if (!brick.Equals(empty) &&
-                    (gridToBuild.Get(x + 1, y, z).Equals(empty)
-                    || gridToBuild.Get(x - 1, y, z).Equals(empty)
-                    || gridToBuild.Get(x, y + 1, z).Equals(empty)
-                    || gridToBuild.Get(x, y - 1, z).Equals(empty)
-                    || gridToBuild.Get(x, y, z + 1).Equals(empty)
-                    || gridToBuild.Get(x, y, z - 1).Equals(empty))
-                )
+                Brick brick = gridToBuild.Bricks[x, y, z];
+                if (brick.Equals(empty) ||
+                    (!gridToBuild.Get(x + 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x - 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x, y + 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y - 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y, z + 1).Equals(empty)
+                     && !gridToBuild.Get(x, y, z - 1).Equals(empty)))
                 {
-                    Mesh brickMesh = MeshFromBrickID(brick.ID);
-                    colors.AddRange(brickMesh.Colors);
-                    uv.AddRange(brickMesh.UV);
+                    continue;
+                }
 
-                    Mesh MeshFromBrickID(int id)
+                Mesh brickMesh = MeshFromBrickID(brick.ID);
+                colors.AddRange(brickMesh.Colors);
+                uv.AddRange(brickMesh.Uv);
+
+                Mesh MeshFromBrickID(int id)
+                {
+                    return id switch
                     {
-                        return id switch
-                        {
-                            2 => slope,
-                            3 => thruster,
-                            4 => thrusterBlock,
-                            _ => cube,
-                        };
-                    }
+                        2 => slope,
+                        3 => thruster,
+                        4 => thrusterBlock,
+                        _ => cube,
+                    };
+                }
 
-                    foreach (uint tri in brickMesh.Triangles)
-                        triangles.Add(tri + (uint)vertices.Count);
+                foreach (uint tri in brickMesh.Triangles)
+                {
+                    triangles.Add(tri + (uint)vertices.Count);
+                }
 
-                    foreach (Vector3 normal in brickMesh.Normals)
-                        normals.Add(Vector3.Transform(normal, brick.GetQuaternion()));
+                foreach (Vector3 normal in brickMesh.Normals)
+                {
+                    normals.Add(Vector3.Transform(normal, brick.GetQuaternion()));
+                }
 
-                    foreach (Vector3 vertex in brickMesh.Vertices)
-                        vertices.Add(Vector3.Transform(vertex, brick.GetQuaternion()) + new Vector3(x, y, z) + offset);
+                foreach (Vector3 vertex in brickMesh.Vertices)
+                {
+                    vertices.Add(Vector3.Transform(vertex, brick.GetQuaternion()) + new Vector3(x, y, z) + offset);
                 }
             }
         }
@@ -406,12 +398,12 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var renderOptions = new RenderOptions {
             DoubleFaced = false,
-            Wireframe = false
+            Wireframe = false,
         };
 
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
-        DataStore store = ECSContext.World.DataStore;
+        DataStore store = _ecsContext.World.DataStore;
         int entity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 20), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
@@ -419,7 +411,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void CreateVoxelTest()
     {
-        BrickGrid grid = new(16);
+        BrickGrid grid;
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_LoadBrickGrid"))
         {
             grid = _fileParseService.Parse<BrickGrid>(AssetPaths.Root.At("saves").At("mainMenuVoxObj.svo"));
@@ -438,9 +430,9 @@ public class Demo : IEntryPoint, IAutoActivate
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         Vector3[] brickLocations = PointsBrickGrid(grid);
-        Quaternion[] brickRotations = new Quaternion[brickLocations.Length];
-        Shape[] brickShapes = new Shape[brickLocations.Length];
-        for (int i = 0; i < brickLocations.Length; i++)
+        var brickRotations = new Quaternion[brickLocations.Length];
+        var brickShapes = new Shape[brickLocations.Length];
+        for (var i = 0; i < brickLocations.Length; i++)
         {
             brickShapes[i] = new Box3(Vector3.One);
             brickRotations[i] = Quaternion.Identity;
@@ -448,16 +440,16 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var transform = new TransformComponent(new Vector3(0, 200, 0), Quaternion.Identity);
 
-        DataStore store = ECSContext.World.DataStore;
+        DataStore store = _ecsContext.World.DataStore;
         int shipEntity = store.Alloc(new IdentifierComponent("Ship Entity", "bricks"));
         store.AddOrUpdate(shipEntity, transform);
         store.AddOrUpdate(shipEntity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(shipEntity, new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Continuous));
+        store.AddOrUpdate(shipEntity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         store.AddOrUpdate(shipEntity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
 
         material = new Material(shader, textureArray)
         {
-            Transparent = true
+            Transparent = true,
         };
         mesh = MeshBrickGrid(grid, textureArray, true);
         renderer = new MeshRenderer(mesh, material, renderOptions);
@@ -472,7 +464,7 @@ public class Demo : IEntryPoint, IAutoActivate
     {
         var solid = new Brick(1)
         {
-            Name = "rock"
+            Name = "rock",
         };
 
         var simplex = new SimplexPerlin();
@@ -481,16 +473,19 @@ public class Demo : IEntryPoint, IAutoActivate
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateTerrainTest), "_CreateBrickGrid"))
         {
             const int size = 64;
-            for (int x = 0; x < size; x++)
-                for (int z = 0; z < size; z++)
+            for (var x = 0; x < size; x++)
+                for (var z = 0; z < size; z++)
                 {
                     const float scale = 0.05f;
-                    var value = simplex.GetValue(x * scale, z * scale) + 1f;
+                    float value = simplex.GetValue(x * scale, z * scale) + 1f;
                     int depth = (int)(value * 3) + 40;
-                    for (int y = 0; y < depth; y++)
+                    for (var y = 0; y < depth; y++)
                     {
                         if (y < 35 && simplex.GetValue(x * scale, y * scale, z * scale) < -0.5f)
+                        {
                             continue;
+                        }
+
                         grid.Set(x, y, z, solid);
                     }
                 }
@@ -503,29 +498,29 @@ public class Demo : IEntryPoint, IAutoActivate
         var renderOptions = new RenderOptions
         {
             DoubleFaced = false,
-            Wireframe = false
+            Wireframe = false,
         };
         Mesh mesh = MeshBrickGrid(grid, textureArray);
         var renderer = new MeshRenderer(mesh, material, renderOptions);
 
         Vector3[] brickLocations = PointsBrickGrid(grid);
-        Quaternion[] brickRotations = new Quaternion[brickLocations.Length];
-        Shape[] brickShapes = new Shape[brickLocations.Length];
-        for (int i = 0; i < brickLocations.Length; i++)
+        var brickRotations = new Quaternion[brickLocations.Length];
+        var brickShapes = new Shape[brickLocations.Length];
+        for (var i = 0; i < brickLocations.Length; i++)
         {
             brickShapes[i] = new Box3(Vector3.One);
             brickRotations[i] = Quaternion.Identity;
         }
 
-        DataStore store = ECSContext.World.DataStore;
+        DataStore store = _ecsContext.World.DataStore;
         int entity = store.Alloc(new IdentifierComponent("Terrain", "bricks"));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0, 0, 0), Quaternion.Identity));
         store.AddOrUpdate(entity, new MeshRendererComponent(renderer));
-        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        store.AddOrUpdate(entity, new PhysicsComponent(Layers.NON_MOVING, BodyType.Static, CollisionDetection.Discrete));
         store.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
     }
 
-    private Vector3[] PointsBrickGrid(BrickGrid grid)
+    private static Vector3[] PointsBrickGrid(BrickGrid grid)
     {
         var empty = new Brick(0);
 
@@ -540,34 +535,40 @@ public class Demo : IEntryPoint, IAutoActivate
         void BuildBrickGridPoints(BrickGrid gridToBuild, Vector3 offset = default)
         {
             if (!builtGrids.Add(gridToBuild))
+            {
                 return;
+            }
 
-            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
-                for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
-                    for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
-                    {
-                        var neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
-                        if (neighbor != null)
-                            BuildBrickGridPoints(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
-                    }
+            for (var nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            {
+                BrickGrid? neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                if (neighbor == null)
+                {
+                    continue;
+                }
+                
+                BuildBrickGridPoints(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+            }
 
-            for (int x = 0; x < gridToBuild.DimensionSize; x++)
-                for (int y = 0; y < gridToBuild.DimensionSize; y++)
-                    for (int z = 0; z < gridToBuild.DimensionSize; z++)
-                    {
-                        var brick = gridToBuild.Bricks[x, y, z];
-                        if (!brick.Equals(empty) &&
-                            (gridToBuild.Get(x + 1, y, z).Equals(empty)
-                            || gridToBuild.Get(x - 1, y, z).Equals(empty)
-                            || gridToBuild.Get(x, y + 1, z).Equals(empty)
-                            || gridToBuild.Get(x, y - 1, z).Equals(empty)
-                            || gridToBuild.Get(x, y, z + 1).Equals(empty)
-                            || gridToBuild.Get(x, y, z - 1).Equals(empty))
-                        )
-                        {
-                            points.Add(new Vector3(x, y, z) + offset);
-                        }
-                    }
+            for (var x = 0; x < gridToBuild.DimensionSize; x++)
+            for (var y = 0; y < gridToBuild.DimensionSize; y++)
+            for (var z = 0; z < gridToBuild.DimensionSize; z++)
+            {
+                Brick brick = gridToBuild.Bricks[x, y, z];
+                if (!brick.Equals(empty) &&
+                    (gridToBuild.Get(x + 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x - 1, y, z).Equals(empty)
+                    || gridToBuild.Get(x, y + 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y - 1, z).Equals(empty)
+                    || gridToBuild.Get(x, y, z + 1).Equals(empty)
+                    || gridToBuild.Get(x, y, z - 1).Equals(empty))
+                )
+                {
+                    points.Add(new Vector3(x, y, z) + offset);
+                }
+            }
         }
 
         return [.. points];
@@ -577,7 +578,7 @@ public class Demo : IEntryPoint, IAutoActivate
     {
         var empty = new Brick(0);
 
-        var metalPanelTex = textureArray.IndexOf("metal_panel");
+        int metalPanelTex = textureArray.IndexOf("metal_panel");
 
         var triangles = new List<uint>();
         var vertices = new List<Vector3>();
@@ -590,7 +591,7 @@ public class Demo : IEntryPoint, IAutoActivate
         var thruster = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket.obj"));
         var thrusterBlock = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket_internal.obj"));
 
-        HashSet<BrickGrid> builtGrids = new();
+        HashSet<BrickGrid> builtGrids = [];
         using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridMesh)))
         {
             BuildBrickGridMesh(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z));
@@ -598,73 +599,85 @@ public class Demo : IEntryPoint, IAutoActivate
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
         {
-            if (builtGrids.Contains(gridToBuild))
+            if (!builtGrids.Add(gridToBuild))
+            {
                 return;
-            else
-                builtGrids.Add(gridToBuild);
+            }
 
-            for (int nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
-                for (int nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
-                    for (int nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            for (var nX = 0; nX < gridToBuild.NeighborGrids.GetLength(0); nX++)
+            for (var nY = 0; nY < gridToBuild.NeighborGrids.GetLength(1); nY++)
+            for (var nZ = 0; nZ < gridToBuild.NeighborGrids.GetLength(2); nZ++)
+            {
+                BrickGrid? neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
+                if (neighbor == null)
+                {
+                    continue;
+                }
+                
+                BuildBrickGridMesh(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
+            }
+
+            for (var x = 0; x < gridToBuild.DimensionSize; x++)
+            for (var y = 0; y < gridToBuild.DimensionSize; y++)
+            for (var z = 0; z < gridToBuild.DimensionSize; z++)
+            {
+                Brick brick = gridToBuild.Bricks[x, y, z];
+                if (brick.Equals(empty) ||
+                    (!gridToBuild.Get(x + 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x - 1, y, z).Equals(empty)
+                     && !gridToBuild.Get(x, y + 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y - 1, z).Equals(empty)
+                     && !gridToBuild.Get(x, y, z + 1).Equals(empty)
+                     && !gridToBuild.Get(x, y, z - 1).Equals(empty)))
+                {
+                    continue;
+                }
+
+                if (transparent && !brick.Name.Contains("window") && !brick.Name.Contains("porthole"))
+                {
+                    continue;
+                }
+
+                if (!transparent && (brick.Name.Contains("window") || brick.Name.Contains("porthole")))
+                {
+                    continue;
+                }
+
+                Mesh brickMesh = MeshFromBrickID(brick.ID);
+                colors.AddRange(brickMesh.Colors);
+
+                Mesh MeshFromBrickID(int id)
+                {
+                    return id switch
                     {
-                        var neighbor = gridToBuild.NeighborGrids[nX, nY, nZ];
-                        if (neighbor != null)
-                            BuildBrickGridMesh(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
-                    }
+                        2 => slope,
+                        3 => thruster,
+                        4 => thrusterBlock,
+                        _ => cube,
+                    };
+                }
 
-            for (int x = 0; x < gridToBuild.DimensionSize; x++)
-                for (int y = 0; y < gridToBuild.DimensionSize; y++)
-                    for (int z = 0; z < gridToBuild.DimensionSize; z++)
-                    {
-                        var brick = gridToBuild.Bricks[x, y, z];
-                        if (!brick.Equals(empty) &&
-                            (gridToBuild.Get(x + 1, y, z).Equals(empty)
-                            || gridToBuild.Get(x - 1, y, z).Equals(empty)
-                            || gridToBuild.Get(x, y + 1, z).Equals(empty)
-                            || gridToBuild.Get(x, y - 1, z).Equals(empty)
-                            || gridToBuild.Get(x, y, z + 1).Equals(empty)
-                            || gridToBuild.Get(x, y, z - 1).Equals(empty))
-                        )
-                        {
-                            if (transparent && !brick.Name.Contains("window") && !brick.Name.Contains("porthole"))
-                            {
-                                continue;
-                            }
-                            else if (!transparent && (brick.Name.Contains("window") || brick.Name.Contains("porthole")))
-                            {
-                                continue;
-                            }
+                foreach (Vector3 texCoord in brickMesh.Uv)
+                {
+                    int textureIndex = textureArray.IndexOf(brick.Name);
+                    uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : metalPanelTex });
+                }
 
-                            Mesh brickMesh = MeshFromBrickID(brick.ID);
-                            colors.AddRange(brickMesh.Colors);
+                foreach (uint tri in brickMesh.Triangles)
+                {
+                    triangles.Add(tri + (uint)vertices.Count);
+                }
 
-                            Mesh MeshFromBrickID(int id)
-                            {
-                                return id switch
-                                {
-                                    2 => slope,
-                                    3 => thruster,
-                                    4 => thrusterBlock,
-                                    _ => cube,
-                                };
-                            }
+                foreach (Vector3 normal in brickMesh.Normals)
+                {
+                    normals.Add(brickMesh != cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+                }
 
-                            foreach (Vector3 texCoord in brickMesh.UV)
-                            {
-                                int textureIndex = textureArray.IndexOf(brick.Name);
-                                uv.Add(new Vector3(texCoord.X, texCoord.Y, textureIndex >= 0 ? textureIndex : metalPanelTex));
-                            }
-
-                            foreach (uint tri in brickMesh.Triangles)
-                                triangles.Add(tri + (uint)vertices.Count);
-
-                            foreach (Vector3 normal in brickMesh.Normals)
-                                normals.Add(brickMesh != cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
-
-                            foreach (Vector3 vertex in brickMesh.Vertices)
-                                vertices.Add((brickMesh != cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
-                        }
-                    }
+                foreach (Vector3 vertex in brickMesh.Vertices)
+                {
+                    vertices.Add((brickMesh != cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                }
+            }
         }
 
         var mesh = new Mesh(triangles.ToArray(), vertices.ToArray(), colors.ToArray(), uv.ToArray(), normals.ToArray());
@@ -681,10 +694,10 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var renderOptions = new RenderOptions
         {
-            DoubleFaced = false
+            DoubleFaced = false,
         };
 
-        DataStore store = ECSContext.World.DataStore;
+        DataStore store = _ecsContext.World.DataStore;
         int entity = store.Alloc(new IdentifierComponent("Donut", null));
         store.AddOrUpdate(entity, new TransformComponent(new Vector3(0f, 10f, 0f), Quaternion.Identity, new Vector3(10f)));
         store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
@@ -708,25 +721,25 @@ public class Demo : IEntryPoint, IAutoActivate
         var melvinMaterial = new Material(shader, melvinTexture);
         var womanMaterial = new Material(shader, womanTexture);
 
-        var mesh = new Mesh(Triangles, Vertices, Colors, UV, Normals);
+        var mesh = new Mesh(_triangles, _vertices, _colors, _uv, _normals);
 
         var renderOptions = new RenderOptions
         {
-            DoubleFaced = true
+            DoubleFaced = true,
         };
 
         var random = new Randomizer();
 
-        int index = 0;
-        for (int x = 0; x < 20; x++)
+        var index = 0;
+        for (var x = 0; x < 20; x++)
         {
-            for (int y = 0; y < 20; y++)
+            for (var y = 0; y < 20; y++)
             {
-                for (int z = 0; z < 30; z++)
+                for (var z = 0; z < 30; z++)
                 {
-                    var material = random.Select(astronautMaterial, chortMaterial, hubertMaterial, haroldMaterial, melvinMaterial, womanMaterial);
+                    Material? material = random.Select(astronautMaterial, chortMaterial, hubertMaterial, haroldMaterial, melvinMaterial, womanMaterial);
 
-                    DataStore store = ECSContext.World.DataStore;
+                    DataStore store = _ecsContext.World.DataStore;
                     int entity = store.Alloc(new IdentifierComponent($"{material.Textures[0].Name}{index++}", null));
                     store.AddOrUpdate(entity, new TransformComponent(new Vector3(x - 10, y - 7, z + 30), Quaternion.Identity));
                     store.AddOrUpdate(entity, new MeshRendererComponent(new MeshRenderer(mesh, material, renderOptions)));
@@ -747,20 +760,20 @@ public class Demo : IEntryPoint, IAutoActivate
         var cubeTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("block").At("metal_panel.png"));
         var cubeMaterial = new Material(shader, cubeTexture);
 
-        Entity entity = ECSContext.World.NewEntity();
+        Entity entity = _ecsContext.World.NewEntity();
         entity.AddOrUpdate(new IdentifierComponent("Floor", null));
         entity.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity, new Vector3(160, 0, 160)));
         entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, floorMaterial, renderOptions)));
-        entity.AddOrUpdate(new PhysicsComponent(Layers.NonMoving, BodyType.Static, CollisionDetection.Discrete));
+        entity.AddOrUpdate(new PhysicsComponent(Layers.NON_MOVING, BodyType.Static, CollisionDetection.Discrete));
         entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
 
-        for (int i = 0; i < 1000; i++)
+        for (var i = 0; i < 1000; i++)
         {
-            entity = ECSContext.World.NewEntity();
-            entity.AddOrUpdate(new IdentifierComponent($"Phyics Body {i}", null));
+            entity = _ecsContext.World.NewEntity();
+            entity.AddOrUpdate(new IdentifierComponent($"Physics Body {i}", null));
             entity.AddOrUpdate(new TransformComponent(new Vector3(0, 200 + i * 2, 0), Quaternion.Identity));
             entity.AddOrUpdate(new MeshRendererComponent(new MeshRenderer(mesh, cubeMaterial, renderOptions)));
-            entity.AddOrUpdate(new PhysicsComponent(Layers.Moving, BodyType.Dynamic, CollisionDetection.Discrete));
+            entity.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Discrete));
             entity.AddOrUpdate(new ColliderComponent(new Box3(Vector3.One)));
         }
     }

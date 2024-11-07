@@ -1,35 +1,40 @@
-using System;
 using System.Collections.Generic;
 
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+// ReSharper disable once UnusedType.Global
+public sealed class BehaviorParallel : BehaviorNode, IBehaviorCompositor
 {
-    public sealed class BehaviorParallel : BehaviorNode, IBehaviorCompositor
+    public BehaviorParallel(BehaviorNode child) : base(child) { }
+
+    public BehaviorParallel(params BehaviorNode[] children) : base(children) { }
+
+    public BehaviorParallel(IEnumerable<BehaviorNode> children) : base(children) { }
+
+    public override BehaviorState Evaluate(object target, float delta)
     {
-        public BehaviorParallel(BehaviorNode child) : base(child) { }
+        var running = false;
+        var anySuccess = false;
 
-        public BehaviorParallel(params BehaviorNode[] children) : base(children) { }
-
-        public BehaviorParallel(IEnumerable<BehaviorNode> children) : base(children) { }
-
-        public override BehaviorState Evaluate(object target, float delta)
+        for (var i = 0; i < Children.Count; i++)
         {
-            bool running = false;
-            bool anySuccess = false;
+            BehaviorState state = Children[i].Evaluate(target, delta);
 
-            for (int i = 0; i < Children.Count; i++)
+            if (!anySuccess && state == BehaviorState.SUCCESS)
             {
-                BehaviorState state = Children[i].Evaluate(target, delta);
-
-                if (!anySuccess && state == BehaviorState.SUCCESS)
-                    anySuccess = true;
-                else if (!running && state == BehaviorState.RUNNING)
-                    running = true;
+                anySuccess = true;
             }
-
-            if (!anySuccess)
-                return BehaviorState.FAILED;
-
-            return running ? BehaviorState.RUNNING : BehaviorState.SUCCESS;
+            else if (!running && state == BehaviorState.RUNNING)
+            {
+                running = true;
+            }
         }
+
+        if (!anySuccess)
+        {
+            return BehaviorState.FAILED;
+        }
+
+        return running ? BehaviorState.RUNNING : BehaviorState.SUCCESS;
     }
 }

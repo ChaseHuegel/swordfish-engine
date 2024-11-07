@@ -9,11 +9,11 @@ public class Line : Handle
     public Vector3 End;
     public Vector4 Color;
 
-    private readonly ILineRenderer LineRenderer;
+    private readonly ILineRenderer _lineRenderer;
 
     internal Line(ILineRenderer lineRenderer, Vector3 start, Vector3 end, Vector4 color)
     {
-        LineRenderer = lineRenderer;
+        _lineRenderer = lineRenderer;
         Start = start;
         End = end;
         Color = color;
@@ -21,6 +21,6 @@ public class Line : Handle
 
     protected override void OnDisposed()
     {
-        LineRenderer.DeleteLine(this);
+        _lineRenderer.DeleteLine(this);
     }
 }

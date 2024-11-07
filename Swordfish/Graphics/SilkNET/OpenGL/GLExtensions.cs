@@ -31,7 +31,7 @@ internal static class GLExtensions
             ShaderType.Fragment => Silk.NET.OpenGL.ShaderType.FragmentShader,
             ShaderType.Compute => Silk.NET.OpenGL.ShaderType.ComputeShader,
             ShaderType.Geometry => Silk.NET.OpenGL.ShaderType.GeometryShader,
-            _ => throw new NotImplementedException()
+            _ => throw new NotImplementedException(),
         };
     }
 }

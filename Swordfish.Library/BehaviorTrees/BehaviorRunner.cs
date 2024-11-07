@@ -1,38 +1,44 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+// ReSharper disable once UnusedType.Global
+public sealed class BehaviorRunner : BehaviorNode
 {
-    public sealed class BehaviorRunner : BehaviorNode
+    private readonly IBehaviorJob[] _jobs;
+
+    public BehaviorRunner(params IBehaviorJob[] jobs)
     {
-        private readonly IBehaviorJob[] Jobs;
+        _jobs = jobs;
+    }
 
-        public BehaviorRunner(params IBehaviorJob[] jobs)
+    public override BehaviorState Evaluate(object target, float delta)
+    {
+        return Tick(delta);
+    }
+
+    public BehaviorState Tick(float delta)
+    {
+        var running = false;
+        var anySuccess = false;
+
+        for (var i = 0; i < _jobs.Length; i++)
         {
-            Jobs = jobs;
-        }
+            BehaviorState state = _jobs[i].Tick(delta);
 
-        public override BehaviorState Evaluate(object target, float delta)
-        {
-            return Tick(delta);
-        }
-
-        public BehaviorState Tick(float delta)
-        {
-            bool running = false;
-            bool anySuccess = false;
-
-            for (int i = 0; i < Jobs.Length; i++)
+            if (!anySuccess && state == BehaviorState.SUCCESS)
             {
-                BehaviorState state = Jobs[i].Tick(delta);
-
-                if (!anySuccess && state == BehaviorState.SUCCESS)
-                    anySuccess = true;
-                else if (!running && state == BehaviorState.RUNNING)
-                    running = true;
+                anySuccess = true;
             }
-
-            if (!anySuccess)
-                return BehaviorState.FAILED;
-
-            return running ? BehaviorState.RUNNING : BehaviorState.SUCCESS;
+            else if (!running && state == BehaviorState.RUNNING)
+            {
+                running = true;
+            }
         }
+
+        if (!anySuccess)
+        {
+            return BehaviorState.FAILED;
+        }
+
+        return running ? BehaviorState.RUNNING : BehaviorState.SUCCESS;
     }
 }

@@ -1,15 +1,9 @@
-namespace Swordfish.Library.IO
+// ReSharper disable UnusedMember.Global
+namespace Swordfish.Library.IO;
+
+public readonly struct InputDevice(int index, string name)
 {
-    public struct InputDevice
-    {
-        public int Index;
+    public readonly int Index = index;
 
-        public string Name;
-
-        public InputDevice(int index, string name)
-        {
-            Index = index;
-            Name = name;
-        }
-    }
+    public readonly string Name = name;
 }

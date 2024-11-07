@@ -1,28 +1,27 @@
 using Silk.NET.OpenGL;
-using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 internal sealed class BufferObject<TData> : GLHandle
     where TData : unmanaged
 {
-    private readonly GL GL;
+    private readonly GL _gl;
     public readonly int Length;
-    private readonly BufferTargetARB BufferType;
-    private readonly BufferUsageARB Usage;
+    private readonly BufferTargetARB _bufferType;
+    private readonly BufferUsageARB _usage;
 
     public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw)
     {
-        GL = gl;
+        _gl = gl;
         Length = data.Length;
-        BufferType = bufferType;
-        Usage = usage;
+        _bufferType = bufferType;
+        _usage = usage;
 
         Bind();
         fixed (void* dataPtr = data)
         {
             nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
-            GL.BufferData(BufferType, bufferSize, dataPtr, Usage);
+            _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
     }
 
@@ -32,27 +31,27 @@ internal sealed class BufferObject<TData> : GLHandle
         fixed (void* dataPtr = data)
         {
             nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
-            GL.BufferData(BufferType, bufferSize, dataPtr, Usage);
+            _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
     }
 
     protected override uint CreateHandle()
     {
-        return GL.GenBuffer();
+        return _gl.GenBuffer();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteBuffer(Handle);
+        _gl.DeleteBuffer(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.BindBuffer(BufferType, Handle);
+        _gl.BindBuffer(_bufferType, Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.BindBuffer(BufferType, 0);
+        _gl.BindBuffer(_bufferType, 0);
     }
 }

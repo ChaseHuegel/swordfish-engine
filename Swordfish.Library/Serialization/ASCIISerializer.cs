@@ -2,7 +2,8 @@
 
 namespace Swordfish.Library.Serialization;
 
-public class ASCIISerializer : ISerializer<string>
+// ReSharper disable once UnusedType.Global
+public class AsciiSerializer : ISerializer<string>
 {
     public byte[] Serialize(string value)
     {

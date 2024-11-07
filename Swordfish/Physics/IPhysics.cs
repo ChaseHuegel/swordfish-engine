@@ -1,6 +1,3 @@
-using System.Numerics;
-using Swordfish.ECS;
-
 namespace Swordfish.Physics;
 
 public interface IPhysics

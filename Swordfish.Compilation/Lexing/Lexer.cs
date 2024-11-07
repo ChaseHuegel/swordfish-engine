@@ -12,7 +12,7 @@ public class Lexer<T>(in List<TokenMatcher<T>> tokenMatchers)
     {
         var tokens = new List<Token<T>>();
 
-        int currentIndex = 0;
+        var currentIndex = 0;
         while (currentIndex < input.Length)
         {
             if (TryMatch(input, currentIndex, out Match<T> match))
@@ -31,7 +31,7 @@ public class Lexer<T>(in List<TokenMatcher<T>> tokenMatchers)
 
     private bool TryMatch(string input, int currentIndex, out Match<T> match)
     {
-        for (int i = 0; i < _tokenMatchers.Count; i++)
+        for (var i = 0; i < _tokenMatchers.Count; i++)
         {
             TokenMatcher<T> tokenMatcher = _tokenMatchers[i];
             match = tokenMatcher.Match(input, currentIndex);
@@ -42,15 +42,17 @@ public class Lexer<T>(in List<TokenMatcher<T>> tokenMatchers)
         }
 
         //  Collect the failing line and column
-        int lineCounter = 1;
-        int currentLineIndex = 0;
-        for (int i = 0; i < currentIndex; i++)
+        var lineCounter = 1;
+        var currentLineIndex = 0;
+        for (var i = 0; i < currentIndex; i++)
         {
-            if (input[i] == '\n')
+            if (input[i] != '\n')
             {
-                lineCounter++;
-                currentLineIndex = i;
+                continue;
             }
+            
+            lineCounter++;
+            currentLineIndex = i;
         }
 
         throw new FormatException($"Encountered unknown Token at ln ({lineCounter}), col ({currentIndex - currentLineIndex + 1}).");

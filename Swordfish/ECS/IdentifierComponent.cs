@@ -5,6 +5,7 @@ public struct IdentifierComponent : IDataComponent
     public string? Name;
     public string? Tag;
 
+    // ReSharper disable once UnusedMember.Global
     public IdentifierComponent(string? name)
     {
         Name = name;

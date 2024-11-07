@@ -17,7 +17,7 @@ public sealed class OrientationGizmo : IDisposable
         _camera = camera;
 
         _lines = new Line[90];
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i] = lineRenderer.CreateLine(alwaysOnTop: true);
         }
@@ -25,7 +25,7 @@ public sealed class OrientationGizmo : IDisposable
 
     public void Dispose()
     {
-        for (int i = 0; i < _lines.Length; i++)
+        for (var i = 0; i < _lines.Length; i++)
         {
             _lines[i].Dispose();
         }
@@ -38,18 +38,18 @@ public sealed class OrientationGizmo : IDisposable
         Vector3 up = transform.GetUp();
         Vector3 right = transform.GetRight();
 
-        const float BASE_SIZE = 1.25f;
-        const int SEGMENTS_PER_AXIS = 30;
-        const float SEGMENT_FACTOR = 1f / SEGMENTS_PER_AXIS;
+        const float baseSize = 1.25f;
+        const int segmentsPerAxis = 30;
+        const float segmentFactor = 1f / segmentsPerAxis;
         float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
-        float size = BASE_SIZE * scale;
+        float size = baseSize * scale;
 
         //  X axis
-        for (int i = 0; i < SEGMENTS_PER_AXIS; i++)
+        for (var i = 0; i < segmentsPerAxis; i++)
         {
             int segmentIndex = i;
-            Vector3 arcStart = right.Slerp(up, i * SEGMENT_FACTOR);
-            Vector3 arcEnd = right.Slerp(up, (i + 1) * SEGMENT_FACTOR);
+            Vector3 arcStart = right.Slerp(up, i * segmentFactor);
+            Vector3 arcEnd = right.Slerp(up, (i + 1) * segmentFactor);
 
             Line line = _lines[segmentIndex];
             line.Start = pos + arcStart * size;
@@ -58,11 +58,11 @@ public sealed class OrientationGizmo : IDisposable
         }
 
         //  Y axis
-        for (int i = 0; i < SEGMENTS_PER_AXIS; i++)
+        for (var i = 0; i < segmentsPerAxis; i++)
         {
             int segmentIndex = i + 30;
-            Vector3 arcStart = up.Slerp(forward, i * SEGMENT_FACTOR);
-            Vector3 arcEnd = up.Slerp(forward, (i + 1) * SEGMENT_FACTOR);
+            Vector3 arcStart = up.Slerp(forward, i * segmentFactor);
+            Vector3 arcEnd = up.Slerp(forward, (i + 1) * segmentFactor);
 
             Line line = _lines[segmentIndex];
             line.Start = pos + arcStart * size;
@@ -71,11 +71,11 @@ public sealed class OrientationGizmo : IDisposable
         }
 
         //  Z axis
-        for (int i = 0; i < SEGMENTS_PER_AXIS; i++)
+        for (var i = 0; i < segmentsPerAxis; i++)
         {
             int segmentIndex = i + 60;
-            Vector3 arcStart = forward.Slerp(right, i * SEGMENT_FACTOR);
-            Vector3 arcEnd = forward.Slerp(right, (i + 1) * SEGMENT_FACTOR);
+            Vector3 arcStart = forward.Slerp(right, i * segmentFactor);
+            Vector3 arcEnd = forward.Slerp(right, (i + 1) * segmentFactor);
 
             Line line = _lines[segmentIndex];
             line.Start = pos + arcStart * size;

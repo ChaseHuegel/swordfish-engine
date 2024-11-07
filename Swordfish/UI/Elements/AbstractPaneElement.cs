@@ -3,11 +3,12 @@ using Swordfish.Types;
 
 namespace Swordfish.UI.Elements;
 
-public abstract class AbstractPaneElement : ContentElement, IUniqueNameProperty, IConstraintsProperty, IFlagsProperty<ImGuiWindowFlags>, ITooltipProperty
+public abstract class AbstractPaneElement(in string? name) : ContentElement, IUniqueNameProperty, IConstraintsProperty,
+    IFlagsProperty<ImGuiWindowFlags>, ITooltipProperty
 {
-    public string? Name { get; set; }
+    public string? Name { get; set; } = name;
 
-    public RectConstraints Constraints { get; set; } = new RectConstraints();
+    public RectConstraints Constraints { get; set; } = new();
 
     public ImGuiWindowFlags Flags { get; set; }
 
@@ -15,11 +16,6 @@ public abstract class AbstractPaneElement : ContentElement, IUniqueNameProperty,
 
     protected ITooltipProperty TooltipProperty => this;
 
-    public string UniqueName => uniqueName ??= Name + "##" + UID;
-    private string? uniqueName;
-
-    public AbstractPaneElement(string? name)
-    {
-        Name = name;
-    }
+    public string UniqueName => _uniqueName ??= Name + "##" + UID;
+    private string? _uniqueName;
 }

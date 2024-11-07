@@ -1,143 +1,146 @@
 using System;
 using System.Diagnostics;
 using System.Threading;
+// ReSharper disable UnusedMember.Global
 
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
+namespace Swordfish.Library.Threading;
 
-namespace Swordfish.Library.Threading
+public class ThreadWorker
 {
-    public class ThreadWorker
+    private volatile bool _stop;
+    private volatile bool _pause;
+
+    private readonly Thread _thread;
+    private readonly Action _handleOnce;
+    private readonly Action<float> _handle;
+
+    private readonly Stopwatch _stopwatch = new();
+
+    public int TargetTickRate = 64;
+
+    public float DeltaTime { get; private set; }
+    private float _elapsedTime;
+
+    public static ThreadWorker Start(Action handler, string name = "")
     {
-        private volatile bool stop = false;
-        private volatile bool pause = false;
+        return new ThreadWorker(handler, name);
+    }
 
-        private Thread thread = null;
-        private Action handleOnce;
-        private Action<float> handle;
-
-        private Stopwatch stopwatch = new Stopwatch();
-
-        public int TargetTickRate = 64;
-
-        public float DeltaTime { get; private set; }
-        private float elapsedTime;
-
-        public static ThreadWorker Start(Action handler, string name = "")
+    public ThreadWorker(Action handler, string name = "")
+    {
+        _handleOnce = handler;
+        _thread = new Thread(new ThreadStart(_handleOnce))
         {
-            return new ThreadWorker(handler, name);
+            Name = name == "" ? _handle.Method.ToString() : name,
+            IsBackground = true,
+        };
+    }
+
+    public ThreadWorker(Action<float> handler, string name = "")
+    {
+        _handle = handler;
+        _thread = new Thread(Tick)
+        {
+            Name = name == "" ? _handle.Method.ToString() : name,
+            IsBackground = true,
+        };
+    }
+
+    public void Start()
+    {
+        _stop = false;
+        _pause = false;
+        _thread.Start();
+    }
+
+    public void Stop()
+    {
+        _stop = true;
+    }
+
+    public void Restart()
+    {
+        _stop = false;
+        _pause = false;
+        _thread.Start();
+    }
+
+    public void Pause()
+    {
+        _pause = true;
+    }
+
+    public void Unpause()
+    {
+        _pause = false;
+    }
+
+    public void TogglePause()
+    {
+        if (_pause)
+        {
+            Unpause();
         }
-
-        public ThreadWorker(Action handler, string name = "")
+        else
         {
-            handleOnce = handler;
-            thread = new Thread(new ThreadStart(handleOnce))
+            Pause();
+        }
+    }
+
+    private void Tick()
+    {
+        while (_stop == false)
+        {
+            while (_pause == false && _stop == false)
             {
-                Name = name == "" ? this.handle.Method.ToString() : name,
-                IsBackground = true,
-            };
-        }
-
-        public ThreadWorker(Action<float> handler, string name = "")
-        {
-            handle = handler;
-            thread = new Thread(Tick)
-            {
-                Name = name == "" ? this.handle.Method.ToString() : name,
-                IsBackground = true,
-            };
-        }
-
-        public void Start()
-        {
-            stop = false;
-            pause = false;
-            thread.Start();
-        }
-
-        public void Stop()
-        {
-            stop = true;
-        }
-
-        public void Restart()
-        {
-            stop = false;
-            pause = false;
-            thread.Start();
-        }
-
-        public void Pause()
-        {
-            pause = true;
-        }
-
-        public void Unpause()
-        {
-            pause = false;
-        }
-
-        public void TogglePause()
-        {
-            if (pause)
-                Unpause();
-            else
-                Pause();
-        }
-
-        private void Handle()
-        {
-            handleOnce();
-            Stop();
-        }
-
-        private void Tick()
-        {
-            while (stop == false)
-            {
-                while (pause == false && stop == false)
+                //	If handle is no longer valid, stop the thread
+                if (_handle == null)
                 {
-                    //	If handle is no longer valid, stop the thread
-                    if (handle == null) Stop();
-
-                    stopwatch.Restart();
-                    handle(DeltaTime);
-
-                    //	Limit thread by target tick rate to save resources. Rate of 0 is unlimited.
-                    if (TargetTickRate > 0)
-                    {
-                        elapsedTime += DeltaTime;
-
-                        float targetTickDelta = 1f / TargetTickRate;
-
-                        if (elapsedTime < targetTickDelta)
-                            Thread.Sleep((int)((targetTickDelta - elapsedTime) * 1000));
-                        else
-                            elapsedTime = 0f;
-                    }
-
-                    DeltaTime = (float)stopwatch.ElapsedTicks / Stopwatch.Frequency;
+                    Stop();
                 }
 
-                Thread.Sleep(200);  //	Sleep when paused
+                _stopwatch.Restart();
+                _handle(DeltaTime);
+
+                //	Limit thread by target tick rate to save resources. Rate of 0 is unlimited.
+                if (TargetTickRate > 0)
+                {
+                    _elapsedTime += DeltaTime;
+
+                    float targetTickDelta = 1f / TargetTickRate;
+
+                    if (_elapsedTime < targetTickDelta)
+                    {
+                        Thread.Sleep((int)((targetTickDelta - _elapsedTime) * 1000));
+                    }
+                    else
+                    {
+                        _elapsedTime = 0f;
+                    }
+                }
+
+                DeltaTime = (float)_stopwatch.ElapsedTicks / Stopwatch.Frequency;
             }
-            //	Stopped thread safely
-        }
 
-        public static ThreadWorker Create(string name, Action handler) => new ThreadWorker(handler, name);
-        public static ThreadWorker Create(string name, Action<float> handler) => new ThreadWorker(handler, name);
-
-        public static ThreadWorker Run(string name, Action handler)
-        {
-            ThreadWorker worker = Create(name, handler);
-            worker.Start();
-            return worker;
+            Thread.Sleep(200);  //	Sleep when paused
         }
+        //	Stopped thread safely
+    }
 
-        public static ThreadWorker Run(string name, Action<float> handler)
-        {
-            ThreadWorker worker = Create(name, handler);
-            worker.Start();
-            return worker;
-        }
+    public static ThreadWorker Create(string name, Action handler) => new(handler, name);
+    public static ThreadWorker Create(string name, Action<float> handler) => new(handler, name);
+
+    public static ThreadWorker Run(string name, Action handler)
+    {
+        ThreadWorker worker = Create(name, handler);
+        worker.Start();
+        return worker;
+    }
+
+    public static ThreadWorker Run(string name, Action<float> handler)
+    {
+        ThreadWorker worker = Create(name, handler);
+        worker.Start();
+        return worker;
     }
 }

@@ -1,49 +1,50 @@
 using System;
 using System.Collections.Generic;
+// ReSharper disable UnusedMember.Global
+// ReSharper disable UnusedType.Global
 
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+public abstract class BehaviorNode
 {
-    public abstract class BehaviorNode
+    public readonly List<BehaviorNode> Children;
+
+    public BehaviorNode(params BehaviorNode[] children)
     {
-        public readonly List<BehaviorNode> Children;
-
-        public BehaviorNode(params BehaviorNode[] children)
-        {
-            Children = new List<BehaviorNode>(children);
-        }
-
-        public BehaviorNode(IEnumerable<BehaviorNode> children)
-        {
-            Children = new List<BehaviorNode>(children);
-        }
-
-        public abstract BehaviorState Evaluate(object target, float delta);
+        Children = [..children];
     }
 
-    public abstract class BehaviorNode<TTarget> : BehaviorNode where TTarget : class
+    public BehaviorNode(IEnumerable<BehaviorNode> children)
     {
-        public BehaviorNode(params BehaviorNode[] children) : base(children) { }
-
-        public BehaviorNode(IEnumerable<BehaviorNode> children) : base(children) { }
-
-        public override BehaviorState Evaluate(object target, float delta) => Evaluate((TTarget)target, delta);
-
-        public abstract BehaviorState Evaluate(TTarget target, float delta);
+        Children = [..children];
     }
 
-    public class BehaviorDynamic<TTarget> : BehaviorNode<TTarget>, IBehaviorAction
-        where TTarget : class
+    public abstract BehaviorState Evaluate(object target, float delta);
+}
+
+public abstract class BehaviorNode<TTarget> : BehaviorNode where TTarget : class
+{
+    public BehaviorNode(params BehaviorNode[] children) : base(children) { }
+
+    public BehaviorNode(IEnumerable<BehaviorNode> children) : base(children) { }
+
+    public override BehaviorState Evaluate(object target, float delta) => Evaluate((TTarget)target, delta);
+
+    public abstract BehaviorState Evaluate(TTarget target, float delta);
+}
+
+public class BehaviorDynamic<TTarget> : BehaviorNode<TTarget>, IBehaviorAction
+    where TTarget : class
+{
+    private readonly Func<TTarget, float, BehaviorState> _func;
+
+    public BehaviorDynamic(Func<TTarget, float, BehaviorState> func)
     {
-        private readonly Func<TTarget, float, BehaviorState> Func;
+        _func = func;
+    }
 
-        public BehaviorDynamic(Func<TTarget, float, BehaviorState> func)
-        {
-            Func = func;
-        }
-
-        public override BehaviorState Evaluate(TTarget target, float delta)
-        {
-            return Func(target, delta);
-        }
+    public override BehaviorState Evaluate(TTarget target, float delta)
+    {
+        return _func(target, delta);
     }
 }

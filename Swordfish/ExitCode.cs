@@ -1,4 +1,5 @@
-﻿namespace Swordfish;
+﻿// ReSharper disable UnusedMember.Global
+namespace Swordfish;
 
 /// <summary>
 ///     Exit codes 1-1000 are reserved for use by Swordfish.

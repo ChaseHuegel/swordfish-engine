@@ -1,4 +1,3 @@
-using Shoal.IO;
 using Shoal.Modularity;
 using Swordfish.Library.Diagnostics;
 
@@ -56,7 +55,7 @@ internal class ConfigurationProvider
         PathInfo[] langFiles = Paths.Lang.GetFiles("*.toml", SearchOption.AllDirectories);
 
         var languages = new List<ParsedFile<Language>>();
-        for (int i = 0; i < langFiles.Length; i++)
+        for (var i = 0; i < langFiles.Length; i++)
         {
             PathInfo path = langFiles[i];
             if (fileParseService.TryParse(path, out Language language))
@@ -73,7 +72,7 @@ internal class ConfigurationProvider
         PathInfo[] files = Paths.Modules.GetFiles("manifest.toml", SearchOption.AllDirectories);
 
         var manifests = new List<ParsedFile<ModuleManifest>>();
-        for (int i = 0; i < files.Length; i++)
+        for (var i = 0; i < files.Length; i++)
         {
             PathInfo file = files[i];
             if (fileParseService.TryParse(file, out ModuleManifest manifest))

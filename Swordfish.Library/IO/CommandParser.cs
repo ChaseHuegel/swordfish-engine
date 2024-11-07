@@ -5,55 +5,57 @@ using System.Text;
 using System.Threading.Tasks;
 using Swordfish.Library.Collections;
 
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public class CommandParser(params Command[] commands)
 {
-    public class CommandParser
+    private readonly List<Command> _commands = [..commands];
+    private readonly char _indicator;
+
+    public CommandParser(char indicator, params Command[] commands)
+        : this(commands)
     {
-        private readonly List<Command> Commands;
-        private readonly char Indicator;
+        _indicator = indicator;
+    }
 
-        public CommandParser(params Command[] commands)
+    public string GetHelpText()
+    {
+        var builder = new StringBuilder();
+        foreach (Command command in _commands)
         {
-            Commands = new List<Command>(commands);
+            builder.AppendLine(_indicator + command.GetHelpText());
         }
 
-        public CommandParser(char indicator, params Command[] commands)
-            : this(commands)
+        return builder.ToString();
+    }
+
+    public async Task<CommandResult> TryRunAsync(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line))
         {
-            Indicator = indicator;
-        }
-
-        public string GetHelpText()
-        {
-            var builder = new StringBuilder();
-            foreach (Command command in Commands)
-                builder.AppendLine(Indicator + command.GetHelpText());
-
-            return builder.ToString();
-        }
-
-        public async Task<CommandResult> TryRunAsync(string line)
-        {
-            if (string.IsNullOrWhiteSpace(line))
-                return new CommandResult(CommandState.Failure, line, null);
-
-            if (Indicator != default && !line.StartsWith(Indicator))
-                return new CommandResult(CommandState.Failure, line, null);
-
-            var lineStart = Indicator != default ? 1 : 0;
-            var parts = line[lineStart..]
-                .Split(' ', StringSplitOptions.RemoveEmptyEntries)
-                .Select(str => str.Trim()).ToArray(); //  StringSplitOptions.TrimEntries is only available in net5.0+
-
-            var args = new ReadOnlyQueue<string>(parts);
-
-            foreach (Command command in Commands)
-            {
-                if (await command.TryInvokeAsync(args) == CommandState.Success)
-                    return new CommandResult(CommandState.Success, line, command);
-            }
-
             return new CommandResult(CommandState.Failure, line, null);
         }
+
+        if (_indicator != default && !line.StartsWith(_indicator))
+        {
+            return new CommandResult(CommandState.Failure, line, null);
+        }
+
+        int lineStart = _indicator != default ? 1 : 0;
+        string[] parts = line[lineStart..]
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(str => str.Trim()).ToArray();
+
+        var args = new ReadOnlyQueue<string>(parts);
+
+        foreach (Command command in _commands)
+        {
+            if (await command.TryInvokeAsync(args) == CommandState.Success)
+            {
+                return new CommandResult(CommandState.Success, line, command);
+            }
+        }
+
+        return new CommandResult(CommandState.Failure, line, null);
     }
 }

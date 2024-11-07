@@ -6,8 +6,8 @@ public class Cube : Mesh
 {
     public Cube() : base(null!, null!, null!, null!, null!)
     {
-        Triangles = new uint[]
-        {
+        Triangles =
+        [
             //  Top
             0,
             1,
@@ -50,10 +50,10 @@ public class Cube : Mesh
             22,
             21,
             20,
-        };
+        ];
 
-        Vertices = new Vector3[]
-        {
+        Vertices =
+        [
             new Vector3(-0.5f, 0.5f, 0.5f),
             new Vector3(0.5f, 0.5f, 0.5f),
             new Vector3(0.5f, 0.5f, -0.5f),
@@ -78,10 +78,10 @@ public class Cube : Mesh
             new Vector3(-0.5f, 0.5f, 0.5f),
             new Vector3(-0.5f, -0.5f, 0.5f),
             new Vector3(-0.5f, -0.5f, -0.5f),
-        };
+        ];
 
-        Colors = new Vector4[]
-        {
+        Colors =
+        [
             new Vector4(1f, 1f, 1f, 1f),
             new Vector4(1f, 1f, 1f, 1f),
             new Vector4(1f, 1f, 1f, 1f),
@@ -106,10 +106,10 @@ public class Cube : Mesh
             new Vector4(1f, 1f, 1f, 1f),
             new Vector4(1f, 1f, 1f, 1f),
             new Vector4(1f, 1f, 1f, 1f),
-        };
+        ];
 
-        Normals = new Vector3[]
-        {
+        Normals =
+        [
             new Vector3(0f, 1f, 0f),
             new Vector3(0f, 1f, 0f),
             new Vector3(0f, 1f, 0f),
@@ -139,10 +139,10 @@ public class Cube : Mesh
             new Vector3(-1f, 0f, 0f),
             new Vector3(-1f, 0f, 0f),
             new Vector3(-1f, 0f, 0f),
-        };
+        ];
 
-        UV = new Vector3[]
-        {
+        Uv =
+        [
             new Vector3(0f, 1f, 0),
             new Vector3(1f, 1f, 0),
             new Vector3(1f, 0f, 0),
@@ -172,6 +172,6 @@ public class Cube : Mesh
             new Vector3(1f, 1f, 0),
             new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
-        };
+        ];
     }
 }

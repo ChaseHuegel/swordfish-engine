@@ -1,10 +1,9 @@
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types;
+
+public enum Modifier
 {
-    public enum Modifier
-    {
-        ADDITION,
-        SUBTRACTION,
-        MULTIPLY,
-        DIVIDE
-    }
+    Addition,
+    Subtract,
+    Multiply,
+    Divide,
 }

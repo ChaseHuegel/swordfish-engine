@@ -1,9 +1,8 @@
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public enum SessionEndedReason
 {
-    public enum SessionEndedReason
-    {
-        CLOSED,
-        DISCONNECTED,
-        EXPIRED
-    }
+    CLOSED,
+    DISCONNECTED,
+    EXPIRED,
 }

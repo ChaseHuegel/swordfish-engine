@@ -1,18 +1,10 @@
 using System.Numerics;
 
-namespace Swordfish.Library.Types.Shapes
-{
-    public unsafe readonly struct CompoundShape
-    {
-        public readonly Shape[] Shapes;
-        public readonly Vector3[] Positions;
-        public readonly Quaternion[] Orientations;
+namespace Swordfish.Library.Types.Shapes;
 
-        public CompoundShape(Shape[] shapes, Vector3[] positions, Quaternion[] orientations)
-        {
-            Shapes = shapes;
-            Positions = positions;
-            Orientations = orientations;
-        }
-    }
+public readonly struct CompoundShape(in Shape[] shapes, in Vector3[] positions, in Quaternion[] orientations)
+{
+    public readonly Shape[] Shapes = shapes;
+    public readonly Vector3[] Positions = positions;
+    public readonly Quaternion[] Orientations = orientations;
 }

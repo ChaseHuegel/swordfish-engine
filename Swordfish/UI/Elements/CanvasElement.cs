@@ -1,4 +1,5 @@
 using System.Numerics;
+using DryIoc;
 using ImGuiNET;
 using Swordfish.Graphics;
 
@@ -6,7 +7,7 @@ namespace Swordfish.UI.Elements;
 
 public class CanvasElement : AbstractPaneElement
 {
-    private static IWindowContext WindowContext => SwordfishEngine.Kernel.Get<IWindowContext>();
+    private static IWindowContext WindowContext => SwordfishEngine.Container.Resolve<IWindowContext>();
 
     public bool Open { get; set; } = true;
 

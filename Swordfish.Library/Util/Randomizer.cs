@@ -1,53 +1,48 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
-namespace Swordfish.Library.Util
+// ReSharper disable UnusedMember.Global
+
+namespace Swordfish.Library.Util;
+
+public class Randomizer
 {
-    public class Randomizer
+    private readonly Random _random = new();
+
+    public float NextFloat()
     {
-        private Random Random;
+        return (float)_random.NextDouble();
+    }
 
-        public Randomizer()
-        {
-            Random = new Random();
-        }
+    public double NextDouble()
+    {
+        return _random.NextDouble();
+    }
 
-        public float NextFloat()
-        {
-            return (float)Random.NextDouble();
-        }
+    public int NextInt()
+    {
+        return _random.Next();
+    }
 
-        public double NextDouble()
-        {
-            return Random.NextDouble();
-        }
+    public int NextInt(int maxValue)
+    {
+        return _random.Next(maxValue);
+    }
 
-        public int NextInt()
-        {
-            return Random.Next();
-        }
+    public int NextInt(int minValue, int maxValue)
+    {
+        return _random.Next(minValue, maxValue);
+    }
 
-        public int NextInt(int maxValue)
-        {
-            return Random.Next(maxValue);
-        }
+    public T Select<T>(params T[] items)
+    {
+        int index = _random.Next(items.Length);
+        return items[index];
+    }
 
-        public int NextInt(int minValue, int maxValue)
-        {
-            return Random.Next(minValue, maxValue);
-        }
-
-        public T Select<T>(params T[] items)
-        {
-            int index = Random.Next(items.Length);
-            return items[index];
-        }
-
-        public T Select<T>(IEnumerable<T> enumerable)
-        {
-            int index = Random.Next(enumerable.Count());
-            return enumerable.ElementAt(index);
-        }
+    public T Select<T>(List<T> list)
+    {
+        int index = _random.Next(list.Count);
+        return list[index];
     }
 }

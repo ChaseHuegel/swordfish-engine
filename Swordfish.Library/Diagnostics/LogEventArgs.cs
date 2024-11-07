@@ -1,8 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Library.Diagnostics;
 
-public struct LogEventArgs(string categoryName, LogLevel logLevel, string log)
+public struct LogEventArgs(in string categoryName, in LogLevel logLevel, in string log)
 {
     public readonly string Log = log;
 

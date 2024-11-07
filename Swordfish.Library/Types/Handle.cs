@@ -1,27 +1,25 @@
 using System;
-using Swordfish.Library.Diagnostics;
 
-namespace Swordfish.Library.Types
+namespace Swordfish.Library.Types;
+
+public abstract class Handle : IHandle
 {
-    public abstract class Handle : IHandle
+    public event EventHandler<EventArgs> Disposed;
+
+    protected volatile bool IsDisposed;
+
+    public void Dispose()
     {
-        public event EventHandler<EventArgs> Disposed;
-
-        protected volatile bool IsDisposed;
-
-        public void Dispose()
+        if (IsDisposed)
         {
-            if (IsDisposed)
-            {
-                return;
-            }
-
-            IsDisposed = true;
-            Disposed?.Invoke(this, EventArgs.Empty);
-            OnDisposed();
-            GC.SuppressFinalize(this);
+            return;
         }
 
-        protected abstract void OnDisposed();
+        IsDisposed = true;
+        Disposed?.Invoke(this, EventArgs.Empty);
+        OnDisposed();
+        GC.SuppressFinalize(this);
     }
+
+    protected abstract void OnDisposed();
 }

@@ -1,21 +1,11 @@
-using System;
+// ReSharper disable UnusedMember.Global
+namespace Swordfish.Library.Types;
 
-namespace Swordfish.Library.Types
+public struct DataChangedEventArgs<T>(in T oldValue, in T newValue)
 {
-    public class DataChangedEventArgs<T> : EventArgs
-    {
-        public static new readonly DataChangedEventArgs<T> Empty = new DataChangedEventArgs<T>();
+    public static readonly DataChangedEventArgs<T> Empty = new();
 
-        public readonly T OldValue;
+    public readonly T OldValue = oldValue;
 
-        public readonly T NewValue;
-
-        internal DataChangedEventArgs() { }
-
-        public DataChangedEventArgs(T oldValue, T newValue)
-        {
-            OldValue = oldValue;
-            NewValue = newValue;
-        }
-    }
+    public readonly T NewValue = newValue;
 }

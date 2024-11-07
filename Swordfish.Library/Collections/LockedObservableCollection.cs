@@ -3,149 +3,146 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
-using System.ComponentModel;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.Collections
+namespace Swordfish.Library.Collections;
+
+public class LockedObservableCollection<T> : Collection<T>, INotifyCollectionChanged, IEnumerable
 {
-    public class LockedObservableCollection<T> : Collection<T>, INotifyCollectionChanged, IEnumerable
+    private readonly ObservableCollection<T> _observableCollection;
+
+    public new int Count
     {
-        private readonly ObservableCollection<T> ObservableCollection;
-
-        public new int Count
+        get
         {
-            get
+            lock (_observableCollection)
             {
-                lock (ObservableCollection)
-                {
-                    return ObservableCollection.Count;
-                }
+                return _observableCollection.Count;
             }
         }
+    }
 
-        public bool IsReadOnly => false;
+    public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-        public event NotifyCollectionChangedEventHandler CollectionChanged;
+    public LockedObservableCollection()
+    {
+        _observableCollection = [];
+        _observableCollection.CollectionChanged += OnCollectionChanged;
+    }
 
-        public LockedObservableCollection()
+    private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+    {
+        CollectionChanged?.Invoke(sender, e);
+    }
+
+    public LockedObservableCollection(IList<T> list)
+    {
+        _observableCollection = new ObservableCollection<T>(list);
+    }
+
+    public new T this[int index]
+    {
+        get
         {
-            ObservableCollection = new ObservableCollection<T>();
-            ObservableCollection.CollectionChanged += OnCollectinChanged;
-        }
-
-        private void OnCollectinChanged(object sender, NotifyCollectionChangedEventArgs e)
-        {
-            CollectionChanged?.Invoke(sender, e);
-        }
-
-        public LockedObservableCollection(IList<T> list)
-        {
-            ObservableCollection = new ObservableCollection<T>(list);
-        }
-
-        public new T this[int index]
-        {
-            get
+            lock (_observableCollection)
             {
-                lock (ObservableCollection)
-                {
-                    return ObservableCollection[index];
-                }
-            }
-            set
-            {
-                lock (ObservableCollection)
-                {
-                    ObservableCollection[index] = value;
-                }
+                return _observableCollection[index];
             }
         }
-
-        public new void Add(T item)
+        set
         {
-            lock (ObservableCollection)
+            lock (_observableCollection)
             {
-                ObservableCollection.Add(item);
+                _observableCollection[index] = value;
             }
         }
+    }
 
-        public new void Clear()
+    public new void Add(T item)
+    {
+        lock (_observableCollection)
         {
-            lock (ObservableCollection)
+            _observableCollection.Add(item);
+        }
+    }
+
+    public new void Clear()
+    {
+        lock (_observableCollection)
+        {
+            _observableCollection.Clear();
+        }
+    }
+
+    public new bool Contains(T item)
+    {
+        lock (_observableCollection)
+        {
+            return _observableCollection.Contains(item);
+        }
+    }
+
+    public new void CopyTo(T[] array, int arrayIndex)
+    {
+        lock (_observableCollection)
+        {
+            _observableCollection.CopyTo(array, arrayIndex);
+        }
+    }
+
+    public void ForEach(Action<T> action)
+    {
+        lock (_observableCollection)
+        {
+            foreach (T item in _observableCollection)
             {
-                ObservableCollection.Clear();
+                action.Invoke(item);
             }
         }
+    }
 
-        public new bool Contains(T item)
+    public new IEnumerator<T> GetEnumerator()
+    {
+        lock (_observableCollection)
         {
-            lock (ObservableCollection)
-            {
-                return ObservableCollection.Contains(item);
-            }
+            return _observableCollection.GetEnumerator();
         }
+    }
 
-        public new void CopyTo(T[] array, int arrayIndex)
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
+
+    public new int IndexOf(T item)
+    {
+        lock (_observableCollection)
         {
-            lock (ObservableCollection)
-            {
-                ObservableCollection.CopyTo(array, arrayIndex);
-            }
+            return _observableCollection.IndexOf(item);
         }
+    }
 
-        public void ForEach(Action<T> action)
+    public new void Insert(int index, T item)
+    {
+        lock (_observableCollection)
         {
-            lock (ObservableCollection)
-            {
-                foreach (T item in ObservableCollection)
-                {
-                    action.Invoke(item);
-                }
-            }
+            _observableCollection.Insert(index, item);
         }
+    }
 
-        public new IEnumerator<T> GetEnumerator()
+    public new bool Remove(T item)
+    {
+        lock (_observableCollection)
         {
-            lock (ObservableCollection)
-            {
-                return ObservableCollection.GetEnumerator();
-            }
+            return _observableCollection.Remove(item);
         }
+    }
 
-        IEnumerator IEnumerable.GetEnumerator()
+    public new void RemoveAt(int index)
+    {
+        lock (_observableCollection)
         {
-            return GetEnumerator();
-        }
-
-        public new int IndexOf(T item)
-        {
-            lock (ObservableCollection)
-            {
-                return ObservableCollection.IndexOf(item);
-            }
-        }
-
-        public new void Insert(int index, T item)
-        {
-            lock (ObservableCollection)
-            {
-                ObservableCollection.Insert(index, item);
-            }
-        }
-
-        public new bool Remove(T item)
-        {
-            lock (ObservableCollection)
-            {
-                return ObservableCollection.Remove(item);
-            }
-        }
-
-        public new void RemoveAt(int index)
-        {
-            lock (ObservableCollection)
-            {
-                ObservableCollection.RemoveAt(index);
-            }
+            _observableCollection.RemoveAt(index);
         }
     }
 }

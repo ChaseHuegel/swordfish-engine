@@ -6,6 +6,7 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>12</LangVersion>
     <Nullable>disable</Nullable>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <PackageId>Swordfish.Integrations</PackageId>

@@ -2,10 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using Silk.NET.Input;
-using Swordfish.Graphics;
 using Swordfish.Library.IO;
-using Swordfish.Util;
-using Debugger = Swordfish.Library.Diagnostics.Debugger;
 using Key = Swordfish.Library.IO.Key;
 using MouseButton = Swordfish.Library.IO.MouseButton;
 
@@ -13,19 +10,19 @@ namespace Swordfish.Input;
 
 public class SilkInputService : IInputService
 {
-    private const int InputBufferMs = 1;
+    private const int INPUT_BUFFER_MS = 1;
 
-    public InputDevice[] Devices { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] Devices { get; }
 
-    public InputDevice[] Mice { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] Mice { get; }
 
-    public InputDevice[] Keyboards { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] Keyboards { get; }
 
-    public InputDevice[] Gamepads { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] Gamepads { get; }
 
-    public InputDevice[] Joysticks { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] Joysticks { get; }
 
-    public InputDevice[] UnknownDevices { get; private set; } = Array.Empty<InputDevice>();
+    public InputDevice[] UnknownDevices { get; }
 
     public EventHandler<ClickedEventArgs>? Clicked { get; set; }
     public EventHandler<ClickedEventArgs>? DoubleClicked { get; set; }
@@ -35,32 +32,32 @@ public class SilkInputService : IInputService
     public EventHandler<InputButtonEventArgs>? ButtonPressed { get; set; }
     public EventHandler<InputButtonEventArgs>? ButtonReleased { get; set; }
 
-    private readonly Stopwatch CursorMovementStopwatch = new();
-    private readonly object CursorDataLock = new();
+    private readonly Stopwatch _cursorMovementStopwatch = new();
+    private readonly object _cursorDataLock = new();
 
-    private Vector2 cursorDelta;
+    private Vector2 _cursorDelta;
     public Vector2 CursorDelta {
         get
         {
-            lock (CursorDataLock)
+            lock (_cursorDataLock)
             {
-                return CursorMovementStopwatch.ElapsedMilliseconds < 2 ? cursorDelta : Vector2.Zero;
+                return _cursorMovementStopwatch.ElapsedMilliseconds < 2 ? _cursorDelta : Vector2.Zero;
             }
         }
     }
 
-    private Vector2 cursorPosition;
+    private Vector2 _cursorPosition;
     public Vector2 CursorPosition {
         get {
-            lock (CursorDataLock)
+            lock (_cursorDataLock)
             {
-                return cursorPosition;
+                return _cursorPosition;
             }
         }
         set {
-            lock (CursorDataLock)
+            lock (_cursorDataLock)
             {
-                cursorPosition = value;
+                _cursorPosition = value;
             }
         }
     }
@@ -70,13 +67,12 @@ public class SilkInputService : IInputService
         set => SetCursorState(value);
     }
 
-    private volatile float LastScroll;
+    private volatile float _lastScroll;
 
-    private readonly IMouse MainMouse;
-    private readonly IInputContext Context;
-    private readonly ConcurrentDictionary<Key, InputRecord> KeyInputMap = new();
-    private readonly ConcurrentDictionary<MouseButton, InputRecord> MouseInputMap = new();
-    private readonly InputRecord ScrollRecord = new();
+    private readonly IMouse _mainMouse;
+    private readonly ConcurrentDictionary<Key, InputRecord> _keyInputMap = new();
+    private readonly ConcurrentDictionary<MouseButton, InputRecord> _mouseInputMap = new();
+    private readonly InputRecord _scrollRecord = new();
 
     private class InputRecord
     {
@@ -87,13 +83,11 @@ public class SilkInputService : IInputService
 
     public SilkInputService(IInputContext context)
     {
-        Context = context;
-
-        Mice = Context.Mice.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
-        Keyboards = Context.Keyboards.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
-        Gamepads = Context.Gamepads.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
-        Joysticks = Context.Joysticks.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
-        UnknownDevices = Context.OtherDevices.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
+        Mice = context.Mice.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
+        Keyboards = context.Keyboards.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
+        Gamepads = context.Gamepads.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
+        Joysticks = context.Joysticks.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
+        UnknownDevices = context.OtherDevices.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
         Devices = new List<InputDevice>()
             .Concat(Mice)
             .Concat(Keyboards)
@@ -102,8 +96,8 @@ public class SilkInputService : IInputService
             .Concat(UnknownDevices)
             .ToArray();
 
-        MainMouse = Context.Mice[0];
-        foreach (var mouse in Context.Mice)
+        _mainMouse = context.Mice[0];
+        foreach (IMouse? mouse in context.Mice)
         {
             mouse.Click += OnClick;
             mouse.DoubleClick += OnDoubleClick;
@@ -114,16 +108,20 @@ public class SilkInputService : IInputService
         }
 
         foreach (MouseButton mouseButton in Enum.GetValues<MouseButton>())
-            MouseInputMap.TryAdd(mouseButton, new InputRecord());
+        {
+            _mouseInputMap.TryAdd(mouseButton, new InputRecord());
+        }
 
-        foreach (var keyboard in Context.Keyboards)
+        foreach (IKeyboard? keyboard in context.Keyboards)
         {
             keyboard.KeyDown += OnKeyDown;
             keyboard.KeyUp += OnKeyUp;
         }
 
         foreach (Key key in Enum.GetValues<Key>())
-            KeyInputMap.TryAdd(key, new InputRecord());
+        {
+            _keyInputMap.TryAdd(key, new InputRecord());
+        }
     }
 
     public float GetAxis(InputAxis axis)
@@ -138,7 +136,7 @@ public class SilkInputService : IInputService
 
     public float GetMouseScroll()
     {
-        return ScrollRecord.LastInput.ElapsedMilliseconds < InputBufferMs ? LastScroll : 0f;
+        return _scrollRecord.LastInput.ElapsedMilliseconds < INPUT_BUFFER_MS ? _lastScroll : 0f;
     }
 
     public bool IsButtonHeld(InputButton button)
@@ -158,36 +156,36 @@ public class SilkInputService : IInputService
 
     public bool IsKeyHeld(Key key)
     {
-        return KeyInputMap[key].Count > 0;
+        return _keyInputMap[key].Count > 0;
     }
 
     public bool IsKeyPressed(Key key)
     {
-        InputRecord inputRecord = KeyInputMap[key];
-        return inputRecord.LastInput.ElapsedMilliseconds < InputBufferMs;
+        InputRecord inputRecord = _keyInputMap[key];
+        return inputRecord.LastInput.ElapsedMilliseconds < INPUT_BUFFER_MS;
     }
 
     public bool IsKeyReleased(Key key)
     {
-        InputRecord inputRecord = KeyInputMap[key];
-        return inputRecord.LastRelease.ElapsedMilliseconds < InputBufferMs;
+        InputRecord inputRecord = _keyInputMap[key];
+        return inputRecord.LastRelease.ElapsedMilliseconds < INPUT_BUFFER_MS;
     }
 
     public bool IsMouseHeld(MouseButton mouseButton)
     {
-        return MouseInputMap[mouseButton].Count > 0;
+        return _mouseInputMap[mouseButton].Count > 0;
     }
 
     public bool IsMousePressed(MouseButton mouseButton)
     {
-        InputRecord inputRecord = MouseInputMap[mouseButton];
-        return inputRecord.LastInput.ElapsedMilliseconds <= InputBufferMs;
+        InputRecord inputRecord = _mouseInputMap[mouseButton];
+        return inputRecord.LastInput.ElapsedMilliseconds <= INPUT_BUFFER_MS;
     }
 
     public bool IsMouseReleased(MouseButton mouseButton)
     {
-        InputRecord inputRecord = MouseInputMap[mouseButton];
-        return inputRecord.LastRelease.ElapsedMilliseconds <= InputBufferMs;
+        InputRecord inputRecord = _mouseInputMap[mouseButton];
+        return inputRecord.LastRelease.ElapsedMilliseconds <= INPUT_BUFFER_MS;
     }
 
     public void SetAxisDeadzone(InputAxis axis, float deadzone)
@@ -198,7 +196,7 @@ public class SilkInputService : IInputService
     private void OnKeyDown(IKeyboard keyboard, Silk.NET.Input.Key key, int index)
     {
         Key swordfishKey = key.ToSwordfishKey();
-        InputRecord inputRecord = KeyInputMap[swordfishKey];
+        InputRecord inputRecord = _keyInputMap[swordfishKey];
         inputRecord.Count += 1;
         inputRecord.LastInput.Restart();
 
@@ -211,7 +209,7 @@ public class SilkInputService : IInputService
     private void OnKeyUp(IKeyboard keyboard, Silk.NET.Input.Key key, int index)
     {
         Key swordfishKey = key.ToSwordfishKey();
-        InputRecord inputRecord = KeyInputMap[swordfishKey];
+        InputRecord inputRecord = _keyInputMap[swordfishKey];
         inputRecord.Count -= 1;
         inputRecord.LastRelease.Restart();
 
@@ -225,34 +223,31 @@ public class SilkInputService : IInputService
     {
         switch (value)
         {
-            case CursorState.NORMAL:
-                MainMouse.Cursor.IsConfined = false;
-                MainMouse.Cursor.CursorMode = CursorMode.Normal;
+            case CursorState.Normal:
+                _mainMouse.Cursor.IsConfined = false;
+                _mainMouse.Cursor.CursorMode = CursorMode.Normal;
                 break;
 
-            case CursorState.HIDDEN:
-                MainMouse.Cursor.IsConfined = false;
-                MainMouse.Cursor.CursorMode = CursorMode.Hidden;
+            case CursorState.Hidden:
+                _mainMouse.Cursor.IsConfined = false;
+                _mainMouse.Cursor.CursorMode = CursorMode.Hidden;
                 break;
 
-            case CursorState.LOCKED:
-                MainMouse.Cursor.IsConfined = false;
-                MainMouse.Cursor.CursorMode = CursorMode.Disabled;
+            case CursorState.Locked:
+                _mainMouse.Cursor.IsConfined = false;
+                _mainMouse.Cursor.CursorMode = CursorMode.Disabled;
                 break;
 
-            case CursorState.CAPTURED:
-                MainMouse.Cursor.IsConfined = true;
-                MainMouse.Cursor.CursorMode = CursorMode.Normal;
+            case CursorState.Captured:
+                _mainMouse.Cursor.IsConfined = true;
+                _mainMouse.Cursor.CursorMode = CursorMode.Normal;
                 break;
         }
     }
 
     private CursorState GetCursorState()
     {
-        if (MainMouse.Cursor.IsConfined)
-            return CursorState.CAPTURED;
-
-        return MainMouse.Cursor.CursorMode.ToCursorState();
+        return _mainMouse.Cursor.IsConfined ? CursorState.Captured : _mainMouse.Cursor.CursorMode.ToCursorState();
     }
 
     private void OnClick(IMouse mouse, Silk.NET.Input.MouseButton button, Vector2 position)
@@ -273,8 +268,8 @@ public class SilkInputService : IInputService
 
     private void OnScroll(IMouse mouse, ScrollWheel wheel)
     {
-        LastScroll = wheel.Y;
-        ScrollRecord.LastInput.Restart();
+        _lastScroll = wheel.Y;
+        _scrollRecord.LastInput.Restart();
 
         Scrolled?.Invoke(
             new InputDevice(mouse.Index, mouse.Name),
@@ -285,7 +280,7 @@ public class SilkInputService : IInputService
     private void OnMouseDown(IMouse mouse, Silk.NET.Input.MouseButton button)
     {
         MouseButton swordfishButton = button.ToSwordfishMouseButton();
-        InputRecord inputRecord = MouseInputMap[swordfishButton];
+        InputRecord inputRecord = _mouseInputMap[swordfishButton];
         inputRecord.Count += 1;
         inputRecord.LastInput.Restart();
     }
@@ -293,18 +288,18 @@ public class SilkInputService : IInputService
     private void OnMouseUp(IMouse mouse, Silk.NET.Input.MouseButton button)
     {
         MouseButton swordfishButton = button.ToSwordfishMouseButton();
-        InputRecord inputRecord = MouseInputMap[swordfishButton];
+        InputRecord inputRecord = _mouseInputMap[swordfishButton];
         inputRecord.Count -= 1;
         inputRecord.LastRelease.Restart();
     }
 
     private void OnMouseMove(IMouse mouse, Vector2 position)
     {
-        lock (CursorDataLock)
+        lock (_cursorDataLock)
         {
-            CursorMovementStopwatch.Restart();
-            cursorDelta = position - cursorPosition;
-            cursorPosition = position;
+            _cursorMovementStopwatch.Restart();
+            _cursorDelta = position - _cursorPosition;
+            _cursorPosition = position;
         }
     }
 }

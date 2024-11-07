@@ -1,4 +1,3 @@
-using Swordfish.Graphics.SilkNET;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;

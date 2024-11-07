@@ -1,4 +1,5 @@
 using Silk.NET.OpenGL;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -17,8 +18,12 @@ internal static class GLUtil
         string[] supportedExtensions = gl.GetExtensions();
 
         foreach (string extension in extensions)
+        {
             if (!supportedExtensions.Contains(extension))
+            {
                 return false;
+            }
+        }
 
         return true;
     }
@@ -29,7 +34,9 @@ internal static class GLUtil
         gl.GetInteger(GetPName.NumExtensions, out int count);
 
         for (uint i = 0; i < count; i++)
+        {
             extensions.Add(gl.GetStringS(StringName.Extensions, i));
+        }
 
         return extensions.ToArray();
     }

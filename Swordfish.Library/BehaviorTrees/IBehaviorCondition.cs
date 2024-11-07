@@ -1,7 +1,6 @@
-namespace Swordfish.Library.BehaviorTrees
-{
-    public interface IBehaviorCondition
-    {
+namespace Swordfish.Library.BehaviorTrees;
 
-    }
+public interface IBehaviorCondition
+{
+
 }

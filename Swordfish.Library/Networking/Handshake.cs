@@ -1,73 +1,71 @@
-using System;
-using System.Net;
-using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Networking.Attributes;
 
-namespace Swordfish.Library.Networking
+namespace Swordfish.Library.Networking;
+
+public static class Handshake
 {
-    public static class Handshake
+    [Packet(RequiresSession = false, Reliable = true)]
+    public class BeginPacket : Packet
     {
-        [Packet(RequiresSession = false, Reliable = true)]
-        public class BeginPacket : Packet
+        public static BeginPacket New(string secret) => new()
         {
-            public static BeginPacket New(string secret) => new BeginPacket
+            Secret = secret,
+        };
+
+        public string Secret;
+    }
+
+    [Packet(RequiresSession = false, Reliable = true)]
+    public class AcceptPacket : Packet
+    {
+        public int AcceptedSessionID;
+
+        public int RemoteSessionID;
+
+        public string Secret;
+    }
+
+    [PacketHandler]
+    public static void HandshakeBeginHandler(NetController net, BeginPacket packet, NetEventArgs e)
+    {
+        //  Validate the handshake
+        if (net.HandshakeValidateCallback?.Invoke(e.EndPoint, packet.Secret) ?? true)
+        {
+            if (!net.TryAddSession(e.EndPoint, out NetSession newSession))
             {
-                Secret = secret
+                return;
+            }
+
+            var accept = new AcceptPacket()
+            {
+                AcceptedSessionID = newSession.ID,
+                RemoteSessionID = net.Session.ID,
+                Secret = packet.Secret,
             };
 
-            public string Secret;
+            net.Send(accept, e.EndPoint);
         }
+    }
 
-        [Packet(RequiresSession = false, Reliable = true)]
-        public class AcceptPacket : Packet
+    [PacketHandler]
+    public static void HandshakeAcceptHandler(NetController net, AcceptPacket packet, NetEventArgs e)
+    {
+        if (net.IsConnected || net.Session.ID != NetSession.LOCAL_OR_UNASSIGNED)
         {
-            public int AcceptedSessionID;
-
-            public int RemoteSessionID;
-
-            public string Secret;
+            return;
         }
 
-        [PacketHandler]
-        public static void HandshakeBeginHandler(NetController net, BeginPacket packet, NetEventArgs e)
+        if (!net.TryAddSession(e.EndPoint, packet.RemoteSessionID, out NetSession serverSession))
         {
-            //  Validate the handshake
-            if (net.HandshakeValidateCallback?.Invoke(e.EndPoint, packet.Secret) ?? true)
-            {
-                if (!net.TryAddSession(e.EndPoint, out NetSession newSession))
-                    return;
-
-                AcceptPacket accept = new AcceptPacket()
-                {
-                    AcceptedSessionID = newSession.ID,
-                    RemoteSessionID = net.Session.ID,
-                    Secret = packet.Secret
-                };
-
-                net.Send(accept, e.EndPoint);
-            }
+            return;
         }
 
-        [PacketHandler]
-        public static void HandshakeAcceptHandler(NetController net, AcceptPacket packet, NetEventArgs e)
+        if (!net.HandshakeAcceptCallback?.Invoke(e.EndPoint, packet.Secret) ?? true)
         {
-            if (net.IsConnected || net.Session.ID != NetSession.LocalOrUnassigned)
-            {
-                return;
-            }
-
-            if (!net.TryAddSession(e.EndPoint, packet.RemoteSessionID, out NetSession serverSession))
-            {
-                return;
-            }
-
-            if (!net.HandshakeAcceptCallback?.Invoke(e.EndPoint, packet.Secret) ?? true)
-            {
-                return;
-            }
-
-            net.Session.ID = packet.AcceptedSessionID;
-            net.Connected?.Invoke(net, e);
+            return;
         }
+
+        net.Session.ID = packet.AcceptedSessionID;
+        net.Connected?.Invoke(net, e);
     }
 }

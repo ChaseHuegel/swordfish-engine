@@ -1,19 +1,12 @@
-using System;
 using System.Numerics;
+// ReSharper disable UnusedMember.Global
 
-namespace Swordfish.Library.IO
+namespace Swordfish.Library.IO;
+
+public struct ClickedEventArgs(in MouseButton mouseButton, in Vector2 position)
 {
-    public class ClickedEventArgs : EventArgs
-    {
-        public static new readonly ClickedEventArgs Empty = new ClickedEventArgs(MouseButton.UNKNOWN, Vector2.Zero);
+    public static readonly ClickedEventArgs Empty = new(MouseButton.Unknown, Vector2.Zero);
 
-        public MouseButton MouseButton;
-        public Vector2 Position;
-
-        public ClickedEventArgs(MouseButton mouseButton, Vector2 position)
-        {
-            MouseButton = mouseButton;
-            Position = position;
-        }
-    }
+    public readonly MouseButton MouseButton = mouseButton;
+    public readonly Vector2 Position = position;
 }

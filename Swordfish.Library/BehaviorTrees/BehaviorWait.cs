@@ -1,26 +1,22 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+// ReSharper disable once UnusedType.Global
+public sealed class BehaviorWait(in float seconds) : BehaviorNode, IBehaviorAction
 {
-    public sealed class BehaviorWait : BehaviorNode, IBehaviorAction
+    private readonly float _seconds = seconds;
+    private float _elapsed;
+
+    public override BehaviorState Evaluate(object target, float delta)
     {
-        private readonly float Seconds;
-        private float Elapsed;
+        _elapsed += delta;
 
-        public BehaviorWait(float seconds)
+        if (_elapsed < _seconds)
         {
-            Seconds = seconds;
-        }
-
-        public override BehaviorState Evaluate(object target, float delta)
-        {
-            Elapsed += delta;
-
-            if (Elapsed >= Seconds)
-            {
-                Elapsed = 0f;
-                return BehaviorState.SUCCESS;
-            }
-
             return BehaviorState.RUNNING;
         }
+
+        _elapsed = 0f;
+        return BehaviorState.SUCCESS;
+
     }
 }

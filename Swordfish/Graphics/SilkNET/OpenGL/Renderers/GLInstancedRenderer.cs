@@ -6,20 +6,14 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer : IRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IRenderStage
 {
-    private Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
-    private Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
-
-    private readonly GL _gl;
-    private readonly RenderSettings _renderSettings;
+    private readonly GL _gl = gl;
+    private readonly RenderSettings _renderSettings = renderSettings;
+    
+    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
+    private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
     private ConcurrentBag<GLRenderTarget>? _renderTargets;
-
-    public GLInstancedRenderer(GL gl, RenderSettings renderSettings)
-    {
-        _gl = gl;
-        _renderSettings = renderSettings;
-    }
 
     public void Initialize(IRenderContext renderContext)
     {
@@ -62,7 +56,7 @@ internal unsafe class GLInstancedRenderer : IRenderStage
                 }
             }
 
-            matrices.Add(renderTarget.Transform.ToMatrix4x4());
+            matrices.Add(renderTarget.Transform.ToMatrix4X4());
         }
     }
 
@@ -78,7 +72,7 @@ internal unsafe class GLInstancedRenderer : IRenderStage
             return 0;
         }
 
-        int drawCalls = 0;
+        var drawCalls = 0;
         drawCalls += Draw(view, projection, _instances, sort: false);
         drawCalls += Draw(view, projection, _transparentInstances, sort: true);
         return drawCalls;
@@ -87,10 +81,12 @@ internal unsafe class GLInstancedRenderer : IRenderStage
     private int Draw(Matrix4x4 view, Matrix4x4 projection, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
     {
         if (instances.Count == 0)
+        {
             return 0;
+        }
 
-        int drawCalls = 0;
-        var viewPosition = view.GetPosition();
+        var drawCalls = 0;
+        Vector3 viewPosition = view.GetPosition();
 
         foreach (KeyValuePair<GLRenderTarget, List<Matrix4x4>> instance in instances)
         {
@@ -103,13 +99,17 @@ internal unsafe class GLInstancedRenderer : IRenderStage
             _gl.GetBufferParameter(BufferTargetARB.ArrayBuffer, BufferPNameARB.Size, out int bufferSize);
 
             if (bufferSize >= models.Length * sizeof(Matrix4x4))
+            {
                 _gl.BufferSubData(BufferTargetARB.ArrayBuffer, 0, new ReadOnlySpan<Matrix4x4>(models));
+            }
             else
+            {
                 _gl.BufferData(BufferTargetARB.ArrayBuffer, new ReadOnlySpan<Matrix4x4>(models), BufferUsageARB.DynamicDraw);
+            }
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
-            for (int n = 0; n < target.Materials.Length; n++)
+            for (var n = 0; n < target.Materials.Length; n++)
             {
                 GLMaterial material = target.Materials[n];
                 ShaderProgram shader = material.ShaderProgram;

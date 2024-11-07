@@ -8,7 +8,7 @@ public class CommandLineParser
     {
         new TokenMatcher<CommandLineToken>(CommandLineToken.EqualsOrWhitespace, @"\G[\s\t\n\r\f\0=]+"),
         new TokenMatcher<CommandLineToken>(CommandLineToken.Tack, @"\G-{1,2}"),
-        new TokenMatcher<CommandLineToken>(CommandLineToken.Text, @"\G([^\s-""""'=]+)"),
+        new TokenMatcher<CommandLineToken>(CommandLineToken.Text, """\G([^\s-""'=]+)"""),
         new TokenMatcher<CommandLineToken>(CommandLineToken.DoubleQuoteValue, @"\G""[^""]*"""),
         new TokenMatcher<CommandLineToken>(CommandLineToken.SingleQuoteValue, @"\G'[^']*'"),
     };
@@ -25,11 +25,6 @@ public class CommandLineParser
     public CommandLineArgs Parse(string input)
     {
         List<Token<CommandLineToken>> tokens = _lexer.Lex(input);
-        if (tokens.Count == 0)
-        {
-            return CommandLineArgs.Empty;
-        }
-        
-        return _tokenParser.Parse(tokens);
+        return tokens.Count == 0 ? CommandLineArgs.Empty : _tokenParser.Parse(tokens);
     }
 }

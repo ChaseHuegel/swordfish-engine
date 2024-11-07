@@ -1,24 +1,22 @@
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
+// ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class VertexArrayObject32 : VertexArrayObject<float, uint>
-{
-    public VertexArrayObject32(GL gl, BufferObject<float> vertexBufferObject, BufferObject<uint> elementBufferObject)
-        : base(gl, vertexBufferObject, elementBufferObject) { }
-}
+internal sealed class VertexArrayObject32(GL gl, BufferObject<float> vertexBufferObject, BufferObject<uint> elementBufferObject)
+    : VertexArrayObject<float, uint>(gl, vertexBufferObject, elementBufferObject);
 
 internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArrayObject<TVertexType>>
     where TVertexType : unmanaged
 {
     internal BufferObject<TVertexType> VertexBufferObject { get; }
 
-    private readonly GL GL;
+    private readonly GL _gl;
 
     public VertexArrayObject(GL gl, BufferObject<TVertexType> vertexBufferObject)
     {
-        GL = gl;
+        _gl = gl;
         VertexBufferObject = vertexBufferObject;
 
         Bind();
@@ -27,39 +25,39 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
 
     protected override uint CreateHandle()
     {
-        return GL.GenVertexArray();
+        return _gl.GenVertexArray();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteVertexArray(Handle);
+        _gl.DeleteVertexArray(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.BindVertexArray(Handle);
+        _gl.BindVertexArray(Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.BindVertexArray(0);
+        _gl.BindVertexArray(0);
     }
 
     public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)
     {
-        GL.EnableVertexAttribArray(index);
-        GL.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
+        _gl.EnableVertexAttribArray(index);
+        _gl.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
     }
 
     public unsafe void SetVertexAttribute(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)
     {
-        GL.EnableVertexAttribArray(index);
-        GL.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
+        _gl.EnableVertexAttribArray(index);
+        _gl.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
     }
 
     public void SetVertexAttributeDivisor(uint index, uint divisor)
     {
-        GL.VertexAttribDivisor(index, divisor);
+        _gl.VertexAttribDivisor(index, divisor);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -72,10 +70,14 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
         if (obj is not VertexArrayObject<TVertexType> other)
+        {
             return false;
+        }
 
         return Equals(other);
     }
@@ -98,11 +100,11 @@ internal class VertexArrayObject<TVertexType, TElementType> : GLHandle, IEquatab
     internal BufferObject<TVertexType> VertexBufferObject { get; }
     internal BufferObject<TElementType> ElementBufferObject { get; }
 
-    private readonly GL GL;
+    private readonly GL _gl;
 
     public VertexArrayObject(GL gl, BufferObject<TVertexType> vertexBufferObject, BufferObject<TElementType> elementBufferObject)
     {
-        GL = gl;
+        _gl = gl;
         VertexBufferObject = vertexBufferObject;
         ElementBufferObject = elementBufferObject;
 
@@ -113,39 +115,39 @@ internal class VertexArrayObject<TVertexType, TElementType> : GLHandle, IEquatab
 
     protected override uint CreateHandle()
     {
-        return GL.GenVertexArray();
+        return _gl.GenVertexArray();
     }
 
     protected override void FreeHandle()
     {
-        GL.DeleteVertexArray(Handle);
+        _gl.DeleteVertexArray(Handle);
     }
 
     protected override void BindHandle()
     {
-        GL.BindVertexArray(Handle);
+        _gl.BindVertexArray(Handle);
     }
 
     protected override void UnbindHandle()
     {
-        GL.BindVertexArray(0);
+        _gl.BindVertexArray(0);
     }
 
     public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)
     {
-        GL.EnableVertexAttribArray(index);
-        GL.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
+        _gl.EnableVertexAttribArray(index);
+        _gl.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
     }
 
     public unsafe void SetVertexAttribute(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)
     {
-        GL.EnableVertexAttribArray(index);
-        GL.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
+        _gl.EnableVertexAttribArray(index);
+        _gl.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
     }
 
     public void SetVertexAttributeDivisor(uint index, uint divisor)
     {
-        GL.VertexAttribDivisor(index, divisor);
+        _gl.VertexAttribDivisor(index, divisor);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,12 +160,11 @@ internal class VertexArrayObject<TVertexType, TElementType> : GLHandle, IEquatab
     public override bool Equals(object? obj)
     {
         if (ReferenceEquals(this, obj))
+        {
             return true;
+        }
 
-        if (obj is not VertexArrayObject<TVertexType, TElementType> other)
-            return false;
-
-        return Equals(other);
+        return obj is VertexArrayObject<TVertexType, TElementType> other && Equals(other);
     }
 
     public override int GetHashCode()

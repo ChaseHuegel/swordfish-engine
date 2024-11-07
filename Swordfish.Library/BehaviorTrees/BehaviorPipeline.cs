@@ -1,30 +1,32 @@
-namespace Swordfish.Library.BehaviorTrees
+namespace Swordfish.Library.BehaviorTrees;
+
+// ReSharper disable once UnusedType.Global
+public sealed class BehaviorPipeline : BehaviorNode
 {
-    public sealed class BehaviorPipeline : BehaviorNode
+    private readonly IBehaviorJob[] _jobs;
+
+    public BehaviorPipeline(params IBehaviorJob[] jobs)
     {
-        private readonly IBehaviorJob[] Jobs;
+        _jobs = jobs;
+    }
 
-        public BehaviorPipeline(params IBehaviorJob[] jobs)
-        {
-            Jobs = jobs;
-        }
+    public override BehaviorState Evaluate(object target, float delta)
+    {
+        return Tick(delta);
+    }
 
-        public override BehaviorState Evaluate(object target, float delta)
+    public BehaviorState Tick(float delta)
+    {
+        for (var i = 0; i < _jobs.Length; i++)
         {
-            return Tick(delta);
-        }
+            BehaviorState state = _jobs[i].Tick(delta);
 
-        public BehaviorState Tick(float delta)
-        {
-            for (int i = 0; i < Jobs.Length; i++)
+            if (state != BehaviorState.SUCCESS)
             {
-                BehaviorState state = Jobs[i].Tick(delta);
-
-                if (state != BehaviorState.SUCCESS)
-                    return state;
+                return state;
             }
-
-            return BehaviorState.SUCCESS;
         }
+
+        return BehaviorState.SUCCESS;
     }
 }
