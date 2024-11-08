@@ -37,6 +37,7 @@ public class Editor : IEntryPoint, IAutoActivate
     private readonly IRenderContext _renderContext;
     private readonly IInputService _inputService;
     private readonly IUIContext _uiContext;
+    private readonly IShortcutService _shortcutService;
     private readonly DebugSettings _debugSettings;
     private readonly RenderSettings _renderSettings;
     private readonly LogListener _logListener;
@@ -46,13 +47,24 @@ public class Editor : IEntryPoint, IAutoActivate
 
     private Action? _fileWrite;
 
-    public Editor(IWindowContext windowContext, IECSContext ecsContext, IRenderContext renderContext, IInputService inputService, IUIContext uiContext, ILineRenderer lineRenderer, DebugSettings debugSettings, RenderSettings renderSettings, LogListener logListener, ILogger logger)
+    public Editor(IWindowContext windowContext,
+        IECSContext ecsContext,
+        IRenderContext renderContext,
+        IInputService inputService,
+        IUIContext uiContext,
+        ILineRenderer lineRenderer,
+        IShortcutService shortcutService,
+        DebugSettings debugSettings,
+        RenderSettings renderSettings,
+        LogListener logListener,
+        ILogger logger)
     {
         _windowContext = windowContext;
         _ecsContext = ecsContext;
         _renderContext = renderContext;
         _inputService = inputService;
         _uiContext = uiContext;
+        _shortcutService = shortcutService;
         _debugSettings = debugSettings;
         _renderSettings = renderSettings;
         _logListener = logListener;
@@ -63,12 +75,14 @@ public class Editor : IEntryPoint, IAutoActivate
 
         //  Set up the hierarchy
         _ecsContext.World.AddSystem(new HierarchySystem());
-        _hierarchy = _uiContext.NewCanvas("Hierarchy");
-        _hierarchy.Flags = EDITOR_CANVAS_FLAGS;
-        _hierarchy.Constraints = new RectConstraints
+        _hierarchy = new CanvasElement(_uiContext, _windowContext, "Hierarchy")
         {
-            Width = new RelativeConstraint(0.15f),
-            Height = new RelativeConstraint(0.8f),
+            Flags = EDITOR_CANVAS_FLAGS,
+            Constraints = new RectConstraints
+            {
+                Width = new RelativeConstraint(0.15f),
+                Height = new RelativeConstraint(0.8f),
+            },
         };
 
         //  Create the grid and axis display
@@ -108,6 +122,7 @@ public class Editor : IEntryPoint, IAutoActivate
             Shortcut.DefaultEnabled,
             _windowContext.Close
         );
+        _shortcutService.RegisterShortcut(exitShortcut);
 
         StatsWindow statsWindow = new(_windowContext, _ecsContext, _renderContext, _renderSettings, _uiContext)
         {
@@ -128,7 +143,7 @@ public class Editor : IEntryPoint, IAutoActivate
                     Content = {
                         new MenuBarItemElement("New") {
                             Content = {
-                                new MenuBarItemElement("Plugin", new Shortcut(
+                                new MenuBarItemElement("Plugin", _shortcutService.NewShortcut(
                                     "New Plugin",
                                     "Editor",
                                     ShortcutModifiers.Control,
@@ -144,7 +159,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         _fileWrite?.Invoke();
                                     }
                                 )),
-                                new MenuBarItemElement("Project", new Shortcut(
+                                new MenuBarItemElement("Project", _shortcutService.NewShortcut(
                                     "New Project",
                                     "Editor",
                                     ShortcutModifiers.Control | ShortcutModifiers.Shift,
@@ -154,7 +169,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 )),
                             },
                         },
-                        new MenuBarItemElement("Open", new Shortcut(
+                        new MenuBarItemElement("Open", _shortcutService.NewShortcut(
                             "Open",
                             "Editor",
                             ShortcutModifiers.Control,
@@ -171,7 +186,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 pathNode.Data.Get().TryOpenInDefaultApp();
                             }
                         )),
-                        new MenuBarItemElement("Save", new Shortcut(
+                        new MenuBarItemElement("Save", _shortcutService.NewShortcut(
                             "Save",
                             "Editor",
                             ShortcutModifiers.Control,
@@ -179,7 +194,7 @@ public class Editor : IEntryPoint, IAutoActivate
                             Shortcut.DefaultEnabled,
                             () => _logger.LogInformation("Save project")
                         )),
-                        new MenuBarItemElement("Save As", new Shortcut(
+                        new MenuBarItemElement("Save As", _shortcutService.NewShortcut(
                             "Save As",
                             "Editor",
                             ShortcutModifiers.Control | ShortcutModifiers.Shift,
@@ -193,7 +208,7 @@ public class Editor : IEntryPoint, IAutoActivate
                 new MenuBarItemElement("Edit"),
                 new MenuBarItemElement("View") {
                     Content = {
-                        new MenuBarItemElement("Stats", new Shortcut(
+                        new MenuBarItemElement("Stats", _shortcutService.NewShortcut(
                                 "Stats",
                                 "Editor",
                                 ShortcutModifiers.None,
@@ -204,7 +219,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             )
                         ),
-                        new MenuBarItemElement("Wireframe", new Shortcut(
+                        new MenuBarItemElement("Wireframe", _shortcutService.NewShortcut(
                                 "Wireframe",
                                 "Editor",
                                 ShortcutModifiers.None,
@@ -215,7 +230,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                 }
                             )
                         ),
-                        new MenuBarItemElement("Meshes", new Shortcut(
+                        new MenuBarItemElement("Meshes", _shortcutService.NewShortcut(
                                 "Hide Meshes",
                                 "Editor",
                                 ShortcutModifiers.None,
@@ -228,7 +243,7 @@ public class Editor : IEntryPoint, IAutoActivate
                         ),
                         new MenuBarItemElement("Gizmos") {
                             Content = {
-                                new MenuBarItemElement("Transform", new Shortcut(
+                                new MenuBarItemElement("Transform", _shortcutService.NewShortcut(
                                         "Transform Gizmos",
                                         "Debug",
                                         ShortcutModifiers.None,
@@ -239,7 +254,7 @@ public class Editor : IEntryPoint, IAutoActivate
                                         }
                                     )
                                 ),
-                                new MenuBarItemElement("Physics", new Shortcut(
+                                new MenuBarItemElement("Physics", _shortcutService.NewShortcut(
                                         "Physics Gizmos",
                                         "Debug",
                                         ShortcutModifiers.None,
@@ -268,7 +283,7 @@ public class Editor : IEntryPoint, IAutoActivate
             },
         };
 
-        CanvasElement console = new(_uiContext, "Console")
+        CanvasElement console = new(_uiContext, _windowContext, "Console")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             AutoScroll = true,
@@ -296,7 +311,7 @@ public class Editor : IEntryPoint, IAutoActivate
             });
         }
 
-        CanvasElement assetBrowser = new(_uiContext, "Asset Browser")
+        CanvasElement assetBrowser = new(_uiContext, _windowContext, "Asset Browser")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints
@@ -367,7 +382,7 @@ public class Editor : IEntryPoint, IAutoActivate
             root.Content.Add(new DividerElement());
         }
 
-        CanvasElement inspector = new(_uiContext, "Inspector")
+        CanvasElement inspector = new(_uiContext, _windowContext, "Inspector")
         {
             Flags = EDITOR_CANVAS_FLAGS,
             Constraints = new RectConstraints

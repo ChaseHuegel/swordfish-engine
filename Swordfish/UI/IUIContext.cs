@@ -20,7 +20,4 @@ public interface IUIContext
     void Initialize();
 
     void Add(IElement element);
-    
-    CanvasElement NewCanvas(string name);
-    MenuBarElement NewMenuBar();
 }

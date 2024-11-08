@@ -85,7 +85,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
         _debugText = new TextElement("");
         // ReSharper disable once UnusedVariable
-        CanvasElement myCanvas = new(uiContext, "Demo Debug Canvas")
+        CanvasElement myCanvas = new(uiContext, windowContext, "Demo Debug Canvas")
         {
             Constraints = new RectConstraints
             {

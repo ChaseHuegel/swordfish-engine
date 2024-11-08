@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Threading;
 
 namespace Swordfish;
@@ -105,7 +104,6 @@ internal static class Program
         }
         
         _engine = AppEngine.Build(_args);
-        SwordfishEngine.Container = _engine.Container; //  TODO get rid of this
         TransitionState(EngineState.Loading, EngineState.Loaded);
 
         TransitionState(EngineState.Loaded, EngineState.Waking);
