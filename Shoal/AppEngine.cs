@@ -20,7 +20,7 @@ public sealed class AppEngine : IDisposable
 
     public IContainer Container { get; }
     
-    private AppEngine(in string[] args)
+    private AppEngine(in string[] args, DryIocInjectCallback? dryIocInjectCallback = null)
     {
         CommandLineArgs commandLineArgs;
         try
@@ -39,6 +39,8 @@ public sealed class AppEngine : IDisposable
         IContainer coreContainer = CreateCoreContainer(commandLineArgs);
         ActivateTomlMappers(coreContainer);
 
+        dryIocInjectCallback?.Invoke(coreContainer);
+
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
         ActivateTomlMappers(modulesContainer);
 
@@ -51,6 +53,11 @@ public sealed class AppEngine : IDisposable
     public static AppEngine Build(in string[] args)
     {
         return new AppEngine(args);
+    }
+    
+    public static AppEngine Build(in string[] args, DryIocInjectCallback dryIocInjectCallback)
+    {
+        return new AppEngine(args, dryIocInjectCallback);
     }
 
     public void Dispose()
@@ -277,8 +284,8 @@ public sealed class AppEngine : IDisposable
                 continue;
             }
 
-            var containerModule = (IDryIocInjector)Activator.CreateInstance(type)!;
-            containerModule.Inject(container);
+            var injector = (IDryIocInjector)Activator.CreateInstance(type)!;
+            injector.Inject(container);
         }
     }
 

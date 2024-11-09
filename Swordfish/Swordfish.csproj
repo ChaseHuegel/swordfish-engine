@@ -8,24 +8,21 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Swordfish</PackageId>
-    <Version>3.1.0</Version>
+    <Version>3.2.0</Version>
     <Authors>Chase Huegel</Authors>
-    <ApplicationIcon>Manifest/swordfish.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup>
+    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net8.0/modules/swordfish</OutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <PreserveCompilationContext>false</PreserveCompilationContext>
-    <PreserveCompilationReferences>false</PreserveCompilationReferences>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -38,7 +35,9 @@
 
   <ItemGroup>
     <None Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
-    <None Include="modules\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Update="manifest.toml">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

@@ -1,50 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\Swordfish\Swordfish.csproj">
-      <Private>false</Private>
-      <IncludeAssets>compile</IncludeAssets>
-    </ProjectReference>
-  </ItemGroup>
-
   <PropertyGroup>
-    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TargetFramework>net8.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/modules/swordfish.demo</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup>
+    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net8.0/modules/swordfish.demo</OutputPath>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <PreserveCompilationContext>false</PreserveCompilationContext>
-    <PreserveCompilationReferences>false</PreserveCompilationReferences>
-    <ProduceReferenceAssemblyInOutDir>false</ProduceReferenceAssemblyInOutDir>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="assets\**\*.*">
-      <Link>assets/%(RecursiveDir)%(Filename)%(Extension)</Link>
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <None Update="manifest.toml">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
+    <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+    <None Update="manifest.toml" CopyToOutputDirectory="Always"/>
+    <EmbeddedResource Include="Manifest\**\*.*" />
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="Manifest\**\*.*" />
-  </ItemGroup>
-  
-  <ItemGroup>
+    <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile"/>
     <PackageReference Include="LibNoise" Version="0.2.0" />
   </ItemGroup>
   
-  <ItemGroup>
-    <Folder Include="assets\" />
-  </ItemGroup>
-
 </Project>
