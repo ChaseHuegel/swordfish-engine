@@ -1,28 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Swordfish\Swordfish.csproj">
-      <Private>false</Private>
-      <IncludeAssets>compile</IncludeAssets>
-    </ProjectReference>
+    <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile"/>
   </ItemGroup>
 
   <PropertyGroup>
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <TargetFramework>net8.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish/bin/$(Configuration)/modules/swordfish.editor</OutputPath>
-  </PropertyGroup>
-
-  <PropertyGroup>
+    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net8.0/modules/swordfish.editor</OutputPath>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-    <PreserveCompilationContext>false</PreserveCompilationContext>
-    <PreserveCompilationReferences>false</PreserveCompilationReferences>
-    <ProduceReferenceAssemblyInOutDir>false</ProduceReferenceAssemblyInOutDir>
-    <SatelliteResourceLanguages>en-US</SatelliteResourceLanguages>
   </PropertyGroup>
 
   <ItemGroup>

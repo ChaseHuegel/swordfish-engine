@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using PInvoke;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
@@ -65,8 +66,10 @@ public class SwordfishEngine
     {
         TransitionState(State.Initialized, State.Starting);
 #if WINDOWS
-        if (args.Contains("-debug") || args.Contains("--debug") && !Kernel32.AttachConsole(-1))
+        if ((_args.Contains("-debug") || _args.Contains("--debug")) && !Kernel32.AttachConsole(-1))
+        {
             Kernel32.AllocConsole();
+        }
 #endif
         TransitionState(State.Starting, State.Started);
         

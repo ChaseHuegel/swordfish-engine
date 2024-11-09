@@ -21,6 +21,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoal", "Shoal\Shoal.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Compilation", "Swordfish.Compilation\Swordfish.Compilation.csproj", "{BD0B080F-8338-4EAC-B594-351F995CFDD6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Launcher", "Swordfish.Launcher\Swordfish.Launcher.csproj", "{8D11F61E-730A-4D04-8EFE-C4574FCD4333}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -66,5 +68,9 @@ Global
 		{BD0B080F-8338-4EAC-B594-351F995CFDD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BD0B080F-8338-4EAC-B594-351F995CFDD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BD0B080F-8338-4EAC-B594-351F995CFDD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

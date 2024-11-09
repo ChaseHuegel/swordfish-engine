@@ -4,9 +4,6 @@ Description = "The Swordfish engine."
 Author = "Chase Huegel"
 Website = "https://github.com/ChaseHuegel"
 Source = "https://github.com/ChaseHuegel/swordfish-engine"
-
-RootPathOverride = ""
-AssembliesPath = ""
 Assemblies = [
     "Swordfish.dll",
 ]
