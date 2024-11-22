@@ -48,7 +48,6 @@ public class ValueFieldCollection<TIdentifier>
         var attribute = new ValueField<TIdentifier>(identifier, value, max);
         _items.Add(identifier, attribute);
         return attribute;
-
     }
 
     public bool TryAdd(TIdentifier identifier, float value, float max = 0f)
