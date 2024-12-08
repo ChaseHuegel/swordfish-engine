@@ -36,7 +36,7 @@ internal sealed class Entry(in ILogger logger, in IFileParseService fileParseSer
 
         var brickEntityBuilder = new BrickEntityBuilder(shader, textureArray, _fileParseService, _ecsContext.World.DataStore);
         
-        byte[] seedBytes = "Wayward Beyond"u8.ToArray();
+        byte[] seedBytes = "wayward beyond"u8.ToArray();
         byte[] seedHash = SHA1.HashData(seedBytes);
         var seed = BitConverter.ToInt32(seedHash);
         var randomizer = new Randomizer(seed);
