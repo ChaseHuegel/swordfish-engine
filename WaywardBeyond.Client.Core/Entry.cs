@@ -1,4 +1,7 @@
+using System;
 using System.Numerics;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using LibNoise.Primitive;
 using Microsoft.Extensions.Logging;
@@ -36,21 +39,25 @@ internal sealed class Entry(in ILogger logger, in IFileParseService fileParseSer
         Task.Run(LoadWorld);
         Task? LoadWorld()
         {
-            const int asteroidCount = 100;
+            byte[] seedBytes = "Wayward Beyond"u8.ToArray();
+            byte[] seedHash = SHA1.HashData(seedBytes);
+            var seed = BitConverter.ToInt32(seedHash);
+            
+            const int asteroidCount = 20;
             const int asteroidMinSize = 20;
             const int asteroidMaxSize = 150;
             
             const int worldHeight = 100;
-            const int worldSpan = 1000;
+            const int worldSpan = 300;
             
             _logger.LogInformation("Loading world...");
         
             brickEntityBuilder.Create("Wayward Ship", grid, Vector3.Zero, Quaternion.Identity, Vector3.One);
 
-            var randomizer = new Randomizer();
+            var randomizer = new Randomizer(seed);
             for (var i = 0; i < asteroidCount; i++)
             {
-                CreateAsteroid(brickEntityBuilder, randomizer.NextInt(-worldSpan, worldSpan), randomizer.NextInt(-worldHeight, worldHeight), randomizer.NextInt(-worldSpan, worldSpan), randomizer.NextInt(asteroidMinSize, asteroidMaxSize));
+                CreateAsteroid(randomizer, brickEntityBuilder, randomizer.NextInt(-worldSpan, worldSpan), randomizer.NextInt(-worldHeight, worldHeight), randomizer.NextInt(-worldSpan, worldSpan), randomizer.NextInt(asteroidMinSize, asteroidMaxSize));
                 _logger.LogInformation("Created asteroid {num}.", i);
             }
 
@@ -59,7 +66,7 @@ internal sealed class Entry(in ILogger logger, in IFileParseService fileParseSer
         }
     }
 
-    private static void CreateAsteroid(BrickEntityBuilder brickEntityBuilder, int originX, int originY, int originZ, int diameter)
+    private static void CreateAsteroid(Randomizer randomizer, BrickEntityBuilder brickEntityBuilder, int originX, int originY, int originZ, int diameter)
     {
         var asteroidGrid = new BrickGrid(16);
         var rockBrick = new Brick(1)
@@ -68,7 +75,6 @@ internal sealed class Entry(in ILogger logger, in IFileParseService fileParseSer
         };
         
         var simplex = new SimplexPerlin();
-        var randomizer = new Randomizer();
         
         int width = diameter / 2;
         int centerOfMass = diameter / 2;
