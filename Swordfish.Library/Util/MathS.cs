@@ -8,6 +8,8 @@ namespace Swordfish.Library.Util;
 public static class MathS
 {
     public const float DEGREES_TO_RADIANS = MathF.PI / 180f;
+    public const float RADIANS_FULL_REVOLUTION = MathF.PI * 2;
+    public const float RADIANS_HALF_REVOLUTION = MathF.PI;
 
     public static readonly Random Random = new();
     private static readonly MemorizedSin _fastSin = MemorizedSin.ConstructByMaxError(0.001f);
