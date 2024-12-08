@@ -7,7 +7,17 @@ namespace Swordfish.Library.Util;
 
 public class Randomizer
 {
-    private readonly Random _random = new();
+    private readonly Random _random;
+
+    public Randomizer()
+    {
+        _random = new Random();
+    }
+    
+    public Randomizer(int seed)
+    {
+        _random = new Random(seed);
+    }
 
     public float NextFloat()
     {
