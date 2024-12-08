@@ -50,4 +50,8 @@
     <PackageReference Include="JoltPhysicsSharp" Version="2.9.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="assets\config\" />
+  </ItemGroup>
+
 </Project>

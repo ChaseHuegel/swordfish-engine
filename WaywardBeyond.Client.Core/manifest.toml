@@ -1,0 +1,9 @@
+﻿ID = "waywardbeyond.client.core"
+Name = "Wayward Beyond"
+Description = "The space sandbox RPG."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+Assemblies = [
+    "WaywardBeyond.Client.Core.dll",
+]

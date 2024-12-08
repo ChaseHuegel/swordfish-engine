@@ -23,6 +23,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Compilation", "Sw
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.Launcher", "Swordfish.Launcher\Swordfish.Launcher.csproj", "{8D11F61E-730A-4D04-8EFE-C4574FCD4333}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Client.Core", "WaywardBeyond.Client.Core\WaywardBeyond.Client.Core.csproj", "{6BD80933-C8E9-46E1-952B-87BC8ADC6987}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,5 +74,9 @@ Global
 		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8D11F61E-730A-4D04-8EFE-C4574FCD4333}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BD80933-C8E9-46E1-952B-87BC8ADC6987}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BD80933-C8E9-46E1-952B-87BC8ADC6987}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BD80933-C8E9-46E1-952B-87BC8ADC6987}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BD80933-C8E9-46E1-952B-87BC8ADC6987}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

@@ -85,6 +85,11 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
     }
 
+    public void SetGravity(Vector3 gravity)
+    {
+        System.Gravity = gravity;
+    }
+
     private void SetupCollisionFiltering()
     {
         // We use only 2 layers: one for non-moving objects and one for moving objects

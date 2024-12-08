@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net8.0/modules/waywardbeyond.client</OutputPath>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+        <None Update="manifest.toml" CopyToOutputDirectory="Always"/>
+        <EmbeddedResource Include="manifest\**\*.*" />
+        <None Update="manifest.toml">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile"/>
+        <PackageReference Include="LibNoise" Version="0.2.0" />
+    </ItemGroup>
+
+</Project>

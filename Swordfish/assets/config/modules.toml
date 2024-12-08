@@ -1,6 +1,0 @@
-﻿AllowScriptCompilation = false
-LoadOrder = [
-    "swordfish",
-    "swordfish.editor",
-    "swordfish.demo",
-]
