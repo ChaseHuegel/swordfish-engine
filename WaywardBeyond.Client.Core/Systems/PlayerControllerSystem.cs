@@ -22,12 +22,16 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
         Vector2 cursorPosition = _inputService.CursorPosition;
         if (!_inputService.IsKeyHeld(Key.Alt))
         {
-            _inputService.CursorState = CursorState.Locked;
+            if (_inputService.CursorState != CursorState.Locked)
+            {
+                _inputService.CursorState = CursorState.Locked;
+            }
+
             Vector2 cursorDelta = cursorPosition - _lastMousePosition;
             Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
             Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
         }
-        else
+        else if (_inputService.CursorState != CursorState.Normal)
         {
             _inputService.CursorState = CursorState.Normal;
         }
