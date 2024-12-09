@@ -1,0 +1,5 @@
+﻿AllowScriptCompilation = false
+LoadOrder = [
+    "swordfish",
+    "waywardbeyond.client.core",
+]
