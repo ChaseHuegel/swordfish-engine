@@ -93,7 +93,7 @@ public class ShortcutService : IShortcutService
             foreach (RegisteredShortcut registration in _registeredShortcuts.Values)
             {
                 Shortcut shortcut = registration.Shortcut;
-                if (registration.ShortcutState.PendingRelease && e.Key == shortcut.Key)
+                if (!registration.ShortcutState.PendingRelease || e.Key != shortcut.Key || shortcut.Released == null)
                 {
                     continue;
                 }
