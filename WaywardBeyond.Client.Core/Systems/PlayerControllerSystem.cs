@@ -11,6 +11,7 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
 {
     private const float MOUSE_SENSITIVITY = 0.05f;
     private const float BASE_SPEED = 10;
+    private const float ROLL_RATE = 60;
 
     private readonly IInputService _inputService = inputService;
     
@@ -34,6 +35,7 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
         
         Vector3 forward = transform.GetForward();
         Vector3 right = transform.GetRight();
+        Vector3 up = transform.GetUp();
 
         if (_inputService.IsKeyHeld(Key.W))
         {
@@ -57,12 +59,22 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
 
         if (_inputService.IsKeyHeld(Key.Space))
         {
-            transform.Position += new Vector3(0, BASE_SPEED * delta, 0);
+            transform.Position += up * BASE_SPEED * delta;
         }
 
         if (_inputService.IsKeyHeld(Key.Control))
         {
-            transform.Position -= new Vector3(0, BASE_SPEED * delta, 0);
+            transform.Position -= up * BASE_SPEED * delta;
+        }
+        
+        if (_inputService.IsKeyHeld(Key.Q))
+        {
+            Rotate(ref transform, new Vector3(0, 0, ROLL_RATE * delta), true);
+        }
+        
+        if (_inputService.IsKeyHeld(Key.E))
+        {
+            Rotate(ref transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
         }
     }
     
