@@ -41,7 +41,7 @@ internal sealed class WorldGenerator
                 _randomizer.NextInt(-worldHeight, worldHeight),
                 _randomizer.NextInt(-worldSpan, worldSpan)
             );
-                
+
             _asteroidGenerator.GenerateAt(position, _randomizer.NextInt(asteroidMinSize, asteroidMaxSize));
         }
 

@@ -14,9 +14,8 @@ using WaywardBeyond.Client.Core.Generation;
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class Entry(in ILogger logger, in IFileParseService fileParseService, in IECSContext ecsContext, in IPhysics physics) : IEntryPoint, IAutoActivate
+internal sealed class Entry(in IFileParseService fileParseService, in IECSContext ecsContext, in IPhysics physics) : IEntryPoint, IAutoActivate
 {
-    private readonly ILogger _logger = logger;
     private readonly IFileParseService _fileParseService = fileParseService;
     private readonly IECSContext _ecsContext = ecsContext;
     private readonly IPhysics _physics = physics;
