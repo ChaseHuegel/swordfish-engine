@@ -1,6 +1,7 @@
 ﻿using DryIoc;
 using Shoal.DependencyInjection;
-using WaywardBeyond.Client.Core.Bricks;
+using Swordfish.ECS;
+using WaywardBeyond.Client.Core.Systems;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -10,5 +11,7 @@ public class Injector : IDryIocInjector
     public void Inject(IContainer container)
     {
         container.RegisterMany<Entry>();
+        container.Register<IEntitySystem, PlayerControllerSystem>();
+        container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
 }
