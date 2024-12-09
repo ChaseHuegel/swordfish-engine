@@ -1,30 +1,43 @@
-using Swordfish.Library.Collections;
+using Microsoft.Extensions.Logging;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 
 namespace Swordfish.Input;
 
 public class ShortcutService : IShortcutService
 {
-    private readonly IInputService _inputService;
-    private readonly LockedList<Shortcut> _shortcuts;
+    private class RegisteredShortcut(in Shortcut shortcut)
+    {
+        public readonly Shortcut Shortcut = shortcut;
+        public readonly ShortcutState ShortcutState = new();
+    }
 
-    public ShortcutService(IInputService inputService)
+    private class ShortcutState
+    {
+        public bool PendingRelease;
+    }
+    
+    private readonly IInputService _inputService;
+    private readonly ILogger _logger;
+    private readonly Dictionary<string, RegisteredShortcut> _registeredShortcuts;
+
+    public ShortcutService(IInputService inputService, ILogger logger)
     {
         _inputService = inputService;
-        _shortcuts = [];
+        _logger = logger;
+        _registeredShortcuts = [];
 
         _inputService.KeyPressed += OnKeyPressed;
+        _inputService.KeyReleased += OnKeyReleased;
     }
 
     public bool RegisterShortcut(Shortcut shortcut)
     {
-        if (_shortcuts.Any(x => x.Name == shortcut.Name))
+        lock (_registeredShortcuts)
         {
-            return false;
+            return _registeredShortcuts.TryAdd(shortcut.Name, new RegisteredShortcut(shortcut));
         }
-
-        _shortcuts.Add(shortcut);
-        return true;
     }
 
     private void OnKeyPressed(object? sender, KeyEventArgs e)
@@ -46,16 +59,52 @@ public class ShortcutService : IShortcutService
             modifiers |= ShortcutModifiers.Alt;
         }
 
-        foreach (Shortcut shortcut in _shortcuts)
+        lock (_registeredShortcuts)
         {
-            if (shortcut.IsEnabled != null && !shortcut.IsEnabled.Invoke())
+            foreach (RegisteredShortcut registration in _registeredShortcuts.Values)
             {
-                continue;
-            }
+                Shortcut shortcut = registration.Shortcut;
+                
+                if (e.Key != shortcut.Key || (shortcut.Modifiers != ShortcutModifiers.None && modifiers != shortcut.Modifiers))
+                {
+                    continue;
+                }
 
-            if (e.Key == shortcut.Key && (shortcut.Modifiers == ShortcutModifiers.None || modifiers == shortcut.Modifiers))
+                if (shortcut.IsEnabled != null && !shortcut.IsEnabled.Invoke())
+                {
+                    continue;
+                }
+
+                registration.ShortcutState.PendingRelease = true;
+                
+                Result<Exception> invokeResult = Safe.Invoke(shortcut.Action);
+                if (!invokeResult)
+                {
+                    _logger.LogError(invokeResult.Value, "Caught an exception trying to invoke pressed action {action} for shortcut {shortcut}.", shortcut.Action.Method, shortcut.ToString());
+                }
+            }
+        }
+    }
+    
+    private void OnKeyReleased(object? sender, KeyEventArgs e)
+    {
+        lock (_registeredShortcuts)
+        {
+            foreach (RegisteredShortcut registration in _registeredShortcuts.Values)
             {
-                shortcut.Action?.Invoke();
+                Shortcut shortcut = registration.Shortcut;
+                if (registration.ShortcutState.PendingRelease && e.Key == shortcut.Key)
+                {
+                    continue;
+                }
+                
+                registration.ShortcutState.PendingRelease = false;
+                
+                Result<Exception> invokeResult = Safe.Invoke(shortcut.Released);
+                if (!invokeResult)
+                {
+                    _logger.LogError(invokeResult.Value, "Caught an exception trying to invoke release action {action} for shortcut {shortcut}.", shortcut.Action.Method, shortcut.ToString());
+                }
             }
         }
     }

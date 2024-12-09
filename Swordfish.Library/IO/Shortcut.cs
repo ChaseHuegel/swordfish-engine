@@ -13,6 +13,7 @@ public struct Shortcut
     public Key Key;
     public Func<bool> IsEnabled;
     public Action Action;
+    public Action Released;
 
     public Shortcut(string name, ShortcutModifiers modifiers, Key key, Func<bool> isEnabled, Action action)
     {
