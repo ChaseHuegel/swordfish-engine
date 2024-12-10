@@ -10,7 +10,7 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
     : EntitySystem<PlayerComponent, TransformComponent>
 {
     private const float MOUSE_SENSITIVITY = 0.05f;
-    private const float BASE_SPEED = 10;
+    private const float BASE_SPEED = 20;
     private const float ROLL_RATE = 60;
 
     private readonly IInputService _inputService = inputService;

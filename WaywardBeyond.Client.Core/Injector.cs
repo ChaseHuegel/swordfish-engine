@@ -12,6 +12,7 @@ public class Injector : IDryIocInjector
     {
         container.RegisterMany<Entry>();
         container.Register<IEntitySystem, PlayerControllerSystem>();
+        container.Register<IEntitySystem, PlayerInteractionSystem>();
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
 }

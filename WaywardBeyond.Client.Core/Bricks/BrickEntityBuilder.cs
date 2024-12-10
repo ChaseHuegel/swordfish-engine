@@ -5,6 +5,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
+using WaywardBeyond.Client.Core.Components;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -47,19 +48,21 @@ internal sealed class BrickEntityBuilder(
         var transform = new TransformComponent(position, orientation, scale);
 
         int ptr = _dataStore.Alloc(new IdentifierComponent(name, "bricks"));
+        int transparencyPtr = _dataStore.Alloc(new IdentifierComponent($"{name} [Transparency]", "bricks"));
+
         Mesh mesh = _brickGridBuilder.CreateMesh(grid);
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(ptr, transform);
         _dataStore.AddOrUpdate(ptr, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(ptr, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         _dataStore.AddOrUpdate(ptr, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
+        _dataStore.AddOrUpdate(ptr, new BrickComponent(grid, transparencyPtr));
         
-        ptr = _dataStore.Alloc(new IdentifierComponent($"{name} [Transparency]", "bricks"));
         mesh = _brickGridBuilder.CreateMesh(grid, true);
         renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
-        _dataStore.AddOrUpdate(ptr, transform);
-        _dataStore.AddOrUpdate(ptr, new MeshRendererComponent(renderer));
-        _dataStore.AddOrUpdate(ptr, new ChildComponent(ptr));
+        _dataStore.AddOrUpdate(transparencyPtr, transform);
+        _dataStore.AddOrUpdate(transparencyPtr, new MeshRendererComponent(renderer));
+        _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(ptr));
         
         return new Entity(ptr, _dataStore);
     }
