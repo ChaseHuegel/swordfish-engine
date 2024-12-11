@@ -1,8 +1,10 @@
+using System;
 using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
+using Swordfish;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
@@ -15,15 +17,26 @@ using WaywardBeyond.Client.Core.Generation;
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class Entry(in IFileParseService fileParseService, in IECSContext ecsContext, in IPhysics physics, in IShortcutService shortcutService, in IWindowContext windowContext)
-    : IEntryPoint, IAutoActivate
+internal sealed class Entry : IEntryPoint, IAutoActivate
 {
-    private readonly IFileParseService _fileParseService = fileParseService;
-    private readonly IECSContext _ecsContext = ecsContext;
-    private readonly IPhysics _physics = physics;
-    private readonly IShortcutService _shortcutService = shortcutService;
-    private readonly IWindowContext _windowContext = windowContext;
-    
+    private readonly IFileParseService _fileParseService;
+    private readonly IECSContext _ecsContext;
+    private readonly IPhysics _physics;
+    private readonly IShortcutService _shortcutService;
+    private readonly IWindowContext _windowContext;
+
+
+    public Entry(in IFileParseService fileParseService, in IECSContext ecsContext, in IPhysics physics, in IShortcutService shortcutService, in IWindowContext windowContext)
+    {
+        _fileParseService = fileParseService;
+        _ecsContext = ecsContext;
+        _physics = physics;
+        _shortcutService = shortcutService;
+        _windowContext = windowContext;
+        
+        _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version} +Swordfish {SwordfishEngine.Version}");
+    }
+
     public void Run()
     {
         Shortcut quitShortcut = new(
