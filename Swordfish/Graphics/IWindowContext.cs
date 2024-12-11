@@ -26,4 +26,5 @@ public interface IWindowContext
     void Minimize();
     void Maximize();
     void Fullscreen();
+    void SetTitle(string? title);
 }

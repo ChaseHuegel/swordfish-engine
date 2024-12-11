@@ -125,6 +125,11 @@ public class SilkWindowContext : IWindowContext
         _mainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
     }
 
+    public void SetTitle(string? title)
+    {
+        Window.Title = title ?? string.Empty;
+    }
+
     private void OnClose()
     {
         _gl.Dispose();
