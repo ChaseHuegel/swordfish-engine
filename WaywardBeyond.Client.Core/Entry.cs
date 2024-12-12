@@ -13,6 +13,7 @@ using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
+using WaywardBeyond.Client.Core.Generation.Structures;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -34,7 +35,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _shortcutService = shortcutService;
         _windowContext = windowContext;
         
-        _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version} +Swordfish {SwordfishEngine.Version}");
+        _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
 
     public void Run()
@@ -57,7 +58,10 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         var brickEntityBuilder = new BrickEntityBuilder(shader, textureArray, _fileParseService, _ecsContext.World.DataStore);
         var worldGenerator = new WorldGenerator("wayward beyond", brickEntityBuilder);
         
-        Task.Run(worldGenerator.Generate);
+        // Task.Run(worldGenerator.Generate);
+        
+        var asteroidGenerator = new AsteroidGenerator(0, brickEntityBuilder);
+        asteroidGenerator.GenerateAt(Vector3.Zero, 20);
         
         Entity player = _ecsContext.World.NewEntity();
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));

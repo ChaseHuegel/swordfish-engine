@@ -124,4 +124,9 @@ public struct Brick(in ushort id) : IEquatable<Brick>
 
         return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DEGREES_TO_RADIANS, euler.X * MathS.DEGREES_TO_RADIANS, euler.Z * MathS.DEGREES_TO_RADIANS);
     }
+
+    public override string ToString()
+    {
+        return $"{ID}:{Name ?? "UNDEFINED"} / {Rotation} / {Orientation}";
+    }
 }

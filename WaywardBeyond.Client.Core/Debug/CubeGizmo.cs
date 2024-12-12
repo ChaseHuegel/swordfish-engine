@@ -13,12 +13,13 @@ public sealed class CubeGizmo : IDisposable
     private readonly Line[] _lines;
     private readonly LineTemplate[] _templates;
 
-    public CubeGizmo(ILineRenderer lineRenderer)
+    public CubeGizmo(ILineRenderer lineRenderer, Vector4 color)
     {
         _lines = new Line[12];
         for (var i = 0; i < _lines.Length; i++)
         {
-            _lines[i] = lineRenderer.CreateLine(alwaysOnTop: true);
+            _lines[i] = lineRenderer.CreateLine(alwaysOnTop: false);
+            _lines[i].Color = color;
         }
 
         _templates = new LineTemplate[12];
@@ -76,9 +77,8 @@ public sealed class CubeGizmo : IDisposable
         for (var i = 0; i < _lines.Length; i++)
         {
             Line line = _lines[i];
-            line.Start = transform.Position + Vector3.Transform(_templates[i].Start, transform.Orientation);
-            line.End = transform.Position + Vector3.Transform(_templates[i].End, transform.Orientation);
-            line.Color = new Vector4(1);
+            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * 1.05f, transform.Orientation);
+            line.End = transform.Position + Vector3.Transform(_templates[i].End * 1.05f, transform.Orientation);
         }
     }
 }

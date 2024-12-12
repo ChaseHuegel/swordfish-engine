@@ -15,11 +15,13 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
 
     private readonly IInputService _inputService = inputService;
     
-    private Vector2 _lastMousePosition;
+    private Vector2? _lastMousePosition;
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
         Vector2 cursorPosition = _inputService.CursorPosition;
+        _lastMousePosition ??= cursorPosition;
+        
         if (!_inputService.IsKeyHeld(Key.Alt))
         {
             if (_inputService.CursorState != CursorState.Locked)
@@ -27,7 +29,7 @@ internal sealed class PlayerControllerSystem(in IInputService inputService)
                 _inputService.CursorState = CursorState.Locked;
             }
 
-            Vector2 cursorDelta = cursorPosition - _lastMousePosition;
+            Vector2 cursorDelta = cursorPosition - _lastMousePosition.Value;
             Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
             Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
         }

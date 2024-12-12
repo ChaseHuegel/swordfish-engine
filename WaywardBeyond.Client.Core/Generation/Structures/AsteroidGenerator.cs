@@ -50,10 +50,12 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
             asteroidGrid.Set(x, y, z, rockBrick);
         }
 
-        float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
-        float pitch = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
-        float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
-        var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+        //  TODO uncomment this when selecting rotated bricks is fixed
+        // float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
+        // float pitch = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
+        // float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
+        // var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+        var orientation = Quaternion.Identity;
         
         _brickEntityBuilder.Create("asteroid", asteroidGrid, position, orientation, Vector3.One);
     }
