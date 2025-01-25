@@ -32,7 +32,7 @@ JoltPhysicsSharp ([Jolt Physics](https://github.com/jrouwe/JoltPhysics) C# bindi
 # Swordfish 3: Current State
 Swordfish is on V3 and underwent a full rewrite from V2 to better support modularity and extensibility, as well as decouple from tight dependencies on specific frameworks and APIs. This new version is an ongoing effort and the progress is tracked here.
 
-### Core
+## Core
 - [x] Upgrade to NET 8.0
 - [x] Multithreaded focus
 - [x] Dependency injection focus
@@ -73,7 +73,7 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
     - [x] OpenGL support
     - [ ] Vulkan support
 
-### Networking
+## Networking
 - [x] Serialization via Needlefish format
   - [x] Compressed binary format
   - [x] Schema definition lang
@@ -83,7 +83,7 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
 - [ ] TCP support
 - [ ] ECS integration
 
-### Modding/Plugin Support
+## Modding/Plugin Support
 - [x] DLL modules
 - [x] Module manifests & configuration
 - [x] Virtual File System
@@ -93,7 +93,7 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
   - [x] Linter
   - [ ] Compiler
 
-### Editor
+## Editor
 - [ ] Project generation
 - [ ] Project management
 - [ ] Visual scripting
@@ -105,7 +105,7 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
   - [x] Read
   - [ ] Write
 
-### Diagnostics
+## Diagnostics
 - [x] Profiler
   - [x] Data collection & logging
   - [ ] Viewer
