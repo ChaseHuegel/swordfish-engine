@@ -77,8 +77,8 @@ public sealed class CubeGizmo : IDisposable
         for (var i = 0; i < _lines.Length; i++)
         {
             Line line = _lines[i];
-            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * 1.05f, transform.Orientation);
-            line.End = transform.Position + Vector3.Transform(_templates[i].End * 1.05f, transform.Orientation);
+            line.Start = Vector3.Transform(transform.Position + _templates[i].Start * 1.05f, transform.Orientation);
+            line.End = Vector3.Transform(transform.Position + _templates[i].End * 1.05f, transform.Orientation);
         }
     }
 }
