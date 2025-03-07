@@ -83,14 +83,14 @@ internal sealed class PlayerInteractionSystem
             return;
         }
 
-        //  TODO normalizing the orientation isn't working correctly. The point calculation below only works if the target isn't rotated.
+        //  TODO with rotated targets, selecting the desired brick becomes very inaccurate
+
         Quaternion invertedOrientation = Quaternion.Inverse(transformComponent.Orientation);
-        Vector3 offset = new Vector3(brickComponent.Grid.DimensionSize / 2f);
-        Vector3 localPoint = Vector3.Transform(raycast.Point - transformComponent.Position + offset, invertedOrientation);
-        localPoint += new Vector3(0.5f);      //  Offset by half a unit to account for the brick center.
+        Vector3 offset = brickComponent.Grid.CenterOfMass;
+        Vector3 localPoint = raycast.Point - Vector3.Transform(transformComponent.Position, invertedOrientation) + offset;
+        localPoint += new Vector3(0.5f);    //  Offset by half a unit to account for the brick center.
         localPoint += ray.Vector * 0.1f;    //  Penetrate slightly to select the target
         
-        //  TODO figure out a better way to handle this.
         //  World to brick coordinate is handled by dropping the floating point.
         //  For negative coordinates, it must be offset by 1. ex: -0.1 evaluates as -1, and 0.1 evaluates 0.
         bool negX = localPoint.X < 0;
@@ -99,7 +99,7 @@ internal sealed class PlayerInteractionSystem
         var x = (int)(negX ? localPoint.X - 1 : localPoint.X);
         var y = (int)(negY ? localPoint.Y - 1 : localPoint.Y);
         var z = (int)(negZ ? localPoint.Z - 1 : localPoint.Z);
-        Brick clickedBrick = brickComponent.Grid.Get(x, y, z);  //  TODO this isn't quite correct. The coords are slightly offset.
+        Brick clickedBrick = brickComponent.Grid.Get(x, y, z);
         
         _cubeGizmo.Render(new TransformComponent(transformComponent.Position + new Vector3(x, y, z) - offset, transformComponent.Orientation));
 
