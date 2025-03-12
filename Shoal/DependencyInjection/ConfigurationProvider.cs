@@ -7,15 +7,19 @@ internal class ConfigurationProvider
 {
     private const string FILE_MODULE_OPTIONS = "modules.toml";
 
-    private readonly ParsedFile<Language>[] _languages;
+    private readonly ILogger _logger;
+    private readonly IFileParseService _fileParseService;
+    private readonly VirtualFileSystem _vfs;
     private readonly ParsedFile<ModuleManifest>[] _modManifests;
     private readonly ParsedFile<ModuleOptions>? _modOptions;
+    private ParsedFile<Language>[]? _languages;
 
     public ConfigurationProvider(ILogger logger, IFileParseService fileParseService, VirtualFileSystem vfs)
     {
-        _languages = LoadLanguages(fileParseService, vfs);
-        logger.LogInformation("Found {count} languages.", _languages.Length);
-
+        _logger = logger;
+        _fileParseService = fileParseService;
+        _vfs = vfs;
+        
         _modManifests = LoadManifests(fileParseService);
         logger.LogInformation("Found {count} module manifests.", _modManifests.Length);
         if (_modManifests.Length == 0)
@@ -37,6 +41,15 @@ internal class ConfigurationProvider
 
     public IReadOnlyCollection<ParsedFile<Language>> GetLanguages()
     {
+        if (_languages != null)
+        {
+            return _languages;
+        }
+
+        //  This isn't ideal. Languages should be loaded during construction but the VFS hasn't
+        //  been mounted until after this class is constructed by ModulesLoader's dependency on it.
+        _languages = LoadLanguages(_fileParseService, _vfs);
+        _logger.LogInformation("Loaded {count} language definitions.", _languages.Length);
         return _languages;
     }
 

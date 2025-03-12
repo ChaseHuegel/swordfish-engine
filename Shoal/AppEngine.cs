@@ -44,6 +44,10 @@ public sealed class AppEngine : IDisposable
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
         ActivateTomlMappers(modulesContainer);
 
+        //  Load languages
+        coreContainer.Resolve<ConfigurationProvider>().GetLanguages();
+        
+        //  Auto activate things
         coreContainer.ResolveMany<IAutoActivate>();
         modulesContainer.ResolveMany<IAutoActivate>();
 
