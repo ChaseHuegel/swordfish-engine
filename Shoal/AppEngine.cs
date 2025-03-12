@@ -111,11 +111,7 @@ public sealed class AppEngine : IDisposable
             options.BasePath = "logs";
             options.DateFormat = "yyyy-MM-dd";
             options.IncludeScopes = true;
-#if DEBUG
             options.FileAccessMode = LogFileAccessMode.KeepOpenAndAutoFlush;
-#else
-            options.FileAccessMode = LogFileAccessMode.KeepOpen;
-#endif
             options.Files =
             [
                 new LogFileOptions
