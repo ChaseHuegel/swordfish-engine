@@ -11,9 +11,9 @@ internal class ConfigurationProvider
     private readonly ParsedFile<ModuleManifest>[] _modManifests;
     private readonly ParsedFile<ModuleOptions>? _modOptions;
 
-    public ConfigurationProvider(ILogger logger, IFileParseService fileParseService)
+    public ConfigurationProvider(ILogger logger, IFileParseService fileParseService, VirtualFileSystem vfs)
     {
-        _languages = LoadLanguages(fileParseService);
+        _languages = LoadLanguages(fileParseService, vfs);
         logger.LogInformation("Found {count} languages.", _languages.Length);
 
         _modManifests = LoadManifests(fileParseService);
@@ -50,17 +50,17 @@ internal class ConfigurationProvider
         return _modManifests;
     }
 
-    private static ParsedFile<Language>[] LoadLanguages(IFileParseService fileParseService)
+    private static ParsedFile<Language>[] LoadLanguages(IFileParseService fileParseService, VirtualFileSystem vfs)
     {
-        PathInfo[] langFiles = Paths.Lang.GetFiles("*.toml", SearchOption.AllDirectories);
-
+        IEnumerable<PathInfo> enumerableTomlFiles = vfs.GetFiles(VirtualPaths.Lang, SearchOption.AllDirectories)
+            .Where(file => file.GetExtension() == ".toml");
+        
         var languages = new List<ParsedFile<Language>>();
-        for (var i = 0; i < langFiles.Length; i++)
+        foreach (PathInfo file in enumerableTomlFiles)
         {
-            PathInfo path = langFiles[i];
-            if (fileParseService.TryParse(path, out Language language))
+            if (fileParseService.TryParse(file, out Language language))
             {
-                languages.Add(new ParsedFile<Language>(path, language));
+                languages.Add(new ParsedFile<Language>(file, language));
             }
         }
 
