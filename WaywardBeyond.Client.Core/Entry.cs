@@ -58,7 +58,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         var brickEntityBuilder = new BrickEntityBuilder(shader, textureArray, _fileParseService, _ecsContext.World.DataStore);
         var worldGenerator = new WorldGenerator("wayward beyond", brickEntityBuilder);
         
-        // Task.Run(worldGenerator.Generate);
+        Task.Run(worldGenerator.Generate);
         
         var asteroidGenerator = new AsteroidGenerator(0, brickEntityBuilder);
         asteroidGenerator.GenerateAt(Vector3.Zero, 20);
