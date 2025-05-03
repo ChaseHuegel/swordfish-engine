@@ -5,7 +5,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
@@ -68,7 +67,6 @@ internal sealed class PlayerInteractionSystem
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
         Camera camera = _renderContext.Camera.Get();
-        Transform transform = camera.Transform;
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
@@ -83,30 +81,38 @@ internal sealed class PlayerInteractionSystem
             return;
         }
 
-        //  TODO with rotated targets, selecting the desired brick becomes very inaccurate
-
-        Quaternion invertedOrientation = Quaternion.Inverse(transformComponent.Orientation);
-        Vector3 offset = brickComponent.Grid.CenterOfMass;
-        Vector3 localPoint = raycast.Point - Vector3.Transform(transformComponent.Position, invertedOrientation) + offset;
-        localPoint += new Vector3(0.5f);    //  Offset by half a unit to account for the brick center.
-        localPoint += ray.Vector * 0.1f;    //  Penetrate slightly to select the target
+        (int X, int Y, int Z) brickPos = WorldToBrickSpace(raycast.Point + ray.Vector * 0.1f, transformComponent.Position, transformComponent.Orientation);
+        Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         
-        //  World to brick coordinate is handled by dropping the floating point.
-        //  For negative coordinates, it must be offset by 1. ex: -0.1 evaluates as -1, and 0.1 evaluates 0.
-        bool negX = localPoint.X < 0;
-        bool negY = localPoint.Y < 0;
-        bool negZ = localPoint.Z < 0;
-        var x = (int)(negX ? localPoint.X - 1 : localPoint.X);
-        var y = (int)(negY ? localPoint.Y - 1 : localPoint.Y);
-        var z = (int)(negZ ? localPoint.Z - 1 : localPoint.Z);
-        Brick clickedBrick = brickComponent.Grid.Get(x, y, z);
-        
-        _cubeGizmo.Render(new TransformComponent(transformComponent.Position + new Vector3(x, y, z) - offset, transformComponent.Orientation));
+        Brick clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
 
-        _debugText.Text = $"Hovering: {clickedBrick}\nBrick: {x}, {y}, {z}\nLocal: {localPoint.X}, {localPoint.Y}, {localPoint.Z}\nPoint: {raycast.Point.X}, {raycast.Point.Y}, {raycast.Point.Z}";
+        _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
+        _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nPoint: {raycast.Point.X}, {raycast.Point.Y}, {raycast.Point.Z}";
     }
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
+    }
+
+    private static (int X, int Y, int Z) WorldToBrickSpace(Vector3 hitPoint, Vector3 gridOrigin, Quaternion gridRotation)
+    {
+        Vector3 localPoint = Vector3.Transform(hitPoint - gridOrigin, Quaternion.Inverse(gridRotation)) + new Vector3(0.5f);
+        
+        var x = (int)Math.Floor(localPoint.X);
+        var y = (int)Math.Floor(localPoint.Y);
+        var z = (int)Math.Floor(localPoint.Z);
+
+        return (x, y, z);
+    }
+
+    private static Vector3 BrickToWorldSpace((int X, int Y, int Z) cellCoordinates, Vector3 gridOrigin, Quaternion gridRotation)
+    {
+        var localCenter = new Vector3(
+            cellCoordinates.X,
+            cellCoordinates.Y,
+            cellCoordinates.Z
+        );
+
+        return Vector3.Transform(localCenter, gridRotation) + gridOrigin;
     }
 }
