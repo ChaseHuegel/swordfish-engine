@@ -40,17 +40,17 @@ public class BrickGrid
         {
             if (TryGetNeighbor(x, y, z, out BrickGrid? neighbor))
             {
-                if (x >= DimensionSize)
+                if (x >= DimensionSize || x < 0)
                 {
                     x += x < 0 ? DimensionSize : -DimensionSize;
                 }
 
-                if (y >= DimensionSize)
+                if (y >= DimensionSize || y < 0)
                 {
                     y += y < 0 ? DimensionSize : -DimensionSize;
                 }
 
-                if (z >= DimensionSize)
+                if (z >= DimensionSize || z < 0)
                 {
                     z += z < 0 ? DimensionSize : -DimensionSize;
                 }
@@ -79,17 +79,17 @@ public class BrickGrid
             if (TryGetOrAddNeighbor(x, y, z, out BrickGrid? neighbor))
             {
                 var newPoint = new Vector3(x, y, z);
-                if (x >= DimensionSize)
+                if (x >= DimensionSize || x < 0)
                 {
                     x += x < 0 ? DimensionSize : -DimensionSize;
                 }
 
-                if (y >= DimensionSize)
+                if (y >= DimensionSize || y < 0)
                 {
                     y += y < 0 ? DimensionSize : -DimensionSize;
                 }
 
-                if (z >= DimensionSize)
+                if (z >= DimensionSize || z < 0)
                 {
                     z += z < 0 ? DimensionSize : -DimensionSize;
                 }
