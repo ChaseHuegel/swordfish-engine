@@ -44,6 +44,10 @@ public sealed class AppEngine : IDisposable
         IContainer modulesContainer = CreateModulesContainer(coreContainer);
         ActivateTomlMappers(modulesContainer);
 
+        //  Load languages
+        coreContainer.Resolve<ConfigurationProvider>().GetLanguages();
+        
+        //  Auto activate things
         coreContainer.ResolveMany<IAutoActivate>();
         modulesContainer.ResolveMany<IAutoActivate>();
 
@@ -111,11 +115,7 @@ public sealed class AppEngine : IDisposable
             options.BasePath = "logs";
             options.DateFormat = "yyyy-MM-dd";
             options.IncludeScopes = true;
-#if DEBUG
             options.FileAccessMode = LogFileAccessMode.KeepOpenAndAutoFlush;
-#else
-            options.FileAccessMode = LogFileAccessMode.KeepOpen;
-#endif
             options.Files =
             [
                 new LogFileOptions

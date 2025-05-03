@@ -1,0 +1,5 @@
+"Language" = "en"
+
+[Translations]
+"Chat.Format.Other"             = "{Channel:choose(0|1|2|3|4|5):{:L:Chat.Format.Other.Whisper}|{:L:Chat.Format.Other.Local}|{:L:Chat.Format.Other.System}|{:L:Chat.Format.Other.Global}|{:L:Chat.Format.Other.Help}|{:L:Chat.Format.Other.Trade}|{:L:Chat.Format.Other.Default}}"
+"Chat.Format.Self"              = "{Channel:choose(0|1|2|3|4|5):{:L:Chat.Format.Self.Whisper}|{:L:Chat.Format.Self.Local}|{:L:Chat.Format.Self.System}|{:L:Chat.Format.Self.Global}|{:L:Chat.Format.Self.Help}|{:L:Chat.Format.Self.Trade}|{:L:Chat.Format.Self.Default}}"

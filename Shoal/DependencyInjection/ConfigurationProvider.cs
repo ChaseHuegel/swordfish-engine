@@ -7,15 +7,19 @@ internal class ConfigurationProvider
 {
     private const string FILE_MODULE_OPTIONS = "modules.toml";
 
-    private readonly ParsedFile<Language>[] _languages;
+    private readonly ILogger _logger;
+    private readonly IFileParseService _fileParseService;
+    private readonly VirtualFileSystem _vfs;
     private readonly ParsedFile<ModuleManifest>[] _modManifests;
     private readonly ParsedFile<ModuleOptions>? _modOptions;
+    private ParsedFile<Language>[]? _languages;
 
-    public ConfigurationProvider(ILogger logger, IFileParseService fileParseService)
+    public ConfigurationProvider(ILogger logger, IFileParseService fileParseService, VirtualFileSystem vfs)
     {
-        _languages = LoadLanguages(fileParseService);
-        logger.LogInformation("Found {count} languages.", _languages.Length);
-
+        _logger = logger;
+        _fileParseService = fileParseService;
+        _vfs = vfs;
+        
         _modManifests = LoadManifests(fileParseService);
         logger.LogInformation("Found {count} module manifests.", _modManifests.Length);
         if (_modManifests.Length == 0)
@@ -37,6 +41,15 @@ internal class ConfigurationProvider
 
     public IReadOnlyCollection<ParsedFile<Language>> GetLanguages()
     {
+        if (_languages != null)
+        {
+            return _languages;
+        }
+
+        //  This isn't ideal. Languages should be loaded during construction but the VFS hasn't
+        //  been mounted until after this class is constructed by ModulesLoader's dependency on it.
+        _languages = LoadLanguages(_fileParseService, _vfs);
+        _logger.LogInformation("Loaded {count} language definitions.", _languages.Length);
         return _languages;
     }
 
@@ -50,17 +63,17 @@ internal class ConfigurationProvider
         return _modManifests;
     }
 
-    private static ParsedFile<Language>[] LoadLanguages(IFileParseService fileParseService)
+    private static ParsedFile<Language>[] LoadLanguages(IFileParseService fileParseService, VirtualFileSystem vfs)
     {
-        PathInfo[] langFiles = Paths.Lang.GetFiles("*.toml", SearchOption.AllDirectories);
-
+        IEnumerable<PathInfo> enumerableTomlFiles = vfs.GetFiles(VirtualPaths.Lang, SearchOption.AllDirectories)
+            .Where(file => file.GetExtension() == ".toml");
+        
         var languages = new List<ParsedFile<Language>>();
-        for (var i = 0; i < langFiles.Length; i++)
+        foreach (PathInfo file in enumerableTomlFiles)
         {
-            PathInfo path = langFiles[i];
-            if (fileParseService.TryParse(path, out Language language))
+            if (fileParseService.TryParse(file, out Language language))
             {
-                languages.Add(new ParsedFile<Language>(path, language));
+                languages.Add(new ParsedFile<Language>(file, language));
             }
         }
 
