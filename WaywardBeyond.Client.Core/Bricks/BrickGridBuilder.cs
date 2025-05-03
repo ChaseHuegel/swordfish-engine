@@ -37,7 +37,7 @@ internal sealed class BrickGridBuilder
         var normals = new List<Vector3>();
 
         HashSet<BrickGrid> builtGrids = [];
-        BuildBrickGridMesh(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z));
+        BuildBrickGridMesh(grid, Vector3.Zero);
 
         void BuildBrickGridMesh(BrickGrid gridToBuild, Vector3 offset = default)
         {
@@ -132,7 +132,7 @@ internal sealed class BrickGridBuilder
         
         var points = new List<Vector3>();
         HashSet<BrickGrid> builtGrids = [];
-        BuildBrickGridPoints(grid, new Vector3(-(int)grid.CenterOfMass.X, -(int)grid.CenterOfMass.Y, -(int)grid.CenterOfMass.Z));
+        BuildBrickGridPoints(grid, Vector3.Zero);
 
         void BuildBrickGridPoints(BrickGrid gridToBuild, Vector3 offset = default)
         {

@@ -47,7 +47,7 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
                 continue;
             }
             
-            asteroidGrid.Set(x, y, z, rockBrick);
+            asteroidGrid.Set(x - width, y - width, z - width, rockBrick);
         }
         
         float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
