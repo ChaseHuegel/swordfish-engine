@@ -38,6 +38,7 @@ internal sealed class PlayerInteractionSystem
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
         _physics.FixedUpdate += OnFixedUpdate;
+        _inputService.Clicked += OnClicked;
         
         _debugText = new TextElement("");
         _ = new CanvasElement(uiContext, windowContext, "Debug")
@@ -64,34 +65,56 @@ internal sealed class PlayerInteractionSystem
         };
     }
 
+    private void OnClicked(object? sender, ClickedEventArgs e)
+    {
+        if (e.MouseButton != MouseButton.Left)
+        {
+            return;
+        }
+        
+        if (!TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        {
+            return;
+        }
+        
+        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
+    }
+
     private void OnFixedUpdate(object? sender, EventArgs e)
+    {
+        if (!TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        {
+            return;
+        }
+        
+        Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
+        _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
+        _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
+    }
+
+    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
+    {
+    }
+
+    private bool TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
     {
         Camera camera = _renderContext.Camera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
         
-        if (!raycast.Hit)
+        if (!raycast.Hit || !raycast.Entity.TryGet(out brickComponent) || !raycast.Entity.TryGet(out transformComponent))
         {
-            return;
+            clickedBrick = default;
+            brickPos = default;
+            brickComponent = default;
+            transformComponent = default;
+            return false;
         }
-        
-        if (!raycast.Entity.TryGet(out BrickComponent brickComponent) || !raycast.Entity.TryGet(out TransformComponent transformComponent))
-        {
-            return;
-        }
 
-        (int X, int Y, int Z) brickPos = WorldToBrickSpace(raycast.Point + ray.Vector * 0.1f, transformComponent.Position, transformComponent.Orientation);
-        Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
-        
-        Brick clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
-
-        _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
-        _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nPoint: {raycast.Point.X}, {raycast.Point.Y}, {raycast.Point.Z}";
-    }
-
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
-    {
+        brickPos = WorldToBrickSpace(raycast.Point + ray.Vector * 0.1f, transformComponent.Position, transformComponent.Orientation);
+        clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
+        return true;
     }
 
     private static (int X, int Y, int Z) WorldToBrickSpace(Vector3 hitPoint, Vector3 gridOrigin, Quaternion gridRotation)
