@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 
@@ -117,6 +118,17 @@ public class LockedList<T> : IList<T>
         lock (_lock)
         {
             return _list.GetEnumerator();
+        }
+    }
+
+    public void ForEach(Action<T> action)
+    {
+        lock (_lock)
+        {
+            foreach (T item in _list)
+            {
+                action(item);
+            }
         }
     }
 }
