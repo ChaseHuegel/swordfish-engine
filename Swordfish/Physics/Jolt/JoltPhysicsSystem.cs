@@ -148,6 +148,11 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     private void SyncEntityToJolt(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
+        if (!store.TryGet(entity, out ColliderComponent collider))
+        {
+            return;
+        }
+        
         Body body;
         if (physics.Body.HasValue)
         {
@@ -158,10 +163,24 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
             physics.Velocity = body.GetLinearVelocity();
             physics.Torque = body.GetAngularVelocity();
+
+            if (collider.SyncedWithPhysics)
+            {
+                return;
+            }
+
+            collider.SyncedWithPhysics = true;
+            if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
+            {
+                return;
+            }
+            
+            _bodyInterface.SetShape(body.ID, shape, true, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
         }
         else
         {
-            if (!store.TryGet(entity, out ColliderComponent collider) || !TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
+            collider.SyncedWithPhysics = true;
+            if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
             {
                 return;
             }
