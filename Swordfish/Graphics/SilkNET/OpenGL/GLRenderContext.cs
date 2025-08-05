@@ -24,13 +24,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly IWindowContext _windowContext;
     private readonly GLContext _glContext;
     private readonly IRenderStage[] _renderers;
+    private readonly SynchronizationContext _synchronizationContext;
 
-    public GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers)
+    public GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers, SynchronizationContext synchronizationContext)
     {
         _gl = gl;
         _windowContext = windowContext;
         _glContext = glContext;
         _renderers = renderers;
+        _synchronizationContext = synchronizationContext;
 
         _gl.ClearColor(Color.FromArgb(20, 21, 37));
         _gl.Enable(EnableCap.DepthTest);
@@ -62,11 +64,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer) => BindMeshRenderer(meshRenderer);
 
-    private void OnHandleDisposed(object? sender, EventArgs e)
+    private void OnHandleDisposed(object? sender, EventArgs _)
     {
         if (_linkedHandles.TryRemove(Unsafe.As<IHandle>(sender)!, out IHandle? internalHandle))
         {
-            internalHandle?.Dispose();
+            _synchronizationContext.Post(_ => internalHandle.Dispose(), null);
         }
     }
 
