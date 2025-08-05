@@ -55,14 +55,9 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 
     protected override void OnDisposed()
     {
-        //  TODO need to not dispose (potentially) shared objects.
         VertexArrayObject.VertexBufferObject.Dispose();
         VertexArrayObject.ElementBufferObject.Dispose();
         VertexArrayObject.Dispose();
-        for (var i = 0; i < Materials.Length; i++)
-        {
-            Materials[i].Dispose();
-        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
