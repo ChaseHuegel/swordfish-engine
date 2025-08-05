@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Settings;
 
@@ -13,7 +14,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
-    private ConcurrentBag<GLRenderTarget>? _renderTargets;
+    private LockedList<GLRenderTarget>? _renderTargets;
 
     public void Initialize(IRenderContext renderContext)
     {
@@ -35,7 +36,10 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         _instances.Clear();
         _transparentInstances.Clear();
-        foreach (GLRenderTarget renderTarget in _renderTargets)
+        _renderTargets.ForEach(ForEachRenderTarget);
+        return;
+
+        void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
             List<Matrix4x4>? matrices;
 
@@ -67,7 +71,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
         }
 
-        if (_renderTargets.IsEmpty || _renderSettings.HideMeshes)
+        if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
         {
             return 0;
         }

@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 // ReSharper disable UnusedMember.Global
@@ -17,7 +18,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     public DataBinding<int> DrawCalls { get; } = new();
 
-    internal readonly ConcurrentBag<GLRenderTarget> RenderTargets = new();
+    internal readonly LockedList<GLRenderTarget> RenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
     private readonly GL _gl;
@@ -206,7 +207,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         RenderTargets.Add(renderTarget);
-        meshRenderer.Disposed += OnHandleDisposed;
+        meshRenderer.Disposed += OnMeshRendererDisposed;
+        return;
+
+        void OnMeshRendererDisposed(object? sender, EventArgs e)
+        {
+            RenderTargets.Remove(renderTarget);
+            OnHandleDisposed(sender, e);
+        }
     }
 
     private BufferObject<Matrix4x4> BindToMbo(VertexArrayObject<float, uint> vao)
