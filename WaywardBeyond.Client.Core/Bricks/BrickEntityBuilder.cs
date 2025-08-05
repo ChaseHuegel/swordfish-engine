@@ -85,11 +85,6 @@ internal sealed class BrickEntityBuilder(
             return;
         }
 
-        _dataStore.Remove<MeshRendererComponent>(entity);
-        _dataStore.Remove<MeshRendererComponent>(brickComponent.TransparencyPtr);
-        opaqueRendererComponent.MeshRenderer.Dispose();
-        transparentRendererComponent.MeshRenderer.Dispose();
-
         Vector3[] brickLocations = _brickGridBuilder.CreateCollisionData(brickComponent.Grid);
         var brickRotations = new Quaternion[brickLocations.Length];
         var brickShapes = new Shape[brickLocations.Length];
@@ -108,6 +103,7 @@ internal sealed class BrickEntityBuilder(
         renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         
-        _logger.LogInformation("Rebuilt brick {Entity}", entity);
+        opaqueRendererComponent.MeshRenderer.Dispose();
+        transparentRendererComponent.MeshRenderer.Dispose();
     }
 }
