@@ -1,5 +1,7 @@
 using System;
 using System.Numerics;
+using Shoal.DependencyInjection;
+using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -9,18 +11,19 @@ using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
 using Swordfish.UI.Elements;
+using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Debug;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class PlayerInteractionSystem
-    : EntitySystem<PlayerComponent, TransformComponent>
+internal sealed class PlayerInteractionSystem : IEntryPoint
 {
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
+    private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
@@ -29,16 +32,15 @@ internal sealed class PlayerInteractionSystem
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
         in IWindowContext windowContext,
-        in IUIContext uiContext)
+        in IUIContext uiContext,
+        in BrickEntityBuilder brickEntityBuilder)
     {
         _inputService = inputService;
         _physics = physics;
         _renderContext = renderContext;
         _windowContext = windowContext;
+        _brickEntityBuilder = brickEntityBuilder;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-        
-        _physics.FixedUpdate += OnFixedUpdate;
-        _inputService.Clicked += OnClicked;
         
         _debugText = new TextElement("");
         _ = new CanvasElement(uiContext, windowContext, "Debug")
@@ -64,6 +66,12 @@ internal sealed class PlayerInteractionSystem
             },
         };
     }
+    
+    public void Run()
+    {
+        _physics.FixedUpdate += OnFixedUpdate;
+        _inputService.Clicked += OnClicked;
+    }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
@@ -72,17 +80,18 @@ internal sealed class PlayerInteractionSystem
             return;
         }
         
-        if (!TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
         
         brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
+        _brickEntityBuilder.Rebuild(entity.Ptr);
     }
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (!TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
@@ -92,11 +101,7 @@ internal sealed class PlayerInteractionSystem
         _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
     }
 
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
-    {
-    }
-
-    private bool TryGetBrickFromScreenSpace(out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
+    private bool TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
     {
         Camera camera = _renderContext.Camera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
@@ -105,6 +110,7 @@ internal sealed class PlayerInteractionSystem
         
         if (!raycast.Hit || !raycast.Entity.TryGet(out brickComponent) || !raycast.Entity.TryGet(out transformComponent))
         {
+            entity = default;
             clickedBrick = default;
             brickPos = default;
             brickComponent = default;
@@ -114,6 +120,7 @@ internal sealed class PlayerInteractionSystem
 
         brickPos = WorldToBrickSpace(raycast.Point + ray.Vector * 0.1f, transformComponent.Position, transformComponent.Orientation);
         clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
+        entity = raycast.Entity;
         return true;
     }
 

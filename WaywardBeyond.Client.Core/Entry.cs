@@ -20,20 +20,24 @@ namespace WaywardBeyond.Client.Core;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class Entry : IEntryPoint, IAutoActivate
 {
-    private readonly IFileParseService _fileParseService;
     private readonly IECSContext _ecsContext;
     private readonly IPhysics _physics;
     private readonly IShortcutService _shortcutService;
     private readonly IWindowContext _windowContext;
+    private readonly BrickEntityBuilder _brickEntityBuilder;
 
-
-    public Entry(in IFileParseService fileParseService, in IECSContext ecsContext, in IPhysics physics, in IShortcutService shortcutService, in IWindowContext windowContext)
+    public Entry(
+        in IECSContext ecsContext,
+        in IPhysics physics,
+        in IShortcutService shortcutService,
+        in IWindowContext windowContext,
+        in BrickEntityBuilder brickEntityBuilder)
     {
-        _fileParseService = fileParseService;
         _ecsContext = ecsContext;
         _physics = physics;
         _shortcutService = shortcutService;
         _windowContext = windowContext;
+        _brickEntityBuilder = brickEntityBuilder;
         
         _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
@@ -51,16 +55,11 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _shortcutService.RegisterShortcut(quitShortcut);
         
         _physics.SetGravity(Vector3.Zero);
-        
-        var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl"));
-        var textureArray = _fileParseService.Parse<TextureArray>(AssetPaths.Textures.At("block\\"));
 
-        var brickEntityBuilder = new BrickEntityBuilder(shader, textureArray, _fileParseService, _ecsContext.World.DataStore);
-        var worldGenerator = new WorldGenerator("wayward beyond", brickEntityBuilder);
-        
+        var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder);
         Task.Run(worldGenerator.Generate);
         
-        var asteroidGenerator = new AsteroidGenerator(0, brickEntityBuilder);
+        var asteroidGenerator = new AsteroidGenerator(0, _brickEntityBuilder);
         asteroidGenerator.GenerateAt(Vector3.Zero, 20);
         
         Entity player = _ecsContext.World.NewEntity();

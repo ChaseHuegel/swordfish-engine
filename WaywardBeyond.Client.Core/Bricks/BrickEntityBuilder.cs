@@ -1,4 +1,5 @@
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -10,11 +11,14 @@ using WaywardBeyond.Client.Core.Components;
 namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickEntityBuilder(
+    in ILogger logger,
     in Shader shader,
     in TextureArray textureArray,
     in IFileParseService fileParseService,
     in DataStore dataStore)
 {
+    private readonly ILogger _logger = logger;
+    
     private readonly TextureArray _textureArray = textureArray;
     
     private readonly DataStore _dataStore = dataStore;
@@ -65,5 +69,45 @@ internal sealed class BrickEntityBuilder(
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(ptr));
         
         return new Entity(ptr, _dataStore);
+    }
+    
+    public void Rebuild(int entity)
+    {
+        if (!_dataStore.TryGet(entity, out BrickComponent brickComponent))
+        {
+            _logger.LogWarning("Tried to rebuild entity {Entity} that doesn't have a BrickComponent.", entity);
+            return;
+        }
+
+        if (!_dataStore.TryGet(entity, out MeshRendererComponent opaqueRendererComponent) || !_dataStore.TryGet(brickComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent))
+        {
+            _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing a MeshRendererComponent.", entity);
+            return;
+        }
+
+        _dataStore.Remove<MeshRendererComponent>(entity);
+        _dataStore.Remove<MeshRendererComponent>(brickComponent.TransparencyPtr);
+        opaqueRendererComponent.MeshRenderer.Dispose();
+        transparentRendererComponent.MeshRenderer.Dispose();
+
+        Vector3[] brickLocations = _brickGridBuilder.CreateCollisionData(brickComponent.Grid);
+        var brickRotations = new Quaternion[brickLocations.Length];
+        var brickShapes = new Shape[brickLocations.Length];
+        for (var i = 0; i < brickLocations.Length; i++)
+        {
+            brickShapes[i] = new Box3(Vector3.One);
+            brickRotations[i] = Quaternion.Identity;
+        }
+
+        Mesh mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid);
+        var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
+        _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
+        _dataStore.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
+        
+        mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid, true);
+        renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
+        _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererComponent(renderer));
+        
+        _logger.LogInformation("Rebuilt brick {Entity}", entity);
     }
 }
