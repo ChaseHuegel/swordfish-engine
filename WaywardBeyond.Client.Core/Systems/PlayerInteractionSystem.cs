@@ -118,7 +118,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
             return false;
         }
 
-        brickPos = WorldToBrickSpace(raycast.Point + ray.Vector * 0.1f, transformComponent.Position, transformComponent.Orientation);
+        brickPos = WorldToBrickSpace(raycast.Point - raycast.Normal * 0.1f, transformComponent.Position, transformComponent.Orientation);
         clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
         entity = raycast.Entity;
         return true;
