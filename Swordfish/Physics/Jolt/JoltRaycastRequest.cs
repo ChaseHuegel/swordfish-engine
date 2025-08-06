@@ -15,19 +15,33 @@ internal readonly struct JoltRaycastRequest(in DataStore store, in PhysicsSystem
 
     public static RaycastResult Invoke(JoltRaycastRequest args)
     {
-        bool rayHit = args._system.NarrowPhaseQueryNoLock.CastRay(args._ray.Origin, args._ray.Vector, out RayCastResult result, args._broadPhaseLayerFilter, args._objectLayerFilter, args._bodyFilter);
+        var ray = new JoltPhysicsSharp.Ray(args._ray.Origin, args._ray.Vector);
+        
+        bool rayHit = args._system.NarrowPhaseQueryNoLock.CastRay(ray, out RayCastResult result, args._broadPhaseLayerFilter, args._objectLayerFilter, args._bodyFilter);
+        
         Vector3 hitPoint = rayHit ? args._ray.Origin + args._ray.Vector * result.Fraction : args._ray.Origin + args._ray.Vector;
 
         if (!rayHit)
         {
-            return new RaycastResult(false, new Entity(), hitPoint);
+            return new RaycastResult(false, new Entity(), hitPoint, default);
         }
 
-        if (args._store.Find<PhysicsComponent>(physicsComponent => result.BodyID.Equals(physicsComponent.BodyID), out int entity))
+        if (!args._store.Find<PhysicsComponent>(physicsComponent => result.BodyID.Equals(physicsComponent.BodyID), out int entity))
         {
-            return new RaycastResult(true, new Entity(entity, args._store), hitPoint);
+            return new RaycastResult(false, default, hitPoint, default);
         }
 
-        return new RaycastResult(false, default, hitPoint);
+        args._system.BodyLockInterface.LockRead(result.BodyID, out BodyLockRead bodyLock);
+        Body? body = bodyLock.Body;
+        if (body == null)
+        {
+            args._system.BodyLockInterface.UnlockRead(in bodyLock);
+            return new RaycastResult(false, default, hitPoint, default);
+        }
+
+        Vector3 normal = body.GetWorldSpaceSurfaceNormal(result.subShapeID2, hitPoint);
+        args._system.BodyLockInterface.UnlockRead(in bodyLock);
+
+        return new RaycastResult(true, new Entity(entity, args._store), hitPoint, normal);
     }
 }

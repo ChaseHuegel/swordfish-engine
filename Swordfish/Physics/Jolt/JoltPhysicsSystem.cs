@@ -38,6 +38,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
     private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
     private readonly BodyFilter _bodyFilter = new SimpleBodyFilter();
+    private readonly JobSystem _jobSystem;
 
     private ThreadContext? _context;
     private DataStore? _store;
@@ -72,6 +73,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         SetupCollisionFiltering();
         System = new PhysicsSystem(_settings);
+        _jobSystem = new JobSystemThreadPool();
         _bodyInterface = System.BodyInterface;
     }
 
@@ -122,7 +124,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 _context.ProcessMessageQueue();
 
                 store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
-                System.Update(physicsDelta, steps);
+                System.Update(physicsDelta, steps, _jobSystem);
                 store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
 
                 _accumulator -= physicsDelta;
@@ -139,7 +141,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             _context.ProcessMessageQueue();
 
             store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
-            System.Update(physicsDelta, steps);
+            System.Update(physicsDelta, steps, _jobSystem);
             store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
 
             _accumulator -= physicsDelta;
@@ -154,9 +156,9 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
         
         Body body;
-        if (physics.Body.HasValue)
+        if (physics.Body != null)
         {
-            body = physics.Body.Value;
+            body = physics.Body;
 
             transform.Position = body.Position;
             transform.Orientation = body.Rotation;
@@ -200,13 +202,12 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     private void SyncJoltToEntity(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
-        if (!physics.Body.HasValue)
+        if (physics.Body == null)
         {
             return;
         }
 
-        Body body = physics.Body.Value;
-        _bodyInterface.SetPositionRotationAndVelocity(body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
+        _bodyInterface.SetPositionRotationAndVelocity(physics.Body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
     private static bool TryGetJoltShape(ColliderComponent collider, Vector3 scale, out JoltShape joltShape)
