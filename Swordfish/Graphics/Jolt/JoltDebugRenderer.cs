@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Numerics;
 using JoltPhysicsSharp;
 using Swordfish.Graphics.SilkNET.OpenGL;
@@ -74,14 +73,13 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         return 0;   //  Do nothing, the line renderer is doing the real work
     }
 
-    protected override void DrawLine(Vector3 from, Vector3 to, uint color)
+    protected override void DrawLine(Vector3 from, Vector3 to, JoltColor color)
     {
-        Color argb = Color.FromArgb((int)color);
-        _drawBuffer.Add(new DrawRequest(from, to, new Vector4(argb.R, argb.G, argb.B, argb.A)));
+        _drawBuffer.Add(new DrawRequest(from, to, new Vector4(color.R, color.G, color.B, color.A)));
     }
 
-    protected override void DrawText3D(Vector3 position, string? text, uint color, float height = 0.5F)
+    protected override void DrawText3D(Vector3 position, string? text, JoltColor color, float height = 0.5f)
     {
-        //  TODO implement this
+        throw new NotImplementedException();
     }
 }
