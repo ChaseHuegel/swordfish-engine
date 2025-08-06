@@ -172,6 +172,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             }
 
             collider.SyncedWithPhysics = true;
+            store.AddOrUpdate(entity, collider);
             if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
             {
                 return;
@@ -182,6 +183,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         else
         {
             collider.SyncedWithPhysics = true;
+            store.AddOrUpdate(entity, collider);
             if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
             {
                 return;
