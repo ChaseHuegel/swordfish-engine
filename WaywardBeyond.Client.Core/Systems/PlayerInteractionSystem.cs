@@ -75,12 +75,20 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
 
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
-        if (e.MouseButton != MouseButton.Left)
+        if (e.MouseButton == MouseButton.Left)
         {
-            return;
+            OnLeftClick();
         }
         
-        if (!TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (e.MouseButton == MouseButton.Right)
+        {
+            OnRightClick();
+        }
+    }
+
+    private void OnLeftClick()
+    {
+        if (!TryGetBrickFromScreenSpace(false, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
@@ -88,10 +96,26 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
         _brickEntityBuilder.Rebuild(entity.Ptr);
     }
+    
+    private void OnRightClick()
+    {
+        if (!TryGetBrickFromScreenSpace(true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        {
+            return;
+        }
+        
+        var brickToPlace = new Brick(1)
+        {
+            Name = "ice",
+        };
+        
+        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, brickToPlace);
+        _brickEntityBuilder.Rebuild(entity.Ptr);
+    }
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (!TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
@@ -101,7 +125,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
     }
 
-    private bool TryGetBrickFromScreenSpace(out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
+    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
     {
         Camera camera = _renderContext.Camera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
@@ -118,7 +142,17 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
             return false;
         }
 
-        brickPos = WorldToBrickSpace(raycast.Point - raycast.Normal * 0.1f, transformComponent.Position, transformComponent.Orientation);
+        Vector3 hitPoint;
+        if (offset)
+        {
+            hitPoint = raycast.Point + raycast.Normal * 0.1f;
+        }
+        else
+        {
+            hitPoint = raycast.Point - raycast.Normal * 0.1f;
+        }
+
+        brickPos = WorldToBrickSpace(hitPoint, transformComponent.Position, transformComponent.Orientation);
         clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
         entity = raycast.Entity;
         return true;
