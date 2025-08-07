@@ -9,6 +9,11 @@ namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickGridBuilder
 {
+    public const int BLOCK = 1;
+    public const int SLOPE = 2;
+    public const int THRUSTER = 3;
+    public const int THRUSTER_BLOCK = 4;
+    
     private readonly Mesh _cube;
     private readonly Mesh _slope;
     private readonly Mesh _thruster;
@@ -92,9 +97,10 @@ internal sealed class BrickGridBuilder
                 {
                     return id switch
                     {
-                        2 => _slope,
-                        3 => _thruster,
-                        4 => _thrusterBlock,
+                        BLOCK => _cube,
+                        SLOPE => _slope,
+                        THRUSTER => _thruster,
+                        THRUSTER_BLOCK => _thrusterBlock,
                         _ => _cube,
                     };
                 }

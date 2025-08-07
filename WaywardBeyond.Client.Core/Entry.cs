@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish;
+using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
@@ -58,9 +59,10 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder);
         Task.Run(worldGenerator.Generate);
-        
-        var asteroidGenerator = new AsteroidGenerator(0, _brickEntityBuilder);
-        asteroidGenerator.GenerateAt(Vector3.Zero, 20);
+
+        var shipGrid = new BrickGrid(16);
+        shipGrid.Set(0, 0, 0, BrickRegistry.ShipCore);
+        _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));

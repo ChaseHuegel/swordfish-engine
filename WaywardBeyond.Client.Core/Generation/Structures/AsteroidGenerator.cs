@@ -17,10 +17,7 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
     public void GenerateAt(Vector3 position, int diameter)
     {
         var asteroidGrid = new BrickGrid(16);
-        var rockBrick = new Brick(1)
-        {
-            Name = "rock",
-        };
+        Brick brick = _randomizer.NextFloat() > 0.5f ? BrickRegistry.Rock : BrickRegistry.Ice;
         
         int width = diameter / 2;
         int centerOfMass = diameter / 2;
@@ -47,7 +44,7 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
                 continue;
             }
             
-            asteroidGrid.Set(x - width, y - width, z - width, rockBrick);
+            asteroidGrid.Set(x - width, y - width, z - width, brick);
         }
         
         float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;

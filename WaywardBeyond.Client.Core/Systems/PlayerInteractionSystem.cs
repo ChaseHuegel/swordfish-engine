@@ -104,12 +104,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
             return;
         }
         
-        var brickToPlace = new Brick(1)
-        {
-            Name = "ice",
-        };
-        
-        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, brickToPlace);
+        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, BrickRegistry.MetalPanel);
         _brickEntityBuilder.Rebuild(entity.Ptr);
     }
 
