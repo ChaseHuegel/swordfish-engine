@@ -6,23 +6,43 @@ using WaywardBeyond.Client.Core.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class PlayerControllerSystem(in IInputService inputService)
+internal sealed class PlayerControllerSystem
     : EntitySystem<PlayerComponent, TransformComponent>
 {
     private const float MOUSE_SENSITIVITY = 0.05f;
     private const float BASE_SPEED = 20;
     private const float ROLL_RATE = 60;
 
-    private readonly IInputService _inputService = inputService;
+    private readonly IInputService _inputService;
     
     private Vector2? _lastMousePosition;
+    private bool _mouseLookEnabled;
+
+    public PlayerControllerSystem(in IInputService inputService, in IShortcutService shortcutService)
+    {
+        _inputService = inputService;
+        
+        Shortcut mouseLookShortcut = new(
+            "Toggle Mouselook",
+            "Interaction",
+            ShortcutModifiers.None,
+            Key.Tab,
+            Shortcut.DefaultEnabled,
+            ToggleMouselook);
+        shortcutService.RegisterShortcut(mouseLookShortcut);
+    }
+
+    private void ToggleMouselook()
+    {
+        _mouseLookEnabled = !_mouseLookEnabled;
+    }
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
         Vector2 cursorPosition = _inputService.CursorPosition;
         _lastMousePosition ??= cursorPosition;
         
-        if (!_inputService.IsKeyHeld(Key.Alt))
+        if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
             if (_inputService.CursorState != CursorState.Locked)
             {
