@@ -99,7 +99,6 @@ public class SilkInputService : IInputService
         _mainMouse = context.Mice[0];
         foreach (IMouse? mouse in context.Mice)
         {
-            mouse.Click += OnClick;
             mouse.DoubleClick += OnDoubleClick;
             mouse.Scroll += OnScroll;
             mouse.MouseDown += OnMouseDown;
@@ -250,14 +249,6 @@ public class SilkInputService : IInputService
         return _mainMouse.Cursor.IsConfined ? CursorState.Captured : _mainMouse.Cursor.CursorMode.ToCursorState();
     }
 
-    private void OnClick(IMouse mouse, Silk.NET.Input.MouseButton button, Vector2 position)
-    {
-        Clicked?.Invoke(
-            new InputDevice(mouse.Index, mouse.Name),
-            new ClickedEventArgs(button.ToSwordfishMouseButton(), position)
-        );
-    }
-
     private void OnDoubleClick(IMouse mouse, Silk.NET.Input.MouseButton button, Vector2 position)
     {
         DoubleClicked?.Invoke(
@@ -280,6 +271,12 @@ public class SilkInputService : IInputService
     private void OnMouseDown(IMouse mouse, Silk.NET.Input.MouseButton button)
     {
         MouseButton swordfishButton = button.ToSwordfishMouseButton();
+        
+        Clicked?.Invoke(
+            new InputDevice(mouse.Index, mouse.Name),
+            new ClickedEventArgs(swordfishButton, mouse.Position)
+        );
+        
         InputRecord inputRecord = _mouseInputMap[swordfishButton];
         inputRecord.Count += 1;
         inputRecord.LastInput.Restart();
