@@ -1,5 +1,6 @@
 using System.Numerics;
 using Swordfish.ECS;
+using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
@@ -9,13 +10,12 @@ namespace WaywardBeyond.Client.Core.Systems;
 internal sealed class PlayerControllerSystem
     : EntitySystem<PlayerComponent, TransformComponent>
 {
-    private const float MOUSE_SENSITIVITY = 0.05f;
+    private const float MOUSE_SENSITIVITY = 0.25f;
     private const float BASE_SPEED = 20;
     private const float ROLL_RATE = 60;
 
     private readonly IInputService _inputService;
     
-    private Vector2? _lastMousePosition;
     private bool _mouseLookEnabled;
 
     public PlayerControllerSystem(in IInputService inputService, in IShortcutService shortcutService)
@@ -39,9 +39,6 @@ internal sealed class PlayerControllerSystem
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
-        Vector2 cursorPosition = _inputService.CursorPosition;
-        _lastMousePosition ??= cursorPosition;
-        
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
             if (_inputService.CursorState != CursorState.Locked)
@@ -49,7 +46,7 @@ internal sealed class PlayerControllerSystem
                 _inputService.CursorState = CursorState.Locked;
             }
 
-            Vector2 cursorDelta = cursorPosition - _lastMousePosition.Value;
+            Vector2 cursorDelta = _inputService.CursorDelta;
             Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
             Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
         }
@@ -57,7 +54,6 @@ internal sealed class PlayerControllerSystem
         {
             _inputService.CursorState = CursorState.Normal;
         }
-        _lastMousePosition = cursorPosition;
         
         Vector3 forward = transform.GetForward();
         Vector3 right = transform.GetRight();
