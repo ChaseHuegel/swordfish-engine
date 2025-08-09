@@ -16,7 +16,7 @@ public class LayoutGroup() : AbstractPaneElement(string.Empty)
         Vector2 origin = Alignment == ElementAlignment.NONE ? Vector2.Zero : ImGui.GetCursorPos();
 
         ImGui.SetCursorPos(origin + Constraints.GetPosition());
-        ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), false, Flags | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoScrollWithMouse);
+        ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), ImGuiChildFlags.None);
 
         if (Layout == ElementAlignment.HORIZONTAL && ContentSeparator != ContentSeparator.NONE)
         {

@@ -40,7 +40,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _gl.Enable(EnableCap.CullFace);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        _gl.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
+        _gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
 
         Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.001f, 1000f));
         _windowContext.Resized += OnWindowResized;

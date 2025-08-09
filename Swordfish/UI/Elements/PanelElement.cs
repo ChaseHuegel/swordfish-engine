@@ -19,7 +19,7 @@ public class PanelElement : AbstractPaneElement
 
         ImGui.SetCursorPos(origin + Constraints.GetPosition());
 
-        ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), Border, Flags);
+        ImGui.BeginChild(UniqueName, Constraints.GetDimensions(), ImGuiChildFlags.None);
 
         if (TitleBar)
         {
