@@ -21,7 +21,7 @@ public interface IInputService
     EventHandler<InputButtonEventArgs> ButtonPressed { get; set; }
     EventHandler<InputButtonEventArgs> ButtonReleased { get; set; }
 
-    CursorState CursorState { get; set; }
+    CursorOptions CursorOptions { get; set; }
     Vector2 CursorDelta { get; }
     Vector2 CursorPosition { get; set; }
 
