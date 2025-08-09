@@ -27,7 +27,8 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
-    public PlayerInteractionSystem(in IInputService inputService,
+    public PlayerInteractionSystem(
+        in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,

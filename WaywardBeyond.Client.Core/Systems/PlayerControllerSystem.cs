@@ -49,7 +49,7 @@ internal sealed class PlayerControllerSystem
         }
         else
         {
-            _inputService.CursorOptions = CursorOptions.Confined;
+            _inputService.CursorOptions = CursorOptions.None;
         }
         
         Vector3 forward = transform.GetForward();

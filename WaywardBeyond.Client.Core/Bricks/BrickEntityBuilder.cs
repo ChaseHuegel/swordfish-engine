@@ -98,12 +98,11 @@ internal sealed class BrickEntityBuilder(
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
+        _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
         
         mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid, true);
         renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererComponent(renderer));
-        
-        opaqueRendererComponent.MeshRenderer.Dispose();
-        transparentRendererComponent.MeshRenderer.Dispose();
+        _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));
     }
 }

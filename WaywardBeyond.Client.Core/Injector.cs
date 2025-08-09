@@ -20,6 +20,7 @@ public class Injector : IDryIocInjector
 
         container.Register<IEntitySystem, PlayerControllerSystem>();
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
+        container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         
         container.Register<BrickEntityBuilder>(Reuse.Singleton);
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
