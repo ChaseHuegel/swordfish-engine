@@ -1,7 +1,11 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Silk.NET.Input;
+using Silk.NET.Input.Extensions;
+using Silk.NET.Maths;
+using Silk.NET.Windowing;
 using Swordfish.Library.IO;
 using Key = Swordfish.Library.IO.Key;
 using MouseButton = Swordfish.Library.IO.MouseButton;
@@ -32,16 +36,35 @@ public class SilkInputService : IInputService
     public EventHandler<InputButtonEventArgs>? ButtonPressed { get; set; }
     public EventHandler<InputButtonEventArgs>? ButtonReleased { get; set; }
 
+    private readonly IWindow _window;
+    
     private readonly Stopwatch _cursorMovementStopwatch = new();
-    private readonly object _cursorDataLock = new();
+    private readonly object _cursorLock = new();
 
     private Vector2 _cursorDelta;
     public Vector2 CursorDelta {
         get
         {
-            lock (_cursorDataLock)
+            lock (_cursorLock)
             {
-                return _cursorMovementStopwatch.ElapsedMilliseconds < 2 ? _cursorDelta : Vector2.Zero;
+                if (_cursorMovementStopwatch.ElapsedMilliseconds >= 2)
+                {
+                    _cursorDelta = Vector2.Zero;
+                    return Vector2.Zero;
+                }
+                
+                //  Clear the delta after it has been read.
+                //  The delta is accumulated over time in Update.
+                //  
+                //  This is necessary to not miss changes between
+                //  queries of the delta when accessing from a thread
+                //  that is not synchronized with the window's update.
+                //  
+                //  This isn't ideal because multiple readers
+                //  will not see the same value. Need a better solution eventually.
+                Vector2 delta = _cursorDelta;
+                _cursorDelta = Vector2.Zero;
+                return delta;
             }
         }
     }
@@ -49,22 +72,46 @@ public class SilkInputService : IInputService
     private Vector2 _cursorPosition;
     public Vector2 CursorPosition {
         get {
-            lock (_cursorDataLock)
+            lock (_cursorLock)
             {
                 return _cursorPosition;
             }
         }
         set {
-            lock (_cursorDataLock)
+            lock (_cursorLock)
             {
                 _cursorPosition = value;
+                _mainMouse.Position = value;
             }
         }
     }
 
-    public CursorState CursorState {
-        get => GetCursorState();
-        set => SetCursorState(value);
+    private CursorOptions _cursorOptions;
+    public CursorOptions CursorOptions
+    {
+        get
+        {
+            lock (_cursorLock)
+            {
+                return _cursorOptions;
+            }
+        }
+        set
+        {
+            //  Checking outside the lock intentionally.
+            //  Changes are atomic and don't want to waste taking the lock if nothing will change.
+            //  It does feel like there is a bug here I'm overlooking. May need to move into the lock later.
+            if (_cursorOptions == value)
+            {
+                return;
+            }
+            
+            lock (_cursorLock)
+            {
+                _cursorOptions = value;
+                _mainMouse.Cursor.CursorMode = (value & CursorOptions.Hidden) == CursorOptions.Hidden ? CursorMode.Hidden : CursorMode.Normal;
+            }
+        }
     }
 
     private volatile float _lastScroll;
@@ -81,8 +128,11 @@ public class SilkInputService : IInputService
         public readonly Stopwatch LastRelease = Stopwatch.StartNew();
     }
 
-    public SilkInputService(IInputContext context)
+    public SilkInputService(IInputContext context, IWindow window)
     {
+        _window = window;
+        _window.Update += OnWindowUpdate;
+        
         Mice = context.Mice.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
         Keyboards = context.Keyboards.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
         Gamepads = context.Gamepads.Select(x => new InputDevice(x.Index, x.Name)).ToArray();
@@ -97,13 +147,12 @@ public class SilkInputService : IInputService
             .ToArray();
 
         _mainMouse = context.Mice[0];
-        foreach (IMouse? mouse in context.Mice)
+        foreach (IMouse mouse in context.Mice)
         {
             mouse.DoubleClick += OnDoubleClick;
             mouse.Scroll += OnScroll;
             mouse.MouseDown += OnMouseDown;
             mouse.MouseUp += OnMouseUp;
-            mouse.MouseMove += OnMouseMove;
         }
 
         foreach (MouseButton mouseButton in Enum.GetValues<MouseButton>())
@@ -111,7 +160,7 @@ public class SilkInputService : IInputService
             _mouseInputMap.TryAdd(mouseButton, new InputRecord());
         }
 
-        foreach (IKeyboard? keyboard in context.Keyboards)
+        foreach (IKeyboard keyboard in context.Keyboards)
         {
             keyboard.KeyDown += OnKeyDown;
             keyboard.KeyUp += OnKeyUp;
@@ -218,37 +267,6 @@ public class SilkInputService : IInputService
         );
     }
 
-    private void SetCursorState(CursorState value)
-    {
-        switch (value)
-        {
-            case CursorState.Normal:
-                _mainMouse.Cursor.IsConfined = false;
-                _mainMouse.Cursor.CursorMode = CursorMode.Normal;
-                break;
-
-            case CursorState.Hidden:
-                _mainMouse.Cursor.IsConfined = false;
-                _mainMouse.Cursor.CursorMode = CursorMode.Hidden;
-                break;
-
-            case CursorState.Locked:
-                _mainMouse.Cursor.IsConfined = false;
-                _mainMouse.Cursor.CursorMode = CursorMode.Disabled;
-                break;
-
-            case CursorState.Captured:
-                _mainMouse.Cursor.IsConfined = true;
-                _mainMouse.Cursor.CursorMode = CursorMode.Normal;
-                break;
-        }
-    }
-
-    private CursorState GetCursorState()
-    {
-        return _mainMouse.Cursor.IsConfined ? CursorState.Captured : _mainMouse.Cursor.CursorMode.ToCursorState();
-    }
-
     private void OnDoubleClick(IMouse mouse, Silk.NET.Input.MouseButton button, Vector2 position)
     {
         DoubleClicked?.Invoke(
@@ -290,13 +308,85 @@ public class SilkInputService : IInputService
         inputRecord.LastRelease.Restart();
     }
 
-    private void OnMouseMove(IMouse mouse, Vector2 position)
+    private void OnWindowUpdate(double delta)
     {
-        lock (_cursorDataLock)
+        lock (_cursorLock)
         {
-            _cursorMovementStopwatch.Restart();
-            _cursorDelta = position - _cursorPosition;
-            _cursorPosition = position;
+            Vector2 newMousePosition = _mainMouse.Position;
+            _cursorDelta += newMousePosition - _cursorPosition;
+            _cursorPosition = newMousePosition;
+        
+            if (_cursorDelta != Vector2.Zero)
+            {
+                _cursorMovementStopwatch.Restart();
+            }
+        
+            //  GLFW, or Silk.NET's usage of it, doesn't like cursor state being changed,
+            //  and CursorState.Locked doesn't work unless alt+tabbing out and back in.
+            //
+            //  When changing Normal -> Disabled/Raw -> Normal, the cursor becomes locked to
+            //  the center and visible, where it's in a state between Normal and Disabled
+            //
+            //  Because of these kinds of issues, the cursor modes are manually implemented :(
+            //  
+            //  Hopefully this is fixed in the future.
+            //  Last checked with: Silk.NET 2.22.0
+            
+            Vector2D<int> windowSize;
+            if ((_cursorOptions & CursorOptions.Locked) == CursorOptions.Locked)
+            {
+                windowSize = _window.Size;
+                var center = new Vector2(windowSize.X / 2f, windowSize.Y / 2f);
+                if (newMousePosition == center)
+                {
+                    return;
+                }
+            
+                _mainMouse.Position = center;
+                _cursorPosition = center;
+                return;
+            }
+
+            //  Mouse.Cursor.IsConfined is only supported by SDL.
+            //  Since GLFW is being used, confinement is implemented here.
+            if ((_cursorOptions & CursorOptions.Confined) != CursorOptions.Confined)
+            {
+                return;
+            }
+
+            var updateCursor = false;
+            windowSize = _window.Size;
+            
+            if (newMousePosition.X < 0)
+            {
+                newMousePosition.X = 0;
+                updateCursor = true;
+            }
+
+            if (newMousePosition.Y < 0)
+            {
+                newMousePosition.Y = 0;
+                updateCursor = true;
+            }
+
+            if (newMousePosition.X > windowSize.X)
+            {
+                newMousePosition.X = windowSize.X;
+                updateCursor = true;
+            }
+
+            if (newMousePosition.Y > windowSize.Y)
+            {
+                newMousePosition.Y = windowSize.Y;
+                updateCursor = true;
+            }
+
+            if (!updateCursor)
+            {
+                return;
+            }
+
+            _mainMouse.Position = newMousePosition;
         }
     }
 }
