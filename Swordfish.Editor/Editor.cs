@@ -735,14 +735,14 @@ public class Editor : IEntryPoint, IAutoActivate
 
         if (_inputService.IsMouseHeld(MouseButton.Right))
         {
-            _inputService.CursorState = CursorState.Locked;
+            _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
             Vector2 cursorDelta = _inputService.CursorDelta;
             camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
             camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
-            _inputService.CursorState = CursorState.Normal;
+            _inputService.CursorOptions = CursorOptions.None;
         }
 
         Vector3 forward = camera.Transform.GetForward();

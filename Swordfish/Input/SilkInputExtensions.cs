@@ -4,15 +4,15 @@ namespace Swordfish.Input;
 
 public static class SilkInputExtensions
 {
-    public static Library.IO.CursorState ToCursorState(this CursorMode cursorMode)
+    public static Library.IO.CursorOptions ToCursorState(this CursorMode cursorMode)
     {
         return cursorMode switch
         {
-            CursorMode.Normal => Library.IO.CursorState.Normal,
-            CursorMode.Hidden => Library.IO.CursorState.Hidden,
-            CursorMode.Disabled => Library.IO.CursorState.Locked,
-            CursorMode.Raw => Library.IO.CursorState.Locked,
-            _ => Library.IO.CursorState.Normal,
+            CursorMode.Normal => Library.IO.CursorOptions.None,
+            CursorMode.Hidden => Library.IO.CursorOptions.Hidden,
+            CursorMode.Disabled => Library.IO.CursorOptions.Locked | Library.IO.CursorOptions.Hidden,
+            CursorMode.Raw => Library.IO.CursorOptions.Locked | Library.IO.CursorOptions.Hidden,
+            _ => Library.IO.CursorOptions.None,
         };
     }
 
