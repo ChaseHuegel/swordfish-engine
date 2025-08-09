@@ -10,7 +10,7 @@ namespace WaywardBeyond.Client.Core.Systems;
 internal sealed class PlayerControllerSystem
     : EntitySystem<PlayerComponent, TransformComponent>
 {
-    private const float MOUSE_SENSITIVITY = 0.25f;
+    private const float MOUSE_SENSITIVITY = 0.15f;
     private const float BASE_SPEED = 20;
     private const float ROLL_RATE = 60;
 
@@ -41,18 +41,15 @@ internal sealed class PlayerControllerSystem
     {
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
-            if (_inputService.CursorState != CursorState.Locked)
-            {
-                _inputService.CursorState = CursorState.Locked;
-            }
+            _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
 
             Vector2 cursorDelta = _inputService.CursorDelta;
             Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
             Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
         }
-        else if (_inputService.CursorState != CursorState.Normal)
+        else
         {
-            _inputService.CursorState = CursorState.Normal;
+            _inputService.CursorOptions = CursorOptions.Confined;
         }
         
         Vector3 forward = transform.GetForward();
