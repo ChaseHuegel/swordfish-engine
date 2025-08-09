@@ -83,7 +83,7 @@ public sealed class AppEngine : IDisposable
         }
     }
 
-    public static ILogger CreateLogger<T>()
+    public static ILogger<T> CreateLogger<T>()
     {
         return _loggerFactory.CreateLogger<T>();
     }
@@ -92,12 +92,12 @@ public sealed class AppEngine : IDisposable
     {
         return _loggerFactory.CreateLogger(type);
     }
-    
+
     private static ILogger CreateLogger(Request request)
     {
         return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
     }
-    
+
     private static void BuildLoggerFactory(ILoggingBuilder builder)
     {
         builder.AddProvider(_logListener);
@@ -141,7 +141,10 @@ public sealed class AppEngine : IDisposable
         container.Register<VirtualFileSystem>(Reuse.Singleton);
         container.Register<IModulesLoader, ModulesLoader>(Reuse.Singleton);
 
-        container.Register(Made.Of(() => CreateLogger(Arg.Index<Request>(0)), request => request));
+        container.RegisterInstance(_loggerFactory);
+        MethodInfo loggerFactoryMethod = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
+        container.Register(typeof(ILogger<>), made: Made.Of(req => loggerFactoryMethod.MakeGenericMethod(req.Parent.ImplementationType)));
+        container.Register(Made.Of(() => CreateLogger( Arg.Index<Request>(0)), request => request));
 
         container.Register<ConfigurationProvider>(Reuse.Singleton);
 
