@@ -1,21 +1,17 @@
-using System;
 using System.Numerics;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
-using Swordfish;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.IO;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Physics;
 using Swordfish.UI;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
-using WaywardBeyond.Client.Core.Generation.Structures;
 using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core;
@@ -74,9 +70,13 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.Add<PlayerComponent>();
 
-        var hotbar = new Hotbar(_windowContext, _uiContext);
-        hotbar.UpdateSlot(0, "Metal Panel", 300);
-        hotbar.UpdateSlot(1, "Rock", 100);
-        hotbar.UpdateSlot(2, "Ice", 200);
+        var hotbar = new Hotbar(_windowContext, _uiContext, _shortcutService);
+        hotbar.UpdateSlot(0, "Metal Panel", 20);
+        hotbar.ActiveSlot.Changed += OnActiveHotbarSlotChanged;
+        return;
+        
+        void OnActiveHotbarSlotChanged(object? sender, DataChangedEventArgs<int> e)
+        {
+        }
     }
 }
