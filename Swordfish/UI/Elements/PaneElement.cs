@@ -19,6 +19,7 @@ public class PaneElement(in string? name) : AbstractPaneElement(name)
 
         ImGuiEx.BeginPane(Name, Constraints.GetDimensions(), true);
 
+        Constraints.Max = Constraints.GetDimensions();
         base.OnRender();
 
         ImGuiEx.EndPane();

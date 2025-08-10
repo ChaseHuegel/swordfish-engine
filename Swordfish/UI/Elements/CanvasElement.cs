@@ -33,6 +33,7 @@ public class CanvasElement : AbstractPaneElement
 
         TooltipProperty.RenderTooltip();
 
+        Constraints.Max = Constraints.GetDimensions();
         base.OnRender();
 
         ImGui.End();

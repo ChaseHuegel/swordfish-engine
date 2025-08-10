@@ -11,10 +11,12 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Physics;
+using Swordfish.UI;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
 using WaywardBeyond.Client.Core.Generation.Structures;
+using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -25,6 +27,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly IPhysics _physics;
     private readonly IShortcutService _shortcutService;
     private readonly IWindowContext _windowContext;
+    private readonly IUIContext _uiContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
 
     public Entry(
@@ -32,12 +35,14 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IPhysics physics,
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
+        in IUIContext uiContext,
         in BrickEntityBuilder brickEntityBuilder)
     {
         _ecsContext = ecsContext;
         _physics = physics;
         _shortcutService = shortcutService;
         _windowContext = windowContext;
+        _uiContext = uiContext;
         _brickEntityBuilder = brickEntityBuilder;
         
         _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
@@ -68,5 +73,10 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.Add<PlayerComponent>();
+
+        var hotbar = new Hotbar(_windowContext, _uiContext);
+        hotbar.UpdateSlot(0, "Metal Panel", 300);
+        hotbar.UpdateSlot(1, "Rock", 100);
+        hotbar.UpdateSlot(2, "Ice", 200);
     }
 }

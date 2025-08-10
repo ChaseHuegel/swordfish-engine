@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net8.0/modules/swordfish.demo</OutputPath>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net9.0/modules/swordfish.demo</OutputPath>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>

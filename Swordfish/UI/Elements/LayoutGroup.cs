@@ -23,6 +23,7 @@ public class LayoutGroup() : AbstractPaneElement(string.Empty)
             ImGui.Columns(Content.Count, UniqueName + "_col", ContentSeparator == ContentSeparator.DIVIDER);
         }
 
+        Constraints.Max = Constraints.GetDimensions();
         base.OnRender();
 
         ImGui.EndChild();
