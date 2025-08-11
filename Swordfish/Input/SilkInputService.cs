@@ -336,7 +336,7 @@ public class SilkInputService : IInputService
             if ((_cursorOptions & CursorOptions.Locked) == CursorOptions.Locked)
             {
                 windowSize = _window.Size;
-                var center = new Vector2(windowSize.X / 2f, windowSize.Y / 2f);
+                var center = new Vector2(windowSize.X / 2, windowSize.Y / 2);
                 if (newMousePosition == center)
                 {
                     return;
