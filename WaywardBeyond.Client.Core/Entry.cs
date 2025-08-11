@@ -67,5 +67,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.AddOrUpdate(inventory);
         inventory.Contents[0] = new ItemStack(BrickRegistry.MetalPanel.Name!, count: 30);
+        inventory.Contents[1] = new ItemStack(BrickRegistry.Thruster.Name!, count: 10);
     }
 }

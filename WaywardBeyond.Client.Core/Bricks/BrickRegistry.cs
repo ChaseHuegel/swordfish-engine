@@ -11,6 +11,7 @@ internal static class BrickRegistry
     public static readonly Brick MetalPanel = new(id: BrickGridBuilder.BLOCK) { Name = "metal_panel" };
     public static readonly Brick CautionPanel = new(id: BrickGridBuilder.BLOCK) { Name = "caution_panel" };
     public static readonly Brick DisplayControl = new(id: BrickGridBuilder.BLOCK) { Name = "display_control" };
+    public static readonly Brick Thruster = new(id: BrickGridBuilder.THRUSTER) { Name = "thruster" };
 
     public static readonly IReadOnlyDictionary<string, Brick> Bricks = new Dictionary<string, Brick>
     {
@@ -20,5 +21,6 @@ internal static class BrickRegistry
         { MetalPanel.Name!, MetalPanel },
         { CautionPanel.Name!, CautionPanel },
         { DisplayControl.Name!, DisplayControl },
+        { Thruster.Name!, Thruster },
     };
 }

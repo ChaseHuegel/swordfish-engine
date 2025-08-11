@@ -111,13 +111,13 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
 
     private void OnLeftClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
         
-        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
-        _brickEntityBuilder.Rebuild(entity.Ptr);
+        SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
+        _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
@@ -149,7 +149,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
             return;
         }
         
-        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
+        SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
         _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         return;
         
@@ -235,5 +235,44 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         );
 
         return Vector3.Transform(localCenter, gridRotation) + gridOrigin;
+    }
+    
+    private void SetBrick(int entity, BrickGrid grid, int x, int y, int z, Brick brick)
+    {
+        Brick currentBrick = grid.Get(x, y, z);
+        if (!grid.Set(x, y, z, brick))
+        {
+            return;
+        }
+        
+        if (currentBrick == BrickRegistry.Thruster)
+        {
+            _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
+            void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
+            {
+                thruster.Power--;
+
+                if (thruster.Power <= 0)
+                {
+                    store.Remove<ThrusterComponent>(thrusterEntity);
+                }
+            }
+        }
+        
+        if (brick == BrickRegistry.Thruster)
+        {
+            var updated = false;
+            _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
+            void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
+            {
+                thruster.Power++;
+                updated = true;
+            }
+
+            if (!updated)
+            {
+                _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
+            }
+        }
     }
 }
