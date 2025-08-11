@@ -35,21 +35,24 @@ internal sealed class PlayerControllerSystem
     private void ToggleMouselook()
     {
         _mouseLookEnabled = !_mouseLookEnabled;
+        if (_mouseLookEnabled)
+        {
+            _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
+            _ = _inputService.CursorDelta;  //  ! HACKY Consume delta state
+        }
+        else
+        {
+            _inputService.CursorOptions = CursorOptions.None;
+        }
     }
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
-            _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
-
             Vector2 cursorDelta = _inputService.CursorDelta;
             Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
             Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
-        }
-        else
-        {
-            _inputService.CursorOptions = CursorOptions.None;
         }
         
         Vector3 forward = transform.GetForward();
