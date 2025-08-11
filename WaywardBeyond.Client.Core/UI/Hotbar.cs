@@ -12,9 +12,9 @@ namespace WaywardBeyond.Client.Core.UI;
 
 public class Hotbar : CanvasElement
 {
-    private TextElement[] _names;
-    private TextElement[] _counts;
-    private ColorBlockElement[] _colorBlocks;
+    private readonly TextElement[] _names;
+    private readonly TextElement[] _counts;
+    private readonly ColorBlockElement[] _colorBlocks;
     
     public readonly DataBinding<int> ActiveSlot = new(-1);
     
@@ -28,6 +28,7 @@ public class Hotbar : CanvasElement
                 ImGuiWindowFlags.AlwaysAutoResize |
                 ImGuiWindowFlags.NoBringToFrontOnFocus |
                 ImGuiWindowFlags.NoScrollbar |
+                ImGuiWindowFlags.NoBackground |
                 ImGuiWindowFlags.NoMove;
         
         Constraints = new RectConstraints
@@ -35,8 +36,8 @@ public class Hotbar : CanvasElement
             Anchor = ConstraintAnchor.BOTTOM_CENTER,
             X = new AbsoluteConstraint(0f),
             Y = new RelativeConstraint(0.01f),
-            Width = new RelativeConstraint(0.285f),
-            Height = new RelativeConstraint(0.07f)
+            Width = new RelativeConstraint(0.4f),
+            Height = new RelativeConstraint(0.1f),
         };
 
         var layoutGroup = new LayoutGroup
@@ -47,8 +48,8 @@ public class Hotbar : CanvasElement
             {
                 Anchor = ConstraintAnchor.CENTER,
                 Width = new FillConstraint(),
-                Height = new FillConstraint()
-            }
+                Height = new FillConstraint(),
+            },
         };
         Content.Add(layoutGroup);
 
@@ -68,8 +69,8 @@ public class Hotbar : CanvasElement
                 Constraints = new RectConstraints
                 {
                     Width = new RelativeConstraint(0.90f / slotCount),
-                    Height = new AspectConstraint(1f)
-                }
+                    Height = new AspectConstraint(1f),
+                },
             };
             layoutGroup.Content.Add(slot);
             
@@ -82,7 +83,7 @@ public class Hotbar : CanvasElement
                 Wrap = false,
                 Constraints = new RectConstraints
                 {
-                    Anchor = ConstraintAnchor.TOP_LEFT
+                    Anchor = ConstraintAnchor.TOP_LEFT,
                 },
             };
             colorBlock.Content.Add(label);
@@ -142,13 +143,27 @@ public class Hotbar : CanvasElement
 
     public void UpdateSlot(int slot, string name, int count)
     {
+        if (count <= 0)
+        {
+            _names[slot].Text = string.Empty;
+            _counts[slot].Text = string.Empty;
+            return;
+        }
+
         _names[slot].Text = name;
         _counts[slot].Text = count.ToString();
     }
     
     public void UpdateSlot(int slot, int count)
     {
-        _counts[slot].Text = count != 0 ? count.ToString() : string.Empty;
+        if (count <= 0)
+        {
+            _names[slot].Text = string.Empty;
+            _counts[slot].Text = string.Empty;
+            return;
+        }
+
+        _counts[slot].Text = count.ToString();
     }
     
     public void Clear(int slot)

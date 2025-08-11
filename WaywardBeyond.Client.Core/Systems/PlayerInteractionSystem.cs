@@ -7,6 +7,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
@@ -14,6 +15,8 @@ using Swordfish.UI.Elements;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Debug;
+using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -24,8 +27,10 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
+    private readonly IECSContext _ecsContext;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
+    private readonly Hotbar _hotbar;
     
     public PlayerInteractionSystem(
         in IInputService inputService,
@@ -34,14 +39,18 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         in IRenderContext renderContext,
         in IWindowContext windowContext,
         in IUIContext uiContext,
-        in BrickEntityBuilder brickEntityBuilder)
+        in BrickEntityBuilder brickEntityBuilder,
+        in IShortcutService shortcutService,
+        in IECSContext ecsContext)
     {
         _inputService = inputService;
         _physics = physics;
         _renderContext = renderContext;
         _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
+        _ecsContext = ecsContext;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
+        _hotbar = new Hotbar(windowContext, uiContext, shortcutService);
         
         _debugText = new TextElement("");
         _ = new CanvasElement(uiContext, windowContext, "Debug")
@@ -72,6 +81,19 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     {
         _physics.FixedUpdate += OnFixedUpdate;
         _inputService.Clicked += OnClicked;
+        
+        //  Update the hotbar to reflect the current state of the inventory
+        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        return;
+
+        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        {
+            for (var i = 0; i < inventory.Contents.Length; i++)
+            {
+                ItemStack itemStack = inventory.Contents[i];
+                _hotbar.UpdateSlot(i, itemStack.ID, itemStack.Count);
+            }
+        }
     }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
@@ -96,17 +118,56 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         
         brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
         _brickEntityBuilder.Rebuild(entity.Ptr);
+        
+        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        return;
+
+        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        {
+            inventory.Add(new ItemStack(clickedBrick.Name!));
+            
+            //  Update the hotbar's display
+            for (var i = 0; i < inventory.Contents.Length; i++)
+            {
+                ItemStack itemStack = inventory.Contents[i];
+                _hotbar.UpdateSlot(i, itemStack.ID, itemStack.Count);
+            }
+        }
     }
     
     private void OnRightClick()
     {
-        if (!TryGetBrickFromScreenSpace(true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        {
+            return;
+        }
+
+        Brick? brickToPlace = null;
+        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
+        if (!brickToPlace.HasValue)
         {
             return;
         }
         
-        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, BrickRegistry.MetalPanel);
-        _brickEntityBuilder.Rebuild(entity.Ptr);
+        brickComponent.Grid.Set(brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
+        _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
+        return;
+        
+        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        {
+            int slot = _hotbar.ActiveSlot.Get();
+            
+            if (!inventory.Remove(slot, 1))
+            {
+                return;
+            }
+            
+            //  Update the hotbar's display
+            ItemStack itemStack = inventory.Contents[slot];
+            _hotbar.UpdateSlot(slot, itemStack.Count);
+            
+            brickToPlace = BrickRegistry.Bricks[itemStack.ID];
+        }
     }
 
     private void OnFixedUpdate(object? sender, EventArgs e)
