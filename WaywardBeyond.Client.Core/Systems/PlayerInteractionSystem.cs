@@ -174,10 +174,12 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     {
         if (!TryGetBrickFromScreenSpace(false, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
+            _cubeGizmo.Visible = false;
             return;
         }
         
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
+        _cubeGizmo.Visible = true;
         _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
         _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
     }

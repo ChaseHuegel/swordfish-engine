@@ -12,9 +12,31 @@ public sealed class CubeGizmo : IDisposable
 {
     private readonly Line[] _lines;
     private readonly LineTemplate[] _templates;
+    private readonly Vector4 _color;
+    private bool _visible;
+
+    public bool Visible
+    {
+        get => _visible;
+        set
+        {
+            if (_visible == value)
+            {
+                return;
+            }
+            
+            for (var i = 0; i < _lines.Length; i++)
+            {
+                _lines[i].Color = value ? _color : Vector4.Zero;
+            }
+            _visible = value;
+        }
+    }
 
     public CubeGizmo(ILineRenderer lineRenderer, Vector4 color)
     {
+        _color = color;
+        
         _lines = new Line[12];
         for (var i = 0; i < _lines.Length; i++)
         {
