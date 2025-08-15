@@ -2,9 +2,20 @@ using System.Numerics;
 
 namespace Swordfish.Types;
 
-public struct Rect2(in Vector2 min, in Vector2 max)
+public record struct Rect2
 {
-    public Vector2 Min = min;
+    public Vector2 Min;
 
-    public Vector2 Max = max;
+    public Vector2 Max;
+
+    public Rect2(Vector2 min, Vector2 max)
+    {
+        Min = min;
+        Max = max;
+    }
+
+    public override string ToString()
+    {
+        return $"{Min},{Max}";
+    }
 }
