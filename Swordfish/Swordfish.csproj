@@ -51,7 +51,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="assets\config\" />
+    <Content Update="assets\shaders\ui_default.glsl">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
 </Project>

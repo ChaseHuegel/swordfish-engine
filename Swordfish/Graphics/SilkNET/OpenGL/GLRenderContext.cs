@@ -7,6 +7,8 @@ using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.UI;
+
 // ReSharper disable UnusedMember.Global
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
@@ -19,6 +21,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public DataBinding<int> DrawCalls { get; } = new();
 
     internal readonly LockedList<GLRenderTarget> RenderTargets = new();
+    internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
     private readonly GL _gl;
@@ -64,6 +67,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer) => BindMeshRenderer(meshRenderer);
+    public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
 
     private void OnHandleDisposed(object? sender, EventArgs _)
     {
@@ -213,6 +217,41 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         void OnMeshRendererDisposed(object? sender, EventArgs e)
         {
             RenderTargets.Remove(renderTarget);
+            OnHandleDisposed(sender, e);
+        }
+    }
+    
+    private void BindRectRenderer(RectRenderer rectRenderer)
+    {
+        if (_linkedHandles.TryGetValue(rectRenderer, out IHandle? _))
+        {
+            return;
+        }
+
+        var glMaterials = new GLMaterial[rectRenderer.Materials.Length];
+        for (var i = 0; i < rectRenderer.Materials.Length; i++)
+        {
+            glMaterials[i] = BindMaterial(rectRenderer.Materials[i]);
+        }
+
+        GLRectRenderTarget renderTarget = _glContext.CreateGLRectRenderTarget(
+            rectRenderer.Rect,
+            rectRenderer.Color.ToVector4(),
+            glMaterials
+        );
+
+        if (!_linkedHandles.TryAdd(rectRenderer, renderTarget))
+        {
+            return;
+        }
+
+        RectRenderTargets.Add(renderTarget);
+        rectRenderer.Disposed += OnRectRendererDisposed;
+        return;
+
+        void OnRectRendererDisposed(object? sender, EventArgs e)
+        {
+            RectRenderTargets.Remove(renderTarget);
             OnHandleDisposed(sender, e);
         }
     }

@@ -2,6 +2,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -44,6 +45,11 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
     internal GLRenderTarget CreateGLRenderTarget(Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
         return _glThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(_gl, transform, vertexArrayObject, modelsBufferObject, materials, renderOptions));
+    }
+    
+    internal GLRectRenderTarget CreateGLRectRenderTarget(Rect2 rect, Vector4 color, GLMaterial[] materials)
+    {
+        return _glThread.WaitForResult(GLRectRenderTargetArgs.Factory, new GLRectRenderTargetArgs(rect, color, materials));
     }
 
     internal VertexArrayObject<TVertexType> CreateVertexArrayObject<TVertexType>(TVertexType[] vertexData)

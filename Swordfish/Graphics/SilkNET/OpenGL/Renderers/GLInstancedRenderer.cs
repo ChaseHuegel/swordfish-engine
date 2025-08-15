@@ -18,13 +18,13 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
     public void Initialize(IRenderContext renderContext)
     {
-        if (renderContext is not GLRenderContext gLRenderContext)
+        if (renderContext is not GLRenderContext glRenderContext)
         {
             throw new NotSupportedException($"{nameof(GLInstancedRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
 
         //  TODO this is bad
-        _renderTargets = gLRenderContext.RenderTargets;
+        _renderTargets = glRenderContext.RenderTargets;
     }
 
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
