@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using DryIoc;
 using Xunit.Abstractions;
 
@@ -21,7 +22,11 @@ public abstract class TestBase : IDisposable
     private void Setup()
     {
         SetupContainer(_container);
-        _container.ValidateAndThrow();
+        if (_container.GetServiceRegistrations().Any())
+        {
+            _container.ValidateAndThrow();
+        }
+
         OnSetup();
     }
 

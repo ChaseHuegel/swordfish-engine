@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="TestFiles\**\*.*" CopyToOutputDirectory="Always"/>
+    <ProjectReference Include="..\Reef\Reef.csproj" />
     
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
