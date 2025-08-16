@@ -1,6 +1,11 @@
+using System.Numerics;
+
 namespace Reef;
 
-public struct RenderCommand
+public struct RenderCommand<TTextureData>
 {
-    
+    public IntRect Rect;
+    public Vector4 Color;
+    public CornerRadius CornerRadius;
+    public TTextureData? TextureData;
 }

@@ -10,7 +10,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     [Fact]
     public void UITest()
     {
-        var ui = new UIBuffer();
+        var ui = new UIBuilder<byte[]>();
         
         using (ui.Element())
         {

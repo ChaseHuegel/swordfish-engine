@@ -5,9 +5,9 @@ using System.Threading;
 
 namespace Reef;
 
-public sealed class UIBuffer
+public sealed class UIBuilder<TTextureData>
 {
-    public struct Scope(UIBuffer ui) : IDisposable
+    public struct Scope(UIBuilder<TTextureData> ui) : IDisposable
     {
         private int _disposed;
         
@@ -51,13 +51,6 @@ public sealed class UIBuffer
     private readonly Stack<UIElement> _openElements = new();
     private readonly List<UIElement> _closedRootElements = [];
 
-    public RenderCommand[] Build()
-    {
-        _openElements.Clear();
-        _closedRootElements.Clear();
-        return [];
-    }
-
     public Scope Element()
     {
         return OpenElement(new UIElement());
@@ -66,6 +59,27 @@ public sealed class UIBuffer
     public Scope Element(UIElement element)
     {
         return OpenElement(element);
+    }
+    
+    public RenderCommand<TTextureData>[] Build()
+    {
+        //  Force close all elements
+        while (_hasOpenElement)
+        {
+            CloseElement();
+        }
+        
+        //  Build commands from the closed elements
+        for (int i = 0; i < _closedRootElements.Count; i++)
+        {
+            UIElement rootElement = _closedRootElements[i];
+            
+        }
+     
+        //  Reset state
+        _openElements.Clear();
+        _closedRootElements.Clear();
+        return [];
     }
 
     private Scope OpenElement(UIElement element)
@@ -84,19 +98,17 @@ public sealed class UIBuffer
     
     private void CloseElement()
     {
-        UIElement thisElement = _currentElement;
         _hasOpenElement = _openElements.Count > 0;
-        
         if (_hasOpenElement)
         {
             _currentElement = _openElements.Pop();
             _currentElement.Children ??= [];
-            _currentElement.Children.Add(thisElement);
+            _currentElement.Children.Add(_currentElement);
         }
         else
         {
             _currentElement = default;
-            _closedRootElements.Add(thisElement);
+            _closedRootElements.Add(_currentElement);
         }
     }
 }
