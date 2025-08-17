@@ -46,6 +46,12 @@ public sealed class UIBuilder<TTextureData>
         set => _currentElement.Style.Padding = value;
     }
 
+    public LayoutDirection LayoutDirection
+    {
+        get => _currentElement.Layout.Direction;
+        set => _currentElement.Layout.Direction = value;
+    }
+
     private bool _hasOpenElement;
     private UIElement _currentElement;
     private readonly Stack<UIElement> _openElements = new();
@@ -79,13 +85,14 @@ public sealed class UIBuilder<TTextureData>
             };
             commands.Add(command);
             
-            int leftOffset = -root.Layout.Spacing / 2;
+            int leftOffset = root.Style.Padding.Left;
+            int topOffset = root.Style.Padding.Top;
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
                 UIElement child = root.Children[n];
                 
-                int x = root.Rect.Center.X + child.Rect.Center.X + leftOffset - (child.Rect.Size.X >> 1);
-                int y = root.Rect.Center.Y + child.Rect.Center.Y;
+                int x = root.Rect.Position.X + child.Rect.Position.X + leftOffset;
+                int y = root.Rect.Position.Y + child.Rect.Position.Y + topOffset;
                 var center = new IntVector2(x, y);
         
                 int width = child.Rect.Size.X;
@@ -93,8 +100,15 @@ public sealed class UIBuilder<TTextureData>
                 var size = new IntVector2(width, height);
         
                 child.Rect = new IntRect(center, size);
-                leftOffset += width + root.Layout.Spacing;
-                
+                if (root.Layout.Direction == LayoutDirection.Horizontal)
+                {
+                    leftOffset += width + root.Layout.Spacing;
+                }
+                else
+                {
+                    topOffset += height + root.Layout.Spacing;
+                }
+
                 command = new RenderCommand<TTextureData>
                 {
                     Rect = child.Rect,
@@ -129,8 +143,8 @@ public sealed class UIBuilder<TTextureData>
         UIElement element = _currentElement;
         
         //  Apply constraints
-        int x = element.Constraints.X?.Calculate(1920) ?? element.Rect.Center.X;
-        int y = element.Constraints.Y?.Calculate(1080) ?? element.Rect.Center.Y;
+        int x = element.Constraints.X?.Calculate(1920) ?? element.Rect.Position.X;
+        int y = element.Constraints.Y?.Calculate(1080) ?? element.Rect.Position.Y;
         var center = new IntVector2(x, y);
         
         int width = element.Constraints.Width?.Calculate(1920) ?? element.Rect.Size.X;
@@ -156,34 +170,33 @@ public sealed class UIBuilder<TTextureData>
         int childCount = element.Children?.Count ?? 0;
         int totalSpacing = childCount > 1 ? (childCount - 1) * element.Layout.Spacing : 0;
 
+        //  Apply spacing of children to the element
         if (element.Layout.Direction == LayoutDirection.Horizontal)
         {
-            //  Apply horizontal spacing to the element
             width += totalSpacing;
-            size = new IntVector2(width, height);
-            element.Rect = new IntRect(element.Rect.Center, size);
-
-            //  Resize parent to fit its horizontal children
-            width = parent.Rect.Size.X + element.Rect.Size.X;
-            height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
-            
-            size = new IntVector2(width, height);
-            parent.Rect = new IntRect(parent.Rect.Center, size);
         }
         else
         {
-            //  Apply vertical spacing to the element
             height += totalSpacing;
-            size = new IntVector2(width, height);
-            element.Rect = new IntRect(element.Rect.Center, size);
+        }
 
-            //  Resize parent to fit its vertical children
+        size = new IntVector2(width, height);
+        element.Rect = new IntRect(element.Rect.Position, size);
+
+        //  Resize parent to fit its children
+        if (parent.Layout.Direction == LayoutDirection.Horizontal)
+        {
+            width = parent.Rect.Size.X + element.Rect.Size.X;
+            height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
+        }
+        else
+        {
             width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
             height = parent.Rect.Size.Y + element.Rect.Size.Y;
-            
-            size = new IntVector2(width, height);
-            parent.Rect = new IntRect(parent.Rect.Center, size);
         }
+
+        size = new IntVector2(width, height);
+        parent.Rect = new IntRect(parent.Rect.Position, size);
 
         if (_hasOpenElement)
         {

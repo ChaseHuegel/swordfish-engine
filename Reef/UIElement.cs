@@ -119,3 +119,16 @@ public struct Relative(float value) : IConstraint
         return (int)(Value * value);
     }
 }
+
+public enum Anchor
+{
+    TopLeft,
+    TopCenter,
+    TopRight,
+    CenterRight,
+    BottomRight,
+    BottomCenter,
+    BottomLeft,
+    CenterLeft,
+    Center,
+}

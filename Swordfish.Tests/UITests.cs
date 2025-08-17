@@ -27,6 +27,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
             ui.Spacing = 8;
             ui.Padding = new Padding(
@@ -41,7 +42,38 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Y = new Relative(0.5f),
             };
 
-            for (var i = 0; i < 2; i++)
+            for (var i = 0; i < 6; i++)
+            {
+                using (ui.Element())
+                {
+                    ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(50),
+                        Height = new Fixed(50),
+                    };
+                }
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Horizontal;
+            ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+            ui.Spacing = 8;
+            ui.Padding = new Padding(
+                left: 8,
+                top: 8,
+                right: 8,
+                bottom: 8
+            );
+            ui.Constraints = new Constraints
+            {
+                X = new Relative(0.6f),
+                Y = new Relative(0.6f),
+            };
+
+            for (var i = 0; i < 6; i++)
             {
                 using (ui.Element())
                 {
