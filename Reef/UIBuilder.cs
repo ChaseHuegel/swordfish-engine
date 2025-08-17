@@ -117,13 +117,17 @@ public sealed class UIBuilder<TTextureData>
                 center = new IntVector2(x, y);
                 child.Rect = new IntRect(center, child.Rect.Size);
 
-                if (root.Layout.Direction == LayoutDirection.Horizontal)
+                switch (root.Layout.Direction)
                 {
-                    leftOffset += child.Rect.Size.X + root.Layout.Spacing;
-                }
-                else
-                {
-                    topOffset += child.Rect.Size.Y + root.Layout.Spacing;
+                    case LayoutDirection.Horizontal:
+                        leftOffset += child.Rect.Size.X + root.Layout.Spacing;
+                        break;
+                    case LayoutDirection.Vertical:
+                        topOffset += child.Rect.Size.Y + root.Layout.Spacing;
+                        break;
+                    case LayoutDirection.None:
+                        //  Do nothing
+                        break;
                 }
 
                 command = new RenderCommand<TTextureData>
@@ -163,13 +167,6 @@ public sealed class UIBuilder<TTextureData>
     {
         UIElement element = _currentElement;
         
-        //  Apply size constraints
-        int width = element.Constraints.Width?.Calculate(Width) ?? element.Rect.Size.X;
-        int height = element.Constraints.Height?.Calculate(Height) ?? element.Rect.Size.Y;
-        var size = new IntVector2(width, height);
-        
-        element.Rect = new IntRect(element.Rect.Position, size);
-        
         //  Attempt to get the parent, if any, off the stack
         UIElement parent = default;
         _hasOpenElement = _openElements.Count > 0;
@@ -177,6 +174,13 @@ public sealed class UIBuilder<TTextureData>
         {
             parent = _openElements.Pop();
         }
+        
+        //  Apply size constraints
+        int width = element.Constraints.Width?.Calculate(_hasOpenElement ? parent.Rect.Size.X : Width) ?? element.Rect.Size.X;
+        int height = element.Constraints.Height?.Calculate(_hasOpenElement ? parent.Rect.Size.Y : Height) ?? element.Rect.Size.Y;
+        var size = new IntVector2(width, height);
+        
+        element.Rect = new IntRect(element.Rect.Position, size);
         
         //  Apply padding
         Padding padding = element.Style.Padding;
@@ -188,28 +192,34 @@ public sealed class UIBuilder<TTextureData>
         int totalSpacing = childCount > 1 ? (childCount - 1) * element.Layout.Spacing : 0;
 
         //  Apply spacing of children to the element
-        if (element.Layout.Direction == LayoutDirection.Horizontal)
+        switch (element.Layout.Direction)
         {
-            width += totalSpacing;
-        }
-        else
-        {
-            height += totalSpacing;
+            case LayoutDirection.Horizontal:
+                width += totalSpacing;
+                break;
+            case LayoutDirection.Vertical:
+                height += totalSpacing;
+                break;
         }
 
         size = new IntVector2(width, height);
         element.Rect = new IntRect(element.Rect.Position, size);
 
         //  Resize parent to fit its children
-        if (parent.Layout.Direction == LayoutDirection.Horizontal)
+        switch (parent.Layout.Direction)
         {
-            width = parent.Rect.Size.X + element.Rect.Size.X;
-            height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
-        }
-        else
-        {
-            width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
-            height = parent.Rect.Size.Y + element.Rect.Size.Y;
+            case LayoutDirection.Horizontal:
+                width = parent.Rect.Size.X + element.Rect.Size.X;
+                height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
+                break;
+            case LayoutDirection.Vertical:
+                width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
+                height = parent.Rect.Size.Y + element.Rect.Size.Y;
+                break;
+            case LayoutDirection.None:
+                width = parent.Rect.Size.X + element.Rect.Size.X;
+                height = parent.Rect.Size.Y + element.Rect.Size.Y;
+                break;
         }
 
         size = new IntVector2(width, height);

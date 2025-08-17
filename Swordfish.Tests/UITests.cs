@@ -30,6 +30,18 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
                 ui.Constraints = new Constraints
                 {
+                    X = new Relative(0f),
+                    Y = new Relative(0f),
+                    Width = new Fixed(100),
+                    Height = new Fixed(100),
+                };
+            }
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0f, 0.5f, 0f, 1f);
+                ui.Constraints = new Constraints
+                {
                     X = new Relative(0.5f),
                     Y = new Relative(0.5f),
                     Width = new Fixed(100),
@@ -39,13 +51,13 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
+                ui.BackgroundColor = new Vector4(0f, 0f, 0.5f, 1f);
                 ui.Constraints = new Constraints
                 {
                     X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
-                    Width = new Fixed(100),
-                    Height = new Fixed(100),
+                    Y = new Relative(0f),
+                    Width = new Relative(0.5f),
+                    Height = new Relative(0.5f),
                 };
             }
         }
