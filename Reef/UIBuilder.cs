@@ -51,11 +51,21 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Layout.Direction;
         set => _currentElement.Layout.Direction = value;
     }
+    
+    public int Width => _viewPort.Size.X;
+    public int Height => _viewPort.Size.Y;
 
+    private readonly IntRect _viewPort;
+    
     private bool _hasOpenElement;
     private UIElement _currentElement;
     private readonly Stack<UIElement> _openElements = new();
     private readonly List<UIElement> _closedRootElements = [];
+
+    public UIBuilder(int width, int height)
+    {
+        _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
+    }
 
     public Scope Element()
     {
@@ -75,38 +85,45 @@ public sealed class UIBuilder<TTextureData>
             CloseElement();
         }
 
+        //  Create render commands out of all elements,
+        //  performing a top-down positioning pass in the process.
         List<RenderCommand<TTextureData>> commands = [];
-        foreach (UIElement root in _closedRootElements)
+        for (var i = 0; i < _closedRootElements.Count; i++)
         {
+            UIElement root = _closedRootElements[i];
+            
+            int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
+            int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
+            var center = new IntVector2(x, y);
+            root.Rect = new IntRect(center, root.Rect.Size);
+
             var command = new RenderCommand<TTextureData>
             {
                 Rect = root.Rect,
                 Color = root.Style.BackgroundColor,
             };
             commands.Add(command);
-            
+
             int leftOffset = root.Style.Padding.Left;
             int topOffset = root.Style.Padding.Top;
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
                 UIElement child = root.Children[n];
-                
-                int x = root.Rect.Position.X + child.Rect.Position.X + leftOffset;
-                int y = root.Rect.Position.Y + child.Rect.Position.Y + topOffset;
-                var center = new IntVector2(x, y);
-        
-                int width = child.Rect.Size.X;
-                int height = child.Rect.Size.Y;
-                var size = new IntVector2(width, height);
-        
-                child.Rect = new IntRect(center, size);
+
+                int constrainedX = child.Constraints.X?.Calculate(root.Rect.Size.X) ?? child.Rect.Position.X;
+                int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
+                x = root.Rect.Position.X + constrainedX + leftOffset;
+                y = root.Rect.Position.Y + constrainedY + topOffset;
+                center = new IntVector2(x, y);
+                child.Rect = new IntRect(center, child.Rect.Size);
+
                 if (root.Layout.Direction == LayoutDirection.Horizontal)
                 {
-                    leftOffset += width + root.Layout.Spacing;
+                    leftOffset += child.Rect.Size.X + root.Layout.Spacing;
                 }
                 else
                 {
-                    topOffset += height + root.Layout.Spacing;
+                    topOffset += child.Rect.Size.Y + root.Layout.Spacing;
                 }
 
                 command = new RenderCommand<TTextureData>
@@ -117,7 +134,7 @@ public sealed class UIBuilder<TTextureData>
                 commands.Add(command);
             }
         }
-     
+
         //  Reset state
         _openElements.Clear();
         _closedRootElements.Clear();
@@ -138,20 +155,20 @@ public sealed class UIBuilder<TTextureData>
         return new Scope(this);
     }
     
+    /// <summary>
+    ///     Closes the currently open element to complete it,
+    ///     performing a bottom-up sizing pass in the process.
+    /// </summary>
     private void CloseElement()
     {
         UIElement element = _currentElement;
         
-        //  Apply constraints
-        int x = element.Constraints.X?.Calculate(1920) ?? element.Rect.Position.X;
-        int y = element.Constraints.Y?.Calculate(1080) ?? element.Rect.Position.Y;
-        var center = new IntVector2(x, y);
-        
-        int width = element.Constraints.Width?.Calculate(1920) ?? element.Rect.Size.X;
-        int height = element.Constraints.Height?.Calculate(1080) ?? element.Rect.Size.Y;
+        //  Apply size constraints
+        int width = element.Constraints.Width?.Calculate(Width) ?? element.Rect.Size.X;
+        int height = element.Constraints.Height?.Calculate(Height) ?? element.Rect.Size.Y;
         var size = new IntVector2(width, height);
         
-        element.Rect = new IntRect(center, size);
+        element.Rect = new IntRect(element.Rect.Position, size);
         
         //  Attempt to get the parent, if any, off the stack
         UIElement parent = default;

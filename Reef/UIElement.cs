@@ -85,6 +85,7 @@ public enum LayoutDirection
 {
     Horizontal,
     Vertical,
+    None,
 }
 
 public interface IConstraint

@@ -11,18 +11,43 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     [Fact]
     public void UITest()
     {
-        var ui = new UIBuilder<byte[]>();
+        var ui = new UIBuilder<byte[]>(1920, 1080);
 
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.BackgroundColor = new Vector4(1f);
             ui.Constraints = new Constraints
             {
                 X = new Relative(0.25f),
                 Y = new Relative(0.25f),
-                Width = new Fixed(100),
-                Height = new Fixed(100),
+                Width = new Fixed(200),
+                Height = new Fixed(200),
             };
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    X = new Relative(0.5f),
+                    Y = new Relative(0.5f),
+                    Width = new Fixed(100),
+                    Height = new Fixed(100),
+                };
+            }
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    X = new Relative(0.5f),
+                    Y = new Relative(0.5f),
+                    Width = new Fixed(100),
+                    Height = new Fixed(100),
+                };
+            }
         }
 
         using (ui.Element())
@@ -88,7 +113,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         }
 
         RenderCommand<byte[]>[] renderCommands = ui.Build();
-        using var bitmap = new Bitmap(width: 1920, height: 1080);
+        using var bitmap = new Bitmap(ui.Width, ui.Height);
         foreach (RenderCommand<byte[]> renderCommand in renderCommands)
         {
             Color color = Color.FromArgb(
