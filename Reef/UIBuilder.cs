@@ -95,12 +95,27 @@ public sealed class UIBuilder<TTextureData>
             int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
             int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
             
-            switch (root.Constraints.Anchor)
+            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+            Anchors anchors = root.Constraints.Anchors;
+            int xOffset = root.Rect.Size.X;
+            int yOffset = root.Rect.Size.Y;
+            
+            if ((anchors & Anchors.Right) == Anchors.Right)
             {
-                case Anchor.Center:
-                    x -= root.Rect.Size.X >> 1;
-                    y -= root.Rect.Size.Y >> 1;
-                    break;
+                x -= xOffset;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center)
+            {
+                x -= xOffset >> 1;
+            }
+            
+            if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+            {
+                y -= yOffset;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center)
+            {
+                y -= yOffset >> 1;
             }
             
             var center = new IntVector2(x, y);
@@ -124,12 +139,27 @@ public sealed class UIBuilder<TTextureData>
                 x = root.Rect.Position.X + constrainedX + leftOffset;
                 y = root.Rect.Position.Y + constrainedY + topOffset;
                 
-                switch (child.Constraints.Anchor)
+                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+                anchors = child.Constraints.Anchors;
+                xOffset = child.Rect.Size.X;
+                yOffset = child.Rect.Size.Y;
+            
+                if ((anchors & Anchors.Right) == Anchors.Right)
                 {
-                    case Anchor.Center:
-                        x -= child.Rect.Size.X >> 1;
-                        y -= child.Rect.Size.Y >> 1;
-                        break;
+                    x -= xOffset;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center)
+                {
+                    x -= xOffset >> 1;
+                }
+            
+                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+                {
+                    y -= yOffset;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center)
+                {
+                    y -= yOffset >> 1;
                 }
                 
                 center = new IntVector2(x, y);

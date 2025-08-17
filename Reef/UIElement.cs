@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -14,7 +15,7 @@ public struct UIElement
 
 public struct Constraints
 {
-    public Anchor Anchor;
+    public Anchors Anchors;
     public IConstraint? X;
     public IConstraint? Y;
     public IConstraint? Width;
@@ -122,15 +123,12 @@ public struct Relative(float value) : IConstraint
     }
 }
 
-public enum Anchor
+[Flags]
+public enum Anchors
 {
-    TopLeft,
-    TopCenter,
-    TopRight,
-    CenterRight,
-    BottomRight,
-    BottomCenter,
-    BottomLeft,
-    CenterLeft,
-    Center,
+    Top = 1,
+    Left = 2,
+    Bottom = 4,
+    Right = 8,
+    Center = 16,
 }
