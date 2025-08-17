@@ -315,35 +315,78 @@ public sealed class UIBuilder<TTextureData>
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
             UIElement child = parent.Children[i];
-            availableWidth -= child.Rect.Size.X;
+
+            //  Count children against available space based on layout direction
+            switch (parent.Layout.Direction)
+            {
+                case LayoutDirection.Horizontal:
+                    availableWidth -= child.Rect.Size.X;
+                    break;
+                case LayoutDirection.Vertical:
+                    availableHeight -= child.Rect.Size.Y;
+                    break;
+            }
         }
-        
+
         int childCount = parent.Children?.Count ?? 0;
         int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
-        availableWidth -= totalSpacing;
         
-        //  Distribute the available space
-        while (availableWidth > 0 && parent.Children != null)
+        //  Count child spacing against available space based on layout direction
+        switch (parent.Layout.Direction)
+        {
+            case LayoutDirection.Horizontal:
+                availableWidth -= totalSpacing;
+                break;
+            case LayoutDirection.Vertical:
+                availableHeight -= totalSpacing;
+                break;
+        }
+        
+        //  Continue distributing available space until none is left
+        while (availableWidth > 0 && availableHeight > 0 && parent.Children != null)
         {
             int smallestWidth = -1;
-            int secondSmallestWidth = int.MaxValue;
+            var secondSmallestWidth = int.MaxValue;
             int widthToAdd = availableWidth;
+            
+            int smallestHeight = -1;
+            var secondSmallestHeight = int.MaxValue;
+            int heightToAdd = availableHeight;
 
-            int fillChildrenCount = 0;
+            //  Determine how much space should be added to the smallest children
+            int numHorizontalFillChildren = 0, numVerticalFillChildren = 0;
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 UIElement child = parent.Children[i];
-                if (child.Constraints.Width is not Fill)
+
+                bool fillHorizontal = child.Constraints.Width is Fill;
+                bool fillVertical = child.Constraints.Height is Fill;
+                if (!fillHorizontal && !fillVertical)
                 {
                     continue;
                 }
+                
+                //  Count children with fill constraints
+                if (fillHorizontal)
+                {
+                    numHorizontalFillChildren++;
+                }
+                
+                if (fillVertical)
+                {
+                    numVerticalFillChildren++;
+                }
 
+                //  Find the smallest of both axis
                 if (smallestWidth == -1)
                 {
                     smallestWidth = child.Rect.Size.X;
                 }
-
-                fillChildrenCount++;
+                
+                if (smallestHeight == -1)
+                {
+                    smallestHeight = child.Rect.Size.Y;
+                }
 
                 if (child.Rect.Size.X < smallestWidth)
                 {
@@ -355,30 +398,106 @@ public sealed class UIBuilder<TTextureData>
                     secondSmallestWidth = Math.Min(secondSmallestWidth, child.Rect.Size.X);
                     widthToAdd = secondSmallestWidth - smallestWidth;
                 }
+                
+                if (child.Rect.Size.Y < smallestHeight)
+                {
+                    secondSmallestHeight = smallestHeight;
+                    smallestHeight = child.Rect.Size.Y;
+                }
+                else if (child.Rect.Size.Y > smallestHeight)
+                {
+                    secondSmallestHeight = Math.Min(secondSmallestHeight, child.Rect.Size.Y);
+                    heightToAdd = secondSmallestHeight - smallestHeight;
+                }
             }
 
-            widthToAdd = Math.Min(widthToAdd, availableWidth / fillChildrenCount);
+            //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
+            widthToAdd = Math.Min(widthToAdd, availableWidth / numHorizontalFillChildren);
             widthToAdd = Math.Max(widthToAdd, 1);
             
+            heightToAdd = Math.Min(heightToAdd, availableHeight / numVerticalFillChildren);
+            heightToAdd = Math.Max(heightToAdd, 1);
+            
+            //  Distribute available space among children.
+            //  Along the layout axis, available space is distributed beginning with the smallest children.
+            //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 UIElement child = parent.Children[i];
-                if (child.Rect.Size.X != smallestWidth || child.Constraints.Width is not Fill)
+                
+                bool matchesSmallestWidth = child.Rect.Size.X == smallestWidth;
+                bool matchesSmallestHeight = child.Rect.Size.Y == smallestHeight;
+                if (!matchesSmallestWidth && !matchesSmallestHeight)
                 {
                     continue;
                 }
                 
-                int width = child.Rect.Size.X + widthToAdd;
-                int height = child.Rect.Size.Y + (child.Constraints.Height is Fill ? availableHeight : 0);
-
+                bool fillHorizontal = child.Constraints.Width is Fill;
+                bool fillVertical = child.Constraints.Height is Fill;
+                if (!fillHorizontal && !fillVertical)
+                {
+                    continue;
+                }
+                
+                //  Distribute available space evenly on the axis of the layout
+                int width, height;
+                switch (parent.Layout.Direction)
+                {
+                    case LayoutDirection.Horizontal:
+                        width = child.Rect.Size.X + (fillHorizontal ? widthToAdd : 0);
+                        height = child.Rect.Size.Y + (fillVertical ? availableHeight : 0);
+                        break;
+                    case LayoutDirection.Vertical:
+                        width = child.Rect.Size.X + (fillHorizontal ? availableWidth : 0);
+                        height = child.Rect.Size.Y + (fillVertical ? heightToAdd : 0);
+                        break;
+                    default:
+                        width = child.Rect.Size.X + (fillHorizontal ? widthToAdd : 0);
+                        height = child.Rect.Size.Y + (fillVertical ? heightToAdd : 0);
+                        break;
+                }
+                
+                //  Update the child
                 var size = new IntVector2(width, height);
                 child.Rect = new IntRect(child.Rect.Position, size);
-
-                //  Update the child
                 parent.Children[i] = child;
-                availableWidth -= widthToAdd;
+                
+                //  Consume distributed available space on the axis of the layout
+                switch (parent.Layout.Direction)
+                {
+                    case LayoutDirection.Horizontal when fillHorizontal:
+                        availableWidth -= widthToAdd;
+                        break;
+                    case LayoutDirection.Vertical when fillVertical:
+                        availableHeight -= heightToAdd;
+                        break;
+                    case LayoutDirection.None:
+                    {
+                        if (fillHorizontal)
+                        {
+                            availableWidth -= widthToAdd;
+                        }
+
+                        if (fillVertical)
+                        {
+                            availableHeight -= heightToAdd;
+                        }
+
+                        break;
+                    }
+                }
             }
-            availableHeight = 0;
+            
+            //  Consume all available space opposite the axis of the layout.
+            switch (parent.Layout.Direction)
+            {
+                case LayoutDirection.Horizontal:
+                    availableHeight = 0;
+                    break;
+                case LayoutDirection.Vertical:
+                    availableWidth = 0;
+                    break;
+            }
         }
     }
 }

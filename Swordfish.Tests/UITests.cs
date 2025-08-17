@@ -78,8 +78,8 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Anchors = Anchors.Center,
                 X = new Relative(0.5f),
                 Y = new Relative(0.5f),
-                Width = new Fixed(600),
-                Height = new Fixed(600),
+                Width = new Fixed(500),
+                Height = new Fixed(300),
             };
             
             using (ui.Element())
@@ -87,7 +87,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
                 ui.Constraints = new Constraints
                 {
-                    Width = new Fixed(100),
+                    Width = new Fixed(150),
                     Height = new Fixed(100),
                 };
             }
@@ -113,6 +113,16 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                         Height = new Fill(),
                     };
                 }
+            }
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(75),
+                    Height = new Fixed(150),
+                };
             }
         }
         
