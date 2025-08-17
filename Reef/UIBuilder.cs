@@ -176,8 +176,10 @@ public sealed class UIBuilder<TTextureData>
         }
         
         //  Apply size constraints
-        int width = element.Constraints.Width?.Calculate(_hasOpenElement ? parent.Rect.Size.X : Width) ?? element.Rect.Size.X;
-        int height = element.Constraints.Height?.Calculate(_hasOpenElement ? parent.Rect.Size.Y : Height) ?? element.Rect.Size.Y;
+        int maxWidth = _hasOpenElement ? parent.Rect.Size.X : Width;
+        int maxHeight = _hasOpenElement ? parent.Rect.Size.Y : Height;
+        int width = element.Constraints.Width?.Calculate(maxWidth) ?? element.Rect.Size.X;
+        int height = element.Constraints.Height?.Calculate(maxHeight) ?? element.Rect.Size.Y;
         var size = new IntVector2(width, height);
         
         element.Rect = new IntRect(element.Rect.Position, size);
