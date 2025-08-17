@@ -75,6 +75,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             );
             ui.Constraints = new Constraints
             {
+                Anchor = Anchor.Center,
                 X = new Relative(0.5f),
                 Y = new Relative(0.5f),
             };
@@ -106,8 +107,9 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             );
             ui.Constraints = new Constraints
             {
-                X = new Relative(0.6f),
-                Y = new Relative(0.6f),
+                Anchor = Anchor.Center,
+                X = new Relative(0.5f),
+                Y = new Relative(0.9f),
             };
 
             for (var i = 0; i < 6; i++)

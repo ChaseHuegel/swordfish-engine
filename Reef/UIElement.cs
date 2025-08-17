@@ -14,6 +14,7 @@ public struct UIElement
 
 public struct Constraints
 {
+    public Anchor Anchor;
     public IConstraint? X;
     public IConstraint? Y;
     public IConstraint? Width;

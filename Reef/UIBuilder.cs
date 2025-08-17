@@ -94,6 +94,15 @@ public sealed class UIBuilder<TTextureData>
             
             int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
             int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
+            
+            switch (root.Constraints.Anchor)
+            {
+                case Anchor.Center:
+                    x -= root.Rect.Size.X >> 1;
+                    y -= root.Rect.Size.Y >> 1;
+                    break;
+            }
+            
             var center = new IntVector2(x, y);
             root.Rect = new IntRect(center, root.Rect.Size);
 
@@ -114,6 +123,15 @@ public sealed class UIBuilder<TTextureData>
                 int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
                 x = root.Rect.Position.X + constrainedX + leftOffset;
                 y = root.Rect.Position.Y + constrainedY + topOffset;
+                
+                switch (child.Constraints.Anchor)
+                {
+                    case Anchor.Center:
+                        x -= child.Rect.Size.X >> 1;
+                        y -= child.Rect.Size.Y >> 1;
+                        break;
+                }
+                
                 center = new IntVector2(x, y);
                 child.Rect = new IntRect(center, child.Rect.Size);
 
