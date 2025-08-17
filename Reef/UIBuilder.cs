@@ -79,7 +79,7 @@ public sealed class UIBuilder<TTextureData>
             };
             commands.Add(command);
             
-            int leftOffset = 0;
+            int leftOffset = -root.Layout.Spacing / 2;
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
                 UIElement child = root.Children[n];
@@ -114,8 +114,6 @@ public sealed class UIBuilder<TTextureData>
     {
         if (_hasOpenElement)
         {
-            _currentElement.Children ??= [];
-            _currentElement.Children.Capacity++;
             _openElements.Push(_currentElement);
             _currentElement = element;
             return new Scope(this);
@@ -148,17 +146,17 @@ public sealed class UIBuilder<TTextureData>
         {
             parent = _openElements.Pop();
         }
-
+        
         //  Apply padding
         Padding padding = element.Style.Padding;
         width = element.Rect.Size.X + padding.Left + padding.Right;
         height = element.Rect.Size.Y + padding.Top + padding.Bottom;
         
         //  Calculate spacing
-        int childCount = parent.Children?.Capacity ?? 0;
-        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        int childCount = element.Children?.Count ?? 0;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * element.Layout.Spacing : 0;
 
-        if (parent.Layout.Direction == LayoutDirection.Horizontal)
+        if (element.Layout.Direction == LayoutDirection.Horizontal)
         {
             //  Apply horizontal spacing to the element
             width += totalSpacing;
