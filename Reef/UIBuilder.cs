@@ -311,6 +311,9 @@ public sealed class UIBuilder<TTextureData>
         availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
         availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
 
+        var numHorizontalFillChildren = 0;
+        var numVerticalFillChildren = 0;
+        
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
@@ -326,6 +329,23 @@ public sealed class UIBuilder<TTextureData>
                     availableHeight -= child.Rect.Size.Y;
                     break;
             }
+            
+            //  Count children with fill constraints
+            if (child.Constraints.Width is Fill)
+            {
+                numHorizontalFillChildren++;
+            }
+            
+            if (child.Constraints.Height is Fill)
+            {
+                numVerticalFillChildren++;
+            }
+        }
+        
+        //  Move on if children have fill constraints
+        if (numHorizontalFillChildren == 0 && numVerticalFillChildren == 0)
+        {
+            return;
         }
 
         int childCount = parent.Children?.Count ?? 0;
@@ -354,7 +374,6 @@ public sealed class UIBuilder<TTextureData>
             int heightToAdd = availableHeight;
 
             //  Determine how much space should be added to the smallest children
-            int numHorizontalFillChildren = 0, numVerticalFillChildren = 0;
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 UIElement child = parent.Children[i];
@@ -364,17 +383,6 @@ public sealed class UIBuilder<TTextureData>
                 if (!fillHorizontal && !fillVertical)
                 {
                     continue;
-                }
-                
-                //  Count children with fill constraints
-                if (fillHorizontal)
-                {
-                    numHorizontalFillChildren++;
-                }
-                
-                if (fillVertical)
-                {
-                    numVerticalFillChildren++;
                 }
 
                 //  Find the smallest of both axis
@@ -412,10 +420,16 @@ public sealed class UIBuilder<TTextureData>
             }
 
             //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
-            widthToAdd = Math.Min(widthToAdd, availableWidth / numHorizontalFillChildren);
+            if (numHorizontalFillChildren > 0)
+            {
+                widthToAdd = Math.Min(widthToAdd, availableWidth / numHorizontalFillChildren);
+            }
             widthToAdd = Math.Max(widthToAdd, 1);
-            
-            heightToAdd = Math.Min(heightToAdd, availableHeight / numVerticalFillChildren);
+
+            if (numVerticalFillChildren > 0)
+            {
+                heightToAdd = Math.Min(heightToAdd, availableHeight / numVerticalFillChildren);
+            }
             heightToAdd = Math.Max(heightToAdd, 1);
             
             //  Distribute available space among children.
