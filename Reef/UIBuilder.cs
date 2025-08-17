@@ -84,6 +84,21 @@ public sealed class UIBuilder<TTextureData>
         {
             CloseElement();
         }
+        
+        //  Perform a top-down sizing pass to process fill elements
+        for (var i = 0; i < _closedRootElements.Count; i++)
+        {
+            UIElement root = _closedRootElements[i];
+            FillChildren(ref root);
+            _closedRootElements[i] = root;
+
+            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
+            {
+                UIElement child = root.Children[n];
+                FillChildren(ref child);
+                root.Children[n] = child;
+            }
+        }
 
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
@@ -285,6 +300,85 @@ public sealed class UIBuilder<TTextureData>
         {
             _closedRootElements.Add(element);
             _currentElement = default;
+        }
+    }
+
+    private void FillChildren(ref UIElement parent)
+    {
+        int availableWidth = parent.Rect.Size.X;
+        int availableHeight = parent.Rect.Size.Y;
+        
+        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
+        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
+
+        //  Calculate available space
+        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
+        {
+            UIElement child = parent.Children[i];
+            availableWidth -= child.Rect.Size.X;
+        }
+        
+        int childCount = parent.Children?.Count ?? 0;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        availableWidth -= totalSpacing;
+        
+        //  Distribute the available space
+        while (availableWidth > 0 && parent.Children != null)
+        {
+            int smallestWidth = -1;
+            int secondSmallestWidth = int.MaxValue;
+            int widthToAdd = availableWidth;
+
+            int fillChildrenCount = 0;
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                UIElement child = parent.Children[i];
+                if (child.Constraints.Width is not Fill)
+                {
+                    continue;
+                }
+
+                if (smallestWidth == -1)
+                {
+                    smallestWidth = child.Rect.Size.X;
+                }
+
+                fillChildrenCount++;
+
+                if (child.Rect.Size.X < smallestWidth)
+                {
+                    secondSmallestWidth = smallestWidth;
+                    smallestWidth = child.Rect.Size.X;
+                }
+                else if (child.Rect.Size.X > smallestWidth)
+                {
+                    secondSmallestWidth = Math.Min(secondSmallestWidth, child.Rect.Size.X);
+                    widthToAdd = secondSmallestWidth - smallestWidth;
+                }
+            }
+
+            widthToAdd = Math.Min(widthToAdd, availableWidth / fillChildrenCount);
+            widthToAdd = Math.Max(widthToAdd, 1);
+            
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                UIElement child = parent.Children[i];
+                if (child.Rect.Size.X != smallestWidth || child.Constraints.Width is not Fill)
+                {
+                    continue;
+                }
+                
+                int width = child.Rect.Size.X + widthToAdd;
+                int height = child.Rect.Size.Y + (child.Constraints.Height is Fill ? availableHeight : 0);
+
+                var size = new IntVector2(width, height);
+                child.Rect = new IntRect(child.Rect.Position, size);
+
+                //  Update the child
+                parent.Children[i] = child;
+                availableWidth -= widthToAdd;
+            }
+            availableHeight = 0;
         }
     }
 }

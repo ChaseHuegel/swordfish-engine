@@ -103,6 +103,14 @@ public struct Fit : IConstraint
     }
 }
 
+public struct Fill : IConstraint
+{
+    public int Calculate(int value)
+    {
+        return 0;
+    }
+}
+
 public struct Fixed(int value) : IConstraint
 {
     public int Value = value;

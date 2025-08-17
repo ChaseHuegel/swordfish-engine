@@ -13,87 +13,55 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     {
         var ui = new UIBuilder<byte[]>(1920, 1080);
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.None;
-            ui.BackgroundColor = new Vector4(1f);
-            ui.Constraints = new Constraints
-            {
-                X = new Relative(0.25f),
-                Y = new Relative(0.25f),
-                Width = new Fixed(200),
-                Height = new Fixed(200),
-            };
-            
-            using (ui.Element())
-            {
-                ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    X = new Relative(0f),
-                    Y = new Relative(0f),
-                    Width = new Fixed(100),
-                    Height = new Fixed(100),
-                };
-            }
-            
-            using (ui.Element())
-            {
-                ui.BackgroundColor = new Vector4(0f, 0.5f, 0f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
-                    Width = new Fixed(100),
-                    Height = new Fixed(100),
-                };
-            }
-            
-            using (ui.Element())
-            {
-                ui.BackgroundColor = new Vector4(0f, 0f, 0.5f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    X = new Relative(0.5f),
-                    Y = new Relative(0f),
-                    Width = new Relative(0.5f),
-                    Height = new Relative(0.5f),
-                };
-            }
-        }
+        // using (ui.Element())
+        // {
+        //     ui.LayoutDirection = LayoutDirection.None;
+        //     ui.BackgroundColor = new Vector4(1f);
+        //     ui.Constraints = new Constraints
+        //     {
+        //         X = new Relative(0.25f),
+        //         Y = new Relative(0.25f),
+        //         Width = new Fixed(200),
+        //         Height = new Fixed(200),
+        //     };
+        //     
+        //     using (ui.Element())
+        //     {
+        //         ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
+        //         ui.Constraints = new Constraints
+        //         {
+        //             X = new Relative(0f),
+        //             Y = new Relative(0f),
+        //             Width = new Fixed(100),
+        //             Height = new Fixed(100),
+        //         };
+        //     }
+        //     
+        //     using (ui.Element())
+        //     {
+        //         ui.BackgroundColor = new Vector4(0f, 0.5f, 0f, 1f);
+        //         ui.Constraints = new Constraints
+        //         {
+        //             X = new Relative(0.5f),
+        //             Y = new Relative(0.5f),
+        //             Width = new Fixed(100),
+        //             Height = new Fixed(100),
+        //         };
+        //     }
+        //     
+        //     using (ui.Element())
+        //     {
+        //         ui.BackgroundColor = new Vector4(0f, 0f, 0.5f, 1f);
+        //         ui.Constraints = new Constraints
+        //         {
+        //             X = new Relative(0.5f),
+        //             Y = new Relative(0f),
+        //             Width = new Relative(0.5f),
+        //             Height = new Relative(0.5f),
+        //         };
+        //     }
+        // }
 
-        using (ui.Element())
-        {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
-            ui.Spacing = 8;
-            ui.Padding = new Padding(
-                left: 8,
-                top: 8,
-                right: 8,
-                bottom: 8
-            );
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
-            };
-
-            for (var i = 0; i < 6; i++)
-            {
-                using (ui.Element())
-                {
-                    ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(50),
-                        Height = new Fixed(50),
-                    };
-                }
-            }
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Horizontal;
@@ -107,24 +75,78 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             );
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
+                Anchors = Anchors.Center,
                 X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Y = new Relative(0.5f),
+                Width = new Fixed(600),
+                Height = new Fixed(600),
             };
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(100),
+                    Height = new Fixed(100),
+                };
+            }
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(50),
+                    Height = new Fill(),
+                };
+            }
 
-            for (var i = 0; i < 6; i++)
+            for (var i = 0; i < 2; i++)
             {
                 using (ui.Element())
                 {
                     ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        Width = new Fixed(50),
-                        Height = new Fixed(50),
+                        Width = new Fill(),
+                        Height = new Fill(),
                     };
                 }
             }
         }
+        
+        // using (ui.Element())
+        // {
+        //     ui.LayoutDirection = LayoutDirection.Horizontal;
+        //     ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+        //     ui.Spacing = 8;
+        //     ui.Padding = new Padding(
+        //         left: 8,
+        //         top: 8,
+        //         right: 8,
+        //         bottom: 8
+        //     );
+        //     ui.Constraints = new Constraints
+        //     {
+        //         Anchors = Anchors.Center | Anchors.Bottom,
+        //         X = new Relative(0.5f),
+        //         Y = new Relative(0.99f),
+        //     };
+        //
+        //     for (var i = 0; i < 6; i++)
+        //     {
+        //         using (ui.Element())
+        //         {
+        //             ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+        //             ui.Constraints = new Constraints
+        //             {
+        //                 Width = new Fixed(50),
+        //                 Height = new Fixed(50),
+        //             };
+        //         }
+        //     }
+        // }
 
         RenderCommand<byte[]>[] renderCommands = ui.Build();
         using var bitmap = new Bitmap(ui.Width, ui.Height);
