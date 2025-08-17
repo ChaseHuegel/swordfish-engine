@@ -68,24 +68,54 @@ public sealed class UIBuilder<TTextureData>
         {
             CloseElement();
         }
-        
-        //  Build commands from the closed elements
-        for (int i = 0; i < _closedRootElements.Count; i++)
+
+        List<RenderCommand<TTextureData>> commands = [];
+        foreach (UIElement root in _closedRootElements)
         {
-            UIElement rootElement = _closedRootElements[i];
+            var command = new RenderCommand<TTextureData>
+            {
+                Rect = root.Rect,
+                Color = root.Style.BackgroundColor,
+            };
+            commands.Add(command);
             
+            int leftOffset = 0;
+            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
+            {
+                UIElement child = root.Children[n];
+                
+                int x = root.Rect.Center.X + child.Rect.Center.X + leftOffset - (child.Rect.Size.X >> 1);
+                int y = root.Rect.Center.Y + child.Rect.Center.Y;
+                var center = new IntVector2(x, y);
+        
+                int width = child.Rect.Size.X;
+                int height = child.Rect.Size.Y;
+                var size = new IntVector2(width, height);
+        
+                child.Rect = new IntRect(center, size);
+                leftOffset += width + root.Layout.Spacing;
+                
+                command = new RenderCommand<TTextureData>
+                {
+                    Rect = child.Rect,
+                    Color = child.Style.BackgroundColor,
+                };
+                commands.Add(command);
+            }
         }
      
         //  Reset state
         _openElements.Clear();
         _closedRootElements.Clear();
-        return [];
+        return commands.ToArray();
     }
 
     private Scope OpenElement(UIElement element)
     {
         if (_hasOpenElement)
         {
+            _currentElement.Children ??= [];
+            _currentElement.Children.Capacity++;
             _openElements.Push(_currentElement);
             _currentElement = element;
             return new Scope(this);
@@ -98,17 +128,75 @@ public sealed class UIBuilder<TTextureData>
     
     private void CloseElement()
     {
+        UIElement element = _currentElement;
+        
+        //  Apply constraints
+        int x = element.Constraints.X?.Calculate(1920) ?? element.Rect.Center.X;
+        int y = element.Constraints.Y?.Calculate(1080) ?? element.Rect.Center.Y;
+        var center = new IntVector2(x, y);
+        
+        int width = element.Constraints.Width?.Calculate(1920) ?? element.Rect.Size.X;
+        int height = element.Constraints.Height?.Calculate(1080) ?? element.Rect.Size.Y;
+        var size = new IntVector2(width, height);
+        
+        element.Rect = new IntRect(center, size);
+        
+        //  Attempt to get the parent, if any, off the stack
+        UIElement parent = default;
         _hasOpenElement = _openElements.Count > 0;
         if (_hasOpenElement)
         {
-            _currentElement = _openElements.Pop();
-            _currentElement.Children ??= [];
-            _currentElement.Children.Add(_currentElement);
+            parent = _openElements.Pop();
+        }
+
+        //  Apply padding
+        Padding padding = element.Style.Padding;
+        width = element.Rect.Size.X + padding.Left + padding.Right;
+        height = element.Rect.Size.Y + padding.Top + padding.Bottom;
+        
+        //  Calculate spacing
+        int childCount = parent.Children?.Capacity ?? 0;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+
+        if (parent.Layout.Direction == LayoutDirection.Horizontal)
+        {
+            //  Apply horizontal spacing to the element
+            width += totalSpacing;
+            size = new IntVector2(width, height);
+            element.Rect = new IntRect(element.Rect.Center, size);
+
+            //  Resize parent to fit its horizontal children
+            width = parent.Rect.Size.X + element.Rect.Size.X;
+            height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
+            
+            size = new IntVector2(width, height);
+            parent.Rect = new IntRect(parent.Rect.Center, size);
         }
         else
         {
+            //  Apply vertical spacing to the element
+            height += totalSpacing;
+            size = new IntVector2(width, height);
+            element.Rect = new IntRect(element.Rect.Center, size);
+
+            //  Resize parent to fit its vertical children
+            width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
+            height = parent.Rect.Size.Y + element.Rect.Size.Y;
+            
+            size = new IntVector2(width, height);
+            parent.Rect = new IntRect(parent.Rect.Center, size);
+        }
+
+        if (_hasOpenElement)
+        {
+            parent.Children ??= [];
+            parent.Children.Add(element);
+            _currentElement = parent;
+        }
+        else
+        {
+            _closedRootElements.Add(element);
             _currentElement = default;
-            _closedRootElements.Add(_currentElement);
         }
     }
 }

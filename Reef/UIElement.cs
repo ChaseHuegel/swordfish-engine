@@ -14,10 +14,10 @@ public struct UIElement
 
 public struct Constraints
 {
-    public IConstraint X;
-    public IConstraint Y;
-    public IConstraint Width;
-    public IConstraint Height;
+    public IConstraint? X;
+    public IConstraint? Y;
+    public IConstraint? Width;
+    public IConstraint? Height;
 }
 
 public struct Style
@@ -89,14 +89,33 @@ public enum LayoutDirection
 
 public interface IConstraint
 {
+    int Calculate(int value);
+}
+
+public struct Fit : IConstraint
+{
+    public int Calculate(int value)
+    {
+        return 0;
+    }
 }
 
 public struct Fixed(int value) : IConstraint
 {
     public int Value = value;
+    
+    public int Calculate(int value)
+    {
+        return Value;
+    }
 }
 
 public struct Relative(float value) : IConstraint
 {
     public float Value = value;
-}???/////////????////
+    
+    public int Calculate(int value)
+    {
+        return (int)(Value * value);
+    }
+}
