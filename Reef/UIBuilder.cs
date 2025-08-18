@@ -90,17 +90,19 @@ public sealed class UIBuilder<TTextureData>
             CloseElement();
         }
         
-        //  Perform a top-down sizing pass to process fill elements
+        //  Perform a top-down sizing pass to process filling and shrinking elements
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
             UIElement root = _closedRootElements[i];
             FillChildren(ref root);
+            ShrinkChildren(ref root);
             _closedRootElements[i] = root;
 
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
                 UIElement child = root.Children[n];
                 FillChildren(ref child);
+                ShrinkChildren(ref child);
                 root.Children[n] = child;
             }
         }
@@ -362,7 +364,7 @@ public sealed class UIBuilder<TTextureData>
             }
         }
         
-        //  Move on if children have fill constraints
+        //  Move on if no children have fill constraints
         if (numHorizontalFillChildren == 0 && numVerticalFillChildren == 0)
         {
             return;
@@ -531,6 +533,143 @@ public sealed class UIBuilder<TTextureData>
                 case LayoutDirection.Vertical:
                     availableWidth = 0;
                     break;
+            }
+        }
+    }
+    
+    private void ShrinkChildren(ref UIElement parent)
+    {
+        int availableWidth = parent.Rect.Size.X;
+        int availableHeight = parent.Rect.Size.Y;
+        
+        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
+        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
+
+        var numHorizontalShrinkChildren = 0;
+        var numVerticalShrinkChildren = 0;
+        
+        //  Calculate available space
+        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
+        {
+            UIElement child = parent.Children[i];
+
+            //  Count children against available space
+            availableWidth -= child.Rect.Size.X;
+            
+            //  Count children that can shrink
+            if (child.Constraints.MinWidth != child.Rect.Size.X)
+            {
+                numHorizontalShrinkChildren++;
+            }
+            
+            if (child.Constraints.MinHeight != child.Rect.Size.Y)
+            {
+                numVerticalShrinkChildren++;
+            }
+        }
+        
+        //  Move on if no children have shrink constraints
+        if (numHorizontalShrinkChildren == 0 && numVerticalShrinkChildren == 0)
+        {
+            return;
+        }
+
+        int childCount = parent.Children?.Count ?? 0;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        
+        //  Count child spacing against available space based on layout direction
+        switch (parent.Layout.Direction)
+        {
+            case LayoutDirection.Horizontal:
+                availableWidth -= totalSpacing;
+                break;
+            case LayoutDirection.Vertical:
+                availableHeight -= totalSpacing;
+                break;
+        }
+        
+        //  Continue distributing available space until none is left
+        while (availableWidth < 0 && parent.Children != null)
+        {
+            int smallestWidth = -1;
+            var secondSmallestWidth = 0;
+            int widthToAdd = availableWidth;
+
+            //  Determine how much space should be added to the smallest children
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                UIElement child = parent.Children[i];
+
+                bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
+                bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
+                if (!shrinkHorizontal && !shrinkVertical)
+                {
+                    continue;
+                }
+
+                //  Find the smallest of both axis
+                if (smallestWidth == -1)
+                {
+                    smallestWidth = child.Rect.Size.X;
+                }
+
+                if (child.Rect.Size.X > smallestWidth)
+                {
+                    secondSmallestWidth = smallestWidth;
+                    smallestWidth = child.Rect.Size.X;
+                }
+                else if (child.Rect.Size.X < smallestWidth)
+                {
+                    secondSmallestWidth = Math.Max(secondSmallestWidth, child.Rect.Size.X);
+                    widthToAdd = secondSmallestWidth - smallestWidth;
+                }
+            }
+
+            //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
+            if (numHorizontalShrinkChildren > 0)
+            {
+                widthToAdd = Math.Max(widthToAdd, availableWidth / numHorizontalShrinkChildren);
+            }
+            widthToAdd = Math.Min(widthToAdd, 1);
+            
+            //  Distribute available space among children.
+            //  Along the layout axis, available space is distributed beginning with the smallest children.
+            //  Opposite the layout axis, available space is consumed entirely.
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                UIElement child = parent.Children[i];
+                
+                bool matchesSmallestWidth = child.Rect.Size.X == smallestWidth;
+                if (!matchesSmallestWidth)
+                {
+                    continue;
+                }
+                
+                bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
+                bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
+                if (!shrinkHorizontal && !shrinkVertical)
+                {
+                    continue;
+                }
+                
+                //  Distribute available space evenly
+                int width = child.Rect.Size.X + (shrinkHorizontal ? widthToAdd : 0);
+
+                //  Update the child
+                var size = new IntVector2(width, availableHeight);
+                child.Rect = new IntRect(child.Rect.Position, size);
+                parent.Children[i] = child;
+                
+                //  Consume distributed available space
+                if (shrinkHorizontal)
+                {
+                    availableWidth -= widthToAdd;
+                }
+            }
+
+            if (numHorizontalShrinkChildren == 0)
+            {
+                availableWidth = 0;
             }
         }
     }
