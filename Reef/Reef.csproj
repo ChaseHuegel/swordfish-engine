@@ -6,4 +6,8 @@
         <LangVersion>latest</LangVersion>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Aspose.Font" Version="25.8.0" />
+    </ItemGroup>
+
 </Project>
