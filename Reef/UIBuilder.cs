@@ -599,15 +599,15 @@ public sealed class UIBuilder<TTextureData>
         //  Continue distributing available space until none is left
         while ((availableWidth < 0 || availableHeight < 0) && parent.Children != null)
         {
-            int smallestWidth = -1;
-            var secondSmallestWidth = 0;
+            int largestWidth = -1;
+            var secondLargestWidth = 0;
             int widthToAdd = availableWidth;
             
-            int smallestHeight = -1;
-            var secondSmallestHeight = 0;
+            int largestHeight = -1;
+            var secondLargestHeight = 0;
             int heightToAdd = availableHeight;
 
-            //  Determine how much space should be added to the smallest children
+            //  Determine how much space should be added to the largest children
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 UIElement child = parent.Children[i];
@@ -619,37 +619,37 @@ public sealed class UIBuilder<TTextureData>
                     continue;
                 }
 
-                //  Find the smallest of both axis
-                if (smallestWidth == -1)
+                //  Find the largest of both axis
+                if (largestWidth == -1)
                 {
-                    smallestWidth = child.Rect.Size.X;
+                    largestWidth = child.Rect.Size.X;
                 }
                 
-                if (smallestHeight == -1)
+                if (largestHeight == -1)
                 {
-                    smallestHeight = child.Rect.Size.Y;
+                    largestHeight = child.Rect.Size.Y;
                 }
 
-                if (child.Rect.Size.X > smallestWidth)
+                if (child.Rect.Size.X > largestWidth)
                 {
-                    secondSmallestWidth = smallestWidth;
-                    smallestWidth = child.Rect.Size.X;
+                    secondLargestWidth = largestWidth;
+                    largestWidth = child.Rect.Size.X;
                 }
-                else if (child.Rect.Size.X < smallestWidth)
+                else if (child.Rect.Size.X < largestWidth)
                 {
-                    secondSmallestWidth = Math.Max(secondSmallestWidth, child.Rect.Size.X);
-                    widthToAdd = secondSmallestWidth - smallestWidth;
+                    secondLargestWidth = Math.Max(secondLargestWidth, child.Rect.Size.X);
+                    widthToAdd = secondLargestWidth - largestWidth;
                 }
                 
-                if (child.Rect.Size.Y > smallestHeight)
+                if (child.Rect.Size.Y > largestHeight)
                 {
-                    secondSmallestHeight = smallestHeight;
-                    smallestHeight = child.Rect.Size.Y;
+                    secondLargestHeight = largestHeight;
+                    largestHeight = child.Rect.Size.Y;
                 }
-                else if (child.Rect.Size.Y < smallestHeight)
+                else if (child.Rect.Size.Y < largestHeight)
                 {
-                    secondSmallestHeight = Math.Max(secondSmallestHeight, child.Rect.Size.Y);
-                    heightToAdd = secondSmallestHeight - smallestHeight;
+                    secondLargestHeight = Math.Max(secondLargestHeight, child.Rect.Size.Y);
+                    heightToAdd = secondLargestHeight - largestHeight;
                 }
             }
 
@@ -667,14 +667,14 @@ public sealed class UIBuilder<TTextureData>
             heightToAdd = Math.Min(heightToAdd, 1);
             
             //  Distribute available space among children.
-            //  Along the layout axis, available space is distributed beginning with the smallest children.
+            //  Along the layout axis, available space is distributed beginning with the largest children.
             //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
                 UIElement child = parent.Children[i];
                 
-                bool matchesSmallestWidth = child.Rect.Size.X == smallestWidth;
-                if (!matchesSmallestWidth)
+                bool matchesLargestWidth = child.Rect.Size.X == largestWidth;
+                if (!matchesLargestWidth)
                 {
                     continue;
                 }
