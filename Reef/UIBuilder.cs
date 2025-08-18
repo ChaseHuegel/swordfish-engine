@@ -554,8 +554,16 @@ public sealed class UIBuilder<TTextureData>
             UIElement child = parent.Children[i];
 
             //  Count children against available space
-            availableWidth -= child.Rect.Size.X;
-            
+            switch (parent.Layout.Direction)
+            {
+                case LayoutDirection.Horizontal:
+                    availableWidth -= child.Rect.Size.X;
+                    break;
+                case LayoutDirection.Vertical:
+                    availableHeight -= child.Rect.Size.Y;
+                    break;
+            }
+
             //  Count children that can shrink
             if (child.Constraints.MinWidth != child.Rect.Size.X)
             {
@@ -589,11 +597,15 @@ public sealed class UIBuilder<TTextureData>
         }
         
         //  Continue distributing available space until none is left
-        while (availableWidth < 0 && parent.Children != null)
+        while ((availableWidth < 0 || availableHeight < 0) && parent.Children != null)
         {
             int smallestWidth = -1;
             var secondSmallestWidth = 0;
             int widthToAdd = availableWidth;
+            
+            int smallestHeight = -1;
+            var secondSmallestHeight = 0;
+            int heightToAdd = availableHeight;
 
             //  Determine how much space should be added to the smallest children
             for (var i = 0; i < parent.Children.Count; i++)
@@ -612,6 +624,11 @@ public sealed class UIBuilder<TTextureData>
                 {
                     smallestWidth = child.Rect.Size.X;
                 }
+                
+                if (smallestHeight == -1)
+                {
+                    smallestHeight = child.Rect.Size.Y;
+                }
 
                 if (child.Rect.Size.X > smallestWidth)
                 {
@@ -623,6 +640,17 @@ public sealed class UIBuilder<TTextureData>
                     secondSmallestWidth = Math.Max(secondSmallestWidth, child.Rect.Size.X);
                     widthToAdd = secondSmallestWidth - smallestWidth;
                 }
+                
+                if (child.Rect.Size.Y > smallestHeight)
+                {
+                    secondSmallestHeight = smallestHeight;
+                    smallestHeight = child.Rect.Size.Y;
+                }
+                else if (child.Rect.Size.Y < smallestHeight)
+                {
+                    secondSmallestHeight = Math.Max(secondSmallestHeight, child.Rect.Size.Y);
+                    heightToAdd = secondSmallestHeight - smallestHeight;
+                }
             }
 
             //  Ensure the space to distribute doesn't reach 0, or the loop could never complete.
@@ -631,6 +659,12 @@ public sealed class UIBuilder<TTextureData>
                 widthToAdd = Math.Max(widthToAdd, availableWidth / numHorizontalShrinkChildren);
             }
             widthToAdd = Math.Min(widthToAdd, 1);
+            
+            if (numHorizontalShrinkChildren > 0)
+            {
+                heightToAdd = Math.Max(heightToAdd, availableHeight / numHorizontalShrinkChildren);
+            }
+            heightToAdd = Math.Min(heightToAdd, 1);
             
             //  Distribute available space among children.
             //  Along the layout axis, available space is distributed beginning with the smallest children.
@@ -653,23 +687,62 @@ public sealed class UIBuilder<TTextureData>
                 }
                 
                 //  Distribute available space evenly
-                int width = child.Rect.Size.X + (shrinkHorizontal ? widthToAdd : 0);
+                int width;
+                int height;
+                switch (parent.Layout.Direction)
+                {
+                    case LayoutDirection.Horizontal:
+                        width = child.Rect.Size.X + (shrinkHorizontal ? widthToAdd : 0);
+                        height = shrinkVertical ? availableHeight : child.Rect.Size.Y;
+                        break;
+                    case LayoutDirection.Vertical:
+                        width = shrinkHorizontal ? availableWidth : child.Rect.Size.X;
+                        height = child.Rect.Size.Y + (shrinkVertical ? heightToAdd : 0);
+                        break;
+                    default:
+                        continue;
+                }
 
                 //  Update the child
-                var size = new IntVector2(width, availableHeight);
+                var size = new IntVector2(width, height);
                 child.Rect = new IntRect(child.Rect.Position, size);
                 parent.Children[i] = child;
                 
-                //  Consume distributed available space
-                if (shrinkHorizontal)
+                //  Consume distributed available space on the axis of the layout
+                switch (parent.Layout.Direction)
                 {
-                    availableWidth -= widthToAdd;
+                    case LayoutDirection.Horizontal when shrinkHorizontal:
+                        availableWidth -= widthToAdd;
+                        break;
+                    case LayoutDirection.Vertical when shrinkVertical:
+                        availableHeight -= heightToAdd;
+                        break;
+                    case LayoutDirection.None:
+                    {
+                        if (shrinkHorizontal)
+                        {
+                            availableWidth -= widthToAdd;
+                        }
+
+                        if (shrinkVertical)
+                        {
+                            availableHeight -= heightToAdd;
+                        }
+
+                        break;
+                    }
                 }
             }
-
-            if (numHorizontalShrinkChildren == 0)
+            
+            //  Consume all available space opposite the axis of the layout.
+            switch (parent.Layout.Direction)
             {
-                availableWidth = 0;
+                case LayoutDirection.Horizontal:
+                    availableHeight = 0;
+                    break;
+                case LayoutDirection.Vertical:
+                    availableWidth = 0;
+                    break;
             }
         }
     }

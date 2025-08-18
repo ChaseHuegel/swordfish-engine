@@ -15,6 +15,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         
         using (ui.Element())
         {
+            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints
             {
@@ -24,7 +25,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(1f, 0f, 0f, 0.5f);
+                ui.BackgroundColor = new Vector4(1f, 0f, 0f, 0.25f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(500),
@@ -36,7 +37,19 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 1f, 0f, 0.5f);
+                ui.BackgroundColor = new Vector4(0f, 1f, 0f, 0.25f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(500),
+                    Height = new Fixed(500),
+                    MinWidth = 10,
+                    MinHeight = 10,
+                };
+            }
+            
+            using (ui.Element())
+            {
+                ui.BackgroundColor = new Vector4(0f, 0f, 1f, 0.25f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(500),
