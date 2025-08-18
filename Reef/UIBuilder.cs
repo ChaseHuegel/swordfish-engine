@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Threading;
-using Aspose.Font;
-using Aspose.Font.Glyphs;
-using Aspose.Font.Sources;
-using Aspose.Font.Ttf;
+using Typography.OpenFont;
+using Typography.TextLayout;
 
 namespace Reef;
 
@@ -64,7 +63,7 @@ public sealed class UIBuilder<TTextureData>
     public int Height => _viewPort.Size.Y;
 
     private readonly IntRect _viewPort;
-    private readonly Font _font;
+    private readonly GlyphLayout _glyphLayout;
     
     private bool _hasOpenElement;
     private UIElement<TTextureData> _currentElement;
@@ -73,10 +72,13 @@ public sealed class UIBuilder<TTextureData>
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
 
-    public UIBuilder(int width, int height, string fontFile)
+    public UIBuilder(int width, int height, string fontPath)
     {
-        var fontDefinition = new FontDefinition(FontType.TTF, new FontFileDefinition("ttf", new FileSystemStreamSource(fontFile)));
-        _font = Font.Open(fontDefinition);
+        using FileStream fs = File.OpenRead(fontPath);
+        var reader = new OpenFontReader();
+        Typeface typeface = reader.Read(fs);
+        _glyphLayout = new GlyphLayout();
+        _glyphLayout.Typeface = typeface;
         
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
@@ -793,33 +795,15 @@ public sealed class UIBuilder<TTextureData>
         int fontSize = FontSize;
 
         int firstWordLen = value.IndexOfAny(_whiteSpaceChars);
-        
-        double preferredWidth = 0;
-        double minWidth = 0;
-        double minHeight = 0;
-        double preferredHeight = 0;
-        for (var i = 0; i < value.Length; i++)
-        {
-            char symbol = value[i];
-            GlyphId gid = _font.Encoding.DecodeToGid(symbol);
-            Glyph glyph = _font.GetGlyphById(gid);
-            double glyphWidth = glyph.WidthVectorX / _font.Metrics.UnitsPerEM * fontSize;
-            double glyphHeight = (glyph.GlyphBBox.YMax - glyph.GlyphBBox.YMin) / _font.Metrics.UnitsPerEM * fontSize;
 
-            minHeight = Math.Max(minHeight, glyphHeight);
-            preferredHeight = minHeight;
-            
-            preferredWidth += glyphWidth;
-            if (i < firstWordLen)
-            {
-                minWidth += glyphWidth;
-            }
-        }
+        char[] textBuffer = value.ToCharArray();
+        MeasuredStringBox firstWordStringBox = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, firstWordLen, fontSize);
+        MeasuredStringBox fullStringBox = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, value.Length, fontSize);
         
-        minWidth = Math.Round(minWidth, MidpointRounding.AwayFromZero);
-        minHeight = Math.Round(minHeight, MidpointRounding.AwayFromZero);
-        preferredWidth = Math.Round(preferredWidth, MidpointRounding.AwayFromZero);
-        preferredHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
+        double minWidth = Math.Round(firstWordStringBox.width, MidpointRounding.AwayFromZero);
+        double preferredWidth = Math.Round(fullStringBox.width, MidpointRounding.AwayFromZero);
+        double minHeight = Math.Round(fullStringBox.LineSpaceInPx, MidpointRounding.AwayFromZero);
+        double preferredHeight = Math.Round(fullStringBox.LineSpaceInPx, MidpointRounding.AwayFromZero);
 
         return ((int)minWidth, (int)minHeight, (int)preferredWidth, (int)preferredHeight);
     }

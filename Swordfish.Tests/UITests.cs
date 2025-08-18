@@ -12,7 +12,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     [Fact]
     public void UITest()
     {
-        const string fontFilePath = "TestFiles/Fonts/Lora-Regular.ttf";
+        const string fontFilePath = "TestFiles/Fonts/Salmon Mono 9 Regular.ttf";
         var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
         
         var ui = new UIBuilder<Bitmap>(1920, 1080, fontFilePath);
