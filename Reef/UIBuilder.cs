@@ -284,10 +284,10 @@ public sealed class UIBuilder<TTextureData>
                 height += totalSpacing;
                 break;
         }
-
+        
         size = new IntVector2(width, height);
         element.Rect = new IntRect(element.Rect.Position, size);
-
+        
         //  Resize parent to fit its children
         switch (parent.Layout.Direction)
         {
@@ -658,13 +658,13 @@ public sealed class UIBuilder<TTextureData>
             {
                 widthToAdd = Math.Max(widthToAdd, availableWidth / numHorizontalShrinkChildren);
             }
-            widthToAdd = Math.Min(widthToAdd, 1);
+            widthToAdd = Math.Min(widthToAdd, -1);
             
             if (numHorizontalShrinkChildren > 0)
             {
                 heightToAdd = Math.Max(heightToAdd, availableHeight / numHorizontalShrinkChildren);
             }
-            heightToAdd = Math.Min(heightToAdd, 1);
+            heightToAdd = Math.Min(heightToAdd, -1);
             
             //  Distribute available space among children.
             //  Along the layout axis, available space is distributed beginning with the largest children.
