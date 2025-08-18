@@ -4,18 +4,21 @@ using System.Numerics;
 
 namespace Reef;
 
-public struct UIElement
+public struct UIElement<TTextureData>
 {
     public IntRect Rect;
     public Style Style;
     public Layout Layout;
     public Constraints Constraints;
-    public List<UIElement>? Children;
+    public List<UIElement<TTextureData>>? Children;
+    public string? Text;
+    public TTextureData? TextureData;
 }
 
 public struct Constraints
 {
     public Anchors Anchors;
+    
     public IConstraint? X;
     public IConstraint? Y;
     public IConstraint? Width;
@@ -27,7 +30,7 @@ public struct Constraints
 
 public struct Style
 {
-    public Vector4 BackgroundColor;
+    public Vector4 Color;
     public Padding Padding;
     public CornerRadius CornerRadius;
 }

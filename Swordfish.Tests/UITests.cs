@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Numerics;
 using Reef;
+using Swordfish.Library.Util;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -11,11 +12,12 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     [Fact]
     public void UITest()
     {
-        var ui = new UIBuilder<byte[]>(1920, 1080);
+        var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
+        var ui = new UIBuilder<Bitmap>(1920, 1080);
         
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Spacing = 8;
             ui.Padding = new Padding(
                 left: 8,
@@ -23,46 +25,35 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 right: 8,
                 bottom: 8
             );
-            ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
+            ui.Color = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints
             {
                 Width = new Fixed(300),
                 Height = new Fixed(300),
             };
             
-            using (ui.Element())
+            using (ui.Text("Hello world!"))
             {
-                ui.BackgroundColor = new Vector4(1f, 0f, 0f, 0.25f);
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(500),
-                    Height = new Fixed(500),
-                    MinWidth = 10,
-                    MinHeight = 10,
-                };
+                ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
             
-            using (ui.Element())
+            using (ui.Text("Test."))
             {
-                ui.BackgroundColor = new Vector4(0f, 1f, 0f, 0.25f);
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(500),
-                    Height = new Fixed(500),
-                    MinWidth = 10,
-                    MinHeight = 10,
-                };
+                ui.Color = new Vector4(0f, 1f, 0f, 1f);
             }
             
-            using (ui.Element())
+            using (ui.Text("This is a little bit of a longer piece of text."))
             {
-                ui.BackgroundColor = new Vector4(0f, 0f, 1f, 0.25f);
+                ui.Color = new Vector4(0f, 0f, 1f, 1f);
+            }
+            
+            using (ui.Image(swordfishBmp))
+            {
+                ui.Color = new Vector4(1f, 0f, 0f, 1f);
                 ui.Constraints = new Constraints
                 {
-                    Width = new Fixed(500),
-                    Height = new Fixed(500),
-                    MinWidth = 10,
-                    MinHeight = 10,
+                    Width = new Fixed(64),
+                    Height = new Fixed(64),
                 };
             }
         }
@@ -70,7 +61,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.None;
-            ui.BackgroundColor = new Vector4(1f);
+            ui.Color = new Vector4(1f);
             ui.Constraints = new Constraints
             {
                 X = new Relative(0.25f),
@@ -81,7 +72,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0.5f, 0f, 0f, 1f);
+                ui.Color = new Vector4(0.5f, 0f, 0f, 1f);
                 ui.Constraints = new Constraints
                 {
                     X = new Relative(0f),
@@ -93,7 +84,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 0.5f, 0f, 1f);
+                ui.Color = new Vector4(0f, 0.5f, 0f, 1f);
                 ui.Constraints = new Constraints
                 {
                     X = new Relative(0.5f),
@@ -105,7 +96,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 0f, 0.5f, 1f);
+                ui.Color = new Vector4(0f, 0f, 0.5f, 1f);
                 ui.Constraints = new Constraints
                 {
                     X = new Relative(0.5f),
@@ -119,7 +110,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Horizontal;
-            ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+            ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 1f);
             ui.Spacing = 8;
             ui.Padding = new Padding(
                 left: 8,
@@ -137,7 +128,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(32),
@@ -147,7 +138,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 0f);
+                ui.Color = new Vector4(0f, 0.5f, 0.5f, 0f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fill(),
@@ -157,7 +148,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Element())
             {
-                ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(32),
@@ -169,7 +160,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Horizontal;
-            ui.BackgroundColor = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+            ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 1f);
             ui.Spacing = 8;
             ui.Padding = new Padding(
                 left: 8,
@@ -188,7 +179,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             {
                 using (ui.Element())
                 {
-                    ui.BackgroundColor = new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(50),
@@ -198,9 +189,9 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             }
         }
 
-        RenderCommand<byte[]>[] renderCommands = ui.Build();
+        RenderCommand<Bitmap>[] renderCommands = ui.Build();
         using var bitmap = new Bitmap(ui.Width, ui.Height);
-        foreach (RenderCommand<byte[]> renderCommand in renderCommands)
+        foreach (RenderCommand<Bitmap> renderCommand in renderCommands)
         {
             Color color = Color.FromArgb(
                 alpha: (int)(renderCommand.Color.W * 255),
@@ -213,7 +204,20 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
             {
                 Color currentColor = bitmap.GetPixel(x, y);
-                bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
+
+                if (renderCommand.TextureData != null)
+                {
+                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.TextureData.Width - 1);
+                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
+                    Color sample = renderCommand.TextureData.GetPixel(u, v);
+                    sample = MultiplyBlend(sample, color);
+                    
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
+                }
+                else
+                {
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
+                }
             }
         }
         bitmap.Save("ui.bmp");
@@ -227,13 +231,35 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             float ar = af + ab * (1 - af);
             if (ar <= 0)
             {
-                return Color.FromArgb(0, 0, 0, 0); // fully transparent
+                return Color.FromArgb(0, 0, 0, 0);
             }
 
             var r = (byte)((foreground.R * af + background.R * ab * (1 - af)) / ar);
             var g = (byte)((foreground.G * af + background.G * ab * (1 - af)) / ar);
             var b = (byte)((foreground.B * af + background.B * ab * (1 - af)) / ar);
             var a = (byte)(ar * 255);
+
+            return Color.FromArgb(a, r, g, b);
+        }
+        
+        Color MultiplyBlend(Color background, Color foreground)
+        {
+            float af = foreground.A / 255f;
+            float ab = background.A / 255f;
+            
+            float rf = foreground.R / 255f;
+            float rb = background.R / 255f;
+            
+            float gf = foreground.G / 255f;
+            float gb = background.G / 255f;
+            
+            float bf = foreground.B / 255f;
+            float bb = background.B / 255f;
+
+            var a = (byte)(af * ab * 255f);
+            var r = (byte)(rf * rb * 255f);
+            var g = (byte)(gf * gb * 255f);
+            var b = (byte)(bf * bb * 255f);
 
             return Color.FromArgb(a, r, g, b);
         }
