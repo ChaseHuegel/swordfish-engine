@@ -20,6 +20,9 @@ public struct Constraints
     public IConstraint? Y;
     public IConstraint? Width;
     public IConstraint? Height;
+    
+    public int MinWidth;
+    public int MinHeight;
 }
 
 public struct Style
@@ -104,6 +107,14 @@ public struct Fit : IConstraint
 }
 
 public struct Fill : IConstraint
+{
+    public int Calculate(int value)
+    {
+        return 0;
+    }
+}
+
+public struct Shrink : IConstraint
 {
     public int Calculate(int value)
     {

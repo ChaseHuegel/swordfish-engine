@@ -76,6 +76,11 @@ public sealed class UIBuilder<TTextureData>
     {
         return OpenElement(element);
     }
+
+    public Scope Text(string value)
+    {
+        return OpenElement(new UIElement());
+    }
     
     public RenderCommand<TTextureData>[] Build()
     {
@@ -247,6 +252,17 @@ public sealed class UIBuilder<TTextureData>
         
         element.Rect = new IntRect(element.Rect.Position, size);
         
+        //  Set min width and height if they are unassigned
+        if (element.Constraints.MinWidth == 0)
+        {
+            element.Constraints.MinWidth = width;
+        }
+
+        if (element.Constraints.MinHeight == 0)
+        {
+            element.Constraints.MinHeight = height;
+        }
+
         //  Apply padding
         Padding padding = element.Style.Padding;
         width = element.Rect.Size.X + padding.Left + padding.Right;
@@ -276,10 +292,14 @@ public sealed class UIBuilder<TTextureData>
             case LayoutDirection.Horizontal:
                 width = parent.Rect.Size.X + element.Rect.Size.X;
                 height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
+                parent.Constraints.MinWidth += element.Constraints.MinWidth;
+                parent.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, parent.Constraints.MinHeight);
                 break;
             case LayoutDirection.Vertical:
                 width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
                 height = parent.Rect.Size.Y + element.Rect.Size.Y;
+                parent.Constraints.MinWidth = Math.Max(element.Constraints.MinWidth, parent.Constraints.MinWidth);
+                parent.Constraints.MinHeight += element.Constraints.MinHeight;
                 break;
             case LayoutDirection.None:
                 width = parent.Rect.Size.X + element.Rect.Size.X;
