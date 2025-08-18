@@ -16,6 +16,13 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Spacing = 8;
+            ui.Padding = new Padding(
+                left: 8,
+                top: 8,
+                right: 8,
+                bottom: 8
+            );
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints
             {
