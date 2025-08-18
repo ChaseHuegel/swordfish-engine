@@ -49,7 +49,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Image(swordfishBmp))
             {
-                ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                ui.Color = new Vector4(1f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(64),
