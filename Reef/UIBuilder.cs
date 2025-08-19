@@ -78,9 +78,11 @@ public sealed class UIBuilder<TTextureData>
         using FileStream fs = File.OpenRead(fontPath);
         var reader = new OpenFontReader();
         Typeface typeface = reader.Read(fs);
-        _glyphLayout = new GlyphLayout();
-        _glyphLayout.Typeface = typeface;
-        
+        _glyphLayout = new GlyphLayout
+        {
+            Typeface = typeface,
+        };
+
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
 
@@ -931,6 +933,56 @@ public sealed class UIBuilder<TTextureData>
 
         MeasuredStringBox remainderMeasurement = _glyphLayout.LayoutAndMeasureString(textBuffer, lastMeasuredLineEnd, length - lastMeasuredLineEnd, fontSize);
         lines.Add(remainderMeasurement);
+        return lines;
+    }
+    
+    public List<string> WrapText(char[] textBuffer, int start, int length, int maxWidth)
+    {
+        int fontSize = FontSize;
+        
+        var builder = new StringBuilder();
+        List<string> lines = [];
+        var currentWidth = 0f;
+        int lineStart = start;
+        int lastMeasuredLineEnd = -1;
+        (int Start, int End)? lastMeasurement = null;
+        for (int i = start; i < length; i++)
+        {
+            char character = textBuffer[i];
+            builder.Append(character);
+            if (character != ' ')
+            {
+                continue;
+            }
+            
+            int measurementStart = lineStart;
+            int measurementEnd = i - lineStart;
+            MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, measurementStart, measurementEnd, fontSize);
+            if (lastMeasurement != null && currentWidth + measurement.width > maxWidth)
+            {
+                lineStart = i;
+                lines.Add(builder.ToString(lastMeasurement.Value.Start, lastMeasurement.Value.End));
+                
+                currentWidth = 0;
+                builder.Clear();
+            }
+
+            lastMeasurement = (measurementStart, measurementEnd);
+            currentWidth += measurement.width;
+            lastMeasuredLineEnd = i;
+        }
+
+        if (currentWidth <= 0)
+        {
+            return lines;
+        }
+
+        if (lastMeasurement != null)
+        {
+            lines.Add(builder.ToString(lastMeasurement.Value.Start, lastMeasurement.Value.End));
+        }
+
+        lines.Add(builder.ToString(lastMeasuredLineEnd, length - lastMeasuredLineEnd));
         return lines;
     }
 }

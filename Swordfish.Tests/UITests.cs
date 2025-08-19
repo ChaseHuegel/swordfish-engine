@@ -1,7 +1,13 @@
+using System;
+using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Net.Mime;
 using System.Numerics;
 using Reef;
 using Swordfish.Library.Util;
+using Typography.OpenFont;
+using Typography.TextLayout;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -10,10 +16,22 @@ namespace Swordfish.Tests;
 public class UITests(ITestOutputHelper output) : TestBase(output)
 {
     [Fact]
+    public void RenderTest()
+    {
+        const string fontFilePath = "TestFiles/Fonts/Salmon Mono 9 Regular.ttf";
+        var ui = new UIBuilder<Bitmap>(1920, 1080, fontFilePath);
+        char[] textBuffer = "Hello world!".ToCharArray();
+        List<string> lines = ui.WrapText(textBuffer, 0, textBuffer.Length, 83);
+        
+        Assert.Equal(2, lines.Count);
+    }
+    
+    [Fact]
     public void UITest()
     {
         const string fontFilePath = "TestFiles/Fonts/Salmon Mono 9 Regular.ttf";
         var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
+        var fontBmp = new Bitmap("TestFiles/Fonts/font.png");
         
         var ui = new UIBuilder<Bitmap>(1920, 1080, fontFilePath);
         
@@ -220,10 +238,36 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 {
                     bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
                 }
+                
+                if (renderCommand.Text != null)
+                {
+                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, fontBmp.Width - 1);
+                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, fontBmp.Height - 1);
+                    Color sample = SampleSdf(fontBmp, u, v, Color.Transparent, color);
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
+                }
+                else
+                {
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
+                }
             }
         }
         bitmap.Save("ui.bmp");
         return;
+
+        Color SampleSdf(Bitmap sdf, int u, int v, Color outsideColor, Color insideColor)
+        {
+            Color s = sdf.GetPixel(u, v);
+            float d = Median(s.R / 255f, s.G / 255f, s.B / 255f) - 0.5f;
+            float fwidth = 0.02f;
+            float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);
+            return Mix(outsideColor, insideColor, w);
+        }
+
+        float Median(float a, float b, float c)
+        {
+            return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
+        }
         
         Color AlphaBlend(Color background, Color foreground)
         {
@@ -264,6 +308,16 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             var b = (byte)(bf * bb * 255f);
 
             return Color.FromArgb(a, r, g, b);
+        }
+        
+        Color Mix(Color x, Color y, float t)
+        {
+            return Color.FromArgb(
+                alpha: (int)(x.A + (y.A - x.A) * t),
+                red:   (int)(x.R + (y.R - x.R) * t),
+                green: (int)(x.G + (y.G - x.G) * t),
+                blue:  (int)(x.B + (y.B - x.B) * t)
+            );
         }
     }
 }
