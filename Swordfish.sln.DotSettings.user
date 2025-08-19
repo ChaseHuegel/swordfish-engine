@@ -40,6 +40,7 @@
     &lt;TestAncestor&gt;&#xD;
       &lt;TestId&gt;xUnit::6E65476F-686B-4D75-912D-98141EC33982::net8.0::Swordfish.Tests.BrickTests.UITest&lt;/TestId&gt;&#xD;
       &lt;TestId&gt;xUnit::6E65476F-686B-4D75-912D-98141EC33982::net8.0::Swordfish.Tests.UITests.UITest&lt;/TestId&gt;&#xD;
+      &lt;TestId&gt;xUnit::6E65476F-686B-4D75-912D-98141EC33982::net8.0::Swordfish.Tests.UITests.TextWrapTest&lt;/TestId&gt;&#xD;
     &lt;/TestAncestor&gt;&#xD;
   &lt;/Or&gt;&#xD;
 &lt;/SessionState&gt;</s:String>

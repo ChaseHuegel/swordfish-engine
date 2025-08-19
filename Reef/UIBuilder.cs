@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
+using System.Text;
 using System.Threading;
 using Typography.OpenFont;
 using Typography.TextLayout;
@@ -135,6 +136,7 @@ public sealed class UIBuilder<TTextureData>
             UIElement<TTextureData> root = _closedRootElements[i];
             FillChildren(ref root);
             ShrinkChildren(ref root);
+            WrapText(ref root);
             _closedRootElements[i] = root;
 
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
@@ -142,6 +144,7 @@ public sealed class UIBuilder<TTextureData>
                 UIElement<TTextureData> child = root.Children[n];
                 FillChildren(ref child);
                 ShrinkChildren(ref child);
+                WrapText(ref child);
                 root.Children[n] = child;
             }
         }
@@ -579,6 +582,66 @@ public sealed class UIBuilder<TTextureData>
             }
         }
     }
+
+    private void WrapText(ref UIElement<TTextureData> parent)
+    {
+        int availableHeight = parent.Rect.Size.Y;
+        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
+        var numTextChildren = 0;
+        
+        //  Calculate available space
+        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
+        {
+            UIElement<TTextureData> child = parent.Children[i];
+
+            //  If vertical, count children against available space
+            if (parent.Layout.Direction == LayoutDirection.Vertical)
+            {
+                availableHeight -= child.Rect.Size.Y;
+            }
+
+            //  Count children that have text
+            if (child.Text != null)
+            {
+                numTextChildren++;
+            }
+        }
+        
+        //  Move on if no children have text
+        if (numTextChildren == 0)
+        {
+            return;
+        }
+        
+        //  If vertical, count child spacing against available space
+        if (parent.Layout.Direction == LayoutDirection.Vertical)
+        {
+            int childCount = parent.Children?.Count ?? 0;
+            int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+            availableHeight -= totalSpacing;
+        }
+
+        if (parent.Children == null)
+        {
+            return;
+        }
+        
+        for (var i = 0; i < parent.Children.Count; i++)
+        {
+            UIElement<TTextureData> child = parent.Children[i];
+            if (child.Text == null)
+            {
+                continue;
+            }
+            
+            TextDimensions textDimensions = CalculateTextDimensions(child.Text, child.Rect.Size.X);
+            
+            var size = new IntVector2(child.Rect.Size.X, Math.Min(textDimensions.MinHeight, availableHeight));
+            child.Rect = new IntRect(child.Rect.Position, size);
+            
+            parent.Children[i] = child;
+        }
+    }
     
     private void ShrinkChildren(ref UIElement<TTextureData> parent)
     {
@@ -790,21 +853,84 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private TextDimensions CalculateTextDimensions(string value)
+    private TextDimensions CalculateTextDimensions(string value, int maxWidth = int.MaxValue)
     {
         int fontSize = FontSize;
 
+        char[] textBuffer = value.ToCharArray();
         int firstWordLen = value.IndexOfAny(_whiteSpaceChars);
 
-        char[] textBuffer = value.ToCharArray();
         MeasuredStringBox firstWordStringBox = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, firstWordLen, fontSize);
-        MeasuredStringBox fullStringBox = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, value.Length, fontSize);
         
+        var preferredWidth = 0d;
+        var preferredHeight = 0d;
+        
+        MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, textBuffer.Length, fontSize);
+        if (measurement.width > maxWidth)
+        {
+            List<MeasuredStringBox> lines = LayoutAndMeasureLines(textBuffer, 0, textBuffer.Length, maxWidth);
+            for (var i = 0; i < lines.Count; i++)
+            {
+                MeasuredStringBox lineStringBox = lines[i];
+                preferredWidth = Math.Max(preferredWidth, lineStringBox.width);
+                preferredHeight += lineStringBox.LineSpaceInPx;
+            }
+        }
+        else
+        {
+            preferredWidth = measurement.width;
+            preferredHeight = measurement.LineSpaceInPx;
+        }
+        
+        preferredWidth = Math.Round(preferredWidth, MidpointRounding.AwayFromZero);
+        preferredHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
         double minWidth = Math.Round(firstWordStringBox.width, MidpointRounding.AwayFromZero);
-        double preferredWidth = Math.Round(fullStringBox.width, MidpointRounding.AwayFromZero);
-        double minHeight = Math.Round(fullStringBox.LineSpaceInPx, MidpointRounding.AwayFromZero);
-        double preferredHeight = Math.Round(fullStringBox.LineSpaceInPx, MidpointRounding.AwayFromZero);
+        double minHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
 
         return ((int)minWidth, (int)minHeight, (int)preferredWidth, (int)preferredHeight);
+    }
+    
+    private List<MeasuredStringBox> LayoutAndMeasureLines(char[] textBuffer, int start, int length, int maxWidth)
+    {
+        int fontSize = FontSize;
+        
+        List<MeasuredStringBox> lines = [];
+        MeasuredStringBox? lastMeasurement = null;
+        var currentWidth = 0f;
+        int lineStart = start;
+        int lastMeasuredLineEnd = -1;
+        for (int i = start; i < length; i++)
+        {
+            if (textBuffer[i] != ' ')
+            {
+                continue;
+            }
+
+            MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, lineStart, i - lineStart, fontSize);
+            if (lastMeasurement != null && currentWidth + measurement.width > maxWidth)
+            {
+                currentWidth = 0;
+                lineStart = i;
+                lines.Add(lastMeasurement.Value);
+            }
+
+            currentWidth += measurement.width;
+            lastMeasurement = measurement;
+            lastMeasuredLineEnd = i;
+        }
+
+        if (currentWidth <= 0)
+        {
+            return lines;
+        }
+
+        if (lastMeasurement != null)
+        {
+            lines.Add(lastMeasurement.Value);
+        }
+
+        MeasuredStringBox remainderMeasurement = _glyphLayout.LayoutAndMeasureString(textBuffer, lastMeasuredLineEnd, length - lastMeasuredLineEnd, fontSize);
+        lines.Add(remainderMeasurement);
+        return lines;
     }
 }

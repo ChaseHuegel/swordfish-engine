@@ -30,7 +30,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             ui.Color = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints
             {
-                Width = new Fixed(300),
+                Width = new Fixed(400),
                 Height = new Fixed(300),
             };
             
