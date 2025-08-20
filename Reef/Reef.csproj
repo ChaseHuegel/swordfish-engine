@@ -7,8 +7,4 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
-    <Import Project="..\Typography\Typography.OpenFont\Typography.OpenFont.projitems" Label="Shared" />
-
-    <Import Project="..\Typography\Typography.GlyphLayout\Typography.GlyphLayout.projitems" Label="Shared" />
-
 </Project>
