@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.IO;
-using System.Net.Mime;
 using System.Numerics;
 using Reef;
+using Reef.Text;
 using Swordfish.Library.Util;
-using Typography.OpenFont;
-using Typography.TextLayout;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -16,24 +13,35 @@ namespace Swordfish.Tests;
 public class UITests(ITestOutputHelper output) : TestBase(output)
 {
     [Fact]
-    public void RenderTest()
+    public void WrapTest()
     {
-        const string fontFilePath = "TestFiles/Fonts/Salmon Mono 9 Regular.ttf";
-        var ui = new UIBuilder<Bitmap>(1920, 1080, fontFilePath);
-        char[] textBuffer = "Hello world!".ToCharArray();
-        List<string> lines = ui.WrapText(textBuffer, 0, textBuffer.Length, 83);
+        var salmonFont = new FontInfo("salmon-mono-9-regular", "TestFiles/Fonts/Salmon Mono 9 Regular.ttf");
+        var awesomeFont = new FontInfo("fa-6-free-solid", "TestFiles/Fonts/Font Awesome 6 Free Solid.otf");
+        FontInfo[] fonts = [ salmonFont, awesomeFont ];
+
+        var textEngine = new TextEngine(fonts);
+
+        var fontOptions = new FontOptions
+        {
+            ID = salmonFont.ID,
+            Size = 16,
+        };
         
-        Assert.Equal(2, lines.Count);
+        string[] lines = textEngine.Wrap(fontOptions, "Hello world!", 83);
+        Assert.Equal(2, lines.Length);
     }
     
     [Fact]
     public void UITest()
     {
-        const string fontFilePath = "TestFiles/Fonts/Salmon Mono 9 Regular.ttf";
         var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
-        var fontBmp = new Bitmap("TestFiles/Fonts/font.png");
         
-        var ui = new UIBuilder<Bitmap>(1920, 1080, fontFilePath);
+        var salmonFont = new FontInfo("salmon-mono-9-regular", "TestFiles/Fonts/Salmon Mono 9 Regular.ttf");
+        var awesomeFont = new FontInfo("fa-6-free-solid", "TestFiles/Fonts/Font Awesome 6 Free Solid.otf");
+        FontInfo[] fonts = [ salmonFont, awesomeFont ];
+
+        var textEngine = new TextEngine(fonts);
+        var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine);
         
         using (ui.Element())
         {
@@ -242,7 +250,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
             if (renderCommand.Text != null)
             {
-                List<string> lines = ui.WrapText(renderCommand.Text.ToCharArray(), 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
+                List<string> lines = ui.WrapText(renderCommand.Text, 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
                 for (var i = 0; i < lines.Count; i++)
                 {
                     const int lineHeight = 45;
@@ -285,7 +293,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             for (int v = glyphStartY; v < glyphStartY + glyphHeight; v++)
             {
                 Color currentColor = bitmap.GetPixel(x, y);
-                Color sample = SampleSdf(fontBmp, u, v, Color.Transparent, color);
+                Color sample = SampleSdf(null, u, v, Color.Transparent, color);
                 bitmap.SetPixel(x + u - glyphStartX, y + v - glyphStartY, AlphaBlend(currentColor, sample));
             }
         }

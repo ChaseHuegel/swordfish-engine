@@ -1,15 +1,11 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Numerics;
 using System.Text;
 using System.Threading;
-using Typography.OpenFont;
-using Typography.TextLayout;
+using Reef.Text;
 
 namespace Reef;
-
-using TextDimensions = (int MinWidth, int MinHeight, int PreferredWidth, int PreferredHeight);
 
 public sealed class UIBuilder<TTextureData>
 {
@@ -64,7 +60,7 @@ public sealed class UIBuilder<TTextureData>
     public int Height => _viewPort.Size.Y;
 
     private readonly IntRect _viewPort;
-    private readonly GlyphLayout _glyphLayout;
+    private readonly ITextEngine _textEngine;
     
     private bool _hasOpenElement;
     private UIElement<TTextureData> _currentElement;
@@ -73,16 +69,9 @@ public sealed class UIBuilder<TTextureData>
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
 
-    public UIBuilder(int width, int height, string fontPath)
+    public UIBuilder(int width, int height, ITextEngine textEngine)
     {
-        using FileStream fs = File.OpenRead(fontPath);
-        var reader = new OpenFontReader();
-        Typeface typeface = reader.Read(fs);
-        _glyphLayout = new GlyphLayout
-        {
-            Typeface = typeface,
-        };
-
+        _textEngine = textEngine;
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
 
@@ -98,16 +87,20 @@ public sealed class UIBuilder<TTextureData>
 
     public Scope Text(string value)
     {
-        TextDimensions dimensions = CalculateTextDimensions(value);
+        TextConstraints constraints = CalculateTextDimensions(value);
         var element = new UIElement<TTextureData>
         {
             Text = value,
+            FontOptions = new FontOptions
+            {
+                Size = 16,
+            },
             Constraints = new Constraints
             {
-                Width = new Fixed(dimensions.PreferredWidth),
-                Height = new Fixed(dimensions.PreferredHeight),
-                MinWidth = dimensions.MinWidth,
-                MinHeight = dimensions.MinHeight,
+                Width = new Fixed(constraints.PreferredWidth),
+                Height = new Fixed(constraints.PreferredHeight),
+                MinWidth = constraints.MinWidth,
+                MinHeight = constraints.MinHeight,
             },
         };
         
@@ -636,9 +629,9 @@ public sealed class UIBuilder<TTextureData>
                 continue;
             }
             
-            TextDimensions textDimensions = CalculateTextDimensions(child.Text, child.Rect.Size.X);
+            TextConstraints textConstraints = CalculateTextDimensions(child.Text, child.Rect.Size.X);
             
-            var size = new IntVector2(child.Rect.Size.X, Math.Min(textDimensions.MinHeight, availableHeight));
+            var size = new IntVector2(child.Rect.Size.X, Math.Min(textConstraints.MinHeight, availableHeight));
             child.Rect = new IntRect(child.Rect.Position, size);
             
             parent.Children[i] = child;
@@ -855,88 +848,48 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private TextDimensions CalculateTextDimensions(string value, int maxWidth = int.MaxValue)
+    private TextConstraints CalculateTextDimensions(string value, int maxWidth = int.MaxValue)
     {
-        int fontSize = FontSize;
-
-        char[] textBuffer = value.ToCharArray();
-        int firstWordLen = value.IndexOfAny(_whiteSpaceChars);
-
-        MeasuredStringBox firstWordStringBox = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, firstWordLen, fontSize);
-        
-        var preferredWidth = 0d;
-        var preferredHeight = 0d;
-        
-        MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, 0, textBuffer.Length, fontSize);
-        if (measurement.width > maxWidth)
-        {
-            List<MeasuredStringBox> lines = LayoutAndMeasureLines(textBuffer, 0, textBuffer.Length, maxWidth);
-            for (var i = 0; i < lines.Count; i++)
-            {
-                MeasuredStringBox lineStringBox = lines[i];
-                preferredWidth = Math.Max(preferredWidth, lineStringBox.width);
-                preferredHeight += lineStringBox.LineSpaceInPx;
-            }
-        }
-        else
-        {
-            preferredWidth = measurement.width;
-            preferredHeight = measurement.LineSpaceInPx;
-        }
-        
-        preferredWidth = Math.Round(preferredWidth, MidpointRounding.AwayFromZero);
-        preferredHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
-        double minWidth = Math.Round(firstWordStringBox.width, MidpointRounding.AwayFromZero);
-        double minHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
-
-        return ((int)minWidth, (int)minHeight, (int)preferredWidth, (int)preferredHeight);
+        return default;
+        // int fontSize = FontSize;
+        //
+        // int firstWordLength = value.IndexOfAny(_whiteSpaceChars);
+        // TextConstraints firstWordStringBox = _textEngine.Measure(value, start: 0, firstWordLength, fontSize);
+        //
+        // var preferredWidth = 0d;
+        // var preferredHeight = 0d;
+        //
+        // TextConstraints measurement = _textEngine.Measure(value, fontSize);
+        // if (measurement.PreferredWidth > maxWidth)
+        // {
+        //     List<MeasuredStringBox> lines = LayoutAndMeasureLines(textBuffer, 0, textBuffer.Length, maxWidth);
+        //     for (var i = 0; i < lines.Count; i++)
+        //     {
+        //         MeasuredStringBox lineStringBox = lines[i];
+        //         preferredWidth = Math.Max(preferredWidth, lineStringBox.width);
+        //         preferredHeight += lineStringBox.LineSpaceInPx;
+        //     }
+        // }
+        // else
+        // {
+        //     preferredWidth = measurement.width;
+        //     preferredHeight = measurement.LineSpaceInPx;
+        // }
+        //
+        // preferredWidth = Math.Round(preferredWidth, MidpointRounding.AwayFromZero);
+        // preferredHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
+        // double minWidth = Math.Round(firstWordStringBox.width, MidpointRounding.AwayFromZero);
+        // double minHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
+        //
+        // return ((int)minWidth, (int)minHeight, (int)preferredWidth, (int)preferredHeight);
     }
     
-    private List<MeasuredStringBox> LayoutAndMeasureLines(char[] textBuffer, int start, int length, int maxWidth)
+    public List<string> WrapText(string text, int maxWidth)
     {
-        int fontSize = FontSize;
-        
-        List<MeasuredStringBox> lines = [];
-        MeasuredStringBox? lastMeasurement = null;
-        var currentWidth = 0f;
-        int lineStart = start;
-        int lastMeasuredLineEnd = -1;
-        for (int i = start; i < length; i++)
-        {
-            if (textBuffer[i] != ' ')
-            {
-                continue;
-            }
-
-            MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, lineStart, i - lineStart, fontSize);
-            if (lastMeasurement != null && currentWidth + measurement.width > maxWidth)
-            {
-                currentWidth = 0;
-                lineStart = i;
-                lines.Add(lastMeasurement.Value);
-            }
-
-            currentWidth += measurement.width;
-            lastMeasurement = measurement;
-            lastMeasuredLineEnd = i;
-        }
-
-        if (currentWidth <= 0)
-        {
-            return lines;
-        }
-
-        if (lastMeasurement != null)
-        {
-            lines.Add(lastMeasurement.Value);
-        }
-
-        MeasuredStringBox remainderMeasurement = _glyphLayout.LayoutAndMeasureString(textBuffer, lastMeasuredLineEnd, length - lastMeasuredLineEnd, fontSize);
-        lines.Add(remainderMeasurement);
-        return lines;
+        return WrapText(text, 0, text.Length, maxWidth);
     }
     
-    public List<string> WrapText(char[] textBuffer, int start, int length, int maxWidth)
+    public List<string> WrapText(string text, int start, int length, int maxWidth)
     {
         int fontSize = FontSize;
 
@@ -945,28 +898,24 @@ public sealed class UIBuilder<TTextureData>
         var lineBuilder = new StringBuilder();
         float currentLineWidth = 0;
 
-        int wordStart = start;
         for (int i = start; i < start + length; i++)
         {
-            char c = textBuffer[i];
+            char c = text[i];
             wordBuilder.Append(c);
 
+            //  Search for the end of a word, or else the end of the text
             if (c != ' ' && i < start + length - 1)
             {
                 continue;
             }
 
             // Measure the current word
-            int wordLength = wordBuilder.Length;
-            MeasuredStringBox wordMeasurement = _glyphLayout.LayoutAndMeasureString(
-                wordBuilder.ToString().ToCharArray(), 0, wordLength, fontSize);
+            TextConstraints wordMeasurement = _textEngine.Measure(default, default);
+            float wordWidth = wordMeasurement.PreferredWidth;
 
-            float wordWidth = wordMeasurement.width;
-
-            // If the word doesn’t fit on the current line
+            // If the word doesn't fit on the current line, commit the current line.
             if (currentLineWidth + wordWidth > maxWidth && lineBuilder.Length > 0)
             {
-                // Commit current line
                 lines.Add(lineBuilder.ToString().TrimEnd());
                 lineBuilder.Clear();
                 currentLineWidth = 0;
@@ -974,9 +923,7 @@ public sealed class UIBuilder<TTextureData>
 
             lineBuilder.Append(wordBuilder);
             currentLineWidth += wordWidth;
-
             wordBuilder.Clear();
-            wordStart = i + 1;
         }
 
         // Flush any remaining line

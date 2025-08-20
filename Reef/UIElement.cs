@@ -12,6 +12,7 @@ public struct UIElement<TTextureData>
     public Constraints Constraints;
     public List<UIElement<TTextureData>>? Children;
     public string? Text;
+    public FontOptions FontOptions;
     public TTextureData? TextureData;
 }
 
@@ -153,4 +154,10 @@ public enum Anchors
     Bottom = 4,
     Right = 8,
     Center = 16,
+}
+
+public struct FontOptions
+{
+    public string? ID;
+    public int Size;
 }
