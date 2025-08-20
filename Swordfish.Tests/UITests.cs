@@ -238,22 +238,57 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 {
                     bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
                 }
-                
-                if (renderCommand.Text != null)
+            }
+
+            if (renderCommand.Text != null)
+            {
+                List<string> lines = ui.WrapText(renderCommand.Text.ToCharArray(), 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
+                for (var i = 0; i < lines.Count; i++)
                 {
-                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, fontBmp.Width - 1);
-                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, fontBmp.Height - 1);
-                    Color sample = SampleSdf(fontBmp, u, v, Color.Transparent, color);
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
-                }
-                else
-                {
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
+                    const int lineHeight = 45;
+                    DrawText(bitmap, renderCommand.Rect.Left, renderCommand.Rect.Top + i * lineHeight, lines[i], Color.White);
                 }
             }
         }
         bitmap.Save("ui.bmp");
         return;
+        
+        void DrawText(Bitmap bitmap, int x, int y, string text, Color color)
+        {
+            const int glyphWidth = 21;
+
+            for (var i = 0; i < text.Length; i++)
+            {
+                if (text[i] < 33 || text[i] > 126)
+                {
+                    continue;
+                }
+                
+                DrawCharacter(bitmap, x + i* glyphWidth, y, text[i], color);
+            }
+        }
+
+        void DrawCharacter(Bitmap bitmap, int x, int y, char character, Color color)
+        {
+            const int fontColumns = 14;
+            const int glyphWidth = 21;
+            const int glyphHeight = 43;
+            const int glyphCharsetStart = 33;
+            
+            int charIndex = character - glyphCharsetStart;
+            int charX = charIndex % fontColumns;
+            int charY = charIndex / fontColumns;
+
+            int glyphStartX = charX * glyphWidth;
+            int glyphStartY = charY * glyphHeight;
+            for (int u = glyphStartX; u < glyphStartX + glyphWidth; u++)
+            for (int v = glyphStartY; v < glyphStartY + glyphHeight; v++)
+            {
+                Color currentColor = bitmap.GetPixel(x, y);
+                Color sample = SampleSdf(fontBmp, u, v, Color.Transparent, color);
+                bitmap.SetPixel(x + u - glyphStartX, y + v - glyphStartY, AlphaBlend(currentColor, sample));
+            }
+        }
 
         Color SampleSdf(Bitmap sdf, int u, int v, Color outsideColor, Color insideColor)
         {

@@ -939,50 +939,52 @@ public sealed class UIBuilder<TTextureData>
     public List<string> WrapText(char[] textBuffer, int start, int length, int maxWidth)
     {
         int fontSize = FontSize;
-        
-        var builder = new StringBuilder();
-        List<string> lines = [];
-        var currentWidth = 0f;
-        int lineStart = start;
-        int lastMeasuredLineEnd = -1;
-        (int Start, int End)? lastMeasurement = null;
-        for (int i = start; i < length; i++)
+
+        var lines = new List<string>();
+        var wordBuilder = new StringBuilder();
+        var lineBuilder = new StringBuilder();
+        float currentLineWidth = 0;
+
+        int wordStart = start;
+        for (int i = start; i < start + length; i++)
         {
-            char character = textBuffer[i];
-            builder.Append(character);
-            if (character != ' ')
+            char c = textBuffer[i];
+            wordBuilder.Append(c);
+
+            if (c != ' ' && i < start + length - 1)
             {
                 continue;
             }
-            
-            int measurementStart = lineStart;
-            int measurementEnd = i - lineStart;
-            MeasuredStringBox measurement = _glyphLayout.LayoutAndMeasureString(textBuffer, measurementStart, measurementEnd, fontSize);
-            if (lastMeasurement != null && currentWidth + measurement.width > maxWidth)
+
+            // Measure the current word
+            int wordLength = wordBuilder.Length;
+            MeasuredStringBox wordMeasurement = _glyphLayout.LayoutAndMeasureString(
+                wordBuilder.ToString().ToCharArray(), 0, wordLength, fontSize);
+
+            float wordWidth = wordMeasurement.width;
+
+            // If the word doesn’t fit on the current line
+            if (currentLineWidth + wordWidth > maxWidth && lineBuilder.Length > 0)
             {
-                lineStart = i;
-                lines.Add(builder.ToString(lastMeasurement.Value.Start, lastMeasurement.Value.End));
-                
-                currentWidth = 0;
-                builder.Clear();
+                // Commit current line
+                lines.Add(lineBuilder.ToString().TrimEnd());
+                lineBuilder.Clear();
+                currentLineWidth = 0;
             }
 
-            lastMeasurement = (measurementStart, measurementEnd);
-            currentWidth += measurement.width;
-            lastMeasuredLineEnd = i;
+            lineBuilder.Append(wordBuilder);
+            currentLineWidth += wordWidth;
+
+            wordBuilder.Clear();
+            wordStart = i + 1;
         }
 
-        if (currentWidth <= 0)
+        // Flush any remaining line
+        if (lineBuilder.Length > 0)
         {
-            return lines;
+            lines.Add(lineBuilder.ToString().TrimEnd());
         }
 
-        if (lastMeasurement != null)
-        {
-            lines.Add(builder.ToString(lastMeasurement.Value.Start, lastMeasurement.Value.End));
-        }
-
-        lines.Add(builder.ToString(lastMeasuredLineEnd, length - lastMeasuredLineEnd));
         return lines;
     }
 }
