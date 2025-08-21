@@ -115,7 +115,15 @@ public sealed class UIBuilder<TTextureData>
         return OpenElement(element);
     }
 
-    public Scope Text(string value)
+    public Scope Text(string value) => Text(value, new FontOptions { Size = 16 });
+    
+    public Scope Text(string value, int size) => Text(value, new FontOptions { Size = size });
+    
+    public Scope Text(string value, string fontID) => Text(value, new FontOptions { Size = 16, ID = fontID });
+    
+    public Scope Text(string value, int size, string fontID) => Text(value, new FontOptions { Size = size, ID = fontID });
+
+    public Scope Text(string value, FontOptions fontOptions)
     {
         var element = new Element<TTextureData>
         {
@@ -124,9 +132,7 @@ public sealed class UIBuilder<TTextureData>
             {
                 Color = Vector4.One,
             },
-            FontOptions = new FontOptions {
-                Size = 16,
-            },
+            FontOptions = fontOptions,
         };
         
         return OpenElement(element);

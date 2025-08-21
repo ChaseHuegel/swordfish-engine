@@ -111,8 +111,8 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         
         using (ui.Image(swordfishBmp))
         {
+            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
-            ui.Padding = new Padding(left: 8, top: 8, right: 8, bottom: 8);
             ui.Constraints = new Constraints
             {
                 X = new Relative(0.5f),
@@ -120,8 +120,16 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Width = new Fixed(128),
                 Height = new Fixed(128),
             };
-            
-            using (ui.Text("Swordfish")) { }
+
+            using (ui.Text("Swordfish"))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                    X = new Relative(0.5f),
+                    Y = new Relative(0.5f),
+                };
+            }
         }
 
         using (ui.Element())
@@ -245,12 +253,15 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             {
                 using (ui.Element())
                 {
+                    ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
                     ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(50),
                         Height = new Fixed(50),
                     };
+                    
+                    using (ui.Text(i.ToString())) { }
                 }
             }
         }
