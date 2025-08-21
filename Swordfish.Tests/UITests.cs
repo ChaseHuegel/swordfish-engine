@@ -57,6 +57,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         
         using (ui.Element())
         {
+            ui.CornerRadius = new CornerRadius(left: 100, top: 100, right: 100, bottom: 100);
             ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Spacing = 8;
             ui.Padding = new Padding(

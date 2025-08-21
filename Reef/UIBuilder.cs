@@ -73,7 +73,13 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.FontOptions;
         set => _currentElement.FontOptions = value;
     }
-    
+
+    public CornerRadius CornerRadius
+    {
+        get => _currentElement.Style.CornerRadius;
+        set => _currentElement.Style.CornerRadius = value;
+    }
+
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
