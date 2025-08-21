@@ -25,6 +25,13 @@ public sealed class UIBuilder<TTextureData>
             ui.CloseElement();
         }
     }
+    
+    private struct ElementNode(Element<TTextureData> element, Element<TTextureData>? parent = null, int childIndex = -1)
+    {
+        public readonly Element<TTextureData> Element = element;
+        public readonly Element<TTextureData>? Parent = parent;
+        public readonly int ChildIndex = childIndex;
+    }
 
     public Vector4 Color
     {
@@ -160,24 +167,10 @@ public sealed class UIBuilder<TTextureData>
             CloseElement();
         }
         
-        //  Perform a top-down sizing pass to process filling and shrinking elements
-        for (var i = 0; i < _closedRootElements.Count; i++)
-        {
-            Element<TTextureData> root = _closedRootElements[i];
-            FillChildren(ref root);
-            ShrinkChildren(ref root);
-            WrapText(ref root);
-            _closedRootElements[i] = root;
+        var stack = new Stack<ElementNode>();
 
-            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
-            {
-                Element<TTextureData> child = root.Children[n];
-                FillChildren(ref child);
-                ShrinkChildren(ref child);
-                WrapText(ref child);
-                root.Children[n] = child;
-            }
-        }
+        //  Perform a top-down sizing pass to process filling and shrinking elements
+        FillShrinkAndWrapElements(stack);
 
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
@@ -422,6 +415,47 @@ public sealed class UIBuilder<TTextureData>
         {
             _closedRootElements.Add(element);
             _currentElement = default;
+        }
+    }
+    
+    private void FillShrinkAndWrapElements(Stack<ElementNode> stack) 
+    {
+        for (var i = 0; i < _closedRootElements.Count; i++)
+        {
+            stack.Clear();
+            stack.Push(new ElementNode(_closedRootElements[i]));
+        
+            while (stack.Count > 0)
+            {
+                ElementNode frame = stack.Pop();
+                Element<TTextureData> element = frame.Element;
+        
+                FillChildren(ref element);
+                ShrinkChildren(ref element);
+                WrapText(ref element);
+        
+                // Save any changes made to the element
+                if (frame.Parent == null)
+                {
+                    _closedRootElements[i] = element;
+                }
+                else if (frame.Parent.Value.Children != null)
+                {
+                    frame.Parent.Value.Children[frame.ChildIndex] = element;
+                }
+        
+                // Push any children to be processed
+                if (element.Children == null)
+                {
+                    continue;
+                }
+
+                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                {
+                    Element<TTextureData> child = element.Children[childIndex];
+                    stack.Push(new ElementNode(child, element, childIndex));
+                }
+            }
         }
     }
 
