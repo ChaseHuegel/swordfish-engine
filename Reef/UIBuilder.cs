@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
 using System.Threading;
+using Reef.Constraints;
 using Reef.Text;
+using Reef.UI;
 
 namespace Reef;
 
@@ -30,7 +32,7 @@ public sealed class UIBuilder<TTextureData>
         set => _currentElement.Style.Color = value;
     }
 
-    public Constraints Constraints
+    public UI.Constraints Constraints
     {
         get => _currentElement.Constraints;
         set => _currentElement.Constraints = value;
@@ -79,9 +81,9 @@ public sealed class UIBuilder<TTextureData>
     private readonly ITextEngine _textEngine;
     
     private bool _hasOpenElement;
-    private UIElement<TTextureData> _currentElement;
-    private readonly Stack<UIElement<TTextureData>> _openElements = new();
-    private readonly List<UIElement<TTextureData>> _closedRootElements = [];
+    private Element<TTextureData> _currentElement;
+    private readonly Stack<Element<TTextureData>> _openElements = new();
+    private readonly List<Element<TTextureData>> _closedRootElements = [];
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
 
@@ -93,17 +95,17 @@ public sealed class UIBuilder<TTextureData>
 
     public Scope Element()
     {
-        return OpenElement(new UIElement<TTextureData>());
+        return OpenElement(new Element<TTextureData>());
     }
     
-    public Scope Element(UIElement<TTextureData> element)
+    public Scope Element(Element<TTextureData> element)
     {
         return OpenElement(element);
     }
 
     public Scope Text(string value)
     {
-        var element = new UIElement<TTextureData>
+        var element = new Element<TTextureData>
         {
             Text = value,
             Style = new Style
@@ -120,7 +122,7 @@ public sealed class UIBuilder<TTextureData>
     
     public Scope Image(TTextureData value)
     {
-        var element = new UIElement<TTextureData>
+        var element = new Element<TTextureData>
         {
             TextureData = value,
         };
@@ -139,7 +141,7 @@ public sealed class UIBuilder<TTextureData>
         //  Perform a top-down sizing pass to process filling and shrinking elements
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
-            UIElement<TTextureData> root = _closedRootElements[i];
+            Element<TTextureData> root = _closedRootElements[i];
             FillChildren(ref root);
             ShrinkChildren(ref root);
             WrapText(ref root);
@@ -147,7 +149,7 @@ public sealed class UIBuilder<TTextureData>
 
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
-                UIElement<TTextureData> child = root.Children[n];
+                Element<TTextureData> child = root.Children[n];
                 FillChildren(ref child);
                 ShrinkChildren(ref child);
                 WrapText(ref child);
@@ -160,7 +162,7 @@ public sealed class UIBuilder<TTextureData>
         List<RenderCommand<TTextureData>> commands = [];
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
-            UIElement<TTextureData> root = _closedRootElements[i];
+            Element<TTextureData> root = _closedRootElements[i];
             
             int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
             int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
@@ -206,7 +208,7 @@ public sealed class UIBuilder<TTextureData>
             int topOffset = root.Style.Padding.Top;
             for (var n = 0; root.Children != null && n < root.Children.Count; n++)
             {
-                UIElement<TTextureData> child = root.Children[n];
+                Element<TTextureData> child = root.Children[n];
 
                 int constrainedX = child.Constraints.X?.Calculate(root.Rect.Size.X) ?? child.Rect.Position.X;
                 int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
@@ -271,7 +273,7 @@ public sealed class UIBuilder<TTextureData>
         return commands.ToArray();
     }
 
-    private Scope OpenElement(UIElement<TTextureData> element)
+    private Scope OpenElement(Element<TTextureData> element)
     {
         if (_hasOpenElement)
         {
@@ -291,7 +293,7 @@ public sealed class UIBuilder<TTextureData>
     /// </summary>
     private void CloseElement()
     {
-        UIElement<TTextureData> element = _currentElement;
+        Element<TTextureData> element = _currentElement;
         
         //  Calculate non-wrapped text constraints
         if (element.Text != null)
@@ -302,7 +304,7 @@ public sealed class UIBuilder<TTextureData>
             TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text);
             TextConstraints fullTextConstraints = textLayout.Constraints;
 
-            element.Constraints = new Constraints
+            element.Constraints = new UI.Constraints
             {
                 Width = new Fixed(fullTextConstraints.PreferredWidth),
                 Height = new Fixed(fullTextConstraints.PreferredHeight),
@@ -312,7 +314,7 @@ public sealed class UIBuilder<TTextureData>
         }
 
         //  Attempt to get the parent, if any, off the stack
-        UIElement<TTextureData> parent = default;
+        Element<TTextureData> parent = default;
         _hasOpenElement = _openElements.Count > 0;
         if (_hasOpenElement)
         {
@@ -399,7 +401,7 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private void FillChildren(ref UIElement<TTextureData> parent)
+    private void FillChildren(ref Element<TTextureData> parent)
     {
         int availableWidth = parent.Rect.Size.X;
         int availableHeight = parent.Rect.Size.Y;
@@ -413,7 +415,7 @@ public sealed class UIBuilder<TTextureData>
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
-            UIElement<TTextureData> child = parent.Children[i];
+            Element<TTextureData> child = parent.Children[i];
 
             //  Count children against available space based on layout direction
             switch (parent.Layout.Direction)
@@ -472,7 +474,7 @@ public sealed class UIBuilder<TTextureData>
             //  Determine how much space should be added to the smallest children
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                UIElement<TTextureData> child = parent.Children[i];
+                Element<TTextureData> child = parent.Children[i];
 
                 bool fillHorizontal = child.Constraints.Width is Fill;
                 bool fillVertical = child.Constraints.Height is Fill;
@@ -533,7 +535,7 @@ public sealed class UIBuilder<TTextureData>
             //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                UIElement<TTextureData> child = parent.Children[i];
+                Element<TTextureData> child = parent.Children[i];
                 
                 bool matchesSmallestWidth = child.Rect.Size.X == smallestWidth;
                 bool matchesSmallestHeight = child.Rect.Size.Y == smallestHeight;
@@ -611,7 +613,7 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private void WrapText(ref UIElement<TTextureData> parent)
+    private void WrapText(ref Element<TTextureData> parent)
     {
         int availableHeight = parent.Rect.Size.Y;
         availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
@@ -620,7 +622,7 @@ public sealed class UIBuilder<TTextureData>
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
-            UIElement<TTextureData> child = parent.Children[i];
+            Element<TTextureData> child = parent.Children[i];
 
             //  If vertical, count children against available space
             if (parent.Layout.Direction == LayoutDirection.Vertical)
@@ -656,7 +658,7 @@ public sealed class UIBuilder<TTextureData>
         
         for (var i = 0; i < parent.Children.Count; i++)
         {
-            UIElement<TTextureData> child = parent.Children[i];
+            Element<TTextureData> child = parent.Children[i];
             if (child.Text == null)
             {
                 continue;
@@ -671,7 +673,7 @@ public sealed class UIBuilder<TTextureData>
         }
     }
     
-    private void ShrinkChildren(ref UIElement<TTextureData> parent)
+    private void ShrinkChildren(ref Element<TTextureData> parent)
     {
         int availableWidth = parent.Rect.Size.X;
         int availableHeight = parent.Rect.Size.Y;
@@ -685,7 +687,7 @@ public sealed class UIBuilder<TTextureData>
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
-            UIElement<TTextureData> child = parent.Children[i];
+            Element<TTextureData> child = parent.Children[i];
 
             //  Count children against available space
             switch (parent.Layout.Direction)
@@ -744,7 +746,7 @@ public sealed class UIBuilder<TTextureData>
             //  Determine how much space should be added to the largest children
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                UIElement<TTextureData> child = parent.Children[i];
+                Element<TTextureData> child = parent.Children[i];
 
                 bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
                 bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
@@ -805,7 +807,7 @@ public sealed class UIBuilder<TTextureData>
             //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                UIElement<TTextureData> child = parent.Children[i];
+                Element<TTextureData> child = parent.Children[i];
                 
                 bool matchesLargestWidth = child.Rect.Size.X == largestWidth;
                 if (!matchesLargestWidth)
