@@ -69,8 +69,9 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Height = new Fixed(300),
             };
             
-            using (ui.Text("Hello world!", new FontOptions { Size = 10 }))
+            using (ui.Text("Hello world!"))
             {
+                ui.FontSize = 10;
                 ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
             
