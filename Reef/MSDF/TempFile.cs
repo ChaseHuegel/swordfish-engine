@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 
-namespace Reef;
+namespace Reef.MSDF;
 
 internal readonly struct TempFile(string path) : IDisposable
 {

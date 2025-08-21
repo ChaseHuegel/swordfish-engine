@@ -192,13 +192,14 @@ public sealed class UIBuilder<TTextureData>
             root.Rect = new IntRect(center, root.Rect.Size);
 
             var command = new RenderCommand<TTextureData>
-            {
-                Rect = root.Rect,
-                Color = root.Style.Color,
-                Text = root.Text,
-                TextureData = root.TextureData,
-                FontOptions = root.FontOptions,
-            };
+            (
+                root.Rect,
+                root.Style.Color,
+                root.Style.CornerRadius,
+                root.FontOptions,
+                root.Text,
+                root.TextureData
+            );
             commands.Add(command);
 
             int leftOffset = root.Style.Padding.Left;
@@ -252,13 +253,14 @@ public sealed class UIBuilder<TTextureData>
                 }
 
                 command = new RenderCommand<TTextureData>
-                {
-                    Rect = child.Rect,
-                    Color = child.Style.Color,
-                    Text = child.Text,
-                    TextureData = child.TextureData,
-                    FontOptions = child.FontOptions,
-                };
+                (
+                    child.Rect,
+                    child.Style.Color,
+                    child.Style.CornerRadius,
+                    child.FontOptions,
+                    child.Text,
+                    child.TextureData
+                );
                 commands.Add(command);
             }
         }

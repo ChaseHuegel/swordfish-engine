@@ -2,12 +2,18 @@ using System.Numerics;
 
 namespace Reef;
 
-public struct RenderCommand<TTextureData>
+public readonly struct RenderCommand<TTextureData>(
+    IntRect rect,
+    Vector4 color,
+    CornerRadius cornerRadius,
+    FontOptions fontOptions,
+    string? text,
+    TTextureData? textureData)
 {
-    public IntRect Rect;
-    public Vector4 Color;
-    public CornerRadius CornerRadius;
-    public string? Text;
-    public TTextureData? TextureData;
-    public FontOptions FontOptions;
+    public readonly IntRect Rect = rect;
+    public readonly Vector4 Color = color;
+    public readonly CornerRadius CornerRadius = cornerRadius;
+    public readonly FontOptions FontOptions = fontOptions;
+    public readonly string? Text = text;
+    public readonly TTextureData? TextureData = textureData;
 }

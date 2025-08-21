@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using Reef;
+using Reef.MSDF;
 using Reef.Text;
 using Swordfish.Library.Util;
 using Xunit;

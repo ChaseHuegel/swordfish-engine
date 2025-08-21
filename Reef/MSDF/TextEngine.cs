@@ -1,14 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using Reef.MSDF;
 using Reef.MSDF.Models;
 using Reef.MSDF.Serialization;
+using Reef.Text;
 
-namespace Reef.Text;
+namespace Reef.MSDF;
 
 using AtlasOutput = (string ImagePath, string JsonPath);
 

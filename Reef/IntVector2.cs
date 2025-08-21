@@ -1,19 +1,9 @@
 namespace Reef;
 
-public struct IntVector2
+public readonly struct IntVector2(int x, int y)
 {
-    public int X;
-    public int Y;
+    public readonly int X = x;
+    public readonly int Y = y;
 
-    public IntVector2(int x, int y)
-    {
-        X = x;
-        Y = y;
-    }
-
-    public IntVector2(int value)
-    {
-        X = value;
-        Y = value;
-    }
+    public IntVector2(int value) : this(value, value) { }
 }

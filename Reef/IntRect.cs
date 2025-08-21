@@ -41,29 +41,4 @@ public readonly struct IntRect
         Right = right;
         Bottom = bottom;
     }
-    
-    public bool Intersects(IntRect other)
-    {
-        if (other.Left > Right)
-        {
-            return false;
-        }
-        
-        if (other.Right < Left)
-        {
-            return false;
-        }
-        
-        if (other.Top > Bottom)
-        {
-            return false;
-        }
-        
-        if (other.Bottom < Top)
-        {
-            return false;
-        }
-
-        return true;
-    }
 }
