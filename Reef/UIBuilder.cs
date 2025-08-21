@@ -174,115 +174,7 @@ public sealed class UIBuilder<TTextureData>
 
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
-        List<RenderCommand<TTextureData>> commands = [];
-        for (var i = 0; i < _closedRootElements.Count; i++)
-        {
-            Element<TTextureData> root = _closedRootElements[i];
-            
-            int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
-            int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
-            
-            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-            Anchors anchors = root.Constraints.Anchors;
-            int xOffset = root.Rect.Size.X;
-            int yOffset = root.Rect.Size.Y;
-            
-            if ((anchors & Anchors.Right) == Anchors.Right)
-            {
-                x -= xOffset;
-            }
-            else if ((anchors & Anchors.Center) == Anchors.Center)
-            {
-                x -= xOffset >> 1;
-            }
-            
-            if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-            {
-                y -= yOffset;
-            }
-            else if ((anchors & Anchors.Center) == Anchors.Center)
-            {
-                y -= yOffset >> 1;
-            }
-            
-            var center = new IntVector2(x, y);
-            root.Rect = new IntRect(center, root.Rect.Size);
-
-            var command = new RenderCommand<TTextureData>
-            (
-                root.Rect,
-                root.Style.Color,
-                root.Style.BackgroundColor,
-                root.Style.CornerRadius,
-                root.FontOptions,
-                root.Text,
-                root.TextureData
-            );
-            commands.Add(command);
-
-            int leftOffset = root.Style.Padding.Left;
-            int topOffset = root.Style.Padding.Top;
-            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
-            {
-                Element<TTextureData> child = root.Children[n];
-
-                int constrainedX = child.Constraints.X?.Calculate(root.Rect.Size.X) ?? child.Rect.Position.X;
-                int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
-                x = root.Rect.Position.X + constrainedX + leftOffset;
-                y = root.Rect.Position.Y + constrainedY + topOffset;
-                
-                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-                anchors = child.Constraints.Anchors;
-                xOffset = child.Rect.Size.X;
-                yOffset = child.Rect.Size.Y;
-            
-                if ((anchors & Anchors.Right) == Anchors.Right)
-                {
-                    x -= xOffset;
-                }
-                else if ((anchors & Anchors.Center) == Anchors.Center)
-                {
-                    x -= xOffset >> 1;
-                }
-            
-                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-                {
-                    y -= yOffset;
-                }
-                else if ((anchors & Anchors.Center) == Anchors.Center)
-                {
-                    y -= yOffset >> 1;
-                }
-                
-                center = new IntVector2(x, y);
-                child.Rect = new IntRect(center, child.Rect.Size);
-
-                switch (root.Layout.Direction)
-                {
-                    case LayoutDirection.Horizontal:
-                        leftOffset += child.Rect.Size.X + root.Layout.Spacing;
-                        break;
-                    case LayoutDirection.Vertical:
-                        topOffset += child.Rect.Size.Y + root.Layout.Spacing;
-                        break;
-                    case LayoutDirection.None:
-                        //  Do nothing
-                        break;
-                }
-
-                command = new RenderCommand<TTextureData>
-                (
-                    child.Rect,
-                    child.Style.Color,
-                    child.Style.BackgroundColor,
-                    child.Style.CornerRadius,
-                    child.FontOptions,
-                    child.Text,
-                    child.TextureData
-                );
-                commands.Add(command);
-            }
-        }
+        List<RenderCommand<TTextureData>> commands = PositionAndRenderElements(stack);
 
         //  Reset state
         _openElements.Clear();
@@ -416,6 +308,121 @@ public sealed class UIBuilder<TTextureData>
             _closedRootElements.Add(element);
             _currentElement = default;
         }
+    }
+    
+    private List<RenderCommand<TTextureData>> PositionAndRenderElements(Stack<ElementNode> stack)
+    {
+        List<RenderCommand<TTextureData>> commands = [];
+        for (var i = 0; i < _closedRootElements.Count; i++)
+        {
+            Element<TTextureData> root = _closedRootElements[i];
+            
+            int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
+            int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
+            
+            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+            Anchors anchors = root.Constraints.Anchors;
+            int xOffset = root.Rect.Size.X;
+            int yOffset = root.Rect.Size.Y;
+            
+            if ((anchors & Anchors.Right) == Anchors.Right)
+            {
+                x -= xOffset;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center)
+            {
+                x -= xOffset >> 1;
+            }
+            
+            if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+            {
+                y -= yOffset;
+            }
+            else if ((anchors & Anchors.Center) == Anchors.Center)
+            {
+                y -= yOffset >> 1;
+            }
+            
+            var center = new IntVector2(x, y);
+            root.Rect = new IntRect(center, root.Rect.Size);
+
+            var command = new RenderCommand<TTextureData>
+            (
+                root.Rect,
+                root.Style.Color,
+                root.Style.BackgroundColor,
+                root.Style.CornerRadius,
+                root.FontOptions,
+                root.Text,
+                root.TextureData
+            );
+            commands.Add(command);
+
+            int leftOffset = root.Style.Padding.Left;
+            int topOffset = root.Style.Padding.Top;
+            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
+            {
+                Element<TTextureData> child = root.Children[n];
+
+                int constrainedX = child.Constraints.X?.Calculate(root.Rect.Size.X) ?? child.Rect.Position.X;
+                int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
+                x = root.Rect.Position.X + constrainedX + leftOffset;
+                y = root.Rect.Position.Y + constrainedY + topOffset;
+                
+                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+                anchors = child.Constraints.Anchors;
+                xOffset = child.Rect.Size.X;
+                yOffset = child.Rect.Size.Y;
+            
+                if ((anchors & Anchors.Right) == Anchors.Right)
+                {
+                    x -= xOffset;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center)
+                {
+                    x -= xOffset >> 1;
+                }
+            
+                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+                {
+                    y -= yOffset;
+                }
+                else if ((anchors & Anchors.Center) == Anchors.Center)
+                {
+                    y -= yOffset >> 1;
+                }
+                
+                center = new IntVector2(x, y);
+                child.Rect = new IntRect(center, child.Rect.Size);
+
+                switch (root.Layout.Direction)
+                {
+                    case LayoutDirection.Horizontal:
+                        leftOffset += child.Rect.Size.X + root.Layout.Spacing;
+                        break;
+                    case LayoutDirection.Vertical:
+                        topOffset += child.Rect.Size.Y + root.Layout.Spacing;
+                        break;
+                    case LayoutDirection.None:
+                        //  Do nothing
+                        break;
+                }
+
+                command = new RenderCommand<TTextureData>
+                (
+                    child.Rect,
+                    child.Style.Color,
+                    child.Style.BackgroundColor,
+                    child.Style.CornerRadius,
+                    child.FontOptions,
+                    child.Text,
+                    child.TextureData
+                );
+                commands.Add(command);
+            }
+        }
+        
+        return commands;
     }
     
     private void FillShrinkAndWrapElements(Stack<ElementNode> stack) 
