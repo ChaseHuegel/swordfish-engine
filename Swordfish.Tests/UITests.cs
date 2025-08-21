@@ -57,7 +57,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         
         using (ui.Element())
         {
-            ui.CornerRadius = new CornerRadius(left: 100, top: 100, right: 100, bottom: 100);
+            ui.CornerRadius = new CornerRadius(topLeft: 0, topRight: 50, bottomLeft: 100, bottomRight: 10);
             ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Spacing = 8;
             ui.Padding = new Padding(
@@ -242,26 +242,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 blue: (int)(renderCommand.Color.Z * 255)
             );
             
-            for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
-            for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
-            {
-                Color currentColor = bitmap.GetPixel(x, y);
-
-                if (renderCommand.TextureData != null)
-                {
-                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.TextureData.Width - 1);
-                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
-                    Color sample = renderCommand.TextureData.GetPixel(u, v);
-                    sample = MultiplyBlend(sample, color);
-                    
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
-                }
-                else if (renderCommand.Text == null)
-                {
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
-                }
-            }
-
+            //  Render text
             if (renderCommand.Text != null)
             {
                 TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
@@ -277,6 +258,65 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     );
                    
                     DrawCharacter(bitmap, bbox, glyph.UV, color, renderCommand.FontOptions.ID);
+                }
+                
+                //  TODO: support background colors for text?
+                continue;
+            }
+            
+            //  Render rects
+            for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
+            for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
+            {
+                //  Skip pixels that are outside the corner radii
+                var skipPixel = false;
+                CornerRadius radius = renderCommand.CornerRadius;
+                if (x < renderCommand.Rect.Left + radius.TopLeft && y < renderCommand.Rect.Top + radius.TopLeft)
+                {
+                    int dx = x - (renderCommand.Rect.Left + radius.TopLeft);
+                    int dy = y - (renderCommand.Rect.Top + radius.TopLeft);
+                    skipPixel = dx * dx + dy * dy > radius.TopLeft * radius.TopLeft;
+                }
+                else if (x > renderCommand.Rect.Right - radius.TopRight && y < renderCommand.Rect.Top + radius.TopRight)
+                {
+                    int dx = x - (renderCommand.Rect.Right - radius.TopRight);
+                    int dy = y - (renderCommand.Rect.Top + radius.TopRight);
+                    skipPixel = dx * dx + dy * dy > radius.TopRight * radius.TopRight;
+                }
+                else if (x > renderCommand.Rect.Right - radius.BottomRight && y > renderCommand.Rect.Bottom - radius.BottomRight)
+                {
+                    int dx = x - (renderCommand.Rect.Right - radius.BottomRight);
+                    int dy = y - (renderCommand.Rect.Bottom - radius.BottomRight);
+                    skipPixel = dx * dx + dy * dy > radius.BottomRight * radius.BottomRight;
+                }
+                else if (x < renderCommand.Rect.Left + radius.BottomLeft && y > renderCommand.Rect.Bottom - radius.BottomLeft)
+                {
+                    int dx = x - (renderCommand.Rect.Left + radius.BottomLeft);
+                    int dy = y - (renderCommand.Rect.Bottom - radius.BottomLeft);
+                    skipPixel = dx * dx + dy * dy > radius.BottomLeft * radius.BottomLeft;
+                }
+
+                if (skipPixel)
+                {
+                    continue;
+                }
+
+                Color currentColor = bitmap.GetPixel(x, y);
+
+                //  Render a textured rect
+                if (renderCommand.TextureData != null)
+                {
+                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.TextureData.Width - 1);
+                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
+                    Color sample = renderCommand.TextureData.GetPixel(u, v);
+                    sample = MultiplyBlend(sample, color);
+                    
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
+                }
+                //  Render a color rect
+                else
+                {
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
                 }
             }
         }

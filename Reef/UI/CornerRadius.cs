@@ -1,11 +1,11 @@
 namespace Reef.UI;
 
-public struct CornerRadius(int left, int top, int right, int bottom)
+public struct CornerRadius(int topLeft, int topRight, int bottomLeft, int bottomRight)
 {
-    public int Left = left;
-    public int Top = top;
-    public int Right = right;
-    public int Bottom = bottom;
+    public int TopLeft = topLeft;
+    public int TopRight = topRight;
+    public int BottomLeft = bottomLeft;
+    public int BottomRight = bottomRight;
 
     public CornerRadius(int value) : this(value, value, value, value) { }
 }
