@@ -41,6 +41,11 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         FontInfo[] fonts = [ salmonFont, awesomeFont ];
 
         var textEngine = new TextEngine(fonts);
+
+        textEngine.TryGetTypeface(salmonFont, out ITypeface typeface);
+        AtlasInfo atlasInfo = typeface!.GetAtlasInfo();
+        var atlasBmp = new Bitmap(atlasInfo.Path);
+        
         var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine);
         
         using (ui.Element())
@@ -250,51 +255,27 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
             if (renderCommand.Text != null)
             {
-                List<string> lines = ui.WrapText(renderCommand.Text, 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
-                for (var i = 0; i < lines.Count; i++)
+                TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
+                for (var i = 0; i < textLayout.Glyphs.Length; i++)
                 {
-                    const int lineHeight = 45;
-                    DrawText(bitmap, renderCommand.Rect.Left, renderCommand.Rect.Top + i * lineHeight, lines[i], Color.White);
+                    GlyphLayout glyph = textLayout.Glyphs[i];
+                    int x = renderCommand.Rect.Left + glyph.BBOX.Left;
+                    int y = renderCommand.Rect.Top + glyph.BBOX.Top;
+                    DrawCharacter(bitmap, x, y, glyph.UV, Color.White);
                 }
             }
         }
         bitmap.Save("ui.bmp");
         return;
         
-        void DrawText(Bitmap bitmap, int x, int y, string text, Color color)
+        void DrawCharacter(Bitmap bitmap, int x, int y, IntRect uv, Color color)
         {
-            const int glyphWidth = 21;
-
-            for (var i = 0; i < text.Length; i++)
-            {
-                if (text[i] < 33 || text[i] > 126)
-                {
-                    continue;
-                }
-                
-                DrawCharacter(bitmap, x + i* glyphWidth, y, text[i], color);
-            }
-        }
-
-        void DrawCharacter(Bitmap bitmap, int x, int y, char character, Color color)
-        {
-            const int fontColumns = 14;
-            const int glyphWidth = 21;
-            const int glyphHeight = 43;
-            const int glyphCharsetStart = 33;
-            
-            int charIndex = character - glyphCharsetStart;
-            int charX = charIndex % fontColumns;
-            int charY = charIndex / fontColumns;
-
-            int glyphStartX = charX * glyphWidth;
-            int glyphStartY = charY * glyphHeight;
-            for (int u = glyphStartX; u < glyphStartX + glyphWidth; u++)
-            for (int v = glyphStartY; v < glyphStartY + glyphHeight; v++)
+            for (int u = uv.Left; u < uv.Right; u++)
+            for (int v = uv.Top; v < uv.Bottom; v++)
             {
                 Color currentColor = bitmap.GetPixel(x, y);
-                Color sample = SampleSdf(null, u, v, Color.Transparent, color);
-                bitmap.SetPixel(x + u - glyphStartX, y + v - glyphStartY, AlphaBlend(currentColor, sample));
+                Color sample = SampleSdf(atlasBmp, u, v, Color.Transparent, color);
+                bitmap.SetPixel(x + u, y + v, AlphaBlend(currentColor, sample));
             }
         }
 

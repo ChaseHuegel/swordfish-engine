@@ -11,14 +11,14 @@ internal sealed class Typeface : ITypeface
 {
     private const int U_WHITE_SQUARE = 9633;
     
-    private readonly Atlas _atlas;
+    private readonly string _atlasPath;
     private readonly Metrics _metrics;
     private readonly Dictionary<int, Glyph> _glyphs = [];
     private readonly Glyph _unknownGlyph;
 
-    public Typeface(GlyphAtlas glyphAtlas)
+    public Typeface(GlyphAtlas glyphAtlas, string atlasPath)
     {
-        _atlas = glyphAtlas.atlas;
+        _atlasPath = atlasPath;
         _metrics = glyphAtlas.metrics;
         
         for (var i = 0; i < glyphAtlas.glyphs.Length; i++)
@@ -34,11 +34,16 @@ internal sealed class Typeface : ITypeface
 
         _unknownGlyph = unknownGlyph;
     }
+
+    public AtlasInfo GetAtlasInfo()
+    {
+        return new AtlasInfo(_atlasPath);
+    }
     
     public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length)
     {
         var widthEm = 0d;
-        for (var i = 0; i < text.Length; i++)
+        for (int i = start; i < start + length; i++)
         {
             char c = text[i];
             Glyph glyph = _glyphs.GetValueOrDefault(c, _unknownGlyph);
@@ -51,9 +56,53 @@ internal sealed class Typeface : ITypeface
         return new TextConstraints(minWidthPx, minHeightPx, minWidthPx, minHeightPx);
     }
 
-    public IntRect[] Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth)
+    public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth)
     {
-        throw new NotImplementedException();
+        float scale = fontOptions.Size / _metrics.emSize;
+        var glyphs = new List<GlyphLayout>();
+        
+        string[] lines = Wrap(fontOptions, text, start, length, maxWidth);
+
+        var bboxWidth = 0d;
+        var bboxHeight = 0d;
+        var yOffset = 0d;
+        for (var i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+            glyphs.Capacity += line.Length;
+
+            var xOffset = 0d;
+            for (var n = 0; n < line.Length; n++)
+            {
+                Glyph glyph = _glyphs.GetValueOrDefault(line[n], _unknownGlyph);
+
+                PlaneBounds planeBounds = glyph.planeBounds ?? PlaneBounds.Zero;
+                var left = (int)Math.Round((planeBounds.left + xOffset) * scale, MidpointRounding.AwayFromZero);
+                var top = (int)Math.Round((planeBounds.top + yOffset) * scale, MidpointRounding.AwayFromZero);
+                var right = (int)Math.Round((planeBounds.right + xOffset) * scale, MidpointRounding.AwayFromZero);
+                var bottom = (int)Math.Round((planeBounds.bottom + yOffset) * scale, MidpointRounding.AwayFromZero);
+                var bbox = new IntRect(left, top, right, bottom);
+                
+                AtlasBounds atlasBounds = glyph.atlasBounds ?? AtlasBounds.Zero;
+                left = (int)Math.Round(atlasBounds.left, MidpointRounding.ToZero);
+                top = (int)Math.Round(atlasBounds.top, MidpointRounding.ToZero);
+                right = (int)Math.Round(atlasBounds.right, MidpointRounding.ToZero);
+                bottom = (int)Math.Round(atlasBounds.bottom, MidpointRounding.ToZero);
+                var uv = new IntRect(left, top, right, bottom);
+
+                glyphs.Add(new GlyphLayout(bbox, uv));
+                xOffset += glyph.advance;
+            }
+
+            yOffset += _metrics.lineHeight;
+            bboxWidth = Math.Max(bboxWidth, xOffset);
+            bboxHeight += yOffset;
+        }
+
+        var width = (int)Math.Round(bboxWidth * scale, MidpointRounding.AwayFromZero);
+        var height = (int)Math.Round(bboxHeight * scale, MidpointRounding.AwayFromZero);
+        var constraints = new TextConstraints(width, height, width, height);
+        return new TextLayout(constraints, glyphs.ToArray());
     }
     
     public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth)
@@ -74,7 +123,8 @@ internal sealed class Typeface : ITypeface
                 continue;
             }
 
-            TextConstraints wordMeasurement = Measure(fontOptions, wordBuilder.ToString(), start, length);
+            var word = wordBuilder.ToString();
+            TextConstraints wordMeasurement = Measure(fontOptions, word, start: 0, word.Length);
             float wordWidth = wordMeasurement.PreferredWidth;
 
             // If the word doesn't fit on the current line, commit the current line.

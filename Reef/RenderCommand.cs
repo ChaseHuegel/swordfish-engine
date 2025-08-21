@@ -9,4 +9,5 @@ public struct RenderCommand<TTextureData>
     public CornerRadius CornerRadius;
     public string? Text;
     public TTextureData? TextureData;
+    public FontOptions FontOptions;
 }

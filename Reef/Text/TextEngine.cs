@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using Reef.MSDF;
@@ -29,7 +30,7 @@ public sealed class TextEngine : ITextEngine
             GenerateMSDF(msdfAtlasGen.Path, fontInfo, out AtlasOutput output);
 
             GlyphAtlas atlas = GlyphAtlasParser.Parse(output.JsonPath);
-            var typeface = new Typeface(atlas);
+            var typeface = new Typeface(atlas, output.ImagePath);
             
             _typefaces.Add(fontInfo.ID, typeface);
         }
@@ -37,13 +38,18 @@ public sealed class TextEngine : ITextEngine
         _defaultTypeface = _typefaces.Values.First();
     }
 
+    public bool TryGetTypeface(FontInfo fontInfo, out ITypeface? typeface)
+    {
+        return _typefaces.TryGetValue(fontInfo.ID, out typeface);
+    }
+
     public TextConstraints Measure(FontOptions fontOptions, string text) => Measure(fontOptions, text, 0, text.Length);
 
-    public IntRect[] Layout(FontOptions fontOptions, string text) => Layout(fontOptions, text, 0, text.Length, int.MaxValue);
+    public TextLayout Layout(FontOptions fontOptions, string text) => Layout(fontOptions, text, 0, text.Length, int.MaxValue);
 
-    public IntRect[] Layout(FontOptions fontOptions, string text, int maxWidth) => Layout(fontOptions, text, 0, text.Length, maxWidth);
+    public TextLayout Layout(FontOptions fontOptions, string text, int maxWidth) => Layout(fontOptions, text, 0, text.Length, maxWidth);
 
-    public IntRect[] Layout(FontOptions fontOptions, string text, int start, int length) => Layout(fontOptions, text, start, length, int.MaxValue);
+    public TextLayout Layout(FontOptions fontOptions, string text, int start, int length) => Layout(fontOptions, text, start, length, int.MaxValue);
 
     public string[] Wrap(FontOptions fontOptions, string text, int maxWidth) => Wrap(fontOptions, text, 0, text.Length, maxWidth);
 
@@ -57,7 +63,7 @@ public sealed class TextEngine : ITextEngine
         return _defaultTypeface.Measure(fontOptions, text, start, length);
     }
 
-    public IntRect[] Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth)
+    public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth)
     {
         if (fontOptions.ID != null && _typefaces.TryGetValue(fontOptions.ID, out ITypeface? typeface))
         {

@@ -53,8 +53,6 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Layout.Direction;
         set => _currentElement.Layout.Direction = value;
     }
-
-    public int FontSize { get; set; } = 16;
     
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
@@ -85,22 +83,29 @@ public sealed class UIBuilder<TTextureData>
         return OpenElement(element);
     }
 
-    public Scope Text(string value)
+    public Scope Text(string value, FontOptions? fontOptions = null)
     {
-        TextConstraints constraints = CalculateTextDimensions(value);
+        FontOptions defaultFontOptions = fontOptions ?? new FontOptions
+        {
+            Size = 16,
+        };
+        
+        int firstWordLength = value.IndexOfAny(_whiteSpaceChars);
+        TextConstraints firstWordConstraints = _textEngine.Measure(defaultFontOptions, value, start: 0, firstWordLength);
+        
+        TextLayout textLayout = _textEngine.Layout(defaultFontOptions, value);
+        TextConstraints fullTextConstraints = textLayout.Constraints;
+        
         var element = new UIElement<TTextureData>
         {
             Text = value,
-            FontOptions = new FontOptions
-            {
-                Size = 16,
-            },
+            FontOptions = defaultFontOptions,
             Constraints = new Constraints
             {
-                Width = new Fixed(constraints.PreferredWidth),
-                Height = new Fixed(constraints.PreferredHeight),
-                MinWidth = constraints.MinWidth,
-                MinHeight = constraints.MinHeight,
+                Width = new Fixed(fullTextConstraints.PreferredWidth),
+                Height = new Fixed(fullTextConstraints.PreferredHeight),
+                MinWidth = firstWordConstraints.MinWidth,
+                MinHeight = firstWordConstraints.MinHeight,
             },
         };
         
@@ -186,6 +191,7 @@ public sealed class UIBuilder<TTextureData>
                 Color = root.Style.Color,
                 Text = root.Text,
                 TextureData = root.TextureData,
+                FontOptions = root.FontOptions,
             };
             commands.Add(command);
 
@@ -245,6 +251,7 @@ public sealed class UIBuilder<TTextureData>
                     Color = child.Style.Color,
                     Text = child.Text,
                     TextureData = child.TextureData,
+                    FontOptions = child.FontOptions,
                 };
                 commands.Add(command);
             }
@@ -629,9 +636,9 @@ public sealed class UIBuilder<TTextureData>
                 continue;
             }
             
-            TextConstraints textConstraints = CalculateTextDimensions(child.Text, child.Rect.Size.X);
+            TextLayout textLayout = _textEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
             
-            var size = new IntVector2(child.Rect.Size.X, Math.Min(textConstraints.MinHeight, availableHeight));
+            var size = new IntVector2(child.Rect.Size.X, Math.Min(textLayout.Constraints.MinHeight, availableHeight));
             child.Rect = new IntRect(child.Rect.Position, size);
             
             parent.Children[i] = child;
@@ -846,92 +853,5 @@ public sealed class UIBuilder<TTextureData>
                     break;
             }
         }
-    }
-
-    private TextConstraints CalculateTextDimensions(string value, int maxWidth = int.MaxValue)
-    {
-        return default;
-        // int fontSize = FontSize;
-        //
-        // int firstWordLength = value.IndexOfAny(_whiteSpaceChars);
-        // TextConstraints firstWordStringBox = _textEngine.Measure(value, start: 0, firstWordLength, fontSize);
-        //
-        // var preferredWidth = 0d;
-        // var preferredHeight = 0d;
-        //
-        // TextConstraints measurement = _textEngine.Measure(value, fontSize);
-        // if (measurement.PreferredWidth > maxWidth)
-        // {
-        //     List<MeasuredStringBox> lines = LayoutAndMeasureLines(textBuffer, 0, textBuffer.Length, maxWidth);
-        //     for (var i = 0; i < lines.Count; i++)
-        //     {
-        //         MeasuredStringBox lineStringBox = lines[i];
-        //         preferredWidth = Math.Max(preferredWidth, lineStringBox.width);
-        //         preferredHeight += lineStringBox.LineSpaceInPx;
-        //     }
-        // }
-        // else
-        // {
-        //     preferredWidth = measurement.width;
-        //     preferredHeight = measurement.LineSpaceInPx;
-        // }
-        //
-        // preferredWidth = Math.Round(preferredWidth, MidpointRounding.AwayFromZero);
-        // preferredHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
-        // double minWidth = Math.Round(firstWordStringBox.width, MidpointRounding.AwayFromZero);
-        // double minHeight = Math.Round(preferredHeight, MidpointRounding.AwayFromZero);
-        //
-        // return ((int)minWidth, (int)minHeight, (int)preferredWidth, (int)preferredHeight);
-    }
-    
-    public List<string> WrapText(string text, int maxWidth)
-    {
-        return WrapText(text, 0, text.Length, maxWidth);
-    }
-    
-    public List<string> WrapText(string text, int start, int length, int maxWidth)
-    {
-        int fontSize = FontSize;
-
-        var lines = new List<string>();
-        var wordBuilder = new StringBuilder();
-        var lineBuilder = new StringBuilder();
-        float currentLineWidth = 0;
-
-        for (int i = start; i < start + length; i++)
-        {
-            char c = text[i];
-            wordBuilder.Append(c);
-
-            //  Search for the end of a word, or else the end of the text
-            if (c != ' ' && i < start + length - 1)
-            {
-                continue;
-            }
-
-            // Measure the current word
-            TextConstraints wordMeasurement = _textEngine.Measure(default, default);
-            float wordWidth = wordMeasurement.PreferredWidth;
-
-            // If the word doesn't fit on the current line, commit the current line.
-            if (currentLineWidth + wordWidth > maxWidth && lineBuilder.Length > 0)
-            {
-                lines.Add(lineBuilder.ToString().TrimEnd());
-                lineBuilder.Clear();
-                currentLineWidth = 0;
-            }
-
-            lineBuilder.Append(wordBuilder);
-            currentLineWidth += wordWidth;
-            wordBuilder.Clear();
-        }
-
-        // Flush any remaining line
-        if (lineBuilder.Length > 0)
-        {
-            lines.Add(lineBuilder.ToString().TrimEnd());
-        }
-
-        return lines;
     }
 }
