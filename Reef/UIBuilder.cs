@@ -31,6 +31,12 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Style.Color;
         set => _currentElement.Style.Color = value;
     }
+    
+    public Vector4 BackgroundColor
+    {
+        get => _currentElement.Style.BackgroundColor;
+        set => _currentElement.Style.BackgroundColor = value;
+    }
 
     public UI.Constraints Constraints
     {
@@ -131,6 +137,10 @@ public sealed class UIBuilder<TTextureData>
         var element = new Element<TTextureData>
         {
             TextureData = value,
+            Style = new Style
+            {
+                Color = Vector4.One,
+            },
         };
         
         return OpenElement(element);
@@ -203,6 +213,7 @@ public sealed class UIBuilder<TTextureData>
             (
                 root.Rect,
                 root.Style.Color,
+                root.Style.BackgroundColor,
                 root.Style.CornerRadius,
                 root.FontOptions,
                 root.Text,
@@ -264,6 +275,7 @@ public sealed class UIBuilder<TTextureData>
                 (
                     child.Rect,
                     child.Style.Color,
+                    child.Style.BackgroundColor,
                     child.Style.CornerRadius,
                     child.FontOptions,
                     child.Text,

@@ -86,18 +86,42 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Text("This is a little bit of a longer piece of text."))
             {
-                ui.Color = new Vector4(0f, 0f, 1f, 1f);
+                ui.BackgroundColor = new Vector4(0f, 0f, 1f, 1f);
             }
             
             using (ui.Image(swordfishBmp))
             {
-                ui.Color = new Vector4(1f);
                 ui.Constraints = new Constraints
                 {
                     Width = new Fixed(64),
                     Height = new Fixed(64),
                 };
             }
+            
+            using (ui.Image(swordfishBmp))
+            {
+                ui.BackgroundColor = new Vector4(0f, 1f, 0f, 1f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(32),
+                    Height = new Fixed(32),
+                };
+            }
+        }
+        
+        using (ui.Image(swordfishBmp))
+        {
+            ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
+            ui.Padding = new Padding(left: 8, top: 8, right: 8, bottom: 8);
+            ui.Constraints = new Constraints
+            {
+                X = new Relative(0.5f),
+                Y = new Relative(0.1f),
+                Width = new Fixed(128),
+                Height = new Fixed(128),
+            };
+            
+            using (ui.Text("Swordfish")) { }
         }
 
         using (ui.Element())
@@ -242,27 +266,12 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 blue: (int)(renderCommand.Color.Z * 255)
             );
             
-            //  Render text
-            if (renderCommand.Text != null)
-            {
-                TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
-                for (var i = 0; i < textLayout.Glyphs.Length; i++)
-                {
-                    GlyphLayout glyph = textLayout.Glyphs[i];
-                    
-                    var bbox = new IntRect(
-                        renderCommand.Rect.Left + glyph.BBOX.Left,
-                        renderCommand.Rect.Top + glyph.BBOX.Top,
-                        renderCommand.Rect.Left + glyph.BBOX.Right,
-                        renderCommand.Rect.Top + glyph.BBOX.Bottom
-                    );
-                   
-                    DrawCharacter(bitmap, bbox, glyph.UV, color, renderCommand.FontOptions.ID);
-                }
-                
-                //  TODO: support background colors for text?
-                continue;
-            }
+            Color backgroundColor = Color.FromArgb(
+                alpha: (int)(renderCommand.BackgroundColor.W * 255),
+                red: (int)(renderCommand.BackgroundColor.X * 255),
+                green: (int)(renderCommand.BackgroundColor.Y * 255),
+                blue: (int)(renderCommand.BackgroundColor.Z * 255)
+            );
             
             //  Render rects
             for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
@@ -310,14 +319,39 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
                     Color sample = renderCommand.TextureData.GetPixel(u, v);
                     sample = MultiplyBlend(sample, color);
+                    //  Blend in any texture background color
+                    sample = AlphaBlend(backgroundColor, sample);
                     
                     bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
                 }
                 //  Render a color rect
                 else
                 {
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
+                    //  If text is present, treat this as a background.
+                    Color rectColor = renderCommand.Text == null ? color : backgroundColor;
+                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, rectColor));
                 }
+            }
+            
+            if (renderCommand.Text == null)
+            {
+                continue;
+            }
+
+            //  Render text
+            TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
+            for (var i = 0; i < textLayout.Glyphs.Length; i++)
+            {
+                GlyphLayout glyph = textLayout.Glyphs[i];
+                    
+                var bbox = new IntRect(
+                    renderCommand.Rect.Left + glyph.BBOX.Left,
+                    renderCommand.Rect.Top + glyph.BBOX.Top,
+                    renderCommand.Rect.Left + glyph.BBOX.Right,
+                    renderCommand.Rect.Top + glyph.BBOX.Bottom
+                );
+
+                DrawCharacter(bitmap, bbox, glyph.UV, color, renderCommand.FontOptions.ID);
             }
         }
         bitmap.Save("ui.bmp");
