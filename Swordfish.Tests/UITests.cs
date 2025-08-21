@@ -44,7 +44,11 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
         textEngine.TryGetTypeface(salmonFont, out ITypeface typeface);
         AtlasInfo atlasInfo = typeface!.GetAtlasInfo();
-        var atlasBmp = new Bitmap(atlasInfo.Path);
+        var salmonBmp = new Bitmap(atlasInfo.Path);
+        
+        textEngine.TryGetTypeface(awesomeFont, out typeface);
+        atlasInfo = typeface!.GetAtlasInfo();
+        var faBmp = new Bitmap(atlasInfo.Path);
         
         var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine);
         
@@ -65,14 +69,14 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Height = new Fixed(300),
             };
             
-            using (ui.Text("Hello world!"))
+            using (ui.Text("Hello world!", new FontOptions { Size = 10 }))
             {
                 ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
             
-            using (ui.Text("Test."))
+            using (ui.Text("\uf24e \uf2bd \uf03e \uf118 \uf164"))
             {
-                ui.Color = new Vector4(0f, 1f, 0f, 1f);
+                ui.FontOptions = new FontOptions { ID = awesomeFont.ID, Size = 20 };
             }
             
             using (ui.Text("This is a little bit of a longer piece of text."))
@@ -247,7 +251,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     
                     bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
                 }
-                else
+                else if (renderCommand.Text == null)
                 {
                     bitmap.SetPixel(x, y, AlphaBlend(currentColor, color));
                 }
@@ -255,35 +259,42 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
             if (renderCommand.Text != null)
             {
-                TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, 0, renderCommand.Text.Length, renderCommand.Rect.Size.X);
+                TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
                 for (var i = 0; i < textLayout.Glyphs.Length; i++)
                 {
                     GlyphLayout glyph = textLayout.Glyphs[i];
-                    int x = renderCommand.Rect.Left + glyph.BBOX.Left;
-                    int y = renderCommand.Rect.Top + glyph.BBOX.Top;
-                    DrawCharacter(bitmap, x, y, glyph.UV, Color.White);
+                    
+                    var bbox = new IntRect(
+                        renderCommand.Rect.Left + glyph.BBOX.Left,
+                        renderCommand.Rect.Top + glyph.BBOX.Top,
+                        renderCommand.Rect.Left + glyph.BBOX.Right,
+                        renderCommand.Rect.Top + glyph.BBOX.Bottom
+                    );
+                   
+                    DrawCharacter(bitmap, bbox, glyph.UV, color, renderCommand.FontOptions.ID);
                 }
             }
         }
         bitmap.Save("ui.bmp");
         return;
         
-        void DrawCharacter(Bitmap bitmap, int x, int y, IntRect uv, Color color)
+        void DrawCharacter(Bitmap bitmap, IntRect bbox, IntRect uv, Color color, string fontID)
         {
-            for (int u = uv.Left; u < uv.Right; u++)
-            for (int v = uv.Top; v < uv.Bottom; v++)
+            for (int x = bbox.Left; x < bbox.Right; x++)
+            for (int y = bbox.Top; y < bbox.Bottom; y++)
             {
+                var u = (int)MathS.RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
+                var v = (int)MathS.RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
                 Color currentColor = bitmap.GetPixel(x, y);
-                Color sample = SampleSdf(atlasBmp, u, v, Color.Transparent, color);
-                bitmap.SetPixel(x + u, y + v, AlphaBlend(currentColor, sample));
+                Color sample = SampleSdf(fontID == awesomeFont.ID ? faBmp : salmonBmp, fontID == awesomeFont.ID ? 1f : 0.02f, u, v, Color.Transparent, color);
+                bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
             }
         }
 
-        Color SampleSdf(Bitmap sdf, int u, int v, Color outsideColor, Color insideColor)
+        Color SampleSdf(Bitmap sdf, float fwidth, int u, int v, Color outsideColor, Color insideColor)
         {
             Color s = sdf.GetPixel(u, v);
             float d = Median(s.R / 255f, s.G / 255f, s.B / 255f) - 0.5f;
-            float fwidth = 0.02f;
             float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);
             return Mix(outsideColor, insideColor, w);
         }

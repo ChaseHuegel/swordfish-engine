@@ -12,6 +12,7 @@ internal sealed class Typeface : ITypeface
     private const int U_WHITE_SQUARE = 9633;
     
     private readonly string _atlasPath;
+    private readonly Atlas _atlas;
     private readonly Metrics _metrics;
     private readonly Dictionary<int, Glyph> _glyphs = [];
     private readonly Glyph _unknownGlyph;
@@ -19,6 +20,7 @@ internal sealed class Typeface : ITypeface
     public Typeface(GlyphAtlas glyphAtlas, string atlasPath)
     {
         _atlasPath = atlasPath;
+        _atlas = glyphAtlas.atlas;
         _metrics = glyphAtlas.metrics;
         
         for (var i = 0; i < glyphAtlas.glyphs.Length; i++)
@@ -76,18 +78,20 @@ internal sealed class Typeface : ITypeface
             {
                 Glyph glyph = _glyphs.GetValueOrDefault(line[n], _unknownGlyph);
 
+                //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 PlaneBounds planeBounds = glyph.planeBounds ?? PlaneBounds.Zero;
                 var left = (int)Math.Round((planeBounds.left + xOffset) * scale, MidpointRounding.AwayFromZero);
-                var top = (int)Math.Round((planeBounds.top + yOffset) * scale, MidpointRounding.AwayFromZero);
+                var top = (int)Math.Round((1f - planeBounds.top + yOffset) * scale, MidpointRounding.AwayFromZero);
                 var right = (int)Math.Round((planeBounds.right + xOffset) * scale, MidpointRounding.AwayFromZero);
-                var bottom = (int)Math.Round((planeBounds.bottom + yOffset) * scale, MidpointRounding.AwayFromZero);
+                var bottom = (int)Math.Round((1f - planeBounds.bottom + yOffset) * scale, MidpointRounding.AwayFromZero);
                 var bbox = new IntRect(left, top, right, bottom);
                 
+                //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 AtlasBounds atlasBounds = glyph.atlasBounds ?? AtlasBounds.Zero;
                 left = (int)Math.Round(atlasBounds.left, MidpointRounding.ToZero);
-                top = (int)Math.Round(atlasBounds.top, MidpointRounding.ToZero);
+                top = (int)Math.Round(_atlas.height - atlasBounds.top, MidpointRounding.ToZero);
                 right = (int)Math.Round(atlasBounds.right, MidpointRounding.ToZero);
-                bottom = (int)Math.Round(atlasBounds.bottom, MidpointRounding.ToZero);
+                bottom = (int)Math.Round(_atlas.height - atlasBounds.bottom, MidpointRounding.ToZero);
                 var uv = new IntRect(left, top, right, bottom);
 
                 glyphs.Add(new GlyphLayout(bbox, uv));

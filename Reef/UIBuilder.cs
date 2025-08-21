@@ -54,6 +54,36 @@ public sealed class UIBuilder<TTextureData>
         set => _currentElement.Layout.Direction = value;
     }
     
+    public int FontSize
+    {
+        get => _currentElement.FontOptions.Size;
+        set
+        {
+            _currentElement.FontOptions.Size = value;
+            UpdateTextConstraints();
+        }
+    }
+    
+    public string? FontID
+    {
+        get => _currentElement.FontOptions.ID;
+        set
+        {
+            _currentElement.FontOptions.ID = value;
+            UpdateTextConstraints();
+        }
+    }
+    
+    public FontOptions FontOptions
+    {
+        get => _currentElement.FontOptions;
+        set
+        {
+            _currentElement.FontOptions = value;
+            UpdateTextConstraints();
+        }
+    }
+    
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
@@ -100,6 +130,10 @@ public sealed class UIBuilder<TTextureData>
         {
             Text = value,
             FontOptions = defaultFontOptions,
+            Style = new Style
+            {
+                Color = Vector4.One,
+            },
             Constraints = new Constraints
             {
                 Width = new Fixed(fullTextConstraints.PreferredWidth),
@@ -853,5 +887,27 @@ public sealed class UIBuilder<TTextureData>
                     break;
             }
         }
+    }
+    
+    private void UpdateTextConstraints()
+    {
+        if (_currentElement.Text == null)
+        {
+            return;
+        }
+        
+        int firstWordLength = _currentElement.Text.IndexOfAny(_whiteSpaceChars);
+        TextConstraints firstWordConstraints = _textEngine.Measure(_currentElement.FontOptions, _currentElement.Text, start: 0, firstWordLength);
+        
+        TextLayout textLayout = _textEngine.Layout(_currentElement.FontOptions, _currentElement.Text);
+        TextConstraints fullTextConstraints = textLayout.Constraints;
+
+        _currentElement.Constraints = new Constraints
+        {
+            Width = new Fixed(fullTextConstraints.PreferredWidth),
+            Height = new Fixed(fullTextConstraints.PreferredHeight),
+            MinWidth = firstWordConstraints.MinWidth,
+            MinHeight = firstWordConstraints.MinHeight,
+        };
     }
 }
