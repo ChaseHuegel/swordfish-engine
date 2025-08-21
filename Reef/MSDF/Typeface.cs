@@ -101,7 +101,7 @@ internal sealed class Typeface : ITypeface
 
             yOffset += _metrics.lineHeight;
             bboxWidth = Math.Max(bboxWidth, xOffset);
-            bboxHeight += yOffset;
+            bboxHeight += _metrics.lineHeight;
         }
 
         var width = (int)Math.Round(bboxWidth * scale, MidpointRounding.AwayFromZero);

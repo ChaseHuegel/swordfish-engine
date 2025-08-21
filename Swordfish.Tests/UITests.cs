@@ -84,7 +84,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 ui.FontOptions = new FontOptions { ID = awesomeFont.ID, Size = 20 };
             }
             
-            using (ui.Text("This is a little bit of a longer piece of text."))
+            using (ui.Text("This is a little bit of a longer piece of text with a background color."))
             {
                 ui.BackgroundColor = new Vector4(0f, 0f, 1f, 1f);
             }
