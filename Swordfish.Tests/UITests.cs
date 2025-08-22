@@ -111,6 +111,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         
         using (ui.Image(swordfishBmp))
         {
+            ui.Padding = new Padding(8, 8, 8, 8);
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints

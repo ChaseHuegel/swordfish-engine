@@ -358,9 +358,9 @@ public sealed class UIBuilder<TTextureData>
                 var bottomInset = 0;
                 if (frame.Parent != null)
                 {
-                    //  Padding is applied as an inset when anchored on either end.
-                    //  Left & top padding are already accounted for the origin position,
-                    //  so they must be reverted when insetting right & bottom padding.
+                    //  Padding is applied as an inset when not anchored to the left/top.
+                    //  Left/top padding are already accounted for the origin position,
+                    //  so they must be reverted when applied to any other anchor.
                     rightInset = frame.Parent.Value.Style.Padding.Right + frame.Parent.Value.Style.Padding.Left;
                     bottomInset = frame.Parent.Value.Style.Padding.Bottom + frame.Parent.Value.Style.Padding.Top;
                 }
@@ -371,7 +371,7 @@ public sealed class UIBuilder<TTextureData>
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
-                    x -= xAnchorOffset >> 1;
+                    x -= (xAnchorOffset + rightInset) >> 1;
                 }
             
                 if ((anchors & Anchors.Bottom) == Anchors.Bottom)
@@ -380,7 +380,7 @@ public sealed class UIBuilder<TTextureData>
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
-                    y -= yAnchorOffset >> 1;
+                    y -= (yAnchorOffset + bottomInset) >> 1;
                 }
             
                 var center = new IntVector2(x, y);
