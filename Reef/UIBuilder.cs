@@ -350,14 +350,24 @@ public sealed class UIBuilder<TTextureData>
                 }
             
                 //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-                //  TODO account for padding
                 Anchors anchors = element.Constraints.Anchors;
                 int xAnchorOffset = element.Rect.Size.X;
                 int yAnchorOffset = element.Rect.Size.Y;
+
+                var rightInset = 0;
+                var bottomInset = 0;
+                if (frame.Parent != null)
+                {
+                    //  Padding is applied as an inset when anchored on either end.
+                    //  Left & top padding are already accounted for the origin position,
+                    //  so they must be reverted when insetting right & bottom padding.
+                    rightInset = frame.Parent.Value.Style.Padding.Right + frame.Parent.Value.Style.Padding.Left;
+                    bottomInset = frame.Parent.Value.Style.Padding.Bottom + frame.Parent.Value.Style.Padding.Top;
+                }
             
                 if ((anchors & Anchors.Right) == Anchors.Right)
                 {
-                    x -= xAnchorOffset;
+                    x -= xAnchorOffset + rightInset;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
@@ -366,7 +376,7 @@ public sealed class UIBuilder<TTextureData>
             
                 if ((anchors & Anchors.Bottom) == Anchors.Bottom)
                 {
-                    y -= yAnchorOffset;
+                    y -= yAnchorOffset + bottomInset;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
