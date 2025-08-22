@@ -215,13 +215,17 @@ public sealed class UIBuilder<TTextureData>
             TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text);
             TextConstraints fullTextConstraints = textLayout.Constraints;
 
-            element.Constraints = new UI.Constraints
+            var textConstraints = new UI.Constraints
             {
-                Width = new Fixed(fullTextConstraints.PreferredWidth),
-                Height = new Fixed(fullTextConstraints.PreferredHeight),
+                Anchors = element.Constraints.Anchors,
+                X = element.Constraints.X,
+                Y = element.Constraints.Y,
+                Width = element.Constraints.Width ?? new Fixed(fullTextConstraints.PreferredWidth),
+                Height = element.Constraints.Height ?? new Fixed(fullTextConstraints.PreferredHeight),
                 MinWidth = firstWordConstraints.MinWidth,
                 MinHeight = firstWordConstraints.MinHeight,
             };
+            element.Constraints = textConstraints;
         }
 
         //  Attempt to get the parent, if any, off the stack
@@ -346,6 +350,7 @@ public sealed class UIBuilder<TTextureData>
                 }
             
                 //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+                //  TODO account for padding
                 Anchors anchors = element.Constraints.Anchors;
                 int xAnchorOffset = element.Rect.Size.X;
                 int yAnchorOffset = element.Rect.Size.Y;
