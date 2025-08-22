@@ -31,6 +31,8 @@ public sealed class UIBuilder<TTextureData>
         public readonly Element<TTextureData> Element = element;
         public readonly Element<TTextureData>? Parent = parent;
         public readonly int ChildIndex = childIndex;
+        public int LeftOffset = 0;
+        public int TopOffset = 0;
     }
 
     public Vector4 Color
@@ -315,110 +317,113 @@ public sealed class UIBuilder<TTextureData>
         List<RenderCommand<TTextureData>> commands = [];
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
+            stack.Clear();
             Element<TTextureData> root = _closedRootElements[i];
-            
-            int x = root.Constraints.X?.Calculate(Width) ?? root.Rect.Position.X;
-            int y = root.Constraints.Y?.Calculate(Height) ?? root.Rect.Position.Y;
-            
-            //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-            Anchors anchors = root.Constraints.Anchors;
-            int xOffset = root.Rect.Size.X;
-            int yOffset = root.Rect.Size.Y;
-            
-            if ((anchors & Anchors.Right) == Anchors.Right)
+            stack.Push(new ElementNode(root));
+        
+            while (stack.Count > 0)
             {
-                x -= xOffset;
-            }
-            else if ((anchors & Anchors.Center) == Anchors.Center)
-            {
-                x -= xOffset >> 1;
-            }
-            
-            if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-            {
-                y -= yOffset;
-            }
-            else if ((anchors & Anchors.Center) == Anchors.Center)
-            {
-                y -= yOffset >> 1;
-            }
-            
-            var center = new IntVector2(x, y);
-            root.Rect = new IntRect(center, root.Rect.Size);
-
-            var command = new RenderCommand<TTextureData>
-            (
-                root.Rect,
-                root.Style.Color,
-                root.Style.BackgroundColor,
-                root.Style.CornerRadius,
-                root.FontOptions,
-                root.Text,
-                root.TextureData
-            );
-            commands.Add(command);
-
-            int leftOffset = root.Style.Padding.Left;
-            int topOffset = root.Style.Padding.Top;
-            for (var n = 0; root.Children != null && n < root.Children.Count; n++)
-            {
-                Element<TTextureData> child = root.Children[n];
-
-                int constrainedX = child.Constraints.X?.Calculate(root.Rect.Size.X) ?? child.Rect.Position.X;
-                int constrainedY = child.Constraints.Y?.Calculate(root.Rect.Size.Y) ?? child.Rect.Position.Y;
-                x = root.Rect.Position.X + constrainedX + leftOffset;
-                y = root.Rect.Position.Y + constrainedY + topOffset;
+                ElementNode frame = stack.Pop();
+                Element<TTextureData> element = frame.Element;
+        
+                //  Apply position constraints
+                int availableWidth = Width;
+                int availableHeight = Height;
+                if (frame.Parent != null)
+                {
+                    availableWidth = frame.Parent.Value.Rect.Size.X;
+                    availableHeight = frame.Parent.Value.Rect.Size.Y;
+                }
                 
+                int x = element.Constraints.X?.Calculate(availableWidth) ?? element.Rect.Position.X;
+                int y = element.Constraints.Y?.Calculate(availableHeight) ?? element.Rect.Position.Y;
+                
+                //  Apply layout offsets
+                if (frame.Parent != null)
+                {
+                    x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
+                    y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
+                }
+            
                 //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-                anchors = child.Constraints.Anchors;
-                xOffset = child.Rect.Size.X;
-                yOffset = child.Rect.Size.Y;
+                Anchors anchors = element.Constraints.Anchors;
+                int xAnchorOffset = element.Rect.Size.X;
+                int yAnchorOffset = element.Rect.Size.Y;
             
                 if ((anchors & Anchors.Right) == Anchors.Right)
                 {
-                    x -= xOffset;
+                    x -= xAnchorOffset;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
-                    x -= xOffset >> 1;
+                    x -= xAnchorOffset >> 1;
                 }
             
                 if ((anchors & Anchors.Bottom) == Anchors.Bottom)
                 {
-                    y -= yOffset;
+                    y -= yAnchorOffset;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center)
                 {
-                    y -= yOffset >> 1;
+                    y -= yAnchorOffset >> 1;
                 }
-                
-                center = new IntVector2(x, y);
-                child.Rect = new IntRect(center, child.Rect.Size);
+            
+                var center = new IntVector2(x, y);
+                element.Rect = new IntRect(center, element.Rect.Size);
 
-                switch (root.Layout.Direction)
-                {
-                    case LayoutDirection.Horizontal:
-                        leftOffset += child.Rect.Size.X + root.Layout.Spacing;
-                        break;
-                    case LayoutDirection.Vertical:
-                        topOffset += child.Rect.Size.Y + root.Layout.Spacing;
-                        break;
-                    case LayoutDirection.None:
-                        //  Do nothing
-                        break;
-                }
-
-                command = new RenderCommand<TTextureData>
+                var command = new RenderCommand<TTextureData>
                 (
-                    child.Rect,
-                    child.Style.Color,
-                    child.Style.BackgroundColor,
-                    child.Style.CornerRadius,
-                    child.FontOptions,
-                    child.Text,
-                    child.TextureData
+                    element.Rect,
+                    element.Style.Color,
+                    element.Style.BackgroundColor,
+                    element.Style.CornerRadius,
+                    element.FontOptions,
+                    element.Text,
+                    element.TextureData
                 );
                 commands.Add(command);
+        
+                // Save any changes made to the element
+                if (frame.Parent == null)
+                {
+                    _closedRootElements[i] = element;
+                }
+                else if (frame.Parent.Value.Children != null)
+                {
+                    frame.Parent.Value.Children[frame.ChildIndex] = element;
+                }
+        
+                // Push any children to be processed
+                if (element.Children == null)
+                {
+                    continue;
+                }
+
+                int leftOffset = element.Style.Padding.Left;
+                int topOffset = element.Style.Padding.Top;
+                for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                {
+                    Element<TTextureData> child = element.Children[childIndex];
+                    stack.Push(new ElementNode(child, element, childIndex)
+                    {
+                        LeftOffset = leftOffset,
+                        TopOffset = topOffset,
+                    });
+                    
+                    //  Apply layout offsets
+                    switch (element.Layout.Direction)
+                    {
+                        case LayoutDirection.Horizontal:
+                            leftOffset += child.Rect.Size.X + element.Layout.Spacing;
+                            break;
+                        case LayoutDirection.Vertical:
+                            topOffset += child.Rect.Size.Y + element.Layout.Spacing;
+                            break;
+                        case LayoutDirection.None:
+                            //  Do nothing
+                            break;
+                    }
+                }
             }
         }
         
