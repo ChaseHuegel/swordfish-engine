@@ -100,6 +100,7 @@ public sealed class UIBuilder<TTextureData>
 
     private readonly IntRect _viewPort;
     private readonly ITextEngine _textEngine;
+    private readonly UIController _controller;
     
     private bool _hasOpenElement;
     private Element<TTextureData> _currentElement;
@@ -108,9 +109,10 @@ public sealed class UIBuilder<TTextureData>
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
 
-    public UIBuilder(int width, int height, ITextEngine textEngine)
+    public UIBuilder(int width, int height, ITextEngine textEngine, UIController controller)
     {
         _textEngine = textEngine;
+        _controller = controller;
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
 
@@ -161,6 +163,12 @@ public sealed class UIBuilder<TTextureData>
         return OpenElement(element);
     }
     
+    public bool Clicked(string id)
+    {
+        _currentElement.ButtonID = id;
+        return _controller.WasButtonClicked(id);
+    }
+    
     public RenderCommand<TTextureData>[] Build()
     {
         //  Force close all elements
@@ -179,6 +187,8 @@ public sealed class UIBuilder<TTextureData>
         List<RenderCommand<TTextureData>> commands = PositionAndRenderElements(stack);
 
         //  Reset state
+        _hasOpenElement = false;
+        _currentElement = default;
         _openElements.Clear();
         _closedRootElements.Clear();
         return commands.ToArray();
@@ -406,6 +416,12 @@ public sealed class UIBuilder<TTextureData>
                 else if (frame.Parent.Value.Children != null)
                 {
                     frame.Parent.Value.Children[frame.ChildIndex] = element;
+                }
+                
+                //  Update input
+                if (element.ButtonID != null)
+                {
+                    _controller.UpdateButton(element.ButtonID, element.Rect);
                 }
         
                 // Push any children to be processed
