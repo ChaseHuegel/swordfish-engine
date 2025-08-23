@@ -54,12 +54,21 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         var faBmp = new Bitmap(atlasInfo.Path);
 
         var controller = new UIController();
-        controller.Update(952, 536, UIController.MouseButtons.Left);
         
         var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine, controller);
 
+        //  Frame 1, no input
+        controller.Update(952, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishBmp);
         ui.Build();
+
+        //  Frame 2, clicked
+        controller.Update(952, 536, UIController.MouseButtons.Left);
+        RenderTestUI(ui, awesomeFont, swordfishBmp);
+        ui.Build();
+        
+        //  Frame 3, no input
+        controller.Update(952, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishBmp);
         RenderCommand<Bitmap>[] renderCommands = ui.Build();
         
