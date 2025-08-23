@@ -58,17 +58,17 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine, controller);
 
         //  Frame 1, no input
-        controller.Update(952, 536, UIController.MouseButtons.None);
+        controller.Update(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishBmp);
         ui.Build();
 
         //  Frame 2, clicked
-        controller.Update(952, 536, UIController.MouseButtons.Left);
+        controller.Update(763, 536, UIController.MouseButtons.Left);
         RenderTestUI(ui, awesomeFont, swordfishBmp);
         ui.Build();
         
         //  Frame 3, no input
-        controller.Update(952, 536, UIController.MouseButtons.None);
+        controller.Update(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishBmp);
         RenderCommand<Bitmap>[] renderCommands = ui.Build();
         
@@ -410,25 +410,30 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     Height = new Fixed(32),
                 };
             }
-            
-            using (ui.Element())
-            {
-                if (ui.Clicked("test"))
-                {
-                    ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                    using (ui.Text("Clicked!")) { }
-                }
-                else
-                {
-                    ui.Color = new Vector4(0f, 0.5f, 0.5f, 0f);
-                }
 
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
+            if (ui.Button("test"))
+            {
+                using (ui.Text("Clicked!")) { }
             }
+            
+            // using (ui.Element())
+            // {
+            //     if (ui.Clicked("test"))
+            //     {
+            //         ui.Color = new Vector4(0f, 0f, 0f, 1f);
+            //         using (ui.Text("Clicked!")) { }
+            //     }
+            //     else
+            //     {
+            //         ui.Color = new Vector4(0f, 0.5f, 0.5f, 0f);
+            //     }
+            //
+            //     ui.Constraints = new Constraints
+            //     {
+            //         Width = new Fill(),
+            //         Height = new Fill(),
+            //     };
+            // }
             
             using (ui.Element())
             {
