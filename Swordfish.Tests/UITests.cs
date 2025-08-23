@@ -116,6 +116,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
             ui.Constraints = new Constraints
             {
+                Anchors = Anchors.Center,
                 X = new Relative(0.5f),
                 Y = new Relative(0.1f),
                 Width = new Fixed(128),
