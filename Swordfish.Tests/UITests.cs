@@ -255,6 +255,46 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     {
         using (ui.Element())
         {
+            ui.Color = new Vector4(0f, 0.15f, 0.25f, 1f);
+            ui.CornerRadius = new CornerRadius(topLeft: 20, topRight: 20, bottomLeft: 20, bottomRight: 20);
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Spacing = 4;
+            ui.Padding = new Padding(
+                left: 20,
+                top: 20,
+                right: 20,
+                bottom: 20
+            );
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Right,
+                X = new Relative(0.98f),
+                Y = new Relative(0.5f),
+                Width = new Fixed(200),
+                Height = new Fixed(600),
+            };
+
+            ui.VerticalScroll = true;
+            ui.ScrollY += 200;
+
+            for (var i = 0; i < 30; i++)
+            {
+                //  TODO text exceeding a scrolled view squishes the text vertically
+                using (ui.Element())
+                {
+                    ui.Color = Vector4.Zero;
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(100),
+                        Height = new Fixed(32),
+                    };
+                    using (ui.Text($"Item {i}")) {}
+                }
+            }
+        }
+
+        using (ui.Element())
+        {
             ui.CornerRadius = new CornerRadius(topLeft: 0, topRight: 50, bottomLeft: 100, bottomRight: 10);
             ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Spacing = 8;
@@ -416,24 +456,33 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 using (ui.Text("Clicked!")) { }
             }
             
-            // using (ui.Element())
-            // {
-            //     if (ui.Clicked("test"))
-            //     {
-            //         ui.Color = new Vector4(0f, 0f, 0f, 1f);
-            //         using (ui.Text("Clicked!")) { }
-            //     }
-            //     else
-            //     {
-            //         ui.Color = new Vector4(0f, 0.5f, 0.5f, 0f);
-            //     }
-            //
-            //     ui.Constraints = new Constraints
-            //     {
-            //         Width = new Fill(),
-            //         Height = new Fill(),
-            //     };
-            // }
+            using (ui.Element())
+            {
+                if (ui.Clicked("click me"))
+                {
+                    ui.Color = new Vector4(0f, 0f, 0f, 1f);
+                }
+                else
+                {
+                    ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
+                }
+
+                using (ui.Text("Click me"))
+                {
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                        X = new Relative(0.5f),
+                        Y = new Relative(0.5f),
+                    };
+                }
+
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
             
             using (ui.Element())
             {

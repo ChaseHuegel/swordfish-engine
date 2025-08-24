@@ -13,4 +13,5 @@ public struct Element<TTextureData>
     public FontOptions FontOptions;
     public TTextureData? TextureData;
     public string? ButtonID;
+    public Viewport Viewport;
 }

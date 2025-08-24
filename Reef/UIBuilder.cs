@@ -94,6 +94,30 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Style.CornerRadius;
         set => _currentElement.Style.CornerRadius = value;
     }
+    
+    public bool VerticalScroll
+    {
+        get => _currentElement.Viewport.VerticalScroll;
+        set => _currentElement.Viewport.VerticalScroll = value;
+    }
+    
+    public bool HorizontalScroll
+    {
+        get => _currentElement.Viewport.HorizontalScroll;
+        set => _currentElement.Viewport.HorizontalScroll = value;
+    }
+    
+    public int ScrollX
+    {
+        get => _currentElement.Viewport.Offset.X;
+        set => _currentElement.Viewport.Offset.X = value;
+    }
+    
+    public int ScrollY
+    {
+        get => _currentElement.Viewport.Offset.Y;
+        set => _currentElement.Viewport.Offset.Y = value;
+    }
 
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
@@ -392,9 +416,26 @@ public sealed class UIBuilder<TTextureData>
                 {
                     y -= (yAnchorOffset + bottomInset) >> 1;
                 }
-            
+                
                 var center = new IntVector2(x, y);
                 element.Rect = new IntRect(center, element.Rect.Size);
+                
+                // Save any changes made to the element
+                if (frame.Parent == null)
+                {
+                    _closedRootElements[i] = element;
+                }
+                else if (frame.Parent.Value.Children != null)
+                {
+                    frame.Parent.Value.Children[frame.ChildIndex] = element;
+                }
+
+                //  Don't issue render commands or continue processing any
+                //  elements entirely outside its parent's bounds
+                if (frame.Parent != null && !frame.Parent.Value.Rect.Intersects(element.Rect))
+                {
+                    continue;
+                }
 
                 var command = new RenderCommand<TTextureData>
                 (
@@ -407,16 +448,6 @@ public sealed class UIBuilder<TTextureData>
                     element.TextureData
                 );
                 commands.Add(command);
-        
-                // Save any changes made to the element
-                if (frame.Parent == null)
-                {
-                    _closedRootElements[i] = element;
-                }
-                else if (frame.Parent.Value.Children != null)
-                {
-                    frame.Parent.Value.Children[frame.ChildIndex] = element;
-                }
                 
                 //  Update input
                 if (element.ButtonID != null)
@@ -432,6 +463,11 @@ public sealed class UIBuilder<TTextureData>
 
                 int leftOffset = element.Style.Padding.Left;
                 int topOffset = element.Style.Padding.Top;
+                
+                //  Apply viewport offset
+                leftOffset += element.Viewport.Offset.X;
+                topOffset += element.Viewport.Offset.Y;
+                
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
                     Element<TTextureData> child = element.Children[childIndex];
@@ -894,14 +930,22 @@ public sealed class UIBuilder<TTextureData>
             if (numHorizontalShrinkChildren > 0)
             {
                 widthToAdd = Math.Max(widthToAdd, availableWidth / numHorizontalShrinkChildren);
+                widthToAdd = Math.Min(widthToAdd, -1);
             }
-            widthToAdd = Math.Min(widthToAdd, -1);
-            
-            if (numHorizontalShrinkChildren > 0)
+            else
             {
-                heightToAdd = Math.Max(heightToAdd, availableHeight / numHorizontalShrinkChildren);
+                availableWidth = 0;
             }
-            heightToAdd = Math.Min(heightToAdd, -1);
+            
+            if (numVerticalShrinkChildren > 0)
+            {
+                heightToAdd = Math.Max(heightToAdd, availableHeight / numVerticalShrinkChildren);
+                heightToAdd = Math.Min(heightToAdd, -1);
+            }
+            else
+            {
+                availableHeight = 0;
+            }
             
             //  Distribute available space among children.
             //  Along the layout axis, available space is distributed beginning with the largest children.
