@@ -277,19 +277,9 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             ui.VerticalScroll = true;
             ui.ScrollY += 200;
 
-            for (var i = 0; i < 30; i++)
+            for (var i = 0; i < 50; i++)
             {
-                //  TODO text exceeding a scrolled view squishes the text vertically
-                using (ui.Element())
-                {
-                    ui.Color = Vector4.Zero;
-                    ui.Constraints = new Constraints
-                    {
-                        Width = new Fixed(100),
-                        Height = new Fixed(32),
-                    };
-                    using (ui.Text($"Item {i}")) {}
-                }
+                using (ui.Text($"Item {i}")) { }
             }
         }
 
