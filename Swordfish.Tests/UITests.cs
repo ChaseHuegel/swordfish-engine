@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Numerics;
+using DryIoc;
 using Reef;
 using Reef.Constraints;
 using Reef.MSDF;
@@ -38,12 +40,12 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
     public void UITest()
     {
         var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
+        PixelTexture swordfishTexture = BitmapToPixelTexture(swordfishBmp);
         
         var salmonFont = new FontInfo("salmon-mono-9-regular", "TestFiles/Fonts/Salmon Mono 9 Regular.ttf");
         var awesomeFont = new FontInfo("fa-6-free-solid", "TestFiles/Fonts/Font Awesome 6 Free Solid.otf");
-        FontInfo[] fonts = [ salmonFont, awesomeFont ];
 
-        var textEngine = new TextEngine(fonts);
+        var textEngine = new TextEngine([ salmonFont, awesomeFont ]);
 
         textEngine.TryGetTypeface(salmonFont, out ITypeface typeface);
         AtlasInfo atlasInfo = typeface!.GetAtlasInfo();
@@ -52,206 +54,81 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         textEngine.TryGetTypeface(awesomeFont, out typeface);
         atlasInfo = typeface!.GetAtlasInfo();
         var faBmp = new Bitmap(atlasInfo.Path);
+        
+        var fonts = new Dictionary<string, PixelFontSDF>
+        {
+            { salmonFont.ID, new PixelFontSDF(BitmapToPixelTexture(salmonBmp), 0.02f) },
+            { awesomeFont.ID, new PixelFontSDF(BitmapToPixelTexture(faBmp), 1f) },
+        };
 
         var controller = new UIController();
-        
-        var ui = new UIBuilder<Bitmap>(width: 1920, height: 1080, textEngine, controller);
+        var ui = new UIBuilder<PixelTexture>(width: 1920, height: 1080, textEngine, controller);
 
         //  Frame 1, no input
         controller.Update(763, 536, UIController.MouseButtons.None);
-        RenderTestUI(ui, awesomeFont, swordfishBmp);
+        RenderTestUI(ui, awesomeFont, swordfishTexture);
         ui.Build();
 
         //  Frame 2, clicked
         controller.Update(763, 536, UIController.MouseButtons.Left);
-        RenderTestUI(ui, awesomeFont, swordfishBmp);
+        RenderTestUI(ui, awesomeFont, swordfishTexture);
         ui.Build();
         
         //  Frame 3, no input
         controller.Update(763, 536, UIController.MouseButtons.None);
-        RenderTestUI(ui, awesomeFont, swordfishBmp);
-        RenderCommand<Bitmap>[] renderCommands = ui.Build();
+        RenderTestUI(ui, awesomeFont, swordfishTexture);
+        RenderCommand<PixelTexture>[] renderCommands = ui.Build();
         
-        using var bitmap = new Bitmap(ui.Width, ui.Height);
-        foreach (RenderCommand<Bitmap> renderCommand in renderCommands)
-        {
-            Color color = Color.FromArgb(
-                alpha: (int)(renderCommand.Color.W * 255),
-                red: (int)(renderCommand.Color.X * 255),
-                green: (int)(renderCommand.Color.Y * 255),
-                blue: (int)(renderCommand.Color.Z * 255)
-            );
-            
-            Color backgroundColor = Color.FromArgb(
-                alpha: (int)(renderCommand.BackgroundColor.W * 255),
-                red: (int)(renderCommand.BackgroundColor.X * 255),
-                green: (int)(renderCommand.BackgroundColor.Y * 255),
-                blue: (int)(renderCommand.BackgroundColor.Z * 255)
-            );
-            
-            //  Render rects
-            for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
-            for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
-            {
-                //  Skip pixels that are outside the corner radii
-                var skipPixel = false;
-                CornerRadius radius = renderCommand.CornerRadius;
-                if (x < renderCommand.Rect.Left + radius.TopLeft && y < renderCommand.Rect.Top + radius.TopLeft)
-                {
-                    int dx = x - (renderCommand.Rect.Left + radius.TopLeft);
-                    int dy = y - (renderCommand.Rect.Top + radius.TopLeft);
-                    skipPixel = dx * dx + dy * dy > radius.TopLeft * radius.TopLeft;
-                }
-                else if (x > renderCommand.Rect.Right - radius.TopRight && y < renderCommand.Rect.Top + radius.TopRight)
-                {
-                    int dx = x - (renderCommand.Rect.Right - radius.TopRight);
-                    int dy = y - (renderCommand.Rect.Top + radius.TopRight);
-                    skipPixel = dx * dx + dy * dy > radius.TopRight * radius.TopRight;
-                }
-                else if (x > renderCommand.Rect.Right - radius.BottomRight && y > renderCommand.Rect.Bottom - radius.BottomRight)
-                {
-                    int dx = x - (renderCommand.Rect.Right - radius.BottomRight);
-                    int dy = y - (renderCommand.Rect.Bottom - radius.BottomRight);
-                    skipPixel = dx * dx + dy * dy > radius.BottomRight * radius.BottomRight;
-                }
-                else if (x < renderCommand.Rect.Left + radius.BottomLeft && y > renderCommand.Rect.Bottom - radius.BottomLeft)
-                {
-                    int dx = x - (renderCommand.Rect.Left + radius.BottomLeft);
-                    int dy = y - (renderCommand.Rect.Bottom - radius.BottomLeft);
-                    skipPixel = dx * dx + dy * dy > radius.BottomLeft * radius.BottomLeft;
-                }
-
-                if (skipPixel)
-                {
-                    continue;
-                }
-
-                Color currentColor = bitmap.GetPixel(x, y);
-
-                //  Render a textured rect
-                if (renderCommand.TextureData != null)
-                {
-                    var u = (int)MathS.RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.TextureData.Width - 1);
-                    var v = (int)MathS.RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
-                    Color sample = renderCommand.TextureData.GetPixel(u, v);
-                    sample = MultiplyBlend(sample, color);
-                    //  Blend in any texture background color
-                    sample = AlphaBlend(backgroundColor, sample);
-                    
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
-                }
-                //  Render a color rect
-                else
-                {
-                    //  If text is present, treat this as a background.
-                    Color rectColor = renderCommand.Text == null ? color : backgroundColor;
-                    bitmap.SetPixel(x, y, AlphaBlend(currentColor, rectColor));
-                }
-            }
-            
-            if (renderCommand.Text == null)
-            {
-                continue;
-            }
-
-            //  Render text
-            TextLayout textLayout = textEngine.Layout(renderCommand.FontOptions, renderCommand.Text, renderCommand.Rect.Size.X);
-            for (var i = 0; i < textLayout.Glyphs.Length; i++)
-            {
-                GlyphLayout glyph = textLayout.Glyphs[i];
-                    
-                var bbox = new IntRect(
-                    renderCommand.Rect.Left + glyph.BBOX.Left,
-                    renderCommand.Rect.Top + glyph.BBOX.Top,
-                    renderCommand.Rect.Left + glyph.BBOX.Right,
-                    renderCommand.Rect.Top + glyph.BBOX.Bottom
-                );
-
-                DrawCharacter(bitmap, bbox, glyph.UV, color, renderCommand.FontOptions.ID);
-            }
-        }
+        var renderer = new PixelRenderer(ui.Width, ui.Height, textEngine, fonts);
+        renderer.Render(renderCommands);
+        
+        using Bitmap bitmap = PixelsToBitmap(ui.Width, ui.Height, renderer.GetPixels());
         bitmap.Save("ui.bmp");
-        return;
-        
-        void DrawCharacter(Bitmap bitmap, IntRect bbox, IntRect uv, Color color, string fontID)
-        {
-            for (int x = bbox.Left; x < bbox.Right; x++)
-            for (int y = bbox.Top; y < bbox.Bottom; y++)
-            {
-                var u = (int)MathS.RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
-                var v = (int)MathS.RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
-                Color currentColor = bitmap.GetPixel(x, y);
-                Color sample = SampleSdf(fontID == awesomeFont.ID ? faBmp : salmonBmp, fontID == awesomeFont.ID ? 1f : 0.02f, u, v, Color.Transparent, color);
-                bitmap.SetPixel(x, y, AlphaBlend(currentColor, sample));
-            }
-        }
-
-        Color SampleSdf(Bitmap sdf, float fwidth, int u, int v, Color outsideColor, Color insideColor)
-        {
-            Color s = sdf.GetPixel(u, v);
-            float d = Median(s.R / 255f, s.G / 255f, s.B / 255f) - 0.5f;
-            float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);
-            return Mix(outsideColor, insideColor, w);
-        }
-
-        float Median(float a, float b, float c)
-        {
-            return Math.Max(Math.Min(a, b), Math.Min(Math.Max(a, b), c));
-        }
-        
-        Color AlphaBlend(Color background, Color foreground)
-        {
-            float af = foreground.A / 255f;
-            float ab = background.A / 255f;
-
-            float ar = af + ab * (1 - af);
-            if (ar <= 0)
-            {
-                return Color.FromArgb(0, 0, 0, 0);
-            }
-
-            var r = (byte)((foreground.R * af + background.R * ab * (1 - af)) / ar);
-            var g = (byte)((foreground.G * af + background.G * ab * (1 - af)) / ar);
-            var b = (byte)((foreground.B * af + background.B * ab * (1 - af)) / ar);
-            var a = (byte)(ar * 255);
-
-            return Color.FromArgb(a, r, g, b);
-        }
-        
-        Color MultiplyBlend(Color background, Color foreground)
-        {
-            float af = foreground.A / 255f;
-            float ab = background.A / 255f;
-            
-            float rf = foreground.R / 255f;
-            float rb = background.R / 255f;
-            
-            float gf = foreground.G / 255f;
-            float gb = background.G / 255f;
-            
-            float bf = foreground.B / 255f;
-            float bb = background.B / 255f;
-
-            var a = (byte)(af * ab * 255f);
-            var r = (byte)(rf * rb * 255f);
-            var g = (byte)(gf * gb * 255f);
-            var b = (byte)(bf * bb * 255f);
-
-            return Color.FromArgb(a, r, g, b);
-        }
-        
-        Color Mix(Color x, Color y, float t)
-        {
-            return Color.FromArgb(
-                alpha: (int)(x.A + (y.A - x.A) * t),
-                red:   (int)(x.R + (y.R - x.R) * t),
-                green: (int)(x.G + (y.G - x.G) * t),
-                blue:  (int)(x.B + (y.B - x.B) * t)
-            );
-        }
     }
 
-    private static void RenderTestUI(UIBuilder<Bitmap> ui, FontInfo awesomeFont, Bitmap swordfishBmp)
+    private static Bitmap PixelsToBitmap(int width, int height, ReadOnlyCollection<Vector4> pixels)
+    {
+        var bitmap = new Bitmap(width, height);
+        for (var i = 0; i < pixels.Count; i++)
+        {
+            int x = i % width;
+            int y = i / width;
+
+            Vector4 pixel = pixels[i];
+            Color color = Color.FromArgb(
+                alpha: (byte)(pixel.W * 255),
+                red: (byte)(pixel.X * 255),
+                green: (byte)(pixel.Y * 255),
+                blue: (byte)(pixel.Z * 255)
+            );
+            
+            bitmap.SetPixel(x, y, color);
+        }
+
+        return bitmap;
+    }
+    
+    private static PixelTexture BitmapToPixelTexture(Bitmap bitmap)
+    {
+        var texture = new PixelTexture(bitmap.Width, bitmap.Height);
+        for (var y = 0; y < bitmap.Height; y++)
+        for (var x = 0; x < bitmap.Width; x++)
+        {
+            Color color = bitmap.GetPixel(x, y);
+            var vector4 = new Vector4(
+                color.R / 255f,
+                color.G / 255f,
+                color.B / 255f,
+                color.A / 255f
+            );
+            
+            texture.SetPixel(x, y, vector4);
+        }
+        
+        return texture;
+    }
+
+    private static void RenderTestUI(UIBuilder<PixelTexture> ui, FontInfo awesomeFont, PixelTexture swordfishTexture)
     {
         using (ui.Element())
         {
@@ -317,7 +194,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 ui.BackgroundColor = new Vector4(0f, 0f, 1f, 1f);
             }
             
-            using (ui.Image(swordfishBmp))
+            using (ui.Image(swordfishTexture))
             {
                 ui.Constraints = new Constraints
                 {
@@ -326,7 +203,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 };
             }
             
-            using (ui.Image(swordfishBmp))
+            using (ui.Image(swordfishTexture))
             {
                 ui.BackgroundColor = new Vector4(0f, 1f, 0f, 1f);
                 ui.Constraints = new Constraints
@@ -337,7 +214,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             }
         }
         
-        using (ui.Image(swordfishBmp))
+        using (ui.Image(swordfishTexture))
         {
             ui.Padding = new Padding(8, 8, 8, 8);
             ui.LayoutDirection = LayoutDirection.Vertical;
