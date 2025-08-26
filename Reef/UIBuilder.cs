@@ -803,7 +803,7 @@ public sealed class UIBuilder<TTextureData>
             
             TextLayout textLayout = _textEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
             
-            var size = new IntVector2(child.Rect.Size.X, Math.Max(textLayout.Constraints.MinHeight, availableHeight));
+            var size = new IntVector2(child.Rect.Size.X, textLayout.Constraints.MinHeight);
             child.Rect = new IntRect(child.Rect.Position, size);
             
             parent.Children[i] = child;
@@ -955,7 +955,8 @@ public sealed class UIBuilder<TTextureData>
                 Element<TTextureData> child = parent.Children[i];
                 
                 bool matchesLargestWidth = child.Rect.Size.X == largestWidth;
-                if (!matchesLargestWidth)
+                bool matchesLargestHeight = child.Rect.Size.Y == largestHeight;
+                if (!matchesLargestWidth && !matchesLargestHeight)
                 {
                     continue;
                 }

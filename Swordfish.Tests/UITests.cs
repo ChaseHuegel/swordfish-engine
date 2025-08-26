@@ -156,7 +156,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
             for (var i = 0; i < 50; i++)
             {
-                using (ui.Text($"Item {i}")) { }
+                using (ui.Text($"Item {i} and some more extra text to wrap")) { }
             }
         }
 
