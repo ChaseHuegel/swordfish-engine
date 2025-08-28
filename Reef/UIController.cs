@@ -41,11 +41,17 @@ public sealed class UIController
         }
     }
 
+    private readonly struct InteractionState(InputState<bool> hovering, InputState<bool> button)
+    {
+        public readonly InputState<bool> Hovering = hovering;
+        public readonly InputState<bool> Button = button;
+    }
+
     private InputState<Position> _cursor;
     private InputState<bool> _leftMouse;
     private InputState<bool> _rightMouse;
     private InputState<bool> _middleMouse;
-    private readonly Dictionary<string, InputState<bool>> _buttons = [];
+    private readonly Dictionary<string, InteractionState> _interactionStates = [];
     
     public void UpdateMouse(int x, int y, MouseButtons downMouseButtons)
     {
@@ -54,13 +60,7 @@ public sealed class UIController
         _rightMouse = new InputState<bool>(previous: _rightMouse.Current, current: (downMouseButtons & MouseButtons.Right) == MouseButtons.Right);
         _middleMouse = new InputState<bool>(previous: _middleMouse.Current, current: (downMouseButtons & MouseButtons.Middle) == MouseButtons.Middle);
     }
-
-    internal bool IsHovering(IntRect rect)
-    {
-        Position cursorPos = _cursor.Current;
-        return rect.Contains(cursorPos.X, cursorPos.Y);
-    }
-
+    
     internal bool IsLeftPressed() => IsPressed(_leftMouse);
     internal bool IsLeftReleased() => IsReleased(_leftMouse);
     internal bool IsLeftHeld() => IsHeld(_leftMouse);
@@ -69,27 +69,29 @@ public sealed class UIController
     internal bool IsRightReleased() => IsReleased(_rightMouse);
     internal bool IsRightHeld() => IsHeld(_rightMouse);
 
-    internal bool IsButtonClicked(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsPressed(buttonState);
-    internal bool IsButtonReleased(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsReleased(buttonState);
-    internal bool IsButtonHeld(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsHeld(buttonState);
+    internal bool IsClicked(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsPressed(interactionState.Button);
+    internal bool IsReleased(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsReleased(interactionState.Button);
+    internal bool IsHeld(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsHeld(interactionState.Button);
 
-    internal void UpdateButton(string id, IntRect rect)
+    internal bool IsHovering(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && interactionState.Hovering.Current;
+
+    internal void UpdateInteraction(string id, IntRect rect)
     {
         Position cursorPos = _cursor.Current;
-        bool inRect = cursorPos.X >= rect.Left &&
-                      cursorPos.X <= rect.Right &&
-                      cursorPos.Y >= rect.Top &&
-                      cursorPos.Y <= rect.Bottom;
+        bool hovered = rect.Contains(cursorPos.X, cursorPos.Y);
+        bool clicked = hovered && IsPressed(_leftMouse);
 
-        bool rectClicked = inRect && IsPressed(_leftMouse);
-
-        if (_buttons.TryGetValue(id, out InputState<bool> buttonState))
+        if (_interactionStates.TryGetValue(id, out InteractionState interactionState))
         {
-            _buttons[id] = new InputState<bool>(previous: buttonState.Current, current: rectClicked);
+            var hoveredState = new InputState<bool>(previous: interactionState.Hovering.Current, current: hovered);
+            var clickedState = new InputState<bool>(previous: interactionState.Button.Current, current: clicked);
+            _interactionStates[id] = new InteractionState(hoveredState, clickedState);
         }
         else
         {
-            _buttons.Add(id, new InputState<bool>(previous: false, current: rectClicked));
+            var hoveredState = new InputState<bool>(previous: false, current: hovered);
+            var clickedState = new InputState<bool>(previous: false, current: clicked);
+            _interactionStates.Add(id, new InteractionState(hoveredState, clickedState));
         }
     }
 

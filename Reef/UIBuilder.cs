@@ -123,6 +123,12 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Viewport.ClipConstraints;
         set => _currentElement.Viewport.ClipConstraints = value;
     }
+    
+    public string? ID
+    {
+        get => _currentElement.ID;
+        set => _currentElement.ID = value;
+    }
 
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
@@ -145,15 +151,9 @@ public sealed class UIBuilder<TTextureData>
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
 
-    public Scope Element()
-    {
-        return OpenElement(new Element<TTextureData>());
-    }
-    
-    public Scope Element(Element<TTextureData> element)
-    {
-        return OpenElement(element);
-    }
+    public Scope Element() => OpenElement(new Element<TTextureData>());
+    public Scope Element(Element<TTextureData> element) => OpenElement(element);
+    public Scope Element(string id) => OpenElement(new Element<TTextureData> { ID = id });
 
     public Scope Text(string value) => Text(value, new FontOptions { Size = 16 });
     
@@ -194,10 +194,42 @@ public sealed class UIBuilder<TTextureData>
     
     public bool Clicked(string id)
     {
-        _currentElement.ButtonID = id;
-        return _controller.IsButtonClicked(id);
+        _currentElement.ID = id;
+        return _controller.IsClicked(id);
     }
     
+    public bool Released(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsReleased(id);
+    }
+    
+    public bool Held(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsHeld(id);
+    }
+
+    public bool Hovering(string id)
+    {
+        _currentElement.ID = id;
+        return _controller.IsHovering(id);
+    }
+
+    public bool Clicked() => _controller.IsClicked(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"));
+    public bool Released() => _controller.IsReleased(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be released"));
+    public bool Held() => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"));
+
+    public bool Hovering() => _controller.IsHovering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be hovered"));
+
+    public bool LeftPressed() => _controller.IsLeftPressed();
+    public bool LeftReleased() => _controller.IsLeftReleased();
+    public bool LeftHeld() => _controller.IsLeftHeld();
+    
+    public bool RightPressed() => _controller.IsRightPressed();
+    public bool RightReleased() => _controller.IsRightReleased();
+    public bool RightHeld() => _controller.IsRightHeld();
+
     public RenderCommand<TTextureData>[] Build()
     {
         //  Force close all elements
@@ -478,9 +510,9 @@ public sealed class UIBuilder<TTextureData>
                 commands.Add(command);
                 
                 //  Update input
-                if (element.ButtonID != null)
+                if (element.ID != null)
                 {
-                    _controller.UpdateButton(element.ButtonID, element.Rect);
+                    _controller.UpdateInteraction(element.ID, element.Rect);
                 }
         
                 // Push any children to be processed

@@ -324,7 +324,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 };
             }
 
-            if (ui.Button("test"))
+            if (ui.Button(id: "button1", text: "test"))
             {
                 using (ui.Text("Clicked!")) { }
             }
