@@ -118,6 +118,12 @@ public sealed class UIBuilder<TTextureData>
         get => _currentElement.Viewport.Offset.Y;
         set => _currentElement.Viewport.Offset.Y = value;
     }
+    
+    public UI.Constraints? ClipConstraints
+    {
+        get => _currentElement.Viewport.ClipConstraints;
+        set => _currentElement.Viewport.ClipConstraints = value;
+    }
 
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
@@ -437,9 +443,32 @@ public sealed class UIBuilder<TTextureData>
                     continue;
                 }
 
+                IntRect clipRect;
+                //  Clip children by their parent
+                if (frame.Parent != null)
+                {
+                    if (frame.Parent.Value.Viewport.ClipRect != null)
+                    {
+                        int clipX = frame.Parent.Value.Rect.Position.X + frame.Parent.Value.Style.Padding.Left;
+                        int clipY = frame.Parent.Value.Rect.Position.Y + frame.Parent.Value.Style.Padding.Top;
+                        var clipPosition = new IntVector2(clipX, clipY);
+                        clipRect = new IntRect(clipPosition, frame.Parent.Value.Viewport.ClipRect.Value.Size);
+                    }
+                    else
+                    {
+                        clipRect = frame.Parent.Value.Rect;
+                    }
+                }
+                //  Otherwise the element isn't clipped
+                else
+                {
+                    clipRect = element.Rect;
+                }
+
                 var command = new RenderCommand<TTextureData>
                 (
                     element.Rect,
+                    clipRect,
                     element.Style.Color,
                     element.Style.BackgroundColor,
                     element.Style.CornerRadius,
@@ -511,7 +540,8 @@ public sealed class UIBuilder<TTextureData>
         
                 FillChildren(ref element);
                 ShrinkChildren(ref element);
-                WrapText(ref element);
+                WrapTextChildren(ref element);
+                ClipChildren(ref element);
         
                 // Save any changes made to the element
                 if (frame.Parent == null)
@@ -750,50 +780,9 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private void WrapText(ref Element<TTextureData> parent)
+    private void WrapTextChildren(ref Element<TTextureData> parent)
     {
-        int availableHeight = parent.Rect.Size.Y;
-        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
-        var numTextChildren = 0;
-        
-        //  Calculate available space
-        for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
-        {
-            Element<TTextureData> child = parent.Children[i];
-
-            //  If vertical, count children against available space
-            if (parent.Layout.Direction == LayoutDirection.Vertical)
-            {
-                availableHeight -= child.Rect.Size.Y;
-            }
-
-            //  Count children that have text
-            if (child.Text != null)
-            {
-                numTextChildren++;
-            }
-        }
-        
-        //  Move on if no children have text
-        if (numTextChildren == 0)
-        {
-            return;
-        }
-        
-        //  If vertical, count child spacing against available space
-        if (parent.Layout.Direction == LayoutDirection.Vertical)
-        {
-            int childCount = parent.Children?.Count ?? 0;
-            int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
-            availableHeight -= totalSpacing;
-        }
-
-        if (parent.Children == null)
-        {
-            return;
-        }
-        
-        for (var i = 0; i < parent.Children.Count; i++)
+        for (var i = 0; i < parent.Children?.Count; i++)
         {
             Element<TTextureData> child = parent.Children[i];
             if (child.Text == null)
@@ -1027,5 +1016,27 @@ public sealed class UIBuilder<TTextureData>
                     break;
             }
         }
+    }
+    
+    private void ClipChildren(ref Element<TTextureData> parent)
+    {
+        //  Move on if this element isn't clipping children
+        if (parent.Viewport.ClipConstraints == null)
+        {
+            return;
+        }
+        
+        int availableWidth = parent.Rect.Size.X;
+        int availableHeight = parent.Rect.Size.Y;
+        
+        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
+        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
+        
+        UI.Constraints clipConstraints = parent.Viewport.ClipConstraints.Value;
+        int clipWidth = clipConstraints.Width?.Calculate(availableWidth) ?? parent.Rect.Size.X;
+        int clipHeight = clipConstraints.Height?.Calculate(availableHeight) ?? parent.Rect.Size.Y;
+        var clipSize = new IntVector2(clipWidth, clipHeight);
+        
+        parent.Viewport.ClipRect = new IntRect(parent.Rect.Position, clipSize);
     }
 }

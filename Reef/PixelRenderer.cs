@@ -53,6 +53,12 @@ public sealed class PixelRenderer
         for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
         for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
         {
+            //  Skip pixels that are outside the clip rect
+            if (!renderCommand.ClipRect.Contains(x, y))
+            {
+                continue;
+            }
+            
             //  Skip pixels that are outside the corner radii
             var skipPixel = false;
             CornerRadius radius = renderCommand.CornerRadius;
@@ -134,15 +140,21 @@ public sealed class PixelRenderer
                 renderCommand.Rect.Top + glyph.BBOX.Bottom
             );
 
-            DrawCharacter(bbox, glyph.UV, color, font);
+            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, color, font);
         }
     }
-        
-    private void DrawCharacter(IntRect bbox, IntRect uv, Vector4 color, PixelFontSDF font)
+    
+    private void DrawCharacter(IntRect bbox, IntRect clipRect, IntRect uv, Vector4 color, PixelFontSDF font)
     {
         for (int y = bbox.Top; y < bbox.Bottom; y++)
         for (int x = bbox.Left; x < bbox.Right; x++)
         {
+            //  Skip pixels that are outside the clip rect
+            if (!clipRect.Contains(x, y))
+            {
+                continue;
+            }
+            
             var u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
             var v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
             

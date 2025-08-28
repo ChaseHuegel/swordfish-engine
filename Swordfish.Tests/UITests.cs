@@ -150,9 +150,15 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Width = new Fixed(200),
                 Height = new Fixed(600),
             };
+            
+            ui.ClipConstraints = new Constraints
+            {
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
 
             ui.VerticalScroll = true;
-            ui.ScrollY += 200;
+            ui.ScrollY -= 200;
 
             for (var i = 0; i < 50; i++)
             {

@@ -66,4 +66,29 @@ public readonly struct IntRect
 
         return true;
     }
+    
+    public bool Contains(int x, int y)
+    {
+        if (x > Right)
+        {
+            return false;
+        }
+        
+        if (x < Left)
+        {
+            return false;
+        }
+        
+        if (y > Bottom)
+        {
+            return false;
+        }
+        
+        if (y < Top)
+        {
+            return false;
+        }
+
+        return true;
+    }
 }
