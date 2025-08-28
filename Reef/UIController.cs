@@ -47,7 +47,7 @@ public sealed class UIController
     private InputState<bool> _middleMouse;
     private readonly Dictionary<string, InputState<bool>> _buttons = [];
     
-    public void Update(int x, int y, MouseButtons downMouseButtons)
+    public void UpdateMouse(int x, int y, MouseButtons downMouseButtons)
     {
         _cursor = new InputState<Position>(previous: _cursor.Current, current: new Position(x, y));
         _leftMouse = new InputState<bool>(previous: _leftMouse.Current, current: (downMouseButtons & MouseButtons.Left) == MouseButtons.Left);
@@ -55,11 +55,24 @@ public sealed class UIController
         _middleMouse = new InputState<bool>(previous: _middleMouse.Current, current: (downMouseButtons & MouseButtons.Middle) == MouseButtons.Middle);
     }
 
-    internal bool WasButtonClicked(string id)
+    internal bool IsHovering(IntRect rect)
     {
-        return _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsPressed(buttonState);
+        Position cursorPos = _cursor.Current;
+        return rect.Contains(cursorPos.X, cursorPos.Y);
     }
+
+    internal bool IsLeftPressed() => IsPressed(_leftMouse);
+    internal bool IsLeftReleased() => IsReleased(_leftMouse);
+    internal bool IsLeftHeld() => IsHeld(_leftMouse);
     
+    internal bool IsRightPressed() => IsPressed(_rightMouse);
+    internal bool IsRightReleased() => IsReleased(_rightMouse);
+    internal bool IsRightHeld() => IsHeld(_rightMouse);
+
+    internal bool IsButtonClicked(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsPressed(buttonState);
+    internal bool IsButtonReleased(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsReleased(buttonState);
+    internal bool IsButtonHeld(string id) => _buttons.TryGetValue(id, out InputState<bool> buttonState) && IsHeld(buttonState);
+
     internal void UpdateButton(string id, IntRect rect)
     {
         Position cursorPos = _cursor.Current;

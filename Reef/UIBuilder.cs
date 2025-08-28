@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using System.Threading;
 using Reef.Constraints;
 using Reef.Text;
@@ -196,7 +195,7 @@ public sealed class UIBuilder<TTextureData>
     public bool Clicked(string id)
     {
         _currentElement.ButtonID = id;
-        return _controller.WasButtonClicked(id);
+        return _controller.IsButtonClicked(id);
     }
     
     public RenderCommand<TTextureData>[] Build()

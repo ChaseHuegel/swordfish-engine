@@ -65,17 +65,17 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         var ui = new UIBuilder<PixelTexture>(width: 1920, height: 1080, textEngine, controller);
 
         //  Frame 1, no input
-        controller.Update(763, 536, UIController.MouseButtons.None);
+        controller.UpdateMouse(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
         ui.Build();
 
         //  Frame 2, clicked
-        controller.Update(763, 536, UIController.MouseButtons.Left);
+        controller.UpdateMouse(763, 536, UIController.MouseButtons.Left);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
         ui.Build();
         
         //  Frame 3, no input
-        controller.Update(763, 536, UIController.MouseButtons.None);
+        controller.UpdateMouse(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
         RenderCommand<PixelTexture>[] renderCommands = ui.Build();
         
