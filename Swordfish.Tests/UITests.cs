@@ -135,7 +135,6 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             ui.Color = new Vector4(0f, 0.15f, 0.25f, 1f);
             ui.CornerRadius = new CornerRadius(topLeft: 20, topRight: 20, bottomLeft: 20, bottomRight: 20);
             ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Spacing = 4;
             ui.Padding = new Padding(
                 left: 20,
                 top: 20,
@@ -158,7 +157,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             };
 
             ui.VerticalScroll = true;
-            ui.ScrollY -= 200;
+            ui.ScrollY -= 214;
 
             for (var i = 0; i < 50; i++)
             {
