@@ -1,21 +1,15 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Numerics;
-using DryIoc;
-using Reef;
 using Reef.Constraints;
 using Reef.MSDF;
 using Reef.Text;
 using Reef.UI;
-using Swordfish.Library.Util;
-using Xunit;
-using Xunit.Abstractions;
 
-namespace Swordfish.Tests;
+namespace Reef.Tests;
 
-public class UITests(ITestOutputHelper output) : TestBase(output)
+public class UITests
 {
     [Fact]
     public void WrapTest()
@@ -65,9 +59,13 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         var ui = new UIBuilder<PixelTexture>(width: 1920, height: 1080, textEngine, controller);
 
         //  Frame 1, no input
+        var sw1 = Stopwatch.StartNew();
         controller.UpdateMouse(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
+        var sw2 = Stopwatch.StartNew();
         ui.Build();
+        sw1.Stop();
+        sw2.Stop();
 
         //  Frame 2, clicked
         controller.UpdateMouse(763, 536, UIController.MouseButtons.Left);
@@ -141,7 +139,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 right: 20,
                 bottom: 20
             );
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center | Anchors.Right,
                 X = new Relative(0.98f),
@@ -150,7 +148,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 Height = new Fixed(600),
             };
             
-            ui.ClipConstraints = new Constraints
+            ui.ClipConstraints = new UI.Constraints
             {
                 Width = new Relative(1f),
                 Height = new Relative(1f),
@@ -177,7 +175,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 bottom: 8
             );
             ui.Color = new Vector4(0f, 0f, 0f, 1f);
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 Width = new Fixed(400),
                 Height = new Fixed(300),
@@ -201,7 +199,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             
             using (ui.Image(swordfishTexture))
             {
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Width = new Fixed(64),
                     Height = new Fixed(64),
@@ -211,7 +209,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Image(swordfishTexture))
             {
                 ui.BackgroundColor = new Vector4(0f, 1f, 0f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Width = new Fixed(32),
                     Height = new Fixed(32),
@@ -224,7 +222,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             ui.Padding = new Padding(8, 8, 8, 8);
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.BackgroundColor = new Vector4(0f, 0f, 0f, 1f);
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center,
                 X = new Relative(0.5f),
@@ -236,7 +234,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Text("Swordfish"))
             {
                 ui.BackgroundColor = new Vector4(1f, 0f, 0f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Anchors = Anchors.Center,
                     X = new Relative(0.5f),
@@ -249,7 +247,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
         {
             ui.LayoutDirection = LayoutDirection.None;
             ui.Color = new Vector4(1f);
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 X = new Relative(0.25f),
                 Y = new Relative(0.25f),
@@ -260,7 +258,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Element())
             {
                 ui.Color = new Vector4(0.5f, 0f, 0f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     X = new Relative(0f),
                     Y = new Relative(0f),
@@ -272,7 +270,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Element())
             {
                 ui.Color = new Vector4(0f, 0.5f, 0f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     X = new Relative(0.5f),
                     Y = new Relative(0.5f),
@@ -284,7 +282,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Element())
             {
                 ui.Color = new Vector4(0f, 0f, 0.5f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     X = new Relative(0.5f),
                     Y = new Relative(0f),
@@ -305,7 +303,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 right: 8,
                 bottom: 8
             );
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center,
                 X = new Relative(0.5f),
@@ -316,7 +314,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Element())
             {
                 ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Width = new Fixed(32),
                     Height = new Fixed(32),
@@ -341,7 +339,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
 
                 using (ui.Text("Click me"))
                 {
-                    ui.Constraints = new Constraints
+                    ui.Constraints = new UI.Constraints
                     {
                         Anchors = Anchors.Center,
                         X = new Relative(0.5f),
@@ -349,7 +347,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     };
                 }
 
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Width = new Fill(),
                     Height = new Fill(),
@@ -359,7 +357,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
             using (ui.Element())
             {
                 ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
-                ui.Constraints = new Constraints
+                ui.Constraints = new UI.Constraints
                 {
                     Width = new Fixed(32),
                     Height = new Fixed(32),
@@ -378,7 +376,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                 right: 8,
                 bottom: 8
             );
-            ui.Constraints = new Constraints
+            ui.Constraints = new UI.Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
                 X = new Relative(0.5f),
@@ -392,7 +390,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     ui.LayoutDirection = LayoutDirection.None;
                     ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
                     ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
-                    ui.Constraints = new Constraints
+                    ui.Constraints = new UI.Constraints
                     {
                         Width = new Fixed(50),
                         Height = new Fixed(50),
@@ -403,7 +401,7 @@ public class UITests(ITestOutputHelper output) : TestBase(output)
                     using (ui.Element())
                     {
                         ui.Color = new Vector4(1f);
-                        ui.Constraints = new Constraints
+                        ui.Constraints = new UI.Constraints
                         {
                             Anchors = Anchors.Bottom | Anchors.Right,
                             X = new Relative(1f),
