@@ -2,16 +2,16 @@ using System.Collections.Generic;
 
 namespace Reef.UI;
 
-public struct Element<TTextureData>
+public struct Element<TRendererData>
 {
     public IntRect Rect;
     public Style Style;
     public Layout Layout;
     public Constraints Constraints;
-    public List<Element<TTextureData>>? Children;
+    public List<Element<TRendererData>>? Children;
     public string? Text;
     public FontOptions FontOptions;
-    public TTextureData? TextureData;
+    public TRendererData? TextureData;
     public string? ID;
     public Viewport Viewport;
 }

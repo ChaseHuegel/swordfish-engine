@@ -8,27 +8,12 @@ using Reef.UI;
 
 namespace Reef;
 
-public sealed class UIBuilder<TTextureData>
+public sealed class UIBuilder<TRendererData>
 {
-    public struct Scope(UIBuilder<TTextureData> ui) : IDisposable
+    private struct ElementNode(Element<TRendererData> element, Element<TRendererData>? parent = null, int childIndex = -1)
     {
-        private int _disposed;
-        
-        public void Dispose()
-        {
-            if (Interlocked.Exchange(ref _disposed, 1) == 1 || !ui._hasOpenElement)
-            {
-                return;
-            }
-
-            ui.CloseElement();
-        }
-    }
-    
-    private struct ElementNode(Element<TTextureData> element, Element<TTextureData>? parent = null, int childIndex = -1)
-    {
-        public readonly Element<TTextureData> Element = element;
-        public readonly Element<TTextureData>? Parent = parent;
+        public readonly Element<TRendererData> Element = element;
+        public readonly Element<TRendererData>? Parent = parent;
         public readonly int ChildIndex = childIndex;
         public int LeftOffset = 0;
         public int TopOffset = 0;
@@ -133,14 +118,14 @@ public sealed class UIBuilder<TTextureData>
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
-    private readonly IntRect _viewPort;
+    private IntRect _viewPort;
     private readonly ITextEngine _textEngine;
     private readonly UIController _controller;
     
     private bool _hasOpenElement;
-    private Element<TTextureData> _currentElement;
-    private readonly Stack<Element<TTextureData>> _openElements = new();
-    private readonly List<Element<TTextureData>> _closedRootElements = [];
+    private Element<TRendererData> _currentElement;
+    private readonly Stack<Element<TRendererData>> _openElements = new();
+    private readonly List<Element<TRendererData>> _closedRootElements = [];
     
     private readonly char[] _whiteSpaceChars = [' ', '\t', '\n'];
 
@@ -150,10 +135,15 @@ public sealed class UIBuilder<TTextureData>
         _controller = controller;
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
+    
+    public void Resize(int width, int height)
+    {
+        _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
+    }
 
-    public Scope Element() => OpenElement(new Element<TTextureData>());
-    public Scope Element(Element<TTextureData> element) => OpenElement(element);
-    public Scope Element(string id) => OpenElement(new Element<TTextureData> { ID = id });
+    public Scope Element() => OpenElement(new Element<TRendererData>());
+    public Scope Element(Element<TRendererData> element) => OpenElement(element);
+    public Scope Element(string id) => OpenElement(new Element<TRendererData> { ID = id });
 
     public Scope Text(string value) => Text(value, new FontOptions { Size = 16 });
     
@@ -165,7 +155,7 @@ public sealed class UIBuilder<TTextureData>
 
     public Scope Text(string value, FontOptions fontOptions)
     {
-        var element = new Element<TTextureData>
+        var element = new Element<TRendererData>
         {
             Text = value,
             Style = new Style
@@ -178,9 +168,9 @@ public sealed class UIBuilder<TTextureData>
         return OpenElement(element);
     }
     
-    public Scope Image(TTextureData value)
+    public Scope Image(TRendererData value)
     {
-        var element = new Element<TTextureData>
+        var element = new Element<TRendererData>
         {
             TextureData = value,
             Style = new Style
@@ -230,7 +220,7 @@ public sealed class UIBuilder<TTextureData>
     public bool RightReleased() => _controller.IsRightReleased();
     public bool RightHeld() => _controller.IsRightHeld();
 
-    public RenderCommand<TTextureData>[] Build()
+    public RenderCommand<TRendererData>[] Build()
     {
         //  Force close all elements
         while (_hasOpenElement)
@@ -245,7 +235,7 @@ public sealed class UIBuilder<TTextureData>
 
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
-        List<RenderCommand<TTextureData>> commands = PositionAndRenderElements(stack);
+        List<RenderCommand<TRendererData>> commands = PositionAndRenderElements(stack);
 
         //  Reset state
         _hasOpenElement = false;
@@ -255,7 +245,7 @@ public sealed class UIBuilder<TTextureData>
         return commands.ToArray();
     }
 
-    private Scope OpenElement(Element<TTextureData> element)
+    private Scope OpenElement(Element<TRendererData> element)
     {
         if (_hasOpenElement)
         {
@@ -275,7 +265,7 @@ public sealed class UIBuilder<TTextureData>
     /// </summary>
     private void CloseElement()
     {
-        Element<TTextureData> element = _currentElement;
+        Element<TRendererData> element = _currentElement;
         
         //  Calculate non-wrapped text constraints
         if (element.Text != null)
@@ -300,7 +290,7 @@ public sealed class UIBuilder<TTextureData>
         }
 
         //  Attempt to get the parent, if any, off the stack
-        Element<TTextureData> parent = default;
+        Element<TRendererData> parent = default;
         _hasOpenElement = _openElements.Count > 0;
         if (_hasOpenElement)
         {
@@ -387,19 +377,19 @@ public sealed class UIBuilder<TTextureData>
         }
     }
     
-    private List<RenderCommand<TTextureData>> PositionAndRenderElements(Stack<ElementNode> stack)
+    private List<RenderCommand<TRendererData>> PositionAndRenderElements(Stack<ElementNode> stack)
     {
-        List<RenderCommand<TTextureData>> commands = [];
+        List<RenderCommand<TRendererData>> commands = [];
         for (var i = 0; i < _closedRootElements.Count; i++)
         {
             stack.Clear();
-            Element<TTextureData> root = _closedRootElements[i];
+            Element<TRendererData> root = _closedRootElements[i];
             stack.Push(new ElementNode(root));
         
             while (stack.Count > 0)
             {
                 ElementNode frame = stack.Pop();
-                Element<TTextureData> element = frame.Element;
+                Element<TRendererData> element = frame.Element;
         
                 //  Apply position constraints
                 int availableWidth = Width;
@@ -496,7 +486,7 @@ public sealed class UIBuilder<TTextureData>
                     clipRect = element.Rect;
                 }
 
-                var command = new RenderCommand<TTextureData>
+                var command = new RenderCommand<TRendererData>
                 (
                     element.Rect,
                     clipRect,
@@ -530,7 +520,7 @@ public sealed class UIBuilder<TTextureData>
                 
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
-                    Element<TTextureData> child = element.Children[childIndex];
+                    Element<TRendererData> child = element.Children[childIndex];
                     stack.Push(new ElementNode(child, element, childIndex)
                     {
                         LeftOffset = leftOffset,
@@ -567,7 +557,7 @@ public sealed class UIBuilder<TTextureData>
             while (stack.Count > 0)
             {
                 ElementNode frame = stack.Pop();
-                Element<TTextureData> element = frame.Element;
+                Element<TRendererData> element = frame.Element;
         
                 FillChildren(ref element);
                 ShrinkChildren(ref element);
@@ -592,14 +582,14 @@ public sealed class UIBuilder<TTextureData>
 
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
-                    Element<TTextureData> child = element.Children[childIndex];
+                    Element<TRendererData> child = element.Children[childIndex];
                     stack.Push(new ElementNode(child, element, childIndex));
                 }
             }
         }
     }
 
-    private void FillChildren(ref Element<TTextureData> parent)
+    private void FillChildren(ref Element<TRendererData> parent)
     {
         int availableWidth = parent.Rect.Size.X;
         int availableHeight = parent.Rect.Size.Y;
@@ -613,7 +603,7 @@ public sealed class UIBuilder<TTextureData>
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
-            Element<TTextureData> child = parent.Children[i];
+            Element<TRendererData> child = parent.Children[i];
 
             //  Count children against available space based on layout direction
             switch (parent.Layout.Direction)
@@ -672,7 +662,7 @@ public sealed class UIBuilder<TTextureData>
             //  Determine how much space should be added to the smallest children
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                Element<TTextureData> child = parent.Children[i];
+                Element<TRendererData> child = parent.Children[i];
 
                 bool fillHorizontal = child.Constraints.Width is Fill;
                 bool fillVertical = child.Constraints.Height is Fill;
@@ -733,7 +723,7 @@ public sealed class UIBuilder<TTextureData>
             //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                Element<TTextureData> child = parent.Children[i];
+                Element<TRendererData> child = parent.Children[i];
                 
                 bool matchesSmallestWidth = child.Rect.Size.X == smallestWidth;
                 bool matchesSmallestHeight = child.Rect.Size.Y == smallestHeight;
@@ -811,11 +801,11 @@ public sealed class UIBuilder<TTextureData>
         }
     }
 
-    private void WrapTextChildren(ref Element<TTextureData> parent)
+    private void WrapTextChildren(ref Element<TRendererData> parent)
     {
         for (var i = 0; i < parent.Children?.Count; i++)
         {
-            Element<TTextureData> child = parent.Children[i];
+            Element<TRendererData> child = parent.Children[i];
             if (child.Text == null)
             {
                 continue;
@@ -830,7 +820,7 @@ public sealed class UIBuilder<TTextureData>
         }
     }
     
-    private void ShrinkChildren(ref Element<TTextureData> parent)
+    private void ShrinkChildren(ref Element<TRendererData> parent)
     {
         int availableWidth = parent.Rect.Size.X;
         int availableHeight = parent.Rect.Size.Y;
@@ -844,7 +834,7 @@ public sealed class UIBuilder<TTextureData>
         //  Calculate available space
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
-            Element<TTextureData> child = parent.Children[i];
+            Element<TRendererData> child = parent.Children[i];
 
             //  Count children against available space
             switch (parent.Layout.Direction)
@@ -903,7 +893,7 @@ public sealed class UIBuilder<TTextureData>
             //  Determine how much space should be added to the largest children
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                Element<TTextureData> child = parent.Children[i];
+                Element<TRendererData> child = parent.Children[i];
 
                 bool shrinkHorizontal = child.Constraints.MinWidth != child.Rect.Size.X;
                 bool shrinkVertical = child.Constraints.MinHeight != child.Rect.Size.Y;
@@ -972,7 +962,7 @@ public sealed class UIBuilder<TTextureData>
             //  Opposite the layout axis, available space is consumed entirely.
             for (var i = 0; i < parent.Children.Count; i++)
             {
-                Element<TTextureData> child = parent.Children[i];
+                Element<TRendererData> child = parent.Children[i];
                 
                 bool matchesLargestWidth = child.Rect.Size.X == largestWidth;
                 bool matchesLargestHeight = child.Rect.Size.Y == largestHeight;
@@ -1049,7 +1039,7 @@ public sealed class UIBuilder<TTextureData>
         }
     }
     
-    private void ClipChildren(ref Element<TTextureData> parent)
+    private void ClipChildren(ref Element<TRendererData> parent)
     {
         //  Move on if this element isn't clipping children
         if (parent.Viewport.ClipConstraints == null)
@@ -1069,5 +1059,20 @@ public sealed class UIBuilder<TTextureData>
         var clipSize = new IntVector2(clipWidth, clipHeight);
         
         parent.Viewport.ClipRect = new IntRect(parent.Rect.Position, clipSize);
+    }
+    
+    public struct Scope(UIBuilder<TRendererData> ui) : IDisposable
+    {
+        private int _disposed;
+        
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _disposed, 1) == 1 || !ui._hasOpenElement)
+            {
+                return;
+            }
+
+            ui.CloseElement();
+        }
     }
 }

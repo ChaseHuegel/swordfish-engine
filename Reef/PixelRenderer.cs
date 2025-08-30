@@ -95,11 +95,11 @@ public sealed class PixelRenderer
             Vector4 currentColor = _renderTexture.GetPixel(x, y);
 
             //  Render a textured rect
-            if (renderCommand.TextureData != null)
+            if (renderCommand.RendererData != null)
             {
-                var u = (int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.TextureData.Width - 1);
-                var v = (int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.TextureData.Height - 1);
-                Vector4 sample = renderCommand.TextureData.GetPixel(u, v);
+                var u = (int)RangeToRange(x, renderCommand.Rect.Left, renderCommand.Rect.Right, 0, renderCommand.RendererData.Width - 1);
+                var v = (int)RangeToRange(y, renderCommand.Rect.Top, renderCommand.Rect.Bottom, 0, renderCommand.RendererData.Height - 1);
+                Vector4 sample = renderCommand.RendererData.GetPixel(u, v);
                 sample = MultiplyBlend(sample, color);
                 //  Blend in any texture background color
                 sample = AlphaBlend(backgroundColor, sample);

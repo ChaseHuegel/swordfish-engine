@@ -5,12 +5,12 @@ namespace Reef;
 
 public static class UIBuilderExtensions
 {
-    public static bool Button<TTextureData>(this UIBuilder<TTextureData> ui, string text)
+    public static bool Button<TRendererData>(this UIBuilder<TRendererData> ui, string text)
     {
         return Button(ui, id: text, text: text);
     }
     
-    public static bool Button<TTextureData>(this UIBuilder<TTextureData> ui, string id, string text)
+    public static bool Button<TRendererData>(this UIBuilder<TRendererData> ui, string id, string text)
     {
         using (ui.Element(id))
         {

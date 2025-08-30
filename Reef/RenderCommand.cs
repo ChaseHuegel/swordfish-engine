@@ -3,7 +3,7 @@ using Reef.UI;
 
 namespace Reef;
 
-public readonly struct RenderCommand<TTextureData>(
+public readonly struct RenderCommand<TRendererData>(
     IntRect rect,
     IntRect clipRect,
     Vector4 color,
@@ -11,7 +11,7 @@ public readonly struct RenderCommand<TTextureData>(
     CornerRadius cornerRadius,
     FontOptions fontOptions,
     string? text,
-    TTextureData? textureData)
+    TRendererData? rendererData)
 {
     public readonly IntRect Rect = rect;
     public readonly IntRect ClipRect = clipRect;
@@ -20,5 +20,5 @@ public readonly struct RenderCommand<TTextureData>(
     public readonly CornerRadius CornerRadius = cornerRadius;
     public readonly FontOptions FontOptions = fontOptions;
     public readonly string? Text = text;
-    public readonly TTextureData? TextureData = textureData;
+    public readonly TRendererData? RendererData = rendererData;
 }

@@ -79,18 +79,18 @@ public sealed class UIController
     {
         Position cursorPos = _cursor.Current;
         bool hovered = rect.Contains(cursorPos.X, cursorPos.Y);
-        bool clicked = hovered && IsPressed(_leftMouse);
+        bool interacting = hovered && IsHeld(_leftMouse);
 
         if (_interactionStates.TryGetValue(id, out InteractionState interactionState))
         {
             var hoveredState = new InputState<bool>(previous: interactionState.Hovering.Current, current: hovered);
-            var clickedState = new InputState<bool>(previous: interactionState.Button.Current, current: clicked);
+            var clickedState = new InputState<bool>(previous: interactionState.Button.Current, current: interacting);
             _interactionStates[id] = new InteractionState(hoveredState, clickedState);
         }
         else
         {
             var hoveredState = new InputState<bool>(previous: false, current: hovered);
-            var clickedState = new InputState<bool>(previous: false, current: clicked);
+            var clickedState = new InputState<bool>(previous: false, current: interacting);
             _interactionStates.Add(id, new InteractionState(hoveredState, clickedState));
         }
     }

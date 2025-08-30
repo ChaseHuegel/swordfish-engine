@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Silk.NET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.IO;
 using Swordfish.Library.IO;
 
@@ -64,7 +65,7 @@ internal sealed class GLLineRenderer(
         _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 7, 0);
         _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
 
-        _shaderProgram = ShaderToShaderProgram(shader);
+        _shaderProgram = shader.CreateProgram(_glContext);
         _shaderProgram.BindAttributeLocation("in_position", 0);
         _shaderProgram.BindAttributeLocation("in_color", 1);
     }
@@ -176,17 +177,6 @@ internal sealed class GLLineRenderer(
             lines.RemoveAt(index);
             return true;
         }
-    }
-
-    private ShaderProgram ShaderToShaderProgram(Shader shader)
-    {
-        ShaderComponent[] shaderComponents = shader.Sources.Select(ShaderSourceToShaderComponent).ToArray();
-        return _glContext.CreateShaderProgram(shader.Name, shaderComponents);
-    }
-
-    private ShaderComponent ShaderSourceToShaderComponent(ShaderSource shaderSource)
-    {
-        return _glContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
     }
 
     private int DrawLines(VertexArrayObject<float> vao, object lockObject, List<Line> lines, List<int> vertexOffsets, List<uint> vertexCounts, List<float> vertexData, bool depthTest)
