@@ -78,6 +78,7 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly IInputService _inputService;
     private readonly TextElement _debugText;
     private readonly ILogger _logger;
+    private readonly Material _swordfishMaterial;
 
     public Demo(ReefContext reefContext, IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger, IUIContext uiContext)
     {
@@ -128,6 +129,10 @@ public class Demo : IEntryPoint, IAutoActivate
         _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
         _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
         _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
+        
+        var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
+        var astronautTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("astronaut.png"));
+        _swordfishMaterial = new Material(shader, astronautTexture);
     }
 
     private double _time;
@@ -247,7 +252,7 @@ public class Demo : IEntryPoint, IAutoActivate
             }
         }
         
-        using (ui.Element())
+        using (ui.Image(_swordfishMaterial))
         {
             ui.Padding = new Padding(8, 8, 8, 8);
             ui.LayoutDirection = LayoutDirection.Vertical;

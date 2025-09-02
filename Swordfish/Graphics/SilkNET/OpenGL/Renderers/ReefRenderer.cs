@@ -92,8 +92,8 @@ internal sealed class ReefRenderer(
             }
 
             //  Build rect vertices
-            //  Only use the foreground Color if this isn't text or a texture
-            instance.Rect.AddVertexData(command.Rect, command.Text == null && command.RendererData == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            //  Only use the foreground Color if this isn't text
+            instance.Rect.AddVertexData(command.Rect, command.Text == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
             
             if (command.Text == null)
             {
