@@ -12,8 +12,9 @@ inout vec4 ClipRect;
 
 uniform sampler2D texture0;
 
-bool contains(vec4 rect, float x, float y);
+float screenPxRange(vec2 uv, vec2 atlasSize);
 float median(float a, float b, float c);
+bool contains(vec4 rect, float x, float y);
 
 vec4 vertex()
 {
@@ -28,12 +29,21 @@ vec4 fragment()
         discard;
     }
 
-    vec2 atlasDimensions = textureSize(texture0, 0);
-    vec2 uv = vec2(TextureCoord.x / atlasDimensions.x, TextureCoord.y / atlasDimensions.y);
+    vec2 atlasSize = textureSize(texture0, 0);
+    vec2 uv = vec2(TextureCoord.x / atlasSize.x, TextureCoord.y / atlasSize.y);
+
     vec4 sample = texture(texture0, uv);
-    float distance = median(sample.r, sample.g, sample.b) - 0.5;
-    float alpha = clamp(distance / fwidth(distance) + 0.5, 0.0, 1.0);
+    float signedDistance = median(sample.r, sample.g, sample.b);
+    float screenPxDistance = screenPxRange(uv, atlasSize) * (signedDistance - 0.5);
+    float alpha = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+
     return mix(vec4(0), VertexColor, alpha);
+}
+
+float screenPxRange(vec2 uv, vec2 atlasSize) {
+    vec2 unitRange = vec2(6.0) / vec2(atlasSize);
+    vec2 screenTexSize = vec2(1.0) / fwidth(uv);
+    return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
 float median(float a, float b, float c) {

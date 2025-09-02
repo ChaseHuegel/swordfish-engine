@@ -194,7 +194,10 @@ public class Demo : IEntryPoint, IAutoActivate
 
             for (var i = 0; i < 50; i++)
             {
-                using (ui.Text($"Item {i} and some more extra text to wrap")) { }
+                using (ui.Text($"Item {i} and some more extra text to wrap"))
+                {
+                    ui.FontID = "monogram";
+                }
             }
         }
 
