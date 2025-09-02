@@ -36,7 +36,19 @@ internal sealed class ReefRenderer(
     private ShaderProgram _defaultShader = null!;
     
     private VertexArrayObject<float>? _vao;
-    private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(new MaterialRenderCommandComparer());
+    
+    //  TODO improve and bring back batching UI.
+    //       Instance batches were being created by material and font, however this was problematic
+    //       because images would render in a separate batch after simple rects and results in
+    //       depth being incorrect, where a parent Image renders over a child rect or text.
+    //       
+    //       Using a depth buffer is insufficient because a parent isn't always in the same
+    //       draw call as the child in that scenario. Batches are going to have to be smarter,
+    //       likely where an element can break the batch for its entire tree of elements.
+    //       
+    //       For the time being, UI is not being batched for the sake of being able to focus
+    //       on more important issues. For the time, performance here isn't a particular concern.
+    private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(/*new MaterialRenderCommandComparer()*/);
 
     public void Initialize(IRenderContext renderContext)
     {
