@@ -9,6 +9,7 @@ using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
+using Swordfish.Types;
 using Swordfish.UI.Reef;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
@@ -30,6 +31,7 @@ internal sealed class ReefRenderer(
     private readonly IFileParseService _fileParseService = fileParseService;
     private readonly VirtualFileSystem _vfs = vfs;
     private readonly ILogger _logger = logger;
+    private readonly Dictionary<string, Material> _typefaceMaterials = [];
 
     //  If either of these is null, the renderer is attempting to render without having initialized.
     private GLRenderContext _renderContext = null!;
@@ -67,6 +69,37 @@ internal sealed class ReefRenderer(
         {
             _logger.LogError("Failed to parse the OpenGL Reef UI shader. Reef UI will not be rendered with OpenGL.");
             return;
+        }
+        
+        if (!_vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef_msdf.glsl"), out PathInfo textShaderFile))
+        {
+            _logger.LogError("The shader source for OpenGL Reef UI MSDF text was not found. Reef UI will not be rendered with OpenGL.");
+            return;
+        }
+        
+        if (!_fileParseService.TryParse(textShaderFile, out Shader textShader))
+        {
+            _logger.LogError("Failed to parse the OpenGL Reef UI MSDF text shader. Reef UI will not be rendered with OpenGL.");
+            return;
+        }
+
+        foreach (ITypeface typeface in _reefContext.TextEngine.GetTypefaces())
+        {
+            AtlasInfo atlasInfo = typeface.GetAtlasInfo();
+            if (!_fileParseService.TryParse(atlasInfo.Path, out Texture atlas))
+            {
+                _logger.LogError("Failed to load the texture for typeface (\"{ID}\") atlas \"{Path}\". This typeface will not render correctly.", typeface.ID, atlasInfo.Path);
+                continue;
+            }
+
+            if (_typefaceMaterials.ContainsKey(typeface.ID))
+            {
+                _logger.LogWarning("Attempted to add a duplicate of typeface \"{ID}\".", typeface.ID);
+                continue;
+            }
+
+            var material = new Material(textShader, atlas);
+            _typefaceMaterials.Add(typeface.ID, material);
         }
 
         _renderContext = glRenderContext;
@@ -132,7 +165,7 @@ internal sealed class ReefRenderer(
                     command.Rect.Top + glyph.BBOX.Bottom
                 );
                 
-                instance.Text!.Value.AddVertexData(bbox, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+                instance.Text!.Value.AddVertexData(bbox, glyph.UV, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
             }
         }
     }
@@ -148,25 +181,40 @@ internal sealed class ReefRenderer(
         _vao.Bind();
         foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
         {
-            drawCalls += Draw(_vao, instance.Key, instance.Value.Rect);
-            
-            if (instance.Value.Text != null)
+            RenderCommand<Material> command = instance.Key;
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect);
+
+            if (instance.Value.Text == null)
             {
-                drawCalls += Draw(_vao, instance.Key, instance.Value.Text.Value);
+                continue;
             }
+            
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, isTextPass: true);
         }
         
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices)
+    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, bool isTextPass = false)
     {
         if (vertices.Count == 0)
         {
             return 0;
         }
 
-        if (command.RendererData != null)
+        if (isTextPass)
+        {
+            string typefaceID = command.FontOptions.ID ?? _reefContext.TextEngine.GetDefaultTypeface().ID;
+            if (!_typefaceMaterials.TryGetValue(typefaceID, out Material? typefaceMaterial))
+            {
+                //  No matching typeface, and no default is loaded
+                return 0;
+            }
+            
+            GLMaterial typefaceGLMaterial = _renderContext.BindMaterial(typefaceMaterial);
+            typefaceGLMaterial.Use();
+        }
+        else if (command.RendererData != null)
         {
             GLMaterial glMaterial = _renderContext.BindMaterial(command.RendererData);
             glMaterial.Use();
@@ -199,6 +247,11 @@ internal sealed class ReefRenderer(
 
         public void AddVertexData(IntRect rect, Vector4 color, IntRect clipRect, float width, float height)
         {
+            AddVertexData(rect, new IntRect(0, 0, 1, 1), color, clipRect, width, height);
+        }
+
+        public void AddVertexData(IntRect rect, IntRect uv, Vector4 color, IntRect clipRect, float width, float height)
+        {
             Offsets.Add(Count * 4);
             Counts.Add(4);
 
@@ -215,8 +268,8 @@ internal sealed class ReefRenderer(
             Data.Add(color.Z);
             Data.Add(color.W);
             // u,v
-            Data.Add(0);
-            Data.Add(1);
+            Data.Add(uv.Left);
+            Data.Add(uv.Bottom);
             Data.Add(0);
             //  TODO clip rect should not be baked into every vertex. 
             //       It should be passed per instance via a buffer. This is less straight forward in
@@ -242,8 +295,8 @@ internal sealed class ReefRenderer(
             Data.Add(color.Z);
             Data.Add(color.W);
             // u,v
-            Data.Add(1);
-            Data.Add(1);
+            Data.Add(uv.Right);
+            Data.Add(uv.Bottom);
             Data.Add(0);
             //  clip l,t,r,b / x1,y1,x2,y2
             Data.Add(clipRect.Left);
@@ -262,8 +315,8 @@ internal sealed class ReefRenderer(
             Data.Add(color.Z);
             Data.Add(color.W);
             // u,v
-            Data.Add(1);
-            Data.Add(0);
+            Data.Add(uv.Right);
+            Data.Add(uv.Top);
             Data.Add(0);
             //  clip l,t,r,b / x1,y1,x2,y2
             Data.Add(clipRect.Left);
@@ -282,8 +335,8 @@ internal sealed class ReefRenderer(
             Data.Add(color.Z);
             Data.Add(color.W);
             // u,v
-            Data.Add(0);
-            Data.Add(0);
+            Data.Add(uv.Left);
+            Data.Add(uv.Top);
             Data.Add(0);
             //  clip l,t,r,b / x1,y1,x2,y2
             Data.Add(clipRect.Left);

@@ -30,12 +30,22 @@ public sealed class TextEngine : ITextEngine
             GenerateMSDF(msdfAtlasGen.Path, fontInfo, out AtlasOutput output);
 
             GlyphAtlas atlas = GlyphAtlasParser.Parse(output.JsonPath);
-            var typeface = new Typeface(atlas, output.ImagePath);
+            var typeface = new Typeface(fontInfo.ID, atlas, output.ImagePath);
             
             _typefaces.Add(fontInfo.ID, typeface);
         }
         
         _defaultTypeface = _typefaces.Values.First();
+    }
+
+    public ITypeface GetDefaultTypeface()
+    {
+        return _defaultTypeface;
+    }
+
+    public ITypeface[] GetTypefaces()
+    {
+        return _typefaces.Values.ToArray();
     }
 
     public bool TryGetTypeface(FontInfo fontInfo, out ITypeface? typeface)

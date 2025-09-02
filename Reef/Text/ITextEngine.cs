@@ -4,6 +4,10 @@ namespace Reef.Text;
 
 public interface ITextEngine
 {
+    ITypeface GetDefaultTypeface();
+    
+    ITypeface[] GetTypefaces();
+    
     bool TryGetTypeface(FontInfo fontInfo, out ITypeface? typeface);
     
     TextConstraints Measure(FontOptions fontOptions, string text);

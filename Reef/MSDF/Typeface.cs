@@ -17,9 +17,12 @@ internal sealed class Typeface : ITypeface
     private readonly Metrics _metrics;
     private readonly Dictionary<int, Glyph> _glyphs = [];
     private readonly Glyph _unknownGlyph;
+    
+    public string ID { get; }
 
-    public Typeface(GlyphAtlas glyphAtlas, string atlasPath)
+    public Typeface(string id, GlyphAtlas glyphAtlas, string atlasPath)
     {
+        ID = id;
         _atlasPath = atlasPath;
         _atlas = glyphAtlas.atlas;
         _metrics = glyphAtlas.metrics;

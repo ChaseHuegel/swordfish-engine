@@ -4,6 +4,8 @@ namespace Reef.Text;
 
 public interface ITypeface
 {
+    string ID { get; }
+    
     AtlasInfo GetAtlasInfo();
     
     TextConstraints Measure(FontOptions fontOptions, string text, int start, int length);
