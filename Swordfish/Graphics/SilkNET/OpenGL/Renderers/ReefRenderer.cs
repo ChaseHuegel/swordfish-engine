@@ -41,11 +41,11 @@ internal sealed class ReefRenderer(
     //       Instance batches were being created by material and font, however this was problematic
     //       because images would render in a separate batch after simple rects and results in
     //       depth being incorrect, where a parent Image renders over a child rect or text.
-    //       
+    //       -
     //       Using a depth buffer is insufficient because a parent isn't always in the same
     //       draw call as the child in that scenario. Batches are going to have to be smarter,
     //       likely where an element can break the batch for its entire tree of elements.
-    //       
+    //       -
     //       For the time being, UI is not being batched for the sake of being able to focus
     //       on more important issues. For the time, performance here isn't a particular concern.
     private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(/*new MaterialRenderCommandComparer()*/);
@@ -218,6 +218,13 @@ internal sealed class ReefRenderer(
             Data.Add(0);
             Data.Add(1);
             Data.Add(0);
+            //  TODO clip rect should not be baked into every vertex. 
+            //       It should be passed per instance via a buffer. This is less straight forward in
+            //       the current GLSL 3.30, but doable. It would also require breaking batches into multiple draw
+            //       calls if they have too many instances (256 instances per draw call likely is ideal).
+            //       -
+            //       Alternatively, gl_DrawID is available in GLSL 4.60 and simplifies passing per instance.
+            //       This existing behavior could be used anytime using GLSL <4.60.
             //  clip l,t,r,b / x1,y1,x2,y2
             Data.Add(clipRect.Left);
             Data.Add(clipRect.Top);
