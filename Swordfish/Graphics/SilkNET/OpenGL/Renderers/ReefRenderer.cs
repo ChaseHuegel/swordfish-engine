@@ -2,6 +2,7 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Reef;
+using Reef.Text;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.IO;
@@ -35,7 +36,7 @@ internal sealed class ReefRenderer(
     private ShaderProgram _defaultShader = null!;
     
     private VertexArrayObject<float>? _vao;
-    private readonly Dictionary<RenderCommand<Material>, IntRectVertices> _instances = new(new MaterialRenderCommandComparer());
+    private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(new MaterialRenderCommandComparer());
 
     public void Initialize(IRenderContext renderContext)
     {
@@ -84,13 +85,43 @@ internal sealed class ReefRenderer(
         {
             RenderCommand<Material> command = commands[i];
             
-            if (!_instances.TryGetValue(command, out IntRectVertices vertices))
+            if (!_instances.TryGetValue(command, out InstanceVertexData instance))
             {
-                vertices = new IntRectVertices();
-                _instances.TryAdd(command, vertices);
+                instance = new InstanceVertexData(new Vertices(), null);
+                _instances.TryAdd(command, instance);
             }
 
-            vertices.AddVertexData(command.Rect, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            //  Build rect vertices
+            //  Only use the foreground Color if this isn't text or a texture
+            instance.Rect.AddVertexData(command.Rect, command.Text == null && command.RendererData == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            
+            if (command.Text == null)
+            {
+                continue;
+            }
+            
+            //  Build text vertices
+            if (instance.Text == null)
+            {
+                instance = new InstanceVertexData(instance.Rect, new Vertices());
+                _instances[command] = instance;
+            }
+            
+            TextLayout textLayout = _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+            
+            for (var n = 0; n < textLayout.Glyphs.Length; n++)
+            {
+                GlyphLayout glyph = textLayout.Glyphs[n];
+                
+                var bbox = new IntRect(
+                    command.Rect.Left + glyph.BBOX.Left,
+                    command.Rect.Top + glyph.BBOX.Top,
+                    command.Rect.Left + glyph.BBOX.Right,
+                    command.Rect.Top + glyph.BBOX.Bottom
+                );
+                
+                instance.Text!.Value.AddVertexData(bbox, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            }
         }
     }
 
@@ -103,15 +134,20 @@ internal sealed class ReefRenderer(
         
         var drawCalls = 0;
         _vao.Bind();
-        foreach (KeyValuePair<RenderCommand<Material>, IntRectVertices> instance in _instances)
+        foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
         {
-            drawCalls += Draw(_vao, instance.Key, instance.Value);
+            drawCalls += Draw(_vao, instance.Key, instance.Value.Rect);
+            
+            if (instance.Value.Text != null)
+            {
+                drawCalls += Draw(_vao, instance.Key, instance.Value.Text.Value);
+            }
         }
         
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, IntRectVertices vertices)
+    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices)
     {
         if (vertices.Count == 0)
         {
@@ -135,7 +171,13 @@ internal sealed class ReefRenderer(
         return 1;
     }
     
-    private readonly struct IntRectVertices()
+    private readonly struct InstanceVertexData(Vertices rect, Vertices? text)
+    {
+        public readonly Vertices Rect = rect;
+        public readonly Vertices? Text = text;
+    }
+    
+    private readonly struct Vertices()
     {
         public readonly List<int> Offsets = [];
         public readonly List<uint> Counts = [];
@@ -236,12 +278,12 @@ internal sealed class ReefRenderer(
     {
         public bool Equals(RenderCommand<Material> x, RenderCommand<Material> y)
         {
-            return x.RendererData == y.RendererData;
+            return x.RendererData == y.RendererData && x.FontOptions.ID == y.FontOptions.ID;
         }
 
         public int GetHashCode(RenderCommand<Material> obj)
         {
-            return obj.RendererData?.GetHashCode() ?? 0;
+            return HashCode.Combine(obj.RendererData?.GetHashCode() ?? 0, obj.FontOptions.ID?.GetHashCode() ?? 0);
         }
     }
 }

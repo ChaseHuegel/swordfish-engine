@@ -16,6 +16,7 @@ namespace Swordfish.UI.Reef;
 public sealed class ReefContext : IDisposable
 {
     public readonly UIBuilder<Material> Builder;
+    public readonly ITextEngine TextEngine;
 
     private readonly ILogger _logger;
     private readonly IWindow _window;
@@ -31,8 +32,8 @@ public sealed class ReefContext : IDisposable
         _vfs = vfs;
         _controller = new UIController();
 
-        ITextEngine textEngine = CreateTextEngine();        
-        Builder = new UIBuilder<Material>(width: window.Size.X, height: window.Size.Y, textEngine, _controller);
+        TextEngine = CreateTextEngine();        
+        Builder = new UIBuilder<Material>(width: window.Size.X, height: window.Size.Y, TextEngine, _controller);
 
         window.Resize += OnWindowResize;
         window.Update += OnWindowUpdate;
