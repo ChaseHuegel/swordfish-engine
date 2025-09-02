@@ -57,18 +57,22 @@ internal sealed class ReefRenderer(
         }
 
         _renderContext = glRenderContext;
+        
         _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
-
         _vao.Bind();
         _vao.VertexBufferObject.Bind();
-        _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 10, 0);
-        _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 10, 3);
-        _vao.SetVertexAttribute(2, 3, VertexAttribPointerType.Float, 10, 7);
+        _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 14, 0);
+        _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 14, 3);
+        _vao.SetVertexAttribute(2, 3, VertexAttribPointerType.Float, 14, 7);
+        _vao.SetVertexAttribute(3, 4, VertexAttribPointerType.Float, 14, 10);
+        _vao.VertexBufferObject.Unbind();
+        _vao.Unbind();
 
         _defaultShader = shader.CreateProgram(_glContext);
         _defaultShader.BindAttributeLocation("in_position", 0);
         _defaultShader.BindAttributeLocation("in_color", 1);
         _defaultShader.BindAttributeLocation("in_uv", 2);
+        _defaultShader.BindAttributeLocation("in_clipRect", 3);
     }
 
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -86,7 +90,7 @@ internal sealed class ReefRenderer(
                 _instances.TryAdd(command, vertices);
             }
 
-            vertices.AddVertexData(command.Rect, command.Color, _reefContext.Builder.Width, _reefContext.Builder.Height);
+            vertices.AddVertexData(command.Rect, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
         }
     }
 
@@ -139,12 +143,12 @@ internal sealed class ReefRenderer(
 
         public int Count => Counts.Count;
 
-        public void AddVertexData(IntRect rect, Vector4 color, float width, float height)
+        public void AddVertexData(IntRect rect, Vector4 color, IntRect clipRect, float width, float height)
         {
             Offsets.Add(Count * 4);
             Counts.Add(4);
 
-            Data.Capacity += 20;
+            Data.Capacity += 36;
 
             //  Bottom left
             // X,Y,Z
@@ -160,6 +164,11 @@ internal sealed class ReefRenderer(
             Data.Add(0);
             Data.Add(1);
             Data.Add(0);
+            //  clip l,t,r,b / x1,y1,x2,y2
+            Data.Add(clipRect.Left);
+            Data.Add(clipRect.Top);
+            Data.Add(clipRect.Right);
+            Data.Add(clipRect.Bottom);
             
             //  Bottom right
             // X,Y,Z
@@ -175,6 +184,11 @@ internal sealed class ReefRenderer(
             Data.Add(1);
             Data.Add(1);
             Data.Add(0);
+            //  clip l,t,r,b / x1,y1,x2,y2
+            Data.Add(clipRect.Left);
+            Data.Add(clipRect.Top);
+            Data.Add(clipRect.Right);
+            Data.Add(clipRect.Bottom);
             
             //  Top right
             // X,Y,Z
@@ -190,7 +204,12 @@ internal sealed class ReefRenderer(
             Data.Add(1);
             Data.Add(0);
             Data.Add(0);
-  
+            //  clip l,t,r,b / x1,y1,x2,y2
+            Data.Add(clipRect.Left);
+            Data.Add(clipRect.Top);
+            Data.Add(clipRect.Right);
+            Data.Add(clipRect.Bottom);
+            
             //  Top left
             // X,Y,Z
             Data.Add(MathS.RangeToRange(rect.Left, 0f, width, -1f, 1f));
@@ -205,6 +224,11 @@ internal sealed class ReefRenderer(
             Data.Add(0);
             Data.Add(0);
             Data.Add(0);
+            //  clip l,t,r,b / x1,y1,x2,y2
+            Data.Add(clipRect.Left);
+            Data.Add(clipRect.Top);
+            Data.Add(clipRect.Right);
+            Data.Add(clipRect.Bottom);
         }
     }
     
