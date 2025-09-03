@@ -1,117 +1,48 @@
-﻿using ImGuiNET;
+﻿using System.Collections.Generic;
+using System.IO;
+using System.Numerics;
+using System.Threading;
+using Reef;
+using Reef.Constraints;
+using Reef.UI;
+using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Constraints;
+using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using Swordfish.Types;
-using Swordfish.UI;
-using Swordfish.UI.Elements;
-using Color = System.Drawing.Color;
+using Swordfish.UI.Reef;
+using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Items;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-public class Hotbar : CanvasElement
+internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 {
-    private readonly TextElement[] _names;
-    private readonly TextElement[] _counts;
-    private readonly ColorBlockElement[] _colorBlocks;
+    private const int SLOT_COUNT = 9;
+
+    private readonly ReefContext _reefContext;
+    private readonly Dictionary<string, Material> _itemIcons = [];
+
+    private readonly Lock _inventoryLock = new();
+    private InventoryComponent? _inventory;
+
+    public readonly DataBinding<int> ActiveSlot = new(0);
     
-    public readonly DataBinding<int> ActiveSlot = new(-1);
-    
-    public Hotbar(IWindowContext windowContext, IUIContext uiContext, IShortcutService shortcutService) : base(uiContext, windowContext, "Hotbar")
+    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, VirtualFileSystem vfs, IFileParseService fileParseService)
     {
-        ActiveSlot.Changed += OnActiveSlotChanged;
+        _reefContext = reefContext;
         
-        Flags = ImGuiWindowFlags.NoResize |
-                ImGuiWindowFlags.NoCollapse |
-                ImGuiWindowFlags.NoTitleBar |
-                ImGuiWindowFlags.AlwaysAutoResize |
-                ImGuiWindowFlags.NoBringToFrontOnFocus |
-                ImGuiWindowFlags.NoScrollbar |
-                ImGuiWindowFlags.NoBackground |
-                ImGuiWindowFlags.NoMove;
+        var shader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
+        PathInfo[] files = vfs.GetFiles(AssetPaths.Textures.At("block\\"), SearchOption.AllDirectories);
+        foreach (PathInfo file in files)
+        {
+            var texture = fileParseService.Parse<Texture>(file);
+            _itemIcons.Add(texture.Name, new Material(shader, texture));
+        }
         
-        Constraints = new RectConstraints
-        {
-            Anchor = ConstraintAnchor.BOTTOM_CENTER,
-            X = new AbsoluteConstraint(0f),
-            Y = new RelativeConstraint(0.01f),
-            Width = new RelativeConstraint(0.4f),
-            Height = new RelativeConstraint(0.1f),
-        };
-
-        var layoutGroup = new LayoutGroup
-        {
-            Layout = ElementAlignment.HORIZONTAL,
-            Flags = ImGuiWindowFlags.NoScrollbar,
-            Constraints = new RectConstraints
-            {
-                Anchor = ConstraintAnchor.CENTER,
-                Width = new FillConstraint(),
-                Height = new FillConstraint(),
-            },
-        };
-        Content.Add(layoutGroup);
-
-        const int slotCount = 9;
-        _names = new TextElement[slotCount];
-        _counts = new TextElement[slotCount];
-        _colorBlocks = new ColorBlockElement[slotCount];
-        for (int i = 0; i < slotCount; i++)
+        for (var i = 0; i < SLOT_COUNT; i++)
         {
             int slotNumber = i + 1;
-
-            var slot = new PanelElement(slotNumber.ToString())
-            {
-                Border = true,
-                TitleBar = false,
-                Flags = ImGuiWindowFlags.NoScrollbar,
-                Constraints = new RectConstraints
-                {
-                    Width = new RelativeConstraint(0.90f / slotCount),
-                    Height = new AspectConstraint(1f),
-                },
-            };
-            layoutGroup.Content.Add(slot);
-            
-            var colorBlock = new ColorBlockElement(Color.White);
-            slot.Content.Add(colorBlock);
-            _colorBlocks[i] = colorBlock;
-
-            var label = new TextElement(slotNumber.ToString())
-            {
-                Wrap = false,
-                Constraints = new RectConstraints
-                {
-                    Anchor = ConstraintAnchor.TOP_LEFT,
-                },
-            };
-            colorBlock.Content.Add(label);
-            
-            var name = new TextElement(string.Empty)
-            {
-                Wrap = false,
-                Constraints = new RectConstraints
-                {
-                    Anchor = ConstraintAnchor.CENTER_LEFT,
-                    Y = new RelativeConstraint(-0.2f),
-                },
-            };
-            colorBlock.Content.Add(name);
-            _names[i] = name;
-
-            var count = new TextElement(string.Empty)
-            {
-                Wrap = false,
-                Constraints = new RectConstraints
-                {
-                    Anchor = ConstraintAnchor.CENTER_RIGHT,
-                    Y = new RelativeConstraint(0.2f),
-                },
-            };
-            colorBlock.Content.Add(count);
-            _counts[i] = count;
-
             int slotIndex = i;
             var shortcut = new Shortcut
             {
@@ -122,53 +53,122 @@ public class Hotbar : CanvasElement
                 IsEnabled = Shortcut.DefaultEnabled,
                 Action = () => ActiveSlot.Set(slotIndex),
             };
+            
             shortcutService.RegisterShortcut(shortcut);
         }
         
-        ActiveSlot.Set(0);
+        windowContext.Update += OnWindowUpdate;
     }
 
-    private void OnActiveSlotChanged(object? sender, DataChangedEventArgs<int> e)
+    private void OnWindowUpdate(double delta)
     {
-        if (e.OldValue >= 0 && e.OldValue < _colorBlocks.Length)
+        InventoryComponent? inventory;
+        lock (_inventoryLock)
         {
-            _colorBlocks[e.OldValue].Color = Color.White;
+            inventory = _inventory;
         }
 
-        if (e.NewValue >= 0 && e.NewValue < _colorBlocks.Length)
-        {
-            _colorBlocks[e.NewValue].Color = Color.Green;
-        }
-    }
+        UIBuilder<Material> ui = _reefContext.Builder;
 
-    public void UpdateSlot(int slot, string name, int count)
-    {
-        if (count <= 0)
+        using (ui.Element())
         {
-            _names[slot].Text = string.Empty;
-            _counts[slot].Text = string.Empty;
-            return;
-        }
+            ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+            ui.Spacing = 8;
+            ui.Padding = new Padding(
+                left: 8,
+                top: 8,
+                right: 8,
+                bottom: 8
+            );
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
+            };
 
-        _names[slot].Text = name;
-        _counts[slot].Text = count.ToString();
+            for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
+            {
+                ItemStack itemStack;
+                if (inventory == null)
+                {
+                    itemStack = default;
+                }
+                else
+                {
+                    itemStack = inventory.Value.Contents.Length > slotIndex ? inventory.Value.Contents[slotIndex] : default;
+                }
+                
+                using (ui.Element())
+                {
+                    ui.LayoutDirection = LayoutDirection.None;
+                    ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+                    ui.Color = ActiveSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fixed(48),
+                        Height = new Fixed(48),
+                    };
+                    
+                    int slotNumber = slotIndex + 1;
+                    using (ui.Text(slotNumber.ToString()))
+                    {
+                        ui.FontSize = 16;
+                    }
+
+                    if (itemStack.Count == 0 || itemStack.ID == null)
+                    {
+                        continue;
+                    }
+                    
+                    using (ui.Text(itemStack.ID))
+                    {
+                        ui.FontSize = 12;
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                            X = new Relative(0.5f),
+                            Y = new Relative(0.5f),
+                        };
+                    }
+
+                    using (ui.Text(itemStack.Count.ToString()))
+                    {
+                        ui.FontSize = 16;
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Bottom | Anchors.Right,
+                            X = new Relative(1f),
+                            Y = new Relative(1f),
+                        };
+                    }
+
+                    if (!_itemIcons.TryGetValue(itemStack.ID, out Material? icon))
+                    {
+                        icon = _itemIcons["metal_panel"];
+                    }
+                    
+                    using (ui.Image(icon))
+                    {
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                            X = new Relative(0.5f),
+                            Y = new Relative(0.5f),
+                            Width = new Fill(),
+                            Height = new Fill(),
+                        };
+                    }
+                }
+            }
+        }
     }
     
-    public void UpdateSlot(int slot, int count)
+    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
     {
-        if (count <= 0)
+        lock (_inventoryLock)
         {
-            _names[slot].Text = string.Empty;
-            _counts[slot].Text = string.Empty;
-            return;
+            _inventory = inventory;
         }
-
-        _counts[slot].Text = count.ToString();
-    }
-    
-    public void Clear(int slot)
-    {
-        _names[slot].Text = string.Empty;
-        _counts[slot].Text = string.Empty;
     }
 }

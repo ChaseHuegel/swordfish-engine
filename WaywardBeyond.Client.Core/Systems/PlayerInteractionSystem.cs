@@ -7,7 +7,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
@@ -28,9 +27,9 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IECSContext _ecsContext;
+    private readonly Hotbar _hotbar;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
-    private readonly Hotbar _hotbar;
     
     public PlayerInteractionSystem(
         in IInputService inputService,
@@ -40,8 +39,8 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         in IWindowContext windowContext,
         in IUIContext uiContext,
         in BrickEntityBuilder brickEntityBuilder,
-        in IShortcutService shortcutService,
-        in IECSContext ecsContext)
+        in IECSContext ecsContext,
+        in Hotbar hotbar)
     {
         _inputService = inputService;
         _physics = physics;
@@ -49,8 +48,8 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _ecsContext = ecsContext;
+        _hotbar = hotbar;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-        _hotbar = new Hotbar(windowContext, uiContext, shortcutService);
         
         _debugText = new TextElement("");
         _ = new CanvasElement(uiContext, windowContext, "Debug")
@@ -81,19 +80,6 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     {
         _physics.FixedUpdate += OnFixedUpdate;
         _inputService.Clicked += OnClicked;
-        
-        //  Update the hotbar to reflect the current state of the inventory
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
-        return;
-
-        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
-        {
-            for (var i = 0; i < inventory.Contents.Length; i++)
-            {
-                ItemStack itemStack = inventory.Contents[i];
-                _hotbar.UpdateSlot(i, itemStack.ID, itemStack.Count);
-            }
-        }
     }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
@@ -125,13 +111,6 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
             inventory.Add(new ItemStack(clickedBrick.Name!));
-            
-            //  Update the hotbar's display
-            for (var i = 0; i < inventory.Contents.Length; i++)
-            {
-                ItemStack itemStack = inventory.Contents[i];
-                _hotbar.UpdateSlot(i, itemStack.ID, itemStack.Count);
-            }
         }
     }
     
@@ -162,10 +141,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
                 return;
             }
             
-            //  Update the hotbar's display
             ItemStack itemStack = inventory.Contents[slot];
-            _hotbar.UpdateSlot(slot, itemStack.Count);
-            
             brickToPlace = BrickRegistry.Bricks[itemStack.ID];
         }
     }
