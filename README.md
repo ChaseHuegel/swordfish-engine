@@ -5,6 +5,7 @@
 [![](https://img.shields.io/nuget/v/Needlefish?label=Needlefish)](https://www.nuget.org/packages/Needlefish/)
 [![](https://img.shields.io/nuget/v/Shoal?label=Shoal)](https://www.nuget.org/packages/Shoal/)
 [![](https://img.shields.io/nuget/v/Swordfish.Compilation?label=Compilation)](https://www.nuget.org/packages/Swordfish.Compilation/)
+[![](https://img.shields.io/nuget/v/Reef?label=Reef)](https://www.nuget.org/packages/Reef/)
 
 <p align="center">
   <a href="">
@@ -12,7 +13,39 @@
   </a>
 </p>
 
-# Using
+# Projects
+
+## Reef
+Reef is a 0-dependency, renderer-agnostic IMGUI library that supports dynamic and flexible layout rules comparable to typical retained-mode GUIs. This is an alpha API under development as a replacement for Swordfish's currently implemented Dear ImGui-based UI implementation.
+
+## Shoal
+Shoal is a modular, and mod-friendly, application host that powers Swordfish. This provides Dependency Injection, containerization, C# scripting, and a standardized module system which implicitly provides modding support to applications. Applications are built from one or more modules themselves, and so are effectively "mods" of Shoal themselves.
+
+## Swordfish
+This is the Shoal module for the engine itself. This implements all engine-specific and visual functionality such as rendering, ECS systems, input, physics, and UI.
+
+## Swordfish.Compilation
+This is an API for compilation tooling that provides types for lexing, linting, and parsing. This will eventually provide implementations for C# scripting used by Shoal and Swordfish.
+
+## Swordfish.Demo
+This is a module for Swordfish which is used for experimenting and showcasing some engine capabilities. It is considered to be a sandbox more than a tech demo at this time. This changes often, can be messy, and regularly includes in-preview engine capabilities.
+
+## Swordfish.ECS
+This is a 0-dependency, engine-agnostic API for a struct-based Entity-Component-System implementation which is used by Swordfish.
+
+## Swordfish.Editor
+This is a module for Swordfish which provides a visual editor and tooling for developing with Swordfish. This is a strong use-case and showcase of Swordfish and Shoal's modularity; this module can be dropped into any Swordfish-based application to get access to developer tooling. At this time it is fairly simple and acts more as a viewer of what is going on within the engine.
+
+## Swordfish.Integrations
+This is a light API that provides utilities for working with specific tools, libraries, or resources, such as SQL and FontAwesome.
+
+## Swordfish.Launcher
+This is a simple application for launching Swordfish modules. By default, building the solution bundles the Engine, Demo, and Editor into the launcher. This is used for developer and testing, and acts as a simple example of building an application entry-point for Swordfish.
+
+## Swordfish.Library
+This is an engine-agnostic API for various types, services, and utilities used by Swordfish and some adjacent projects. This is where shared, or generally useful, APIs are placed which are not specific to the engine itself. This is useful for anything being integrated into Swordfish which does not want to take in a dependency on the engine or its own dependencies.
+
+# External Packages & Tools
 Needlefish (My binary serializer & format) https://github.com/ChaseHuegel/needlefish
 
 Currents / CRNT (My UDP protocol) https://github.com/ChaseHuegel/Currents
@@ -31,7 +64,7 @@ JoltPhysicsSharp ([Jolt Physics](https://github.com/jrouwe/JoltPhysics) C# bindi
 
 msdf-atlas-gen (font atlases) https://github.com/Chlumsky/msdf-atlas-gen
 
-# Swordfish 3: Current State
+# Current State: Swordfish 3
 Swordfish is on V3 and underwent a full rewrite from V2 to better support modularity and extensibility, as well as decouple from tight dependencies on specific frameworks and APIs. This new version is an ongoing effort and the progress is tracked here.
 
 ## Core
