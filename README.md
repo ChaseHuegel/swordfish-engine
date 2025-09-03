@@ -61,8 +61,8 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
   - [x] 3D
     - [x] OpenGL
     - [ ] Vulkan
-  - [ ] 2D
-    - [ ] OpenGL
+  - [x] 2D
+    - [x] OpenGL
     - [ ] Vulkan
   - [x] Shaders
     - [x] Shader lang
