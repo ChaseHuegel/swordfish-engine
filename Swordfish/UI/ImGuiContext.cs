@@ -67,7 +67,7 @@ internal sealed partial class ImGuiContext : IUIContext
         ThreadContext.SwitchToCurrentThread();
 
         Window.Closing += Cleanup;
-        // Window.Render += Render;
+        Window.Render += Render;
 
         Scale.Changed += OnFontScaleChanged;
         FontScale.Changed += OnFontScaleChanged;
