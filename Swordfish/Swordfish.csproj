@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\Reef\Reef.csproj" />
     <ProjectReference Include="..\Shoal\Shoal.csproj" />
     <ProjectReference Include="..\Swordfish.Integrations\Swordfish.Integrations.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />

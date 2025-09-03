@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <LangVersion>latest</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Version>0.1.0</Version>
+        <Authors>Chase Huegel</Authors>
+        <Description>A renderer-agnostic immediate-mode GUI library.</Description>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <EmbeddedResource Include="Manifest\**\*.*"/>
+    </ItemGroup>
+
+</Project>

@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="BenchmarkDotNet" Version="0.15.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Reef\Reef.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Reference Include="System.Drawing.Common">
+        <HintPath>..\Swordfish.Tests\bin\Debug\net8.0\System.Drawing.Common.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="Images\swordfish.png">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Fonts\Font Awesome 6 Free Solid.otf">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Update="Fonts\Salmon Mono 9 Regular.ttf">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
+</Project>

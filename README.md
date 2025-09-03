@@ -29,6 +29,8 @@ Tomlet (TOML files) https://github.com/SamboyCoding/Tomlet
 
 JoltPhysicsSharp ([Jolt Physics](https://github.com/jrouwe/JoltPhysics) C# bindings) https://github.com/amerkoleci/JoltPhysicsSharp/tree/main
 
+msdf-atlas-gen (font atlases) https://github.com/Chlumsky/msdf-atlas-gen
+
 # Swordfish 3: Current State
 Swordfish is on V3 and underwent a full rewrite from V2 to better support modularity and extensibility, as well as decouple from tight dependencies on specific frameworks and APIs. This new version is an ongoing effort and the progress is tracked here.
 
@@ -59,8 +61,8 @@ Swordfish is on V3 and underwent a full rewrite from V2 to better support modula
   - [x] 3D
     - [x] OpenGL
     - [ ] Vulkan
-  - [ ] 2D
-    - [ ] OpenGL
+  - [x] 2D
+    - [x] OpenGL
     - [ ] Vulkan
   - [x] Shaders
     - [x] Shader lang

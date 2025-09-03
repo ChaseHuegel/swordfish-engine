@@ -1,6 +1,7 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Types;
+using Swordfish.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
@@ -115,6 +116,21 @@ internal unsafe partial class GLContext
         public static GLRenderTarget Factory(GLRenderTargetArgs args)
         {
             return new GLRenderTarget(args._gl, args._transform, args._vertexArrayObject, args._modelsBufferObject, args._materials, args._renderOptions);
+        }
+    }
+    
+    private readonly struct GLRectRenderTargetArgs(
+        in Rect2 rect,
+        in Vector4 color,
+        in GLMaterial[] materials)
+    {
+        private readonly Rect2 _rect = rect;
+        private readonly Vector4 _color = color;
+        private readonly GLMaterial[] _materials = materials;
+
+        public static GLRectRenderTarget Factory(GLRectRenderTargetArgs args)
+        {
+            return new GLRectRenderTarget(args._rect, args._color, args._materials);
         }
     }
 

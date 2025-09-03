@@ -1,4 +1,5 @@
 ﻿using DryIoc;
+using Reef;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -14,6 +15,7 @@ using Swordfish.Library.IO;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI;
+using Swordfish.UI.Reef;
 
 namespace Swordfish;
 
@@ -34,9 +36,13 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
         container.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<GLScreenSpaceRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
         container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        
+        container.Register<IRenderStage, ReefRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<ReefContext>(Reuse.Singleton);
 
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         
@@ -44,6 +50,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IEntitySystem, ChildSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<JoltPhysicsSystem>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation, nonPublicServiceTypes: true);
         container.Register<IEntitySystem, MeshRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IEntitySystem, RectRendererSystem>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterInstance<IInputContext>(inputContext);
         container.Register<IInputService, SilkInputService>(Reuse.Singleton);
