@@ -100,7 +100,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
     {
         if (renderContext is not GLRenderContext glRenderContext)
         {
-            throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+            throw new NotSupportedException($"{nameof(GLScreenSpaceRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
         }
         
         _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());

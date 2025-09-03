@@ -84,7 +84,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void OnWindowRender(double delta)
     {
-
         Camera camera = Camera.Get();
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
@@ -161,7 +160,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
-    private GLMaterial BindMaterial(Material material)
+    internal GLMaterial BindMaterial(Material material)
     {
         if (_linkedHandles.TryGetValue(material, out IHandle? handle))
         {
