@@ -91,7 +91,7 @@ public class Demo : IEntryPoint, IAutoActivate
         _inputService = inputService;
         _logger = logger;
 
-        _windowContext.Update += OnWindowUpdate;
+        // _windowContext.Update += OnWindowUpdate;
 
         _debugText = new TextElement("");
         // ReSharper disable once UnusedVariable
