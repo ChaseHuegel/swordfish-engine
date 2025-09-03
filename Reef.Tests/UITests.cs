@@ -41,7 +41,7 @@ public class UITests
 
         var textEngine = new TextEngine([ salmonFont, awesomeFont ]);
 
-        textEngine.TryGetTypeface(salmonFont, out ITypeface typeface);
+        textEngine.TryGetTypeface(salmonFont, out ITypeface? typeface);
         AtlasInfo atlasInfo = typeface!.GetAtlasInfo();
         var salmonBmp = new Bitmap(atlasInfo.Path);
         
