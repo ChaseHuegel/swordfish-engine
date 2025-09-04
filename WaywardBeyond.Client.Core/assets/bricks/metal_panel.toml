@@ -1,4 +1,5 @@
 [[Bricks]]
 ID      = "metal_panel"
 Shape   = "block"
-Texture = "metal_panel"
+[Bricks.Textures]
+Default = "metal_panel"
