@@ -1,0 +1,4 @@
+[[Bricks]]
+ID      = "metal_panel"
+Shape   = "block"
+Texture = "metal_panel"

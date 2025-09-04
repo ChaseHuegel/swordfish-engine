@@ -1,0 +1,10 @@
+[[Bricks]]
+ID     = "display_console"
+Shape  = "block"
+[Bricks.Textures]
+Top    = "metal_panel"
+Bottom = "metal_panel"
+Front  = "display_console"
+Back   = "vent"
+Left   = "greeble1"
+Right  = "greeble1"
