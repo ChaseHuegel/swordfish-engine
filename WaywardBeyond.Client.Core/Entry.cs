@@ -76,6 +76,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[1] = new ItemStack(BrickRegistry.Thruster.Name!, count: 10);
         inventory.Contents[2] = new ItemStack(BrickRegistry.DisplayControl.Name!, count: 10);
         inventory.Contents[3] = new ItemStack(BrickRegistry.CautionPanel.Name!, count: 10);
+        inventory.Contents[4] = new ItemStack(BrickRegistry.Glass.Name!, count: 10);
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));
