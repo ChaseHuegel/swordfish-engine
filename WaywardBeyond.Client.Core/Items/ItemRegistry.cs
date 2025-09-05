@@ -1,40 +1,16 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using Microsoft.Extensions.Logging;
-using Swordfish.IO;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using WaywardBeyond.Client.Core.Data;
 
 namespace WaywardBeyond.Client.Core.Items;
 
-internal sealed class ItemRegistry
+internal sealed class ItemRegistry(
+    in ILogger<ItemRegistry> logger,
+    in IFileParseService fileParseService,
+    in VirtualFileSystem vfs)
+    : Registry<ItemDefinitions, ItemDefinition>(logger, fileParseService, vfs)
 {
-    private readonly ILogger _logger;
-    private readonly Dictionary<string, ItemDefinition> _definitions = [];
-    
-    public ItemRegistry(ILogger logger, IFileParseService fileParseService, VirtualFileSystem vfs)
-    {
-        _logger = logger;
-        
-        List<PathInfo> files = vfs.GetFiles(AssetPaths.Root.At("items"), SearchOption.AllDirectories).WhereToml().ToList();
-        foreach (PathInfo file in files)
-        {
-            try
-            {
-                var definitions = fileParseService.Parse<ItemDefinitions>(file);
-                foreach (ItemDefinition definition in definitions.Items)
-                {
-                    _definitions[definition.ID] = definition;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to parse item definitions from \"{file}\".", file);
-            }
-        }
-        
-        _logger.LogInformation("Registered {itemCount} item definitions from {fileCount} files.", _definitions.Count, files.Count);
-    }
+    protected override IEnumerable<ItemDefinition> GetDefinitions(ItemDefinitions model) => model.Items;
+    protected override string GetID(ItemDefinition definition) => definition.ID;
 }

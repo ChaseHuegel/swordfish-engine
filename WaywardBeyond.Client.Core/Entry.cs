@@ -33,7 +33,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
-        in IFileParseService fileParseService)
+        in IFileParseService fileParseService,
+        in ItemRegistry itemRegistry)
     {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -42,7 +43,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _brickEntityBuilder = brickEntityBuilder;
         _fileParseService = fileParseService;
         
-        _windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
+        windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
+        itemRegistry.Load();
     }
 
     public void Run()
