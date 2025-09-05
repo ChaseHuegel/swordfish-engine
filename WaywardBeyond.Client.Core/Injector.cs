@@ -40,7 +40,10 @@ public class Injector : IDryIocInjector
     
     private static void RegisterInput(IContainer container)
     {
-        container.Register<IEntryPoint, PlayerInteractionSystem>();
+        container.Register<IEntryPoint, PlayerInteractionService>();
+        
+        container.Register<IEntitySystem, PlayerControllerSystem>();
+        container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
     
     private static void RegisterTomlParsers(IContainer container)
@@ -51,8 +54,6 @@ public class Injector : IDryIocInjector
 
     private static void RegisterEntitySystems(IContainer container)
     {
-        container.Register<IEntitySystem, PlayerControllerSystem>();
-        container.Register<IEntitySystem, FirstPersonCameraSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
     }

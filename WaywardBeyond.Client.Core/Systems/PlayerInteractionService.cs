@@ -19,7 +19,7 @@ using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class PlayerInteractionSystem : IEntryPoint
+internal sealed class PlayerInteractionService : IEntryPoint
 {
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
@@ -31,7 +31,7 @@ internal sealed class PlayerInteractionSystem : IEntryPoint
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
-    public PlayerInteractionSystem(
+    public PlayerInteractionService(
         in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
