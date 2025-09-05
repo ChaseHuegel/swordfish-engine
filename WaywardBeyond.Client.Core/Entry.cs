@@ -34,7 +34,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IFileParseService fileParseService,
-        in ItemRegistry itemRegistry)
+        in ItemRegistry itemRegistry,
+        in BrickRegistry brickRegistry)
     {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -45,6 +46,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
         itemRegistry.Load();
+        brickRegistry.Load();
     }
 
     public void Run()
@@ -65,7 +67,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         Task.Run(worldGenerator.Generate);
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
-        shipGrid.Set(0, 0, 0, BrickRegistry.ShipCore);
+        shipGrid.Set(0, 0, 0, BrickData.ShipCore);
         _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();
@@ -74,11 +76,11 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.AddOrUpdate(inventory);
-        inventory.Contents[0] = new ItemStack(BrickRegistry.MetalPanel.Name!, count: 30);
-        inventory.Contents[1] = new ItemStack(BrickRegistry.Thruster.Name!, count: 10);
-        inventory.Contents[2] = new ItemStack(BrickRegistry.DisplayControl.Name!, count: 10);
-        inventory.Contents[3] = new ItemStack(BrickRegistry.CautionPanel.Name!, count: 10);
-        inventory.Contents[4] = new ItemStack(BrickRegistry.Glass.Name!, count: 10);
+        inventory.Contents[0] = new ItemStack(BrickData.MetalPanel.Name!, count: 30);
+        inventory.Contents[1] = new ItemStack(BrickData.Thruster.Name!, count: 10);
+        inventory.Contents[2] = new ItemStack(BrickData.DisplayControl.Name!, count: 10);
+        inventory.Contents[3] = new ItemStack(BrickData.CautionPanel.Name!, count: 10);
+        inventory.Contents[4] = new ItemStack(BrickData.Glass.Name!, count: 10);
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));

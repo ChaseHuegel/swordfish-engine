@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Bricks;
 
-internal struct BrickDefinition
+public struct BrickDefinition()
 {
     public string ID;
     public string Shape;

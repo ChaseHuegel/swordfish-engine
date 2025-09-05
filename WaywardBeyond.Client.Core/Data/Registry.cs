@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 
@@ -19,7 +18,7 @@ internal abstract class Registry<TFileModel, TDefinition>(in ILogger logger, in 
     
     public void Load()
     {
-        List<PathInfo> files = _vfs.GetFiles(AssetPaths.Root.At("items"), SearchOption.AllDirectories).WhereToml().ToList();
+        List<PathInfo> files = _vfs.GetFiles(GetDirectory(), SearchOption.AllDirectories).WhereToml().ToList();
         foreach (PathInfo file in files)
         {
             try
@@ -36,10 +35,10 @@ internal abstract class Registry<TFileModel, TDefinition>(in ILogger logger, in 
             }
         }
         
-        Logger.LogInformation("Registered {count} {type} from {fileCount} files.", _definitions.Count, typeof(TDefinition).Name, files.Count);
+        Logger.LogInformation("Registered {count} {type}s from {fileCount} files.", _definitions.Count, typeof(TDefinition).Name, files.Count);
     }
     
+    protected abstract PathInfo GetDirectory();
     protected abstract IEnumerable<TDefinition> GetDefinitions(TFileModel model);
-
     protected abstract string GetID(TDefinition definition);
 }

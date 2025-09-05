@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Bricks;
 
-internal struct BrickTextures
+public struct BrickTextures()
 {
     public string? Default;
     public string? Top;

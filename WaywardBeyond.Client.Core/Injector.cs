@@ -50,6 +50,7 @@ public class Injector : IDryIocInjector
     private static void RegisterRegistries(IContainer container)
     {
         container.Register<ItemRegistry>();
+        container.Register<BrickRegistry>();
     }
     
     private static void RegisterTomlParsers(IContainer container)

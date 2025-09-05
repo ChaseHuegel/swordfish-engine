@@ -142,7 +142,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
             
             ItemStack itemStack = inventory.Contents[slot];
-            brickToPlace = BrickRegistry.Bricks[itemStack.ID];
+            brickToPlace = BrickData.Bricks[itemStack.ID];
         }
     }
 
@@ -223,7 +223,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             return;
         }
         
-        if (currentBrick == BrickRegistry.Thruster)
+        if (currentBrick == BrickData.Thruster)
         {
             _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
             void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
@@ -237,7 +237,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
         }
         
-        if (brick == BrickRegistry.Thruster)
+        if (brick == BrickData.Thruster)
         {
             var updated = false;
             _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
