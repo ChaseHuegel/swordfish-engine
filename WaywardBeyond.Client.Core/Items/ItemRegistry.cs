@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.IO;
 using Swordfish.Library.Extensions;
@@ -16,19 +18,23 @@ internal sealed class ItemRegistry
     {
         _logger = logger;
         
-        IEnumerable<PathInfo>? files = vfs.GetFiles(AssetPaths.Root.At("items"), SearchOption.AllDirectories).WhereToml();
+        List<PathInfo> files = vfs.GetFiles(AssetPaths.Root.At("items"), SearchOption.AllDirectories).WhereToml().ToList();
         foreach (PathInfo file in files)
         {
-            if (!fileParseService.TryParse(file, out ItemDefinitions definitions))
+            try
             {
-                _logger.LogWarning("Failed to parse item definitions from \"{file}\".", file);
-                continue;
+                var definitions = fileParseService.Parse<ItemDefinitions>(file);
+                foreach (ItemDefinition definition in definitions.Items)
+                {
+                    _definitions[definition.ID] = definition;
+                }
             }
-
-            foreach (ItemDefinition definition in definitions.Items)
+            catch (Exception ex)
             {
-                _definitions[definition.ID] = definition;
+                _logger.LogError(ex, "Failed to parse item definitions from \"{file}\".", file);
             }
         }
+        
+        _logger.LogInformation("Registered {itemCount} item definitions from {fileCount} files.", _definitions.Count, files.Count);
     }
 }

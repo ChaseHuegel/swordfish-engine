@@ -3,6 +3,6 @@ ID       = "display_console"
 Name     = "Console"
 Icon     = "block/display_console.png"
 MaxStack = 100
-[[Items.Placeable]]
+[Items.Placeable]
 Type     = "brick"
 ID       = "display_console"

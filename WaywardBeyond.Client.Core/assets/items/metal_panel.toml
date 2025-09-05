@@ -3,6 +3,6 @@ ID       = "metal_panel"
 Name     = "Panel"
 Icon     = "block/metal_panel.png"
 MaxStack = 100
-[[Items.Placeable]]
+[Items.Placeable]
 Type     = "brick"
 ID       = "metal_panel"

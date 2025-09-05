@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Items;
 
-internal struct ItemDefinition
+public struct ItemDefinition()
 {
     public string ID;
     public string Name;

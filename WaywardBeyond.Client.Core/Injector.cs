@@ -22,6 +22,7 @@ public class Injector : IDryIocInjector
 
         RegisterUI(container);
         RegisterInput(container);
+        RegisterRegistries(container);
         RegisterTomlParsers(container);
         RegisterEntitySystems(container);
         
@@ -44,6 +45,11 @@ public class Injector : IDryIocInjector
         
         container.Register<IEntitySystem, PlayerControllerSystem>();
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
+    }
+    
+    private static void RegisterRegistries(IContainer container)
+    {
+        container.Register<ItemRegistry>();
     }
     
     private static void RegisterTomlParsers(IContainer container)
