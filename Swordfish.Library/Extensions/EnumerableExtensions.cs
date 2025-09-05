@@ -6,7 +6,7 @@ using Swordfish.Library.Util;
 namespace Swordfish.Library.Extensions;
 
 // ReSharper disable once UnusedType.Global
-public static class EnumerableExtensions
+public static partial class EnumerableExtensions
 {
     public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> enumerable)
     {
