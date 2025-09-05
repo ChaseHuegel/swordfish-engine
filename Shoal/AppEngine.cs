@@ -148,7 +148,7 @@ public sealed class AppEngine : IDisposable
 
         container.Register<ConfigurationProvider>(Reuse.Singleton);
 
-        container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton);
+        container.Register<IFileParseService, VirtualFileParseService>(Reuse.Transient);
         container.RegisterMany<TomlParser<Language>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<ModuleOptions>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<ModuleManifest>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);

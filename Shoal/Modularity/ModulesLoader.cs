@@ -4,12 +4,10 @@ namespace Shoal.Modularity;
 
 internal class ModulesLoader(
     in ILogger logger,
-    in IFileParseService fileParseService,
     in ConfigurationProvider configurationProvider
 ) : IModulesLoader
 {
     private readonly ILogger _logger = logger;
-    private readonly IFileParseService _fileParseService = fileParseService;
     private readonly ModuleOptions? _options = configurationProvider.GetModuleOptions()?.Value;
     private readonly IReadOnlyCollection<ParsedFile<ModuleManifest>> _manifests = configurationProvider.GetModuleManifests();
 
