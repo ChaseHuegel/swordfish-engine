@@ -2,6 +2,6 @@ namespace WaywardBeyond.Client.Core.Items;
 
 public struct PlaceableDefinition()
 {
-    public string Type;
+    public PlaceableType Type;
     public string ID;
 }
