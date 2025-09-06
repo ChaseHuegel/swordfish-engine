@@ -13,6 +13,7 @@ internal static class BrickData
     public static readonly Brick DisplayControl = new(id: BrickGridBuilder.BLOCK) { Name = "display_control" };
     public static readonly Brick Thruster = new(id: BrickGridBuilder.THRUSTER) { Name = "thruster" };
     public static readonly Brick Glass = new(id: BrickGridBuilder.BLOCK) { Name = "glass" };
+    public static readonly Brick DisplayConsole = new(id: BrickGridBuilder.BLOCK) { Name = "display_console" };
 
     public static readonly IReadOnlyDictionary<string, Brick> Bricks = new Dictionary<string, Brick>
     {
@@ -24,5 +25,6 @@ internal static class BrickData
         { DisplayControl.Name!, DisplayControl },
         { Thruster.Name!, Thruster },
         { Glass.Name!, Glass },
+        { DisplayConsole.Name!, DisplayConsole },
     };
 }

@@ -9,8 +9,8 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Items;
 
-/// <inheritdoc cref="FileAssetDatabase{TFileModel,TAssetInfo,TAsset}"/>
-internal sealed class ItemDatabase : FileAssetDatabase<ItemDefinitions, ItemDefinition, Item>, IEntryPoint
+/// <inheritdoc cref="VirtualAssetDatabase{TFileModel,TAssetInfo,TAsset}"/>
+internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDefinition, Item>, IEntryPoint
 {
     private readonly Shader _iconShader;
     private readonly Material _unknownIcon;
@@ -42,10 +42,10 @@ internal sealed class ItemDatabase : FileAssetDatabase<ItemDefinitions, ItemDefi
     protected override PathInfo GetRootPath() => AssetPaths.Root.At("items");
     
     /// <inheritdoc/>
-    protected override IEnumerable<ItemDefinition> GetAssetInfo(PathInfo path, ItemDefinitions model) => model.Items;
-    
+    protected override IEnumerable<ItemDefinition> GetAssetInfo(PathInfo path, ItemDefinitions resource) => resource.Items;
+
     /// <inheritdoc/>
-    protected override string GetAssetID(PathInfo path, ItemDefinition assetInfo) => assetInfo.ID;
+    protected override string GetAssetID(ItemDefinition assetInfo) => assetInfo.ID;
     
     /// <inheritdoc/>
     protected override Result<Item> LoadAsset(string id, ItemDefinition assetInfo)
