@@ -11,11 +11,13 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Input;
 using Swordfish.IO;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI;
 using Swordfish.UI.Reef;
+using Texture = Swordfish.Graphics.Texture;
 
 namespace Swordfish;
 
@@ -63,6 +65,8 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IFileParser, ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
+        container.RegisterMany<TextureDatabase>(Reuse.Singleton);
+        
         var renderSettings = new RenderSettings();
         var debugSettings = new DebugSettings();
         debugSettings.Stats.Set(true);

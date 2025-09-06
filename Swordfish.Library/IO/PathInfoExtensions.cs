@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -110,5 +111,10 @@ public static class PathInfoExtensions
         return Safe.Invoke(
             () => Process.Start(processStartInfo)
         );
+    }
+
+    public static bool HasExtension(this PathInfo path, string extension)
+    {
+        return path.GetExtension().Equals(extension, StringComparison.OrdinalIgnoreCase);
     }
 }
