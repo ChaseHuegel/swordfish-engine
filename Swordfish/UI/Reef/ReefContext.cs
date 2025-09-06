@@ -126,13 +126,12 @@ public sealed class ReefContext : IDisposable
         
         bool PathIsFont(PathInfo path)
         {
-            return path.GetExtension().Equals(".otf", StringComparison.InvariantCultureIgnoreCase) 
-                   || path.GetExtension().Equals(".ttf", StringComparison.InvariantCultureIgnoreCase);
+            return path.HasExtension(".otf") || path.HasExtension(".ttf");
         }
         
         bool PathIsToml(PathInfo path)
         {
-            return path.GetExtension().Equals(".toml", StringComparison.InvariantCultureIgnoreCase);
+            return path.HasExtension(".toml");
         }
     }
 }
