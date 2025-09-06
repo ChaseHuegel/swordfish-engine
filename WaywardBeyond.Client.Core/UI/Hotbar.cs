@@ -11,6 +11,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
@@ -23,25 +24,16 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly ReefContext _reefContext;
-    private readonly Dictionary<string, Material> _itemIcons = [];
 
     private readonly Lock _inventoryLock = new();
     private InventoryComponent? _inventory;
 
     public readonly DataBinding<int> ActiveSlot = new(0);
     
-    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, VirtualFileSystem vfs, IFileParseService fileParseService, IAssetDatabase<Item> itemDatabase)
+    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, IAssetDatabase<Item> itemDatabase)
     {
         _reefContext = reefContext;
         _itemDatabase = itemDatabase;
-        
-        var shader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
-        PathInfo[] files = vfs.GetFiles(AssetPaths.Textures.At("block\\"), SearchOption.AllDirectories);
-        foreach (PathInfo file in files)
-        {
-            var texture = fileParseService.Parse<Texture>(file);
-            _itemIcons.Add(texture.Name, new Material(shader, texture));
-        }
         
         for (var i = 0; i < SLOT_COUNT; i++)
         {
@@ -146,10 +138,8 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                         };
                     }
 
-                    if (!_itemIcons.TryGetValue(itemStack.ID, out Material? icon))
-                    {
-                        icon = _itemIcons["metal_panel"];
-                    }
+                    Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
+                    Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
                     
                     using (ui.Image(icon))
                     {
