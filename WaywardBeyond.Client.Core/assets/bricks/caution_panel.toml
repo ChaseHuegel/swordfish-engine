@@ -1,0 +1,5 @@
+[[Bricks]]
+ID      = "caution_panel"
+Shape   = "block"
+[Bricks.Textures]
+Default = "caution_panel"

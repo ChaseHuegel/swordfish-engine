@@ -1,0 +1,8 @@
+[[Items]]
+ID       = "thruster"
+Name     = "Thruster"
+Icon     = "block/vent.png"
+MaxStack = 100
+[Items.Placeable]
+Type     = "brick"
+ID       = "thruster"

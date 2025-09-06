@@ -1,10 +1,9 @@
 [[Bricks]]
-ID      = "display_console"
+ID      = "display_control"
 Shape   = "block"
 [Bricks.Textures]
-Default = "display_console"
-Top     = "metal_panel"
-Bottom  = "metal_panel"
+Default = "metal_panel"
+Front   = "display_control"
 Back    = "vent"
 Left    = "greeble1"
 Right   = "greeble1"

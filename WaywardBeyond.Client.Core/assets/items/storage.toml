@@ -1,0 +1,8 @@
+[[Items]]
+ID       = "storage"
+Name     = "Storage Unit"
+Icon     = "block/storage_front.png"
+MaxStack = 100
+[Items.Placeable]
+Type     = "brick"
+ID       = "storage"

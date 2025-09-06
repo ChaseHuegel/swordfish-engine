@@ -5,8 +5,10 @@ using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types;
 using Swordfish.UI;
@@ -28,6 +30,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IECSContext _ecsContext;
     private readonly Hotbar _hotbar;
+    private readonly IAssetDatabase<Item> _itemDatabase;
+    private readonly IAssetDatabase<BrickDefinition> _brickDatabase;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
@@ -40,7 +44,9 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in IUIContext uiContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IECSContext ecsContext,
-        in Hotbar hotbar)
+        in Hotbar hotbar,
+        in IAssetDatabase<Item> itemDatabase,
+        in IAssetDatabase<BrickDefinition> brickDatabase)
     {
         _inputService = inputService;
         _physics = physics;
@@ -49,6 +55,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _brickEntityBuilder = brickEntityBuilder;
         _ecsContext = ecsContext;
         _hotbar = hotbar;
+        _itemDatabase = itemDatabase;
+        _brickDatabase = brickDatabase;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
         _debugText = new TextElement("");
@@ -142,7 +150,27 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
             
             ItemStack itemStack = inventory.Contents[slot];
-            brickToPlace = BrickData.Bricks[itemStack.ID];
+            
+            Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
+            if (!itemResult.Success || itemResult.Value.Placeable == null)
+            {
+                return;
+            }
+            
+            PlaceableDefinition placeable = itemResult.Value.Placeable.Value;
+            if (placeable.Type != PlaceableType.Brick)
+            {
+                return;
+            }
+            
+            Result<BrickDefinition> brickResult = _brickDatabase.Get(placeable.ID);
+            if (!brickResult.Success)
+            {
+                return;
+            }
+            
+            BrickDefinition brickDefinition = brickResult.Value;
+            brickToPlace = brickDefinition.GetBrick();
         }
     }
 
@@ -223,7 +251,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             return;
         }
         
-        if (currentBrick == BrickData.Thruster)
+        if (currentBrick.Name == "thruster")
         {
             _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
             void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
@@ -237,7 +265,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
         }
         
-        if (brick == BrickData.Thruster)
+        if (brick.Name == "thruster")
         {
             var updated = false;
             _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);

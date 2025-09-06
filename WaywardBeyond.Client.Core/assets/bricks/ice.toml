@@ -1,0 +1,5 @@
+[[Bricks]]
+ID      = "ice"
+Shape   = "block"
+[Bricks.Textures]
+Default = "ice"

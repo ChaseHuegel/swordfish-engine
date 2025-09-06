@@ -4,5 +4,5 @@ public enum BrickShape
 {
     Block,
     Slope,
-    Model,
+    Custom,
 }

@@ -1,0 +1,5 @@
+[[Bricks]]
+ID      = "ship_core"
+Shape   = "block"
+[Bricks.Textures]
+Default = "ship_core"

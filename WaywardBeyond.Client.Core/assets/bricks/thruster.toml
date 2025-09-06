@@ -1,0 +1,6 @@
+[[Bricks]]
+ID      = "thruster"
+Shape   = "custom"
+Mesh    = "thruster_rocket.obj"
+[Bricks.Textures]
+Default = "vent"

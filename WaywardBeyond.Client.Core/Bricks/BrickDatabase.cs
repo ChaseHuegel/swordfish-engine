@@ -1,29 +1,24 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Items;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
 /// <summary>
 ///     Provides access to brick information from virtual resources.
 /// </summary>
-internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickDefinition>, IEntryPoint
+internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickDefinition>, IAutoActivate
 {
     public BrickDatabase(
-        in ILogger<ItemDatabase> logger,
+        in ILogger<BrickDatabase> logger,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs)
         : base(logger, fileParseService, vfs)
-    {
-    }
-    
-    /// <inheritdoc/>
-    public void Run()
     {
         Load();
     }

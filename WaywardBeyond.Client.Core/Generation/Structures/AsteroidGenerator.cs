@@ -2,22 +2,25 @@ using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
 using Swordfish.Bricks;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Generation.Noise;
 
 namespace WaywardBeyond.Client.Core.Generation.Structures;
 
-internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brickEntityBuilder)
+internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickDefinition> brickDatabase)
 {
     private readonly Randomizer _randomizer = new(seed);
     private readonly BrickEntityBuilder _brickEntityBuilder = brickEntityBuilder;
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
+    private readonly Brick RockBrick = brickDatabase.Get("rock").Value.GetBrick();
+    private readonly Brick IceBrick = brickDatabase.Get("ice").Value.GetBrick();
 
     public void GenerateAt(Vector3 position, int diameter)
     {
         var asteroidGrid = new BrickGrid(16);
-        Brick brick = _randomizer.NextFloat() > 0.5f ? BrickData.Rock : BrickData.Ice;
+        Brick brick = _randomizer.NextFloat() > 0.5f ? RockBrick : IceBrick;
         
         int width = diameter / 2;
         int centerOfMass = diameter / 2;

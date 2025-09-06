@@ -18,8 +18,6 @@ public class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
-        container.RegisterMany<Entry>();
-
         RegisterUI(container);
         RegisterInput(container);
         RegisterRegistries(container);
@@ -31,6 +29,8 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
+        
+        container.RegisterMany<Entry>();
     }
 
     private static void RegisterUI(IContainer container)

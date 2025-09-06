@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.Graphics;
 using Swordfish.IO;
@@ -12,7 +13,7 @@ namespace WaywardBeyond.Client.Core.Items;
 /// <summary>
 ///     Provides access to item information from virtual resources.
 /// </summary>
-internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDefinition, Item>, IEntryPoint
+internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDefinition, Item>, IAutoActivate
 {
     private readonly Shader _iconShader;
     private readonly Material _unknownIcon;
@@ -28,12 +29,7 @@ internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemD
     {
         _textureDatabase = textureDatabase;
         _iconShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
-        _unknownIcon = new Material(_iconShader, textureDatabase.Get("unknown.png"));
-    }
-    
-    /// <inheritdoc/>
-    public void Run()
-    {
+        _unknownIcon = new Material(_iconShader, textureDatabase.Get("items/unknown.png"));
         Load();
     }
     

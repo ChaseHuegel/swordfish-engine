@@ -27,6 +27,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IFileParseService _fileParseService;
+    private readonly IAssetDatabase<BrickDefinition> _brickDatabase;
 
     public Entry(
         in IECSContext ecsContext,
@@ -34,7 +35,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
-        in IFileParseService fileParseService)
+        in IFileParseService fileParseService,
+        in IAssetDatabase<BrickDefinition> brickDatabase)
     {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -42,6 +44,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _fileParseService = fileParseService;
+        _brickDatabase = brickDatabase;
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
@@ -60,11 +63,11 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         
         _physics.SetGravity(Vector3.Zero);
 
-        var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder);
+        var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
         Task.Run(worldGenerator.Generate);
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
-        shipGrid.Set(0, 0, 0, BrickData.ShipCore);
+        shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.GetBrick());
         _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();
@@ -73,12 +76,13 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.AddOrUpdate(inventory);
-        inventory.Contents[0] = new ItemStack(BrickData.MetalPanel.Name!, count: 30);
-        inventory.Contents[1] = new ItemStack(BrickData.Thruster.Name!, count: 10);
-        inventory.Contents[2] = new ItemStack(BrickData.DisplayControl.Name!, count: 10);
-        inventory.Contents[3] = new ItemStack(BrickData.CautionPanel.Name!, count: 10);
-        inventory.Contents[4] = new ItemStack(BrickData.Glass.Name!, count: 10);
-        inventory.Contents[5] = new ItemStack(BrickData.DisplayConsole.Name!, count: 10);
+        inventory.Contents[0] = new ItemStack("metal_panel", count: 30);
+        inventory.Contents[1] = new ItemStack("thruster", count: 10);
+        inventory.Contents[2] = new ItemStack("display_control", count: 10);
+        inventory.Contents[3] = new ItemStack("caution_panel", count: 10);
+        inventory.Contents[4] = new ItemStack("glass", count: 10);
+        inventory.Contents[5] = new ItemStack("display_console", count: 10);
+        inventory.Contents[6] = new ItemStack("storage", count: 10);
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));
