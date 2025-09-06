@@ -8,6 +8,7 @@ using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.UI.Reef;
@@ -20,7 +21,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 {
     private const int SLOT_COUNT = 9;
 
-    private readonly ItemRegistry _itemRegistry;
+    private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly ReefContext _reefContext;
     private readonly Dictionary<string, Material> _itemIcons = [];
 
@@ -29,10 +30,10 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 
     public readonly DataBinding<int> ActiveSlot = new(0);
     
-    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, VirtualFileSystem vfs, IFileParseService fileParseService, ItemRegistry itemRegistry)
+    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, VirtualFileSystem vfs, IFileParseService fileParseService, IAssetDatabase<Item> itemDatabase)
     {
         _reefContext = reefContext;
-        _itemRegistry = itemRegistry;
+        _itemDatabase = itemDatabase;
         
         var shader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         PathInfo[] files = vfs.GetFiles(AssetPaths.Textures.At("block\\"), SearchOption.AllDirectories);

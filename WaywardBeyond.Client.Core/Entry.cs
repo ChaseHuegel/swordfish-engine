@@ -7,6 +7,7 @@ using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Physics;
 using Swordfish.Types;
@@ -33,9 +34,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
-        in IFileParseService fileParseService,
-        in ItemRegistry itemRegistry,
-        in BrickRegistry brickRegistry)
+        in IFileParseService fileParseService)
     {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -45,8 +44,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _fileParseService = fileParseService;
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
-        itemRegistry.Load();
-        brickRegistry.Load();
     }
 
     public void Run()

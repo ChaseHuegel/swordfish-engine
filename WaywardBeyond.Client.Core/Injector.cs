@@ -4,6 +4,7 @@ using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
@@ -49,8 +50,7 @@ public class Injector : IDryIocInjector
     
     private static void RegisterRegistries(IContainer container)
     {
-        container.Register<ItemRegistry>();
-        container.Register<BrickRegistry>();
+        container.RegisterMany<ItemDatabase>(Reuse.Singleton);
     }
     
     private static void RegisterTomlParsers(IContainer container)
