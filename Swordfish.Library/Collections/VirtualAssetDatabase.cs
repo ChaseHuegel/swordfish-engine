@@ -9,11 +9,21 @@ using Swordfish.Library.Util;
 namespace Swordfish.Library.Collections;
 
 /// <summary>
-///     Provides access to assets of type <see cref="TAsset"/>,
-///     loaded from files parsed of type <see cref="TFileModel"/>
-///     containing one or more of type <see cref="TAssetInfo"/>s.
+///     Provides access to assets from virtual resources that may represent differing types virtually and in memory.
 /// </summary>
-public abstract class FileAssetDatabase<TFileModel, TAssetInfo, TAsset>(
+/// <typeparam name="TResource">
+///     The resource's type; which must be parseable by <see cref="IFileParseService"/>.
+/// </typeparam>
+/// <typeparam name="TAssetInfo">
+///     The type that will be created or extracted from <typeparamref name="TResource"/>
+///     which provides necessary information to load the <typeparamref name="TAsset"/>.
+///     One of more of these may be representable by a single <typeparamref name="TResource"/>,
+///     allowing implementations to extract multiple assets from a single resource.
+/// </typeparam>
+/// <typeparam name="TAsset">
+///     The asset's type.
+/// </typeparam>
+public abstract class VirtualAssetDatabase<TResource, TAssetInfo, TAsset>(
     in ILogger logger,
     in IFileParseService fileParseService,
     in VirtualFileSystem vfs)
@@ -51,10 +61,10 @@ public abstract class FileAssetDatabase<TFileModel, TAssetInfo, TAsset>(
             {
                 try
                 {
-                    var fileModel = FileParseService.Parse<TFileModel>(file);
-                    foreach (TAssetInfo assetInfo in GetAssetInfo(file, fileModel))
+                    var resource = FileParseService.Parse<TResource>(file);
+                    foreach (TAssetInfo assetInfo in GetAssetInfo(file, resource))
                     {
-                        string id = GetAssetID(file, assetInfo);
+                        string id = GetAssetID(assetInfo);
                         Result<TAsset> assetResult = LoadAsset(id, assetInfo);
                         if (!assetResult)
                         {
@@ -86,18 +96,18 @@ public abstract class FileAssetDatabase<TFileModel, TAssetInfo, TAsset>(
     protected abstract PathInfo GetRootPath();
     
     /// <summary>
-    ///     Provides one or more <see cref="TAssetInfo"/>s from a parsed <see cref="TFileModel"/>,
-    ///     which will be used to load <see cref="TAsset"/>s by <see cref="LoadAsset"/>.
+    ///     Provides one or more <typeparamref name="TAssetInfo"/>s from a parsed <typeparamref name="TResource"/>,
+    ///     which will be used to load <typeparamref name="TAsset"/>s by <typeparamref name="LoadAsset"/>.
     /// </summary>
-    protected abstract IEnumerable<TAssetInfo> GetAssetInfo(PathInfo path, TFileModel model);
+    protected abstract IEnumerable<TAssetInfo> GetAssetInfo(PathInfo path, TResource resource);
     
     /// <summary>
-    ///     Determines a <see cref="TAsset"/>'s unique ID within the database.
+    ///     Determines a <typeparamref name="TAsset"/>'s unique ID within the database.
     /// </summary>
-    protected abstract string GetAssetID(PathInfo path, TAssetInfo assetInfo);
+    protected abstract string GetAssetID(TAssetInfo assetInfo);
     
     /// <summary>
-    ///     Creates or transforms a <see cref="TAsset"/> from the provided <see cref="TAssetInfo"/>.
+    ///     Creates or transforms a <typeparamref name="TAsset"/> from the provided <typeparamref name="TAssetInfo"/>.
     /// </summary>
     protected abstract Result<TAsset> LoadAsset(string id, TAssetInfo assetInfo);
 }

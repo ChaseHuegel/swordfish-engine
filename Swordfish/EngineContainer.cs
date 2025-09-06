@@ -65,6 +65,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<TextureDatabase>(Reuse.Singleton);
+        container.RegisterMany<ShaderDatabase>(Reuse.Singleton);
         
         var renderSettings = new RenderSettings();
         var debugSettings = new DebugSettings();
