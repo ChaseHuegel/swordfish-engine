@@ -9,7 +9,9 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Items;
 
-/// <inheritdoc cref="VirtualAssetDatabase{TFileModel,TAssetInfo,TAsset}"/>
+/// <summary>
+///     Provides access to item information from virtual resources.
+/// </summary>
 internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemDefinition, Item>, IEntryPoint
 {
     private readonly Shader _iconShader;
