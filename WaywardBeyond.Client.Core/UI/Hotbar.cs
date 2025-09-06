@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Threading;
@@ -65,6 +66,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 
         UIBuilder<Material> ui = _reefContext.Builder;
 
+        //  Hotbar
         using (ui.Element())
         {
             ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 1f);
@@ -94,6 +96,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                     itemStack = inventory.Value.Contents.Length > slotIndex ? inventory.Value.Contents[slotIndex] : default;
                 }
                 
+                //  Slot
                 using (ui.Element())
                 {
                     ui.LayoutDirection = LayoutDirection.None;
@@ -105,6 +108,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                         Height = new Fixed(48),
                     };
                     
+                    //  Slot number
                     int slotNumber = slotIndex + 1;
                     using (ui.Text(slotNumber.ToString()))
                     {
@@ -116,7 +120,11 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                         continue;
                     }
                     
-                    using (ui.Text(itemStack.ID))
+                    Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
+                    
+                    //  Name
+                    string name = itemResult.Success ? itemResult.Value.Name : itemStack.ID;
+                    using (ui.Text(name))
                     {
                         ui.FontSize = 12;
                         ui.Constraints = new Constraints
@@ -127,6 +135,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                         };
                     }
 
+                    //  Stack size
                     using (ui.Text(itemStack.Count.ToString()))
                     {
                         ui.FontSize = 16;
@@ -137,10 +146,9 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                             Y = new Relative(1f),
                         };
                     }
-
-                    Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-                    Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
                     
+                    //  Icon
+                    Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
                     using (ui.Image(icon))
                     {
                         ui.Constraints = new Constraints
