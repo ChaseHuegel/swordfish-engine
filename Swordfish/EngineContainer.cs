@@ -58,7 +58,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IInputService, SilkInputService>(Reuse.Singleton);
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        container.Register<IFileParseService, VirtualFileParseService>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
