@@ -26,8 +26,8 @@ internal sealed class BrickGridBuilder
         
         _cube = new Cube();
         _slope = new Slope();
-        _thruster = fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket.obj"));
-        _thrusterBlock = fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket_internal.obj"));
+        _thruster = fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket.obj"));
+        _thrusterBlock = fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket_internal.obj"));
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
