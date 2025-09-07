@@ -1,0 +1,8 @@
+[[Items]]
+ID       = "display_control"
+Name     = "Computer"
+Icon     = "block/display_control.png"
+MaxStack = 100
+[Items.Placeable]
+Type     = "brick"
+ID       = "display_control"
