@@ -23,8 +23,6 @@ internal sealed class BrickGridBuilder
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
     {
-        var empty = new Brick(0);
-
         var triangles = new List<uint>();
         var vertices = new List<Vector3>();
         var colors = new List<Vector4>();
@@ -59,17 +57,25 @@ internal sealed class BrickGridBuilder
             for (var z = 0; z < gridToBuild.DimensionSize; z++)
             {
                 Brick brick = gridToBuild.Bricks[x, y, z];
-                if (brick.Equals(empty) ||
-                    (!gridToBuild.Get(x + 1, y, z).Equals(empty)
-                     && !gridToBuild.Get(x - 1, y, z).Equals(empty)
-                     && !gridToBuild.Get(x, y + 1, z).Equals(empty)
-                     && !gridToBuild.Get(x, y - 1, z).Equals(empty)
-                     && !gridToBuild.Get(x, y, z + 1).Equals(empty)
-                     && !gridToBuild.Get(x, y, z - 1).Equals(empty)))
+                
+                Brick right = gridToBuild.Get(x + 1, y, z);
+                Brick left = gridToBuild.Get(x - 1, y, z);
+                Brick above = gridToBuild.Get(x, y + 1, z);
+                Brick below = gridToBuild.Get(x, y - 1, z);
+                Brick ahead = gridToBuild.Get(x, y, z + 1);
+                Brick behind = gridToBuild.Get(x, y, z - 1);
+                bool hasRight = right.ID != 0;
+                bool hasLeft = left.ID != 0;
+                bool hasAbove = above.ID != 0;
+                bool hasBelow = below.ID != 0;
+                bool hasAhead = ahead.ID != 0;
+                bool hasBehind = behind.ID != 0;
+                
+                if (brick.ID == 0 || (hasRight && hasLeft && hasAbove && hasBelow && hasAhead && hasBehind))
                 {
                     continue;
                 }
-
+                
                 Result<BrickInfo> brickInfoResult = _brickDatabase.Get(brick.ID);
                 if (!brickInfoResult.Success)
                 {
@@ -77,53 +83,288 @@ internal sealed class BrickGridBuilder
                 }
                 
                 BrickInfo brickInfo = brickInfoResult.Value;
-
+                
                 if (transparent && !brickInfo.Transparent)
                 {
                     continue;
                 }
-
+                
                 if (!transparent && brickInfo.Transparent)
                 {
                     continue;
                 }
-
-                Mesh brickMesh;
+                
                 switch (brickInfo.Shape)
                 {
                     case BrickShape.Slope:
-                        brickMesh = _slope;
+                        AddMesh(_slope);
                         break;
                     case BrickShape.Custom:
-                        brickMesh = brickInfo.Mesh ?? _cube;
+                        AddMesh(brickInfo.Mesh ?? _cube);
                         break;
                     case BrickShape.Block:
                     default:
-                        brickMesh = _cube;
+                        AddCube();
                         break;
                 }
                 
-                colors.AddRange(brickMesh.Colors);
-
-                foreach (Vector3 texCoord in brickMesh.Uv)
+                continue;
+                
+                void AddCube()
                 {
-                    int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default!);
-                    uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
+                    if (!hasAbove)
+                    {
+                        AddTopFace();
+                    }
+                    
+                    if (!hasBelow)
+                    {
+                        AddBottomFace();
+                    }
+                    
+                    if (!hasAhead)
+                    {
+                        AddFrontFace();
+                    }
+                    
+                    if (!hasBehind)
+                    {
+                        AddBackFace();
+                    }
+                    
+                    if (!hasRight)
+                    {
+                        AddRightFace();
+                    }
+                    
+                    if (!hasLeft)
+                    {
+                        AddLeftFace();
+                    }
                 }
-
-                foreach (uint tri in brickMesh.Triangles)
+                
+                void AddTopFace()
                 {
-                    triangles.Add(tri + (uint)vertices.Count);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(3 + vertexStart);
+                    
+                    normals.Add(new Vector3(0f, 1f, 0f));
+                    normals.Add(new Vector3(0f, 1f, 0f));
+                    normals.Add(new Vector3(0f, 1f, 0f));
+                    normals.Add(new Vector3(0f, 1f, 0f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, -0.5f));
                 }
-
-                foreach (Vector3 normal in brickMesh.Normals)
+                
+                void AddBottomFace()
                 {
-                    normals.Add(brickMesh != _cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Bottom ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(3 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    
+                    normals.Add(new Vector3(0f, -1f, 0f));
+                    normals.Add(new Vector3(0f, -1f, 0f));
+                    normals.Add(new Vector3(0f, -1f, 0f));
+                    normals.Add(new Vector3(0f, -1f, 0f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, -0.5f));
                 }
-
-                foreach (Vector3 vertex in brickMesh.Vertices)
+                
+                void AddBackFace()
                 {
-                    vertices.Add((brickMesh != _cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Back ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(3 + vertexStart);
+                    
+                    normals.Add(new Vector3(0f, 0f, -1f));
+                    normals.Add(new Vector3(0f, 0f, -1f));
+                    normals.Add(new Vector3(0f, 0f, -1f));
+                    normals.Add(new Vector3(0f, 0f, -1f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, -0.5f));
+                }
+                
+                void AddFrontFace()
+                {
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Front ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(3 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    
+                    normals.Add(new Vector3(0f, 0f, 1f));
+                    normals.Add(new Vector3(0f, 0f, 1f));
+                    normals.Add(new Vector3(0f, 0f, 1f));
+                    normals.Add(new Vector3(0f, 0f, 1f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                }
+                
+                void AddRightFace()
+                {
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Right ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(3 + vertexStart);
+                    
+                    normals.Add(new Vector3(1f, 0f, 0f));
+                    normals.Add(new Vector3(1f, 0f, 0f));
+                    normals.Add(new Vector3(1f, 0f, 0f));
+                    normals.Add(new Vector3(1f, 0f, 0f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, -0.5f, -0.5f));
+                }
+                
+                void AddLeftFace()
+                {
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+                    colors.Add(Vector4.One);
+
+                    string? textureName = brickInfo.Textures.Left ?? brickInfo.Textures.Default;
+                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
+
+                    var vertexStart = (uint)vertices.Count;
+                    triangles.Add(3 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    triangles.Add(2 + vertexStart);
+                    triangles.Add(1 + vertexStart);
+                    triangles.Add(0 + vertexStart);
+                    
+                    normals.Add(new Vector3(-1f, 0f, 0f));
+                    normals.Add(new Vector3(-1f, 0f, 0f));
+                    normals.Add(new Vector3(-1f, 0f, 0f));
+                    normals.Add(new Vector3(-1f, 0f, 0f));
+                    
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, -0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, 0.5f));
+                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, -0.5f, -0.5f));
+                }
+                
+                void AddMesh(Mesh mesh)
+                {
+                    colors.AddRange(mesh.Colors);
+
+                    foreach (Vector3 texCoord in mesh.Uv)
+                    {
+                        int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default!);
+                        uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
+                    }
+
+                    foreach (uint tri in mesh.Triangles)
+                    {
+                        triangles.Add(tri + (uint)vertices.Count);
+                    }
+
+                    foreach (Vector3 normal in mesh.Normals)
+                    {
+                        normals.Add(mesh != _cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+                    }
+
+                    foreach (Vector3 vertex in mesh.Vertices)
+                    {
+                        vertices.Add((mesh != _cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                    }
                 }
             }
         }
