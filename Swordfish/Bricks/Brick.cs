@@ -15,11 +15,11 @@ public struct Brick(in ushort id) : IEquatable<Brick>
     public Direction Rotation;
     public Direction Orientation;
 
-    public bool Equals(Brick other) => other.Name == Name;
+    public bool Equals(Brick other) => other.ID == ID;
 
     public override bool Equals(object? obj) => obj is Brick brick && Equals(brick);
 
-    public override int GetHashCode() => HashCode.Combine(Name);
+    public override int GetHashCode() => ID;
 
     public static bool operator ==(Brick left, Brick right) => left.Equals(right);
 
