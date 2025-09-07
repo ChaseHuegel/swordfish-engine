@@ -148,30 +148,30 @@ public class Cube : Mesh
             new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
 
-            new Vector3(0f, 1f, 0),
-            new Vector3(1f, 1f, 0),
-            new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
+            new Vector3(1f, 0f, 0),
+            new Vector3(1f, 1f, 0),
+            new Vector3(0f, 1f, 0),
 
-            new Vector3(0f, 1f, 0),
-            new Vector3(1f, 1f, 0),
             new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
+            new Vector3(0f, 1f, 0),
+            new Vector3(1f, 1f, 0),
 
-            new Vector3(0f, 1f, 0),
-            new Vector3(1f, 1f, 0),
-            new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
+            new Vector3(1f, 0f, 0),
+            new Vector3(1f, 1f, 0),
+            new Vector3(0f, 1f, 0),
 
-            new Vector3(0f, 1f, 0),
-            new Vector3(1f, 1f, 0),
             new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
+            new Vector3(0f, 1f, 0),
+            new Vector3(1f, 1f, 0),
 
-            new Vector3(0f, 1f, 0),
-            new Vector3(1f, 1f, 0),
-            new Vector3(1f, 0f, 0),
             new Vector3(0f, 0f, 0),
+            new Vector3(1f, 0f, 0),
+            new Vector3(1f, 1f, 0),
+            new Vector3(0f, 1f, 0),
         ];
     }
 }
