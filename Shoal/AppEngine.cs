@@ -48,8 +48,8 @@ public sealed class AppEngine : IDisposable
         coreContainer.Resolve<ConfigurationProvider>().GetLanguages();
         
         //  Auto activate things
-        coreContainer.ResolveMany<IAutoActivate>();
-        modulesContainer.ResolveMany<IAutoActivate>();
+        foreach (IAutoActivate _ in coreContainer.ResolveMany<IAutoActivate>()) { }
+        foreach (IAutoActivate _ in modulesContainer.ResolveMany<IAutoActivate>()) { }
 
         Container = modulesContainer;
     }
