@@ -24,5 +24,5 @@ internal sealed class MeshDatabase : SimpleVirtualAssetDatabase<Mesh>, IAutoActi
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".obj");
 
     /// <inheritdoc/>
-    protected override PathInfo GetRootPath() => AssetPaths.Models;
+    protected override PathInfo GetRootPath() => AssetPaths.Meshes;
 }

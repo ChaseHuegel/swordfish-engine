@@ -658,8 +658,8 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket_internal.obj"));
+        var thruster = _fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket.obj"));
+        var thrusterBlock = _fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket_internal.obj"));
         using (Benchmark.StartNew(nameof(Demo), nameof(CreateShipTest), "_BuildBrickGridMesh"))
         {
             BuildBrickGridMesh(grid, -grid.CenterOfMass);
@@ -920,8 +920,8 @@ public class Demo : IEntryPoint, IAutoActivate
 
         var cube = new Cube();
         var slope = new Slope();
-        var thruster = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket.obj"));
-        var thrusterBlock = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("thruster_rocket_internal.obj"));
+        var thruster = _fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket.obj"));
+        var thrusterBlock = _fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket_internal.obj"));
 
         HashSet<BrickGrid> builtGrids = [];
         using (Benchmark.StartNew(nameof(Demo), nameof(MeshBrickGrid), nameof(BuildBrickGridMesh)))
@@ -1018,7 +1018,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void CreateDonutDemo()
     {
-        var mesh = _fileParseService.Parse<Mesh>(AssetPaths.Models.At("donut.obj"));
+        var mesh = _fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("donut.obj"));
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("lighted.glsl"));
         var texture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("test.png"));
 
