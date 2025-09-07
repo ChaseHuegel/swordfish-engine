@@ -27,7 +27,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IFileParseService _fileParseService;
-    private readonly IAssetDatabase<BrickDefinition> _brickDatabase;
+    private readonly BrickDatabase _brickDatabase;
 
     public Entry(
         in IECSContext ecsContext,
@@ -36,7 +36,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IFileParseService fileParseService,
-        in IAssetDatabase<BrickDefinition> brickDatabase)
+        in BrickDatabase brickDatabase)
     {
         _ecsContext = ecsContext;
         _physics = physics;

@@ -15,7 +15,7 @@ internal sealed class WorldGenerator
     private readonly AsteroidGenerator _asteroidGenerator;
     private readonly Randomizer _randomizer;
 
-    public WorldGenerator(in string seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickDefinition> brickDatabase)
+    public WorldGenerator(in string seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
     {
         byte[] seedBytes = Encoding.UTF8.GetBytes(seed);
         byte[] seedHash = SHA1.HashData(seedBytes);

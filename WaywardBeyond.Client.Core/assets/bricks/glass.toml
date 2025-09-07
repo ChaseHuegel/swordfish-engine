@@ -1,5 +1,6 @@
 [[Bricks]]
-ID      = "glass"
-Shape   = "block"
+ID          = "glass"
+Shape       = "block"
+Transparent = true
 [Bricks.Textures]
-Default = "glass"
+Default     = "glass"

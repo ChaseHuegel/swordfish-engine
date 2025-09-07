@@ -31,7 +31,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly IECSContext _ecsContext;
     private readonly Hotbar _hotbar;
     private readonly IAssetDatabase<Item> _itemDatabase;
-    private readonly IAssetDatabase<BrickDefinition> _brickDatabase;
+    private readonly BrickDatabase _brickDatabase;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
@@ -46,7 +46,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in IECSContext ecsContext,
         in Hotbar hotbar,
         in IAssetDatabase<Item> itemDatabase,
-        in IAssetDatabase<BrickDefinition> brickDatabase)
+        in BrickDatabase brickDatabase)
     {
         _inputService = inputService;
         _physics = physics;
@@ -163,14 +163,14 @@ internal sealed class PlayerInteractionService : IEntryPoint
                 return;
             }
             
-            Result<BrickDefinition> brickResult = _brickDatabase.Get(placeable.ID);
-            if (!brickResult.Success)
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+            if (!brickInfoResult.Success)
             {
                 return;
             }
             
-            BrickDefinition brickDefinition = brickResult.Value;
-            brickToPlace = brickDefinition.GetBrick();
+            BrickInfo brickInfo = brickInfoResult.Value;
+            brickToPlace = brickInfo.GetBrick();
         }
     }
 

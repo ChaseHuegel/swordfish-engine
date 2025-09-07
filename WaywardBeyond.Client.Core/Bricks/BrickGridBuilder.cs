@@ -2,38 +2,28 @@ using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Graphics;
-using Swordfish.IO;
-using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickGridBuilder
 {
-    public const int BLOCK = 1;
-    public const int SLOPE = 2;
-    public const int THRUSTER = 3;
-    public const int THRUSTER_BLOCK = 4;
-    
     private readonly Mesh _cube;
     private readonly Mesh _slope;
-    private readonly Mesh _thruster;
-    private readonly Mesh _thrusterBlock;
     private readonly TextureArray _textureArray;
+    private readonly BrickDatabase _brickDatabase;
     
-    public BrickGridBuilder(IFileParseService fileParseService, TextureArray textureArray)
+    public BrickGridBuilder(BrickDatabase brickDatabase, TextureArray textureArray)
     {
+        _brickDatabase = brickDatabase;
         _textureArray = textureArray;
-        
         _cube = new Cube();
         _slope = new Slope();
-        _thruster = fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket.obj"));
-        _thrusterBlock = fileParseService.Parse<Mesh>(AssetPaths.Meshes.At("thruster_rocket_internal.obj"));
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
     {
         var empty = new Brick(0);
-        int metalPanelTex = _textureArray.IndexOf("metal_panel");
 
         var triangles = new List<uint>();
         var vertices = new List<Vector3>();
@@ -80,35 +70,45 @@ internal sealed class BrickGridBuilder
                     continue;
                 }
 
-                if (transparent && !brick.Name.Contains("window") && !brick.Name.Contains("porthole"))
+                Result<BrickInfo> brickInfoResult = _brickDatabase.Get(brick.ID);
+                if (!brickInfoResult.Success)
+                {
+                    continue;
+                }
+                
+                BrickInfo brickInfo = brickInfoResult.Value;
+
+                if (transparent && !brickInfo.Transparent)
                 {
                     continue;
                 }
 
-                if (!transparent && (brick.Name.Contains("window") || brick.Name.Contains("porthole")))
+                if (!transparent && brickInfo.Transparent)
                 {
                     continue;
                 }
 
-                Mesh brickMesh = MeshFromBrickID(brick.ID);
+                Mesh brickMesh;
+                switch (brickInfo.Shape)
+                {
+                    case BrickShape.Slope:
+                        brickMesh = _slope;
+                        break;
+                    case BrickShape.Custom:
+                        brickMesh = brickInfo.Mesh ?? _cube;
+                        break;
+                    case BrickShape.Block:
+                    default:
+                        brickMesh = _cube;
+                        break;
+                }
+                
                 colors.AddRange(brickMesh.Colors);
-
-                Mesh MeshFromBrickID(int id)
-                {
-                    return id switch
-                    {
-                        BLOCK => _cube,
-                        SLOPE => _slope,
-                        THRUSTER => _thruster,
-                        THRUSTER_BLOCK => _thrusterBlock,
-                        _ => _cube,
-                    };
-                }
 
                 foreach (Vector3 texCoord in brickMesh.Uv)
                 {
-                    int textureIndex = _textureArray.IndexOf(brick.Name);
-                    uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : metalPanelTex });
+                    int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default!);
+                    uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
                 }
 
                 foreach (uint tri in brickMesh.Triangles)

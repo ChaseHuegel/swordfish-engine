@@ -14,16 +14,14 @@ internal sealed class BrickEntityBuilder(
     in ILogger logger,
     in Shader shader,
     in TextureArray textureArray,
-    in IFileParseService fileParseService,
+    in BrickDatabase brickDatabase,
     in DataStore dataStore)
 {
     private readonly ILogger _logger = logger;
     
-    private readonly TextureArray _textureArray = textureArray;
-    
     private readonly DataStore _dataStore = dataStore;
     
-    private readonly BrickGridBuilder _brickGridBuilder = new(fileParseService, textureArray);
+    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArray);
     
     private readonly Material _opaqueMaterial = new(shader, textureArray);
     

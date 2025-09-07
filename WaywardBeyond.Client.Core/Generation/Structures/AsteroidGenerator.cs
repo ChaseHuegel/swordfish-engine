@@ -9,7 +9,7 @@ using WaywardBeyond.Client.Core.Generation.Noise;
 
 namespace WaywardBeyond.Client.Core.Generation.Structures;
 
-internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickDefinition> brickDatabase)
+internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
 {
     private readonly Randomizer _randomizer = new(seed);
     private readonly BrickEntityBuilder _brickEntityBuilder = brickEntityBuilder;
