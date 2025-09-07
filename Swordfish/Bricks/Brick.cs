@@ -19,7 +19,7 @@ public struct Brick(in ushort id) : IEquatable<Brick>
 
     public override bool Equals(object? obj) => obj is Brick brick && Equals(brick);
 
-    public override int GetHashCode() => HashCode.Combine(ID);
+    public override int GetHashCode() => ID;
 
     public static bool operator ==(Brick left, Brick right) => left.Equals(right);
 
