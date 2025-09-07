@@ -118,7 +118,11 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
-            inventory.Add(new ItemStack(clickedBrick.Name!));
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedBrick.ID);
+            if (brickInfoResult.Success)
+            {
+                inventory.Add(new ItemStack(brickInfoResult.Value.ID));
+            }
         }
     }
     
