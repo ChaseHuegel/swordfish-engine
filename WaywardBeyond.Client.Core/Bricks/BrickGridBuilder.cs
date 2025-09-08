@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
@@ -142,6 +143,56 @@ internal sealed class BrickGridBuilder
                         AddLeftFace();
                     }
                 }
+
+                int ResolveTopBottomTexture(string? textureName, (int X, int Y, int Z) cullingOffset)
+                {
+                    int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
+                    if (!brickInfo.Textures.Connected)
+                    {
+                        return textureIndex;
+                    }
+
+                    var connectedTextureMask = 0;
+                    
+                    if (ahead.ID == brick.ID)
+                    {
+                        Brick cullingBrick = gridToBuild.Get(x + cullingOffset.X, y + cullingOffset.Y, z + cullingOffset.Z + 1);
+                        if (cullingBrick.ID == 0 || !_brickDatabase.Get(cullingBrick.ID).Value.DoesCull)
+                        {
+                            connectedTextureMask |= 1;
+                        }
+                    }
+                    
+                    if (left.ID == brick.ID)
+                    {
+                        Brick cullingBrick = gridToBuild.Get(x + cullingOffset.X - 1, y + cullingOffset.Y, z + cullingOffset.Z);
+                        if (cullingBrick.ID == 0 || !_brickDatabase.Get(cullingBrick.ID).Value.DoesCull)
+                        {
+                            connectedTextureMask |= 2;
+                        }
+                    }
+                    
+                    if (right.ID == brick.ID)
+                    {
+                        Brick cullingBrick = gridToBuild.Get(x + cullingOffset.X + 1, y + cullingOffset.Y, z + cullingOffset.Z);
+                        if (cullingBrick.ID == 0 || !_brickDatabase.Get(cullingBrick.ID).Value.DoesCull)
+                        {
+                            connectedTextureMask |= 4;
+                        }
+                    }
+                    
+                    if (behind.ID == brick.ID)
+                    {
+                        Brick cullingBrick = gridToBuild.Get(x + cullingOffset.X, y + cullingOffset.Y, z + cullingOffset.Z - 1);
+                        if (cullingBrick.ID == 0 || !_brickDatabase.Get(cullingBrick.ID).Value.DoesCull)
+                        {
+                            connectedTextureMask |= 8;
+                        }
+                    }
+                    
+                    textureIndex += connectedTextureMask;
+                    return textureIndex;
+                }
                 
                 void AddTopFace()
                 {
@@ -151,11 +202,11 @@ internal sealed class BrickGridBuilder
                     colors.Add(Vector4.One);
 
                     string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
-                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
-                    uv.Add(new Vector3(0f, 1f, textureIndex));
-                    uv.Add(new Vector3(1f, 1f, textureIndex));
-                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    int textureIndex = ResolveTopBottomTexture(textureName, (0, 1, 0));
                     uv.Add(new Vector3(0f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
+                    uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
 
                     var vertexStart = (uint)vertices.Count;
                     triangles.Add(0 + vertexStart);
@@ -184,7 +235,7 @@ internal sealed class BrickGridBuilder
                     colors.Add(Vector4.One);
 
                     string? textureName = brickInfo.Textures.Bottom ?? brickInfo.Textures.Default;
-                    int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
+                    int textureIndex = ResolveTopBottomTexture(textureName, (0, -1, 0));
                     uv.Add(new Vector3(0f, 0f, textureIndex));
                     uv.Add(new Vector3(1f, 0f, textureIndex));
                     uv.Add(new Vector3(1f, 1f, textureIndex));
@@ -218,10 +269,10 @@ internal sealed class BrickGridBuilder
 
                     string? textureName = brickInfo.Textures.Back ?? brickInfo.Textures.Default;
                     int textureIndex = textureName != null ? _textureArray.IndexOf(textureName) : 0;
-                    uv.Add(new Vector3(1f, 0f, textureIndex));
                     uv.Add(new Vector3(0f, 0f, textureIndex));
-                    uv.Add(new Vector3(0f, 1f, textureIndex));
+                    uv.Add(new Vector3(1f, 0f, textureIndex));
                     uv.Add(new Vector3(1f, 1f, textureIndex));
+                    uv.Add(new Vector3(0f, 1f, textureIndex));
 
                     var vertexStart = (uint)vertices.Count;
                     triangles.Add(0 + vertexStart);

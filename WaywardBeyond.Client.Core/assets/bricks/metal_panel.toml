@@ -2,4 +2,5 @@
 ID      = "metal_panel"
 Shape   = "block"
 [Bricks.Textures]
-Default = "metal_panel"
+Connected = true
+Default = "panel.0"

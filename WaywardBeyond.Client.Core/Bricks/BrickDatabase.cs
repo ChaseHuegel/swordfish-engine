@@ -76,7 +76,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             }
         }
         
-        var brickInfo = new BrickInfo(id, _lastDataID, assetInfo.Transparent, mesh, assetInfo.Shape, assetInfo.Textures);
+        var brickInfo = new BrickInfo(id, _lastDataID, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures);
         lock (_bricksByDataID)
         {
             _bricksByDataID[_lastDataID] = brickInfo;
