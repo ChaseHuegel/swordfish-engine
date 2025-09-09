@@ -4,43 +4,146 @@ using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Graphics;
 
-using IntPos = (int X, int Y, int Z);
 using NeighborMask = (int X, int Y, int Z, int Bit);
 using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);
+using FaceUVs = (System.Numerics.Vector2 U0, System.Numerics.Vector2 U1, System.Numerics.Vector2 U2, System.Numerics.Vector2 U3);
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
+using FaceInfo = (FaceVertices Vertices, FaceUVs UV);
+
 internal struct BrickGridMeshBuilder
 {
-    private static readonly NeighborMask[] NeighborMasksXZ = new[]
-    {
+    private static readonly NeighborMask[] _neighborMasksXZ = [
+        (0, 0, -1, 1),   // front
+        (-1, 0, 0, 2),  // left
+        (1, 0, 0, 4),   // right
+        (0, 0, 1, 8),  // back
+    ];
+    
+    private static readonly NeighborMask[] _neighborMasksInvXZ = [
         (0, 0, 1, 1),   // front
         (-1, 0, 0, 2),  // left
         (1, 0, 0, 4),   // right
         (0, 0, -1, 8),  // back
-    };
+    ];
 
-    private static readonly NeighborMask[] NeighborMasksXY = new[]
-    {
+    private static readonly NeighborMask[] _neighborMasksXY = [
         (0, 1, 0, 1),   // up
         (-1, 0, 0, 2),  // left
         (1, 0, 0, 4),   // right
         (0, -1, 0, 8),  // down
-    };
+    ];
+    
+    private static readonly NeighborMask[] _neighborMasksInvXY = [
+        (0, 1, 0, 1),   // up
+        (1, 0, 0, 2),  // left
+        (-1, 0, 0, 4),   // right
+        (0, -1, 0, 8),  // down
+    ];
 
-    private static readonly NeighborMask[] NeighborMasksYZ = new[]
-    {
+    private static readonly NeighborMask[] _neighborMasksYZ = [
         (0, 1, 0, 1),   // up
         (0, 0, -1, 2),  // left
         (0, 0, 1, 4),   // right
         (0, -1, 0, 8),  // down
-    };
+    ];
+    
+    private static readonly NeighborMask[] _neighborMasksInvYZ = [
+        (0, 1, 0, 1),   // up
+        (0, 0, 1, 2),  // left
+        (0, 0, -1, 4),   // right
+        (0, -1, 0, 8),  // down
+    ];
 
-    private static readonly FaceVertices TopFaceVertices = new(
-        new Vector3(-0.5f, 0.5f, 0.5f),
-        new Vector3(0.5f, 0.5f, 0.5f),
-        new Vector3(0.5f, 0.5f, -0.5f),
-        new Vector3(-0.5f, 0.5f, -0.5f)
+    private static readonly FaceInfo _topFace = new(
+        new FaceVertices(
+            new Vector3(-0.5f, 0.5f,  0.5f),
+            new Vector3( 0.5f, 0.5f,  0.5f),
+            new Vector3( 0.5f, 0.5f, -0.5f),
+            new Vector3(-0.5f, 0.5f, -0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
+    );
+    
+    private static readonly FaceInfo _bottomFace = new(
+        new FaceVertices(
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3( 0.5f, -0.5f, -0.5f),
+            new Vector3( 0.5f, -0.5f,  0.5f),
+            new Vector3(-0.5f, -0.5f,  0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
+    );
+    
+    private static readonly FaceInfo _frontFace = new(
+        new FaceVertices(
+            new Vector3(-0.5f, -0.5f, 0.5f),
+            new Vector3( 0.5f, -0.5f, 0.5f),
+            new Vector3( 0.5f,  0.5f, 0.5f),
+            new Vector3(-0.5f,  0.5f, 0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
+    );
+    
+    private static readonly FaceInfo _backFace = new(
+        new FaceVertices(
+            new Vector3( 0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f,  0.5f, -0.5f),
+            new Vector3( 0.5f,  0.5f, -0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
+    );
+    
+    private static readonly FaceInfo _rightFace = new(
+        new FaceVertices(
+            new Vector3(0.5f, -0.5f,  0.5f),
+            new Vector3(0.5f, -0.5f, -0.5f),
+            new Vector3(0.5f,  0.5f, -0.5f),
+            new Vector3(0.5f,  0.5f,  0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
+    );
+    
+    private static readonly FaceInfo _leftFace = new(
+        new FaceVertices(
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f,  0.5f),
+            new Vector3(-0.5f,  0.5f,  0.5f),
+            new Vector3(-0.5f,  0.5f, -0.5f)
+        ),
+        new FaceUVs(
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 0f)
+        )
     );
     
     private readonly BrickDatabase _brickDatabase;
@@ -79,41 +182,116 @@ internal struct BrickGridMeshBuilder
     {
         string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
         AddFace(
-            Vector3.UnitY,
-            TopFaceVertices,
-            new IntPos(x, y, z),
+            normal: new Vector3(0, 1, 0),
+            _topFace,
+            x, y, z,
             brick,
             brickInfo,
             textureName,
-            new IntPos(0, 1, 0),
-            NeighborMasksXZ
+            cullingX: 0, cullingY: 1, cullingZ: 0,
+            _neighborMasksXZ
+        );
+    }
+    
+    public void AddBottomFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
+    {
+        string? textureName = brickInfo.Textures.Bottom ?? brickInfo.Textures.Default;
+        AddFace(
+            normal: new Vector3(0, -1, 0),
+            _bottomFace,
+            x, y, z,
+            brick,
+            brickInfo,
+            textureName,
+            cullingX: 0, cullingY: -1, cullingZ: 0,
+            _neighborMasksInvXZ
+        );
+    }
+    
+    public void AddFrontFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
+    {
+        string? textureName = brickInfo.Textures.Front ?? brickInfo.Textures.Default;
+        AddFace(
+            normal: new Vector3(0, 0, 1),
+            _frontFace,
+            x, y, z,
+            brick,
+            brickInfo,
+            textureName,
+            cullingX: 0, cullingY: 0, cullingZ: 1,
+            _neighborMasksXY
+        );
+    }
+    
+    public void AddBackFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
+    {
+        string? textureName = brickInfo.Textures.Back ?? brickInfo.Textures.Default;
+        AddFace(
+            normal: new Vector3(0, 0, -1),
+            _backFace,
+            x, y, z,
+            brick,
+            brickInfo,
+            textureName,
+            cullingX: 0, cullingY: 0, cullingZ: -1,
+            _neighborMasksInvXY
+        );
+    }
+    
+    public void AddRightFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
+    {
+        string? textureName = brickInfo.Textures.Right ?? brickInfo.Textures.Default;
+        AddFace(
+            normal: new Vector3(1, 0, 0),
+            _rightFace,
+            x, y, z,
+            brick,
+            brickInfo,
+            textureName,
+            cullingX: 1, cullingY: 0, cullingZ: 0,
+            _neighborMasksInvYZ
+        );
+    }
+    
+    public void AddLeftFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
+    {
+        string? textureName = brickInfo.Textures.Left ?? brickInfo.Textures.Default;
+        AddFace(
+            normal: new Vector3(-1, 0, 0),
+            _leftFace,
+            x, y, z,
+            brick,
+            brickInfo,
+            textureName,
+            cullingX: -1, cullingY: 0, cullingZ: 0,
+            _neighborMasksYZ
         );
     }
     
     private void AddFace(
         Vector3 normal,
-        FaceVertices faceVertices,
-        IntPos pos,
+        FaceInfo faceInfo,
+        int x, int y, int z,
         Brick brick,
         BrickInfo brickInfo,
         string? textureName,
-        IntPos cullingOffset,
+        int cullingX, int cullingY, int cullingZ,
         NeighborMask[] neighborMasks
     ) {
         var vertexStart = (uint)_vertices.Count;
         int textureIndex = GetTextureIndex(
-            pos,
+            x, y, z,
             brick,
             brickInfo,
             textureName,
-            cullingOffset,
+            cullingX, cullingY, cullingZ,
             neighborMasks
         );
         
-        _uvs.Add(new Vector3(0f, 0f, textureIndex));
-        _uvs.Add(new Vector3(1f, 0f, textureIndex));
-        _uvs.Add(new Vector3(1f, 1f, textureIndex));
-        _uvs.Add(new Vector3(0f, 1f, textureIndex));
+        _uvs.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
+        _uvs.Add(new Vector3(faceInfo.UV.U1.X, faceInfo.UV.U1.Y, textureIndex));
+        _uvs.Add(new Vector3(faceInfo.UV.U2.X, faceInfo.UV.U2.Y, textureIndex));
+        _uvs.Add(new Vector3(faceInfo.UV.U3.X, faceInfo.UV.U3.Y, textureIndex));
         
         _triangles.Add(vertexStart + 0);
         _triangles.Add(vertexStart + 1);
@@ -132,10 +310,10 @@ internal struct BrickGridMeshBuilder
         _colors.Add(Vector4.One);
         _colors.Add(Vector4.One);
         
-        _vertices.Add(_origin + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V0);
-        _vertices.Add(_origin + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V1);
-        _vertices.Add(_origin + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V2);
-        _vertices.Add(_origin + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V3);
+        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V0);
+        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V1);
+        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V2);
+        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V3);
     }
     
     /// <summary>
@@ -145,11 +323,11 @@ internal struct BrickGridMeshBuilder
     ///     is provided then this will return an index for the default texture.
     /// </summary>
     private int GetTextureIndex(
-        IntPos pos,
+        int x, int y, int z,
         Brick brick,
         BrickInfo brickInfo,
         string? textureName,
-        IntPos cullingOffset,
+        int cullingX, int cullingY, int cullingZ,
         NeighborMask[] neighborMasks
     ) {
         int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
@@ -164,17 +342,17 @@ internal struct BrickGridMeshBuilder
         for (var i = 0; i < neighborMasks.Length; i++)
         {
             NeighborMask neighborMask = neighborMasks[i];
-            int x = pos.X + neighborMask.X;
-            int y = pos.Y + neighborMask.Y;
-            int z = pos.Z + neighborMask.Z;
+            int nX = x + neighborMask.X;
+            int nY = y + neighborMask.Y;
+            int nZ = z + neighborMask.Z;
             
-            Brick neighbor = _grid.Get(x, y, z);
+            Brick neighbor = _grid.Get(nX, nY, nZ);
             if (neighbor.ID != brick.ID) 
             {
                 continue;
             }
             
-            Brick culler = _grid.Get(x + cullingOffset.X, y + cullingOffset.Y, z + cullingOffset.Z);
+            Brick culler = _grid.Get(nX + cullingX, nY + cullingY, nZ + cullingZ);
             if (culler.ID == 0 || !_brickDatabase.Get(culler.ID).Value.DoesCull)
             {
                 //  Texture is connected to the neighbor if it isn't culled
