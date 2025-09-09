@@ -5,38 +5,10 @@ using Swordfish.Bricks;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 
-using IntPos = (int X, int Y, int Z);
-using NeighborMask = (int X, int Y, int Z, int Bit);
-using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);
-
 namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickGridBuilder
 {
-    private static readonly NeighborMask[] NeighborMasksXZ = new[]
-    {
-        (0, 0, 1, 1),   // front
-        (-1, 0, 0, 2),  // left
-        (1, 0, 0, 4),   // right
-        (0, 0, -1, 8),  // back
-    };
-
-    private static readonly NeighborMask[] NeighborMasksXY = new[]
-    {
-        (0, 1, 0, 1),   // up
-        (-1, 0, 0, 2),  // left
-        (1, 0, 0, 4),   // right
-        (0, -1, 0, 8),  // down
-    };
-
-    private static readonly NeighborMask[] NeighborMasksYZ = new[]
-    {
-        (0, 1, 0, 1),   // up
-        (0, 0, -1, 2),  // left
-        (0, 0, 1, 4),   // right
-        (0, -1, 0, 8),  // down
-    };
-    
     private readonly Mesh _cube;
     private readonly Mesh _slope;
     private readonly TextureArray _textureArray;
@@ -48,102 +20,6 @@ internal sealed class BrickGridBuilder
         _textureArray = textureArray;
         _cube = new Cube();
         _slope = new Slope();
-    }
-    
-    /// <summary>
-    ///     Gets the best matching texture array index provided an optional preferred texture
-    ///     name for a brick. This may not return the exact index of the input texture, such
-    ///     as when selecting connected or random textures. If no texture, or an invalid texture,
-    ///     is provided then this will return an index for the default texture.
-    /// </summary>
-    private int GetTextureIndex(BrickGrid grid, IntPos pos, Brick brick, BrickInfo brickInfo, string? textureName, IntPos cullingOffset, NeighborMask[] neighborMasks)
-    {
-        int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
-        
-        //  TODO support randomized textures
-        if (!brickInfo.Textures.Connected)
-        {
-            return textureIndex;
-        }
-
-        var connectedTextureMask = 0;
-        for (var i = 0; i < neighborMasks.Length; i++)
-        {
-            NeighborMask neighborMask = neighborMasks[i];
-            int x = pos.X + neighborMask.X;
-            int y = pos.Y + neighborMask.Y;
-            int z = pos.Z + neighborMask.Z;
-            
-            Brick neighbor = grid.Get(x, y, z);
-            if (neighbor.ID != brick.ID) 
-            {
-                continue;
-            }
-            
-            Brick culler = grid.Get(x + cullingOffset.X, y + cullingOffset.Y, z + cullingOffset.Z);
-            if (culler.ID == 0 || !_brickDatabase.Get(culler.ID).Value.DoesCull)
-            {
-                connectedTextureMask |= neighborMask.Bit;
-            }
-        }
-        
-        return textureIndex + connectedTextureMask;
-    }
-
-    private void AddFace(
-        List<Vector3> vertices,
-        List<Vector4> colors,
-        List<Vector3> uvs,
-        List<uint> triangles,
-        List<Vector3> normals,
-        Vector3 offset,
-        Vector3 normal,
-        FaceVertices faceVertices,
-        BrickGrid grid,
-        IntPos pos,
-        Brick brick,
-        BrickInfo brickInfo,
-        string? textureName,
-        IntPos cullingOffset,
-        NeighborMask[] neighborMasks)
-    {
-        var vertexStart = (uint)vertices.Count;
-        int textureIndex = GetTextureIndex(
-            grid,
-            pos,
-            brick,
-            brickInfo,
-            textureName,
-            cullingOffset,
-            neighborMasks
-        );
-        
-        uvs.Add(new Vector3(0f, 0f, textureIndex));
-        uvs.Add(new Vector3(1f, 0f, textureIndex));
-        uvs.Add(new Vector3(1f, 1f, textureIndex));
-        uvs.Add(new Vector3(0f, 1f, textureIndex));
-        
-        triangles.Add(vertexStart + 0);
-        triangles.Add(vertexStart + 1);
-        triangles.Add(vertexStart + 2);
-        triangles.Add(vertexStart + 0);
-        triangles.Add(vertexStart + 2);
-        triangles.Add(vertexStart + 3);
-        
-        normals.Add(normal);
-        normals.Add(normal);
-        normals.Add(normal);
-        normals.Add(normal);
-        
-        colors.Add(Vector4.One);
-        colors.Add(Vector4.One);
-        colors.Add(Vector4.One);
-        colors.Add(Vector4.One);
-        
-        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V0);
-        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V1);
-        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V2);
-        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V3);
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
@@ -176,6 +52,18 @@ internal sealed class BrickGridBuilder
                 
                 BuildBrickGridMesh(neighbor, new Vector3(nX - 1, nY - 1, nZ - 1) * gridToBuild.DimensionSize + offset);
             }
+
+            var meshBuilder = new BrickGridMeshBuilder(
+                _brickDatabase,
+                _textureArray,
+                vertices,
+                colors,
+                uv,
+                triangles,
+                normals,
+                offset,
+                gridToBuild
+            );
 
             for (var x = 0; x < gridToBuild.DimensionSize; x++)
             for (var y = 0; y < gridToBuild.DimensionSize; y++)
@@ -239,7 +127,7 @@ internal sealed class BrickGridBuilder
                 {
                     if (!hasAbove)
                     {
-                        AddTopFace();
+                        meshBuilder.AddTopFace(x, y, z, brick, brickInfo);
                     }
                     
                     if (!hasBelow)
@@ -268,45 +156,9 @@ internal sealed class BrickGridBuilder
                     }
                 }
                 
-                void AddTopFace()
-                {
-                    string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
-                    AddFace(
-                        vertices,
-                        colors,
-                        uv,
-                        triangles,
-                        normals,
-                        offset,
-                        Vector3.UnitY,
-                        new FaceVertices(
-                            new Vector3(-0.5f, 0.5f,  0.5f),
-                            new Vector3( 0.5f, 0.5f,  0.5f),
-                            new Vector3( 0.5f, 0.5f, -0.5f),
-                            new Vector3(-0.5f, 0.5f, -0.5f)
-                        ),
-                        gridToBuild,
-                        new IntPos(x, y, z),
-                        brick,
-                        brickInfo,
-                        textureName,
-                        new IntPos(0, 1, 0),
-                        NeighborMasksXZ
-                    );
-                }
-                
                 void AddBottomFace()
                 {
-                    string? textureName = brickInfo.Textures.Bottom ?? brickInfo.Textures.Default;
-                    int textureIndex = GetTextureIndex(
-                        gridToBuild,
-                        new IntPos(x, y, z),
-                        brick,
-                        brickInfo,
-                        textureName,
-                        new IntPos(0, -1, 0),
-                        NeighborMasksXZ
-                    );
+                    int textureIndex = 0;
 
                     uv.Add(new Vector3(0f, 0f, textureIndex));
                     uv.Add(new Vector3(1f, 0f, textureIndex));
