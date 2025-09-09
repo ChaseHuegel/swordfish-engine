@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client.Core.Bricks;
 
 using FaceInfo = (FaceVertices Vertices, FaceUVs UV);
 
-internal struct BrickGridMeshBuilder
+internal readonly struct BrickGridMeshBuilder
 {
     private static readonly NeighborMask[] _neighborMasksXZ = [
         (0, 0, -1, 1),   // front
