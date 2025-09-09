@@ -1,5 +1,6 @@
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 
 namespace Swordfish.IO
 {
@@ -19,7 +20,7 @@ namespace Swordfish.IO
             string name = path.GetDirectoryName();
 
             PathInfo[] files = _vfs.GetFiles(path, SearchOption.AllDirectories);
-            Texture[] textures = files.Select(_textureParser.Parse).ToArray();
+            Texture[] textures = files.OrderBy(x => x.OriginalString, new NaturalComparer()).Select(_textureParser.Parse).ToArray();
 
             return new TextureArray(name, textures.ToArray(), true);
         }
