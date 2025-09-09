@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 
 using IntPos = (int X, int Y, int Z);
 using NeighborMask = (int X, int Y, int Z, int Bit);
+using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -87,6 +88,62 @@ internal sealed class BrickGridBuilder
         }
         
         return textureIndex + connectedTextureMask;
+    }
+
+    private void AddFace(
+        List<Vector3> vertices,
+        List<Vector4> colors,
+        List<Vector3> uvs,
+        List<uint> triangles,
+        List<Vector3> normals,
+        Vector3 offset,
+        Vector3 normal,
+        FaceVertices faceVertices,
+        BrickGrid grid,
+        IntPos pos,
+        Brick brick,
+        BrickInfo brickInfo,
+        string? textureName,
+        IntPos cullingOffset,
+        NeighborMask[] neighborMasks)
+    {
+        var vertexStart = (uint)vertices.Count;
+        int textureIndex = GetTextureIndex(
+            grid,
+            pos,
+            brick,
+            brickInfo,
+            textureName,
+            cullingOffset,
+            neighborMasks
+        );
+        
+        uvs.Add(new Vector3(0f, 0f, textureIndex));
+        uvs.Add(new Vector3(1f, 0f, textureIndex));
+        uvs.Add(new Vector3(1f, 1f, textureIndex));
+        uvs.Add(new Vector3(0f, 1f, textureIndex));
+        
+        triangles.Add(vertexStart + 0);
+        triangles.Add(vertexStart + 1);
+        triangles.Add(vertexStart + 2);
+        triangles.Add(vertexStart + 0);
+        triangles.Add(vertexStart + 2);
+        triangles.Add(vertexStart + 3);
+        
+        normals.Add(normal);
+        normals.Add(normal);
+        normals.Add(normal);
+        normals.Add(normal);
+        
+        colors.Add(Vector4.One);
+        colors.Add(Vector4.One);
+        colors.Add(Vector4.One);
+        colors.Add(Vector4.One);
+        
+        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V0);
+        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V1);
+        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V2);
+        vertices.Add(offset + new Vector3(pos.X, pos.Y, pos.Z) + faceVertices.V3);
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
@@ -214,7 +271,20 @@ internal sealed class BrickGridBuilder
                 void AddTopFace()
                 {
                     string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
-                    int textureIndex = GetTextureIndex(
+                    AddFace(
+                        vertices,
+                        colors,
+                        uv,
+                        triangles,
+                        normals,
+                        offset,
+                        Vector3.UnitY,
+                        new FaceVertices(
+                            new Vector3(-0.5f, 0.5f,  0.5f),
+                            new Vector3( 0.5f, 0.5f,  0.5f),
+                            new Vector3( 0.5f, 0.5f, -0.5f),
+                            new Vector3(-0.5f, 0.5f, -0.5f)
+                        ),
                         gridToBuild,
                         new IntPos(x, y, z),
                         brick,
@@ -223,34 +293,6 @@ internal sealed class BrickGridBuilder
                         new IntPos(0, 1, 0),
                         NeighborMasksXZ
                     );
-                    
-                    uv.Add(new Vector3(0f, 0f, textureIndex));
-                    uv.Add(new Vector3(1f, 0f, textureIndex));
-                    uv.Add(new Vector3(1f, 1f, textureIndex));
-                    uv.Add(new Vector3(0f, 1f, textureIndex));
-
-                    var vertexStart = (uint)vertices.Count;
-                    triangles.Add(0 + vertexStart);
-                    triangles.Add(1 + vertexStart);
-                    triangles.Add(2 + vertexStart);
-                    triangles.Add(0 + vertexStart);
-                    triangles.Add(2 + vertexStart);
-                    triangles.Add(3 + vertexStart);
-                    
-                    normals.Add(new Vector3(0f, 1f, 0f));
-                    normals.Add(new Vector3(0f, 1f, 0f));
-                    normals.Add(new Vector3(0f, 1f, 0f));
-                    normals.Add(new Vector3(0f, 1f, 0f));
-                    
-                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, 0.5f));
-                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, 0.5f));
-                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(0.5f, 0.5f, -0.5f));
-                    vertices.Add(offset + new Vector3(x, y, z) + new Vector3(-0.5f, 0.5f, -0.5f));
-                    
-                    colors.Add(Vector4.One);
-                    colors.Add(Vector4.One);
-                    colors.Add(Vector4.One);
-                    colors.Add(Vector4.One);
                 }
                 
                 void AddBottomFace()
