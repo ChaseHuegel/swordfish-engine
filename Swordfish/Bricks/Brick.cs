@@ -111,17 +111,6 @@ public struct Brick(in ushort id) : IEquatable<Brick>
                 break;
         }
 
-        euler = Orientation switch
-        {
-            Direction.North => euler with { Z = euler.Z + 90 },
-            Direction.East => new Vector3(euler.X, euler.Y + 90, euler.Z + 90),
-            Direction.South => new Vector3(euler.X, euler.Y + 180, euler.Z - 90),
-            Direction.West => new Vector3(euler.X, euler.Y - 90, euler.Z - 90),
-            Direction.Above => new Vector3(euler.X - 90, euler.Y, euler.Z + 90),
-            Direction.Below => new Vector3(euler.X + 90, euler.Y + 180, euler.Z - 90),
-            _ => euler,
-        };
-
         return Quaternion.CreateFromYawPitchRoll(euler.Y * MathS.DEGREES_TO_RADIANS, euler.X * MathS.DEGREES_TO_RADIANS, euler.Z * MathS.DEGREES_TO_RADIANS);
     }
 

@@ -310,10 +310,10 @@ internal readonly struct BrickGridMeshBuilder
         _colors.Add(Vector4.One);
         _colors.Add(Vector4.One);
         
-        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V0);
-        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V1);
-        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V2);
-        _vertices.Add(_origin + new Vector3(x, y, z) + faceInfo.Vertices.V3);
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V0, brick.GetQuaternion()));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V1, brick.GetQuaternion()));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V2, brick.GetQuaternion()));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V3, brick.GetQuaternion()));
     }
     
     /// <summary>
