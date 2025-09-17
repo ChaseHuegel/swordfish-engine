@@ -185,6 +185,8 @@ internal sealed class BrickGridBuilder
                 
                 void AddMesh(Mesh mesh)
                 {
+                    Quaternion rotation = brick.GetQuaternion();
+                    
                     colors.AddRange(mesh.Colors);
 
                     foreach (Vector3 texCoord in mesh.Uv)
@@ -200,12 +202,12 @@ internal sealed class BrickGridBuilder
 
                     foreach (Vector3 normal in mesh.Normals)
                     {
-                        normals.Add(mesh != _cube ? Vector3.Transform(normal, brick.GetQuaternion()) : normal);
+                        normals.Add(mesh != _cube ? Vector3.Transform(normal, rotation) : normal);
                     }
 
                     foreach (Vector3 vertex in mesh.Vertices)
                     {
-                        vertices.Add((mesh != _cube ? Vector3.Transform(vertex, brick.GetQuaternion()) : vertex) + new Vector3(x, y, z) + offset);
+                        vertices.Add((mesh != _cube ? Vector3.Transform(vertex, rotation) : vertex) + new Vector3(x, y, z) + offset);
                     }
                 }
             }

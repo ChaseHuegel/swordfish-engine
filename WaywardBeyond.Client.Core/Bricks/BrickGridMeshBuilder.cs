@@ -279,6 +279,7 @@ internal readonly struct BrickGridMeshBuilder
         NeighborMask[] neighborMasks
     ) {
         var vertexStart = (uint)_vertices.Count;
+        var rotation = brick.Orientation.ToQuaternion();
         int textureIndex = GetTextureIndex(
             x, y, z,
             brick,
@@ -300,20 +301,20 @@ internal readonly struct BrickGridMeshBuilder
         _triangles.Add(vertexStart + 2);
         _triangles.Add(vertexStart + 3);
         
-        _normals.Add(normal);
-        _normals.Add(normal);
-        _normals.Add(normal);
-        _normals.Add(normal);
+        _normals.Add(Vector3.Transform(normal, rotation));
+        _normals.Add(Vector3.Transform(normal, rotation));
+        _normals.Add(Vector3.Transform(normal, rotation));
+        _normals.Add(Vector3.Transform(normal, rotation));
         
         _colors.Add(Vector4.One);
         _colors.Add(Vector4.One);
         _colors.Add(Vector4.One);
         _colors.Add(Vector4.One);
         
-        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V0, brick.GetQuaternion()));
-        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V1, brick.GetQuaternion()));
-        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V2, brick.GetQuaternion()));
-        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V3, brick.GetQuaternion()));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V0, rotation));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V1, rotation));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V2, rotation));
+        _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V3, rotation));
     }
     
     /// <summary>
