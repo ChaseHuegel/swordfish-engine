@@ -93,8 +93,8 @@ public struct BrickOrientation
     public Quaternion ToQuaternion()
     {
         float pitch = PitchRotations * MathF.PI / 2f;
-        float yaw = YawRotations   * MathF.PI / 2f;
-        float roll = RollRotations  * MathF.PI / 2f;
+        float yaw = YawRotations * MathF.PI / 2f;
+        float roll = RollRotations * MathF.PI / 2f;
 
         return Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
     }

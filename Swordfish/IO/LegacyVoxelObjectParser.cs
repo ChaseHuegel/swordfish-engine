@@ -74,11 +74,9 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
                         break;
 
                     case "r":
-                        brick.Rotation = (Direction)Enum.Parse(typeof(Direction), value, true);
                         break;
 
                     case "o":
-                        brick.Orientation = (Direction)Enum.Parse(typeof(Direction), value, true);
                         break;
                 }
             }

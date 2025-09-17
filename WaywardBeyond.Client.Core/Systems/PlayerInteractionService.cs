@@ -142,7 +142,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
         if (_inputService.IsKeyHeld(Key.Shift))
         {
-            brickToPlace = brickToPlace.Value with { Rotation = Direction.East };
+            brickToPlace = brickToPlace.Value with { Orientation = new BrickOrientation(0, 1, 0)};
         }
 
         SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
