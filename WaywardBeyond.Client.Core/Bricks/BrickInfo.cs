@@ -13,7 +13,7 @@ internal sealed class BrickInfo(string id, ushort dataID, bool transparent, bool
     public BrickShape Shape = shape;
     public BrickTextures Textures = textures;
 
-    public bool DoesCull = !passable && !transparent;
+    public bool DoesCull = !passable && !transparent && shape == BrickShape.Block;
     
     public Brick GetBrick()
     {

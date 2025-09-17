@@ -1,5 +1,4 @@
 using System.Numerics;
-using Swordfish.Library.Util;
 
 namespace Swordfish.Bricks;
 

@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Swordfish.Bricks;
 
-public struct BrickOrientation
+public struct BrickOrientation : IEquatable<BrickOrientation>
 {
     public static readonly BrickOrientation Identity = new(0,0,0);
     
@@ -79,8 +79,8 @@ public struct BrickOrientation
     public Matrix4x4 ToMatrix4x4()
     {
         float pitch = PitchRotations * MathF.PI / 2f;
-        float yaw = YawRotations   * MathF.PI / 2f;
-        float roll = RollRotations  * MathF.PI / 2f;
+        float yaw = YawRotations * MathF.PI / 2f;
+        float roll = RollRotations * MathF.PI / 2f;
 
         Matrix4x4 rotation =
             Matrix4x4.CreateRotationX(pitch) *
@@ -101,10 +101,21 @@ public struct BrickOrientation
     
     public Vector3 ToEulerAngles()
     {
-        float pitch = PitchRotations * MathF.PI / 2f;
-        float yaw = YawRotations   * MathF.PI / 2f;
-        float roll = RollRotations  * MathF.PI / 2f;
+        return new Vector3(PitchRotations * 90, YawRotations * 90, RollRotations * 90);
+    }
 
-        return new Vector3(pitch * 90, yaw * 90, roll * 90);
+    public bool Equals(BrickOrientation other)
+    {
+        return _value == other._value;
+    }
+
+    public override bool Equals(object? obj)
+    {
+        return obj is BrickOrientation other && Equals(other);
+    }
+
+    public override int GetHashCode()
+    {
+        return _value.GetHashCode();
     }
 }

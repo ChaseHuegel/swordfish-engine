@@ -71,18 +71,45 @@ internal sealed class BrickGridBuilder
             {
                 Brick brick = gridToBuild.Bricks[x, y, z];
                 
-                Brick right = gridToBuild.Get(x + 1, y, z);
-                Brick left = gridToBuild.Get(x - 1, y, z);
-                Brick above = gridToBuild.Get(x, y + 1, z);
-                Brick below = gridToBuild.Get(x, y - 1, z);
-                Brick ahead = gridToBuild.Get(x, y, z + 1);
-                Brick behind = gridToBuild.Get(x, y, z - 1);
-                bool hasRight = right.ID != 0;
-                bool hasLeft = left.ID != 0;
-                bool hasAbove = above.ID != 0;
-                bool hasBelow = below.ID != 0;
-                bool hasAhead = ahead.ID != 0;
-                bool hasBehind = behind.ID != 0;
+                Brick right, left, above, below, ahead, behind;
+                if (brick.Orientation.Equals(BrickOrientation.Identity))
+                {
+                    right = gridToBuild.Get(x + 1, y, z);
+                    left = gridToBuild.Get(x - 1, y, z);
+                    above = gridToBuild.Get(x, y + 1, z);
+                    below = gridToBuild.Get(x, y - 1, z);
+                    ahead = gridToBuild.Get(x, y, z + 1);
+                    behind = gridToBuild.Get(x, y, z - 1);
+                }
+                else
+                {
+                    Quaternion rotation = brick.GetQuaternion();
+                
+                    Vector3 neighborOffset = Vector3.Transform(new Vector3(1, 0, 0), rotation);
+                    right = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+
+                    neighborOffset = Vector3.Transform(new Vector3(-1, 0, 0), rotation);
+                    left = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+                    
+                    neighborOffset = Vector3.Transform(new Vector3(0, 1, 0), rotation);
+                    above = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+                    
+                    neighborOffset = Vector3.Transform(new Vector3(0, -1, 0), rotation);
+                    below = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+                    
+                    neighborOffset = Vector3.Transform(new Vector3(0, 0, 1), rotation);
+                    ahead = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+                    
+                    neighborOffset = Vector3.Transform(new Vector3(0, 0, -1), rotation);
+                    behind = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
+                }
+
+                bool hasRight = right.ID != 0 && _brickDatabase.Get(right.ID).Value.DoesCull;
+                bool hasLeft = left.ID != 0 && _brickDatabase.Get(left.ID).Value.DoesCull;
+                bool hasAbove = above.ID != 0 && _brickDatabase.Get(above.ID).Value.DoesCull;
+                bool hasBelow = below.ID != 0 && _brickDatabase.Get(below.ID).Value.DoesCull;
+                bool hasAhead = ahead.ID != 0 && _brickDatabase.Get(ahead.ID).Value.DoesCull;
+                bool hasBehind = behind.ID != 0 && _brickDatabase.Get(behind.ID).Value.DoesCull;
                 
                 if (brick.ID == 0 || (hasRight && hasLeft && hasAbove && hasBelow && hasAhead && hasBehind))
                 {
