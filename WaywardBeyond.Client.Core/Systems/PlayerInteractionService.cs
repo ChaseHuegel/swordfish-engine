@@ -30,6 +30,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IECSContext _ecsContext;
     private readonly Hotbar _hotbar;
+    private readonly ShapeSelector _shapeSelector;
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly BrickDatabase _brickDatabase;
     private readonly CubeGizmo _cubeGizmo;
@@ -45,6 +46,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in BrickEntityBuilder brickEntityBuilder,
         in IECSContext ecsContext,
         in Hotbar hotbar,
+        in ShapeSelector shapeSelector,
         in IAssetDatabase<Item> itemDatabase,
         in BrickDatabase brickDatabase)
     {
@@ -55,6 +57,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _brickEntityBuilder = brickEntityBuilder;
         _ecsContext = ecsContext;
         _hotbar = hotbar;
+        _shapeSelector = shapeSelector;
         _itemDatabase = itemDatabase;
         _brickDatabase = brickDatabase;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);

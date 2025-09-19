@@ -38,13 +38,16 @@ public class Injector : IDryIocInjector
     {
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, Hotbar>();
+        
+        container.Register<ShapeSelector>(Reuse.Singleton);
     }
     
     private static void RegisterInput(IContainer container)
     {
         container.Register<IEntryPoint, PlayerInteractionService>();
         
-        container.Register<IEntitySystem, PlayerControllerSystem>();
+        container.Register<PlayerControllerSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, PlayerControllerSystem>();
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
     

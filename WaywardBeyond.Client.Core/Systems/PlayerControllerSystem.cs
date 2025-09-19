@@ -32,10 +32,15 @@ internal sealed class PlayerControllerSystem
         shortcutService.RegisterShortcut(mouseLookShortcut);
     }
 
-    private void ToggleMouselook()
+    public bool IsMouseLookEnabled()
     {
-        _mouseLookEnabled = !_mouseLookEnabled;
-        if (_mouseLookEnabled)
+        return _mouseLookEnabled;
+    }
+    
+    public void SetMouseLook(bool enabled)
+    {
+        _mouseLookEnabled = enabled;
+        if (enabled)
         {
             _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
             _ = _inputService.CursorDelta;  //  ! HACKY Consume delta state
@@ -44,6 +49,11 @@ internal sealed class PlayerControllerSystem
         {
             _inputService.CursorOptions = CursorOptions.None;
         }
+    }
+
+    private void ToggleMouselook()
+    {
+        SetMouseLook(!_mouseLookEnabled);
     }
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
