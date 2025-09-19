@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "display_console"
+ID      = "display_monitor"
 Shape   = "block"
 Tags    = [
     "metal",
@@ -7,7 +7,7 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = ["display_console"]
+Default = ["display_monitor"]
 Top     = ["metal_panel"]
 Bottom  = ["metal_panel"]
 Back    = ["vent"]

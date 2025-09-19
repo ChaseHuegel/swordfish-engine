@@ -180,7 +180,7 @@ internal readonly struct BrickGridMeshBuilder
 
     public void AddTopFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Top ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Top ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(0, 1, 0),
             _topFace,
@@ -195,7 +195,7 @@ internal readonly struct BrickGridMeshBuilder
     
     public void AddBottomFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Bottom ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Bottom ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(0, -1, 0),
             _bottomFace,
@@ -210,7 +210,7 @@ internal readonly struct BrickGridMeshBuilder
     
     public void AddFrontFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Front ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Front ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(0, 0, 1),
             _frontFace,
@@ -225,7 +225,7 @@ internal readonly struct BrickGridMeshBuilder
     
     public void AddBackFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Back ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Back ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(0, 0, -1),
             _backFace,
@@ -240,7 +240,7 @@ internal readonly struct BrickGridMeshBuilder
     
     public void AddRightFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Right ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Right ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(1, 0, 0),
             _rightFace,
@@ -255,7 +255,7 @@ internal readonly struct BrickGridMeshBuilder
     
     public void AddLeftFace(int x, int y, int z, Brick brick, BrickInfo brickInfo)
     {
-        string? textureName = brickInfo.Textures.Left ?? brickInfo.Textures.Default;
+        string? textureName = GetTextureName(x, y, z, brickInfo.Textures.Left ?? brickInfo.Textures.Default);
         AddFace(
             normal: new Vector3(-1, 0, 0),
             _leftFace,
@@ -362,5 +362,21 @@ internal readonly struct BrickGridMeshBuilder
         }
         
         return textureIndex + connectedTextureMask;
+    }
+    
+    private static string? GetTextureName(int x, int y, int z, string?[]? textures)
+    {
+        if (textures == null || textures.Length == 0)
+        {
+            return null;
+        }
+
+        if (textures.Length == 1)
+        {
+            return textures[0];
+        }
+
+        int hash = x + y + z;
+        return textures[hash % textures.Length];
     }
 }

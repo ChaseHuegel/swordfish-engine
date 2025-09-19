@@ -7,10 +7,10 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = "storage_front"
-Top     = "storage_top"
-Bottom  = "storage_bottom"
-Front   = "storage_front"
-Back    = "storage_back"
-Left    = "storage_side"
-Right   = "storage_side"
+Default = ["storage_front"]
+Top     = ["storage_top"]
+Bottom  = ["storage_bottom"]
+Front   = ["storage_front"]
+Back    = ["storage_back"]
+Left    = ["storage_side"]
+Right   = ["storage_side"]

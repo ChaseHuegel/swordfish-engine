@@ -8,4 +8,4 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = "vent"
+Default = ["vent"]

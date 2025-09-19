@@ -6,4 +6,4 @@ Tags        = [
     "metal",
 ]
 [Bricks.Textures]
-Default     = "truss"
+Default = ["truss"]

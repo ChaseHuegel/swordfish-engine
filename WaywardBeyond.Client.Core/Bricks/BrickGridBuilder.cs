@@ -191,7 +191,7 @@ internal sealed class BrickGridBuilder
 
                     foreach (Vector3 texCoord in mesh.Uv)
                     {
-                        int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default!);
+                        int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default![0]!);
                         uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
                     }
 

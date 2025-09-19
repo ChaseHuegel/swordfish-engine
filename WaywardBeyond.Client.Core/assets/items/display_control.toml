@@ -1,7 +1,7 @@
 [[Items]]
 ID       = "display_control"
-Name     = "Computer"
-Icon     = "block/display_control.png"
+Name     = "Display"
+Icon     = "block/display_control.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"

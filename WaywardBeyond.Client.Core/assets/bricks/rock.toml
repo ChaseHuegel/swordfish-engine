@@ -5,4 +5,4 @@ Tags    = [
     "environment",
 ]
 [Bricks.Textures]
-Default = "rock"
+Default = ["rock"]

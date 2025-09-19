@@ -7,4 +7,4 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = "ship_core"
+Default = ["ship_core"]

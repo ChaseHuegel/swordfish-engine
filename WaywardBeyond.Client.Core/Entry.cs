@@ -82,7 +82,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[2] = new ItemStack("display_control", count: 10);
         inventory.Contents[3] = new ItemStack("caution_panel", count: 10);
         inventory.Contents[4] = new ItemStack("glass", count: 10);
-        inventory.Contents[5] = new ItemStack("display_console", count: 10);
+        inventory.Contents[5] = new ItemStack("display_monitor", count: 5);
         inventory.Contents[6] = new ItemStack("storage", count: 10);
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("drill", count: 1);

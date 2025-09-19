@@ -8,4 +8,4 @@ Tags    = [
 ]
 [Bricks.Textures]
 Connected = true
-Default = "panel.0"
+Default   = ["panel.0"]

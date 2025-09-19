@@ -7,9 +7,15 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = "display_control"
-Top     = "metal_panel"
-Bottom  = "metal_panel"
-Back    = "vent"
-Left    = "greeble1"
-Right   = "greeble1"
+Top     = ["metal_panel"]
+Bottom  = ["metal_panel"]
+Back    = ["vent"]
+Left    = ["greeble1"]
+Right   = ["greeble1"]
+Front   = [
+    "display_control.0",
+    "display_control.1",
+    "display_control.2",
+    "display_control.3",
+    "display_control.4",
+]

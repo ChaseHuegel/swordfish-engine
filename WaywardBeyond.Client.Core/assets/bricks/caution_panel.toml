@@ -7,4 +7,4 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = "caution_panel"
+Default = ["caution_panel"]
