@@ -1,6 +1,11 @@
 [[Bricks]]
 ID      = "metal_panel"
 Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
 [Bricks.Textures]
 Connected = true
 Default = "panel.0"

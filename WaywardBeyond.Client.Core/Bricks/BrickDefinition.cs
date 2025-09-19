@@ -8,4 +8,5 @@ public struct BrickDefinition()
     public string? Mesh;
     public BrickShape Shape;
     public BrickTextures Textures;
+    public string[] Tags;
 }

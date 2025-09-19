@@ -7,4 +7,5 @@ public struct ItemDefinition()
     public string? Icon;
     public int? MaxStack;
     public PlaceableDefinition? Placeable;
+    public ToolDefinition? Tool;
 }

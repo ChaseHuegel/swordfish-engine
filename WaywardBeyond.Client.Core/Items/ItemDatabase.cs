@@ -69,7 +69,7 @@ internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemD
             }
         }
         
-        var item = new Item(id, assetInfo.Name, icon, assetInfo.MaxStack ?? 1, assetInfo.Placeable);
+        var item = new Item(id, assetInfo.Name, icon, assetInfo.MaxStack ?? 1, assetInfo.Placeable, assetInfo.Tool);
         return Result<Item>.FromSuccess(item);
     }
 }

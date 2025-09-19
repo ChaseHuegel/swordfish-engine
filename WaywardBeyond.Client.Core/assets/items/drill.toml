@@ -1,0 +1,11 @@
+[[Items]]
+ID              = "drill"
+Name            = "Drill"
+Icon            = "items/drill.png"
+MaxStack        = 100
+[Items.Tool]
+Type            = "convert"
+Target          = "truss"
+Tags = [
+    "convertable_truss",
+]

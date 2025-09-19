@@ -1,6 +1,11 @@
 [[Bricks]]
 ID      = "storage"
 Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
 [Bricks.Textures]
 Default = "storage_front"
 Top     = "storage_top"

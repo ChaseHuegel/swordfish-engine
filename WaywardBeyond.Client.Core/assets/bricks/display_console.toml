@@ -1,6 +1,11 @@
 [[Bricks]]
 ID      = "display_console"
 Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
 [Bricks.Textures]
 Default = "display_console"
 Top     = "metal_panel"

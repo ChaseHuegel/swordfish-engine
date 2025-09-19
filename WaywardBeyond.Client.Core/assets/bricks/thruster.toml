@@ -2,5 +2,10 @@
 ID      = "thruster"
 Shape   = "custom"
 Mesh    = "thruster_rocket.obj"
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
 [Bricks.Textures]
 Default = "vent"

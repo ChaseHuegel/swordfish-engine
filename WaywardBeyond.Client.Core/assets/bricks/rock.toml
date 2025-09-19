@@ -1,5 +1,8 @@
 [[Bricks]]
 ID      = "rock"
 Shape   = "block"
+Tags    = [
+    "environment",
+]
 [Bricks.Textures]
 Default = "rock"

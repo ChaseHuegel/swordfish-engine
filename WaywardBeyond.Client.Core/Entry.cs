@@ -83,6 +83,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[4] = new ItemStack("glass", count: 10);
         inventory.Contents[5] = new ItemStack("display_console", count: 10);
         inventory.Contents[6] = new ItemStack("storage", count: 10);
+        inventory.Contents[7] = new ItemStack("truss", count: 50);
+        inventory.Contents[8] = new ItemStack("drill", count: 1);
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));

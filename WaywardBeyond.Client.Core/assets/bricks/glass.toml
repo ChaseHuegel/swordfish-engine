@@ -2,5 +2,10 @@
 ID          = "glass"
 Shape       = "block"
 Transparent = true
+Tags    = [
+    "metal",
+    "buildable",
+    "convertable_truss",
+]
 [Bricks.Textures]
 Default     = "glass"

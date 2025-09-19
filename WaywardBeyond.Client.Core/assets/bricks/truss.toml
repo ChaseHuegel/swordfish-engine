@@ -1,0 +1,9 @@
+[[Bricks]]
+ID          = "truss"
+Shape       = "block"
+Transparent = true
+Tags        = [
+    "metal",
+]
+[Bricks.Textures]
+Default     = "truss"
