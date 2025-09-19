@@ -9,6 +9,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 
@@ -25,6 +26,8 @@ public class Injector : IDryIocInjector
         RegisterTomlParsers(container);
         RegisterEntitySystems(container);
         
+        container.Register<PlayerData>(Reuse.Singleton);
+        
         //  TODO this was thrown together for testing and needs cleaned up
         container.Register<BrickEntityBuilder>(Reuse.Singleton);
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
@@ -40,6 +43,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, Hotbar>();
         
         container.Register<ShapeSelector>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, ShapeSelector>();
     }
     
     private static void RegisterInput(IContainer container)

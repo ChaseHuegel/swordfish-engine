@@ -1,17 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Numerics;
+﻿using System.Numerics;
 using System.Threading;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Components;
@@ -28,8 +23,8 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 
     private readonly Lock _inventoryLock = new();
     private InventoryComponent? _inventory;
-
-    public readonly DataBinding<int> ActiveSlot = new(0);
+    
+    private int _activeSlot;
     
     public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, IAssetDatabase<Item> itemDatabase)
     {
@@ -47,13 +42,28 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
                 IsEnabled = Shortcut.DefaultEnabled,
-                Action = () => ActiveSlot.Set(slotIndex),
+                Action = () => _activeSlot = slotIndex,
             };
             
             shortcutService.RegisterShortcut(shortcut);
         }
         
         windowContext.Update += OnWindowUpdate;
+    }
+    
+    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
+    {
+        lock (_inventoryLock)
+        {
+            _inventory = inventory;
+        }
+        
+        store.Query<EquipmentComponent>(entity, 0f, UpdateEquipmentQuery);
+    }
+
+    private void UpdateEquipmentQuery(float delta, DataStore store, int entity, ref EquipmentComponent equipment)
+    {
+        equipment.ActiveInventorySlot = _activeSlot;
     }
 
     private void OnWindowUpdate(double delta)
@@ -101,7 +111,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                 {
                     ui.LayoutDirection = LayoutDirection.None;
                     ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                    ui.Color = ActiveSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Color = _activeSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(48),
@@ -162,14 +172,6 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                     }
                 }
             }
-        }
-    }
-    
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
-    {
-        lock (_inventoryLock)
-        {
-            _inventory = inventory;
         }
     }
 }

@@ -1,8 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
+using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Shoal.DependencyInjection;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
@@ -10,18 +14,22 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 
 namespace WaywardBeyond.Client.Core.UI;
 
 using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
-internal class ShapeSelector
+internal class ShapeSelector : IAutoActivate
 {
+    public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
+    
+    private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
     private readonly PlayerControllerSystem _playerControllerSystem;
-
-    public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
+    private readonly PlayerData _playerData;
     
     private readonly Material _labelImage;
     private readonly Material _backgroundImage;
@@ -31,15 +39,19 @@ internal class ShapeSelector
     private bool _previousMouseLookState;
     
     public ShapeSelector(
+        ILogger<ShapeSelector> logger,
         IWindowContext windowContext,
         ReefContext reefContext,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
-        PlayerControllerSystem playerControllerSystem
+        PlayerControllerSystem playerControllerSystem,
+        PlayerData playerData
     ) {
+        _logger = logger;
         _reefContext = reefContext;
         _playerControllerSystem = playerControllerSystem;
+        _playerData = playerData;
         
         Result<Shader> shader = shaderDatabase.Get("ui_reef_textured.glsl");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
@@ -71,6 +83,11 @@ internal class ShapeSelector
 
     private void OnChangeShapePressed()
     {
+        if (!HasPlaceableMainHand())
+        {
+            return;
+        }
+        
         _changingShape = true;
         _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
         _playerControllerSystem.SetMouseLook(false);
@@ -78,15 +95,37 @@ internal class ShapeSelector
     
     private void OnChangeShapeReleased()
     {
+        if (!HasPlaceableMainHand())
+        {
+            return;
+        }
+        
         _changingShape = false;
         _playerControllerSystem.SetMouseLook(_previousMouseLookState);
+    }
+    
+    private bool HasPlaceableMainHand() 
+    {
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand();
+        if (!mainHandResult.Success)
+        {
+            _logger.LogError(mainHandResult.Exception, "Failed to get the player's main hand. {message}", mainHandResult.Message);
+            return false;
+        }
+        
+        return mainHandResult.Value.Item.Placeable != null;
     }
 
     private void OnWindowUpdate(double delta)
     {
+        if (!HasPlaceableMainHand())
+        {
+            //  Don't draw anything if the player isn't holding a placeable item.
+            return;
+        }
+     
         UIBuilder<Material> ui = _reefContext.Builder;
         
-        //  TODO only draw this if the player is holding a placeable
         //  Draw the currently selected shape
         ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[SelectedShape.Get()];
         using (ui.Image(selectedShapeElement.BaseImage))

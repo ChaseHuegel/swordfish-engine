@@ -73,6 +73,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         Entity player = _ecsContext.World.NewEntity();
         var inventory = new InventoryComponent(size: 9);
         player.Add<PlayerComponent>();
+        player.Add<EquipmentComponent>();
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.AddOrUpdate(inventory);

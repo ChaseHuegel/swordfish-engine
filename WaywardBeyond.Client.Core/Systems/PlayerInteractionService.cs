@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core.Systems;
@@ -29,9 +30,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IECSContext _ecsContext;
-    private readonly Hotbar _hotbar;
-    private readonly ShapeSelector _shapeSelector;
-    private readonly IAssetDatabase<Item> _itemDatabase;
+    private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
@@ -45,9 +44,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in IUIContext uiContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IECSContext ecsContext,
-        in Hotbar hotbar,
-        in ShapeSelector shapeSelector,
-        in IAssetDatabase<Item> itemDatabase,
+        in PlayerData playerData,
         in BrickDatabase brickDatabase)
     {
         _inputService = inputService;
@@ -56,9 +53,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _ecsContext = ecsContext;
-        _hotbar = hotbar;
-        _shapeSelector = shapeSelector;
-        _itemDatabase = itemDatabase;
+        _playerData = playerData;
         _brickDatabase = brickDatabase;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
@@ -154,22 +149,16 @@ internal sealed class PlayerInteractionService : IEntryPoint
         
         void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
-            int slot = _hotbar.ActiveSlot.Get();
-            
-            if (!inventory.Remove(slot, 1))
+            Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory);
+            if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
             {
                 return;
             }
             
-            ItemStack itemStack = inventory.Contents[slot];
+            ItemSlot mainHand = mainHandResult.Value;
+            Item item = mainHand.Item;
+            PlaceableDefinition placeable = item.Placeable.Value;
             
-            Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-            if (!itemResult.Success || itemResult.Value.Placeable == null)
-            {
-                return;
-            }
-            
-            PlaceableDefinition placeable = itemResult.Value.Placeable.Value;
             if (placeable.Type != PlaceableType.Brick)
             {
                 return;
@@ -177,6 +166,11 @@ internal sealed class PlayerInteractionService : IEntryPoint
             
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
             if (!brickInfoResult.Success)
+            {
+                return;
+            }
+            
+            if (!inventory.Remove(mainHand.Slot, 1))
             {
                 return;
             }
