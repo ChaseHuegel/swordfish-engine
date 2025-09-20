@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "metal_panel"
+ID      = "panel"
 Shape   = "block"
 Tags    = [
     "metal",

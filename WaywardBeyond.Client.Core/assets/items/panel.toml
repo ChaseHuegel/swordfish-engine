@@ -1,0 +1,8 @@
+[[Items]]
+ID       = "panel"
+Name     = "Panel"
+Icon     = "items/panel.png"
+MaxStack = 100
+[Items.Placeable]
+Type     = "brick"
+ID       = "panel"
