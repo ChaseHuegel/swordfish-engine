@@ -30,6 +30,7 @@ internal class ShapeSelector : IAutoActivate
     private readonly ReefContext _reefContext;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
+    private readonly BrickDatabase _brickDatabase;
     
     private readonly Material _labelImage;
     private readonly Material _backgroundImage;
@@ -46,12 +47,14 @@ internal class ShapeSelector : IAutoActivate
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
         PlayerControllerSystem playerControllerSystem,
-        PlayerData playerData
+        PlayerData playerData,
+        BrickDatabase brickDatabase
     ) {
         _logger = logger;
         _reefContext = reefContext;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
+        _brickDatabase = brickDatabase;
         
         Result<Shader> shader = shaderDatabase.Get("ui_reef_textured.glsl");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
@@ -83,7 +86,7 @@ internal class ShapeSelector : IAutoActivate
 
     private void OnChangeShapePressed()
     {
-        if (!HasPlaceableMainHand())
+        if (!IsMainHandShapeable())
         {
             return;
         }
@@ -95,7 +98,7 @@ internal class ShapeSelector : IAutoActivate
     
     private void OnChangeShapeReleased()
     {
-        if (!HasPlaceableMainHand())
+        if (!IsMainHandShapeable())
         {
             return;
         }
@@ -104,7 +107,7 @@ internal class ShapeSelector : IAutoActivate
         _playerControllerSystem.SetMouseLook(_previousMouseLookState);
     }
     
-    private bool HasPlaceableMainHand() 
+    private bool IsMainHandShapeable() 
     {
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand();
         if (!mainHandResult.Success)
@@ -112,15 +115,27 @@ internal class ShapeSelector : IAutoActivate
             _logger.LogError(mainHandResult.Exception, "Failed to get the player's main hand. {message}", mainHandResult.Message);
             return false;
         }
+
+        if (mainHandResult.Value.Item.Placeable == null)
+        {
+            return false;
+        }
         
-        return mainHandResult.Value.Item.Placeable != null;
+        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        if (!brickInfoResult.Success)
+        {
+            return false;
+        }
+
+        return brickInfoResult.Value.Shape == BrickShape.Any;
     }
 
     private void OnWindowUpdate(double delta)
     {
-        if (!HasPlaceableMainHand())
+        if (!IsMainHandShapeable())
         {
-            //  Don't draw anything if the player isn't holding a placeable item.
+            //  Don't draw anything if the player isn't holding a shapeable item.
             return;
         }
      
