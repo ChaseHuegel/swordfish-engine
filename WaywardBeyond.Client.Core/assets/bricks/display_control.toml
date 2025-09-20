@@ -7,8 +7,8 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Top     = ["metal_panel"]
-Bottom  = ["metal_panel"]
+Top     = ["panel.0"]
+Bottom  = ["panel.0"]
 Back    = ["vent"]
 Left    = ["greeble1"]
 Right   = ["greeble1"]
