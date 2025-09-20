@@ -132,55 +132,6 @@ public class BrickGrid
         CenterOfMass = ((CenterOfMass * previousCount) + newPoint) / Count;
     }
 
-    //  TODO Is this useful anymore? Implement or remove.
-    // ReSharper disable once UnusedMember.Global
-    public bool Build()
-    {
-        if (_building || !_dirty)
-        {
-            return false;
-        }
-
-        _dirty = false;
-        _building = true;
-        lock (_lockObject)
-        {
-            for (var x = 0; x < DimensionSize; x++)
-            {
-                for (var y = 0; y < DimensionSize; y++)
-                {
-                    for (var z = 0; z < DimensionSize; z++)
-                    {
-                        Bricks[x, y, z].Build();
-                    }
-                }
-            }
-
-            for (var i = 0; i < Subgrids.Count; i++)
-            {
-                Subgrids[i].Build();
-            }
-
-            for (var x = 0; x < 3; x++)
-            {
-                for (var y = 0; y < 3; y++)
-                {
-                    for (var z = 0; z < 3; z++)
-                    {
-                        BrickGrid? neighborGrid = NeighborGrids[x, y, z];
-                        if (neighborGrid != null && !neighborGrid._building)
-                        {
-                            neighborGrid.Build();
-                        }
-                    }
-                }
-            }
-        }
-
-        _building = false;
-        return true;
-    }
-
     private bool TryGetOrAddNeighbor(int x, int y, int z, out BrickGrid? neighbor)
     {
         int xOffset = x >> 4;

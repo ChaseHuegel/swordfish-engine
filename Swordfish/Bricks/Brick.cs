@@ -23,11 +23,6 @@ public struct Brick(in ushort id) : IEquatable<Brick>
 
     public static bool operator !=(Brick left, Brick right) => !left.Equals(right);
 
-    public void Build()
-    {
-        //  TODO implement
-    }
-
     public Quaternion GetQuaternion()
     {
         return Orientation.ToQuaternion();
