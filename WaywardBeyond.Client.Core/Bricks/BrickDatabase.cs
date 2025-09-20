@@ -34,10 +34,10 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
     public bool IsCuller(Brick brick)
     {
-        //  If this is a block shape, it culls
-        if (brick.Data == 0)
+        //  If this is not a block shape, it doesn't cull
+        if (brick.Data != 0)
         {
-            return true;
+            return false;
         }
         
         BrickInfo brickInfo = Get(brick.ID).Value;
