@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "caution_panel"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "metal",
     "buildable",

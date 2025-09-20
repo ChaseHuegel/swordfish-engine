@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "rock"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "environment",
 ]

@@ -1,6 +1,6 @@
 [[Bricks]]
 ID          = "glass"
-Shape       = "block"
+Shape       = "any"
 Transparent = true
 Tags        = [
     "metal",
