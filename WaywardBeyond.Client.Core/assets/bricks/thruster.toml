@@ -1,7 +1,7 @@
 [[Bricks]]
 ID      = "thruster"
 Shape   = "custom"
-Mesh    = "thruster_rocket.obj"
+Mesh    = "thruster.obj"
 Tags    = [
     "metal",
     "buildable",
