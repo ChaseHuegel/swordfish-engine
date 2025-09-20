@@ -14,9 +14,11 @@ internal sealed class BrickInfo(string id, ushort dataID, bool transparent, bool
     public BrickTextures Textures = textures;
 
     public bool DoesCull = !passable && !transparent && shape == BrickShape.Block;
+
+    private readonly byte _shapeData = shape == BrickShape.Any ? (byte)BrickShape.Block : (byte)shape;
     
     public Brick GetBrick()
     {
-        return new Brick(DataID);
+        return new Brick(DataID, _shapeData);
     }
 }

@@ -1,6 +1,6 @@
 [[Bricks]]
 ID      = "panel"
-Shape   = "block"
+Shape   = "any"
 Tags    = [
     "metal",
     "buildable",

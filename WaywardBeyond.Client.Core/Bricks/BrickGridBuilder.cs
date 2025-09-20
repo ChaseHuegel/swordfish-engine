@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickGridBuilder
 {
-    private readonly Mesh _cube;
     private readonly Mesh _slope;
+    private readonly Mesh _stair;
+    private readonly Mesh _slab;
     private readonly TextureArray _textureArray;
     private readonly BrickDatabase _brickDatabase;
     
-    public BrickGridBuilder(BrickDatabase brickDatabase, TextureArray textureArray)
+    public BrickGridBuilder(BrickDatabase brickDatabase, TextureArray textureArray, IAssetDatabase<Mesh> meshDatabase)
     {
         _brickDatabase = brickDatabase;
         _textureArray = textureArray;
-        _cube = new Cube();
-        _slope = new Slope();
+        _slope = meshDatabase.Get("slope.obj");
+        _stair = meshDatabase.Get("stair.obj");
+        _slab = meshDatabase.Get("slab.obj");
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
@@ -134,13 +137,25 @@ internal sealed class BrickGridBuilder
                     continue;
                 }
                 
-                switch (brickInfo.Shape)
+                switch ((BrickShape)brick.Data)
                 {
+                    case BrickShape.Slab:
+                        AddMesh(_slab);
+                        break;
+                    case BrickShape.Stair:
+                        AddMesh(_stair);
+                        break;
                     case BrickShape.Slope:
                         AddMesh(_slope);
                         break;
                     case BrickShape.Custom:
-                        AddMesh(brickInfo.Mesh ?? _cube);
+                        if (brickInfo.Mesh == null)
+                        {
+                            AddCube();
+                            break;
+                        }
+                        
+                        AddMesh(brickInfo.Mesh);
                         break;
                     case BrickShape.Block:
                     default:
@@ -202,12 +217,12 @@ internal sealed class BrickGridBuilder
 
                     foreach (Vector3 normal in mesh.Normals)
                     {
-                        normals.Add(mesh != _cube ? Vector3.Transform(normal, rotation) : normal);
+                        normals.Add(Vector3.Transform(normal, rotation));
                     }
 
                     foreach (Vector3 vertex in mesh.Vertices)
                     {
-                        vertices.Add((mesh != _cube ? Vector3.Transform(vertex, rotation) : vertex) + new Vector3(x, y, z) + offset);
+                        vertices.Add(Vector3.Transform(vertex, rotation) + new Vector3(x, y, z) + offset);
                     }
                 }
             }

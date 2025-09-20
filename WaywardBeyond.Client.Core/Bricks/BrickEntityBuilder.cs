@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
@@ -15,13 +16,14 @@ internal sealed class BrickEntityBuilder(
     in Shader shader,
     in TextureArray textureArray,
     in BrickDatabase brickDatabase,
-    in DataStore dataStore)
-{
+    in IAssetDatabase<Mesh> meshDatabase,
+    in DataStore dataStore
+) {
     private readonly ILogger _logger = logger;
     
     private readonly DataStore _dataStore = dataStore;
     
-    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArray);
+    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArray, meshDatabase);
     
     private readonly Material _opaqueMaterial = new(shader, textureArray);
     

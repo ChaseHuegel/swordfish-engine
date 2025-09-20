@@ -1,10 +1,11 @@
 namespace WaywardBeyond.Client.Core.Bricks;
 
-public enum BrickShape
+public enum BrickShape : byte
 {
     Block,
     Slab,
     Stair,
     Slope,
     Custom,
+    Any,
 }

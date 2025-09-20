@@ -32,6 +32,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly IECSContext _ecsContext;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
+    private readonly ShapeSelector _shapeSelector;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
     
@@ -45,8 +46,9 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in BrickEntityBuilder brickEntityBuilder,
         in IECSContext ecsContext,
         in PlayerData playerData,
-        in BrickDatabase brickDatabase)
-    {
+        in BrickDatabase brickDatabase,
+        in ShapeSelector shapeSelector
+    ) {
         _inputService = inputService;
         _physics = physics;
         _renderContext = renderContext;
@@ -55,6 +57,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _ecsContext = ecsContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
+        _shapeSelector = shapeSelector;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
         _debugText = new TextElement("");
@@ -146,37 +149,46 @@ internal sealed class PlayerInteractionService : IEntryPoint
         SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
         _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         return;
-        
-        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+
+        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player,
+            ref InventoryComponent inventory)
         {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory);
             if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
             {
                 return;
             }
-            
+
             ItemSlot mainHand = mainHandResult.Value;
             Item item = mainHand.Item;
             PlaceableDefinition placeable = item.Placeable.Value;
-            
+
             if (placeable.Type != PlaceableType.Brick)
             {
                 return;
             }
-            
+
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
             if (!brickInfoResult.Success)
             {
                 return;
             }
-            
+
             if (!inventory.Remove(mainHand.Slot, 1))
             {
                 return;
             }
-            
+
             BrickInfo brickInfo = brickInfoResult.Value;
-            brickToPlace = brickInfo.GetBrick();
+            Brick brick = brickInfo.GetBrick();
+
+            //  If this brick supports changing shapes, use the currently selected shape.
+            if (brickInfo.Shape == BrickShape.Any)
+            {
+                brick.Data = (byte)_shapeSelector.SelectedShape.Get();
+            }
+            
+            brickToPlace = brick;
         }
     }
 
@@ -256,35 +268,36 @@ internal sealed class PlayerInteractionService : IEntryPoint
         {
             return;
         }
-        
-        if (currentBrick.Name == "thruster")
-        {
-            _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-            void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-            {
-                thruster.Power--;
 
-                if (thruster.Power <= 0)
-                {
-                    store.Remove<ThrusterComponent>(thrusterEntity);
-                }
-            }
-        }
-        
-        if (brick.Name == "thruster")
-        {
-            var updated = false;
-            _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-            void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-            {
-                thruster.Power++;
-                updated = true;
-            }
-
-            if (!updated)
-            {
-                _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
-            }
-        }
+        //  TODO reimplement thrusters
+        // if (currentBrick.Name == "thruster")
+        // {
+        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
+        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
+        //     {
+        //         thruster.Power--;
+        //
+        //         if (thruster.Power <= 0)
+        //         {
+        //             store.Remove<ThrusterComponent>(thrusterEntity);
+        //         }
+        //     }
+        // }
+        //
+        // if (brick.Name == "thruster")
+        // {
+        //     var updated = false;
+        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
+        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
+        //     {
+        //         thruster.Power++;
+        //         updated = true;
+        //     }
+        //
+        //     if (!updated)
+        //     {
+        //         _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
+        //     }
+        // }
     }
 }

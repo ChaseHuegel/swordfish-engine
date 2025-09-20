@@ -77,7 +77,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         player.AddOrUpdate(inventory);
-        inventory.Contents[0] = new ItemStack("metal_panel", count: 30);
+        inventory.Contents[0] = new ItemStack("panel", count: 50);
         inventory.Contents[1] = new ItemStack("thruster", count: 10);
         inventory.Contents[2] = new ItemStack("display_control", count: 10);
         inventory.Contents[3] = new ItemStack("caution_panel", count: 10);

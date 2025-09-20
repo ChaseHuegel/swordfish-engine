@@ -2,16 +2,28 @@ using System.Numerics;
 
 namespace Swordfish.Bricks;
 
-public struct Brick(in ushort id) : IEquatable<Brick>
+public struct Brick : IEquatable<Brick>
 {
     // ReSharper disable once MemberCanBePrivate.Global
     public const ushort UNDEFINED_ID = 0;
 
     public static readonly Brick Empty = new(UNDEFINED_ID);
 
-    public string? Name = null;
-    public readonly ushort ID = id;
+    public readonly ushort ID;
+    
+    public byte Data;
     public BrickOrientation Orientation;
+
+    public Brick(in ushort id)
+    {
+        ID = id;
+    }
+    
+    public Brick(in ushort id, in byte data)
+    {
+        ID = id;
+        Data = data;
+    }
 
     public bool Equals(Brick other) => other.ID == ID;
 
@@ -30,6 +42,6 @@ public struct Brick(in ushort id) : IEquatable<Brick>
 
     public override string ToString()
     {
-        return $"{ID}:{Name ?? "UNDEFINED"} / {Orientation}";
+        return $"{ID}:{Data} / {Orientation}";
     }
 }

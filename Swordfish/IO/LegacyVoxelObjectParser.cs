@@ -62,8 +62,6 @@ internal class LegacyVoxelObjectParser : IFileParser<BrickGrid>
                         {
                             brick = new Brick(1);
                         }
-
-                        brick.Name = value.ToLower();
                         break;
 
                     case "p":

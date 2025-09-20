@@ -348,7 +348,10 @@ internal readonly struct BrickGridMeshBuilder
             int nZ = z + neighborMask.Z;
             
             Brick neighbor = _grid.Get(nX, nY, nZ);
-            if (neighbor.ID != brick.ID) 
+            
+            //  Only connect to neighbors with matching ID and data.
+            //  Data is used to identify the shape, so only like shapes will connect.
+            if (neighbor.ID != brick.ID || neighbor.Data != brick.Data) 
             {
                 continue;
             }
