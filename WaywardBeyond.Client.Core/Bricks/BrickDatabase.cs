@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
@@ -59,6 +61,17 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             return Result<BrickInfo>.FromFailure($"Unknown brick \"{id}\"");
         }
     }
+
+    /// <summary>
+    ///     Attempts to get all brick's infos that match a predicate.
+    /// </summary>
+    public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
+    {
+        lock (_bricksByDataID)
+        {
+            return _bricksByDataID.Values.Where(predicate).ToList();
+        }
+    }
     
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
@@ -89,7 +102,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             }
         }
         
-        var brickInfo = new BrickInfo(id, _lastDataID, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures);
+        var brickInfo = new BrickInfo(id, _lastDataID, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
         lock (_bricksByDataID)
         {
             _bricksByDataID[_lastDataID] = brickInfo;
