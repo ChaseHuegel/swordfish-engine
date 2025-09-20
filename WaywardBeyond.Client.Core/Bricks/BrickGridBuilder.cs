@@ -107,12 +107,12 @@ internal sealed class BrickGridBuilder
                     behind = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
                 }
 
-                bool hasRight = right.ID != 0 && _brickDatabase.Get(right.ID).Value.DoesCull;
-                bool hasLeft = left.ID != 0 && _brickDatabase.Get(left.ID).Value.DoesCull;
-                bool hasAbove = above.ID != 0 && _brickDatabase.Get(above.ID).Value.DoesCull;
-                bool hasBelow = below.ID != 0 && _brickDatabase.Get(below.ID).Value.DoesCull;
-                bool hasAhead = ahead.ID != 0 && _brickDatabase.Get(ahead.ID).Value.DoesCull;
-                bool hasBehind = behind.ID != 0 && _brickDatabase.Get(behind.ID).Value.DoesCull;
+                bool hasRight = right.ID != 0 && _brickDatabase.IsCuller(right);
+                bool hasLeft = left.ID != 0 && _brickDatabase.IsCuller(left);
+                bool hasAbove = above.ID != 0 && _brickDatabase.IsCuller(above);
+                bool hasBelow = below.ID != 0 && _brickDatabase.IsCuller(below);
+                bool hasAhead = ahead.ID != 0 && _brickDatabase.IsCuller(ahead);
+                bool hasBehind = behind.ID != 0 && _brickDatabase.IsCuller(behind);
                 
                 if (brick.ID == 0 || (hasRight && hasLeft && hasAbove && hasBelow && hasAhead && hasBehind))
                 {

@@ -357,7 +357,7 @@ internal readonly struct BrickGridMeshBuilder
             }
             
             Brick culler = _grid.Get(nX + cullingX, nY + cullingY, nZ + cullingZ);
-            if (culler.ID == 0 || !_brickDatabase.Get(culler.ID).Value.DoesCull)
+            if (culler.ID == 0 || !_brickDatabase.IsCuller(culler))
             {
                 //  Texture is connected to the neighbor if it isn't culled
                 connectedTextureMask |= neighborMask.Bit;
