@@ -44,9 +44,6 @@ public class Injector : IDryIocInjector
         
         container.Register<ShapeSelector>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ShapeSelector>();
-        
-        container.Register<BrickSelector>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, BrickSelector>();
     }
     
     private static void RegisterInput(IContainer container)
