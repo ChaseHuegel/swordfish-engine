@@ -30,7 +30,7 @@ vec4 fragment()
     }
 
     vec2 atlasSize = textureSize(texture0, 0);
-    vec2 uv = vec2(TextureCoord.x / atlasSize.x, TextureCoord.y / atlasSize.y);
+    vec2 uv = vec2(TextureCoord.x / atlasSize.x, 1.0 - (TextureCoord.y / atlasSize.y));
 
     vec4 sample = texture(texture0, uv);
     float signedDistance = median(sample.r, sample.g, sample.b);
