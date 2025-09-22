@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading;
@@ -40,6 +41,7 @@ internal class BrickSelector : IAutoActivate
     private readonly List<BrickInfo> _buildableBricks;
     
     private bool _changingBrick;
+    private int _selectedIndex;
     
     public BrickSelector(
         ILogger<BrickSelector> logger,
@@ -167,20 +169,41 @@ internal class BrickSelector : IAutoActivate
                 Anchors = Anchors.Center | Anchors.Left,
                 X = new Relative(0.1f),
                 Y = new Relative(0.5f),
-                Height = new Relative(0.5f),
+                Height = new Fixed(320),
             };
-            ui.VerticalScroll = true;
+            ui.ClipConstraints = new Constraints
+            {
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
 
-            _scrollY -= (int)(_inputService.GetMouseScroll() * 64f);
-            ui.ScrollY = _scrollY;
+            // _selectedIndex = (_selectedIndex + (int)Math.Round(_inputService.GetMouseScroll())) % _buildableBricks.Count;
+            // _selectedIndex = Math.Clamp(_selectedIndex, 0, _buildableBricks.Count);
+            // ui.ScrollY = _selectedIndex * 64;
+            _selectedIndex = _buildableBricks.Count / 2;
+            
+            float scroll = _inputService.GetMouseScroll();
+            if (scroll > 0)
+            {
+                int lastIndex = _buildableBricks.Count - 1;
+                var item = _buildableBricks[lastIndex];
+                _buildableBricks.RemoveAt(lastIndex);
+                _buildableBricks.Insert(0, item);
+            }
+            else if (scroll < 0)
+            {
+                var item = _buildableBricks[0];
+                _buildableBricks.RemoveAt(0);
+                _buildableBricks.Add(item);
+            }
         
-            for (int i = 0; i < _buildableBricks.Count; i++)
+            for (var i = 0; i < _buildableBricks.Count; i++)
             {
                 BrickInfo brickInfo = _buildableBricks[i];
                 using (ui.Element())
                 {
                     ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                    ui.Color = new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Color = _selectedIndex == i ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(48),
