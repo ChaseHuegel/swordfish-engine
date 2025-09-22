@@ -2,7 +2,7 @@
 ID              = "drill"
 Name            = "Drill"
 Icon            = "items/drill.png"
-MaxStack        = 100
+MaxStack        = 1
 [Items.Tool]
 Type            = "convert"
 Target          = "truss"

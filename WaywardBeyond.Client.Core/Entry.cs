@@ -9,6 +9,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types;
 using WaywardBeyond.Client.Core.Bricks;
@@ -28,6 +29,9 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IFileParseService _fileParseService;
     private readonly BrickDatabase _brickDatabase;
+    private readonly IAssetDatabase<Mesh> _meshDatabase;
+    private readonly IAssetDatabase<Texture> _textureDatabase;
+    private readonly IAssetDatabase<Shader> _shaderDatabase;
 
     public Entry(
         in IECSContext ecsContext,
@@ -36,8 +40,11 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IFileParseService fileParseService,
-        in BrickDatabase brickDatabase)
-    {
+        in BrickDatabase brickDatabase,
+        in IAssetDatabase<Mesh> meshDatabase,
+        in IAssetDatabase<Texture> textureDatabase,
+        in IAssetDatabase<Shader> shaderDatabase
+    ) {
         _ecsContext = ecsContext;
         _physics = physics;
         _shortcutService = shortcutService;
@@ -45,6 +52,9 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _brickEntityBuilder = brickEntityBuilder;
         _fileParseService = fileParseService;
         _brickDatabase = brickDatabase;
+        _meshDatabase = meshDatabase;
+        _textureDatabase = textureDatabase;
+        _shaderDatabase = shaderDatabase;
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
@@ -65,6 +75,17 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
         Task.Run(worldGenerator.Generate);
+        
+        Shader laserShader = _shaderDatabase.Get("textured.glsl").Value;
+        Texture laserTexture = _textureDatabase.Get("items/laser_uv.png").Value;
+        Mesh laserMesh = _meshDatabase.Get("laser.obj").Value;
+        var laserMaterial = new Material(laserShader, laserTexture);
+        var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
+
+        Entity laser = _ecsContext.World.NewEntity();
+        laser.AddOrUpdate(new IdentifierComponent("laser"));
+        laser.AddOrUpdate(new TransformComponent(new Vector3(0f, 2f, 0f), Quaternion.Identity));
+        laser.AddOrUpdate(new MeshRendererComponent(laserMeshRenderer));
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
         shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.GetBrick());
@@ -85,7 +106,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[5] = new ItemStack("display_monitor", count: 5);
         inventory.Contents[6] = new ItemStack("storage", count: 10);
         inventory.Contents[7] = new ItemStack("truss", count: 50);
-        inventory.Contents[8] = new ItemStack("drill", count: 1);
+        inventory.Contents[8] = new ItemStack("laser", count: 1);
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));

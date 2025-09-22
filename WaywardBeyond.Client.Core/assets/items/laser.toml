@@ -1,0 +1,7 @@
+[[Items]]
+ID       = "laser"
+Name     = "Mining Laser"
+Icon     = "items/laser.png"
+MaxStack = 1
+[Items.Tool]
+Type     = "mining"
