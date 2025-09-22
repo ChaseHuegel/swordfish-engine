@@ -64,10 +64,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3(-0.5f, 0.5f, -0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
@@ -79,10 +79,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3(-0.5f, -0.5f,  0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
@@ -94,10 +94,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3(-0.5f,  0.5f, 0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
@@ -109,10 +109,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3( 0.5f,  0.5f, -0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
@@ -124,10 +124,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3(0.5f,  0.5f,  0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
@@ -139,10 +139,10 @@ internal readonly struct BrickGridMeshBuilder
             new Vector3(-0.5f,  0.5f, -0.5f)
         ),
         new FaceUVs(
-            new Vector2(0f, 1f),
-            new Vector2(1f, 1f),
+            new Vector2(0f, 0f),
             new Vector2(1f, 0f),
-            new Vector2(0f, 0f)
+            new Vector2(1f, 1f),
+            new Vector2(0f, 1f)
         )
     );
     
