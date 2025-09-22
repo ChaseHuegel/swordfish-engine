@@ -247,7 +247,7 @@ internal sealed class ReefRenderer(
 
         public void AddVertexData(IntRect rect, Vector4 color, IntRect clipRect, float width, float height)
         {
-            AddVertexData(rect, new IntRect(0, 0, 1, 1), color, clipRect, width, height);
+            AddVertexData(rect, new IntRect(0, 1, 1, 0), color, clipRect, width, height);
         }
 
         public void AddVertexData(IntRect rect, IntRect uv, Vector4 color, IntRect clipRect, float width, float height)
