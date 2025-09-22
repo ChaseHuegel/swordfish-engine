@@ -1,5 +1,6 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 
@@ -18,6 +19,7 @@ namespace Swordfish.IO
             using Stream stream = file.Open();
             using StreamReader reader = new(stream);
             using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+            image.Mutate(context => context.Flip(FlipMode.Vertical));
 
             string name = file.GetFileNameWithoutExtension();
 
