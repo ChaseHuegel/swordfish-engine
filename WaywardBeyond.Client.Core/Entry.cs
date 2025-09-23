@@ -75,17 +75,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
         Task.Run(worldGenerator.Generate);
-        
-        Shader laserShader = _shaderDatabase.Get("textured.glsl").Value;
-        Texture laserTexture = _textureDatabase.Get("items/laser_uv.png").Value;
-        Mesh laserMesh = _meshDatabase.Get("laser.obj").Value;
-        var laserMaterial = new Material(laserShader, laserTexture);
-        var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
-
-        Entity laser = _ecsContext.World.NewEntity();
-        laser.AddOrUpdate(new IdentifierComponent("laser"));
-        laser.AddOrUpdate(new TransformComponent(new Vector3(0f, 2f, 0f), Quaternion.Identity));
-        laser.AddOrUpdate(new MeshRendererComponent(laserMeshRenderer));
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
         shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.GetBrick());
@@ -107,6 +96,22 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[6] = new ItemStack("storage", count: 10);
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
+        
+        Shader laserShader = _shaderDatabase.Get("textured.glsl").Value;
+        Texture laserTexture = _textureDatabase.Get("items/laser_uv.png").Value;
+        Mesh laserMesh = _meshDatabase.Get("laser.obj").Value;
+        var laserMaterial = new Material(laserShader, laserTexture);
+        var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
+
+        Entity laser = _ecsContext.World.NewEntity();
+        laser.AddOrUpdate(new IdentifierComponent("laser"));
+        laser.AddOrUpdate(new TransformComponent());
+        laser.AddOrUpdate(new MeshRendererComponent(laserMeshRenderer));
+        laser.AddOrUpdate(new ChildComponent(player)
+        {
+            LocalPosition = new Vector3(0.5f, -0.4f, 0.2f),
+            LocalOrientation = Quaternion.CreateFromYawPitchRoll(5f * MathS.DEGREES_TO_RADIANS, 0f, 0f),
+        });
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));
         var uiTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("ui_default.png"));
