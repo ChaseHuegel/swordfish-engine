@@ -1,3 +1,5 @@
+using System.Numerics;
+
 namespace Swordfish.ECS;
 
 public class ChildSystem : EntitySystem<ChildComponent, TransformComponent>
@@ -9,9 +11,8 @@ public class ChildSystem : EntitySystem<ChildComponent, TransformComponent>
             return;
         }
 
-        //  TODO support local offsets
-        transform.Position = parentTransform.Position;
-        transform.Orientation = parentTransform.Orientation;
-        transform.Scale = parentTransform.Scale;
+        transform.Position = parentTransform.Position + Vector3.Transform(child.LocalPosition, parentTransform.Orientation);
+        transform.Orientation = parentTransform.Orientation * child.LocalOrientation;
+        transform.Scale = parentTransform.Scale * child.LocalScale;
     }
 }
