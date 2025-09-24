@@ -23,6 +23,12 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
         VertexBufferObject.Bind();
     }
 
+    protected override void OnDisposed()
+    {
+        base.OnDisposed();
+        VertexBufferObject.Dispose();
+    }
+
     protected override uint CreateHandle()
     {
         return _gl.GenVertexArray();
@@ -111,6 +117,13 @@ internal class VertexArrayObject<TVertexType, TElementType> : GLHandle, IEquatab
         Bind();
         VertexBufferObject.Bind();
         ElementBufferObject.Bind();
+    }
+
+    protected override void OnDisposed()
+    {
+        base.OnDisposed();
+        VertexBufferObject.Dispose();
+        ElementBufferObject.Dispose();
     }
 
     protected override uint CreateHandle()
