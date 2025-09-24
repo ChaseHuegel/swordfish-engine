@@ -3,9 +3,11 @@ ID         = "laser"
 Name       = "Mining Laser"
 Icon       = "items/laser.png"
 MaxStack   = 1
+[Items.Tool]
+Type       = "mining"
 [Items.ViewModel]
 Mesh       = "items/laser.obj"
-Material   = "laser"
+Material   = "items/laser"
 Position.X = 0.5
 Position.Y = -0.4
 Position.Z = 0.2
@@ -14,6 +16,4 @@ Rotation.Y = 5
 Rotation.Z = 0
 [Items.WorldModel]
 Mesh       = "items/laser.obj"
-Material   = "laser"
-[Items.Tool]
-Type       = "mining"
+Material   = "items/laser"

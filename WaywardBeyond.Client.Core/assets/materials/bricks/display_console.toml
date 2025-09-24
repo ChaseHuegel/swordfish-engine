@@ -1,0 +1,4 @@
+Shader   = "textured"
+Textures = [
+    "block/display_console.png",
+]

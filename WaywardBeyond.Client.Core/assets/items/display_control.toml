@@ -6,3 +6,18 @@ MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
 ID       = "display_control"
+[Items.ViewModel]
+Mesh       = "cube.obj"
+Material   = "bricks/display_control"
+Position.X = 0.4
+Position.Y = -0.4
+Position.Z = -0.5
+Rotation.X = 0
+Rotation.Y = 30
+Rotation.Z = 0
+Scale.X    = 0.25
+Scale.Y    = 0.25
+Scale.Z    = 0.25
+[Items.WorldModel]
+Mesh       = "cube.obj"
+Material   = "bricks/display_control"
