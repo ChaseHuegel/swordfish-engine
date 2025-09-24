@@ -53,12 +53,7 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
         gl.BindVertexArray(0);
     }
 
-    protected override void OnDisposed()
-    {
-        VertexArrayObject.VertexBufferObject.Dispose();
-        VertexArrayObject.ElementBufferObject.Dispose();
-        VertexArrayObject.Dispose();
-    }
+    protected override void OnDisposed() { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool Equals(GLRenderTarget? other)
