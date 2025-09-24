@@ -21,6 +21,9 @@ internal sealed class ShaderDatabase : SimpleVirtualAssetDatabase<Shader>, IAuto
     }
     
     /// <inheritdoc/>
+    protected override bool ExcludeExtensionFromID => true;
+    
+    /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".glsl");
 
     /// <inheritdoc/>
