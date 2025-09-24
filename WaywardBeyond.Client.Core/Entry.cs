@@ -33,6 +33,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly IAssetDatabase<Texture> _textureDatabase;
     private readonly IAssetDatabase<Shader> _shaderDatabase;
     private readonly IAssetDatabase<Material> _materialDatabase;
+    private readonly IAssetDatabase<Item> _itemDatabase;
 
     public Entry(
         in IECSContext ecsContext,
@@ -45,7 +46,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IAssetDatabase<Mesh> meshDatabase,
         in IAssetDatabase<Texture> textureDatabase,
         in IAssetDatabase<Shader> shaderDatabase,
-        in IAssetDatabase<Material> materialDatabase
+        in IAssetDatabase<Material> materialDatabase,
+        in IAssetDatabase<Item> itemDatabase
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -58,6 +60,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _textureDatabase = textureDatabase;
         _shaderDatabase = shaderDatabase;
         _materialDatabase = materialDatabase;
+        _itemDatabase = itemDatabase;
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
@@ -100,8 +103,10 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
         
-        Mesh laserMesh = _meshDatabase.Get("items/laser.obj").Value;
-        Material laserMaterial = _materialDatabase.Get("laser").Value;
+        Item laserItem = _itemDatabase.Get("laser").Value;
+        ModelDefinition viewModel = laserItem.ViewModel ?? default;
+        Mesh laserMesh = _meshDatabase.Get(viewModel.Mesh).Value;
+        Material laserMaterial = _materialDatabase.Get(viewModel.Material).Value;
         var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
 
         Entity laser = _ecsContext.World.NewEntity();
@@ -110,8 +115,9 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         laser.AddOrUpdate(new MeshRendererComponent(laserMeshRenderer));
         laser.AddOrUpdate(new ChildComponent(player)
         {
-            LocalPosition = new Vector3(0.5f, -0.4f, 0.2f),
-            LocalOrientation = Quaternion.CreateFromYawPitchRoll(5f * MathS.DEGREES_TO_RADIANS, 0f, 0f),
+            LocalPosition = new Vector3(viewModel.Position.X, viewModel.Position.Y, viewModel.Position.Z),
+            LocalOrientation = Quaternion.CreateFromYawPitchRoll(viewModel.Rotation.Y * MathS.DEGREES_TO_RADIANS, viewModel.Rotation.X * MathS.DEGREES_TO_RADIANS, viewModel.Rotation.Z * MathS.DEGREES_TO_RADIANS),
+            LocalScale = new Vector3(viewModel.Scale.X, viewModel.Scale.Y, viewModel.Scale.Z),
         });
 
         var uiShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_default.glsl"));

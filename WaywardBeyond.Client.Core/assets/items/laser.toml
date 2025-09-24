@@ -1,7 +1,19 @@
 [[Items]]
-ID       = "laser"
-Name     = "Mining Laser"
-Icon     = "items/laser.png"
-MaxStack = 1
+ID         = "laser"
+Name       = "Mining Laser"
+Icon       = "items/laser.png"
+MaxStack   = 1
+[Items.ViewModel]
+Mesh       = "items/laser.obj"
+Material   = "laser"
+Position.X = 0.5
+Position.Y = -0.4
+Position.Z = 0.2
+Rotation.X = 0
+Rotation.Y = 5
+Rotation.Z = 0
+[Items.WorldModel]
+Mesh       = "items/laser.obj"
+Material   = "laser"
 [Items.Tool]
-Type     = "mining"
+Type       = "mining"

@@ -8,4 +8,6 @@ public struct ItemDefinition()
     public int? MaxStack;
     public PlaceableDefinition? Placeable;
     public ToolDefinition? Tool;
+    public ModelDefinition? ViewModel;
+    public ModelDefinition? WorldModel;
 }
