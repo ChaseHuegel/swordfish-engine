@@ -6,24 +6,31 @@ using WaywardBeyond.Client.Core.Items;
 
 namespace WaywardBeyond.Client.Core.Player;
 
-internal sealed class PlayerData(
-    in IAssetDatabase<Item> itemDatabase,
-    in IECSContext ecsContext
-) {
+internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
+{
     private readonly IAssetDatabase<Item> _itemDatabase = itemDatabase;
-    private readonly IECSContext _ecsContext = ecsContext;
     
-    public Result<ItemSlot> GetMainHand()
+    public Result<ItemSlot> GetMainHand(DataStore store)
     {
         Result<ItemSlot> result = default;
         
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(delta: 0f, QueryPlayerInventory);
+        store.Query<PlayerComponent, InventoryComponent>(delta: 0f, QueryPlayerInventory);
         void QueryPlayerInventory(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
             result = GetMainHand(store, entity, inventory);
         }
         
         return result;
+    }
+    
+    public Result<ItemSlot> GetMainHand(DataStore store, int entity)
+    {
+        if (!store.TryGet(entity, out InventoryComponent inventory))
+        {
+            return Result<ItemSlot>.FromFailure($"No inventory found for player entity: {entity}");
+        }
+
+        return GetMainHand(store, entity, inventory);
     }
 
     public Result<ItemSlot> GetMainHand(DataStore store, int entity, in InventoryComponent inventory)

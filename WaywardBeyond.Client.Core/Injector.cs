@@ -70,6 +70,7 @@ public class Injector : IDryIocInjector
 
     private static void RegisterEntitySystems(IContainer container)
     {
+        container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
     }

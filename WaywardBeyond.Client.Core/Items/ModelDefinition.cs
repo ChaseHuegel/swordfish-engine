@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Items;
 
-public struct ModelDefinition()
+public record struct ModelDefinition()
 {
     public string Mesh;
     public string Material;
@@ -8,7 +8,7 @@ public struct ModelDefinition()
     public Float3 Rotation;
     public Float3 Scale = new(1f, 1f, 1f);
 
-    public struct Float3()
+    public record struct Float3()
     {
         public float X;
         public float Y;

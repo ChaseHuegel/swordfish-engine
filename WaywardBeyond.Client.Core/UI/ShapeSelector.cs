@@ -31,6 +31,7 @@ internal class ShapeSelector : IAutoActivate
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
+    private readonly IECSContext _ecsContext;
     
     private readonly Material _labelImage;
     private readonly Material _backgroundImage;
@@ -48,13 +49,15 @@ internal class ShapeSelector : IAutoActivate
         IAssetDatabase<Shader> shaderDatabase,
         PlayerControllerSystem playerControllerSystem,
         PlayerData playerData,
-        BrickDatabase brickDatabase
+        BrickDatabase brickDatabase,
+        IECSContext ecsContext
     ) {
         _logger = logger;
         _reefContext = reefContext;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
+        _ecsContext = ecsContext;
         
         Result<Shader> shader = shaderDatabase.Get("ui_reef_textured");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
@@ -109,7 +112,7 @@ internal class ShapeSelector : IAutoActivate
     
     private bool IsMainHandShapeable() 
     {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand();
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
         if (!mainHandResult.Success)
         {
             _logger.LogError(mainHandResult.Exception, "Failed to get the player's main hand. {message}", mainHandResult.Message);
@@ -138,7 +141,7 @@ internal class ShapeSelector : IAutoActivate
             //  Don't draw anything if the player isn't holding a shapeable item.
             return;
         }
-     
+        
         UIBuilder<Material> ui = _reefContext.Builder;
         
         //  Draw the currently selected shape
