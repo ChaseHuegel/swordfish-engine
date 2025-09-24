@@ -32,6 +32,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly IAssetDatabase<Texture> _textureDatabase;
     private readonly IAssetDatabase<Shader> _shaderDatabase;
+    private readonly IAssetDatabase<Material> _materialDatabase;
 
     public Entry(
         in IECSContext ecsContext,
@@ -43,7 +44,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in BrickDatabase brickDatabase,
         in IAssetDatabase<Mesh> meshDatabase,
         in IAssetDatabase<Texture> textureDatabase,
-        in IAssetDatabase<Shader> shaderDatabase
+        in IAssetDatabase<Shader> shaderDatabase,
+        in IAssetDatabase<Material> materialDatabase
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -55,6 +57,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _meshDatabase = meshDatabase;
         _textureDatabase = textureDatabase;
         _shaderDatabase = shaderDatabase;
+        _materialDatabase = materialDatabase;
         
         windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
     }
@@ -97,10 +100,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
         
-        Shader laserShader = _shaderDatabase.Get("textured.glsl").Value;
-        Texture laserTexture = _textureDatabase.Get("items/laser_uv.png").Value;
-        Mesh laserMesh = _meshDatabase.Get("laser.obj").Value;
-        var laserMaterial = new Material(laserShader, laserTexture);
+        Mesh laserMesh = _meshDatabase.Get("items/laser.obj").Value;
+        Material laserMaterial = _materialDatabase.Get("laser.toml").Value;
         var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
 
         Entity laser = _ecsContext.World.NewEntity();

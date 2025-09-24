@@ -1,0 +1,4 @@
+Shader   = "textured.glsl"
+Textures = [
+    "items/laser_uv.png",
+]
