@@ -111,7 +111,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         handle = _glContext.CreateShaderComponent(shaderSource.Name, shaderSource.Type.ToSilkShaderType(), shaderSource.Source);
-        _linkedHandles.TryAdd(shaderSource, handle);
+        if (_linkedHandles.TryAdd(shaderSource, handle))
+        {
+            shaderSource.Disposed += OnHandleDisposed;
+        }
+        
         return Unsafe.As<ShaderComponent>(handle);
     }
 
@@ -124,7 +128,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         ShaderComponent[] shaderComponents = shader.Sources.Select(BindShaderSource).ToArray();
         handle = _glContext.CreateShaderProgram(shader.Name, shaderComponents);
-        _linkedHandles.TryAdd(shader, handle);
+        if (_linkedHandles.TryAdd(shader, handle))
+        {
+            shader.Disposed += OnHandleDisposed;
+        }
+        
         return Unsafe.As<ShaderProgram>(handle);
     }
 
@@ -144,7 +152,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             handle = _glContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, texture.Mipmaps);
         }
 
-        _linkedHandles.TryAdd(texture, handle);
+        if (_linkedHandles.TryAdd(texture, handle))
+        {
+            texture.Disposed += OnHandleDisposed;
+        }
+        
         return Unsafe.As<IGLTexture>(handle);
     }
 
@@ -156,7 +168,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         handle = _glContext.CreateVertexArrayObject32(mesh.GetRawVertexData(), mesh.Triangles);
-        _linkedHandles.TryAdd(mesh, handle);
+        if (_linkedHandles.TryAdd(mesh, handle))
+        {
+            mesh.Disposed += OnHandleDisposed;
+        }
+
         return Unsafe.As<VertexArrayObject<float, uint>>(handle);
     }
 
@@ -176,7 +192,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         handle = _glContext.CreateGLMaterial(shaderProgram, textures, material.Transparent);
-        _linkedHandles.TryAdd(material, handle);
+        if (_linkedHandles.TryAdd(material, handle))
+        {
+            material.Disposed += OnHandleDisposed;
+        }
+        
         return Unsafe.As<GLMaterial>(handle);
     }
 
@@ -263,7 +283,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         handle = _glContext.CreateBufferObject(Array.Empty<Matrix4x4>(), BufferTargetARB.ArrayBuffer, BufferUsageARB.DynamicDraw);
-        _linkedHandles.TryAdd(vao, handle);
+        if (_linkedHandles.TryAdd(vao, handle))
+        {
+            vao.Disposed += OnHandleDisposed;
+        }
+        
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
     }
 }
