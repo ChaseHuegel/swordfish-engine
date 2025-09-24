@@ -6,6 +6,6 @@ public struct ChildComponent(in int parent) : IDataComponent
 {
     public int Parent = parent;
     public Vector3 LocalPosition;
-    public Quaternion LocalOrientation;
+    public Quaternion LocalOrientation = Quaternion.Identity;
     public Vector3 LocalScale = Vector3.One;
 }
