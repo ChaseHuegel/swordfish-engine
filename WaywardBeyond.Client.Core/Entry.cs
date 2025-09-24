@@ -101,7 +101,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[8] = new ItemStack("laser", count: 1);
         
         Mesh laserMesh = _meshDatabase.Get("items/laser.obj").Value;
-        Material laserMaterial = _materialDatabase.Get("laser.toml").Value;
+        Material laserMaterial = _materialDatabase.Get("laser").Value;
         var laserMeshRenderer = new MeshRenderer(laserMesh, laserMaterial);
 
         Entity laser = _ecsContext.World.NewEntity();

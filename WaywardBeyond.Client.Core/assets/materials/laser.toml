@@ -1,4 +1,4 @@
-Shader   = "textured.glsl"
+Shader   = "textured"
 Textures = [
     "items/laser_uv.png",
 ]

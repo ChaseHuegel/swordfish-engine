@@ -56,7 +56,7 @@ internal class ShapeSelector : IAutoActivate
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         
-        Result<Shader> shader = shaderDatabase.Get("ui_reef_textured.glsl");
+        Result<Shader> shader = shaderDatabase.Get("ui_reef_textured");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
         _labelImage = new Material(shader, textureDatabase.Get("ui/shape_label.png"));
         
