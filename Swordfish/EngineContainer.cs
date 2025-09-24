@@ -13,6 +13,7 @@ using Swordfish.Input;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Serialization.Toml;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI;
@@ -63,10 +64,12 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IFileParser, TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<TomlParser<MaterialDefinition>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<TextureDatabase>(Reuse.Singleton);
         container.RegisterMany<ShaderDatabase>(Reuse.Singleton);
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
+        container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
         
         var renderSettings = new RenderSettings();
         var debugSettings = new DebugSettings();

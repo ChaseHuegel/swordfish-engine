@@ -9,4 +9,5 @@ public static class AssetPaths
     public static PathInfo Textures { get; } = new("textures/");
     public static PathInfo Fonts { get; } = new("fonts/");
     public static PathInfo Meshes { get; } = new("meshes/");
+    public static PathInfo Materials { get; } = new("materials/");
 }
