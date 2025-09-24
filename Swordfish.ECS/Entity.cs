@@ -33,6 +33,11 @@ public readonly struct Entity
     {
         _dataStore.AddOrUpdate(Ptr, component);
     }
+    
+    public bool Remove<T1>() where T1 : struct, IDataComponent
+    {
+        return _dataStore.Remove<T1>(Ptr);
+    }
 
     // ReSharper disable once MemberCanBePrivate.Global
     public bool Has<T1>() where T1 : struct, IDataComponent
