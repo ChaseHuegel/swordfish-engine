@@ -19,6 +19,13 @@ public abstract class ResourceVirtualAssetDatabase<TAssetInfo, TAsset>(
     in VirtualFileSystem vfs)
     : VirtualAssetDatabase<TAssetInfo, Resource<TAssetInfo>, TAsset>(logger, fileParseService, vfs)
 {
+    /// <summary>
+    ///     Whether to exclude the resource's file extension from the ID.
+    ///     This disabled by default, and is not recommended to be enabled
+    ///     for resources which support multiple extensions.
+    /// </summary>
+    protected virtual bool ExcludeExtensionFromID { get; }
+    
     /// <inheritdoc/>
     protected override IEnumerable<Resource<TAssetInfo>> GetAssetInfo(PathInfo path, TAssetInfo resource)
     {
@@ -47,6 +54,15 @@ public abstract class ResourceVirtualAssetDatabase<TAssetInfo, TAsset>(
         
         //  Ensure consistent separates are used since this 
         //  is an ID and should not vary by platform.
-        return virtualRelativePath.Replace('\\', '/');
+        virtualRelativePath = virtualRelativePath.Replace('\\', '/');
+
+        if (!ExcludeExtensionFromID)
+        {
+            return virtualRelativePath;
+        }
+
+        //  Exclude the extension, if any
+        int extensionIndex = virtualRelativePath.LastIndexOf('.');
+        return extensionIndex != -1 ? virtualRelativePath[..extensionIndex] : virtualRelativePath;
     }
 }

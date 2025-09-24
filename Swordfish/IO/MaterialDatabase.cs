@@ -29,6 +29,9 @@ internal sealed class MaterialDatabase : ResourceVirtualAssetDatabase<MaterialDe
     }
     
     /// <inheritdoc/>
+    protected override bool ExcludeExtensionFromID => true;
+
+    /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
     
     /// <inheritdoc/>
