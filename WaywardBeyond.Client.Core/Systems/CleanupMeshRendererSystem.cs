@@ -8,6 +8,7 @@ internal sealed class CleanupMeshRendererSystem : EntitySystem<MeshRendererClean
     protected override void OnTick(float delta, DataStore store, int entity, ref MeshRendererCleanup meshRendererCleanup)
     {
         meshRendererCleanup.MeshRenderer.Dispose();
+        meshRendererCleanup.MeshRenderer.Mesh.Dispose();
         store.Remove<MeshRendererCleanup>(entity);
     }
 }
