@@ -93,6 +93,10 @@ internal sealed class BrickEntityBuilder(
             brickShapes[i] = new Box3(Vector3.One);
             brickRotations[i] = Quaternion.Identity;
         }
+        
+        //  Cleanup the old meshes
+        opaqueRendererComponent.MeshRenderer.Mesh.Dispose();
+        transparentRendererComponent.MeshRenderer.Mesh.Dispose();
 
         Mesh mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid);
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
