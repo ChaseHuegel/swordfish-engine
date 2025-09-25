@@ -1,5 +1,5 @@
-﻿using System.Numerics;
-using System.Threading;
+﻿using System;
+using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -29,6 +29,7 @@ internal class Hotbar : IAutoActivate
         IWindowContext windowContext,
         ReefContext reefContext,
         IShortcutService shortcutService,
+        IInputService inputService,
         IAssetDatabase<Item> itemDatabase,
         PlayerData playerData,
         IECSContext ecsContext
@@ -55,7 +56,20 @@ internal class Hotbar : IAutoActivate
             shortcutService.RegisterShortcut(shortcut);
         }
         
+        inputService.Scrolled += OnScrolled;
+        
         windowContext.Update += OnWindowUpdate;
+    }
+
+    private void OnScrolled(object? sender, ScrolledEventArgs e)
+    {
+        double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
+        
+        int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
+        activeSlot -= (int)scrollDelta;
+        activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
+        
+        _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
     }
 
     private void OnWindowUpdate(double delta)
