@@ -69,6 +69,7 @@ internal class ShapeSelector : IAutoActivate
             [BrickShape.Slab]  = new("shapeSelector2", new Material(shader, textureDatabase.Get("ui/slab.png")), new Material(shader, textureDatabase.Get("ui/shape_selected_slab.png"))),
             [BrickShape.Stair] = new("shapeSelector3", new Material(shader, textureDatabase.Get("ui/stair.png")), new Material(shader, textureDatabase.Get("ui/shape_selected_stair.png"))),
             [BrickShape.Slope] = new("shapeSelector4", new Material(shader, textureDatabase.Get("ui/slope.png")), new Material(shader, textureDatabase.Get("ui/shape_selected_slope.png"))),
+            [BrickShape.Column] = new("shapeSelector5", new Material(shader, textureDatabase.Get("ui/column.png")), new Material(shader, textureDatabase.Get("ui/shape_selected_column.png"))),
         };
 
         var shortcut = new Shortcut

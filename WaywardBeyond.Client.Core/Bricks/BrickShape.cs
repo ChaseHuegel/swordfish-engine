@@ -6,6 +6,7 @@ public enum BrickShape : byte
     Slab,
     Stair,
     Slope,
+    Column,
     Custom,
     Any,
 }
