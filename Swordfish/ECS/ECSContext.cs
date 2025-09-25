@@ -17,7 +17,10 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
     public ECSContext(IEntitySystem[] systems, ILogger logger)
     {
         _logger = logger;
-        _threadWorker = new ThreadWorker(Update, "ECS");
+        _threadWorker = new ThreadWorker(Update, "ECS")
+        {
+            TargetTickRate = -1,
+        };
 
         World = new World();
         foreach (IEntitySystem system in systems)
