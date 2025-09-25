@@ -22,7 +22,7 @@ public class Injector : IDryIocInjector
     {
         RegisterUI(container);
         RegisterInput(container);
-        RegisterRegistries(container);
+        RegisterDatabases(container);
         RegisterTomlParsers(container);
         RegisterEntitySystems(container);
         
@@ -40,7 +40,7 @@ public class Injector : IDryIocInjector
     private static void RegisterUI(IContainer container)
     {
         container.Register<Hotbar>(Reuse.Singleton);
-        container.RegisterMapping<IEntitySystem, Hotbar>();
+        container.RegisterMapping<IAutoActivate, Hotbar>();
         
         container.Register<ShapeSelector>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ShapeSelector>();
@@ -55,11 +55,12 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
     
-    private static void RegisterRegistries(IContainer container)
+    private static void RegisterDatabases(IContainer container)
     {
-        container.RegisterMany<ItemDatabase>(Reuse.Singleton);
+        container.Register<ItemDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         container.Register<BrickDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
     }
     
     private static void RegisterTomlParsers(IContainer container)

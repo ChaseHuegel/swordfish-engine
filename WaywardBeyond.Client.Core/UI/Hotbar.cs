@@ -3,6 +3,7 @@ using System.Threading;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -11,25 +12,31 @@ using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.Player;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
+internal class Hotbar : IAutoActivate
 {
     private const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly ReefContext _reefContext;
-
-    private readonly Lock _inventoryLock = new();
-    private InventoryComponent? _inventory;
+    private readonly PlayerData _playerData;
+    private readonly IECSContext _ecsContext;
     
-    private int _activeSlot;
-    
-    public Hotbar(IWindowContext windowContext, ReefContext reefContext, IShortcutService shortcutService, IAssetDatabase<Item> itemDatabase)
-    {
+    public Hotbar(
+        IWindowContext windowContext,
+        ReefContext reefContext,
+        IShortcutService shortcutService,
+        IAssetDatabase<Item> itemDatabase,
+        PlayerData playerData,
+        IECSContext ecsContext
+    ) {
         _reefContext = reefContext;
         _itemDatabase = itemDatabase;
+        _playerData = playerData;
+        _ecsContext = ecsContext;
         
         for (var i = 0; i < SLOT_COUNT; i++)
         {
@@ -42,7 +49,7 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
                 IsEnabled = Shortcut.DefaultEnabled,
-                Action = () => _activeSlot = slotIndex,
+                Action = () => _playerData.SetActiveSlot(_ecsContext.World.DataStore, slotIndex),
             };
             
             shortcutService.RegisterShortcut(shortcut);
@@ -50,29 +57,11 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
         
         windowContext.Update += OnWindowUpdate;
     }
-    
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
-    {
-        lock (_inventoryLock)
-        {
-            _inventory = inventory;
-        }
-        
-        store.Query<EquipmentComponent>(entity, 0f, UpdateEquipmentQuery);
-    }
-
-    private void UpdateEquipmentQuery(float delta, DataStore store, int entity, ref EquipmentComponent equipment)
-    {
-        equipment.ActiveInventorySlot = _activeSlot;
-    }
 
     private void OnWindowUpdate(double delta)
     {
-        InventoryComponent? inventory;
-        lock (_inventoryLock)
-        {
-            inventory = _inventory;
-        }
+        InventoryComponent inventory = _playerData.GetInventory(_ecsContext.World.DataStore);
+        int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
 
         UIBuilder<Material> ui = _reefContext.Builder;
 
@@ -96,22 +85,14 @@ internal class Hotbar : EntitySystem<PlayerComponent, InventoryComponent>
 
             for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
             {
-                ItemStack itemStack;
-                if (inventory == null)
-                {
-                    itemStack = default;
-                }
-                else
-                {
-                    itemStack = inventory.Value.Contents.Length > slotIndex ? inventory.Value.Contents[slotIndex] : default;
-                }
+                ItemStack itemStack = inventory.Contents.Length > slotIndex ? inventory.Contents[slotIndex] : default;
                 
                 //  Slot
                 using (ui.Element())
                 {
                     ui.LayoutDirection = LayoutDirection.None;
                     ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                    ui.Color = _activeSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Color = activeSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(48),

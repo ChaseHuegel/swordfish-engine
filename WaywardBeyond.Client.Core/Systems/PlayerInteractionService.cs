@@ -32,6 +32,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly IECSContext _ecsContext;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
+    private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
@@ -47,6 +48,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in IECSContext ecsContext,
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
+        in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector
     ) {
         _inputService = inputService;
@@ -57,6 +59,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _ecsContext = ecsContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
+        _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
@@ -101,6 +104,11 @@ internal sealed class PlayerInteractionService : IEntryPoint
         if (e.MouseButton == MouseButton.Right)
         {
             OnRightClick();
+        }
+        
+        if (e.MouseButton == MouseButton.Middle)
+        {
+            OnMiddleClick();
         }
     }
 
@@ -189,6 +197,61 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
             
             brickToPlace = brick;
+        }
+    }
+    
+    private void OnMiddleClick()
+    {
+        if (!TryGetBrickFromScreenSpace(false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        {
+            return;
+        }
+
+        //  Clone the target brick's shape
+        _shapeSelector.SelectedShape.Set((BrickShape)clickedBrick.Data);
+        
+        //  If the player has a valid item, select it
+        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        {
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedBrick.ID);
+            if (!brickInfoResult.Success)
+            {
+                return;
+            }
+
+            for (var i = 0; i < inventory.Contents.Length; i++)
+            {
+                string itemID = inventory.Contents[i].ID;
+                Result<Item> itemResult = _itemDatabase.Get(itemID);
+                if (!itemResult.Success)
+                {
+                    return;
+                }
+
+                if (itemResult.Value.Placeable == null)
+                {
+                    return;
+                }
+
+                Result<BrickInfo> placeableBrickResult =  _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
+                if (!placeableBrickResult.Success)
+                {
+                    return;
+                }
+
+                if (placeableBrickResult.Value.DataID != clickedBrick.ID)
+                {
+                    continue;
+                }
+
+                store.Query<EquipmentComponent>(playerEntity, 0f, UpdateActiveSlotQuery);
+                void UpdateActiveSlotQuery(float _, DataStore dataStore, int entity, ref EquipmentComponent equipment)
+                {
+                    equipment.ActiveInventorySlot = i;
+                }
+                break;
+            }
         }
     }
 
