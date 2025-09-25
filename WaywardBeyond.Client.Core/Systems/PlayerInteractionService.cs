@@ -34,8 +34,11 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
+    private readonly OrientationSelector _orientationSelector;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
+    
+    private int _rotation = 0;
     
     public PlayerInteractionService(
         in IInputService inputService,
@@ -49,7 +52,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
-        in ShapeSelector shapeSelector
+        in ShapeSelector shapeSelector,
+        in OrientationSelector orientationSelector
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -61,6 +65,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
+        _orientationSelector = orientationSelector;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
         
         _debugText = new TextElement("");
@@ -86,12 +91,25 @@ internal sealed class PlayerInteractionService : IEntryPoint
                 },
             },
         };
+
+        inputService.Scrolled += OnScrolled;
     }
-    
+
     public void Run()
     {
         _physics.FixedUpdate += OnFixedUpdate;
         _inputService.Clicked += OnClicked;
+    }
+    
+    private void OnScrolled(object? sender, ScrolledEventArgs e)
+    {
+        if (!_inputService.IsKeyHeld(Key.Shift))
+        {
+            return;
+        }
+        
+        double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
+        _rotation = MathS.WrapInt(_rotation + (int)scrollDelta, 0, 3);
     }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
@@ -134,7 +152,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
         }
     }
-    
+
     private void OnRightClick()
     {
         if (!TryGetBrickFromScreenSpace(true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
@@ -149,10 +167,9 @@ internal sealed class PlayerInteractionService : IEntryPoint
             return;
         }
 
-        if (_inputService.IsKeyHeld(Key.Shift))
-        {
-            brickToPlace = brickToPlace.Value with { Orientation = new BrickOrientation(0, 1, 0)};
-        }
+        BrickOrientation orientation = _orientationSelector.SelectedOrientation.Get();
+        orientation.YawRotations -= _rotation;
+        brickToPlace = brickToPlace.Value with { Orientation = orientation};
 
         SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
         _brickEntityBuilder.Rebuild(clickedEntity.Ptr);

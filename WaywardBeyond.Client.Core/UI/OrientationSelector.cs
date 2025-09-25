@@ -91,7 +91,7 @@ internal class OrientationSelector : IAutoActivate
             Name = "Change orientation",
             Category = "Interaction",
             Modifiers = ShortcutModifiers.None,
-            Key = Key.G,
+            Key = Key.T,
             IsEnabled = Shortcut.DefaultEnabled,
             Action = OnChangeOrientationPressed,
             Released = OnChangeOrientationReleased,

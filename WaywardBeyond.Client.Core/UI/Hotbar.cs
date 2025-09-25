@@ -21,6 +21,7 @@ internal class Hotbar : IAutoActivate
     private const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
+    private readonly IInputService _inputService;
     private readonly ReefContext _reefContext;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
@@ -35,6 +36,7 @@ internal class Hotbar : IAutoActivate
         IECSContext ecsContext
     ) {
         _reefContext = reefContext;
+        _inputService = inputService;
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
@@ -63,6 +65,11 @@ internal class Hotbar : IAutoActivate
 
     private void OnScrolled(object? sender, ScrolledEventArgs e)
     {
+        if (_inputService.IsKeyHeld(Key.Shift))
+        {
+            return;
+        }
+        
         double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
         
         int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
