@@ -4,6 +4,7 @@ Shape   = "block"
 Tags    = [
     "metal",
     "buildable",
+    "orientable",
     "convertable_truss",
 ]
 [Bricks.Textures]

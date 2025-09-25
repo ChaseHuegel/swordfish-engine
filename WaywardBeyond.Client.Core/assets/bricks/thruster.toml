@@ -5,6 +5,7 @@ Mesh    = "thruster.obj"
 Tags    = [
     "metal",
     "buildable",
+    "orientable",
     "convertable_truss",
 ]
 [Bricks.Textures]
