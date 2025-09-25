@@ -14,6 +14,7 @@ internal sealed class BrickGridBuilder
     private readonly Mesh _stair;
     private readonly Mesh _slab;
     private readonly Mesh _column;
+    private readonly Mesh _plate;
     private readonly TextureArray _textureArray;
     private readonly BrickDatabase _brickDatabase;
     
@@ -25,6 +26,7 @@ internal sealed class BrickGridBuilder
         _stair = meshDatabase.Get("stair.obj");
         _slab = meshDatabase.Get("slab.obj");
         _column = meshDatabase.Get("column.obj");
+        _plate = meshDatabase.Get("plate.obj");
     }
     
     public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
@@ -152,6 +154,9 @@ internal sealed class BrickGridBuilder
                         break;
                     case BrickShape.Column:
                         AddMesh(_column);
+                        break;
+                    case BrickShape.Plate:
+                        AddMesh(_plate);
                         break;
                     case BrickShape.Custom:
                         if (brickInfo.Mesh == null)
