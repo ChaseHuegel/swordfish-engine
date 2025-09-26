@@ -128,12 +128,7 @@ internal class ShapeSelector : IAutoActivate
         
         PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
         Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
-        if (!brickInfoResult.Success)
-        {
-            return false;
-        }
-
-        return brickInfoResult.Value.Shape == BrickShape.Any;
+        return brickInfoResult.Success && brickInfoResult.Value.Shapeable;
     }
 
     private void OnWindowUpdate(double delta)

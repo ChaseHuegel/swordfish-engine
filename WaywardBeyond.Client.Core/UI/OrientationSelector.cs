@@ -147,10 +147,8 @@ internal class OrientationSelector : IAutoActivate
         }
 
         BrickInfo brickInfo = brickInfoResult.Value;
-        bool hasBlockShapeSelected = _shapeSelector.SelectedShape.Get() == BrickShape.Block;
-        bool isShapeableBrick = brickInfo.Shape == BrickShape.Any;
-
-        return (isShapeableBrick && !hasBlockShapeSelected) || brickInfo.Tags.Contains("orientable");
+        BrickShape brickShape = _shapeSelector.SelectedShape.Get();
+        return brickInfo.IsOrientable(brickShape);
     }
 
     private void OnWindowUpdate(double delta)

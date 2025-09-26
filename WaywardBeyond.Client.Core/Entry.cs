@@ -68,7 +68,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         Task.Run(worldGenerator.Generate);
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
-        shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.GetBrick());
+        shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
         _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();

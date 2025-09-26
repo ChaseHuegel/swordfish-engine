@@ -14,8 +14,8 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
     private readonly Randomizer _randomizer = new(seed);
     private readonly BrickEntityBuilder _brickEntityBuilder = brickEntityBuilder;
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
-    private readonly Brick RockBrick = brickDatabase.Get("rock").Value.GetBrick();
-    private readonly Brick IceBrick = brickDatabase.Get("ice").Value.GetBrick();
+    private readonly Brick RockBrick = brickDatabase.Get("rock").Value.ToBrick();
+    private readonly Brick IceBrick = brickDatabase.Get("ice").Value.ToBrick();
 
     public void GenerateAt(Vector3 position, int diameter)
     {

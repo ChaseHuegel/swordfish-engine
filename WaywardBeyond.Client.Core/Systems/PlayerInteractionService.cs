@@ -160,21 +160,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             return;
         }
 
-        Brick? brickToPlace = null;
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
-        if (!brickToPlace.HasValue)
-        {
-            return;
-        }
-
-        BrickOrientation orientation = _orientationSelector.SelectedOrientation.Get();
-        orientation.YawRotations -= _rotation;
-        brickToPlace = brickToPlace.Value with { Orientation = orientation};
-
-        SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brickToPlace.Value);
-        _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
-        return;
-
         void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player,
             ref InventoryComponent inventory)
         {
@@ -205,15 +191,24 @@ internal sealed class PlayerInteractionService : IEntryPoint
             }
 
             BrickInfo brickInfo = brickInfoResult.Value;
-            Brick brick = brickInfo.GetBrick();
-
-            //  If this brick supports changing shapes, use the currently selected shape.
-            if (brickInfo.Shape == BrickShape.Any)
+            
+            //  If this brick is shapeable, use the selected shape.
+            BrickShape shape = brickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : brickInfo.Shape;
+            
+            //  If the selected shape is orientable for the brick, apply orientation.
+            BrickOrientation orientation = BrickOrientation.Identity;
+            if (brickInfo.IsOrientable(shape))
             {
-                brick.Data = (byte)_shapeSelector.SelectedShape.Get();
+                orientation = _orientationSelector.SelectedOrientation.Get();
+                orientation.YawRotations -= _rotation;
             }
             
-            brickToPlace = brick;
+            var brick = brickInfo.ToBrick();
+            brick.Data = (byte)shape;
+            brick.Orientation = orientation;
+            
+            SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
+            _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
     
