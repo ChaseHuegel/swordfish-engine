@@ -155,7 +155,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
     private void OnRightClick()
     {
-        if (!TryGetBrickFromScreenSpace(true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
         {
             return;
         }
@@ -199,10 +199,16 @@ internal sealed class PlayerInteractionService : IEntryPoint
             BrickOrientation orientation = BrickOrientation.Identity;
             if (brickInfo.IsOrientable(shape))
             {
+                //  Base off the selected orientation
                 orientation = _orientationSelector.SelectedOrientation.Get();
-                orientation.YawRotations -= _rotation;
+
+                //  Apply pitch and yaw to look toward the camera
+                Camera camera = _renderContext.Camera.Get();
+                Vector2 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position);
+                orientation.PitchRotations -= (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+                orientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
             }
-            
+
             var brick = brickInfo.ToBrick();
             brick.Data = (byte)shape;
             brick.Orientation = orientation;
@@ -210,6 +216,19 @@ internal sealed class PlayerInteractionService : IEntryPoint
             SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
             _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
+    }
+    
+    private static Vector2 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view)
+    {
+        Vector3 worldDir = Vector3.Normalize(view - model);
+    
+        Quaternion invOrientation = Quaternion.Inverse(orientation);
+        Vector3 localDir = Vector3.Transform(worldDir, invOrientation);
+    
+        float yaw = MathF.Atan2(localDir.X, localDir.Z);
+        float pitch = MathF.Atan2(localDir.Y, MathF.Sqrt(localDir.X * localDir.X + localDir.Z * localDir.Z));
+    
+        return new Vector2(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI));
     }
     
     private void OnMiddleClick()
@@ -281,7 +300,15 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
     }
 
-    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent)
+    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick,
+        out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent,
+        out TransformComponent transformComponent)
+    {
+        return TryGetBrickFromScreenSpace(offset, out entity, out clickedBrick, out brickPos, out brickComponent,
+            out transformComponent, out _);
+    }
+    
+    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint)
     {
         Camera camera = _renderContext.Camera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
@@ -295,6 +322,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
             brickPos = default;
             brickComponent = default;
             transformComponent = default;
+            clickedPoint = default;
             return false;
         }
 
@@ -307,6 +335,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         {
             hitPoint = raycast.Point - raycast.Normal * 0.1f;
         }
+        clickedPoint = hitPoint;
 
         brickPos = WorldToBrickSpace(hitPoint, transformComponent.Position, transformComponent.Orientation);
         clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
