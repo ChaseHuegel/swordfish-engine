@@ -1,11 +1,9 @@
 using System;
 using System.Numerics;
-using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -37,8 +35,6 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly OrientationSelector _orientationSelector;
     private readonly CubeGizmo _cubeGizmo;
     private readonly TextElement _debugText;
-    
-    private int _rotation = 0;
     
     public PlayerInteractionService(
         in IInputService inputService,
@@ -91,25 +87,12 @@ internal sealed class PlayerInteractionService : IEntryPoint
                 },
             },
         };
-
-        inputService.Scrolled += OnScrolled;
     }
 
     public void Run()
     {
         _physics.FixedUpdate += OnFixedUpdate;
         _inputService.Clicked += OnClicked;
-    }
-    
-    private void OnScrolled(object? sender, ScrolledEventArgs e)
-    {
-        if (!_inputService.IsKeyHeld(Key.Shift))
-        {
-            return;
-        }
-        
-        double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
-        _rotation = MathS.WrapInt(_rotation + (int)scrollDelta, 0, 3);
     }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
@@ -132,7 +115,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
     private void OnLeftClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
@@ -155,7 +138,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
     private void OnRightClick()
     {
-        if (!TryGetBrickFromScreenSpace(true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
+        if (!TryGetBrickFromScreenSpace(offset: true, reachAround: true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
         {
             return;
         }
@@ -233,7 +216,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
     
     private void OnMiddleClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             return;
         }
@@ -288,7 +271,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (!TryGetBrickFromScreenSpace(false, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(true, true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             _cubeGizmo.Visible = false;
             return;
@@ -300,72 +283,182 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
     }
 
-    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick,
-        out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent,
-        out TransformComponent transformComponent)
-    {
-        return TryGetBrickFromScreenSpace(offset, out entity, out clickedBrick, out brickPos, out brickComponent,
-            out transformComponent, out _);
+    private bool TryGetBrickFromScreenSpace(
+        bool offset,
+        bool reachAround,
+        out Entity entity,
+        out Brick brick,
+        out (int X, int Y, int Z) coordinate,
+        out BrickComponent brickComponent,
+        out TransformComponent transformComponent
+    ) {
+        return TryGetBrickFromScreenSpace(
+            offset,
+            reachAround,
+            out entity,
+            out brick,
+            out coordinate,
+            out brickComponent,
+            out transformComponent,
+            out _
+        );
     }
     
-    private bool TryGetBrickFromScreenSpace(bool offset, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint)
-    {
+    private bool TryGetBrickFromScreenSpace(
+        bool offset,
+        bool reachAround,
+        out Entity entity,
+        out Brick brick,
+        out (int X, int Y, int Z) coordinate,
+        out BrickComponent brickComponent,
+        out TransformComponent transformComponent,
+        out Vector3 clickedPoint
+    ) {
         Camera camera = _renderContext.Camera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
-        RaycastResult raycast = _physics.Raycast(ray * 1000);
-        
-        if (!raycast.Hit || !raycast.Entity.TryGet(out brickComponent) || !raycast.Entity.TryGet(out transformComponent))
-        {
-            entity = default;
-            clickedBrick = default;
-            brickPos = default;
-            brickComponent = default;
-            transformComponent = default;
-            clickedPoint = default;
-            return false;
-        }
 
-        Vector3 hitPoint;
-        if (offset)
+        Vector3? reachAroundDir = null;
+        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out brickComponent, out transformComponent))
         {
-            hitPoint = raycast.Point + raycast.Normal * 0.1f;
+            if (!reachAround || !TryReachAroundRaycasts(ray, camera, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+            {
+                entity = default;
+                brick = default;
+                coordinate = default;
+                clickedPoint = default;
+                return false;
+            }
+        }
+        
+        clickedPoint = raycast.Point;
+        Vector3 worldPos = raycast.Point;
+        if (offset && reachAroundDir == null)
+        {
+            worldPos += raycast.Normal * 0.1f;
         }
         else
         {
-            hitPoint = raycast.Point - raycast.Normal * 0.1f;
+            worldPos += raycast.Normal * -0.1f;
         }
-        clickedPoint = hitPoint;
-
-        brickPos = WorldToBrickSpace(hitPoint, transformComponent.Position, transformComponent.Orientation);
-        clickedBrick = brickComponent.Grid.Get(brickPos.X, brickPos.Y, brickPos.Z);
+        
+        coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
+        brick = brickComponent.Grid.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        
+        if (reachAroundDir != null)
+        {
+            TryGetRelativeBrickInWorldSpace(brickComponent, transformComponent, reachAroundDir.Value, ref coordinate, out brick);
+        }
+        
         entity = raycast.Entity;
         return true;
     }
 
-    private static (int X, int Y, int Z) WorldToBrickSpace(Vector3 hitPoint, Vector3 gridOrigin, Quaternion gridRotation)
-    {
-        Vector3 localPoint = Vector3.Transform(hitPoint - gridOrigin, Quaternion.Inverse(gridRotation)) + new Vector3(0.5f);
+    private bool TryReachAroundRaycasts(
+        Ray centerRay,
+        Camera camera,
+        ref Vector3? reachAroundDir,
+        out BrickComponent brickComponent,
+        out TransformComponent transformComponent,
+        out RaycastResult raycast
+    ) {
+        const float reachAroundWidth = 0.5f;
         
-        var x = (int)Math.Floor(localPoint.X);
-        var y = (int)Math.Floor(localPoint.Y);
-        var z = (int)Math.Floor(localPoint.Z);
+        if (TryReachAroundRaycast(centerRay, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        {
+            return true;
+        }
+
+        if (TryReachAroundRaycast(centerRay, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryReachAroundRaycast(
+        Ray centerRay,
+        Vector3 direction,
+        float reachAroundWidth,
+        ref Vector3? reachAroundDir,
+        out BrickComponent brickComponent,
+        out TransformComponent transformComponent,
+        out RaycastResult raycast
+    ) {
+        var ray = new Ray(centerRay.Origin + direction * reachAroundWidth, centerRay.Vector);
+        if (TryRaycastBrickEntity(ray, out raycast, out brickComponent, out transformComponent))
+        {
+            reachAroundDir = -direction;
+            return true;
+        }
+
+        ray = new Ray(centerRay.Origin + direction * -reachAroundWidth, centerRay.Vector);
+        if (TryRaycastBrickEntity(ray, out raycast, out brickComponent, out transformComponent))
+        {
+            reachAroundDir = direction;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void TryGetRelativeBrickInWorldSpace(
+        BrickComponent brickComponent,
+        TransformComponent transformComponent,
+        Vector3 worldNormal,
+        ref (int X, int Y, int Z) coordinate,
+        out Brick brick
+    ) {
+        Vector3 worldPos = BrickToWorldSpace(coordinate, transformComponent.Position, transformComponent.Orientation);
+
+        worldNormal = new Vector3(
+            (float)Math.Round(worldNormal.X, MidpointRounding.AwayFromZero),
+            (float)Math.Round(worldNormal.Y, MidpointRounding.AwayFromZero),
+            (float)Math.Round(worldNormal.Z, MidpointRounding.AwayFromZero)
+        );
+        
+        worldPos += worldNormal;
+        coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
+        brick = brickComponent.Grid.Get(coordinate.X, coordinate.Y, coordinate.Z);
+    }
+
+    private bool TryRaycastBrickEntity(Ray ray, out RaycastResult raycast, out BrickComponent brickComponent, out TransformComponent transformComponent)
+    {
+        raycast = _physics.Raycast(ray * 1000);
+        if (raycast.Hit && raycast.Entity.TryGet(out brickComponent) && raycast.Entity.TryGet(out transformComponent))
+        {
+            return true;
+        }
+
+        brickComponent = default;
+        transformComponent = default;
+        return false;
+    }
+
+    private static (int X, int Y, int Z) WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
+    {
+        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);
+        
+        var x = (int)Math.Floor(localPos.X);
+        var y = (int)Math.Floor(localPos.Y);
+        var z = (int)Math.Floor(localPos.Z);
 
         return (x, y, z);
     }
 
-    private static Vector3 BrickToWorldSpace((int X, int Y, int Z) cellCoordinates, Vector3 gridOrigin, Quaternion gridRotation)
+    private static Vector3 BrickToWorldSpace((int X, int Y, int Z) coordinate, Vector3 origin, Quaternion orientation)
     {
         var localCenter = new Vector3(
-            cellCoordinates.X,
-            cellCoordinates.Y,
-            cellCoordinates.Z
+            coordinate.X,
+            coordinate.Y,
+            coordinate.Z
         );
 
-        return Vector3.Transform(localCenter, gridRotation) + gridOrigin;
+        return Vector3.Transform(localCenter, orientation) + origin;
     }
     
-    private void SetBrick(int entity, BrickGrid grid, int x, int y, int z, Brick brick)
+    private void SetBrick(int _, BrickGrid grid, int x, int y, int z, Brick brick)
     {
         Brick currentBrick = grid.Get(x, y, z);
         if (!grid.Set(x, y, z, brick))
