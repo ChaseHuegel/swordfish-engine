@@ -25,7 +25,8 @@ using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedIm
 internal class ShapeSelector : IAutoActivate
 {
     public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
-    
+    public bool Available => IsMainHandShapeable();
+
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
     private readonly PlayerControllerSystem _playerControllerSystem;

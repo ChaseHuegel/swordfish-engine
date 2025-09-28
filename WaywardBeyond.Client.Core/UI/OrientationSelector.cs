@@ -26,6 +26,7 @@ using OrientationSelectorElement = (string ID, Material BaseImage, Material Sele
 internal class OrientationSelector : IAutoActivate
 {
     public readonly DataBinding<BrickOrientation> SelectedOrientation = new();
+    public bool Available => IsMainHandOrientable();
     
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
