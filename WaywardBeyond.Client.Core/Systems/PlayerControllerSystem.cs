@@ -17,8 +17,10 @@ internal sealed class PlayerControllerSystem
     private readonly IInputService _inputService;
     
     private bool _mouseLookEnabled;
+    private bool _windowUnfocused;
+    private bool _savedMouseLookState;
 
-    public PlayerControllerSystem(in IInputService inputService, in IShortcutService shortcutService)
+    public PlayerControllerSystem(in IInputService inputService, in IShortcutService shortcutService, in IWindowContext windowContext)
     {
         _inputService = inputService;
         
@@ -30,6 +32,9 @@ internal sealed class PlayerControllerSystem
             Shortcut.DefaultEnabled,
             ToggleMouselook);
         shortcutService.RegisterShortcut(mouseLookShortcut);
+        
+        windowContext.Focused += OnWindowFocused;
+        windowContext.Unfocused += OnWindowUnfocused;
     }
 
     public bool IsMouseLookEnabled()
@@ -58,6 +63,11 @@ internal sealed class PlayerControllerSystem
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
+        if (_windowUnfocused)
+        {
+            return;
+        }
+        
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
             Vector2 cursorDelta = _inputService.CursorDelta;
@@ -121,5 +131,18 @@ internal sealed class PlayerControllerSystem
         {
             transform.Orientation = Quaternion.Multiply(eulerQuaternion, transform.Orientation);
         }
+    }
+    
+    private void OnWindowFocused()
+    {
+        SetMouseLook(_savedMouseLookState);
+        _windowUnfocused = false;
+    }
+    
+    private void OnWindowUnfocused()
+    {
+        _savedMouseLookState = _mouseLookEnabled;
+        SetMouseLook(false);
+        _windowUnfocused = true;
     }
 }
