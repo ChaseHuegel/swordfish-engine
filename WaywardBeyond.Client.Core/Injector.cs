@@ -50,6 +50,9 @@ public class Injector : IDryIocInjector
         
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ControlHints>();
+        
+        container.Register<DebugOverlay>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, DebugOverlay>();
     }
     
     private static void RegisterInput(IContainer container)

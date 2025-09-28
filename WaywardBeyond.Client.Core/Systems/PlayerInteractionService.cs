@@ -1,16 +1,14 @@
 using System;
 using System.Numerics;
+using Reef;
 using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Constraints;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
-using Swordfish.Types;
 using Swordfish.UI;
-using Swordfish.UI.Elements;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Debug;
@@ -34,8 +32,9 @@ internal sealed class PlayerInteractionService : IEntryPoint
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
     private readonly CubeGizmo _cubeGizmo;
-    private readonly TextElement _debugText;
-    
+
+    private (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
+
     public PlayerInteractionService(
         in IInputService inputService,
         in IPhysics physics,
@@ -49,7 +48,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector
+        in OrientationSelector orientationSelector,
+        in DebugOverlay debugOverlay
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -63,30 +63,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-        
-        _debugText = new TextElement("");
-        _ = new CanvasElement(uiContext, windowContext, "Debug")
-        {
-            Constraints = new RectConstraints
-            {
-                Anchor = ConstraintAnchor.TOP_LEFT,
-                Width = new AbsoluteConstraint(300),
-                Height = new AbsoluteConstraint(120),
-            },
-            Content = {
-                new PanelElement("Interaction")
-                {
-                    Constraints = new RectConstraints
-                    {
-                        Width = new FillConstraint(),
-                        Height = new FillConstraint(),
-                    },
-                    Content = {
-                        _debugText,
-                    },
-                },
-            },
-        };
+
+        debugOverlay.Render += OnDebugOverlayRender;
     }
 
     public void Run()
@@ -280,7 +258,18 @@ internal sealed class PlayerInteractionService : IEntryPoint
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         _cubeGizmo.Visible = true;
         _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
-        _debugText.Text = $"CenterOfMass:{brickComponent.Grid.CenterOfMass}\nHovering: {clickedBrick}\nBrick: {brickPos}\nWorld: {worldPos.X}, {worldPos.Y}, {worldPos.Z}";
+
+        _debugInfo = (BrickComponent: brickComponent, Brick: clickedBrick, Coordinate: brickPos, Position: worldPos);
+    }
+    
+    private void OnDebugOverlayRender(UIBuilder<Material> ui)
+    {
+        (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
+        
+        using (ui.Text($"Center of mass: {debugInfo.BrickComponent.Grid.CenterOfMass}")) {}
+        using (ui.Text($"Brick: {debugInfo.Brick}")) {}
+        using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
+        using (ui.Text($"Position: {debugInfo.Position}")) {}
     }
 
     private bool TryGetBrickFromScreenSpace(
