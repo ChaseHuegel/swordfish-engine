@@ -42,7 +42,8 @@ vec4 fragment()
 
 float screenPxRange(vec2 uv, vec2 atlasSize) {
     vec2 unitRange = vec2(6.0) / vec2(atlasSize);
-    vec2 screenTexSize = vec2(1.0) / fwidth(uv);
+    const float fwidth = 0.1;
+    vec2 screenTexSize = vec2(1.0) / fwidth;
     return max(0.5 * dot(unitRange, screenTexSize), 1.0);
 }
 
