@@ -8,7 +8,7 @@
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-        <Version>0.1.0</Version>
+        <Version>0.1.0-alpha</Version>
     </PropertyGroup>
 
     <ItemGroup>
