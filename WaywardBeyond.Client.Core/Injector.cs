@@ -51,6 +51,9 @@ public class Injector : IDryIocInjector
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, ControlHints>();
         
+        container.Register<CrosshairOverlay>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, CrosshairOverlay>();
+        
         container.Register<DebugOverlay>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, DebugOverlay>();
     }

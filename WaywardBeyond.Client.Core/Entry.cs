@@ -113,14 +113,5 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[6] = new ItemStack("storage", count: 10);
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
-        
-        var crosshairShader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("crosshair.glsl"));
-        var crosshairTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("crosshair.png"));
-        var crosshairMaterial = new Material(crosshairShader, crosshairTexture);
-        Entity crosshairEntity = _ecsContext.World.NewEntity();
-        Vector2 offset = new Vector2(0.01f, 0.01777777778f) * 1.5f;
-        var crosshairRect = new Rect2(new Vector2(0.5f) - offset, new Vector2(0.5f) + offset);
-        var crosshairRenderer = new RectRenderer(crosshairRect, Color.White, crosshairMaterial);
-        crosshairEntity.AddOrUpdate(new RectRendererComponent(crosshairRenderer));
     }
 }

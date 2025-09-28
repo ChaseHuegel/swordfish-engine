@@ -1,0 +1,4 @@
+Shader   = "ui/crosshair"
+Textures = [
+    "ui/crosshair.png",
+]
