@@ -1,17 +1,19 @@
 using System.Drawing;
 using System.Numerics;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Reef;
+using Reef.UI;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
-using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types;
+using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
@@ -29,15 +31,18 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly IFileParseService _fileParseService;
     private readonly BrickDatabase _brickDatabase;
+    private readonly ReefContext _reefContext;
 
     public Entry(
+        in ILogger<Entry> logger,
         in IECSContext ecsContext,
         in IPhysics physics,
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IFileParseService fileParseService,
-        in BrickDatabase brickDatabase
+        in BrickDatabase brickDatabase,
+        in ReefContext reefContext
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -46,8 +51,29 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _brickEntityBuilder = brickEntityBuilder;
         _fileParseService = fileParseService;
         _brickDatabase = brickDatabase;
+        _reefContext = reefContext;
         
-        windowContext.SetTitle($"Wayward Beyond {WaywardBeyond.Version}");
+        windowContext.SetTitle("Wayward Beyond");        
+        logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
+        
+        windowContext.Update += OnWindowUpdate;
+    }
+
+    private void OnWindowUpdate(double delta)
+    {
+        UIBuilder<Material> ui = _reefContext.Builder;
+
+        using (ui.Text($"WORK IN PROGRESS | {WaywardBeyond.Version}"))
+        {
+            ui.FontSize = 20;
+            ui.Color = new Vector4(0.5f);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Top,
+                X = new Relative(0.5f),
+                Y = new Relative(0.03f),
+            };
+        }
     }
 
     public void Run()
