@@ -26,10 +26,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 {
     private readonly IECSContext _ecsContext;
     private readonly IPhysics _physics;
-    private readonly IShortcutService _shortcutService;
     private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
-    private readonly IFileParseService _fileParseService;
     private readonly BrickDatabase _brickDatabase;
     private readonly ReefContext _reefContext;
 
@@ -46,15 +44,23 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
-        _shortcutService = shortcutService;
         _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
-        _fileParseService = fileParseService;
         _brickDatabase = brickDatabase;
         _reefContext = reefContext;
         
         windowContext.SetTitle("Wayward Beyond");        
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
+        
+        Shortcut quitShortcut = new(
+            "Quit Game",
+            "General",
+            ShortcutModifiers.None,
+            Key.Esc,
+            Shortcut.DefaultEnabled,
+            _windowContext.Close
+        );
+        shortcutService.RegisterShortcut(quitShortcut);
         
         windowContext.Update += OnWindowUpdate;
     }
@@ -78,16 +84,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 
     public void Run()
     {
-        Shortcut quitShortcut = new(
-            "Quit Game",
-            "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            Shortcut.DefaultEnabled,
-            _windowContext.Close
-        );
-        _shortcutService.RegisterShortcut(quitShortcut);
-        
         _physics.SetGravity(Vector3.Zero);
 
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
