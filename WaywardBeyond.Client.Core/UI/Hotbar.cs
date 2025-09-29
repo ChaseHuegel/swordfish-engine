@@ -3,39 +3,33 @@ using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal class Hotbar : IAutoActivate
+internal class Hotbar : IUILayer
 {
     private const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly IInputService _inputService;
-    private readonly ReefContext _reefContext;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     
     public Hotbar(
-        IWindowContext windowContext,
-        ReefContext reefContext,
         IShortcutService shortcutService,
         IInputService inputService,
         IAssetDatabase<Item> itemDatabase,
         PlayerData playerData,
         IECSContext ecsContext
     ) {
-        _reefContext = reefContext;
         _inputService = inputService;
         _itemDatabase = itemDatabase;
         _playerData = playerData;
@@ -59,8 +53,6 @@ internal class Hotbar : IAutoActivate
         }
         
         inputService.Scrolled += OnScrolled;
-        
-        windowContext.Update += OnWindowUpdate;
     }
 
     private void OnScrolled(object? sender, ScrolledEventArgs e)
@@ -79,12 +71,10 @@ internal class Hotbar : IAutoActivate
         _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
     }
 
-    private void OnWindowUpdate(double delta)
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         InventoryComponent inventory = _playerData.GetInventory(_ecsContext.World.DataStore);
         int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
-
-        UIBuilder<Material> ui = _reefContext.Builder;
 
         //  Hotbar
         using (ui.Element())
@@ -175,5 +165,7 @@ internal class Hotbar : IAutoActivate
                 }
             }
         }
+        
+        return Result.FromSuccess();
     }
 }

@@ -4,33 +4,18 @@ using Reef.Constraints;
 using Reef.UI;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
+using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal class ControlHints : IAutoActivate
+internal class ControlHints(in OrientationSelector orientationSelector, in ShapeSelector shapeSelector) : IUILayer
 {
-    private readonly ReefContext _reefContext;
-    private readonly OrientationSelector _orientationSelector;
-    private readonly ShapeSelector _shapeSelector;
+    private readonly OrientationSelector _orientationSelector = orientationSelector;
+    private readonly ShapeSelector _shapeSelector = shapeSelector;
     
-    public ControlHints(
-        ReefContext reefContext,
-        IWindowContext windowContext,
-        OrientationSelector orientationSelector,
-        ShapeSelector shapeSelector
-    ) {
-        _reefContext = reefContext;
-        _orientationSelector = orientationSelector;
-        _shapeSelector = shapeSelector;
-        
-        windowContext.Update += OnWindowUpdate;
-    }
-
-    private void OnWindowUpdate(double delta)
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        UIBuilder<Material> ui = _reefContext.Builder;
-
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
@@ -80,5 +65,7 @@ internal class ControlHints : IAutoActivate
             using (ui.Text("Ctrl: Down")) {}
             using (ui.Text("W/A/S/D: Fly")) {}
         }
+        
+        return Result.FromSuccess();
     }
 }

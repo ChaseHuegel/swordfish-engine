@@ -39,23 +39,26 @@ public class Injector : IDryIocInjector
 
     private static void RegisterUI(IContainer container)
     {
+        container.Register<DefaultUIRenderer>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
+        
+        container.Register<DebugOverlayRenderer>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, DebugOverlayRenderer>();
+        
         container.Register<Hotbar>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, Hotbar>();
+        container.RegisterMapping<IUILayer, Hotbar>();
         
         container.Register<ShapeSelector>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, ShapeSelector>();
+        container.RegisterMapping<IUILayer, ShapeSelector>();
         
         container.Register<OrientationSelector>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, OrientationSelector>();
+        container.RegisterMapping<IUILayer, OrientationSelector>();
         
         container.Register<ControlHints>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, ControlHints>();
+        container.RegisterMapping<IUILayer, ControlHints>();
         
         container.Register<CrosshairOverlay>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, CrosshairOverlay>();
-        
-        container.Register<DebugOverlay>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, DebugOverlay>();
+        container.RegisterMapping<IUILayer, CrosshairOverlay>();
     }
     
     private static void RegisterInput(IContainer container)

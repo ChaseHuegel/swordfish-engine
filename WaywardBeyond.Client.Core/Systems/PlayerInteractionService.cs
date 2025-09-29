@@ -18,7 +18,7 @@ using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class PlayerInteractionService : IEntryPoint
+internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 {
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
@@ -48,8 +48,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector,
-        in DebugOverlay debugOverlay
+        in OrientationSelector orientationSelector
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -63,8 +62,6 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-
-        debugOverlay.Render += OnDebugOverlayRender;
     }
 
     public void Run()
@@ -262,7 +259,7 @@ internal sealed class PlayerInteractionService : IEntryPoint
         _debugInfo = (BrickComponent: brickComponent, Brick: clickedBrick, Coordinate: brickPos, Position: worldPos);
     }
     
-    private void OnDebugOverlayRender(UIBuilder<Material> ui)
+    public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
         (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
         
@@ -270,6 +267,8 @@ internal sealed class PlayerInteractionService : IEntryPoint
         using (ui.Text($"Brick: {debugInfo.Brick}")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position}")) {}
+        
+        return Result.FromSuccess();
     }
 
     private bool TryGetBrickFromScreenSpace(

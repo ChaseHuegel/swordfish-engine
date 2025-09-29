@@ -2,26 +2,26 @@
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal class DebugOverlay : IAutoActivate
+internal class DebugOverlayRenderer : IUILayer
 {
-    public event Action<UIBuilder<Material>>? Render; 
-    
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
+    private readonly IDebugOverlay[] _overlays;
 
     private bool _visible;
     
-    public DebugOverlay(ILogger<DebugOverlay> logger, ReefContext reefContext, IWindowContext windowContext, IShortcutService shortcutService)
+    public DebugOverlayRenderer(ILogger<DebugOverlayRenderer> logger, ReefContext reefContext, IShortcutService shortcutService, IDebugOverlay[] overlays)
     {
         _logger = logger;
         _reefContext = reefContext;
+        _overlays = overlays;
 
         var shortcut = new Shortcut
         {
@@ -32,8 +32,6 @@ internal class DebugOverlay : IAutoActivate
             Action = OnToggleDebugOverlay,
         };
         shortcutService.RegisterShortcut(shortcut);
-        
-        windowContext.Update += OnWindowUpdate;
     }
 
     private void OnToggleDebugOverlay()
@@ -41,15 +39,13 @@ internal class DebugOverlay : IAutoActivate
         _visible = !_visible;
     }
 
-    private void OnWindowUpdate(double delta)
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         if (!_visible)
         {
-            return;
+            return Result.FromSuccess();
         }
         
-        UIBuilder<Material> ui = _reefContext.Builder;
-
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
@@ -66,14 +62,24 @@ internal class DebugOverlay : IAutoActivate
                 Height = new Relative(1f),
             };
 
-            try
+            for (var i = 0; i < _overlays.Length; i++)
             {
-                Render?.Invoke(ui);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Caught an exception when rendering the debug overlay.");
+                IDebugOverlay overlay = _overlays[i];
+                try
+                {
+                    Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);
+                    if (!result)
+                    {
+                        _logger.LogError(result, "Failed to render debug overlay \"{overlay}\".", overlay.GetType());
+                    }
+                }
+                catch (Exception exception)
+                {
+                    _logger.LogError(exception, "Caught an exception when rendering debug overlay \"{overlay}\".", overlay.GetType());
+                }
             }
         }
+        
+        return Result.FromSuccess();
     }
 }

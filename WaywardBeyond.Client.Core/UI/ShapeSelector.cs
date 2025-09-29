@@ -22,13 +22,12 @@ namespace WaywardBeyond.Client.Core.UI;
 
 using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
-internal class ShapeSelector : IAutoActivate
+internal class ShapeSelector : IUILayer
 {
     public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
     public bool Available => IsMainHandShapeable();
 
     private readonly ILogger _logger;
-    private readonly ReefContext _reefContext;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -43,8 +42,6 @@ internal class ShapeSelector : IAutoActivate
     
     public ShapeSelector(
         ILogger<ShapeSelector> logger,
-        IWindowContext windowContext,
-        ReefContext reefContext,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
@@ -54,7 +51,6 @@ internal class ShapeSelector : IAutoActivate
         IECSContext ecsContext
     ) {
         _logger = logger;
-        _reefContext = reefContext;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -86,8 +82,6 @@ internal class ShapeSelector : IAutoActivate
         };
         
         shortcutService.RegisterShortcut(shortcut);
-        
-        windowContext.Update += OnWindowUpdate;
     }
 
     private void OnChangeShapePressed()
@@ -132,15 +126,13 @@ internal class ShapeSelector : IAutoActivate
         return brickInfoResult.Success && brickInfoResult.Value.Shapeable;
     }
 
-    private void OnWindowUpdate(double delta)
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         if (!IsMainHandShapeable())
         {
             //  Don't draw anything if the player isn't holding a shapeable item.
-            return;
+            return Result.FromSuccess();
         }
-        
-        UIBuilder<Material> ui = _reefContext.Builder;
         
         //  Draw the currently selected shape
         ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[SelectedShape.Get()];
@@ -159,7 +151,7 @@ internal class ShapeSelector : IAutoActivate
         //  Only display the selector if changing shapes
         if (!_changingShape)
         {
-            return;
+            return Result.FromSuccess();
         }
         
         const float elementOffset = 96;
@@ -261,5 +253,7 @@ internal class ShapeSelector : IAutoActivate
                 };
             }
         }
+
+        return Result.FromSuccess();
     }
 }

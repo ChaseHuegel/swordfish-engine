@@ -1,11 +1,9 @@
 ﻿using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -13,7 +11,6 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
-using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
@@ -23,13 +20,12 @@ namespace WaywardBeyond.Client.Core.UI;
 
 using OrientationSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
-internal class OrientationSelector : IAutoActivate
+internal class OrientationSelector : IUILayer
 {
     public readonly DataBinding<BrickOrientation> SelectedOrientation = new();
     public bool Available => IsMainHandOrientable();
     
     private readonly ILogger _logger;
-    private readonly ReefContext _reefContext;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -50,8 +46,6 @@ internal class OrientationSelector : IAutoActivate
     
     public OrientationSelector(
         ILogger<OrientationSelector> logger,
-        IWindowContext windowContext,
-        ReefContext reefContext,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
@@ -62,7 +56,6 @@ internal class OrientationSelector : IAutoActivate
         ShapeSelector shapeSelector
     ) {
         _logger = logger;
-        _reefContext = reefContext;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -99,8 +92,6 @@ internal class OrientationSelector : IAutoActivate
         };
         
         shortcutService.RegisterShortcut(shortcut);
-        
-        windowContext.Update += OnWindowUpdate;
     }
 
     private void OnChangeOrientationPressed()
@@ -152,15 +143,13 @@ internal class OrientationSelector : IAutoActivate
         return brickInfo.IsOrientable(brickShape);
     }
 
-    private void OnWindowUpdate(double delta)
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         if (!IsMainHandOrientable())
         {
             //  Don't draw anything if the player isn't holding a shapeable item.
-            return;
+            return Result.FromSuccess();
         }
-        
-        UIBuilder<Material> ui = _reefContext.Builder;
         
         //  Draw the currently selected orientation
         OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[SelectedOrientation.Get()];
@@ -179,7 +168,7 @@ internal class OrientationSelector : IAutoActivate
         //  Only display the selector if changing shapes
         if (!_changingOrientation)
         {
-            return;
+            return Result.FromSuccess();
         }
         
         const float elementOffset = 72;
@@ -259,5 +248,7 @@ internal class OrientationSelector : IAutoActivate
                 }
             }
         }
+        
+        return Result.FromSuccess();
     }
 }
