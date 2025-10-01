@@ -24,4 +24,20 @@
         </None>
     </ItemGroup>
 
+    <Target Name="CopyDlls" AfterTargets="Build">
+        <MakeDir Directories="$(OutputPath)lib" Condition="!Exists('$(OutputPath)lib')" />
+        
+        <ItemGroup>
+            <FilesToMove Include="$(OutputPath)*.*" Exclude="$(OutputPath)Wayward Beyond*" />
+        </ItemGroup>
+
+        <ItemGroup>
+            <MoveWithDest Include="@(FilesToMove)">
+                <DestPath>$(OutputPath)lib\%(Filename)%(Extension)</DestPath>
+            </MoveWithDest>
+        </ItemGroup>
+
+        <Move SourceFiles="@(MoveWithDest->'%(FullPath)')" DestinationFiles="@(MoveWithDest->'%(DestPath)')" OverwriteReadOnlyFiles="true" />
+    </Target>
+
 </Project>
