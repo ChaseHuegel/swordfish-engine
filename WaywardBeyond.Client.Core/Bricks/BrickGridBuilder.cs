@@ -110,13 +110,29 @@ internal sealed class BrickGridBuilder
                     neighborOffset = Vector3.Transform(new Vector3(0, 0, -1), rotation);
                     behind = gridToBuild.Get(x + (int)Math.Round(neighborOffset.X, MidpointRounding.AwayFromZero), y + (int)Math.Round(neighborOffset.Y, MidpointRounding.AwayFromZero), z + (int)Math.Round(neighborOffset.Z, MidpointRounding.AwayFromZero));
                 }
+                
+                bool hasRight = IsCulledAtNeighbor(target: brick, neighbor: right);
+                bool hasLeft = IsCulledAtNeighbor(target: brick, neighbor: left);
+                bool hasAbove = IsCulledAtNeighbor(target: brick, neighbor: above);
+                bool hasBelow = IsCulledAtNeighbor(target: brick, neighbor: below);
+                bool hasAhead = IsCulledAtNeighbor(target: brick, neighbor: ahead);
+                bool hasBehind = IsCulledAtNeighbor(target: brick, neighbor: behind);
 
-                bool hasRight = right.ID != 0 && _brickDatabase.IsCuller(right);
-                bool hasLeft = left.ID != 0 && _brickDatabase.IsCuller(left);
-                bool hasAbove = above.ID != 0 && _brickDatabase.IsCuller(above);
-                bool hasBelow = below.ID != 0 && _brickDatabase.IsCuller(below);
-                bool hasAhead = ahead.ID != 0 && _brickDatabase.IsCuller(ahead);
-                bool hasBehind = behind.ID != 0 && _brickDatabase.IsCuller(behind);
+                bool IsCulledAtNeighbor(Brick target, Brick neighbor)
+                {
+                    if (neighbor.ID == 0)
+                    {
+                        return false;
+                    }
+
+                    //  Non-block shaped bricks of the same type cull one another 
+                    if (neighbor.ID == target.ID && neighbor.Data == 0)
+                    {
+                        return true;
+                    }
+
+                    return _brickDatabase.IsCuller(neighbor);
+                }
                 
                 if (brick.ID == 0 || (hasRight && hasLeft && hasAbove && hasBelow && hasAhead && hasBehind))
                 {
