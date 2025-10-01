@@ -43,7 +43,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, DebugOverlayRenderer>();
+        container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();
@@ -63,8 +63,10 @@ public class Injector : IDryIocInjector
     
     private static void RegisterInput(IContainer container)
     {
-        container.Register<IEntryPoint, PlayerInteractionService>();
-        
+        container.Register<PlayerInteractionService>(Reuse.Singleton);
+        container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
+        container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
+
         container.Register<PlayerControllerSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, PlayerControllerSystem>();
         container.Register<IEntitySystem, FirstPersonCameraSystem>();
