@@ -42,6 +42,9 @@ public class Injector : IDryIocInjector
         container.Register<DefaultUIRenderer>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
         
+        container.Register<CrosshairOverlay>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, CrosshairOverlay>();
+        
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         
@@ -56,9 +59,6 @@ public class Injector : IDryIocInjector
         
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ControlHints>();
-        
-        container.Register<CrosshairOverlay>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, CrosshairOverlay>();
     }
     
     private static void RegisterInput(IContainer container)
