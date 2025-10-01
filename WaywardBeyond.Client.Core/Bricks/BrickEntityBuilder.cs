@@ -37,6 +37,12 @@ internal sealed class BrickEntityBuilder(
         DoubleFaced = false,
         Wireframe = false,
     };
+    
+    private readonly RenderOptions _transparentRenderOptions = new()
+    {
+        DoubleFaced = true,
+        Wireframe = false,
+    };
 
     public Entity Create(string name, BrickGrid grid, Vector3 position, Quaternion orientation, Vector3 scale)
     {
@@ -63,7 +69,7 @@ internal sealed class BrickEntityBuilder(
         _dataStore.AddOrUpdate(ptr, new BrickComponent(grid, transparencyPtr));
         
         mesh = _brickGridBuilder.CreateMesh(grid, true);
-        renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
+        renderer = new MeshRenderer(mesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(transparencyPtr, transform);
         _dataStore.AddOrUpdate(transparencyPtr, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(ptr));
@@ -101,7 +107,7 @@ internal sealed class BrickEntityBuilder(
         _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
         
         mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid, true);
-        renderer = new MeshRenderer(mesh, _transparentMaterial, _renderOptions);
+        renderer = new MeshRenderer(mesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));
     }
