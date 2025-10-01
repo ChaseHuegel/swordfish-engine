@@ -20,7 +20,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net9.0/modules/swordfish</OutputPath>
+    <OutputPath>$(SolutionDir)/WaywardBeyond.Client.Launcher/bin/$(Configuration)/net9.0/modules/swordfish</OutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>

@@ -2,7 +2,7 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <OutputPath>$(SolutionDir)/Swordfish.Launcher/bin/$(Configuration)/net9.0/modules/waywardbeyond.client</OutputPath>
+        <OutputPath>$(SolutionDir)/WaywardBeyond.Client.Launcher/bin/$(Configuration)/net9.0/modules/waywardbeyond.client</OutputPath>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
