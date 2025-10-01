@@ -8,4 +8,5 @@ Tags        = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = ["glass"]
+Connected = true
+Default = ["glass.0"]
