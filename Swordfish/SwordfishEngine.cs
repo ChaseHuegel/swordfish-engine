@@ -1,9 +1,12 @@
+using System.Drawing;
 using Microsoft.Extensions.Logging;
-using PInvoke;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Shoal;
+using Silk.NET.Core;
 using Swordfish.Library.Threading;
+using Swordfish.Util;
+
 // ReSharper disable UnusedMember.Global
 
 namespace Swordfish;
@@ -99,6 +102,23 @@ public class SwordfishEngine
     
     private void OnWindowLoaded()
     {
+        //  Default to setting the window icon from the EXE if this is on windows
+        if (OperatingSystem.IsWindows())
+        {
+            string? executablePath = Environment.ProcessPath;
+            if (executablePath != null)
+            {
+                var icon = Icon.ExtractAssociatedIcon(executablePath);
+                if (icon != null)
+                {
+                    using var stream = new MemoryStream();
+                    icon.Save(stream);
+                    RawImage rawIcon = Imaging.LoadAsPng(stream);
+                    _mainWindow.SetWindowIcon(ref rawIcon);
+                }
+            }
+        }
+        
         TransitionState(State.Started, State.Loading);
         _engine = AppEngine.Build(_args, _engineContainer.Register);
         TransitionState(State.Loading, State.Loaded);
