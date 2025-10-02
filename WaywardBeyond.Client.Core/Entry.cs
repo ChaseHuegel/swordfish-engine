@@ -1,6 +1,6 @@
-using System.Drawing;
 using System.Numerics;
 using System.Threading.Tasks;
+using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -9,10 +9,8 @@ using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Physics;
-using Swordfish.Types;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
@@ -26,7 +24,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 {
     private readonly IECSContext _ecsContext;
     private readonly IPhysics _physics;
-    private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly BrickDatabase _brickDatabase;
     private readonly ReefContext _reefContext;
@@ -38,19 +35,15 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IShortcutService shortcutService,
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
-        in IFileParseService fileParseService,
         in BrickDatabase brickDatabase,
         in ReefContext reefContext
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
-        _windowContext = windowContext;
+        IWindowContext windowContext1 = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _brickDatabase = brickDatabase;
         _reefContext = reefContext;
-        
-        windowContext.SetTitle("Wayward Beyond");        
-        logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
         
         Shortcut quitShortcut = new(
             "Quit Game",
@@ -58,9 +51,24 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             ShortcutModifiers.None,
             Key.Esc,
             Shortcut.DefaultEnabled,
-            _windowContext.Close
+            windowContext1.Close
         );
         shortcutService.RegisterShortcut(quitShortcut);
+
+        windowContext.SetTitle("Wayward Beyond");
+        logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
+
+        MachineInformation? machineInformation = MachineInformationGatherer.GatherInformation();
+        if (machineInformation != null)
+        {
+            logger.LogInformation("OS: {os}", machineInformation.OperatingSystem.VersionString);
+            logger.LogInformation("CPU: {cpu}", machineInformation.Cpu.Name); 
+            logger.LogInformation("GPU: {gpu} (VRAM: {vram}, Driver: {driverVersion})",
+                machineInformation.Gpus[0].Name,
+                machineInformation.Gpus[0].AvailableVideoMemoryHRF,
+                machineInformation.Gpus[0].DriverVersion
+            );
+        }
         
         windowContext.Update += OnWindowUpdate;
     }
