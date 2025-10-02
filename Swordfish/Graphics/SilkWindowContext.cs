@@ -9,7 +9,6 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.UI;
-using Swordfish.Util;
 using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
@@ -57,10 +56,6 @@ public class SilkWindowContext : IWindowContext
         Window.Resize += OnResize;
 
         Window.Center();
-
-        //  TODO refactor "manifest" files. Its now confusing with Module manifests.
-        RawImage icon = Imaging.LoadAsPng(new PathInfo("manifest://swordfish.ico").Open());
-        Window.SetWindowIcon(ref icon);
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
@@ -128,6 +123,12 @@ public class SilkWindowContext : IWindowContext
     public void SetTitle(string? title)
     {
         Window.Title = title ?? string.Empty;
+    }
+
+    public void SetIcon(Texture icon)
+    {
+        var rawImage = new RawImage(icon.Width, icon.Height, icon.Pixels);
+        Window.SetWindowIcon(ref rawImage);
     }
 
     private void OnClose()

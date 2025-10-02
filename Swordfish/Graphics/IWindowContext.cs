@@ -27,4 +27,5 @@ public interface IWindowContext
     void Maximize();
     void Fullscreen();
     void SetTitle(string? title);
+    void SetIcon(Texture icon);
 }
