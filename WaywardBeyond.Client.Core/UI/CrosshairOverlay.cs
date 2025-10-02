@@ -26,6 +26,11 @@ internal class CrosshairOverlay : IUILayer
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            return Result.FromSuccess();
+        }
+        
         if (_crosshairMaterial == null)
         {
             return Result.FromSuccess();

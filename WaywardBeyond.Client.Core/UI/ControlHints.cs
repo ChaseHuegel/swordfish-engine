@@ -16,6 +16,11 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
     
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            return Result.FromSuccess();
+        }
+        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;

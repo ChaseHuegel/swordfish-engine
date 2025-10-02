@@ -112,7 +112,6 @@ internal class ShapeSelector : IUILayer
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
         if (!mainHandResult.Success)
         {
-            _logger.LogError(mainHandResult.Exception, "Failed to get the player's main hand. {message}", mainHandResult.Message);
             return false;
         }
 
@@ -128,6 +127,11 @@ internal class ShapeSelector : IUILayer
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            return Result.FromSuccess();
+        }
+        
         if (!IsMainHandShapeable())
         {
             //  Don't draw anything if the player isn't holding a shapeable item.

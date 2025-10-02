@@ -34,7 +34,7 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
-        container.RegisterMany<Entry>();
+        container.RegisterMany<Entry>(reuse: Reuse.Singleton);
     }
 
     private static void RegisterUI(IContainer container)

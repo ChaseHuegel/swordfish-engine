@@ -30,7 +30,6 @@ internal sealed class PlayerViewModelSystem(
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
         if (!mainHandResult)
         {
-            _logger.LogError(mainHandResult.Exception, "Failed to get the player's main hand. {message}", mainHandResult.Message);
             return;
         }
 

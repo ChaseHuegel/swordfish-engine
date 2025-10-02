@@ -72,6 +72,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            return;
+        }
+        
         if (e.MouseButton == MouseButton.Left)
         {
             OnLeftClick();

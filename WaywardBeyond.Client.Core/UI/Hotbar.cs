@@ -73,8 +73,20 @@ internal class Hotbar : IUILayer
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        InventoryComponent inventory = _playerData.GetInventory(_ecsContext.World.DataStore);
-        int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            return Result.FromSuccess();
+        }
+        
+        Result<InventoryComponent> inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
+        Result<int> activeSlotResult = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
+        if (!inventoryResult || !activeSlotResult)
+        {
+            return Result.FromSuccess();
+        }
+
+        InventoryComponent inventory = inventoryResult.Value;
+        int activeSlot = activeSlotResult.Value;
 
         //  Hotbar
         using (ui.Element())
@@ -96,7 +108,7 @@ internal class Hotbar : IUILayer
 
             for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
             {
-                ItemStack itemStack = inventory.Contents.Length > slotIndex ? inventory.Contents[slotIndex] : default;
+                ItemStack itemStack = inventory.Contents?.Length > slotIndex ? inventory.Contents[slotIndex] : default;
                 
                 //  Slot
                 using (ui.Element())

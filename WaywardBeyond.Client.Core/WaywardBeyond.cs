@@ -7,4 +7,6 @@ internal static class WaywardBeyond
 {
     public static string Version => _version ??= typeof(WaywardBeyond).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "VERSION UNKNOWN";
     private static string? _version;
+    
+    public static GameState GameState { get; set; }
 }
