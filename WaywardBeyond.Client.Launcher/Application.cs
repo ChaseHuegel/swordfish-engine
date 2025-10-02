@@ -2,7 +2,7 @@
 
 namespace WaywardBeyond.Client.Launcher;
 
-public class Application(in string[] args)
+internal class Application(in string[] args)
 {
     private readonly SwordfishEngine _engine = new(args);
 
