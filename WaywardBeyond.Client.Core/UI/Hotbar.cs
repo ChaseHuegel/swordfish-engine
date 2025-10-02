@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Drawing;
+using System.Globalization;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -6,6 +8,7 @@ using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
@@ -22,6 +25,10 @@ internal class Hotbar : IUILayer
     private readonly IInputService _inputService;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
+
+    private readonly Vector4 _backgroundColor;
+    private readonly Vector4 _slotColor;
+    private readonly Vector4 _selectedColor;
     
     public Hotbar(
         IShortcutService shortcutService,
@@ -34,6 +41,10 @@ internal class Hotbar : IUILayer
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
+        
+        _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
+        _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
+        _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
         
         for (var i = 0; i < SLOT_COUNT; i++)
         {
@@ -91,7 +102,7 @@ internal class Hotbar : IUILayer
         //  Hotbar
         using (ui.Element())
         {
-            ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 1f);
+            ui.Color = _backgroundColor;
             ui.Spacing = 8;
             ui.Padding = new Padding(
                 left: 8,
@@ -115,7 +126,7 @@ internal class Hotbar : IUILayer
                 {
                     ui.LayoutDirection = LayoutDirection.None;
                     ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                    ui.Color = activeSlot == slotIndex ? new Vector4(0f, 1f, 0.5f, 1f) : new Vector4(0f, 0.5f, 0.5f, 1f);
+                    ui.Color = activeSlot == slotIndex ? _selectedColor : _slotColor;
                     ui.Constraints = new Constraints
                     {
                         Width = new Fixed(48),
@@ -135,19 +146,6 @@ internal class Hotbar : IUILayer
                     }
                     
                     Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-                    
-                    //  Name
-                    string name = itemResult.Success ? itemResult.Value.Name : itemStack.ID;
-                    using (ui.Text(name))
-                    {
-                        ui.FontSize = 12;
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                            X = new Relative(0.5f),
-                            Y = new Relative(0.5f),
-                        };
-                    }
 
                     //  Stack size
                     using (ui.Text(itemStack.Count.ToString()))
