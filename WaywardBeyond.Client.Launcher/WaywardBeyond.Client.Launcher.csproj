@@ -15,10 +15,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="resources\waywardbeyond.ico" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Update="assets\config\modules.toml">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
