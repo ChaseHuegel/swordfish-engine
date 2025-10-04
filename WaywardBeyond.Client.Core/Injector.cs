@@ -1,15 +1,18 @@
 ﻿using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
+using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
+using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 
@@ -91,5 +94,10 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
+    }
+    
+    private static void RegisterSerializer(IContainer container)
+    {
+        container.Register<ISerializer<BrickGrid>, BrickGridSerializer>(reuse: Reuse.Singleton);
     }
 }

@@ -7,6 +7,7 @@
 **/plugins/
 **/mods/
 **/.packages/
+**/CodeGen/Output
 
 *.log
 NuGet.config

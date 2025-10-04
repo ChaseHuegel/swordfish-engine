@@ -1,0 +1,16 @@
+﻿#version 1.0;
+#namespace WaywardBeyond.Client.Core.Serialization;
+
+message RawBrick
+{
+    int X;
+    int Y;
+    int Z;
+    ushort ID;
+    byte Data;
+}
+
+message RawBrickGrid
+{
+    RawBrick[] Bricks;
+}

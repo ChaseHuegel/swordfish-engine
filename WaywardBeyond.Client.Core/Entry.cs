@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.UI.Reef;
@@ -31,6 +33,9 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly BrickDatabase _brickDatabase;
     private readonly ReefContext _reefContext;
+    private readonly ISerializer<BrickGrid> _brickGridSerializer;
+    
+    private Entity _ship;
 
     public Entry(
         in ILogger<Entry> logger,
@@ -40,7 +45,8 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in IWindowContext windowContext,
         in BrickEntityBuilder brickEntityBuilder,
         in BrickDatabase brickDatabase,
-        in ReefContext reefContext
+        in ReefContext reefContext,
+        in ISerializer<BrickGrid> brickGridSerializer
     ) {
         _ecsContext = ecsContext;
         _physics = physics;
@@ -48,6 +54,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _brickEntityBuilder = brickEntityBuilder;
         _brickDatabase = brickDatabase;
         _reefContext = reefContext;
+        _brickGridSerializer = brickGridSerializer;
         
         Shortcut quitShortcut = new(
             "Quit Game",
@@ -58,6 +65,16 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             windowContext1.Close
         );
         shortcutService.RegisterShortcut(quitShortcut);
+        
+        Shortcut saveShortcut = new(
+            "Save Ship",
+            "General",
+            ShortcutModifiers.Control,
+            Key.S,
+            Shortcut.DefaultEnabled,
+            SaveShip
+        );
+        shortcutService.RegisterShortcut(saveShortcut);
 
         windowContext.SetTitle("Wayward Beyond");
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
@@ -143,7 +160,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
 
         var shipGrid = new BrickGrid(dimensionSize: 16);
         shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
-        _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
+        _ship = _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();
         var inventory = new InventoryComponent(size: 9);
@@ -162,5 +179,21 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[7] = new ItemStack("truss", count: 50);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
         WaywardBeyond.GameState = GameState.Playing;
+    }
+
+    private void SaveShip()
+    {
+        BrickComponent? brickComponent = _ship.Get<BrickComponent>();
+        if (brickComponent == null)
+        {
+            return;
+        }
+        
+        byte[] data = _brickGridSerializer.Serialize(brickComponent.Value.Grid);
+        using var dataStream = new MemoryStream(data);
+        var saveDirectory = new PathInfo("saves");
+        Directory.CreateDirectory(saveDirectory);
+        PathInfo savePath = saveDirectory.At("ship.dat");
+        savePath.Write(dataStream);
     }
 }

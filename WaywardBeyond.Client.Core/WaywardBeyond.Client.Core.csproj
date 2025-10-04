@@ -9,6 +9,7 @@
         <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
         <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <Version>0.1.0-alpha</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -25,5 +26,9 @@
         <PackageReference Include="HardwareInformation" Version="5.0.2" />
         <PackageReference Include="LibNoise" Version="0.2.0" />
     </ItemGroup>
+
+    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+        <Exec Command="nsdc -r -i CodeGen -o CodeGen/Output" />
+    </Target>
 
 </Project>
