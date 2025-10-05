@@ -41,7 +41,7 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 using (ui.Text("T: Change orientation")) {}
             }
             
-            using (ui.Text("MMB: Select brick")) {}
+            using (ui.Text("MMB: Pick brick")) {}
             using (ui.Text("LMB: Break brick")) {}
             using (ui.Text("RMB: Place brick")) {}
             
