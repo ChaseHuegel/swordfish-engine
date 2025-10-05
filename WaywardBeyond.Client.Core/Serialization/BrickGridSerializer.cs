@@ -32,7 +32,10 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
                     continue;
                 }
 
-                rawBricks.Add(new RawBrick(x + item.Offset.X, y + item.Offset.Y, z + item.Offset.Z, brick.ID, brick.Data));
+                int gridX = x + item.Offset.X;
+                int gridY = y + item.Offset.Y;
+                int gridZ = z + item.Offset.Z;
+                rawBricks.Add(new RawBrick(gridX, gridY, gridZ, brick.ID, brick.Data, brick.Orientation.ToByte()));
             }
 
             for (var z = 0; z < brickGrid.NeighborGrids.GetLength(2); z++)
@@ -67,7 +70,8 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
         for (var i = 0; i < rawBrickGrid.Bricks.Length; i++)
         {
             RawBrick rawBrick = rawBrickGrid.Bricks[i];
-            brickGrid.Set(rawBrick.X, rawBrick.Y, rawBrick.Z, new Brick(rawBrick.ID, rawBrick.Data));
+            var orientation = new BrickOrientation(rawBrick.Orientation);
+            brickGrid.Set(rawBrick.X, rawBrick.Y, rawBrick.Z, new Brick(rawBrick.ID, rawBrick.Data, orientation));
         }
 
         return brickGrid;

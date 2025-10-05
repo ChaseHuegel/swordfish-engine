@@ -8,6 +8,7 @@ message RawBrick
     int Z;
     ushort ID;
     byte Data;
+    byte Orientation;
 }
 
 message RawBrickGrid
