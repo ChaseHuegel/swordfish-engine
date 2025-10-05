@@ -2,7 +2,11 @@
 using Swordfish.Bricks;
 using Swordfish.Library.Serialization;
 
+using Int3 = (int X, int Y, int Z);
+
 namespace WaywardBeyond.Client.Core.Serialization;
+
+using ItemToProcess = (BrickGrid BrickGrid, Int3 Offset);
 
 internal class BrickGridSerializer : ISerializer<BrickGrid>
 {
@@ -11,14 +15,16 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
         var rawBricks = new List<RawBrick>(value.Size);
 
         HashSet<BrickGrid> processed = [];
-        var toProcess = new Stack<BrickGrid>();
-        toProcess.Push(value);
+        var toProcess = new Stack<ItemToProcess>();
+        toProcess.Push(new ItemToProcess(value, new Int3(0, 0, 0)));
         
-        while (toProcess.TryPop(out BrickGrid? brickGrid))
+        while (toProcess.TryPop(out ItemToProcess item))
         {
-            for (var z = 0; z < brickGrid.NeighborGrids.GetLength(2); z++)
-            for (var y = 0; y < brickGrid.NeighborGrids.GetLength(1); y++)
-            for (var x = 0; x < brickGrid.NeighborGrids.GetLength(0); x++)
+            BrickGrid brickGrid = item.BrickGrid;
+            
+            for (var z = 0; z < brickGrid.DimensionSize; z++)
+            for (var y = 0; y < brickGrid.DimensionSize; y++)
+            for (var x = 0; x < brickGrid.DimensionSize; x++)
             {
                 Brick brick = brickGrid.Bricks[x, y, z];
                 if (brick.ID == Brick.UNDEFINED_ID)
@@ -26,7 +32,7 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
                     continue;
                 }
 
-                rawBricks.Add(new RawBrick(x, y, z, brick.ID, brick.Data));
+                rawBricks.Add(new RawBrick(x + item.Offset.X, y + item.Offset.Y, z + item.Offset.Z, brick.ID, brick.Data));
             }
 
             for (var z = 0; z < brickGrid.NeighborGrids.GetLength(2); z++)
@@ -34,15 +40,17 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
             for (var x = 0; x < brickGrid.NeighborGrids.GetLength(0); x++)
             {
                 BrickGrid? neighborGrid = brickGrid.NeighborGrids[x, y, z];
-                if (neighborGrid == null)
+                if (neighborGrid == null || !processed.Add(neighborGrid))
                 {
                     continue;
                 }
 
-                if (processed.Add(neighborGrid))
-                {
-                    toProcess.Push(neighborGrid);
-                }
+                var offset = new Int3(
+                    (x - 1) * brickGrid.DimensionSize + item.Offset.X,
+                    (y - 1) * brickGrid.DimensionSize + item.Offset.Y,
+                    (z - 1) * brickGrid.DimensionSize + item.Offset.Z
+                );
+                toProcess.Push(new ItemToProcess(neighborGrid, offset));
             }
         }
 
