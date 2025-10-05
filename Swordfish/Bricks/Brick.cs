@@ -24,6 +24,19 @@ public struct Brick : IEquatable<Brick>
         ID = id;
         Data = data;
     }
+    
+    public Brick(in ushort id, in BrickOrientation orientation)
+    {
+        ID = id;
+        Orientation = orientation;
+    }
+    
+    public Brick(in ushort id, in byte data, in BrickOrientation orientation)
+    {
+        ID = id;
+        Data = data;
+        Orientation = orientation;
+    }
 
     public bool Equals(Brick other) => other.ID == ID;
 
