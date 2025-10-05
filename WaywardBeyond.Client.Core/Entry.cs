@@ -174,14 +174,14 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         player.AddOrUpdate(new IdentifierComponent("Player", "player"));
         player.AddOrUpdate(new TransformComponent(new Vector3(0f, 1f, 5f), Quaternion.Identity));
         player.AddOrUpdate(inventory);
-        inventory.Contents[0] = new ItemStack("panel", count: 50);
-        inventory.Contents[1] = new ItemStack("thruster", count: 10);
-        inventory.Contents[2] = new ItemStack("display_control", count: 10);
-        inventory.Contents[3] = new ItemStack("caution_panel", count: 10);
-        inventory.Contents[4] = new ItemStack("glass", count: 10);
-        inventory.Contents[5] = new ItemStack("display_monitor", count: 5);
-        inventory.Contents[6] = new ItemStack("storage", count: 10);
-        inventory.Contents[7] = new ItemStack("truss", count: 50);
+        inventory.Contents[0] = new ItemStack("panel", count: 1000);
+        inventory.Contents[1] = new ItemStack("thruster", count: 1000);
+        inventory.Contents[2] = new ItemStack("display_control", count: 1000);
+        inventory.Contents[3] = new ItemStack("caution_panel", count: 1000);
+        inventory.Contents[4] = new ItemStack("glass", count: 1000);
+        inventory.Contents[5] = new ItemStack("display_monitor", count: 1000);
+        inventory.Contents[6] = new ItemStack("storage", count: 1000);
+        inventory.Contents[7] = new ItemStack("truss", count: 1000);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
         WaywardBeyond.GameState = GameState.Playing;
     }
