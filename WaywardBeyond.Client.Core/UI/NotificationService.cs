@@ -13,6 +13,8 @@ using ToastNotification = (Notification Notification, DateTime CreatedAt);
 
 internal class NotificationService : IUILayer
 {
+    private const int MAX_LIFETIME_MS = 3_000;
+    
     private readonly ConcurrentQueue<ToastNotification> _pushedNotifications = [];
     private readonly List<ToastNotification> _notifications = [];
     
@@ -54,8 +56,12 @@ internal class NotificationService : IUILayer
                 using (ui.Text(toastNotification.Notification.Text))
                 {
                     TimeSpan elapsed = now - toastNotification.CreatedAt;
-                    float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, 3_000, 0f, 1f);
+                    
+                    float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, MAX_LIFETIME_MS, 0f, 1f);
+                    //  Falloff near the end of the notification's lifetime
+                    //      Graph: https://www.desmos.com/calculator/udfsvtcbgn
                     alpha = 1f - (float)Math.Pow(alpha, 9f);
+                    
                     ui.Color = new Vector4(1f, 1f, 1f, alpha);
                 }
             }
@@ -66,7 +72,7 @@ internal class NotificationService : IUILayer
                 ToastNotification toastNotification = _notifications[lastIndex];
                 
                 TimeSpan elapsed = now - toastNotification.CreatedAt;
-                if (elapsed.TotalMilliseconds < 3_000)
+                if (elapsed.TotalMilliseconds < MAX_LIFETIME_MS)
                 {
                     break;
                 }
