@@ -98,9 +98,4 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
     }
-    
-    private static void RegisterSerializer(IContainer container)
-    {
-        container.Register<ISerializer<BrickGrid>, BrickGridSerializer>(reuse: Reuse.Singleton);
-    }
 }
