@@ -54,9 +54,11 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 };
             }
             
-            using (ui.Text("F5: Quicksave")) {}
-            using (ui.Text("Tab: Toggle mouselook")) {}
-
+            using (ui.Text("Q/E: Roll")) {}
+            using (ui.Text("Space: Up")) {}
+            using (ui.Text("Ctrl: Down")) {}
+            using (ui.Text("W/A/S/D: Fly")) {}
+            
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -66,10 +68,9 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 };
             }
             
-            using (ui.Text("Q/E: Roll")) {}
-            using (ui.Text("Space: Up")) {}
-            using (ui.Text("Ctrl: Down")) {}
-            using (ui.Text("W/A/S/D: Fly")) {}
+            using (ui.Text("Esc: Quit")) {}
+            using (ui.Text("F5: Quicksave")) {}
+            using (ui.Text("Tab: Toggle mouselook")) {}
         }
         
         return Result.FromSuccess();
