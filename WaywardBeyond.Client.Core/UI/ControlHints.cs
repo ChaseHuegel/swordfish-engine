@@ -54,6 +54,7 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 };
             }
             
+            using (ui.Text("F5: Quicksave")) {}
             using (ui.Text("Tab: Toggle mouselook")) {}
 
             using (ui.Element())
