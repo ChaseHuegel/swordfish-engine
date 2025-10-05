@@ -10,6 +10,7 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
     {
         var rawBricks = new List<RawBrick>(value.Size);
 
+        HashSet<BrickGrid> processed = [];
         var toProcess = new Stack<BrickGrid>();
         toProcess.Push(value);
         
@@ -37,8 +38,11 @@ internal class BrickGridSerializer : ISerializer<BrickGrid>
                 {
                     continue;
                 }
-                
-                toProcess.Push(neighborGrid);
+
+                if (processed.Add(neighborGrid))
+                {
+                    toProcess.Push(neighborGrid);
+                }
             }
         }
 

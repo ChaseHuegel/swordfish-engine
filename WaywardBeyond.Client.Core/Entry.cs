@@ -67,10 +67,10 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         shortcutService.RegisterShortcut(quitShortcut);
         
         Shortcut saveShortcut = new(
-            "Save Ship",
+            "Quicksave",
             "General",
-            ShortcutModifiers.Control,
-            Key.S,
+            ShortcutModifiers.None,
+            Key.F5,
             Shortcut.DefaultEnabled,
             SaveShip
         );
@@ -158,8 +158,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
         await worldGenerator.Generate();
 
-        var shipGrid = new BrickGrid(dimensionSize: 16);
-        shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
+        BrickGrid shipGrid = LoadOrCreateShip();
         _ship = _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         Entity player = _ecsContext.World.NewEntity();
@@ -195,5 +194,21 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         Directory.CreateDirectory(saveDirectory);
         PathInfo savePath = saveDirectory.At("ship.dat");
         savePath.Write(dataStream);
+    }
+
+    private BrickGrid LoadOrCreateShip()
+    {
+        var saveDirectory = new PathInfo("saves");
+        PathInfo savePath = saveDirectory.At("ship.dat");
+        
+        if (!savePath.FileExists())
+        {
+            var brickGrid = new BrickGrid(dimensionSize: 16);
+            brickGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
+            return brickGrid;
+        }
+
+        byte[] data = savePath.ReadBytes();
+        return _brickGridSerializer.Deserialize(data);
     }
 }
