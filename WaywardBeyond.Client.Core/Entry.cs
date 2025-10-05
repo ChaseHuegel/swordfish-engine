@@ -106,6 +106,37 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _currentTime += delta;
         UIBuilder<Material> ui = _reefContext.Builder;
 
+        if (WaywardBeyond.GameState == GameState.Loading)
+        {
+            using (ui.Element())
+            {
+                ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 0.75f);
+                ui.Constraints = new Constraints
+                {
+                    Width = new Relative(1f),
+                    Height = new Relative(1f),
+                };
+
+                var statusBuilder = new StringBuilder("Generating asteroids");
+                int steps = MathS.WrapInt((int)(_currentTime * 2d), 0, 3);
+                for (var i = 0; i < steps; i++)
+                {
+                    statusBuilder.Append('.');
+                }
+
+                using (ui.Text(statusBuilder.ToString()))
+                {
+                    ui.FontSize = 30;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                        X = new Relative(0.5f),
+                        Y = new Relative(0.5f),
+                    };
+                }
+            }
+        }
+        
         using (ui.Text($"WORK IN PROGRESS | {WaywardBeyond.Version}"))
         {
             ui.FontSize = 20;
@@ -116,39 +147,6 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
                 X = new Relative(0.5f),
                 Y = new Relative(0.03f),
             };
-        }
-
-        if (WaywardBeyond.GameState != GameState.Loading)
-        {
-            return;
-        }
-        
-        using (ui.Element())
-        {
-            ui.Color = new Vector4(0.25f, 0.25f, 0.25f, 0.75f);
-            ui.Constraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-
-            var statusBuilder = new StringBuilder("Generating asteroids");
-            int steps = MathS.WrapInt((int)(_currentTime * 2d), 0, 3);
-            for (var i = 0; i < steps; i++)
-            {
-                statusBuilder.Append('.');
-            }
-                
-            using (ui.Text(statusBuilder.ToString()))
-            {
-                ui.FontSize = 30;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
-                };
-            }
         }
     }
 
