@@ -62,6 +62,9 @@ public class Injector : IDryIocInjector
         
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ControlHints>();
+        
+        container.Register<NotificationService>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, NotificationService>();
     }
     
     private static void RegisterInput(IContainer container)

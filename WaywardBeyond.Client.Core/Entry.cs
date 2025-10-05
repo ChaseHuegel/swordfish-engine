@@ -22,18 +22,21 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.UI;
 
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class Entry : IEntryPoint, IAutoActivate
 {
+    private readonly ILogger _logger;
     private readonly IECSContext _ecsContext;
     private readonly IPhysics _physics;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly BrickDatabase _brickDatabase;
     private readonly ReefContext _reefContext;
     private readonly ISerializer<BrickGrid> _brickGridSerializer;
+    private readonly NotificationService _notificationService;
     
     private Entity _ship;
 
@@ -46,15 +49,18 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         in BrickEntityBuilder brickEntityBuilder,
         in BrickDatabase brickDatabase,
         in ReefContext reefContext,
-        in ISerializer<BrickGrid> brickGridSerializer
-    ) {
+        in ISerializer<BrickGrid> brickGridSerializer,
+        in NotificationService notificationService
+    )
+    {
+        _logger = logger;
         _ecsContext = ecsContext;
         _physics = physics;
-        IWindowContext windowContext1 = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _brickDatabase = brickDatabase;
         _reefContext = reefContext;
         _brickGridSerializer = brickGridSerializer;
+        _notificationService = notificationService;
         
         Shortcut quitShortcut = new(
             "Quit Game",
@@ -62,7 +68,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             ShortcutModifiers.None,
             Key.Esc,
             Shortcut.DefaultEnabled,
-            windowContext1.Close
+            windowContext.Close
         );
         shortcutService.RegisterShortcut(quitShortcut);
         
@@ -72,7 +78,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             ShortcutModifiers.None,
             Key.F5,
             Shortcut.DefaultEnabled,
-            SaveShip
+            Quicksave
         );
         shortcutService.RegisterShortcut(saveShortcut);
 
@@ -180,7 +186,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         WaywardBeyond.GameState = GameState.Playing;
     }
 
-    private void SaveShip()
+    private void Quicksave()
     {
         BrickComponent? brickComponent = _ship.Get<BrickComponent>();
         if (brickComponent == null)
@@ -188,12 +194,23 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             return;
         }
         
-        byte[] data = _brickGridSerializer.Serialize(brickComponent.Value.Grid);
-        using var dataStream = new MemoryStream(data);
-        var saveDirectory = new PathInfo("saves");
-        Directory.CreateDirectory(saveDirectory);
-        PathInfo savePath = saveDirectory.At("ship.dat");
-        savePath.Write(dataStream);
+        _notificationService.Push(new Notification("Quicksaving..."));
+
+        try
+        {
+            byte[] data = _brickGridSerializer.Serialize(brickComponent.Value.Grid);
+            using var dataStream = new MemoryStream(data);
+            var saveDirectory = new PathInfo("saves");
+            Directory.CreateDirectory(saveDirectory);
+            PathInfo savePath = saveDirectory.At("ship.dat");
+            savePath.Write(dataStream);
+            _notificationService.Push(new Notification("Save complete."));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "There was an error saving the game.");
+            _notificationService.Push(new Notification("Save failed, please try again!"));
+        }
     }
 
     private BrickGrid LoadOrCreateShip()
