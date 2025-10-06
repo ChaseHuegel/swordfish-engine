@@ -65,30 +65,14 @@ internal class Hotbar : IUILayer
         
         inputService.Scrolled += OnScrolled;
     }
-
-    private void OnScrolled(object? sender, ScrolledEventArgs e)
+    
+    public bool IsVisible()
     {
-        if (_inputService.IsKeyHeld(Key.Shift))
-        {
-            return;
-        }
-        
-        double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
-        
-        int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
-        activeSlot -= (int)scrollDelta;
-        activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
-        
-        _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
+        return WaywardBeyond.GameState == GameState.Playing;
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         Result<InventoryComponent> inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
         Result<int> activeSlotResult = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
         if (!inventoryResult || !activeSlotResult)
@@ -177,5 +161,21 @@ internal class Hotbar : IUILayer
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void OnScrolled(object? sender, ScrolledEventArgs e)
+    {
+        if (_inputService.IsKeyHeld(Key.Shift))
+        {
+            return;
+        }
+        
+        double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
+        
+        int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
+        activeSlot -= (int)scrollDelta;
+        activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
+        
+        _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
     }
 }

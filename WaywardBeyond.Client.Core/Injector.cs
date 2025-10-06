@@ -37,7 +37,8 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
-        container.RegisterMany<Entry>(reuse: Reuse.Singleton);
+        container.Register<Entry>(reuse: Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, Entry>();
     }
 
     private static void RegisterUI(IContainer container)
@@ -50,6 +51,11 @@ public class Injector : IDryIocInjector
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
+        
+        container.Register<MainMenu>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, MainMenu>();
+        container.Register<IMenuPage<MainMenuPage>, MainMenuHome>();
+        container.Register<IMenuPage<MainMenuPage>, MainMenuSettings>();
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();

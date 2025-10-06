@@ -24,13 +24,13 @@ internal class NotificationService : IUILayer
         _pushedNotifications.Enqueue(toastNotification);
     }
     
+    public bool IsVisible()
+    {
+        return true;
+    }
+    
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;

@@ -34,18 +34,13 @@ internal class DebugOverlayRenderer : IUILayer
         shortcutService.RegisterShortcut(shortcut);
     }
 
-    private void OnToggleDebugOverlay()
+    public bool IsVisible()
     {
-        _visible = !_visible;
+        return WaywardBeyond.GameState == GameState.Playing && _visible;
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (!_visible)
-        {
-            return Result.FromSuccess();
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
@@ -54,7 +49,7 @@ internal class DebugOverlayRenderer : IUILayer
                 Left = 20,
                 Top = 20,
                 Right = 20,
-                Bottom = 20
+                Bottom = 20,
             };
             ui.Constraints = new Constraints
             {
@@ -81,5 +76,10 @@ internal class DebugOverlayRenderer : IUILayer
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void OnToggleDebugOverlay()
+    {
+        _visible = !_visible;
     }
 }

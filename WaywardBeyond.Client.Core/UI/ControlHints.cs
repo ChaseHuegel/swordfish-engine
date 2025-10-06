@@ -13,14 +13,14 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
 {
     private readonly OrientationSelector _orientationSelector = orientationSelector;
     private readonly ShapeSelector _shapeSelector = shapeSelector;
-    
+
+    public bool IsVisible()
+    {
+        return WaywardBeyond.GameState == GameState.Playing;
+    }
+
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
