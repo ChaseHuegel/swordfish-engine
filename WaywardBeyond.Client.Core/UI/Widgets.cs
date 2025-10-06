@@ -10,6 +10,12 @@ internal static class Widgets
     {
         using (ui.Element(id))
         {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                X = new Relative(0.5f),
+            };
+            
             bool clicked = ui.Clicked();
             bool hovering = ui.Hovering();
             using (ui.Text(text))
