@@ -15,6 +15,8 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.UI.Layers.Menu;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -54,8 +56,9 @@ public class Injector : IDryIocInjector
         
         container.Register<MainMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, MainMenu>();
-        container.Register<IMenuPage<MainMenuPage>, MainMenuHome>();
-        container.Register<IMenuPage<MainMenuPage>, MainMenuSettings>();
+        container.Register<IMenuPage<MenuPage>, MainMenuHome>();
+        container.Register<IMenuPage<MenuPage>, SettingsPage>();
+        container.Register<IMenuPage<MenuPage>, DisplaySettingsPage>();
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();

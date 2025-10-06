@@ -1,13 +1,13 @@
 using Microsoft.Extensions.Logging;
 using Swordfish.UI.Reef;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
 internal sealed class MainMenu(
-    ILogger<Menu<MainMenuPage>> logger,
+    ILogger<Menu<MenuPage>> logger,
     ReefContext reefContext,
-    IMenuPage<MainMenuPage>[] pages
-) : Menu<MainMenuPage>(logger, reefContext, pages)
+    IMenuPage<MenuPage>[] pages
+) : Menu<MenuPage>(logger, reefContext, pages)
 {
     public override bool IsVisible()
     {

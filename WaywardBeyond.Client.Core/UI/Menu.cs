@@ -15,8 +15,10 @@ internal abstract class Menu<TIdentifier> : IUILayer
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
     private readonly Dictionary<TIdentifier, IMenuPage<TIdentifier>> _pages;
-    
+
+    private readonly object _pageLock = new();
     private TIdentifier _currentPage;
+    private readonly Stack<TIdentifier> _pageHistory =[];
     
     public Menu(ILogger<Menu<TIdentifier>> logger, ReefContext reefContext, IMenuPage<TIdentifier>[] pages)
     {
@@ -37,22 +39,44 @@ internal abstract class Menu<TIdentifier> : IUILayer
 
     public Result GoToPage(TIdentifier page)
     {
-        if (!_pages.ContainsKey(page))
+        lock (_pageLock)
         {
-            return Result.FromFailure($"Page \"{page.ToString()}\" not found.");
+            if (!_pages.ContainsKey(page))
+            {
+                return Result.FromFailure($"Page \"{page.ToString()}\" not found.");
+            }
+
+            _pageHistory.Push(_currentPage);
+            _currentPage = page;
+            return Result.FromSuccess();
         }
-        
-        _currentPage = page;
-        return Result.FromSuccess();
+    }
+    
+    public Result GoBack()
+    {
+        lock (_pageLock)
+        {
+            if (!_pageHistory.TryPop(out TIdentifier? page))
+            {
+                return Result.FromFailure("There is no page in the history to go back to.");
+            }
+            
+            _currentPage = page;
+            return Result.FromSuccess();
+        }
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (!_pages.TryGetValue(_currentPage, out IMenuPage<TIdentifier>? page))
+        IMenuPage<TIdentifier>? page;
+        lock (_pageLock)
         {
-            return Result.FromSuccess();
+            if (!_pages.TryGetValue(_currentPage, out page))
+            {
+                return Result.FromSuccess();
+            }
         }
-        
+
         try
         {
             Result result = page.RenderPage(delta, _reefContext.Builder, menu: this);

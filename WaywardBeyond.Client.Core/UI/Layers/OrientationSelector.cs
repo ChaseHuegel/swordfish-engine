@@ -15,7 +15,7 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using OrientationSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 

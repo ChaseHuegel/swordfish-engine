@@ -7,11 +7,11 @@ using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class MainMenuHome : IMenuPage<MainMenuPage>
+internal sealed class MainMenuHome : IMenuPage<MenuPage>
 {
-    public MainMenuPage ID => MainMenuPage.Home;
+    public MenuPage ID => MenuPage.Home;
 
     private readonly Entry _entry;
     private readonly Material? _titleMaterial;
@@ -34,7 +34,7 @@ internal sealed class MainMenuHome : IMenuPage<MainMenuPage>
         _titleMaterial = materialResult;
     }
 
-    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MainMenuPage> menu)
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         if (_titleMaterial != null)
         {
@@ -73,7 +73,7 @@ internal sealed class MainMenuHome : IMenuPage<MainMenuPage>
 
             if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))
             {
-                menu.GoToPage(MainMenuPage.Settings);
+                menu.GoToPage(MenuPage.Settings);
             }
             
             if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions))

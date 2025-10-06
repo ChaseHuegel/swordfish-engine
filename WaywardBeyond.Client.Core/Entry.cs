@@ -21,6 +21,7 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core;
 

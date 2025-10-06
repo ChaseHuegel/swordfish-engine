@@ -7,7 +7,7 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using ToastNotification = (Notification Notification, DateTime CreatedAt);
 

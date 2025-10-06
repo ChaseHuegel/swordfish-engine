@@ -1,20 +1,19 @@
-using System.Threading.Tasks;
 using Reef;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class MainMenuSettings : IMenuPage<MainMenuPage>
+internal sealed class SettingsPage : IMenuPage<MenuPage>
 {
-    public MainMenuPage ID => MainMenuPage.Settings;
+    public MenuPage ID => MenuPage.Settings;
     private readonly FontOptions _buttonFontOptions = new()
     {
         Size = 32,
     };
 
-    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MainMenuPage> menu)
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         using (ui.Element())
         {
@@ -26,13 +25,16 @@ internal sealed class MainMenuSettings : IMenuPage<MainMenuPage>
                 Y = new Relative(0.5f),
             };
 
+            if (ui.TextButton(id: "Button_Display", text: "Display", _buttonFontOptions))
+            {
+                menu.GoToPage(MenuPage.DisplaySettings);
+            }
+            
             ui.TextButton(id: "Button_Controls", text: "Controls", _buttonFontOptions);
-            ui.TextButton(id: "Button_Display", text: "Display", _buttonFontOptions);
-            ui.TextButton(id: "Button_Audio", text: "Audio", _buttonFontOptions);
 
             if (ui.TextButton(id: "Button_MainMenu", text: "Back", _buttonFontOptions))
             {
-                menu.GoToPage(MainMenuPage.Home);
+                menu.GoBack();
             }
         }
         

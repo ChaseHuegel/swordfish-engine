@@ -1,13 +1,10 @@
-﻿using System.Numerics;
-using Reef;
+﻿using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
-using Swordfish.UI.Reef;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class ControlHints(in OrientationSelector orientationSelector, in ShapeSelector shapeSelector) : IUILayer
 {

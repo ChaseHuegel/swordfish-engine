@@ -14,7 +14,7 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 

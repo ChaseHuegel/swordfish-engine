@@ -6,7 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class CrosshairOverlay : IUILayer
 {
