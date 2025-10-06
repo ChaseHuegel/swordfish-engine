@@ -5,9 +5,9 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class SettingsPage : IMenuPage<MenuPage>
+internal sealed class ControlSettingsPage : IMenuPage<MenuPage>
 {
-    public MenuPage ID => MenuPage.Settings;
+    public MenuPage ID => MenuPage.ControlSettings;
     private readonly FontOptions _buttonFontOptions = new()
     {
         Size = 32,
@@ -24,13 +24,6 @@ internal sealed class SettingsPage : IMenuPage<MenuPage>
                 X = new Relative(0.01f),
                 Y = new Relative(0.5f),
             };
-
-            if (ui.TextButton(id: "Button_Display", text: "Display", _buttonFontOptions))
-            {
-                menu.GoToPage(MenuPage.DisplaySettings);
-            }
-            
-            ui.TextButton(id: "Button_Controls", text: "Controls", _buttonFontOptions);
 
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
             {

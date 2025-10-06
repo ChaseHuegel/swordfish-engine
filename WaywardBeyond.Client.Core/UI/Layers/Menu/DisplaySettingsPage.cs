@@ -25,7 +25,7 @@ internal sealed class DisplaySettingsPage : IMenuPage<MenuPage>
                 Y = new Relative(0.5f),
             };
 
-            if (ui.TextButton(id: "Button_MainMenu", text: "Back", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
             {
                 menu.GoBack();
             }

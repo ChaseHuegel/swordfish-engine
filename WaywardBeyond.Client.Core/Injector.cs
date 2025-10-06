@@ -59,6 +59,7 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, MainMenuHome>();
         container.Register<IMenuPage<MenuPage>, SettingsPage>();
         container.Register<IMenuPage<MenuPage>, DisplaySettingsPage>();
+        container.Register<IMenuPage<MenuPage>, ControlSettingsPage>();
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();
