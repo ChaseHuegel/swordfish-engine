@@ -430,7 +430,7 @@ public sealed class UIBuilder<TRendererData>
                 {
                     x -= xAnchorOffset + rightInset;
                 }
-                else if ((anchors & Anchors.Center) == Anchors.Center)
+                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
                 {
                     x -= (xAnchorOffset + rightInset) >> 1;
                 }
@@ -439,7 +439,7 @@ public sealed class UIBuilder<TRendererData>
                 {
                     y -= yAnchorOffset + bottomInset;
                 }
-                else if ((anchors & Anchors.Center) == Anchors.Center)
+                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
                 {
                     y -= (yAnchorOffset + bottomInset) >> 1;
                 }
