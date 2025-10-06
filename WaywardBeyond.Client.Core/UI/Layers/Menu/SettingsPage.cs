@@ -30,7 +30,10 @@ internal sealed class SettingsPage : IMenuPage<MenuPage>
                 menu.GoToPage(MenuPage.DisplaySettings);
             }
             
-            ui.TextButton(id: "Button_Controls", text: "Controls", _buttonFontOptions);
+            if (ui.TextButton(id: "Button_Controls", text: "Controls", _buttonFontOptions))
+            {
+                menu.GoToPage(MenuPage.ControlSettings);
+            }
 
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
             {
