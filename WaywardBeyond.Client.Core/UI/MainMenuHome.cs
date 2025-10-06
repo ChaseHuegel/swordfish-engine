@@ -45,8 +45,8 @@ internal sealed class MainMenuHome : IMenuPage<MainMenuPage>
                     Anchors = Anchors.Center | Anchors.Top,
                     X = new Relative(0.5f),
                     Y = new Relative(0.1f),
-                    Width = new Fixed((int)(_titleMaterial.Textures[0].Width * 0.5f)),
-                    Height = new Fixed((int)(_titleMaterial.Textures[0].Height * 0.5f)),
+                    Width = new Fixed(_titleMaterial.Textures[0].Width),
+                    Height = new Fixed(_titleMaterial.Textures[0].Height),
                 };
             }
         }
