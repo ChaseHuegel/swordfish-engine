@@ -35,8 +35,12 @@ internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MainMenuPage>
 
             ui.TextButton(id: "Button_ContinueGame", text: "Continue game", _buttonFontOptions);
             ui.TextButton(id: "Button_JoinGame", text: "Join game", _buttonFontOptions);
-            ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions);
 
+            if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))
+            {
+                menu.GoToPage(MainMenuPage.Settings);
+            }
+            
             if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions))
             {
                 _entry.Quit();
