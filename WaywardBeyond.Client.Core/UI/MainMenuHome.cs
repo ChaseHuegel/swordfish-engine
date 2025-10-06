@@ -13,7 +13,7 @@ internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MainMenuPage>
     private readonly Entry _entry = entry;
     private readonly FontOptions _buttonFontOptions = new()
     {
-        Size = 24,
+        Size = 32,
     };
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MainMenuPage> menu)
@@ -33,8 +33,10 @@ internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MainMenuPage>
                 Task.Run(_entry.StartGameAsync);
             }
 
-            ui.TextButton(id: "Button_ContinueGame", text: "Continue game", _buttonFontOptions);
-            ui.TextButton(id: "Button_JoinGame", text: "Join game", _buttonFontOptions);
+            if (ui.TextButton(id: "Button_ContinueGame", text: "Continue game", _buttonFontOptions))
+            {
+                Task.Run(_entry.StartGameAsync);
+            }
 
             if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))
             {

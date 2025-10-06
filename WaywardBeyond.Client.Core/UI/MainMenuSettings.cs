@@ -11,7 +11,7 @@ internal sealed class MainMenuSettings : IMenuPage<MainMenuPage>
     public MainMenuPage ID => MainMenuPage.Settings;
     private readonly FontOptions _buttonFontOptions = new()
     {
-        Size = 24,
+        Size = 32,
     };
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MainMenuPage> menu)
