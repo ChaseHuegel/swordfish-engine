@@ -4,6 +4,4 @@ internal enum MenuPage
 {
     Home,
     Settings,
-    DisplaySettings,
-    ControlSettings,
 }
