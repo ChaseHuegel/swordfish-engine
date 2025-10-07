@@ -79,7 +79,7 @@ public sealed class UIController
     {
         Position cursorPos = _cursor.Current;
         bool hovered = rect.Contains(cursorPos.X, cursorPos.Y);
-        bool interacting = hovered && IsHeld(_leftMouse);
+        bool interacting = hovered && IsPressed(_leftMouse);
 
         if (_interactionStates.TryGetValue(id, out InteractionState interactionState))
         {
