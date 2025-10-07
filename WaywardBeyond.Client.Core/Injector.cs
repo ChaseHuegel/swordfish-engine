@@ -48,6 +48,7 @@ public class Injector : IDryIocInjector
     private void RegisterConfiguration(IContainer container)
     {
         container.Register<DisplaySettings>(reuse: Reuse.Singleton);
+        container.Register<ControlSettings>(reuse: Reuse.Singleton);
     }
 
     private static void RegisterUI(IContainer container)
