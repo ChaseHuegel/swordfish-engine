@@ -79,7 +79,7 @@ internal sealed class Entry : IAutoActivate
             ShortcutModifiers.None,
             Key.F5,
             Shortcut.DefaultEnabled,
-            Quicksave
+            SaveGame
         );
         shortcutService.RegisterShortcut(saveShortcut);
 
@@ -99,6 +99,7 @@ internal sealed class Entry : IAutoActivate
         }
         
         windowContext.Update += OnWindowUpdate;
+        windowContext.Closed += OnWindowClosed;
     }
 
     private double _currentTime;
@@ -138,6 +139,11 @@ internal sealed class Entry : IAutoActivate
             }
         }
     }
+    
+    private void OnWindowClosed()
+    {
+        SaveGame();
+    }
 
     internal void Quit()
     {
@@ -176,7 +182,7 @@ internal sealed class Entry : IAutoActivate
         WaywardBeyond.GameState = GameState.Playing;
     }
 
-    private void Quicksave()
+    private void SaveGame()
     {
         BrickComponent? brickComponent = _ship.Get<BrickComponent>();
         if (brickComponent == null)
@@ -184,7 +190,7 @@ internal sealed class Entry : IAutoActivate
             return;
         }
         
-        _notificationService.Push(new Notification("Quicksaving..."));
+        _notificationService.Push(new Notification("Saving..."));
 
         try
         {
