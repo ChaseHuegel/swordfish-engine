@@ -10,6 +10,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Serialization;
@@ -25,6 +26,7 @@ public class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
+        RegisterConfiguration(container);
         RegisterUI(container);
         RegisterInput(container);
         RegisterDatabases(container);
@@ -41,6 +43,11 @@ public class Injector : IDryIocInjector
         
         container.Register<Entry>(reuse: Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
+    }
+
+    private void RegisterConfiguration(IContainer container)
+    {
+        container.Register<DisplaySettings>(reuse: Reuse.Singleton);
     }
 
     private static void RegisterUI(IContainer container)
