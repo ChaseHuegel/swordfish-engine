@@ -304,7 +304,7 @@ public class SilkInputService : IInputService
     {
         MouseButton swordfishButton = button.ToSwordfishMouseButton();
         InputRecord inputRecord = _mouseInputMap[swordfishButton];
-        inputRecord.Count -= 1;
+        inputRecord.Count = Math.Max(0, inputRecord.Count - 1);
         inputRecord.LastRelease.Restart();
     }
 
