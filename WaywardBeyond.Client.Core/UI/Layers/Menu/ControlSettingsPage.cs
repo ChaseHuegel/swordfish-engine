@@ -17,12 +17,11 @@ internal sealed class ControlSettingsPage : IMenuPage<MenuPage>
     {
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Left,
-                X = new Relative(0.01f),
-                Y = new Relative(0.5f),
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
             };
 
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))

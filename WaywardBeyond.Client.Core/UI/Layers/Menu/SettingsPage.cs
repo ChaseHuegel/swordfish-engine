@@ -17,14 +17,29 @@ internal sealed class SettingsPage : IMenuPage<MenuPage>
     {
         using (ui.Element())
         {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
+            };
+            
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
+            {
+                menu.GoBack();
+            }
+        }
+        
+        using (ui.Element())
+        {
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Left,
-                X = new Relative(0.01f),
+                Anchors = Anchors.Center,
+                X = new Relative(0.5f),
                 Y = new Relative(0.5f),
             };
-
+            
             if (ui.TextButton(id: "Button_Display", text: "Display", _buttonFontOptions))
             {
                 menu.GoToPage(MenuPage.DisplaySettings);
@@ -33,11 +48,6 @@ internal sealed class SettingsPage : IMenuPage<MenuPage>
             if (ui.TextButton(id: "Button_Controls", text: "Controls", _buttonFontOptions))
             {
                 menu.GoToPage(MenuPage.ControlSettings);
-            }
-
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
-            {
-                menu.GoBack();
             }
         }
         

@@ -22,12 +22,11 @@ internal sealed class DisplaySettingsPage(in DisplaySettings displaySettings) : 
     {
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Left,
-                X = new Relative(0.01f),
-                Y = new Relative(0.5f),
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
             };
 
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
@@ -45,10 +44,10 @@ internal sealed class DisplaySettingsPage(in DisplaySettings displaySettings) : 
                 X = new Relative(0.5f),
                 Y = new Relative(0.25f),
                 Width = new Relative(0.25f),
-                Height = new Relative(1f),
+                Height = new Relative(0.5f),
             };
             
-            bool value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", _displaySettings.Fullscreen.Get());
+            bool value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _displaySettings.Fullscreen.Get());
             _displaySettings.Fullscreen.Set(value);
         }
         
