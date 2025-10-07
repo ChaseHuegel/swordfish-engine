@@ -55,8 +55,7 @@ public class Injector : IDryIocInjector
         container.Register<DefaultUIRenderer>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
         
-        container.Register<CrosshairOverlay>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, CrosshairOverlay>();
+        container.Register<IUILayer, CrosshairOverlay>(Reuse.Singleton);
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
@@ -67,6 +66,8 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, SettingsPage>();
         container.Register<IMenuPage<MenuPage>, DisplaySettingsPage>();
         container.Register<IMenuPage<MenuPage>, ControlSettingsPage>();
+        
+        container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();

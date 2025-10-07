@@ -66,7 +66,7 @@ internal abstract class Menu<TIdentifier> : IUILayer
         }
     }
 
-    public Result RenderUI(double delta, UIBuilder<Material> ui)
+    public virtual Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         IMenuPage<TIdentifier>? page;
         lock (_pageLock)
