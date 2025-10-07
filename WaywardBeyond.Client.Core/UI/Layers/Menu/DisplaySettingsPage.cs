@@ -42,8 +42,8 @@ internal sealed class DisplaySettingsPage(in DisplaySettings displaySettings) : 
             {
                 Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
-                Y = new Relative(0.25f),
-                Width = new Relative(0.25f),
+                Y = new Relative(0.3f),
+                Width = new Fixed(250),
                 Height = new Relative(0.5f),
             };
             

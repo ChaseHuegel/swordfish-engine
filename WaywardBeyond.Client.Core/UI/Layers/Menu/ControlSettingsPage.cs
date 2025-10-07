@@ -49,7 +49,7 @@ internal sealed class ControlSettingsPage(in ControlSettings controlSettings) : 
                 Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
                 Y = new Relative(0.3f),
-                Width = new Relative(0.5f),
+                Width = new Fixed(250),
                 Height = new Relative(0.5f),
             };
             
@@ -59,8 +59,7 @@ internal sealed class ControlSettingsPage(in ControlSettings controlSettings) : 
                 ui.Spacing = 8;
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
+                    Width = new Fill(),
                 };
             
                 using (ui.Text("Sensitivity"))
@@ -78,7 +77,7 @@ internal sealed class ControlSettingsPage(in ControlSettings controlSettings) : 
                 {
                     ui.Constraints = new Constraints
                     {
-                        Width = new Fixed(60),
+                        Width = new Fill(),
                         Height = new Fill(),
                     };
                 }
