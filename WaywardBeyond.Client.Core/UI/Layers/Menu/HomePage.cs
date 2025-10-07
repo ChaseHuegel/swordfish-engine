@@ -9,7 +9,7 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MenuPage>
+internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
 
@@ -21,6 +21,21 @@ internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MenuPage>
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
+            };
+
+            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions))
+            {
+                _entry.Quit();
+            }
+        }
+        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
@@ -44,11 +59,6 @@ internal sealed class MainMenuHome(in Entry entry) : IMenuPage<MenuPage>
             if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))
             {
                 menu.GoToPage(MenuPage.Settings);
-            }
-            
-            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions))
-            {
-                _entry.Quit();
             }
         }
         
