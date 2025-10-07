@@ -1,24 +1,20 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
-using System.Threading;
-using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
-using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
@@ -27,7 +23,6 @@ internal class ShapeSelector : IUILayer
     public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
     public bool Available => IsMainHandShapeable();
 
-    private readonly ILogger _logger;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -41,7 +36,6 @@ internal class ShapeSelector : IUILayer
     private bool _previousMouseLookState;
     
     public ShapeSelector(
-        ILogger<ShapeSelector> logger,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
@@ -50,7 +44,6 @@ internal class ShapeSelector : IUILayer
         BrickDatabase brickDatabase,
         IECSContext ecsContext
     ) {
-        _logger = logger;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -83,61 +76,15 @@ internal class ShapeSelector : IUILayer
         
         shortcutService.RegisterShortcut(shortcut);
     }
-
-    private void OnChangeShapePressed()
-    {
-        if (!IsMainHandShapeable())
-        {
-            return;
-        }
-        
-        _changingShape = true;
-        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
-        _playerControllerSystem.SetMouseLook(false);
-    }
     
-    private void OnChangeShapeReleased()
+    public bool IsVisible()
     {
-        if (!IsMainHandShapeable())
-        {
-            return;
-        }
-        
-        _changingShape = false;
-        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
-    }
-    
-    private bool IsMainHandShapeable() 
-    {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
-        if (!mainHandResult.Success)
-        {
-            return false;
-        }
-
-        if (mainHandResult.Value.Item.Placeable == null)
-        {
-            return false;
-        }
-        
-        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
-        return brickInfoResult.Success && brickInfoResult.Value.Shapeable;
+        //  Don't draw anything if the player isn't holding a shapeable item.
+        return WaywardBeyond.GameState == GameState.Playing && IsMainHandShapeable();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
-        if (!IsMainHandShapeable())
-        {
-            //  Don't draw anything if the player isn't holding a shapeable item.
-            return Result.FromSuccess();
-        }
-        
         //  Draw the currently selected shape
         ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[SelectedShape.Get()];
         using (ui.Image(selectedShapeElement.BaseImage))
@@ -259,5 +206,46 @@ internal class ShapeSelector : IUILayer
         }
 
         return Result.FromSuccess();
+    }
+    
+    private void OnChangeShapePressed()
+    {
+        if (!IsMainHandShapeable())
+        {
+            return;
+        }
+        
+        _changingShape = true;
+        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
+        _playerControllerSystem.SetMouseLook(false);
+    }
+    
+    private void OnChangeShapeReleased()
+    {
+        if (!IsMainHandShapeable())
+        {
+            return;
+        }
+        
+        _changingShape = false;
+        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
+    }
+    
+    private bool IsMainHandShapeable() 
+    {
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
+        if (!mainHandResult.Success)
+        {
+            return false;
+        }
+
+        if (mainHandResult.Value.Item.Placeable == null)
+        {
+            return false;
+        }
+        
+        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        return brickInfoResult.Success && brickInfoResult.Value.Shapeable;
     }
 }

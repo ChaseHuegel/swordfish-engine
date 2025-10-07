@@ -6,10 +6,8 @@ using System.Threading.Tasks;
 using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Shoal.DependencyInjection;
-using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -23,15 +21,17 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class Entry : IEntryPoint, IAutoActivate
+internal sealed class Entry : IAutoActivate
 {
     private readonly ILogger _logger;
     private readonly IECSContext _ecsContext;
     private readonly IPhysics _physics;
+    private readonly IWindowContext _windowContext;
     private readonly BrickEntityBuilder _brickEntityBuilder;
     private readonly BrickDatabase _brickDatabase;
     private readonly ReefContext _reefContext;
@@ -56,6 +56,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         _logger = logger;
         _ecsContext = ecsContext;
         _physics = physics;
+        _windowContext = windowContext;
         _brickEntityBuilder = brickEntityBuilder;
         _brickDatabase = brickDatabase;
         _reefContext = reefContext;
@@ -68,7 +69,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
             ShortcutModifiers.None,
             Key.Esc,
             Shortcut.DefaultEnabled,
-            windowContext.Close
+            Quit
         );
         shortcutService.RegisterShortcut(quitShortcut);
         
@@ -136,27 +137,17 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
                 }
             }
         }
+    }
+
+    internal void Quit()
+    {
+        _windowContext.Close();
+    }
+
+    internal async Task StartGameAsync()
+    {
+        WaywardBeyond.GameState = GameState.Loading;
         
-        using (ui.Text($"WORK IN PROGRESS | {WaywardBeyond.Version}"))
-        {
-            ui.FontSize = 20;
-            ui.Color = new Vector4(0.5f);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
-                Y = new Relative(0.03f),
-            };
-        }
-    }
-
-    public void Run()
-    {
-        Task.Run(RunAsync);
-    }
-
-    private async Task RunAsync()
-    {
         _physics.SetGravity(Vector3.Zero);
         
         var worldGenerator = new WorldGenerator("wayward beyond", _brickEntityBuilder, _brickDatabase);
@@ -181,6 +172,7 @@ internal sealed class Entry : IEntryPoint, IAutoActivate
         inventory.Contents[6] = new ItemStack("storage", count: 1000);
         inventory.Contents[7] = new ItemStack("truss", count: 1000);
         inventory.Contents[8] = new ItemStack("laser", count: 1);
+        
         WaywardBeyond.GameState = GameState.Playing;
     }
 

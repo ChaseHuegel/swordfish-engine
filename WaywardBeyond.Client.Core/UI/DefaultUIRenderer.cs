@@ -26,6 +26,11 @@ internal class DefaultUIRenderer : IAutoActivate
         for (var i = 0; i < _layers.Length; i++)
         {
             IUILayer layer = _layers[i];
+            if (!layer.IsVisible())
+            {
+                continue;
+            }
+            
             try
             {
                 Result result = layer.RenderUI(delta, _reefContext.Builder);

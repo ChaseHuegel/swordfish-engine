@@ -10,11 +10,14 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.UI.Layers.Menu;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -23,6 +26,7 @@ public class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
+        RegisterConfiguration(container);
         RegisterUI(container);
         RegisterInput(container);
         RegisterDatabases(container);
@@ -37,7 +41,14 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
-        container.RegisterMany<Entry>(reuse: Reuse.Singleton);
+        container.Register<Entry>(reuse: Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, Entry>();
+    }
+
+    private void RegisterConfiguration(IContainer container)
+    {
+        container.Register<DisplaySettings>(reuse: Reuse.Singleton);
+        container.Register<ControlSettings>(reuse: Reuse.Singleton);
     }
 
     private static void RegisterUI(IContainer container)
@@ -45,11 +56,17 @@ public class Injector : IDryIocInjector
         container.Register<DefaultUIRenderer>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, DefaultUIRenderer>();
         
-        container.Register<CrosshairOverlay>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, CrosshairOverlay>();
+        container.Register<IUILayer, CrosshairOverlay>(Reuse.Singleton);
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
+        
+        container.Register<MainMenu>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, MainMenu>();
+        container.Register<IMenuPage<MenuPage>, HomePage>();
+        container.Register<IMenuPage<MenuPage>, SettingsPage>();
+        
+        container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
         
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();

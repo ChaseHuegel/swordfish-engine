@@ -6,7 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class CrosshairOverlay : IUILayer
 {
@@ -23,14 +23,14 @@ internal class CrosshairOverlay : IUILayer
         
         _crosshairMaterial = materialResult;
     }
+    
+    public bool IsVisible()
+    {
+        return WaywardBeyond.GameState == GameState.Playing;
+    }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         if (_crosshairMaterial == null)
         {
             return Result.FromSuccess();

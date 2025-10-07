@@ -7,7 +7,7 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using ToastNotification = (Notification Notification, DateTime CreatedAt);
 
@@ -24,13 +24,13 @@ internal class NotificationService : IUILayer
         _pushedNotifications.Enqueue(toastNotification);
     }
     
+    public bool IsVisible()
+    {
+        return true;
+    }
+    
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;

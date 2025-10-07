@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Numerics;
-using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -16,7 +15,7 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using OrientationSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
@@ -25,7 +24,6 @@ internal class OrientationSelector : IUILayer
     public readonly DataBinding<BrickOrientation> SelectedOrientation = new();
     public bool Available => IsMainHandOrientable();
     
-    private readonly ILogger _logger;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -45,7 +43,6 @@ internal class OrientationSelector : IUILayer
     private bool _previousMouseLookState;
     
     public OrientationSelector(
-        ILogger<OrientationSelector> logger,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
@@ -55,7 +52,6 @@ internal class OrientationSelector : IUILayer
         IECSContext ecsContext,
         ShapeSelector shapeSelector
     ) {
-        _logger = logger;
         _playerControllerSystem = playerControllerSystem;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -93,68 +89,15 @@ internal class OrientationSelector : IUILayer
         
         shortcutService.RegisterShortcut(shortcut);
     }
-
-    private void OnChangeOrientationPressed()
-    {
-        if (!IsMainHandOrientable())
-        {
-            return;
-        }
-        
-        _changingOrientation = true;
-        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
-        _playerControllerSystem.SetMouseLook(false);
-    }
     
-    private void OnChangeOrientationReleased()
+    public bool IsVisible()
     {
-        if (!IsMainHandOrientable())
-        {
-            return;
-        }
-        
-        _changingOrientation = false;
-        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
-    }
-    
-    private bool IsMainHandOrientable() 
-    {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
-        if (!mainHandResult.Success)
-        {
-            return false;
-        }
-
-        if (mainHandResult.Value.Item.Placeable == null)
-        {
-            return false;
-        }
-        
-        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
-        if (!brickInfoResult.Success)
-        {
-            return false;
-        }
-
-        BrickInfo brickInfo = brickInfoResult.Value;
-        BrickShape brickShape = _shapeSelector.SelectedShape.Get();
-        return brickInfo.IsOrientable(brickShape);
+        //  Don't draw anything if the player isn't holding a shapeable item.
+        return WaywardBeyond.GameState == GameState.Playing && IsMainHandOrientable();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
-        if (!IsMainHandOrientable())
-        {
-            //  Don't draw anything if the player isn't holding a shapeable item.
-            return Result.FromSuccess();
-        }
-        
         //  Draw the currently selected orientation
         OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[SelectedOrientation.Get()];
         using (ui.Image(selectedShapeElement.BaseImage))
@@ -254,5 +197,53 @@ internal class OrientationSelector : IUILayer
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void OnChangeOrientationPressed()
+    {
+        if (!IsMainHandOrientable())
+        {
+            return;
+        }
+        
+        _changingOrientation = true;
+        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
+        _playerControllerSystem.SetMouseLook(false);
+    }
+    
+    private void OnChangeOrientationReleased()
+    {
+        if (!IsMainHandOrientable())
+        {
+            return;
+        }
+        
+        _changingOrientation = false;
+        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
+    }
+    
+    private bool IsMainHandOrientable() 
+    {
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
+        if (!mainHandResult.Success)
+        {
+            return false;
+        }
+
+        if (mainHandResult.Value.Item.Placeable == null)
+        {
+            return false;
+        }
+        
+        PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        if (!brickInfoResult.Success)
+        {
+            return false;
+        }
+
+        BrickInfo brickInfo = brickInfoResult.Value;
+        BrickShape brickShape = _shapeSelector.SelectedShape.Get();
+        return brickInfo.IsOrientable(brickShape);
     }
 }

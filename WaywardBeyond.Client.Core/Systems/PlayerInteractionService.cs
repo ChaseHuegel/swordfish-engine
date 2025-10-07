@@ -8,13 +8,13 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
-using Swordfish.UI;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -41,7 +41,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
         in IWindowContext windowContext,
-        in IUIContext uiContext,
         in BrickEntityBuilder brickEntityBuilder,
         in IECSContext ecsContext,
         in PlayerData playerData,

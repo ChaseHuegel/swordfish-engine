@@ -2,6 +2,7 @@
 
 internal enum GameState
 {
+    MainMenu,
     Loading,
-    Playing
+    Playing,
 }

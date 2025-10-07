@@ -1,26 +1,23 @@
-﻿using System.Numerics;
-using Reef;
+﻿using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Shoal.DependencyInjection;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
-using Swordfish.UI.Reef;
 
-namespace WaywardBeyond.Client.Core.UI;
+namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class ControlHints(in OrientationSelector orientationSelector, in ShapeSelector shapeSelector) : IUILayer
 {
     private readonly OrientationSelector _orientationSelector = orientationSelector;
     private readonly ShapeSelector _shapeSelector = shapeSelector;
-    
+
+    public bool IsVisible()
+    {
+        return WaywardBeyond.GameState == GameState.Playing;
+    }
+
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
-        {
-            return Result.FromSuccess();
-        }
-        
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;

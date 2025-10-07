@@ -4,6 +4,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -15,14 +16,20 @@ internal sealed class PlayerControllerSystem
     private const float ROLL_RATE = 60;
 
     private readonly IInputService _inputService;
+    private readonly ControlSettings _controlSettings;
     
     private bool _mouseLookEnabled;
     private bool _windowUnfocused;
     private bool _savedMouseLookState;
 
-    public PlayerControllerSystem(in IInputService inputService, in IShortcutService shortcutService, in IWindowContext windowContext)
-    {
+    public PlayerControllerSystem(
+        in IInputService inputService,
+        in IShortcutService shortcutService,
+        in IWindowContext windowContext,
+        in ControlSettings controlSettings
+    ) {
         _inputService = inputService;
+        _controlSettings = controlSettings;
         
         Shortcut mouseLookShortcut = new(
             "Toggle Mouselook",
@@ -71,8 +78,9 @@ internal sealed class PlayerControllerSystem
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
             Vector2 cursorDelta = _inputService.CursorDelta;
-            Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY, true);
-            Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY, true);
+            float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
+            Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
         }
         
         Vector3 forward = transform.GetForward();
