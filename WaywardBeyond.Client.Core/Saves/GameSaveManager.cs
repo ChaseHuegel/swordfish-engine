@@ -15,7 +15,7 @@ using WaywardBeyond.Client.Core.Items;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
-internal sealed class GameSaveManager : IAutoActivate
+internal sealed class GameSaveManager : IAutoActivate, IDisposable
 {
     private readonly struct GameLoadContext : IDisposable
     {
@@ -70,6 +70,8 @@ internal sealed class GameSaveManager : IAutoActivate
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
+
+    private readonly Timer _autosaveTimer;
     
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
@@ -89,6 +91,8 @@ internal sealed class GameSaveManager : IAutoActivate
         _ecs = ecs;
         _physics = physics;
         
+        _autosaveTimer = new Timer(OnAutosave, state: null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        
         Shortcut saveShortcut = new(
             "Quicksave",
             "General",
@@ -100,6 +104,11 @@ internal sealed class GameSaveManager : IAutoActivate
         shortcutService.RegisterShortcut(saveShortcut);
         
         windowContext.Closed += OnWindowClosed;
+    }
+
+    public void Dispose()
+    {
+        _autosaveTimer.Dispose();
     }
 
     public async Task NewGame(GameOptions options)
@@ -165,5 +174,10 @@ internal sealed class GameSaveManager : IAutoActivate
     private void OnQuicksave()
     {
         Task.Run(Save);
+    }
+    
+    private void OnAutosave(object? state)
+    {
+        Save();
     }
 }
