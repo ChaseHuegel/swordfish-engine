@@ -14,4 +14,11 @@ message RawBrick
 message RawBrickGrid
 {
     RawBrick[] Bricks;
+    float? X;
+    float? Y;
+    float? Z;
+    float? OrientationX;
+    float? OrientationY;
+    float? OrientationZ;
+    float? OrientationW;
 }

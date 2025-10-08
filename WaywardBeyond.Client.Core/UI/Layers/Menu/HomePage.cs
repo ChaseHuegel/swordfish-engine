@@ -6,14 +6,18 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
+internal sealed class HomePage(in Entry entry, in GameSaveManager gameSaveManager, in GameSaveService gameSaveService) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
 
     private readonly Entry _entry = entry;
+    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
+    private readonly GameSaveService _gameSaveService = gameSaveService;
+    
     private readonly FontOptions _buttonFontOptions = new()
     {
         Size = 32,
@@ -48,12 +52,21 @@ internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
 
             if (ui.TextButton(id: "Button_NewGame", text: "New game", _buttonFontOptions))
             {
-                Task.Run(_entry.StartGameAsync);
+                var options = new GameOptions
+                {
+                    Seed = "wayward beyond",
+                };
+                Task.Run(() => _gameSaveManager.NewGame(options));
             }
 
             if (ui.TextButton(id: "Button_ContinueGame", text: "Continue game", _buttonFontOptions))
             {
-                Task.Run(_entry.StartGameAsync);
+                GameSave[] saves = _gameSaveService.GetSaves();
+                if (saves.Length > 0)
+                {
+                    _gameSaveManager.ActiveSave = saves[0];
+                    Task.Run(_gameSaveManager.Load);
+                }
             }
 
             if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))

@@ -1,19 +1,17 @@
 ﻿using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Modularity;
-using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Serialization;
 using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
-using WaywardBeyond.Client.Core.Serialization;
+using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -34,6 +32,10 @@ public class Injector : IDryIocInjector
         RegisterEntitySystems(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
+        
+        container.Register<GameSaveService>(Reuse.Singleton);
+        container.Register<GameSaveManager>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, GameSaveManager>();
         
         //  TODO this was thrown together for testing and needs cleaned up
         container.Register<BrickEntityBuilder>(Reuse.Singleton);
