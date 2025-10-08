@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,6 +11,8 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Generation.Structures;
 
 namespace WaywardBeyond.Client.Core.Generation;
+
+using AsteroidStructure = (Vector3 Position, int Radius);
 
 internal sealed class WorldGenerator
 {
@@ -28,13 +32,14 @@ internal sealed class WorldGenerator
     public Task Generate()
     {
         const int asteroidCount = 20;
-        const int asteroidMinSize = 20;
-        const int asteroidMaxSize = 150;
+        const int asteroidMinRadius = 10;
+        const int asteroidMaxRadius = 75;
 
         const int worldHeight = 100;
         const int worldSpan = 300;
-        
-        for (var i = 0; i < asteroidCount; i++)
+
+        var asteroids = new List<AsteroidStructure>(asteroidCount);
+        while (asteroids.Count < asteroidCount)
         {
             var position = new Vector3
             (
@@ -43,7 +48,19 @@ internal sealed class WorldGenerator
                 _randomizer.NextInt(-worldSpan, worldSpan)
             );
 
-            _asteroidGenerator.GenerateAt(position, _randomizer.NextInt(asteroidMinSize, asteroidMaxSize));
+            int radius = _randomizer.NextInt(asteroidMinRadius, asteroidMaxRadius);
+
+            if (asteroids.Any(asteroid => Intersection.SphereToSphere(asteroid.Position, asteroid.Radius, position, radius)))
+            {
+                continue;
+            }
+            
+            asteroids.Add(new AsteroidStructure(position, radius));
+        }
+        
+        foreach (AsteroidStructure asteroid in asteroids)
+        {
+            _asteroidGenerator.GenerateAt(asteroid.Position, diameter: asteroid.Radius * 2);
         }
 
         return Task.CompletedTask;
