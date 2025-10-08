@@ -99,6 +99,24 @@ public static class PathInfoExtensions
             .ToArray();
     }
     
+    public static PathInfo[] GetFolders(this PathInfo path, SearchOption searchOption)
+    {
+        return GetFolders(path, "*", searchOption);
+    }
+    
+    public static PathInfo[] GetFolders(this PathInfo path, string searchPattern = "*", SearchOption searchOption = SearchOption.TopDirectoryOnly)
+    {
+        string dir = path.GetDirectory().Value;
+        if (!Directory.Exists(dir))
+        {
+            return [];
+        }
+            
+        return Directory.GetDirectories(dir, searchPattern, searchOption)
+            .Select(str => new PathInfo(str))
+            .ToArray();
+    }
+    
     public static bool TryOpenInDefaultApp(this PathInfo pathInfo)
     {
         var processStartInfo = new ProcessStartInfo
