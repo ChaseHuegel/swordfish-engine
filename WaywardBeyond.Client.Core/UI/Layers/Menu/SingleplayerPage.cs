@@ -60,7 +60,7 @@ internal sealed class SingleplayerPage(in GameSaveManager gameSaveManager, in Ga
             
             if (ui.TextButton(id: "Button_NewGame", text: "+ New game", _saveFontOptions))
             {
-                var options = new GameOptions(name: $"playtest{saves.Length + 1}", seed: Guid.NewGuid().ToString());
+                var options = new GameOptions(name: $"playtest{saves.Length + 1}", seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             
