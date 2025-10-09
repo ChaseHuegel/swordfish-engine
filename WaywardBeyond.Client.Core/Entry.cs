@@ -72,7 +72,7 @@ internal sealed class Entry : IAutoActivate
                     Height = new Relative(1f),
                 };
 
-                var statusBuilder = new StringBuilder("Generating asteroids");
+                var statusBuilder = new StringBuilder("Loading");
                 int steps = MathS.WrapInt((int)(_currentTime * 2d), 0, 3);
                 for (var i = 0; i < steps; i++)
                 {
