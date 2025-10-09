@@ -120,7 +120,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return;
             }
             
-            ActiveSave = _gameSaveService.CreateSave("playtest");
+            ActiveSave = _gameSaveService.CreateSave(options.Name);
         }
         
         using var gameLoadContext = new GameLoadContext(_physics, _ecs);

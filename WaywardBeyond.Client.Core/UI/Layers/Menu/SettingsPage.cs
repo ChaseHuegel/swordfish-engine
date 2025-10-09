@@ -30,21 +30,6 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
         
         using (ui.Element())
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
-            };
-
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
-            {
-                menu.GoBack();
-            }
-        }
-        
-        using (ui.Element())
-        {
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
@@ -178,6 +163,21 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
                         }
                     }
                 }
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Relative(0.99f),
+            };
+
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
+            {
+                menu.GoBack();
             }
         }
         

@@ -67,6 +67,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, MainMenu>();
         container.Register<IMenuPage<MenuPage>, HomePage>();
         container.Register<IMenuPage<MenuPage>, SettingsPage>();
+        container.Register<IMenuPage<MenuPage>, SingleplayerPage>();
         
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
         
