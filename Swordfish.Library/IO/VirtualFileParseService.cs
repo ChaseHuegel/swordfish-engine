@@ -53,16 +53,21 @@ public class VirtualFileParseService : IFileParseService
         string extension = finalPath.GetExtension();
         if (_parsers.TryGetValue(typeof(TResult), extension.ToLowerInvariant(), out IFileParser parser))
         {
-            object parseResult = parser.Parse(finalPath);
-
-            if (parseResult is TResult typedResult)
+            try
             {
-                result = typedResult;
-                return true;
-            }
+                object parseResult = parser.Parse(finalPath);
 
-            result = default;
-            return false;
+                if (parseResult is TResult typedResult)
+                {
+                    result = typedResult;
+                    return true;
+                }
+            }
+            catch (Exception)
+            {
+                result = default;
+                return false;   
+            }
         }
 
         result = default;
