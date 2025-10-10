@@ -19,6 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj" />
     <ProjectReference Include="..\Swordfish.Compilation\Swordfish.Compilation.csproj" />
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
   </ItemGroup>

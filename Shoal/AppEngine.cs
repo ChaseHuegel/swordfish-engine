@@ -1,6 +1,7 @@
 using Karambolo.Extensions.Logging.File;
 using Microsoft.Extensions.Logging.Console;
 using Shoal.CommandLine;
+using Shoal.Extensions.Swordfish;
 using Shoal.Globalization;
 using Shoal.Modularity;
 using Swordfish.Library.Diagnostics;
@@ -149,11 +150,29 @@ public sealed class AppEngine : IDisposable
         container.Register<ConfigurationProvider>(Reuse.Singleton);
 
         container.Register<IFileParseService, VirtualFileParseService>(Reuse.Transient);
-        container.RegisterMany<TomlParser<Language>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<TomlParser<ModuleOptions>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<TomlParser<ModuleManifest>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        
+        container.RegisterTomlParser<Language>();
+        container.RegisterTomlParser<ModuleOptions>();
+        container.RegisterTomlParser<ModuleManifest>();
 
-        container.RegisterMany<PathTomlMapper>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterTomlMapper<PathTomlMapper>();
+        
+        container.RegisterDataBinding<bool>();
+        container.RegisterDataBinding<byte>();
+        container.RegisterDataBinding<sbyte>();
+        container.RegisterDataBinding<char>();
+        container.RegisterDataBinding<decimal>();
+        container.RegisterDataBinding<double>();
+        container.RegisterDataBinding<float>();
+        container.RegisterDataBinding<int>();
+        container.RegisterDataBinding<uint>();
+        container.RegisterDataBinding<nint>();
+        container.RegisterDataBinding<long>();
+        container.RegisterDataBinding<ulong>();
+        container.RegisterDataBinding<short>();
+        container.RegisterDataBinding<ushort>();
+        container.RegisterDataBinding<object>();
+        container.RegisterDataBinding<string>();
 
         container.RegisterDelegate(SmartFormatterProvider.Resolve);
         container.Register<ILocalizationProvider, Localization>(Reuse.Singleton);
