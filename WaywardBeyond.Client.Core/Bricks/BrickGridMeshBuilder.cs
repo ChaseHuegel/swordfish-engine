@@ -379,7 +379,7 @@ internal readonly struct BrickGridMeshBuilder
             return textures[0];
         }
 
-        int hash = x + y + z;
+        int hash = x ^ y ^ z;
         return textures[hash % textures.Length];
     }
 }
