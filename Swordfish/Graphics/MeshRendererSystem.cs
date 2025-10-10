@@ -10,8 +10,8 @@ public class MeshRendererSystem(in IRenderContext renderContext) : EntitySystem<
     {
         if (!rendererComponent.Bound)
         {
-            rendererComponent.Bound = true;
             _renderContext.Bind(rendererComponent.MeshRenderer);
+            rendererComponent.Bound = true;
         }
 
         rendererComponent.MeshRenderer.Transform.Position = transformComponent.Position;
