@@ -11,7 +11,7 @@ public abstract class TomlMapper<T> : ITomlMapper
         TomletMain.RegisterMapper(Serialize, Deserialize);
     }
 
-    protected abstract TomlValue? Serialize(T? path);
+    protected abstract TomlValue? Serialize(T? value);
 
     protected abstract T Deserialize(TomlValue value);
 }

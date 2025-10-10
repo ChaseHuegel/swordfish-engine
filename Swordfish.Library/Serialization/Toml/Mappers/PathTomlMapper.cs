@@ -8,9 +8,9 @@ namespace Swordfish.Library.Serialization.Toml.Mappers;
 // ReSharper disable once ClassNeverInstantiated.Global
 public sealed class PathTomlMapper : TomlMapper<PathInfo>
 {
-    protected override TomlValue Serialize(PathInfo path)
+    protected override TomlValue Serialize(PathInfo value)
     {
-        return new TomlString(path.Value);
+        return new TomlString(value.Value);
     }
 
     protected override PathInfo Deserialize(TomlValue value)

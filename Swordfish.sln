@@ -33,6 +33,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Reef.Benchmarks", "Reef.Ben
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Client.Launcher", "WaywardBeyond.Client.Launcher\WaywardBeyond.Client.Launcher.csproj", "{A965AE79-5C3A-4368-B4E9-90F5C96B95A9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoal.Extensions.Swordfish", "Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj", "{CDB35018-300E-4A64-BC71-58FFAE3D9587}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -102,5 +104,9 @@ Global
 		{A965AE79-5C3A-4368-B4E9-90F5C96B95A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A965AE79-5C3A-4368-B4E9-90F5C96B95A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A965AE79-5C3A-4368-B4E9-90F5C96B95A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CDB35018-300E-4A64-BC71-58FFAE3D9587}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CDB35018-300E-4A64-BC71-58FFAE3D9587}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CDB35018-300E-4A64-BC71-58FFAE3D9587}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CDB35018-300E-4A64-BC71-58FFAE3D9587}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
