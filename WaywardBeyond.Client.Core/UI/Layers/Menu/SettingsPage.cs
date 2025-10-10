@@ -9,15 +9,15 @@ using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class SettingsPage(in ControlSettings controlSettings, in DisplaySettings displaySettings) : IMenuPage<MenuPage>
+internal sealed class SettingsPage(in Settings settings, in SettingsManager settingsManager) : IMenuPage<MenuPage>
 {
     private const string INCREASE_UNICODE = "\uf0fe";
     private const string DECREASE_UNICODE = "\uf146";
     
     public MenuPage ID => MenuPage.Settings;
 
-    private readonly ControlSettings _controlSettings = controlSettings;
-    private readonly DisplaySettings _displaySettings = displaySettings;
+    private readonly Settings _settings = settings;
+    private readonly SettingsManager _settingsManager = settingsManager;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -26,7 +26,10 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        int currentSensitivity = _controlSettings.LookSensitivity;
+        ControlSettings controlSettings = _settings.Control;
+        DisplaySettings displaySettings = _settings.Display;
+        
+        int currentSensitivity = controlSettings.LookSensitivity;
         
         using (ui.Element())
         {
@@ -45,8 +48,8 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
                 ui.FontSize = 24;
             }
 
-            bool value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _displaySettings.Fullscreen.Get());
-            _displaySettings.Fullscreen.Set(value);
+            bool value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: displaySettings.Fullscreen.Get());
+            displaySettings.Fullscreen.Set(value);
             
             using (ui.Element())
             {
@@ -109,7 +112,7 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                            _controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity - 1, 1, 10));
+                            controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity - 1, 1, 10));
                         }
                         else if (hovering)
                         {
@@ -122,7 +125,7 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
                     }
                 }
 
-                using (ui.Text(_controlSettings.LookSensitivity.Get().ToString()))
+                using (ui.Text(controlSettings.LookSensitivity.Get().ToString()))
                 {
                     ui.FontSize = 20;
                     ui.Constraints = new Constraints
@@ -151,7 +154,7 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                            _controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity + 1, 1, 10));
+                            controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity + 1, 1, 10));
                         }
                         else if (hovering)
                         {
@@ -177,6 +180,7 @@ internal sealed class SettingsPage(in ControlSettings controlSettings, in Displa
 
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
             {
+                _settingsManager.ApplySettings();
                 menu.GoBack();
             }
         }

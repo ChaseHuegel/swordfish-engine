@@ -1,12 +1,12 @@
 ﻿using DryIoc;
 using Shoal.DependencyInjection;
+using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Serialization.Toml;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;
@@ -43,14 +43,18 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
-        container.Register<Entry>(reuse: Reuse.Singleton);
+        container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
     }
 
     private void RegisterConfiguration(IContainer container)
     {
-        container.Register<DisplaySettings>(reuse: Reuse.Singleton);
-        container.Register<ControlSettings>(reuse: Reuse.Singleton);
+        container.Register<SettingsManager>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, SettingsManager>();
+        
+        container.RegisterConfig<Settings>(file: "settings.toml");
+        container.RegisterDelegate<ControlSettings>(context => context.Resolve<Settings>().Control, Reuse.Singleton);
+        container.RegisterDelegate<DisplaySettings>(context => context.Resolve<Settings>().Display, Reuse.Singleton);
     }
 
     private static void RegisterUI(IContainer container)
@@ -108,8 +112,8 @@ public class Injector : IDryIocInjector
     
     private static void RegisterTomlParsers(IContainer container)
     {
-        container.RegisterMany<TomlParser<BrickDefinitions>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<TomlParser<ItemDefinitions>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterTomlParser<BrickDefinitions>();
+        container.RegisterTomlParser<ItemDefinitions>();
     }
 
     private static void RegisterEntitySystems(IContainer container)
