@@ -43,8 +43,8 @@ internal class CrosshairOverlay : IUILayer
                 Anchors = Anchors.Center,
                 X = new Relative(0.5f),
                 Y = new Relative(0.5f),
-                Width = new Fixed(64),
-                Height = new Fixed(64),
+                Width = new Fixed((int)(ui.Width * 0.01f)),
+                Height = new Fixed((int)(ui.Width * 0.01f)),
             };
         }
         
