@@ -5,7 +5,7 @@ using Tomlet.Attributes;
 namespace Swordfish.Library.Globalization;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public sealed class Language(string twoLetterISOLanguageName) : TomlConfiguration<Language>
+public sealed class Language(string twoLetterISOLanguageName) : Toml<Language>
 {
     public readonly Dictionary<string, string> Translations = [];
 

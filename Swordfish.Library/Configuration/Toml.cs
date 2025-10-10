@@ -2,7 +2,7 @@ using Tomlet;
 
 namespace Swordfish.Library.Configuration;
 
-public abstract class TomlConfiguration<T>
+public abstract class Toml<T>
 {
     public override string ToString()
     {

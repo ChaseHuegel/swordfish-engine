@@ -5,7 +5,7 @@
 namespace Shoal.Modularity;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal class ModuleManifest(string id, string name) : TomlConfiguration<ModuleManifest>
+internal class ModuleManifest(string id, string name) : Toml<ModuleManifest>
 {
     [TomlProperty("ID")]
     public string? ID { get; private set; } = id;
