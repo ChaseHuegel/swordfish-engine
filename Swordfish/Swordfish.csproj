@@ -15,7 +15,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PackageId>Swordfish</PackageId>
-    <Version>3.13.0</Version>
+    <Version>3.14.0</Version>
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
