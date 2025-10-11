@@ -22,10 +22,5 @@ public interface IWindowContext
     Vector2 GetSize();
 
     void Close();
-    void SetWindowed();
-    void Minimize();
-    void Maximize();
-    void Fullscreen();
-    void SetTitle(string? title);
     void SetIcon(Texture icon);
 }
