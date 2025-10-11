@@ -4,6 +4,7 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
@@ -18,6 +19,7 @@ internal sealed class MainMenu : Menu<MenuPage>
         ILogger<Menu<MenuPage>> logger,
         IAssetDatabase<Material> materialDatabase,
         ReefContext reefContext,
+        IShortcutService shortcutService,
         IMenuPage<MenuPage>[] pages
     ) : base(logger, reefContext, pages)
     {
@@ -40,6 +42,16 @@ internal sealed class MainMenu : Menu<MenuPage>
         {
             logger.LogError(materialResult, "Failed to load the background material, it will not be able to render.");
         }
+        
+        Shortcut backShortcut = new(
+            "Go back",
+            "General",
+            ShortcutModifiers.None,
+            Key.Esc,
+            IsVisible,
+            () => GoBack()
+        );
+        shortcutService.RegisterShortcut(backShortcut);
     }
     
     public override bool IsVisible()
