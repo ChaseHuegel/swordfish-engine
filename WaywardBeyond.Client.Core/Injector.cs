@@ -52,9 +52,7 @@ public class Injector : IDryIocInjector
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
         
-        container.RegisterConfig<Settings>(file: "settings.toml");
-        container.RegisterDelegate<ControlSettings>(context => context.Resolve<Settings>().Control, Reuse.Singleton);
-        container.RegisterDelegate<DisplaySettings>(context => context.Resolve<Settings>().Display, Reuse.Singleton);
+        container.RegisterConfig<ControlSettings>(file: "control.toml");
     }
 
     private static void RegisterUI(IContainer container)

@@ -5,18 +5,26 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
+using Swordfish.Settings;
 using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class SettingsPage(in Settings settings, in SettingsManager settingsManager) : IMenuPage<MenuPage>
+internal sealed class SettingsPage(
+    in SettingsManager settingsManager,
+    in ControlSettings controlSettings,
+    in WindowSettings windowSettings,
+    in RenderSettings renderSettings
+) : IMenuPage<MenuPage>
 {
     private const string INCREASE_UNICODE = "\uf0fe";
     private const string DECREASE_UNICODE = "\uf146";
     
     public MenuPage ID => MenuPage.Settings;
 
-    private readonly Settings _settings = settings;
+    private readonly ControlSettings _controlSettings = controlSettings;
+    private readonly WindowSettings _windowSettings = windowSettings;
+    private readonly RenderSettings _renderSettings = renderSettings;
     private readonly SettingsManager _settingsManager = settingsManager;
     
     private readonly FontOptions _buttonFontOptions = new()
@@ -26,10 +34,7 @@ internal sealed class SettingsPage(in Settings settings, in SettingsManager sett
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        ControlSettings controlSettings = _settings.Control;
-        DisplaySettings displaySettings = _settings.Display;
-        
-        int currentSensitivity = controlSettings.LookSensitivity;
+        int currentSensitivity = _controlSettings.LookSensitivity;
         
         using (ui.Element())
         {
@@ -47,9 +52,15 @@ internal sealed class SettingsPage(in Settings settings, in SettingsManager sett
             {
                 ui.FontSize = 24;
             }
+            
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync);
+            _renderSettings.VSync.Set(value);
 
-            bool value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: displaySettings.Fullscreen.Get());
-            displaySettings.Fullscreen.Set(value);
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen);
+            _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
+            
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA);
+            _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
             using (ui.Element())
             {
@@ -112,7 +123,7 @@ internal sealed class SettingsPage(in Settings settings, in SettingsManager sett
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                            controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity - 1, 1, 10));
+                            _controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity - 1, 1, 10));
                         }
                         else if (hovering)
                         {
@@ -125,7 +136,7 @@ internal sealed class SettingsPage(in Settings settings, in SettingsManager sett
                     }
                 }
 
-                using (ui.Text(controlSettings.LookSensitivity.Get().ToString()))
+                using (ui.Text(_controlSettings.LookSensitivity.Get().ToString()))
                 {
                     ui.FontSize = 20;
                     ui.Constraints = new Constraints
@@ -154,7 +165,7 @@ internal sealed class SettingsPage(in Settings settings, in SettingsManager sett
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                            controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity + 1, 1, 10));
+                            _controlSettings.LookSensitivity.Set(Math.Clamp(currentSensitivity + 1, 1, 10));
                         }
                         else if (hovering)
                         {
