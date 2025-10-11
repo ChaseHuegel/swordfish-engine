@@ -3,6 +3,7 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Debug;
 
@@ -14,6 +15,7 @@ public sealed class CubeGizmo : IDisposable
     private readonly LineTemplate[] _templates;
     private readonly Vector4 _color;
     private bool _visible;
+    private double _time;
 
     public bool Visible
     {
@@ -94,13 +96,16 @@ public sealed class CubeGizmo : IDisposable
         }
     }
 
-    public void Render(TransformComponent transform)
+    public void Render(double delta, TransformComponent transform)
     {
+        _time += delta;
+        float scale = 1.02f + (float)MathS.PingPong(time: _time * 0.0625d, max: 0.04d);
+        
         for (var i = 0; i < _lines.Length; i++)
         {
             Line line = _lines[i];
-            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * 1.05f, transform.Orientation);
-            line.End = transform.Position + Vector3.Transform(_templates[i].End * 1.05f, transform.Orientation);
+            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * scale, transform.Orientation);
+            line.End = transform.Position + Vector3.Transform(_templates[i].End * scale, transform.Orientation);
         }
     }
 }

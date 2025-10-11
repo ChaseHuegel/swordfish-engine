@@ -250,7 +250,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (!TryGetBrickFromScreenSpace(true, true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(IsMainHandPlaceable(), true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
         {
             _cubeGizmo.Visible = false;
             return;
@@ -258,7 +258,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         _cubeGizmo.Visible = true;
-        _cubeGizmo.Render(new TransformComponent(worldPos, transformComponent.Orientation));
+        _cubeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, transformComponent.Orientation));
 
         _debugInfo = (BrickComponent: brickComponent, Brick: clickedBrick, Coordinate: brickPos, Position: worldPos);
     }
@@ -488,5 +488,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         //         _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
         //     }
         // }
+    }
+    
+    private bool IsMainHandPlaceable() 
+    {
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
+        if (!mainHandResult.Success)
+        {
+            return false;
+        }
+
+        return mainHandResult.Value.Item.Placeable != null;
     }
 }
