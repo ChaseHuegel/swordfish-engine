@@ -313,6 +313,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         Vector3? reachAroundDir = null;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        ray *= 9.5f;
         if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out brickComponent, out transformComponent))
         {
             if (!reachAround || !TryReachAroundRaycasts(ray, camera, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
@@ -358,12 +359,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     ) {
         const float reachAroundWidth = 0.5f;
         
-        if (TryReachAroundRaycast(centerRay, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
         {
             return true;
         }
 
-        if (TryReachAroundRaycast(centerRay, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
         {
             return true;
         }
@@ -419,7 +420,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private bool TryRaycastBrickEntity(Ray ray, out RaycastResult raycast, out BrickComponent brickComponent, out TransformComponent transformComponent)
     {
-        raycast = _physics.Raycast(ray * 1000);
+        raycast = _physics.Raycast(ray);
         if (raycast.Hit && raycast.Entity.TryGet(out brickComponent) && raycast.Entity.TryGet(out transformComponent))
         {
             return true;
