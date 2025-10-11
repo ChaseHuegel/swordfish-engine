@@ -1,5 +1,6 @@
 ﻿using DryIoc;
 using Reef;
+using Shoal.Extensions.Swordfish;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -71,11 +72,15 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
         container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
         
-        var renderSettings = new RenderSettings();
         var debugSettings = new DebugSettings();
         debugSettings.Stats.Set(true);
 
-        container.RegisterInstance<RenderSettings>(renderSettings);
         container.RegisterInstance<DebugSettings>(debugSettings);
+        
+        container.RegisterConfig<RenderSettings>(file: "render.toml");
+        container.RegisterConfig<WindowSettings>(file: "window.toml");
+        
+        container.RegisterDataBinding<AntiAliasing>();
+        container.RegisterDataBinding<WindowMode>();
     }
 }

@@ -8,6 +8,7 @@ using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Swordfish.UI;
 using Key = Swordfish.Library.IO.Key;
 
@@ -32,30 +33,65 @@ public class SilkWindowContext : IWindowContext
 
     private IWindow Window { get; }
     private IUIContext UIContext { get; }
-    private IInputService InputService { get; }
     private IShortcutService ShortcutService { get; }
     private ILogger Logger { get; }
+    private WindowSettings WindowSettings { get; }
+    private RenderSettings RenderSettings { get; }
 
     private readonly GL _gl;
     private readonly SynchronizationContext _mainThread;
 
-    public SilkWindowContext(GL gl, SynchronizationContext mainThread, IUIContext uiContext, IInputService inputService, IShortcutService shortcutService, IWindow window, ILogger logger)
-    {
+    public SilkWindowContext(
+        GL gl,
+        SynchronizationContext mainThread,
+        IUIContext uiContext,
+        IShortcutService shortcutService,
+        IWindow window,
+        ILogger logger,
+        WindowSettings windowSettings,
+        RenderSettings renderSettings
+    ) {
         _gl = gl;
         _mainThread = mainThread;
         Window = window;
         UIContext = uiContext;
-        InputService = inputService;
         ShortcutService = shortcutService;
         Logger = logger;
+        WindowSettings = windowSettings;
+        RenderSettings = renderSettings;
 
-        Window.FocusChanged += OnFocusChanged;
-        Window.Closing += OnClose;
-        Window.Update += OnUpdate;
-        Window.Render += OnRender;
-        Window.Resize += OnResize;
+        window.FocusChanged += OnFocusChanged;
+        window.Closing += OnClose;
+        window.Update += OnUpdate;
+        window.Render += OnRender;
+        window.Resize += OnResize;
 
-        Window.Center();
+        renderSettings.VSync.Changed += OnVSyncChanged;
+        ApplyVSync(renderSettings.VSync);
+
+        renderSettings.Framerate.Changed += OnFramerateChanged;
+        ApplyFramerate(renderSettings.Framerate);
+        
+        windowSettings.AlwaysOnTop.Changed += OnAlwaysOnTopChanged;
+        ApplyAlwaysOnTop(windowSettings.AlwaysOnTop);
+        
+        windowSettings.Title.Changed += OnTitleChanged;
+        ApplyTitle(windowSettings.Title);
+        
+        windowSettings.X.Changed += OnXChanged;
+        windowSettings.Y.Changed += OnYChanged;
+        ApplyPosition(windowSettings.X, windowSettings.Y);
+
+        windowSettings.Width.Changed += OnWidthChanged;
+        windowSettings.Height.Changed += OnHeightChanged;
+        ApplySize(windowSettings.Width, windowSettings.Height);
+        
+        windowSettings.Borderless.Changed += OnBorderlessChanged;
+        windowSettings.AllowResize.Changed += OnAllowResizeChanged;
+        ApplyBorderSettings(windowSettings.Borderless, windowSettings.AllowResize);
+
+        windowSettings.Mode.Changed += OnModeChanged;
+        ApplyMode(windowSettings.Mode);
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
@@ -63,7 +99,7 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.None,
                 Key.F11,
                 Shortcut.DefaultEnabled,
-                () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Maximized : WindowState.Normal
+                () => WindowSettings.Mode.Set(WindowSettings.Mode != WindowMode.Maximized ? WindowMode.Maximized : WindowMode.Windowed)
             )
         );
 
@@ -73,7 +109,7 @@ public class SilkWindowContext : IWindowContext
                 ShortcutModifiers.Alt,
                 Key.Enter,
                 Shortcut.DefaultEnabled,
-                () => Window.WindowState = Window.WindowState == WindowState.Normal ? WindowState.Fullscreen : WindowState.Normal
+                () => WindowSettings.Mode.Set(WindowSettings.Mode != WindowMode.Fullscreen ? WindowMode.Fullscreen : WindowMode.Maximized)
             )
         );
 
@@ -98,31 +134,6 @@ public class SilkWindowContext : IWindowContext
     public void Close()
     {
         _mainThread.WaitFor(Window.Close);
-    }
-
-    public void SetWindowed()
-    {
-        _mainThread.WaitFor(() => Window.WindowState = WindowState.Normal);
-    }
-
-    public void Minimize()
-    {
-        _mainThread.WaitFor(() => Window.WindowState = WindowState.Minimized);
-    }
-
-    public void Maximize()
-    {
-        _mainThread.WaitFor(() => Window.WindowState = WindowState.Maximized);
-    }
-
-    public void Fullscreen()
-    {
-        _mainThread.WaitFor(() => Window.WindowState = WindowState.Fullscreen);
-    }
-
-    public void SetTitle(string? title)
-    {
-        Window.Title = title ?? string.Empty;
     }
 
     public void SetIcon(Texture icon)
@@ -166,5 +177,141 @@ public class SilkWindowContext : IWindowContext
         {
             Unfocused?.Invoke();
         }
+    }
+    
+    private void OnVSyncChanged(object? sender, DataChangedEventArgs<bool> e)
+    {
+        ApplyVSync(e.NewValue);
+    }
+
+    private void OnFramerateChanged(object? sender, DataChangedEventArgs<int> e)
+    {
+        ApplyFramerate(e.NewValue);
+    }
+
+    private void OnAlwaysOnTopChanged(object? sender, DataChangedEventArgs<bool> e)
+    {
+        ApplyAlwaysOnTop(e.NewValue);
+    }
+    private void OnTitleChanged(object? sender, DataChangedEventArgs<string?> e)
+    {
+        ApplyTitle(e.NewValue);
+    }
+
+    private void OnXChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        ApplyPosition(x: e.NewValue, WindowSettings.Y);
+    }
+
+    private void OnYChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        ApplyPosition(WindowSettings.X, y: e.NewValue);
+    }
+    
+    private void OnWidthChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        ApplySize(width: e.NewValue, WindowSettings.Height);
+    }
+
+    private void OnHeightChanged(object? sender, DataChangedEventArgs<int?> e)
+    {
+        ApplySize(WindowSettings.Width, height: e.NewValue);
+    }
+    
+    private void OnBorderlessChanged(object? sender, DataChangedEventArgs<bool> e)
+    {
+        ApplyBorderSettings(borderless: e.NewValue, WindowSettings.AllowResize);
+    }
+    
+    private void OnAllowResizeChanged(object? sender, DataChangedEventArgs<bool> e)
+    {
+        ApplyBorderSettings(WindowSettings.Borderless, allowResize: e.NewValue);
+    }
+    
+    private void OnModeChanged(object? sender, DataChangedEventArgs<WindowMode> e)
+    {
+        ApplyMode(e.NewValue);
+    }
+    
+    private void ApplyVSync(bool vsync)
+    {
+        Window.VSync = vsync;
+        RenderSettings.Save();
+    }
+    
+    private void ApplyFramerate(int framerate)
+    {
+        Window.FramesPerSecond = framerate;
+        RenderSettings.Save();
+    }
+    
+    private void ApplyAlwaysOnTop(bool alwaysOnTop)
+    {
+        Window.TopMost = alwaysOnTop;
+    }
+
+    private void ApplyTitle(string? title)
+    {
+        if (title == null)
+        {
+            return;
+        }
+
+        Window.Title = title;
+    }
+    
+    private void ApplyPosition(int? x, int? y)
+    {
+        if (x != null && y != null)
+        {
+            Window.Position = new Vector2D<int>(x.Value, y.Value);
+            WindowSettings.Save();
+        }
+        else
+        {
+            Window.Center();
+        }
+    }
+    
+    private void ApplySize(int? width, int? height)
+    {
+        if (width == null || height == null)
+        {
+            return;
+        }
+
+        Window.Size = new Vector2D<int>(width.Value, height.Value);
+        WindowSettings.Save();
+    }
+    
+    private void ApplyBorderSettings(bool borderless, bool allowResize) 
+    {
+        if (borderless)
+        {
+            Window.WindowBorder = WindowBorder.Hidden;
+        }
+        else if (allowResize)
+        {
+            Window.WindowBorder = WindowBorder.Resizable;
+        }
+        else
+        {
+            Window.WindowBorder = WindowBorder.Fixed;
+        }
+        
+        WindowSettings.Save();
+    }
+
+    private void ApplyMode(WindowMode mode)
+    {
+        Window.WindowState = mode switch
+        {
+            WindowMode.Windowed => WindowState.Normal,
+            WindowMode.Maximized => WindowState.Maximized,
+            WindowMode.Fullscreen => WindowState.Fullscreen,
+            _ => WindowState.Normal,
+        };
+
+        WindowSettings.Save();
     }
 }

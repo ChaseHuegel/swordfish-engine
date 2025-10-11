@@ -42,6 +42,7 @@ public class Editor : IEntryPoint, IAutoActivate
     private readonly RenderSettings _renderSettings;
     private readonly LogListener _logListener;
     private readonly ILogger _logger;
+    private readonly WindowSettings _windowSettings;
 
     private static CanvasElement? _hierarchy;
 
@@ -57,7 +58,8 @@ public class Editor : IEntryPoint, IAutoActivate
         DebugSettings debugSettings,
         RenderSettings renderSettings,
         LogListener logListener,
-        ILogger logger)
+        ILogger logger,
+        WindowSettings windowSettings)
     {
         _windowContext = windowContext;
         _ecsContext = ecsContext;
@@ -69,6 +71,7 @@ public class Editor : IEntryPoint, IAutoActivate
         _renderSettings = renderSettings;
         _logListener = logListener;
         _logger = logger;
+        _windowSettings = windowSettings;
 
         //  Scale off target height of 1080
         uiContext.ScaleConstraint.Set(new FactorConstraint(1080));
@@ -110,7 +113,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
     public void Run()
     {
-        _windowContext.Maximize();
+        _windowSettings.Mode.Set(WindowMode.Maximized);
 
         _windowContext.Update += OnUpdate;
 

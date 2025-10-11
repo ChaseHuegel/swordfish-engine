@@ -56,11 +56,12 @@ public class SwordfishEngine
         options.Title = "Swordfish";
         options.ShouldSwapAutomatically = true;
         options.VSync = false;
+        options.Samples = 4;
 
         _mainWindow = Window.Create(options);
         _mainWindow.Load += OnWindowLoaded;
         _mainWindow.Update += OnWindowUpdate;
-
+        
         _engineContainer = new EngineContainer(_mainWindow, _mainThreadContext);
         TransitionState(State.Initializing, State.Initialized);
     }
