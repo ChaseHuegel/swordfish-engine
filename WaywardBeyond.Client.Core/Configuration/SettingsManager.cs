@@ -1,18 +1,19 @@
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 
 namespace WaywardBeyond.Client.Core.Configuration;
 
 internal sealed class SettingsManager : IAutoActivate
 {
-    private readonly IWindowContext _windowContext;
     private readonly Settings _settings;
+    private readonly WindowSettings _windowSettings;
     
-    public SettingsManager(in IWindowContext windowContext, in Settings settings)
+    public SettingsManager(in IWindowContext windowContext, in Settings settings, in WindowSettings windowSettings)
     {
-        _windowContext = windowContext;
         _settings = settings;
+        _windowSettings = windowSettings;
 
         windowContext.Closed += OnWindowClosed;
         settings.Display.Fullscreen.Changed += OnFullscreenChanged;
@@ -38,13 +39,6 @@ internal sealed class SettingsManager : IAutoActivate
 
     private void ApplyFullscreen(bool fullscreen)
     {
-        if (fullscreen)
-        {
-            _windowContext.Fullscreen();
-        }
-        else
-        {
-            _windowContext.Maximize();
-        }
+        _windowSettings.Mode.Set(fullscreen ? WindowMode.Fullscreen : WindowMode.Maximized);
     }
 }
