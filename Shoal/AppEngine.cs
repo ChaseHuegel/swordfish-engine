@@ -171,6 +171,22 @@ public sealed class AppEngine : IDisposable
         container.RegisterDataBinding<ulong>();
         container.RegisterDataBinding<short>();
         container.RegisterDataBinding<ushort>();
+        
+        container.RegisterDataBinding<bool?>();
+        container.RegisterDataBinding<byte?>();
+        container.RegisterDataBinding<sbyte?>();
+        container.RegisterDataBinding<char?>();
+        container.RegisterDataBinding<decimal?>();
+        container.RegisterDataBinding<double?>();
+        container.RegisterDataBinding<float?>();
+        container.RegisterDataBinding<int?>();
+        container.RegisterDataBinding<uint?>();
+        container.RegisterDataBinding<nint?>();
+        container.RegisterDataBinding<long?>();
+        container.RegisterDataBinding<ulong?>();
+        container.RegisterDataBinding<short?>();
+        container.RegisterDataBinding<ushort?>();
+        
         container.RegisterDataBinding<object>();
         container.RegisterDataBinding<string>();
 

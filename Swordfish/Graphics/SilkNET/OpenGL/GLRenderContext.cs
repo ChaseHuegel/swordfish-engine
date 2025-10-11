@@ -7,6 +7,7 @@ using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 using Swordfish.UI;
 
 // ReSharper disable UnusedMember.Global
@@ -29,14 +30,22 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly GLContext _glContext;
     private readonly IRenderStage[] _renderers;
     private readonly SynchronizationContext _synchronizationContext;
+    private readonly RenderSettings _renderSettings;
 
-    public GLRenderContext(GL gl, IWindowContext windowContext, GLContext glContext, IRenderStage[] renderers, SynchronizationContext synchronizationContext)
-    {
+    public GLRenderContext(
+        GL gl,
+        IWindowContext windowContext,
+        GLContext glContext,
+        IRenderStage[] renderers,
+        SynchronizationContext synchronizationContext,
+        RenderSettings renderSettings
+    ) {
         _gl = gl;
         _windowContext = windowContext;
         _glContext = glContext;
         _renderers = renderers;
         _synchronizationContext = synchronizationContext;
+        _renderSettings = renderSettings;
 
         _gl.ClearColor(Color.FromArgb(20, 21, 37));
         _gl.Enable(EnableCap.DepthTest);
@@ -88,6 +97,9 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
+        AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
+        _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
+        
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 
         for (var i = 0; i < _renderers.Length; i++)
