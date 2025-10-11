@@ -195,6 +195,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             _bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.CollisionDetection);
             physics.Body = body;
             physics.BodyID = body.ID;
+            physics.BodyInterface = _bodyInterface;
 
             SyncJoltToEntity(delta, store, entity, ref physics, ref transform);
         }
@@ -206,7 +207,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             return;
         }
-
+        
         _bodyInterface.SetPositionRotationAndVelocity(physics.Body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 

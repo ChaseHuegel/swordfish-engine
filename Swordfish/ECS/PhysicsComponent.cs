@@ -5,7 +5,7 @@ using BodyType = Swordfish.Physics.BodyType;
 
 namespace Swordfish.ECS;
 
-public struct PhysicsComponent : IDataComponent
+public struct PhysicsComponent : IDataComponent, IDisposable
 {
     public readonly byte Layer;
     public readonly BodyType BodyType;
@@ -14,6 +14,7 @@ public struct PhysicsComponent : IDataComponent
     public Vector3 Velocity;
     public Vector3 Torque;
 
+    internal BodyInterface? BodyInterface;
     internal Body? Body;
     internal BodyID? BodyID;
 
@@ -32,5 +33,21 @@ public struct PhysicsComponent : IDataComponent
         CollisionDetection = collisionDetection;
         Velocity = velocity;
         Torque = torque;
+    }
+
+    public void Dispose()
+    {
+        if (BodyID != null && BodyInterface != null)
+        {
+            BodyInterface?.RemoveAndDestroyBody(BodyID.Value);
+            BodyID = null;
+            BodyInterface = null;
+        }
+
+        if (Body != null)
+        {
+            Body.Dispose();
+            Body = null;
+        }
     }
 }
