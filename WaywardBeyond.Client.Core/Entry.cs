@@ -2,7 +2,6 @@ using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
-using Swordfish.Library.IO;
 using Swordfish.Settings;
 
 namespace WaywardBeyond.Client.Core;
@@ -12,19 +11,12 @@ internal sealed class Entry : IAutoActivate
 {
     private readonly IWindowContext _windowContext;
 
-    public Entry(in ILogger<Entry> logger, in IShortcutService shortcutService, in IWindowContext windowContext, in WindowSettings windowSettings)
-    {
+    public Entry(
+        in ILogger<Entry> logger,
+        in IWindowContext windowContext,
+        in WindowSettings windowSettings
+    ) {
         _windowContext = windowContext;
-        
-        Shortcut quitShortcut = new(
-            "Quit Game",
-            "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            Shortcut.DefaultEnabled,
-            Quit
-        );
-        shortcutService.RegisterShortcut(quitShortcut);
 
         windowSettings.Title.Set("Wayward Beyond");
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
