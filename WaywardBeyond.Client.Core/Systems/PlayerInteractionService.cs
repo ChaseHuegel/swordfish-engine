@@ -250,12 +250,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (!TryGetBrickFromScreenSpace(IsMainHandPlaceable(), true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        bool holdingPlaceable = IsMainHandPlaceable();
+        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent) 
+            || !holdingPlaceable && clickedBrick == Brick.Empty)
         {
             _cubeGizmo.Visible = false;
             return;
         }
-        
+
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         _cubeGizmo.Visible = true;
         _cubeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, transformComponent.Orientation));
