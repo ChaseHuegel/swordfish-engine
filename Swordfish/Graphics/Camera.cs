@@ -53,19 +53,20 @@ public class Camera
 
     public Ray ScreenPointToRay(int x, int y, int screenWidth, int screenHeight)
     {
-        float ndcX = (2.0f * x / screenWidth) - 1.0f;
-        float ndcY = 1.0f - (2.0f * y / screenHeight);
+        float ndcX = 2.0f * x / screenWidth - 1.0f;
+        float ndcY = 1.0f - 2.0f * y / screenHeight;
 
-        var clipCoords = new Vector4(ndcX, ndcY, 0f, 1f);
+        var clipFar = new Vector4(ndcX, ndcY, 1f, 1f);
 
         Matrix4x4.Invert(GetProjection(), out Matrix4x4 invProjection);
-        Vector4 worldCoords = Vector4.Normalize(Vector4.Transform(clipCoords, invProjection));
+        Vector4 eyeFar = Vector4.Transform(clipFar, invProjection);
+        eyeFar /= eyeFar.W;
 
         Matrix4x4.Invert(GetView(), out Matrix4x4 invertedView);
-        Vector4 rayWorld = Vector4.Transform(worldCoords, invertedView);
+        Vector4 worldFar = Vector4.Transform(eyeFar, invertedView);
 
         var rayOrigin = new Vector3(invertedView.M41, invertedView.M42, invertedView.M43);
-        Vector3 rayDirection = new Vector3(rayWorld.X, rayWorld.Y, rayWorld.Z) - rayOrigin;
-        return new Ray(rayOrigin, Vector3.Normalize(rayDirection));
+        Vector3 rayDirection = Vector3.Normalize(new Vector3(worldFar.X, worldFar.Y, worldFar.Z) - rayOrigin);
+        return new Ray(rayOrigin, rayDirection);
     }
 }
