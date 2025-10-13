@@ -39,7 +39,8 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<GLContext>(Reuse.Singleton);
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
-        container.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        // container.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IRenderStage, DeferredRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<GLScreenSpaceRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
         container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
