@@ -6,7 +6,7 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IDeferredRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : ILightRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;

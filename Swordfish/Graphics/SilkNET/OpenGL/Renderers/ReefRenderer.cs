@@ -22,7 +22,7 @@ internal sealed class ReefRenderer(
     in ReefContext reefContext,
     in IFileParseService fileParseService,
     in VirtualFileSystem vfs,
-    in ILogger logger) : IForwardRenderStage
+    in ILogger logger) : IUnlitRenderStage
 {
     private readonly GL _gl = gl;
     private readonly GLContext _glContext = glContext;

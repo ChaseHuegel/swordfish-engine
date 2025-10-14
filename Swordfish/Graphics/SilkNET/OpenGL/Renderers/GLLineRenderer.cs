@@ -15,7 +15,7 @@ internal sealed class GLLineRenderer(
     in GLContext glContext,
     in IFileParseService fileParseService,
     in VirtualFileSystem vfs)
-    : IForwardRenderStage, ILineRenderer
+    : IUnlitRenderStage, ILineRenderer
 {
     private ShaderProgram? _shaderProgram;
     private VertexArrayObject<float>? _vao;

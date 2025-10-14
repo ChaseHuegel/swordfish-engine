@@ -42,10 +42,10 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
         
-        container.Register<IRenderPipeline, DeferredRenderingPipeline<IDeferredRenderStage>>(Reuse.Singleton);
+        container.Register<IRenderPipeline, ForwardPlusRenderingPipeline<ILightRenderStage>>(Reuse.Singleton);
         container.RegisterMany<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         
-        container.Register<IRenderPipeline, ForwardRenderingPipeline<IForwardRenderStage>>(Reuse.Singleton);
+        container.Register<IRenderPipeline, ForwardRenderingPipeline<IUnlitRenderStage>>(Reuse.Singleton);
         container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<GLScreenSpaceRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
