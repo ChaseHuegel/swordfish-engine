@@ -9,6 +9,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Input;
 using Swordfish.IO;
@@ -38,16 +39,20 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterInstance<IWindow>(_window);
         container.Register<GLContext>(Reuse.Singleton);
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
-        container.RegisterMany<GLRenderContext>(Reuse.Singleton);
-        // container.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IRenderStage, DeferredRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<GLScreenSpaceRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
-        container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         
-        container.Register<IRenderStage, ReefRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<GLRenderContext>(Reuse.Singleton);
+        
+        container.Register<IRenderPipeline, DeferredRenderingPipeline<IDeferredRenderStage>>(Reuse.Singleton);
+        container.RegisterMany<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        
+        container.Register<IRenderPipeline, ForwardRenderingPipeline<IForwardRenderStage>>(Reuse.Singleton);
+        container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<GLScreenSpaceRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<ReefRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        
         container.Register<ReefContext>(Reuse.Singleton);
+        container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         

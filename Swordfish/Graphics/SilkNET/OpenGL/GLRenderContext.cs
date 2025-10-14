@@ -7,8 +7,6 @@ using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
-using Swordfish.Settings;
-using Swordfish.UI;
 
 // ReSharper disable UnusedMember.Global
 
@@ -25,44 +23,41 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
-    private readonly GL _gl;
     private readonly IWindowContext _windowContext;
     private readonly GLContext _glContext;
-    private readonly IRenderStage[] _renderers;
+    private readonly IRenderPipeline[] _renderPipelines;
     private readonly SynchronizationContext _synchronizationContext;
-    private readonly RenderSettings _renderSettings;
 
     public GLRenderContext(
         GL gl,
         IWindowContext windowContext,
         GLContext glContext,
+        IRenderPipeline[] renderPipelines,
         IRenderStage[] renderers,
-        SynchronizationContext synchronizationContext,
-        RenderSettings renderSettings
+        SynchronizationContext synchronizationContext
     ) {
-        _gl = gl;
         _windowContext = windowContext;
         _glContext = glContext;
-        _renderers = renderers;
+        _renderPipelines = renderPipelines;
         _synchronizationContext = synchronizationContext;
-        _renderSettings = renderSettings;
 
-        _gl.ClearColor(Color.FromArgb(20, 21, 37));
-        _gl.Enable(EnableCap.DepthTest);
-        _gl.Enable(EnableCap.CullFace);
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-        _gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
+        gl.ClearColor(Color.FromArgb(20, 21, 37));
+        gl.Enable(EnableCap.DepthTest);
+        gl.Enable(EnableCap.CullFace);
+        gl.Enable(EnableCap.Blend);
+        gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
 
         Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.001f, 1000f));
-        _windowContext.Resized += OnWindowResized;
-        _windowContext.Render += OnWindowRender;
-
-        for (var i = 0; i < _renderers.Length; i++)
+        
+        for (var i = 0; i < renderers.Length; i++)
         {
             //  TODO there has to be a better way to do this without a circular dependency
-            _renderers[i].Initialize(this);
+            renderers[i].Initialize(this);
         }
+                
+        _windowContext.Resized += OnWindowResized;
+        _windowContext.Render += OnWindowRender;
     }
     
     public void Dispose()
@@ -97,20 +92,10 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
-        AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
-        _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
-        
-        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-        for (var i = 0; i < _renderers.Length; i++)
-        {
-            _renderers[i].PreRender(delta, view, projection);
-        }
-
         var drawCalls = 0;
-        for (var i = 0; i < _renderers.Length; i++)
+        for (var i = 0; i < _renderPipelines.Length; i++)
         {
-            drawCalls += _renderers[i].Render(delta, view, projection);
+            drawCalls += _renderPipelines[i].Render(delta, view, projection);
         }
         DrawCalls.Set(drawCalls);
     }

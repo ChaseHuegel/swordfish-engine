@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
@@ -7,7 +6,7 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IDeferredRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
