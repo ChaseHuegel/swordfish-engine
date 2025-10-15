@@ -32,7 +32,7 @@ uniform ivec2 uScreenSize;
 uniform ivec2 uTileSize;
 uniform int uMaxLightsPerTile;
 
-uniform vec3 viewPosition;
+uniform vec3 uCameraPos;
 uniform float ambientLightning = 0.5;
 uniform float Metallic = 0.5;
 uniform float Roughness = 0.5;
@@ -79,59 +79,51 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 vec3 EvalLight(Light light)
 {
-    vec3 viewDir = normalize(viewPosition - vWorldPos);
+    vec3 N = normalize(vNormal);
+    vec3 posFrag = vWorldPos; // world-space fragment position
 
-    //  Sample albedo
-    vec3 albedo = vec3(1);
-
-    float occlusion = 1;
-
-    //  Reflectance based on metallicness
-    //  0.04 at full plastic and albedo at full Metallic
-    vec3 F0 = vec3(0.04);
-    F0 = mix(F0, albedo, Metallic);
-
-    //  Per-light radiance calculation
-    vec3 totalRadiance = vec3(0.0);
-
-    vec3 lightPos = light.pos_radius.xyz;
+    // light parameters
+    vec3 lightPos   = light.pos_radius.xyz;
+    float radius    = light.pos_radius.w;
     vec3 lightColor = light.color_intensity.rgb;
-    float lightIntensity = light.color_intensity.w;
+    float intensity = light.color_intensity.w;
 
-    vec3 L = normalize(lightPos - vWorldPos);
+    // vector to light from fragment
+    vec3 L = normalize(lightPos - posFrag);
+    float distance = length(lightPos - posFrag);
+
+    // --- Attenuation based purely on fragment-to-light distance ---
+    float attenuation = 1.0;
+    if (distance > radius) {
+        attenuation = 0.0; // outside radius, no light contribution
+    }
+
+    vec3 radiance = lightColor * intensity * attenuation;
+
+    // --- Simple Lambert diffuse + optional specular ---
+    float NdotL = max(dot(N, L), 0.0);
+
+    // optional: Cook-Torrance specular
+    vec3 viewDir = normalize(uCameraPos - posFrag); // use camera if needed for specular
     vec3 H = normalize(viewDir + L);
 
-    float distance = length(lightPos - vWorldPos);
-    float attenuation = 1 / (1.0 + 0.7 * distance + 1.8 * pow(distance, 2));
-    vec3 radiance = lightColor * attenuation * lightIntensity;
+    float roughness = Roughness;
+    float metallic = Metallic;
+    vec3 albedo = vec3(1.0);
+    vec3 F0 = mix(vec3(0.04), albedo, metallic);
 
-    //  Cook-Torrance BRDF
-    float NDF = DistributionGGX(vNormal, H, Roughness);
-    float G = GeometrySmith(vNormal, viewDir, L, Roughness);
-    vec3 F = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
+    float NDF = DistributionGGX(N, H, roughness);
+    float G   = GeometrySmith(N, viewDir, L, roughness);
+    vec3 F    = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
-    vec3 numerator    = NDF * G * F;
-    float denominator = max(4.0 * max(dot(vNormal, viewDir), 0.0) * max(dot(vNormal, L), 0.0), 0.001);
-    vec3 specular = numerator / denominator;
+    vec3 numerator = NDF * G * F;
+    float denom = max(4.0 * max(dot(N, viewDir), 0.0) * max(dot(N, L), 0.0), 0.001);
+    vec3 specular = numerator / denom;
 
-    //  Energy consevation; diffuse + specular can't go over 1.0 unless light emitting
-    vec3 kD = vec3(1.0) - F;
+    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 
-    //  Metallic surfaces have no diffuse lightning, blends linearly to non-Metallic
-    kD *= 1.0 - Metallic;
+    vec3 color = (kD * albedo / PI + specular) * radiance * NdotL;
 
-    //  Shading
-    float NdotL = max(dot(vNormal, L), 0.0);
-
-    totalRadiance += (kD * albedo / PI + specular) * radiance * NdotL;
-
-    //  Final color
-    vec3 color = totalRadiance * occlusion;
-
-    //  HDR
-    // color = color / (color + vec3(1.0));
-
-    //  Output
     return color;
 }
 

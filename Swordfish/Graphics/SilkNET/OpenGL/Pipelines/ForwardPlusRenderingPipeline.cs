@@ -125,9 +125,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _lights.Add(new LightData
         {
             Position = new Vector3(0f, 10f, 0f),
-            Radius = 300f,
+            Radius = 20f,
             Color = new Vector3(1f, 0f, 0f),
-            Intensity = 15000f,
+            Intensity = 5f,
         });
     }
     
@@ -217,7 +217,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _fragmentShader.Activate();
         _fragmentShader.SetUniform("view", view);
         _fragmentShader.SetUniform("projection", projection);
-        // _fragmentShader.SetUniform("viewPosition", new Vector3(view.M41, view.M42, view.M43));
+        _fragmentShader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_fragmentShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
