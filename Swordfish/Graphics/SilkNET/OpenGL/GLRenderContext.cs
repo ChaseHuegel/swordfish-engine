@@ -50,7 +50,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
 
-        Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.001f, 1000f));
+        Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.1f, 1000f));
         
         for (var i = 0; i < renderers.Length; i++)
         {
@@ -94,7 +94,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
-        _gl.ClearColor(0f, 0f, 0f, 1f);
+        _gl.ClearColor(0f, 1f, 1f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         var drawCalls = 0;
         for (var i = 0; i < _renderPipelines.Length; i++)
