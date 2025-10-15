@@ -172,15 +172,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, p);
         }
         
-        // GPULight[] lights = new GPULight[1];
-        // lights[0].PosRadius = new Vector4(0,5,0,10);
-        // lights[0].ColorIntensity = new Vector4(1,1,1,20); // bright red
-        // _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
-        // fixed (GPULight* p = lights)
-        // {
-        //     _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)Marshal.SizeOf<GPULight>(), p);
-        // }
-        
         // 3) Clear tileCounts to zero
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
         // zero the counts via BufferSubData with a zeroed array
