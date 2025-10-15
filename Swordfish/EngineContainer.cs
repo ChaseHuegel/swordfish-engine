@@ -1,4 +1,5 @@
 ﻿using DryIoc;
+using JoltPhysicsSharp;
 using Reef;
 using Shoal.Extensions.Swordfish;
 using Silk.NET.Input;
@@ -42,14 +43,26 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
         
-        container.Register<IRenderPipeline, ForwardRenderingPipeline<ILightRenderStage>>(Reuse.Singleton);
-        container.RegisterMany<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<IRenderPipeline, DeferredRenderingPipeline<ILightRenderStage>>(Reuse.Singleton);
+        container.Register<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<ILightRenderStage, GLInstancedRenderer>();
+        container.RegisterMapping<IRenderStage, GLInstancedRenderer>();
         
         container.Register<IRenderPipeline, ForwardRenderingPipeline<IUnlitRenderStage>>(Reuse.Singleton);
-        container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<GLScreenSpaceRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<ReefRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<ILineRenderer, GLLineRenderer>();
+        container.RegisterMapping<IUnlitRenderStage, GLLineRenderer>();
+        container.RegisterMapping<IRenderStage, GLLineRenderer>();
+        container.Register<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IUnlitRenderStage, JoltDebugRenderer>();
+        container.RegisterMapping<IRenderStage, JoltDebugRenderer>();
+        container.RegisterMapping<DebugRenderer, JoltDebugRenderer>();
+        container.Register<GLScreenSpaceRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IUnlitRenderStage, GLScreenSpaceRenderer>();
+        container.RegisterMapping<IRenderStage, GLScreenSpaceRenderer>();
+        container.Register<ReefRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IUnlitRenderStage, ReefRenderer>();
+        container.RegisterMapping<IRenderStage, ReefRenderer>();
         
         container.Register<ReefContext>(Reuse.Singleton);
         container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
