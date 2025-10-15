@@ -42,7 +42,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
         
-        container.Register<IRenderPipeline, ForwardPlusRenderingPipeline<ILightRenderStage>>(Reuse.Singleton);
+        container.Register<IRenderPipeline, ForwardRenderingPipeline<ILightRenderStage>>(Reuse.Singleton);
         container.RegisterMany<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         
         container.Register<IRenderPipeline, ForwardRenderingPipeline<IUnlitRenderStage>>(Reuse.Singleton);

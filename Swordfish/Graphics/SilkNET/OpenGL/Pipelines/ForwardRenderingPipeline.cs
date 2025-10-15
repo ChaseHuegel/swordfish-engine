@@ -5,7 +5,7 @@ using Swordfish.Settings;
 namespace Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 
 internal sealed class ForwardRenderingPipeline<TRenderStage> : RenderPipeline<TRenderStage> 
-    where TRenderStage : IUnlitRenderStage
+    where TRenderStage : IRenderStage
 {
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;

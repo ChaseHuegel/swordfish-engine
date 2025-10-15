@@ -23,6 +23,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
+    private readonly GL _gl;
     private readonly IWindowContext _windowContext;
     private readonly GLContext _glContext;
     private readonly IRenderPipeline[] _renderPipelines;
@@ -36,6 +37,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         IRenderStage[] renderers,
         SynchronizationContext synchronizationContext
     ) {
+        _gl = gl;
         _windowContext = windowContext;
         _glContext = glContext;
         _renderPipelines = renderPipelines;
@@ -92,6 +94,8 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
+        _gl.ClearColor(0f, 0f, 0f, 1f);
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         var drawCalls = 0;
         for (var i = 0; i < _renderPipelines.Length; i++)
         {

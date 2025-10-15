@@ -19,7 +19,13 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
     public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
         PreRender(delta, view, projection);
-
+        int drawCalls = Draw(delta, view, projection);
+        PostRender(delta, view, projection);
+        return drawCalls;
+    }
+    
+    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection)
+    {
         for (var i = 0; i < _renderStages.Length; i++)
         {
             _renderStages[i].PreRender(delta, view, projection);
@@ -30,8 +36,6 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         {
             drawCalls += _renderStages[i].Render(delta, view, projection);
         }
-        
-        PostRender(delta, view, projection);
 
         return drawCalls;
     }
