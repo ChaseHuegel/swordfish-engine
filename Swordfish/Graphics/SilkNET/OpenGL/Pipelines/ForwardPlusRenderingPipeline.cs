@@ -150,7 +150,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         Draw(delta, view, projection);
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0); // back to default FBO
-        
         // 2) Prepare lights (transform to view-space & upload)
         int numLights = _lights.Count;
         var gpuLights = new GPULight[numLights];
@@ -177,10 +176,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         // zero the counts via BufferSubData with a zeroed array
         var zeros = new uint[_numTiles];
         fixed (uint* z = zeros) {
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(_numTiles * sizeof(uint)), z);
+            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(zeros.Length * sizeof(uint)), z);
         }
-        
-        // Optionally you may reset tileIndices buffer to some sentinel, but counts zero is enough.
         
         // 4) Dispatch compute shader
         _computeShader.Activate();
@@ -192,7 +189,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 100f);
+        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
         
         // pass inverse projection matrix for unprojection in compute shader
         Matrix4x4.Invert(projection, out Matrix4x4 invProj);
@@ -218,11 +215,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         // 6) Forward shading pass (bind the SSBOs and draw scene)
         _fragmentShader.Activate();
-        // set forwardProgram uniforms: uScreenSize, uTileSize, uMaxLightsPerTile, uView (if needed), etc.
-        // _fragmentShader.SetUniform("uView", view);
         _fragmentShader.SetUniform("view", view);
         _fragmentShader.SetUniform("projection", projection);
-        _fragmentShader.SetUniform("viewPosition", new Vector3(view.M41, view.M42, view.M43));
+        // _fragmentShader.SetUniform("viewPosition", new Vector3(view.M41, view.M42, view.M43));
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_fragmentShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);

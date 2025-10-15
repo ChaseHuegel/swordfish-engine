@@ -127,8 +127,6 @@ void main()
 
 #ifdef FRAGMENT
     FragColor = fragment();
-    if (FragColor.a == 0)
-        discard;
 #endif
 
 #ifdef COMPUTE

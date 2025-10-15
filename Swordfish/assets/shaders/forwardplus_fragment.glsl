@@ -33,7 +33,7 @@ uniform ivec2 uTileSize;
 uniform int uMaxLightsPerTile;
 
 uniform vec3 viewPosition;
-uniform vec3 ambientLightning = vec3(0.1, 0.1, 0.1);
+uniform float ambientLightning = 0.5;
 uniform float Metallic = 0.5;
 uniform float Roughness = 0.5;
 
@@ -111,7 +111,7 @@ vec3 EvalLight(Light light)
     vec3 F = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
     vec3 numerator    = NDF * G * F;
-    float denominator = 4 * max(dot(vNormal, viewDir), 0.0) * max(dot(vNormal, L), 0.0);
+    float denominator = max(4.0 * max(dot(vNormal, viewDir), 0.0) * max(dot(vNormal, L), 0.0), 0.001);
     vec3 specular = numerator / denominator;
 
     //  Energy consevation; diffuse + specular can't go over 1.0 unless light emitting
@@ -125,11 +125,8 @@ vec3 EvalLight(Light light)
 
     totalRadiance += (kD * albedo / PI + specular) * radiance * NdotL;
 
-    //  Ambient light
-    vec3 ambient = albedo * ambientLightning * occlusion;
-
     //  Final color
-    vec3 color = ambient + totalRadiance;
+    vec3 color = totalRadiance * occlusion;
 
     //  HDR
     // color = color / (color + vec3(1.0));
@@ -145,14 +142,25 @@ vec4 fragment()
     int tilesX = (uScreenSize.x + uTileSize.x - 1) / uTileSize.x;
     int tId = tile.y * tilesX + tile.x;
 
+    if (tId >= counts.length()) {
+        return vec4(0, 1, 0, 1);    
+    }
+
     uint count = counts[tId];
+    count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
-    vec3 color = vec3(0.0);
+    vec3 color = vec3(0);
     for (uint i = 0u; i < count; ++i) {
+        uint indexPos = base + i;
+        if (indexPos >= indices.length())
+            break;
+
         uint li = indices[base + i];
-        Light L = lights[li];
-        color += EvalLight(L);
+        if (li < lights.length()) {
+            Light L = lights[li];
+            color += EvalLight(L);
+        }
     }
 
     return vec4(color, 1.0);
