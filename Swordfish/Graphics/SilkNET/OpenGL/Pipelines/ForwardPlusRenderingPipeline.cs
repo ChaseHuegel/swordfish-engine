@@ -121,6 +121,14 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
         
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+        
+        _lights.Add(new LightData
+        {
+            Position = new Vector3(0f, 5f, 0f),
+            Radius = 10f,
+            Color = new Vector3(1f, 0f, 0f),
+            Intensity = 1f,
+        });
     }
     
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -154,28 +162,35 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             gpuLights[i].PosRadius = new Vector4(viewPos.X, viewPos.Y, viewPos.Z, light.Radius);
             gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
         }
-
+        
         // upload lights (BufferSubData)
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
         // pin and upload
         int bytes = numLights * Marshal.SizeOf<GPULight>();
-        GCHandle handle = GCHandle.Alloc(gpuLights, GCHandleType.Pinned);
-        try {
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, handle.AddrOfPinnedObject());
-        } finally {
-            handle.Free();
+        fixed (GPULight* p = gpuLights)
+        {
+            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, p);
         }
-
+        
+        // GPULight[] lights = new GPULight[1];
+        // lights[0].PosRadius = new Vector4(0,5,0,10);
+        // lights[0].ColorIntensity = new Vector4(1,1,1,20); // bright red
+        // _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
+        // fixed (GPULight* p = lights)
+        // {
+        //     _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)Marshal.SizeOf<GPULight>(), p);
+        // }
+        
         // 3) Clear tileCounts to zero
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
         // zero the counts via BufferSubData with a zeroed array
         var zeros = new uint[_numTiles];
         fixed (uint* z = zeros) {
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(_numTiles * sizeof(uint)), (IntPtr)z);
+            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(_numTiles * sizeof(uint)), z);
         }
-
+        
         // Optionally you may reset tileIndices buffer to some sentinel, but counts zero is enough.
-
+        
         // 4) Dispatch compute shader
         _computeShader.Activate();
         // bind depth texture
@@ -186,7 +201,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-
+        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 100f);
+        
         // pass inverse projection matrix for unprojection in compute shader
         Matrix4x4.Invert(projection, out Matrix4x4 invProj);
         // upload invProj (note Silk/OpenGL expects column-major by default; use appropriate upload)
@@ -201,21 +217,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         fixed (float* p = mat) {
             _gl.UniformMatrix4(locInv, 1, false, p);
         }
-
+        
         var groupsX = (uint)_numTilesX;
         var groupsY = (uint)_numTilesY;
         _gl.DispatchCompute(groupsX, groupsY, 1);
-
+        
         // 5) memory barrier so SSBO writes are visible to fragment shader reads
         _gl.MemoryBarrier( MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
-
+        
         // 6) Forward shading pass (bind the SSBOs and draw scene)
         _fragmentShader.Activate();
         // set forwardProgram uniforms: uScreenSize, uTileSize, uMaxLightsPerTile, uView (if needed), etc.
+        // _fragmentShader.SetUniform("uView", view);
+        _fragmentShader.SetUniform("view", view);
+        _fragmentShader.SetUniform("projection", projection);
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_fragmentShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-
+        
         // ensure SSBO bindings are set (we already Bound base earlier). But set again to be safe:
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, _lightsSSBO);
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);

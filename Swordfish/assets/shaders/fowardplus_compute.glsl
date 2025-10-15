@@ -22,6 +22,7 @@ uniform ivec2 uScreenSize;
 uniform ivec2 uTileSize;
 uniform int uNumLights;
 uniform int uMaxLightsPerTile;
+uniform float uMaxLightViewDistance;
 uniform mat4 uInvProj; // inverse projection matrix
 layout(binding = 0) uniform sampler2D uDepthTex;
 
@@ -72,8 +73,8 @@ void compute() {
         // distance test in view-space:
         // distance between tileViewPos and light position <= radius + some slack (conservative)
         float d2 = dot(tileViewPos - lp.xyz, tileViewPos - lp.xyz);
-        if (d2 <= (radius * radius)) {
-            if (count < uint(uMaxLightsPerTile)) {
+        if (d2 <= (uMaxLightViewDistance * uMaxLightViewDistance)) {
+            if (count < uint(uMaxLightsPerTile) && (base + count) < indices.length()) {
                 indices[base + count] = uint(i);
                 count += 1u;
             }

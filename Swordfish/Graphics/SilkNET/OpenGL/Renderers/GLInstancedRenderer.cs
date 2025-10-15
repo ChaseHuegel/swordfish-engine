@@ -112,15 +112,15 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
-            for (var n = 0; n < target.Materials.Length; n++)
-            {
-                GLMaterial material = target.Materials[n];
-                ShaderProgram shader = material.ShaderProgram;
-                material.Use();
-
-                shader.SetUniform("view", view);
-                shader.SetUniform("projection", projection);
-            }
+            // for (var n = 0; n < target.Materials.Length; n++)
+            // {
+            //     GLMaterial material = target.Materials[n];
+            //     ShaderProgram shader = material.ShaderProgram;
+            //     material.Use();
+            //
+            //     shader.SetUniform("view", view);
+            //     shader.SetUniform("projection", projection);
+            // }
 
             target.VertexArrayObject.Bind();
 

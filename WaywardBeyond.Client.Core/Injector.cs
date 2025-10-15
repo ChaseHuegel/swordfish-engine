@@ -39,7 +39,7 @@ public class Injector : IDryIocInjector
         
         //  TODO this was thrown together for testing and needs cleaned up
         container.Register<BrickEntityBuilder>(Reuse.Singleton);
-        container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("deferred_geometry_array.glsl")), Reuse.Singleton);
+        container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
