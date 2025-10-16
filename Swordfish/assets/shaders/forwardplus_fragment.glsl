@@ -79,49 +79,51 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 vec3 EvalLight(Light light)
 {
-    vec3 N = normalize(vNormal);
+    // --- Fragment and normal ---
+    vec3 N       = vNormal;
     vec3 posFrag = vWorldPos; // world-space fragment position
 
-    // light parameters
+    // --- Light parameters ---
     vec3 lightPos   = light.pos_radius.xyz;
     float radius    = light.pos_radius.w;
     vec3 lightColor = light.color_intensity.rgb;
     float intensity = light.color_intensity.w;
 
-    // vector to light from fragment
-    vec3 L = normalize(lightPos - posFrag);
-    float distance = length(lightPos - posFrag);
+    // --- Vector from fragment to light ---
+    vec3 L       = normalize(lightPos - posFrag);
+    float dist   = length(L);
 
-    // --- Attenuation based purely on fragment-to-light distance ---
+    // --- Attenuation purely by light radius ---
     float attenuation = 1.0;
-    if (distance > radius) {
-        attenuation = 0.0; // outside radius, no light contribution
+    if (dist > radius) {
+        attenuation = 0.0; // outside the light radius
     }
 
     vec3 radiance = lightColor * intensity * attenuation;
 
-    // --- Simple Lambert diffuse + optional specular ---
+    // --- Diffuse lighting (Lambert) ---
     float NdotL = max(dot(N, L), 0.0);
 
-    // optional: Cook-Torrance specular
-    vec3 viewDir = normalize(uCameraPos - posFrag); // use camera if needed for specular
-    vec3 H = normalize(viewDir + L);
+    // --- Specular lighting (Cook-Torrance) ---
+    vec3 viewDir = normalize(uCameraPos - posFrag); // view direction only for specular
+    vec3 H       = normalize(viewDir + L);
 
     float roughness = Roughness;
-    float metallic = Metallic;
-    vec3 albedo = vec3(1.0);
-    vec3 F0 = mix(vec3(0.04), albedo, metallic);
+    float metallic  = Metallic;
+    vec3 albedo     = vec3(1.0);
+    vec3 F0        = mix(vec3(0.04), albedo, metallic);
 
     float NDF = DistributionGGX(N, H, roughness);
     float G   = GeometrySmith(N, viewDir, L, roughness);
     vec3 F    = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
     vec3 numerator = NDF * G * F;
-    float denom = max(4.0 * max(dot(N, viewDir), 0.0) * max(dot(N, L), 0.0), 0.001);
-    vec3 specular = numerator / denom;
+    float denom    = max(4.0 * max(dot(N, viewDir), 0.0) * max(dot(N, L), 0.0), 0.001);
+    vec3 specular  = numerator / denom;
 
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 
+    // --- Final color ---
     vec3 color = (kD * albedo / PI + specular) * radiance * NdotL;
 
     return color;
@@ -165,7 +167,7 @@ vec4 vertex()
     vec4 worldPos = model * vec4(VertexPosition, 1.0);
     vWorldPos = worldPos.xyz;
 
-    vNormal = mat3(model) * VertexNormal;
+    vNormal = normalize(mat3(inverse(model)) * VertexNormal);
 
     vec4 viewPos = view * worldPos;
     vViewPos = viewPos.xyz;

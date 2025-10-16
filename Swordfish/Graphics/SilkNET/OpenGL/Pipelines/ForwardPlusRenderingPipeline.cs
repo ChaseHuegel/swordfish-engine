@@ -157,8 +157,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             LightData light = _lights[i];
             // transform light pos to view-space: view * vec4(worldPos,1)
             var worldPos = new Vector4(light.Position.X, light.Position.Y, light.Position.Z, 1.0f);
-            Vector4 viewPos = MultiplyVec4(view, worldPos);
-            gpuLights[i].PosRadius = new Vector4(viewPos.X, viewPos.Y, viewPos.Z, light.Radius);
+            gpuLights[i].PosRadius = new Vector4(worldPos.X, worldPos.Y, worldPos.Z, light.Radius);
             gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
         }
         
