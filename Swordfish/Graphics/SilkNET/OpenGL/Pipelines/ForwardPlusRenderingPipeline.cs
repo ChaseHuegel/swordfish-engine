@@ -4,6 +4,7 @@ using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 
@@ -15,7 +16,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
     private const int MAX_LIGHTS = 1024;
-    private const int MAX_LIGHTS_PER_TILE = 256; 
+    private const int MAX_LIGHTS_PER_TILE = 512; 
     
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;
@@ -46,7 +47,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         in RenderSettings renderSettings,
         in IWindowContext windowContext,
         in IAssetDatabase<Shader> shaderDatabase,
-        in GLContext glContext
+        in GLContext glContext,
+        in IShortcutService shortcutService
     ) : base(renderStages) {
         _gl = gl;
         _renderSettings = renderSettings;
@@ -124,11 +126,47 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _lights.Add(new LightData
         {
-            Position = new Vector3(0f, 10f, 0f),
+            Position = new Vector3(-5f, 10f, 1f),
             Radius = 20f,
             Color = new Vector3(1f, 0f, 0f),
             Intensity = 5f,
         });
+        
+        _lights.Add(new LightData
+        {
+            Position = new Vector3(10f, 5f, 1f),
+            Radius = 20f,
+            Color = new Vector3(0f, 1f, 0f),
+            Intensity = 5f,
+        });
+        
+        Shortcut lightShortcut = new(
+            "Add lights",
+            "General",
+            ShortcutModifiers.None,
+            Key.F1,
+            Shortcut.DefaultEnabled,
+            () =>
+            {
+                lock (_lights)
+                {
+                    for (int i = 0; i < 50; i++)
+                    {
+                        _lights.Add(new LightData
+                        {
+                            Position = new Vector3(Random.Shared.NextSingle() * 20f - 10f,
+                                Random.Shared.NextSingle() * 20f - 10f, Random.Shared.NextSingle() * 20f - 10f),
+                            Radius = Random.Shared.NextSingle() * 3f + 1f,
+                            Color = new Vector3(Random.Shared.NextSingle() + 0.1f, Random.Shared.NextSingle() + 0.1f,
+                                Random.Shared.NextSingle() + 0.1f),
+                            Intensity = Random.Shared.NextSingle() * 5f + 2f,
+                        });
+                    }
+                    Console.WriteLine($"Lights: {_lights.Count}");
+                }
+            }
+        );
+        shortcutService.RegisterShortcut(lightShortcut);
     }
     
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -151,16 +189,21 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0); // back to default FBO
         // 2) Prepare lights (transform to view-space & upload)
-        int numLights = _lights.Count;
-        var gpuLights = new GPULight[numLights];
-        for (var i = 0; i < numLights; ++i) {
-            LightData light = _lights[i];
-            // transform light pos to view-space: view * vec4(worldPos,1)
-            var worldPos = new Vector4(light.Position.X, light.Position.Y, light.Position.Z, 1.0f);
-            gpuLights[i].PosRadius = new Vector4(worldPos.X, worldPos.Y, worldPos.Z, light.Radius);
-            gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
+        int numLights;
+        GPULight[] gpuLights;
+        lock (_lights)
+        {
+            numLights = _lights.Count;
+            gpuLights = new GPULight[numLights];
+            for (var i = 0; i < numLights; ++i)
+            {
+                LightData light = _lights[i];
+                var worldPos = new Vector4(light.Position.X, light.Position.Y, light.Position.Z, 1.0f);
+                gpuLights[i].PosRadius = new Vector4(worldPos.X, worldPos.Y, worldPos.Z, light.Radius);
+                gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
+            }
         }
-        
+
         // upload lights (BufferSubData)
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
         // pin and upload
