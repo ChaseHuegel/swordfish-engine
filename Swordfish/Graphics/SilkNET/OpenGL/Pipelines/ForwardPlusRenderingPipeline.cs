@@ -173,7 +173,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
-        _gl.ClearColor(0f, 0f, 0f, 1f);
         
         // 1) Depth pre-pass
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _depthFBO);

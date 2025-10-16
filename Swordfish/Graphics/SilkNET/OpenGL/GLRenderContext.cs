@@ -94,7 +94,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view = camera.GetView();
         Matrix4x4 projection = camera.GetProjection();
 
-        _gl.ClearColor(0f, 1f, 1f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         var drawCalls = 0;
         for (var i = 0; i < _renderPipelines.Length; i++)
