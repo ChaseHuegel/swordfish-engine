@@ -5,16 +5,18 @@ layout (location = 0) in vec3 aPos;
 layout (location = 1) in vec2 aTexCoords;
 #endif
 
+inout vec2 TexCoords;
+
 uniform sampler2D uDepthTex;
 uniform ivec2 uScreenSize;
-uniform float uRadius = 1.0;
+uniform float uRadius = 10.0;
 uniform float uBias = 0.01;
 uniform mat4 uInvProj;
+uniform float near;
+uniform float far;
 
 #ifdef FRAGMENT
-layout(location = 0) out float fragAO;
 
-// Pre-baked kernel of 16 samples in view-space
 const int KERNEL_SIZE = 16;
 const vec3 samples[KERNEL_SIZE] = vec3[](
     vec3(0.5381, 0.1856, 0.4319),
@@ -44,41 +46,63 @@ vec3 UnprojectToView(vec2 pixel, float depth)
     return view.xyz / view.w;
 }
 
+float LinearDepth(float depth)
+{
+    float z = depth * 2.0 - 1.0;
+    return (near * far) / (far + near - z * (far - near));
+}
+
 vec4 fragment() {
-    ivec2 pix = ivec2(gl_FragCoord.xy);
-    float depth = texelFetch(uDepthTex, pix, 0).r;
-    vec3 posView = UnprojectToView(gl_FragCoord.xy, depth);
-
-    float occlusion = 0.0;
-
-    for(int i = 0; i < KERNEL_SIZE; ++i)
-    {
-        vec3 samplePos = posView + samples[i] * uRadius;
-
-        // Project back to screen space
-        vec4 clip = uInvProj * vec4(samplePos, 1.0);
-        clip /= clip.w;
-        vec2 sampleUV = clip.xy * 0.5 + 0.5;
-        sampleUV = clamp(sampleUV, 0.0, 1.0);
-
-        float sampleDepth = texture(uDepthTex, sampleUV).r;
-        vec3 sampleView = UnprojectToView(sampleUV * uScreenSize, sampleDepth);
-
-        float rangeCheck = smoothstep(0.0, 1.0, uRadius / (length(posView - sampleView) + uBias));
-        if(sampleView.z >= samplePos.z + uBias)
-        occlusion += rangeCheck;
+    float depth = texture(uDepthTex, TexCoords).r;
+    if (depth >= 1.0) {
+        return vec4(1.0);
     }
 
-    fragAO = clamp(1.0 - occlusion / float(KERNEL_SIZE), 0.0, 1.0);
-    vec3 color = vec3(posView.z * 0.1 + 0.5);
-    fragAO = color.r;
-    return vec4(color, 1.0);
+    vec3 posView = UnprojectToView(TexCoords, depth);
+
+    vec2 texel = 1.0 / textureSize(uDepthTex, 0);
+    float depthR = texture(uDepthTex, TexCoords + vec2(texel.x, 0)).r;
+    float depthU = texture(uDepthTex, TexCoords + vec2(0, texel.y)).r;
+    vec3 pR = UnprojectToView(TexCoords + vec2(texel.x, 0), depthR);
+    vec3 pU = UnprojectToView(TexCoords + vec2(0, texel.y), depthU);
+    vec3 N = normalize(cross(pR - posView, pU - posView));
+
+    vec3 T = normalize(pR - posView);
+    vec3 B = cross(N, T);
+    mat3 TBN = mat3(T, B, N);
+
+    float occlusion = 0.0;
+    for (int i = 0; i < KERNEL_SIZE; i++) {
+        vec3 samplePos = posView + TBN * (samples[i] * uRadius);
+
+        vec4 offset = inverse(uInvProj) * vec4(samplePos, 1.0);
+        offset.xyz /= offset.w;
+        vec2 uv = offset.xy * 0.5 + 0.5;
+
+        float sampleDepth = texture(uDepthTex, uv).r;
+        if (sampleDepth >= 1.0)
+            continue;
+
+        vec3 neighborPos = UnprojectToView(uv, sampleDepth);
+
+        float dz = samplePos.z - neighborPos.z;
+        float occ = smoothstep(0.0, uRadius, dz);
+
+        if (dz > uBias)
+            occlusion += occ;
+    }
+
+    occlusion /= float(KERNEL_SIZE);
+
+    float ao = 1.0 - occlusion;
+    return vec4(ao, ao, ao, 1.0);
 }
 #endif
 
 #ifdef VERTEX
 vec4 vertex()
 {
+    TexCoords = aTexCoords;
     return vec4(aPos, 1.0);
 }
 #endif

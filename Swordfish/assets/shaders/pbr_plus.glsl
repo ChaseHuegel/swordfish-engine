@@ -33,11 +33,11 @@ uniform ivec2 uTileSize;
 uniform int uMaxLightsPerTile;
 
 uniform vec3 uCameraPos;
-uniform float ambientLightning = 0.2;
+uniform float ambientLightning = 0.05;
 uniform float Metallic = 0.5;
 uniform float Roughness = 0.5;
 
-uniform sampler2D uAO; // SSAO texture
+uniform sampler2D uAO;
 
 float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
@@ -163,9 +163,9 @@ vec4 shade()
     }
 
     float aoSample = texture(uAO, gl_FragCoord.xy / uScreenSize).r;
-    color = color * vec3(aoSample);
+    color = color * aoSample;
 
-    return vec4(color, 1.0);
+    return vec4(color * 0.0001 + vec3(aoSample), 1.0);
 }
 #endif
 

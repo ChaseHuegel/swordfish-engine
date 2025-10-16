@@ -228,9 +228,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
         _gl.Enable(GLEnum.DepthTest);
         
+        float near = projection.M34 / (projection.M33 - 1.0f);
+        float far  = projection.M34 / (projection.M33 + 1.0f);
         _depthShader.Activate();
         _depthShader.SetUniform("view", view);
         _depthShader.SetUniform("projection", projection);
+        _depthShader.SetUniform("near", near);
+        _depthShader.SetUniform("far", far);
         Draw(delta, view, projection);
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
@@ -243,7 +247,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
-
+        _ssaoShader.SetUniform("near", near);
+        _ssaoShader.SetUniform("far", far);
+        
         Matrix4x4.Invert(projection, out Matrix4x4 invProj);
         int locInv1 = _gl.GetUniformLocation(_ssaoShader.Handle, "uInvProj");
         float[] mat1 = MatrixToFloatArrayColumnMajor(invProj);
