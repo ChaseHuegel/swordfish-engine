@@ -100,7 +100,7 @@ vec3 EvalLight(Light light)
         L = vec3(0.0, 0.0, 1.0);
 
     // --- Attenuation by light radius ---
-    float attenuation = (dist > radius) ? 0.0 : 1.0;
+    float attenuation = clamp(1.0 - (dist / radius) * (dist / radius), 0.0, 1.0);
 
     // --- Diffuse lighting (Lambert) ---
     // Add tiny bias to prevent black spot directly under light
