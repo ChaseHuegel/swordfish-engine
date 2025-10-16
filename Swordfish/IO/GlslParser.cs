@@ -62,8 +62,8 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
         {
-            PathInfo includePath = file.GetDirectory().At(includedFiles[0]);
-            PathInfo includedFile = _vfs.TryGetFile(includePath, out PathInfo virtualFile) ? virtualFile : includePath;
+            PathInfo includePath = includedFiles[0];
+            PathInfo includedFile = _vfs.TryGetFile(AssetPaths.Shaders.At(includePath), out PathInfo virtualFile) ? virtualFile : includePath;
             
             includedFiles.RemoveAt(0);
 
