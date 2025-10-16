@@ -128,7 +128,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         {
             Position = new Vector3(-5f, 10f, 1f),
             Radius = 20f,
-            Color = new Vector3(1f, 0f, 0f),
+            Color = new Vector3(1f, 1f, 1f),
             Intensity = 5f,
         });
         
@@ -136,7 +136,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         {
             Position = new Vector3(10f, 5f, 1f),
             Radius = 20f,
-            Color = new Vector3(0f, 1f, 0f),
+            Color = new Vector3(1f, 1f, 1f),
             Intensity = 5f,
         });
         
