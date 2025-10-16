@@ -112,15 +112,19 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
-            // for (var n = 0; n < target.Materials.Length; n++)
-            // {
-            //     GLMaterial material = target.Materials[n];
-            //     ShaderProgram shader = material.ShaderProgram;
-            //     material.Use();
-            //
-            //     shader.SetUniform("view", view);
-            //     shader.SetUniform("projection", projection);
-            // }
+            for (var n = 0; n < target.Materials.Length; n++)
+            {
+                GLMaterial material = target.Materials[n];
+                ShaderProgram shader = material.ShaderProgram;
+                material.Use();
+            
+                shader.SetUniform("view", view);
+                shader.SetUniform("projection", projection);
+                shader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
+                _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), 800, 600);
+                _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), 16, 16);
+                _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), 256);
+            }
 
             target.VertexArrayObject.Bind();
 

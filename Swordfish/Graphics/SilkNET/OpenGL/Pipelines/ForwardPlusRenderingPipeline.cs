@@ -16,7 +16,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
     private const int MAX_LIGHTS = 1024;
-    private const int MAX_LIGHTS_PER_TILE = 512; 
+    private const int MAX_LIGHTS_PER_TILE = 256;
     
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;
@@ -226,7 +226,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         // bind depth texture
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uDepthTex"), 0);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
