@@ -37,6 +37,8 @@ uniform float ambientLightning = 0.2;
 uniform float Metallic = 0.5;
 uniform float Roughness = 0.5;
 
+uniform sampler2D uAO; // SSAO texture
+
 float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
     float a = Roughness*Roughness;
@@ -159,6 +161,9 @@ vec4 shade()
             color += EvalLight(L);
         }
     }
+
+    float aoSample = texture(uAO, gl_FragCoord.xy / uScreenSize).r;
+    color = color * vec3(aoSample);
 
     return vec4(color, 1.0);
 }

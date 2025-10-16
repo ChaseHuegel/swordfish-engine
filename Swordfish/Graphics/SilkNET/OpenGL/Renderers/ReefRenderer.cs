@@ -170,7 +170,7 @@ internal sealed class ReefRenderer(
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
     {
         if (_vao == null)
         {
@@ -182,20 +182,20 @@ internal sealed class ReefRenderer(
         foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
         {
             RenderCommand<Material> command = instance.Key;
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect);
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect, shaderActivationCallback);
 
             if (instance.Value.Text == null)
             {
                 continue;
             }
             
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, isTextPass: true);
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, shaderActivationCallback, isTextPass: true);
         }
         
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, bool isTextPass = false)
+    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, Action<ShaderProgram> shaderActivationCallback, bool isTextPass = false)
     {
         if (vertices.Count == 0)
         {
@@ -213,15 +213,18 @@ internal sealed class ReefRenderer(
             
             GLMaterial typefaceGLMaterial = _renderContext.BindMaterial(typefaceMaterial);
             typefaceGLMaterial.Use();
+            shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
         }
         else if (command.RendererData != null)
         {
             GLMaterial glMaterial = _renderContext.BindMaterial(command.RendererData);
             glMaterial.Use();
+            shaderActivationCallback(glMaterial.ShaderProgram);
         }
         else
         {
             _defaultShader.Activate();
+            shaderActivationCallback(_defaultShader);
         }
 
         vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));

@@ -94,4 +94,8 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _gl.BlitFramebuffer(0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, 0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
         _gl.BindFramebuffer(GLEnum.ReadFramebuffer, 0);
     }
+
+    protected override void ShaderActivationCallback(ShaderProgram shader)
+    {
+    }
 }

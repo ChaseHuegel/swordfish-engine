@@ -25,6 +25,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly ShaderProgram _depthShader;
     private readonly ShaderProgram _fragmentShader;
     private readonly ShaderProgram _computeShader;
+    private readonly ShaderProgram _ssaoShader;
     
     private readonly int _screenWidth;
     private readonly int _screenHeight;
@@ -35,9 +36,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     
     private readonly uint _depthTex;
     private readonly uint _depthFBO;
+    
+    private readonly uint _ssaoTex;
+    private readonly uint _ssaoFBO;
+    
     private readonly uint _lightsSSBO;
     private readonly uint _tileIndicesSSBO;
     private readonly uint _tileCountsSSBO;
+    
+    private readonly VertexArrayObject<float> _screenVAO;
+    
+    private readonly float[] _quadVertices =
+    [
+        //  x, y, z, u, v
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+        1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+        1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    ];
 
     private readonly List<LightData> _lights = [];
     
@@ -75,9 +91,17 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{computeShaderName}\".");
         }
         
+        const string ssaoShaderName = "fowardplus_ssao";
+        Result<Shader> ssaoShader = shaderDatabase.Get(ssaoShaderName);
+        if (!ssaoShader)
+        {
+            throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{ssaoShaderName}\".");
+        }
+        
         _depthShader = depthShader.Value.CreateProgram(glContext);
         _fragmentShader = fragmentShader.Value.CreateProgram(glContext);
         _computeShader = computeShader.Value.CreateProgram(glContext);
+        _ssaoShader = ssaoShader.Value.CreateProgram(glContext);
         
         _screenWidth = (int)_windowContext.Resolution.X;
         _screenHeight = (int)_windowContext.Resolution.Y;
@@ -104,6 +128,29 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             throw new FatalAlertException("Forward+ renderer framebuffer is incomplete.");
         }
         
+        _ssaoTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.R32f, (uint)_screenWidth, (uint)_screenHeight, 0, PixelFormat.Red, PixelType.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _ssaoFBO = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _ssaoFBO);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _ssaoTex, 0);
+        status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException("Forward+ SSAO framebuffer is incomplete.");
+        }
+        
+        var quadVBO = new BufferObject<float>(_gl, _quadVertices, BufferTargetARB.ArrayBuffer);
+        _screenVAO = new VertexArrayObject<float>(_gl, quadVBO);
+        _screenVAO.SetVertexAttributePointer(0, 3, VertexAttribPointerType.Float, 5 * sizeof(float), 0);
+        _screenVAO.SetVertexAttributePointer(1, 2, VertexAttribPointerType.Float, 5 * sizeof(float), 3 * sizeof(float));
+
         _lightsSSBO = gl.GenBuffer();
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
         int lightsByteSize = MAX_LIGHTS * Marshal.SizeOf<GPULight>();
@@ -185,8 +232,32 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthShader.SetUniform("view", view);
         _depthShader.SetUniform("projection", projection);
         Draw(delta, view, projection);
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0); // back to default FBO
+        // 2) SSAO pass
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _ssaoFBO);
+        _gl.Viewport(0, 0, (uint)_screenWidth, (uint)_screenHeight);
+        _gl.Clear(ClearBufferMask.ColorBufferBit);
+
+        _ssaoShader.Activate();
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
+
+        Matrix4x4.Invert(projection, out Matrix4x4 invProj);
+        int locInv1 = _gl.GetUniformLocation(_ssaoShader.Handle, "uInvProj");
+        float[] mat1 = MatrixToFloatArrayColumnMajor(invProj);
+        fixed (float* p = mat1) {
+            _gl.UniformMatrix4(locInv1, 1, false, p);
+        }
+        _gl.Uniform2(_gl.GetUniformLocation(_ssaoShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
+        
+        _gl.Set(EnableCap.CullFace, false);
+        _screenVAO.Bind();
+        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        _screenVAO.Unbind();
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        
         // 2) Prepare lights (transform to view-space & upload)
         int numLights;
         GPULight[] gpuLights;
@@ -232,16 +303,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
         
         // pass inverse projection matrix for unprojection in compute shader
-        Matrix4x4.Invert(projection, out Matrix4x4 invProj);
+        Matrix4x4.Invert(projection, out invProj);
         // upload invProj (note Silk/OpenGL expects column-major by default; use appropriate upload)
         int locInv = _gl.GetUniformLocation(_computeShader.Handle, "uInvProj");
-        // create float[16]
-        var mat = new float[16];
-        // copy invProj to mat in column-major
-        mat[0] = invProj.M11; mat[4] = invProj.M12; mat[8] = invProj.M13; mat[12] = invProj.M14;
-        mat[1] = invProj.M21; mat[5] = invProj.M22; mat[9] = invProj.M23; mat[13] = invProj.M24;
-        mat[2] = invProj.M31; mat[6] = invProj.M32; mat[10] = invProj.M33; mat[14] = invProj.M34;
-        mat[3] = invProj.M41; mat[7] = invProj.M42; mat[11] = invProj.M43; mat[15] = invProj.M44;
+        float[] mat = MatrixToFloatArrayColumnMajor(invProj);
         fixed (float* p = mat) {
             _gl.UniformMatrix4(locInv, 1, false, p);
         }
@@ -267,23 +332,28 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
     }
-    
+
+    private static float[] MatrixToFloatArrayColumnMajor(Matrix4x4 invProj)
+    {
+        var mat = new float[16];
+        mat[0] = invProj.M11; mat[4] = invProj.M12; mat[8] = invProj.M13; mat[12] = invProj.M14;
+        mat[1] = invProj.M21; mat[5] = invProj.M22; mat[9] = invProj.M23; mat[13] = invProj.M24;
+        mat[2] = invProj.M31; mat[6] = invProj.M32; mat[10] = invProj.M33; mat[14] = invProj.M34;
+        mat[3] = invProj.M41; mat[7] = invProj.M42; mat[11] = invProj.M43; mat[15] = invProj.M44;
+        return mat;
+    }
+
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
     }
     
-    private static Vector4 MultiplyVec4(Matrix4x4 m, Vector4 v)
+    protected override void ShaderActivationCallback(ShaderProgram shader)
     {
-        return new Vector4(
-            m.M11 * v.X + m.M12 * v.Y + m.M13 * v.Z + m.M14 * v.W,
-            m.M21 * v.X + m.M22 * v.Y + m.M23 * v.Z + m.M24 * v.W,
-            m.M31 * v.X + m.M32 * v.Y + m.M33 * v.Z + m.M34 * v.W,
-            m.M41 * v.X + m.M42 * v.Y + m.M43 * v.Z + m.M44 * v.W
-        );
-    }
-    
-    private void DrawSceneForward() 
-    {
-        // bind VAOs, set model matrices + vertex attribs including passing view-space position as 'vViewPos' into fragment shader
+        _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
+        _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
+        _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
+        _gl.ActiveTexture(TextureUnit.Texture1);
+        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
+        shader.SetUniform("uAO", 1);
     }
 }

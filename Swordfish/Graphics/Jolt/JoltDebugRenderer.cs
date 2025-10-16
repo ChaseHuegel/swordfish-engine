@@ -68,7 +68,7 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         _drawBuffer.Clear();
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
     {
         return 0;   //  Do nothing, the line renderer is doing the real work
     }

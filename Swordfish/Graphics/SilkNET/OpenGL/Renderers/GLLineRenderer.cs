@@ -74,7 +74,7 @@ internal sealed class GLLineRenderer(
     {
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
     {
         if (_shaderProgram == null || _vao == null)
         {
@@ -84,6 +84,7 @@ internal sealed class GLLineRenderer(
         _shaderProgram.Activate();
         _shaderProgram.SetUniform("view", view);
         _shaderProgram.SetUniform("projection", projection);
+        shaderActivationCallback(_shaderProgram);
 
         _vao.Bind();
 

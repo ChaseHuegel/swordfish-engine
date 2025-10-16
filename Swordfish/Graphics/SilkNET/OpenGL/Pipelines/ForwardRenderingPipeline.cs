@@ -25,4 +25,8 @@ internal sealed class ForwardRenderingPipeline<TRenderStage> : RenderPipeline<TR
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
     }
+
+    protected override void ShaderActivationCallback(ShaderProgram shader)
+    {
+    }
 }

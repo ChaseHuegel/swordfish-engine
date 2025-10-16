@@ -63,7 +63,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
     {
         if (_renderTargets == null)
         {
@@ -76,12 +76,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
 
         var drawCalls = 0;
-        drawCalls += Draw(view, projection, _instances, sort: false);
-        drawCalls += Draw(view, projection, _transparentInstances, sort: true);
+        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+        drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
     {
         if (instances.Count == 0)
         {
@@ -121,9 +121,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 shader.SetUniform("view", view);
                 shader.SetUniform("projection", projection);
                 shader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
-                _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), 800, 600);
-                _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), 16, 16);
-                _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), 256);
+                shaderActivationCallback(shader);
             }
 
             target.VertexArrayObject.Bind();

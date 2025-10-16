@@ -138,7 +138,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
     {
         if (_vao == null)
         {
@@ -159,13 +159,13 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         _vao.Bind();
         foreach (KeyValuePair<GLRectRenderTarget, RectVertices> instance in _instances)
         {
-            drawCalls += Draw(_vao, instance.Key, instance.Value);
+            drawCalls += Draw(_vao, instance.Key, instance.Value, shaderActivationCallback);
         }
         
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, GLRectRenderTarget target, RectVertices vertices)
+    private int Draw(VertexArrayObject<float> vao, GLRectRenderTarget target, RectVertices vertices, Action<ShaderProgram> shaderActivationCallback)
     {
         if (vertices.Count == 0)
         {
@@ -176,6 +176,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         {
             GLMaterial material = target.Materials[n];
             material.Use();
+            shaderActivationCallback(material.ShaderProgram);
         }
 
         vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));
