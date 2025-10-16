@@ -153,12 +153,6 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
             _uniformLocations.Add(uniform, location);
         }
 
-        if (location == -1)
-        {
-            //  TODO dont want to throw here
-            throw new GLException($"Uniform '{uniform}' not found in the shader '{Name}'.");
-        }
-
         return location != -1;
     }
 
