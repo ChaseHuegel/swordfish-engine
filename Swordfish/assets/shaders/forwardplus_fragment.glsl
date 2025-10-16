@@ -80,7 +80,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 vec3 EvalLight(Light light)
 {
     // --- Fragment and normal ---
-    vec3 N       = vNormal;
+    vec3 N       = normalize(vNormal);
     vec3 posFrag = vWorldPos; // world-space fragment position
 
     // --- Light parameters ---
@@ -90,22 +90,23 @@ vec3 EvalLight(Light light)
     float intensity = light.color_intensity.w;
 
     // --- Vector from fragment to light ---
-    vec3 L       = normalize(lightPos - posFrag);
-    float dist   = length(L);
+    vec3 L = lightPos - posFrag;
+    float dist = length(L);
 
-    // --- Attenuation purely by light radius ---
-    float attenuation = 1.0;
-    if (dist > radius) {
-        attenuation = 0.0; // outside the light radius
-    }
+    // Avoid division by zero / NaNs
+    if (dist > 0.001)
+        L /= dist;
+    else
+        L = vec3(0.0, 0.0, 1.0); // arbitrary direction
 
-    vec3 radiance = lightColor * intensity * attenuation;
+    // --- Attenuation by light radius ---
+    float attenuation = (dist > radius) ? 0.0 : 1.0;
 
     // --- Diffuse lighting (Lambert) ---
     float NdotL = max(dot(N, L), 0.0);
 
     // --- Specular lighting (Cook-Torrance) ---
-    vec3 viewDir = normalize(uCameraPos - posFrag); // view direction only for specular
+    vec3 viewDir = normalize(uCameraPos - posFrag); // view direction
     vec3 H       = normalize(viewDir + L);
 
     float roughness = Roughness;
@@ -117,13 +118,13 @@ vec3 EvalLight(Light light)
     float G   = GeometrySmith(N, viewDir, L, roughness);
     vec3 F    = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
-    vec3 numerator = NDF * G * F;
-    float denom    = max(4.0 * max(dot(N, viewDir), 0.0) * max(dot(N, L), 0.0), 0.001);
-    vec3 specular  = numerator / denom;
+    float denom = max(4.0 * max(dot(N, viewDir), 0.0) * max(NdotL, 0.0), 0.001);
+    vec3 specular = NDF * G * F / denom;
 
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
 
     // --- Final color ---
+    vec3 radiance = lightColor * intensity * attenuation;
     vec3 color = (kD * albedo / PI + specular) * radiance * NdotL;
 
     return color;
