@@ -81,7 +81,7 @@ vec3 EvalLight(Light light)
 {
     // --- Fragment and normal ---
     vec3 N       = normalize(vNormal);
-    vec3 posFrag = vWorldPos; // world-space fragment position
+    vec3 posFrag = vWorldPos;
 
     // --- Light parameters ---
     vec3 lightPos   = light.pos_radius.xyz;
@@ -97,16 +97,17 @@ vec3 EvalLight(Light light)
     if (dist > 0.001)
         L /= dist;
     else
-        L = vec3(0.0, 0.0, 1.0); // arbitrary direction
+        L = vec3(0.0, 0.0, 1.0);
 
     // --- Attenuation by light radius ---
     float attenuation = (dist > radius) ? 0.0 : 1.0;
 
     // --- Diffuse lighting (Lambert) ---
-    float NdotL = max(dot(N, L), 0.0);
+    // Add tiny bias to prevent black spot directly under light
+    float NdotL = max(dot(N, L), 0.05); // bias diffuse only
 
     // --- Specular lighting (Cook-Torrance) ---
-    vec3 viewDir = normalize(uCameraPos - posFrag); // view direction
+    vec3 viewDir = normalize(uCameraPos - posFrag);
     vec3 H       = normalize(viewDir + L);
 
     float roughness = Roughness;
@@ -114,11 +115,12 @@ vec3 EvalLight(Light light)
     vec3 albedo     = vec3(1.0);
     vec3 F0        = mix(vec3(0.04), albedo, metallic);
 
+    float NdotV = max(dot(N, viewDir), 0.0);
     float NDF = DistributionGGX(N, H, roughness);
     float G   = GeometrySmith(N, viewDir, L, roughness);
     vec3 F    = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
 
-    float denom = max(4.0 * max(dot(N, viewDir), 0.0) * max(NdotL, 0.0), 0.001);
+    float denom = max(4.0 * NdotV * max(dot(N, L), 0.0), 0.001); // specular uses true NdotL
     vec3 specular = NDF * G * F / denom;
 
     vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
