@@ -56,7 +56,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     ];
 
     private readonly List<LightData> _lights = [];
-    private int _aoMethod = 0;
     
     public ForwardPlusRenderingPipeline(
         in TRenderStage[] renderStages,
@@ -215,20 +214,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             }
         );
         shortcutService.RegisterShortcut(lightShortcut);
-        
-        Shortcut aoShortcut = new(
-            "Change AO",
-            "General",
-            ShortcutModifiers.None,
-            Key.F2,
-            Shortcut.DefaultEnabled,
-            () =>
-            {
-                _aoMethod = (_aoMethod + 1) % 7;
-                Console.WriteLine($"ao: {_aoMethod}");
-            }
-        );
-        shortcutService.RegisterShortcut(aoShortcut);
     }
     
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -262,14 +247,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
-        _ssaoShader.SetUniform("near", near);
-        _ssaoShader.SetUniform("far", far);
-        _ssaoShader.SetUniform("aoMethod", _aoMethod);
         _gl.Uniform2(_gl.GetUniformLocation(_ssaoShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
-        
-        _ssaoShader.SetUniform("uProj", projection);
-        Matrix4x4.Invert(projection, out Matrix4x4 invProj);
-        _ssaoShader.SetUniform("uInvProj", invProj);
+        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+        _ssaoShader.SetUniform("uInvProj", inverseProjection);
         
         _gl.Set(EnableCap.CullFace, false);
         _screenVAO.Bind();
@@ -320,7 +300,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
-        _computeShader.SetUniform("uInvProj", invProj);
+        _computeShader.SetUniform("uInvProj", inverseProjection);
         
         var groupsX = (uint)_numTilesX;
         var groupsY = (uint)_numTilesY;

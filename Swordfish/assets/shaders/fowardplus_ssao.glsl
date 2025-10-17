@@ -10,7 +10,6 @@ inout vec2 TexCoords;
 uniform sampler2D uDepthTex;
 uniform ivec2     uScreenSize;
 uniform mat4      uInvProj;
-uniform int       aoMethod = 0;
 
 uniform float uRadius = 0.5;     // base sampling radius
 uniform float SIGMA   = 1.0;     // scaling factor for occlusion strength
@@ -20,70 +19,7 @@ uniform int   STEPS   = 4;       // number of radial steps
 
 #ifdef FRAGMENT
 
-const vec3 samples[16] = vec3[](
-    vec3(0.5381, 0.1856, 0.4319),
-    vec3(0.1379, 0.2486, 0.4430),
-    vec3(0.3371, 0.5679, 0.0057),
-    vec3(-0.6999, -0.0451, -0.0019),
-    vec3(0.0689, -0.1598, -0.8547),
-    vec3(0.0560, 0.0069, -0.1843),
-    vec3(-0.0146, 0.1402, 0.0762),
-    vec3(0.0100, -0.1924, -0.0344),
-    vec3(-0.3577, -0.5301, -0.4358),
-    vec3(-0.3169, 0.1063, 0.0158),
-    vec3(0.0103, -0.5869, 0.0046),
-    vec3(-0.0897, -0.4940, 0.3287),
-    vec3(0.7119, -0.0154, -0.0918),
-    vec3(-0.0533, 0.0596, -0.5411),
-    vec3(0.0352, -0.0631, 0.5460),
-    vec3(-0.4776, 0.2847, -0.0271)
-);
-
-const vec2 NOISE[16] = vec2[16](
-    vec2( 0.897,  0.442),
-    vec2(-0.784,  0.620),
-    vec2( 0.221, -0.975),
-    vec2(-0.991, -0.132),
-    
-    vec2( 0.540, -0.841),
-    vec2( 0.998,  0.066),
-    vec2(-0.414, -0.910),
-    vec2( 0.123,  0.992),
-    
-    vec2(-0.665,  0.747),
-    vec2( 0.777, -0.629),
-    vec2(-0.992,  0.127),
-    vec2( 0.306,  0.952),
-    
-    vec2(-0.222, -0.975),
-    vec2( 0.885,  0.465),
-    vec2(-0.556, -0.831),
-    vec2( 0.031, -0.999)
-);
-
-const vec2 NOISE2[16] = vec2[16](
-    vec2(-0.7374,  0.6755),
-    vec2( 0.2325, -0.9726),
-    vec2( 0.8870,  0.4617),
-    vec2(-0.9931, -0.1174),
-
-    vec2( 0.5299,  0.8480),
-    vec2(-0.3546,  0.9350),
-    vec2( 0.9990,  0.0452),
-    vec2(-0.8035, -0.5953),
-
-    vec2( 0.1179,  0.9930),
-    vec2(-0.6747, -0.7381),
-    vec2( 0.9511, -0.3090),
-    vec2(-0.0835, -0.9965),
-
-    vec2( 0.7071,  0.7071),
-    vec2(-0.9135,  0.4067),
-    vec2( 0.4067, -0.9135),
-    vec2(-0.2249,  0.9744)
-);
-
-const vec2 NOISE3[256] = vec2[256](
+const vec2 NOISE[256] = vec2[256](
     vec2(-0.6461,  0.7633), vec2( 0.1163, -0.9932), vec2( 0.3344,  0.9424), vec2( 0.7127, -0.7014),
     vec2(-0.8596, -0.5109), vec2(-0.9344, -0.3563), vec2( 0.7430,  0.6693), vec2( 0.2133,  0.9770),
     vec2( 0.5804,  0.8143), vec2( 0.5128, -0.8585), vec2( 0.8621, -0.5068), vec2(-0.8259, -0.5638),
@@ -165,36 +101,6 @@ const vec2 NOISE3[256] = vec2[256](
     vec2( 0.7071,  0.7071), vec2(-0.9135,  0.4067), vec2( 0.4067, -0.9135), vec2(-0.2249,  0.9744)
 );
 
-const vec2 NOISE4[64] = vec2[64](
-    vec2(-0.6461,  0.7633), vec2( 0.1163, -0.9932), vec2( 0.3344,  0.9424), vec2( 0.7127, -0.7014),
-    vec2(-0.8596, -0.5109), vec2(-0.9344, -0.3563), vec2( 0.7430,  0.6693), vec2( 0.2133,  0.9770),
-    vec2( 0.5804,  0.8143), vec2( 0.5128, -0.8585), vec2( 0.8621, -0.5068), vec2(-0.8259, -0.5638),
-    vec2( 0.6577, -0.7533), vec2(-0.5417, -0.8406), vec2(-0.9951, -0.0987), vec2(-0.8237,  0.5671),
-
-    vec2(-0.9981,  0.0618), vec2( 0.9966,  0.0827), vec2(-0.9687, -0.2480), vec2( 0.6012, -0.7991),
-    vec2(-0.9459, -0.3244), vec2(-0.1248, -0.9922), vec2(-0.2126,  0.9771), vec2(-0.8804, -0.4742),
-    vec2( 0.1235,  0.9923), vec2( 0.5581, -0.8298), vec2(-0.9131, -0.4078), vec2(-0.3142, -0.9494),
-    vec2(-0.6767, -0.7362), vec2(-0.9455,  0.3257), vec2(-0.9690, -0.2472), vec2( 0.5434, -0.8395),
-
-    vec2( 0.7401, -0.6725), vec2(-0.7260,  0.6877), vec2(-0.0544,  0.9985), vec2( 0.8499,  0.5269),
-    vec2( 0.9985, -0.0543), vec2( 0.5789, -0.8154), vec2( 0.1903,  0.9817), vec2(-0.7793,  0.6266),
-    vec2(-0.8275,  0.5614), vec2( 0.8988,  0.4383), vec2(-0.8399,  0.5428), vec2( 0.6912,  0.7226),
-    vec2( 0.1002, -0.9950), vec2(-0.9953, -0.0967), vec2(-0.9794,  0.2017), vec2( 0.4657,  0.8850),
-
-    vec2(-1.0000, -0.0086), vec2( 0.7972, -0.6037), vec2(-0.6686,  0.7436), vec2( 0.5731, -0.8195),
-    vec2(-0.9396, -0.3422), vec2(-0.1707,  0.9853), vec2( 0.6155,  0.7881), vec2( 0.2622,  0.9650),
-    vec2(-0.9558,  0.2941), vec2(-0.5893, -0.8079), vec2(-0.7713,  0.6365), vec2(-0.0929, -0.9957),
-    vec2( 0.7800,  0.6257), vec2( 0.3788,  0.9255), vec2( 0.3608,  0.9327), vec2(-0.9798, -0.1998)
-);
-
-const float Bayer5[25] = float[25](
-    0.00, 0.48, 0.12, 0.60, 0.24,
-    0.32, 0.80, 0.44, 0.92, 0.56,
-    0.08, 0.40, 0.04, 0.52, 0.16,
-    0.64, 0.96, 0.76, 0.28, 0.88,
-    0.72, 0.20, 0.84, 0.36, 0.68
-);
-
 vec3 ReconstructVSPos(vec2 uv, float depth)
 {
     vec4 ndc = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
@@ -202,70 +108,12 @@ vec3 ReconstructVSPos(vec2 uv, float depth)
     return view.xyz / view.w;
 }
 
-vec2 GetConstNoise()
-{
-    ivec2 pixel = ivec2(gl_FragCoord.xy);
-    int index = (pixel.x % 4) + (pixel.y % 4) * 4;
-    return NOISE[index].xy;
-}
-
-vec2 GetConstNoise2()
-{
-    ivec2 pixel = ivec2(gl_FragCoord.xy);
-    int index = (pixel.x % 4) + (pixel.y % 4) * 4;
-    return samples[index].xy;
-}
-
-vec2 GetRandomNoise()
-{
-    return fract(sin(vec2(dot(TexCoords, vec2(12.9898, 78.233)), dot(TexCoords, vec2(39.3467, 11.1354)))) * 43758.5453);
-}
-
-vec2 GetConstNoise3()
-{
-    ivec2 pixel = ivec2(gl_FragCoord.xy);
-    ivec2 p = pixel % 4;
-    int idx = p.x + p.y * 4;
-    return NOISE2[idx];
-}
-
-vec2 GetConstNoise4()
+vec2 GetNoise()
 {
     ivec2 pixel = ivec2(gl_FragCoord.xy);
     ivec2 p = pixel % 16;
     int idx = p.x + p.y * 16;
-    return NOISE3[idx];
-}
-
-vec2 GetConstNoise5()
-{
-    ivec2 pixel = ivec2(gl_FragCoord.xy);
-    ivec2 p = pixel % 8;
-    int idx = p.x + p.y * 8;
-    return NOISE4[idx];
-}
-
-float Bayer(uvec2 p, uint level)
-{
-    p = (p ^ (p << 8u)) & uvec2(0x00ff00ffu);
-    p = (p ^ (p << 4u)) & uvec2(0x0f0f0f0fu);
-    p = (p ^ (p << 2u)) & uvec2(0x33333333u);
-    p = (p ^ (p << 1u)) & uvec2(0x55555555u);
-
-    uint i = (p.x ^ p.y) | (p.x << 1u);
-
-    i = bitfieldReverse(i);
-    i >>= (32u - level * 2u);
-
-    return float(i) / float(1u << (2u * level));
-}
-
-vec2 GetBayerNoise(vec2 xy, vec2 vpos)
-{
-    ivec2 pp = ivec2(int(vpos.x) % 5, int(vpos.y) % 5);
-    float dir = Bayer5[pp.x + 5 * pp.y];
-    float second = Bayer(uvec2(uint(vpos.x), uint(vpos.y)), 3u);
-    return vec2(dir, second);
+    return NOISE[idx];
 }
 
 float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
@@ -284,19 +132,11 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
         );
 
         vec2 nxy = xy + ns.y * vec2(sin(ns.x), cos(ns.x)) * vec2(1.0, uScreenSize.x / uScreenSize.y);
-
-        // original ReShade odd guard (optional, can remove)
-        vec2 rg = clamp(nxy * nxy - nxy, 0.0, 1.0);
-        if (rg.x != -rg.y)
-        {
-            continue;
-        }
         
-        // reconstruct sample position in view space
         float sampleDepth = texture(uDepthTex, nxy).r;
         if (sampleDepth >= 1.0)
         {
-            continue; // skip skybox / background
+            continue;
         }
         
         vec3 samPos = ReconstructVSPos(nxy, sampleDepth);
@@ -324,23 +164,7 @@ vec4 fragment()
     vec3 posY = ReconstructVSPos(TexCoords + vec2(0, texelSize.y), depthDown);
     vec3 n = normalize(cross(posX - posVS, posY - posVS));
 
-    vec2 noise = vec2(0);
-    
-    if (aoMethod == 0) {
-        noise = GetConstNoise();
-    } else if (aoMethod == 1) {
-        noise = GetConstNoise2();
-    } else if (aoMethod == 2) {
-        noise = GetRandomNoise();
-    } else if (aoMethod == 3) {
-        noise = GetBayerNoise(TexCoords, posVS.xy);
-    } else if (aoMethod == 4) {
-        noise = GetConstNoise3();
-    } else if (aoMethod == 5) {
-        noise = GetConstNoise4();
-    } else if (aoMethod == 6) {
-        noise = GetConstNoise5();
-    }
+    vec2 noise = GetNoise();
     
     float ao = SAO(TexCoords, posVS, n, noise, uRadius);
     return vec4(ao, ao, ao, 1.0);
