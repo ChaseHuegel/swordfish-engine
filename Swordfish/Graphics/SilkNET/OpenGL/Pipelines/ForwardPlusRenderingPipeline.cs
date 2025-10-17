@@ -27,12 +27,12 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly ShaderProgram _computeShader;
     private readonly ShaderProgram _ssaoShader;
     
-    private readonly int _screenWidth;
-    private readonly int _screenHeight;
+    private int _screenWidth;
+    private int _screenHeight;
     
-    private readonly int _numTilesX;
-    private readonly int _numTilesY;
-    private readonly int _numTiles;
+    private int _numTilesX;
+    private int _numTilesY;
+    private int _numTiles;
     
     private readonly uint _depthTex;
     private readonly uint _depthFBO;
@@ -171,6 +171,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
         
+        windowContext.Resized += OnWindowResized;
+        
         _lights.Add(new LightData
         {
             Position = new Vector3(-5f, 10f, 1f),
@@ -215,7 +217,44 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         );
         shortcutService.RegisterShortcut(lightShortcut);
     }
-    
+
+    private void OnWindowResized(Vector2 size)
+    {
+        _screenWidth = (int)size.X;
+        _screenHeight = (int)size.Y;
+        
+        _numTilesX = (_screenWidth + TILE_WIDTH - 1) / TILE_WIDTH;
+        _numTilesY = (_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
+        _numTiles = _numTilesX * _numTilesY;
+        
+        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, (uint)_screenWidth, (uint)_screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.R32f, (uint)_screenWidth, (uint)_screenHeight, 0, PixelFormat.Red, PixelType.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _gl.BindTexture(TextureTarget.Texture2D, 0);
+        
+        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileIndicesSSBO);
+        int indicesCount = _numTiles * MAX_LIGHTS_PER_TILE;
+        _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(indicesCount * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
+        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);
+        
+        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
+        _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(_numTiles * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
+        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
+        
+        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+    }
+
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
