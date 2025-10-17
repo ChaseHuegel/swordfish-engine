@@ -324,16 +324,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
     }
 
-    private static float[] MatrixToFloatArrayColumnMajor(Matrix4x4 invProj)
-    {
-        var mat = new float[16];
-        mat[0] = invProj.M11; mat[4] = invProj.M12; mat[8] = invProj.M13; mat[12] = invProj.M14;
-        mat[1] = invProj.M21; mat[5] = invProj.M22; mat[9] = invProj.M23; mat[13] = invProj.M24;
-        mat[2] = invProj.M31; mat[6] = invProj.M32; mat[10] = invProj.M33; mat[14] = invProj.M34;
-        mat[3] = invProj.M41; mat[7] = invProj.M42; mat[11] = invProj.M43; mat[15] = invProj.M44;
-        return mat;
-    }
-
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
     }
