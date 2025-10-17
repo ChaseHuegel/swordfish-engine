@@ -35,7 +35,7 @@ uniform int uMaxLightsPerTile;
 uniform vec3 uCameraPos;
 uniform float ambientLightning = 0.05;
 uniform float Metallic = 0.5;
-uniform float Roughness = 0.5;
+uniform float Roughness = 0.2;
 
 uniform sampler2D uAO;
 
@@ -175,11 +175,8 @@ vec4 vertex()
     vec4 worldPos = model * vec4(VertexPosition, 1.0);
     vWorldPos = worldPos.xyz;
 
-    vNormal = normalize(mat3(inverse(model)) * VertexNormal);
+    vNormal = mat3(transpose(inverse(model))) * VertexNormal;
 
-    vec4 viewPos = view * worldPos;
-    vViewPos = viewPos.xyz;
-
-    return projection * viewPos;
+    return projection * view * worldPos;
 }
 #endif
