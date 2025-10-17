@@ -35,7 +35,7 @@ uniform int uMaxLightsPerTile;
 uniform vec3 uCameraPos;
 uniform float ambientLightning = 0.05;
 uniform float Metallic = 0.5;
-uniform float Roughness = 0.2;
+uniform float Roughness = 0.5;
 
 uniform sampler2D uAO;
 
