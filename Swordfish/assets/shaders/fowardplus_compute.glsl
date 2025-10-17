@@ -52,33 +52,50 @@ void compute() {
 
     // sample min depth for tile (cheap: sample 4 corners)
     float minD = 1.0;
+    float maxD = 0.0;
     for (int oy = 0; oy <= uTileSize.y; oy += max(1, uTileSize.y - 1)) {
         for (int ox = 0; ox <= uTileSize.x; ox += max(1, uTileSize.x - 1)) {
             ivec2 p = start + ivec2(ox, oy);
             if (p.x >= uScreenSize.x || p.y >= uScreenSize.y) continue;
             float d = texelFetch(uDepthTex, p, 0).r;
             minD = min(minD, d);
+            maxD = max(maxD, d);
         }
     }
-
-    // reconstruct a view-space point for the tile (conservative using minD)
-    vec3 tileViewPos = UnprojectToView(vec2(centerPixel), minD);
+    
+    vec3 corners[4];
+    ivec2 end = min(start + uTileSize, uScreenSize);
+    corners[0] = UnprojectToView(vec2(start.x, start.y), minD);
+    corners[1] = UnprojectToView(vec2(end.x, start.y), minD);
+    corners[2] = UnprojectToView(vec2(start.x, end.y), maxD);
+    corners[3] = UnprojectToView(vec2(end.x, end.y), maxD);
+    
+    vec3 tileMin = corners[0];
+    vec3 tileMax = corners[0];
+    for (int i = 1; i < 4; ++i) {
+        tileMin = min(tileMin, corners[i]);
+        tileMax = max(tileMax, corners[i]);
+    }
 
     // iterate lights (lights are expected to be in view-space)
     uint base = uint(tId) * uint(uMaxLightsPerTile);
     uint count = 0u;
     for (int i = 0; i < uNumLights; ++i) {
         vec4 lp = lights[i].pos_radius;
+        vec3 lPos = lp.xyz;
         float radius = lp.w;
-        // distance test in view-space:
-        // distance between tileViewPos and light position <= radius + some slack (conservative)
-        float d2 = dot(tileViewPos - lp.xyz, tileViewPos - lp.xyz);
-        if (d2 <= (uMaxLightViewDistance * uMaxLightViewDistance)) {
+    
+        // Compute closest point on tile AABB to light
+        vec3 closest = clamp(lPos, tileMin, tileMax);
+        float dist2 = dot(closest - lPos, closest - lPos);
+    
+        if (dist2 <= uMaxLightViewDistance * uMaxLightViewDistance) {
             if (count < uint(uMaxLightsPerTile) && (base + count) < indices.length()) {
                 indices[base + count] = uint(i);
                 count += 1u;
             }
         }
     }
+    
     counts[tId] = count;
 }
