@@ -18,6 +18,8 @@ layout(std430, binding = 2) buffer TileCounts {
     uint counts[]; // one uint per tile
 };
 
+const int SAMPLES_PER_TILE = 3;
+
 uniform ivec2 uScreenSize;
 uniform ivec2 uTileSize;
 uniform int uNumLights;
@@ -31,7 +33,6 @@ ivec2 tileCoord() { return ivec2(gl_WorkGroupID.xy); }
 int tileIndex(ivec2 t, int tilesX) { return t.y * tilesX + t.x; }
 
 vec3 UnprojectToView(vec2 pixel, float depth) {
-    // pixel in screen coords [0..screen]
     vec2 ndc = (pixel / vec2(uScreenSize)) * 2.0 - 1.0;
     vec4 clip = vec4(ndc, depth * 2.0 - 1.0, 1.0); // convert [0..1] depth to clip z [-1..1]
     vec4 view = uInvProj * clip;
@@ -46,15 +47,17 @@ void compute() {
     if (tile.x >= tilesX || tile.y >= tilesY) return;
     int tId = tileIndex(tile, tilesX);
 
-    // compute tile center pixel
     ivec2 start = tile * uTileSize;
-    ivec2 centerPixel = start + uTileSize / 2;
+    ivec2 end = min(start + uTileSize, uScreenSize);
 
-    // sample min depth for tile (cheap: sample 4 corners)
+    int stepsX = max(1, (end.x - start.x) / SAMPLES_PER_TILE);
+    int stepsY = max(1, (end.y - start.y) / SAMPLES_PER_TILE);
+    
     float minD = 1.0;
     float maxD = 0.0;
-    for (int oy = 0; oy <= uTileSize.y; oy += max(1, uTileSize.y - 1)) {
-        for (int ox = 0; ox <= uTileSize.x; ox += max(1, uTileSize.x - 1)) {
+    
+    for (int oy = 0; oy <= end.y - start.y; oy += stepsY) {
+        for (int ox = 0; ox <= end.x - start.x; ox += stepsX) {
             ivec2 p = start + ivec2(ox, oy);
             if (p.x >= uScreenSize.x || p.y >= uScreenSize.y) continue;
             float d = texelFetch(uDepthTex, p, 0).r;
@@ -64,7 +67,6 @@ void compute() {
     }
     
     vec3 corners[4];
-    ivec2 end = min(start + uTileSize, uScreenSize);
     corners[0] = UnprojectToView(vec2(start.x, start.y), minD);
     corners[1] = UnprojectToView(vec2(end.x, start.y), minD);
     corners[2] = UnprojectToView(vec2(start.x, end.y), maxD);
@@ -77,7 +79,6 @@ void compute() {
         tileMax = max(tileMax, corners[i]);
     }
 
-    // iterate lights (lights are expected to be in view-space)
     uint base = uint(tId) * uint(uMaxLightsPerTile);
     uint count = 0u;
     for (int i = 0; i < uNumLights; ++i) {
@@ -85,7 +86,6 @@ void compute() {
         vec3 lPos = lp.xyz;
         float radius = lp.w;
     
-        // Compute closest point on tile AABB to light
         vec3 closest = clamp(lPos, tileMin, tileMax);
         float dist2 = dot(closest - lPos, closest - lPos);
     
