@@ -33,7 +33,7 @@ uniform ivec2 uTileSize;
 uniform int uMaxLightsPerTile;
 
 uniform vec3 uCameraPos;
-uniform float ambientLightning = 0.05;
+uniform vec3 ambientLightning = vec3(0.05);
 uniform float Metallic = 0.5;
 uniform float Roughness = 0.5;
 
@@ -149,7 +149,7 @@ vec4 shade()
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
-    vec3 color = vec3(ambientLightning);
+    vec3 color = ambientLightning;
     for (uint i = 0u; i < count; ++i) {
         uint indexPos = base + i;
         if (indexPos >= indices.length())

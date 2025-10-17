@@ -1,9 +1,11 @@
+using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
@@ -56,6 +58,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     ];
 
     private readonly List<LightData> _lights = [];
+    private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     
     public ForwardPlusRenderingPipeline(
         in TRenderStage[] renderStages,
@@ -375,5 +378,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.ActiveTexture(TextureUnit.Texture1);
         _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
         shader.SetUniform("uAO", 1);
+        shader.SetUniform("ambientLightning", _ambientLight);
     }
 }
