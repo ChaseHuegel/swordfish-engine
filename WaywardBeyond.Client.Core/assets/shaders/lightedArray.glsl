@@ -6,12 +6,6 @@ uniform sampler2DArray texture0;
 
 vec4 fragment()
 {
-    vec4 texSample = texture(texture0, TextureCoord);
-
-    //  Discard transparent fragments
-    if (texSample.a == 0)
-        discard;
-
-    return texSample * VertexColor * shade();
+    return texture(texture0, TextureCoord) * VertexColor * shade();
 }
 #endif

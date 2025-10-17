@@ -165,7 +165,7 @@ vec4 shade()
     float aoSample = texture(uAO, gl_FragCoord.xy / uScreenSize).r;
     color = color * aoSample;
 
-    return vec4(color * 0.0001 + vec3(aoSample), 1.0);
+    return vec4(color, 1.0);
 }
 #endif
 

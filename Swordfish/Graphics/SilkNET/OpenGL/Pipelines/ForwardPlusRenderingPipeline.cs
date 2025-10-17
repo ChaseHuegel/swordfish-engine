@@ -16,7 +16,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
     private const int MAX_LIGHTS = 1024;
-    private const int MAX_LIGHTS_PER_TILE = 256;
+    private const int MAX_LIGHTS_PER_TILE = 1024;
     
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;
