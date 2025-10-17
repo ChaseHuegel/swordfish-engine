@@ -203,9 +203,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                     {
                         _lights.Add(new LightData
                         {
-                            Position = new Vector3(Random.Shared.NextSingle() * 20f - 10f,
-                                Random.Shared.NextSingle() * 20f - 10f, Random.Shared.NextSingle() * 20f - 10f),
-                            Radius = Random.Shared.NextSingle() * 3f + 1f,
+                            Position = new Vector3(Random.Shared.NextSingle() * 30f - 15f,
+                                Random.Shared.NextSingle() * 10f - 5f, Random.Shared.NextSingle() * 30f - 15f),
+                            Radius = Random.Shared.NextSingle() * 5f + 2f,
                             Color = new Vector3(Random.Shared.NextSingle() + 0.1f, Random.Shared.NextSingle() + 0.1f,
                                 Random.Shared.NextSingle() + 0.1f),
                             Intensity = Random.Shared.NextSingle() * 5f + 2f,
