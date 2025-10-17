@@ -249,14 +249,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
         _ssaoShader.SetUniform("near", near);
         _ssaoShader.SetUniform("far", far);
-        
-        Matrix4x4.Invert(projection, out Matrix4x4 invProj);
-        int locInv1 = _gl.GetUniformLocation(_ssaoShader.Handle, "uInvProj");
-        float[] mat1 = MatrixToFloatArrayColumnMajor(invProj);
-        fixed (float* p = mat1) {
-            _gl.UniformMatrix4(locInv1, 1, false, p);
-        }
         _gl.Uniform2(_gl.GetUniformLocation(_ssaoShader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
+        
+        _ssaoShader.SetUniform("uProj", projection);
+        Matrix4x4.Invert(projection, out Matrix4x4 invProj);
+        _ssaoShader.SetUniform("uInvProj", invProj);
         
         _gl.Set(EnableCap.CullFace, false);
         _screenVAO.Bind();
@@ -307,15 +304,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
-        
-        // pass inverse projection matrix for unprojection in compute shader
-        Matrix4x4.Invert(projection, out invProj);
-        // upload invProj (note Silk/OpenGL expects column-major by default; use appropriate upload)
-        int locInv = _gl.GetUniformLocation(_computeShader.Handle, "uInvProj");
-        float[] mat = MatrixToFloatArrayColumnMajor(invProj);
-        fixed (float* p = mat) {
-            _gl.UniformMatrix4(locInv, 1, false, p);
-        }
+        _computeShader.SetUniform("uInvProj", invProj);
         
         var groupsX = (uint)_numTilesX;
         var groupsY = (uint)_numTilesY;
