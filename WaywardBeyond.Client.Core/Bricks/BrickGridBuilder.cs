@@ -5,6 +5,7 @@ using Swordfish.Bricks;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Graphics;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -15,13 +16,13 @@ internal sealed class BrickGridBuilder
     private readonly Mesh _slab;
     private readonly Mesh _column;
     private readonly Mesh _plate;
-    private readonly TextureArray _textureArray;
+    private readonly PBRTextureArrays _textureArrays;
     private readonly BrickDatabase _brickDatabase;
     
-    public BrickGridBuilder(BrickDatabase brickDatabase, TextureArray textureArray, IAssetDatabase<Mesh> meshDatabase)
+    public BrickGridBuilder(BrickDatabase brickDatabase, PBRTextureArrays textureArrays, IAssetDatabase<Mesh> meshDatabase)
     {
         _brickDatabase = brickDatabase;
-        _textureArray = textureArray;
+        _textureArrays = textureArrays;
         _slope = meshDatabase.Get("slope.obj");
         _stair = meshDatabase.Get("stair.obj");
         _slab = meshDatabase.Get("slab.obj");
@@ -62,7 +63,7 @@ internal sealed class BrickGridBuilder
 
             var meshBuilder = new BrickGridMeshBuilder(
                 _brickDatabase,
-                _textureArray,
+                _textureArrays.Diffuse,
                 vertices,
                 colors,
                 uv,
@@ -232,7 +233,7 @@ internal sealed class BrickGridBuilder
 
                     foreach (Vector3 texCoord in mesh.Uv)
                     {
-                        int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default![0]!);
+                        int textureIndex = _textureArrays.Diffuse.IndexOf(brickInfo.Textures.Default![0]!);
                         uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
                     }
 

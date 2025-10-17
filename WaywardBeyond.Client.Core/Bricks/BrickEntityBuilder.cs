@@ -8,13 +8,14 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Graphics;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
 internal sealed class BrickEntityBuilder(
     in ILogger logger,
     in Shader shader,
-    in TextureArray textureArray,
+    in PBRTextureArrays textureArrays,
     in BrickDatabase brickDatabase,
     in IAssetDatabase<Mesh> meshDatabase,
     in DataStore dataStore
@@ -23,11 +24,11 @@ internal sealed class BrickEntityBuilder(
     
     private readonly DataStore _dataStore = dataStore;
     
-    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArray, meshDatabase);
+    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArrays, meshDatabase);
     
-    private readonly Material _opaqueMaterial = new(shader, textureArray);
+    private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
     
-    private readonly Material _transparentMaterial = new(shader, textureArray)
+    private readonly Material _transparentMaterial = new(shader, textureArrays.ToArray())
     {
         Transparent = true,
     };
