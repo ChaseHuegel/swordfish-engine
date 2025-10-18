@@ -375,9 +375,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), _screenWidth, _screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        _gl.ActiveTexture(TextureUnit.Texture1);
+        _gl.ActiveTexture(TextureUnit.Texture5);
         _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
-        shader.SetUniform("uAO", 1);
+        shader.SetUniform("uAO", 5);
         shader.SetUniform("ambientLightning", _ambientLight);
     }
 }

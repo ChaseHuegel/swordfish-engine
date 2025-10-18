@@ -25,7 +25,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
     {
         var diffuseFiles = new List<PathInfo>();
         var metallicFiles = new List<PathInfo>();
-        var roughnessFiles = new List<PathInfo>();
+        var smoothnessFiles = new List<PathInfo>();
         var normalFiles = new List<PathInfo>();
         var emissiveFiles = new List<PathInfo>();
         
@@ -38,9 +38,9 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
                 continue;
             }
             
-            if (IsRoughness(file))
+            if (IsSmoothness(file))
             {
-                roughnessFiles.Add(file);
+                smoothnessFiles.Add(file);
                 continue;
             }
             
@@ -61,28 +61,28 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
         
         List<Texture> diffuseTextures = diffuseFiles.Select(_textureParser.Parse).ToList();
         List<Texture> metallicTextures = metallicFiles.Select(_textureParser.Parse).ToList();
-        List<Texture> roughnessTextures = roughnessFiles.Select(_textureParser.Parse).ToList();
+        List<Texture> smoothnessTextures = smoothnessFiles.Select(_textureParser.Parse).ToList();
         List<Texture> normalTextures = normalFiles.Select(_textureParser.Parse).ToList();
         List<Texture> emissiveTextures = emissiveFiles.Select(_textureParser.Parse).ToList();
 
-        GenerateMissingTextures(diffuseTextures, metallicTextures, ".m", new Rgba32(r: 0, g: 0, b: 0, a: byte.MaxValue));
-        GenerateMissingTextures(diffuseTextures, roughnessTextures, ".r", new Rgba32(r: 0, g: 0, b: 0, a: byte.MaxValue));
-        GenerateMissingTextures(diffuseTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: byte.MaxValue, a: byte.MaxValue));
+        GenerateMissingTextures(diffuseTextures, metallicTextures, ".m", new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        GenerateMissingTextures(diffuseTextures, smoothnessTextures, ".s", new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        GenerateMissingTextures(diffuseTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: 255, a: 255));
         GenerateMissingTextures(diffuseTextures, emissiveTextures, ".e", new Rgba32(r: 0, g: 0, b: 0, a: 0));
 
         Texture[] diffuseTexturesArray = diffuseTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] metallicTexturesArray = metallicTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
-        Texture[] roughnessTexturesArray = roughnessTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] smoothnessTexturesArray = smoothnessTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] normalTexturesArray = normalTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] emissiveTexturesArray = emissiveTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         
         var diffuseTextureArray = new TextureArray("bricks_diffuse", diffuseTexturesArray, mipmaps: true);
         var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true);
-        var roughnessTextureArray = new TextureArray("bricks_roughness", roughnessTexturesArray, mipmaps: true);
+        var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true);
         var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true);
         var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true);
         
-        return new PBRTextureArrays(diffuseTextureArray, metallicTextureArray, roughnessTextureArray, normalTextureArray, emissiveTextureArray);
+        return new PBRTextureArrays(diffuseTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
     }
 
     private static void GenerateMissingTextures(List<Texture> diffuseTextures, List<Texture> textures, string suffix, Rgba32 color)
@@ -101,7 +101,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
     }
 
     private static bool IsMetallic(PathInfo file) => file.Value.EndsWith(".m.png");
-    private static bool IsRoughness(PathInfo file) => file.Value.EndsWith(".r.png");
+    private static bool IsSmoothness(PathInfo file) => file.Value.EndsWith(".s.png");
     private static bool IsNormal(PathInfo file) => file.Value.EndsWith(".n.png");
     private static bool IsEmissive(PathInfo file) => file.Value.EndsWith(".e.png");
     

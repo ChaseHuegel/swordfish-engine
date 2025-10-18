@@ -3,6 +3,9 @@
 inout vec3 vWorldPos;
 inout vec3 vNormal;
 inout vec3 vViewPos;
+vec3 Normal;
+float Metallic;
+float Roughness;
 
 #ifdef FRAGMENT
 struct Light
@@ -34,8 +37,8 @@ uniform int uMaxLightsPerTile;
 
 uniform vec3 uCameraPos;
 uniform vec3 ambientLightning = vec3(0.05);
-uniform float Metallic = 0.5;
-uniform float Roughness = 0.5;
+uniform float uMetallic = 0.5;
+uniform float uRoughness = 0.5;
 
 uniform sampler2D uAO;
 
@@ -83,7 +86,7 @@ vec3 EvalLight(Light light)
 {
     vec3 posFrag = vWorldPos;
     vec3 viewDir = normalize(uCameraPos - posFrag);
-    vec3 N       = vNormal;
+    vec3 N       = Normal;
 
     // --- Light parameters ---
     vec3 lightPos   = light.pos_radius.xyz;
