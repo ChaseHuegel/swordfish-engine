@@ -50,8 +50,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly uint _bloomRBO;
     private readonly uint _depthStencilRBO;
 
-    private readonly uint _blurFBO;
     private readonly uint _blurTex;
+    private readonly uint _blurFBO;
+    
+    private readonly uint _screenTex;
+    private readonly uint _screenFBO;
     
     private readonly uint _lightsSSBO;
     private readonly uint _tileIndicesSSBO;
@@ -220,6 +223,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _blurTex, 0);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
+        _screenTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _screenTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _screenFBO = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _screenFBO);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _screenTex, 0);
+        status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException("Forward+ screen framebuffer is incomplete.");
+        }
+        
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         gl.BindTexture(TextureTarget.Texture2D, 0);
         
         var quadVBO = new BufferObject<float>(_gl, _quadVertices, BufferTargetARB.ArrayBuffer);
@@ -320,6 +341,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgb, PixelType.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
@@ -474,6 +502,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             BlitFramebufferFilter.Linear
         );
         
+        //  Blur the texture
         _blurShader.Activate();
         _blurShader.SetUniform("texture0", 0);
         _gl.ActiveTexture(TextureUnit.Texture0);
@@ -514,6 +543,23 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
         //  Bloom render pass
+        //  Blit the bloom renderbuffer to the screen texture
+        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
+        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
+        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _screenFBO);
+        _gl.ReadBuffer(GLEnum.ColorAttachment1);
+        _gl.DrawBuffer(GLEnum.ColorAttachment0);
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            ClearBufferMask.ColorBufferBit,
+            BlitFramebufferFilter.Linear
+        );
+        
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        
+        //  Render the bloom overlay
         _gl.DepthMask(false);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
@@ -521,6 +567,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _bloomShader.SetUniform("texture0", 0);
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        _bloomShader.SetUniform("texture1", 1);
+        _gl.ActiveTexture(TextureUnit.Texture1);
+        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
         _screenVAO.Bind();
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _screenVAO.Unbind();
