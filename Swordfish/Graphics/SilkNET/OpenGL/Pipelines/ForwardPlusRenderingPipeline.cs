@@ -477,6 +477,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _blurShader.Activate();
         _blurShader.SetUniform("texture0", 0);
         _gl.ActiveTexture(TextureUnit.Texture0);
+        //  TODO Blur should be done with separate textures for
+        //       the horizontal and vertical blurs. This creates artifacts,
+        //       but they aren't too noticeable. since this is just for bloom.
+        //       Using a single texture and single pass is a bit more performant.
+        //       Whether one or two textures is used could be driven by quality settings.
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _blurFBO);
         _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
         var horizontal = true;
