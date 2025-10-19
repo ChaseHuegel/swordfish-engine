@@ -43,7 +43,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _renderPipelines = renderPipelines;
         _synchronizationContext = synchronizationContext;
 
-        gl.ClearColor(Color.FromArgb(20, 21, 37));
         gl.Enable(EnableCap.DepthTest);
         gl.Enable(EnableCap.CullFace);
         gl.Enable(EnableCap.Blend);

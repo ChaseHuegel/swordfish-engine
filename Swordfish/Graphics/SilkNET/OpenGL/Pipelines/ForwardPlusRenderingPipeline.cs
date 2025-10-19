@@ -42,6 +42,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly uint _ssaoTex;
     private readonly uint _ssaoFBO;
     
+    private readonly uint _colorTex;
+    private readonly uint _bloomTex;
+    private readonly uint _renderFBO;
+    
     private readonly uint _lightsSSBO;
     private readonly uint _tileIndicesSSBO;
     private readonly uint _tileCountsSSBO;
@@ -147,6 +151,35 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         if (status != GLEnum.FramebufferComplete)
         {
             throw new FatalAlertException("Forward+ SSAO framebuffer is incomplete.");
+        }
+        
+        _colorTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _colorTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _bloomTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _bloomTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _renderFBO = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _colorTex, 0);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, TextureTarget.Texture2D, _bloomTex, 0);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, _depthTex, 0);
+        gl.DrawBuffers(2, [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1]);
+        status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException("Forward+ render framebuffer is incomplete.");
         }
         
         var quadVBO = new BufferObject<float>(_gl, _quadVertices, BufferTargetARB.ArrayBuffer);
@@ -293,7 +326,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
         _ssaoShader.SetUniform("uInvProj", inverseProjection);
         
-        _gl.Set(EnableCap.CullFace, false);
         _screenVAO.Bind();
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _screenVAO.Unbind();
@@ -345,18 +377,39 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         var groupsY = (uint)_numTilesY;
         _gl.DispatchCompute(groupsX, groupsY, 1);
         _gl.MemoryBarrier( MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
+        
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
+        _gl.ClearColor(0f, 0f, 0f, 1f);
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection) { }
+    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    {
+        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
+        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
+        
+        _gl.ReadBuffer(GLEnum.ColorAttachment0);
+        _gl.DrawBuffer(GLEnum.Back);
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            ClearBufferMask.ColorBufferBit,
+            BlitFramebufferFilter.Linear
+        );
+        
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
     
     protected override void ShaderActivationCallback(ShaderProgram shader)
     {
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        _gl.ActiveTexture(TextureUnit.Texture5);
-        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
         shader.SetUniform("uAO", 5);
         shader.SetUniform("uAmbientLight", _ambientLight);
+        
+        _gl.ActiveTexture(TextureUnit.Texture5);
+        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
     }
 }

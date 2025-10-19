@@ -8,6 +8,8 @@ float Metallic;
 float Roughness;
 
 #ifdef FRAGMENT
+layout (location = 1) out vec4 BrightColor;
+
 struct Light
 {
     vec4 pos_radius; // view-space pos.xyz, radius in w
