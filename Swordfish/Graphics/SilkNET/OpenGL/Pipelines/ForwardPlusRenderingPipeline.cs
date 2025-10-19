@@ -26,6 +26,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly ShaderProgram _depthShader;
     private readonly ShaderProgram _computeShader;
     private readonly ShaderProgram _ssaoShader;
+    private readonly ShaderProgram _skyboxShader;
     
     private uint _screenWidth;
     private uint _screenHeight;
@@ -42,9 +43,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly uint _ssaoTex;
     private readonly uint _ssaoFBO;
     
-    private readonly uint _colorTex;
     private readonly uint _bloomTex;
     private readonly uint _renderFBO;
+    private readonly uint _colorRBO;
+    private readonly uint _bloomRBO;
+    private readonly uint _depthStencilRBO;
     
     private readonly uint _lightsSSBO;
     private readonly uint _tileIndicesSSBO;
@@ -104,9 +107,17 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{ssaoShaderName}\".");
         }
         
+        const string skyboxShaderName = "skybox";
+        Result<Shader> skyboxShader = shaderDatabase.Get(skyboxShaderName);
+        if (!skyboxShader)
+        {
+            throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{skyboxShaderName}\".");
+        }
+        
         _depthShader = depthShader.Value.CreateProgram(glContext);
         _computeShader = computeShader.Value.CreateProgram(glContext);
         _ssaoShader = ssaoShader.Value.CreateProgram(glContext);
+        _skyboxShader = skyboxShader.Value.CreateProgram(glContext);
         
         _screenWidth = (uint)windowContext.Resolution.X;
         _screenHeight = (uint)windowContext.Resolution.Y;
@@ -153,30 +164,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             throw new FatalAlertException("Forward+ SSAO framebuffer is incomplete.");
         }
         
-        _colorTex = gl.GenTexture();
-        gl.BindTexture(TextureTarget.Texture2D, _colorTex);
-        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
-        _bloomTex = gl.GenTexture();
-        gl.BindTexture(TextureTarget.Texture2D, _bloomTex);
-        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
         _renderFBO = gl.GenFramebuffer();
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
-        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _colorTex, 0);
-        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, TextureTarget.Texture2D, _bloomTex, 0);
-        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, _depthTex, 0);
         gl.DrawBuffers(2, [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1]);
+        _colorRBO = gl.GenRenderbuffer();
+        gl.BindRenderbuffer(GLEnum.Renderbuffer, _colorRBO);
+        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba16f, _screenWidth, _screenHeight);
+        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, _colorRBO);
+        _bloomRBO = gl.GenRenderbuffer();
+        gl.BindRenderbuffer(GLEnum.Renderbuffer, _bloomRBO);
+        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba8, _screenWidth, _screenHeight);
+        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, RenderbufferTarget.Renderbuffer, _bloomRBO);
+        _depthStencilRBO = gl.GenRenderbuffer();
+        gl.BindRenderbuffer(GLEnum.Renderbuffer, _depthStencilRBO);
+        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Depth24Stencil8, _screenWidth, _screenHeight);
+        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthStencilRBO);
         status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        gl.BindRenderbuffer(GLEnum.Renderbuffer, 0);
         if (status != GLEnum.FramebufferComplete)
         {
             throw new FatalAlertException("Forward+ render framebuffer is incomplete.");
@@ -280,6 +285,20 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindTexture(TextureTarget.Texture2D, 0);
         
+        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _colorRBO);
+        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba16f, _screenWidth, _screenHeight);
+        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, _colorRBO);
+        
+        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _bloomRBO);
+        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba8, _screenWidth, _screenHeight);
+        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, RenderbufferTarget.Renderbuffer, _bloomRBO);
+        
+        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _depthStencilRBO);
+        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Depth24Stencil8, _screenWidth, _screenHeight);
+        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthStencilRBO);
+        
+        _gl.BindRenderbuffer(GLEnum.Renderbuffer, 0);
+        
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileIndicesSSBO);
         int indicesCount = _numTiles * MAX_LIGHTS_PER_TILE;
         _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(indicesCount * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
@@ -380,11 +399,30 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
         _gl.ClearColor(0f, 0f, 0f, 1f);
-        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+        _gl.Enable(EnableCap.StencilTest);
+        _gl.StencilMask(0xFF);
+        _gl.StencilFunc(StencilFunction.Always, @ref: 1, mask: 0xFF);
+        _gl.StencilOp(fail: StencilOp.Keep, zfail: StencilOp.Keep, zpass: StencilOp.Replace);
     }
 
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
+        //  Skybox pass
+        _gl.StencilFunc(StencilFunction.Equal, @ref: 0, mask: 0xFF);
+        _gl.StencilMask(0x00);  //  Disable writing to stencil
+        _gl.DepthMask(false);
+        
+        _skyboxShader.Activate();
+        _skyboxShader.SetUniform("uRGB", _ambientLight);
+        _screenVAO.Bind();
+        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        _screenVAO.Unbind();
+        
+        _gl.DepthMask(true);
+        _gl.Disable(EnableCap.StencilTest);
+        
+        //  Complete, blit to the back buffer to display
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
         _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
         
