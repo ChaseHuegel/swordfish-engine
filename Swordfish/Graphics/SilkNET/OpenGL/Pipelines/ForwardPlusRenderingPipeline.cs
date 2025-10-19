@@ -487,7 +487,21 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
-        //  Bloom blurring pass
+        //  Blit the render buffer to the back buffer
+        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
+        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
+        
+        _gl.ReadBuffer(GLEnum.ColorAttachment0);
+        _gl.DrawBuffer(GLEnum.Back);
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            ClearBufferMask.ColorBufferBit,
+            BlitFramebufferFilter.Linear
+        );
+        
+        //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
         _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
@@ -502,7 +516,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             BlitFramebufferFilter.Linear
         );
         
-        //  Blur the texture
+        //  Blur the bloom texture
         _blurShader.Activate();
         _blurShader.SetUniform("texture0", 0);
         _gl.ActiveTexture(TextureUnit.Texture0);
@@ -526,23 +540,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _screenVAO.Unbind();
         }
         
-        //  Blit the render buffer to the back buffer to display
-        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
-        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
-        
-        _gl.ReadBuffer(GLEnum.ColorAttachment0);
-        _gl.DrawBuffer(GLEnum.Back);
-        
-        _gl.BlitFramebuffer(
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            ClearBufferMask.ColorBufferBit,
-            BlitFramebufferFilter.Linear
-        );
-        
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        
-        //  Bloom render pass
         //  Blit the bloom renderbuffer to the screen texture
         _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
@@ -557,6 +554,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             BlitFramebufferFilter.Linear
         );
         
+        //  Return to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
         //  Render the bloom overlay
