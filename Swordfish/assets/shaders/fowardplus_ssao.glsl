@@ -7,12 +7,12 @@ layout (location = 1) in vec2 vUV;
 inout vec2 UV;
 
 uniform sampler2D uDepthTex;
-uniform ivec2     uScreenSize;
-uniform mat4      uInvProj;
+uniform ivec2 uScreenSize;
+uniform mat4 uInvProj;
 
-uniform float uRadius = 0.5;     // base sampling radius
-uniform float SIGMA   = 0.5;     // scaling factor for occlusion strength
-uniform float SAO_K   = 1.0;     // exponent shaping
+uniform float uRadius = 0.1;
+uniform float SIGMA = 0.5;
+uniform float SAO_K = 1.0;
 
 #ifdef FRAGMENT
 
@@ -40,13 +40,14 @@ vec2 GetNoise()
 
 float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
 {
-    float g  = 1.32471795724474602596; // plastic constant
-    vec2 ng  = 1.0 / vec2(g, g * g);
+    float g = 1.32471795724474602596; // plastic constant
+    vec2 ng = 1.0 / vec2(g, g * g);
     float vl = length(verPos);
 
-    vec2 acc = vec2(0.0);
-    vec2 aspectCorrection = vec2(1.0, uScreenSize.x / uScreenSize.y);
+    vec2 textureDimensions = textureSize(uDepthTex, 0);
+    vec2 aspectCorrection = vec2(1.0, textureDimensions.x / textureDimensions.y);
     
+    vec2 acc = vec2(0.0);
     for (int i = 0; i < 16; i++)
     {
         vec2 ns = vec2(
@@ -63,7 +64,7 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
         }
        
         vec3 samPos = ReconstructVSPos(nxy, sampleDepth);
-        vec3 tv     = samPos - verPos;
+        vec3 tv = samPos - verPos;
 
         acc += vec2(max(0.0, dot(tv, n)) / (dot(tv, tv) + 0.1), 1.0);
     }
@@ -80,7 +81,7 @@ vec4 fragment()
 
     vec3 posVS = ReconstructVSPos(UV, depth);
 
-    vec2 texelSize = 1.0 / uScreenSize;
+    vec2 texelSize = 1.0 / textureSize(uDepthTex, 0);
     float depthRight = texture(uDepthTex, UV + vec2(texelSize.x, 0)).r;
     float depthDown  = texture(uDepthTex, UV + vec2(0, texelSize.y)).r;
     vec3 posX = ReconstructVSPos(UV + vec2(texelSize.x, 0), depthRight);
@@ -88,7 +89,6 @@ vec4 fragment()
     vec3 n = normalize(cross(posX - posVS, posY - posVS));
 
     vec2 noise = GetNoise();
-    
     float ao = SAO(UV, posVS, n, noise, uRadius);
     return vec4(ao, ao, ao, 1.0);
 }
