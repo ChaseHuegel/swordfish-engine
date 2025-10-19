@@ -54,7 +54,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly uint _tileCountsSSBO;
     
     private readonly VertexArrayObject<float> _screenVAO;
-    
+
+    private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     private readonly List<LightData> _lights = [];
     private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     
@@ -166,7 +167,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _renderFBO = gl.GenFramebuffer();
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
-        gl.DrawBuffers(2, [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1]);
+        gl.DrawBuffers(2, _drawBuffers);
         _colorRBO = gl.GenRenderbuffer();
         gl.BindRenderbuffer(GLEnum.Renderbuffer, _colorRBO);
         gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba16f, _screenWidth, _screenHeight);
@@ -398,31 +399,26 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.MemoryBarrier( MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-        _gl.Enable(EnableCap.StencilTest);
-        _gl.StencilMask(0xFF);
-        _gl.StencilFunc(StencilFunction.Always, @ref: 1, mask: 0xFF);
-        _gl.StencilOp(fail: StencilOp.Keep, zfail: StencilOp.Keep, zpass: StencilOp.Replace);
-    }
-
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
-    {
-        //  Skybox pass
-        _gl.StencilFunc(StencilFunction.Equal, @ref: 0, mask: 0xFF);
-        _gl.StencilMask(0x00);  //  Disable writing to stencil
-        _gl.DepthMask(false);
         
+        //  Skybox pass
+        _gl.DrawBuffer(DrawBufferMode.ColorAttachment0); // Only render to the color buffer
+        _gl.DepthMask(false);
         _skyboxShader.Activate();
         _skyboxShader.SetUniform("uRGB", _ambientLight);
         _screenVAO.Bind();
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _screenVAO.Unbind();
-        
         _gl.DepthMask(true);
-        _gl.Disable(EnableCap.StencilTest);
         
-        //  Complete, blit to the back buffer to display
+        _gl.DrawBuffers(_drawBuffers);
+    }
+
+    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    {
+        //  Blit to the back buffer to display
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
         _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
         
