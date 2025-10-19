@@ -105,11 +105,12 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         attributesBuilder.AppendLine("#endif");
         attributesBuilder.AppendLine();
         attributesBuilder.AppendLine("#ifdef FRAGMENT");
+        attributesBuilder.AppendLine("layout (location = 0) out vec4 FragColor;");
+        attributesBuilder.AppendLine("layout (location = 1) out vec4 BrightColor;");
         attributesBuilder.AppendLine("in vec3 VertexPosition;");
         attributesBuilder.AppendLine("in vec4 VertexColor;");
         attributesBuilder.AppendLine("in vec3 TextureCoord;");
         attributesBuilder.AppendLine("in vec3 VertexNormal;");
-        attributesBuilder.AppendLine("layout (location = 0) out vec4 FragColor;");
         attributesBuilder.AppendLine("#endif");
         var attributes = attributesBuilder.ToString();
 
@@ -126,6 +127,7 @@ void main()
 #endif
 
 #ifdef FRAGMENT
+    BrightColor = vec4(0);
     FragColor = fragment();
 #endif
 

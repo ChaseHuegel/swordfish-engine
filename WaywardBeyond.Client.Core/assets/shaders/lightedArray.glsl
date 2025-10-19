@@ -20,7 +20,7 @@ vec4 fragment()
     vec4 emissive = texture(texture4, TextureCoord);
     vec4 color = max(diffuse * VertexColor * shade(), emissive);
     
-    if (length(emissive.xyz) > 0.0)
+    if (length(emissive) > 0.0)
     {
         BrightColor = emissive;
     }

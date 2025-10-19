@@ -7,7 +7,7 @@ using Swordfish.Settings;
 namespace Swordfish.Graphics.Jolt;
 
 internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRenderer lineRenderer, in IJoltPhysics joltPhysics)
-    : DebugRenderer, IUnlitRenderStage
+    : DebugRenderer, IWorldSpaceRenderStage
 {
     private struct DrawRequest(Vector3 from, Vector3 to, Vector4 color)
     {

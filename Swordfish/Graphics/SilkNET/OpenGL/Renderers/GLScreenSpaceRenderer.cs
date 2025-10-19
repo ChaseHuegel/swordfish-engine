@@ -9,7 +9,7 @@ using Swordfish.Types;
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings) : IUnlitRenderStage
+internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings) : IScreenSpaceRenderStage
 {
     private readonly struct RectVertices()
     {

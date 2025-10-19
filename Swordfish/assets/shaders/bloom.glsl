@@ -11,7 +11,6 @@ uniform sampler2D texture0;
 
 vec4 fragment()
 {
-    gl_FragDepth = 0.0;
     return texture(texture0, UV);
 }
 #endif
