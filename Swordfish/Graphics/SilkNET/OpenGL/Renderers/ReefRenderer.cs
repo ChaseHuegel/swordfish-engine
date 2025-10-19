@@ -177,6 +177,9 @@ internal sealed class ReefRenderer(
             return 0;
         }
         
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        
         var drawCalls = 0;
         _vao.Bind();
         foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
@@ -192,6 +195,7 @@ internal sealed class ReefRenderer(
             drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, shaderActivationCallback, isTextPass: true);
         }
         
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 

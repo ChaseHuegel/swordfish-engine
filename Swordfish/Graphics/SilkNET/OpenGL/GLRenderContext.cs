@@ -45,8 +45,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
         gl.Enable(EnableCap.DepthTest);
         gl.Enable(EnableCap.CullFace);
-        gl.Enable(EnableCap.Blend);
-        gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
 
         Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.1f, 1000f));

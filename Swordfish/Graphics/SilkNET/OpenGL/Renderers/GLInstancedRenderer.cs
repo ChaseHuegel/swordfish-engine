@@ -74,10 +74,15 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         {
             return 0;
         }
+        
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         var drawCalls = 0;
         drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
         drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+        
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 

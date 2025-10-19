@@ -154,6 +154,9 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         {
             return 0;
         }
+        
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         var drawCalls = 0;
         _vao.Bind();
@@ -162,6 +165,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
             drawCalls += Draw(_vao, instance.Key, instance.Value, shaderActivationCallback);
         }
         
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 

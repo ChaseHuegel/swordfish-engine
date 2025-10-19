@@ -27,6 +27,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly ShaderProgram _computeShader;
     private readonly ShaderProgram _ssaoShader;
     private readonly ShaderProgram _skyboxShader;
+    private readonly ShaderProgram _blurShader;
+    private readonly ShaderProgram _bloomShader;
     
     private uint _screenWidth;
     private uint _screenHeight;
@@ -43,11 +45,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly uint _ssaoTex;
     private readonly uint _ssaoFBO;
     
-    private readonly uint _bloomTex;
     private readonly uint _renderFBO;
     private readonly uint _colorRBO;
     private readonly uint _bloomRBO;
     private readonly uint _depthStencilRBO;
+
+    private readonly uint _blurFBO;
+    private readonly uint _blurTex;
     
     private readonly uint _lightsSSBO;
     private readonly uint _tileIndicesSSBO;
@@ -115,10 +119,26 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{skyboxShaderName}\".");
         }
         
+        const string blurShaderName = "blur_gaussian";
+        Result<Shader> blurShader = shaderDatabase.Get(blurShaderName);
+        if (!blurShader)
+        {
+            throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{blurShaderName}\".");
+        }
+        
+        const string bloomShaderName = "bloom";
+        Result<Shader> bloomShader = shaderDatabase.Get(bloomShaderName);
+        if (!bloomShader)
+        {
+            throw new FatalAlertException($"Failed to load the forward+ renderer's shader \"{bloomShaderName}\".");
+        }
+        
         _depthShader = depthShader.Value.CreateProgram(glContext);
         _computeShader = computeShader.Value.CreateProgram(glContext);
         _ssaoShader = ssaoShader.Value.CreateProgram(glContext);
         _skyboxShader = skyboxShader.Value.CreateProgram(glContext);
+        _blurShader = blurShader.Value.CreateProgram(glContext);
+        _bloomShader = bloomShader.Value.CreateProgram(glContext);
         
         _screenWidth = (uint)windowContext.Resolution.X;
         _screenHeight = (uint)windowContext.Resolution.Y;
@@ -187,6 +207,20 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         {
             throw new FatalAlertException("Forward+ render framebuffer is incomplete.");
         }
+
+        _blurFBO = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _blurFBO);
+        _blurTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgb, PixelType.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, TextureTarget.Texture2D, _blurTex, 0);
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        
+        gl.BindTexture(TextureTarget.Texture2D, 0);
         
         var quadVBO = new BufferObject<float>(_gl, _quadVertices, BufferTargetARB.ArrayBuffer);
         _screenVAO = new VertexArrayObject<float>(_gl, quadVBO);
@@ -279,6 +313,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.R32f, _screenHalfWidth, _screenHalfHeight, 0, PixelFormat.Red, PixelType.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgb, PixelType.Float, null);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
@@ -418,7 +459,40 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
-        //  Blit to the back buffer to display
+        //  Bloom blurring pass
+        //  Blit the bloom renderbuffer to the blur texture
+        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
+        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _blurFBO);
+        _gl.ReadBuffer(GLEnum.ColorAttachment1);
+        _gl.DrawBuffer(GLEnum.ColorAttachment0);
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            0, 0, (int)_screenWidth, (int)_screenHeight,
+            ClearBufferMask.ColorBufferBit,
+            BlitFramebufferFilter.Linear
+        );
+        
+        _blurShader.Activate();
+        _blurShader.SetUniform("texture0", 0);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _blurFBO);
+        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        var horizontal = true;
+        for (var i = 0; i <= 10; i++)
+        {
+            int horizontalInt = horizontal ? 0 : 1;
+            horizontal = !horizontal;
+            
+            _blurShader.SetUniform("uHorizontal", horizontalInt);
+            
+            _screenVAO.Bind();
+            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+            _screenVAO.Unbind();
+        }
+        
+        //  Blit the render buffer to the back buffer to display
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
         _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
         
@@ -433,6 +507,20 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         );
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        
+        //  Bloom render pass
+        _gl.DepthMask(false);
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+        _bloomShader.Activate();
+        _bloomShader.SetUniform("texture0", 0);
+        _gl.ActiveTexture(TextureUnit.Texture0);
+        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        _screenVAO.Bind();
+        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+        _screenVAO.Unbind();
+        _gl.Disable(EnableCap.Blend);
+        _gl.DepthMask(true);
     }
     
     protected override void ShaderActivationCallback(ShaderProgram shader)

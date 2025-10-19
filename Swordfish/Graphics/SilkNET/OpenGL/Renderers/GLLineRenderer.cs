@@ -81,6 +81,9 @@ internal sealed class GLLineRenderer(
             return 0;
         }
         
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        
         _shaderProgram.Activate();
         _shaderProgram.SetUniform("view", view);
         _shaderProgram.SetUniform("projection", projection);
@@ -91,6 +94,7 @@ internal sealed class GLLineRenderer(
         int drawCalls = DrawLines(_vao, _linesLock, _lines, _lineVertexOffsets, _lineVertexCounts, _lineVertexData, true);
         drawCalls += DrawLines(_vao, _noDepthLinesLock, _noDepthLines, _noDepthLineVertexOffsets, _noDepthLineVertexCounts, _noDepthLineVertexData, false);
 
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
