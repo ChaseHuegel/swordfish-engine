@@ -22,10 +22,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     
     private readonly GL _gl;
     private readonly RenderSettings _renderSettings;
-    private readonly IWindowContext _windowContext;
     
     private readonly ShaderProgram _depthShader;
-    private readonly ShaderProgram _fragmentShader;
     private readonly ShaderProgram _computeShader;
     private readonly ShaderProgram _ssaoShader;
     
@@ -50,6 +48,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     
     private readonly VertexArrayObject<float> _screenVAO;
     
+    private readonly List<LightData> _lights = [];
+    private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
+    
     private readonly float[] _quadVertices =
     [
         //  x, y, z, u, v
@@ -58,9 +59,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
     ];
-
-    private readonly List<LightData> _lights = [];
-    private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     
     public ForwardPlusRenderingPipeline(
         in TRenderStage[] renderStages,
@@ -73,7 +71,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     ) : base(renderStages) {
         _gl = gl;
         _renderSettings = renderSettings;
-        _windowContext = windowContext;
         
         const string depthShaderName = "forwardplus_depth";
         Result<Shader> depthShader = shaderDatabase.Get(depthShaderName);
@@ -104,12 +101,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         }
         
         _depthShader = depthShader.Value.CreateProgram(glContext);
-        _fragmentShader = fragmentShader.Value.CreateProgram(glContext);
         _computeShader = computeShader.Value.CreateProgram(glContext);
         _ssaoShader = ssaoShader.Value.CreateProgram(glContext);
         
-        _screenWidth = (uint)_windowContext.Resolution.X;
-        _screenHeight = (uint)_windowContext.Resolution.Y;
+        _screenWidth = (uint)windowContext.Resolution.X;
+        _screenHeight = (uint)windowContext.Resolution.Y;
         _screenHalfWidth = _screenWidth / 2;
         _screenHalfHeight = _screenHeight / 2;
         
@@ -166,7 +162,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _tileIndicesSSBO = gl.GenBuffer();
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileIndicesSSBO);
-        // flattened indices buffer
         int indicesCount = _numTiles * MAX_LIGHTS_PER_TILE;
         gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(indicesCount * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
         gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);
@@ -269,7 +264,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
         
-        // 1) Depth pre-pass
+        // Depth pre-pass
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _depthFBO);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         _gl.DepthMask(true);
@@ -283,10 +278,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthShader.SetUniform("projection", projection);
         _depthShader.SetUniform("near", near);
         _depthShader.SetUniform("far", far);
-        Draw(delta, view, projection);
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         
-        // 2) SSAO pass
+        Draw(delta, view, projection);
+        
+        // SSAO pass
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _ssaoFBO);
         _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
         _gl.Clear(ClearBufferMask.ColorBufferBit);
@@ -295,7 +290,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
-        _gl.Uniform2(_gl.GetUniformLocation(_ssaoShader.Handle, "uScreenSize"), (int)_screenHalfWidth, (int)_screenHalfHeight);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
         _ssaoShader.SetUniform("uInvProj", inverseProjection);
         
@@ -305,8 +299,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _screenVAO.Unbind();
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-        
-        // 2) Prepare lights (transform to view-space & upload)
+
+        // Upload lights
         int numLights;
         GPULight[] gpuLights;
         lock (_lights)
@@ -321,27 +315,23 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
             }
         }
-
-        // upload lights (BufferSubData)
+                
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
-        // pin and upload
         int bytes = numLights * Marshal.SizeOf<GPULight>();
         fixed (GPULight* p = gpuLights)
         {
             _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, p);
         }
         
-        // 3) Clear tileCounts to zero
+        // Clear tile counts
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
-        // zero the counts via BufferSubData with a zeroed array
         var zeros = new uint[_numTiles];
         fixed (uint* z = zeros) {
             _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(zeros.Length * sizeof(uint)), z);
         }
         
-        // 4) Dispatch compute shader
+        //  Dispatch tile compute shader
         _computeShader.Activate();
-        // bind depth texture
         _gl.ActiveTexture(TextureUnit.Texture0);
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
@@ -354,28 +344,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         var groupsX = (uint)_numTilesX;
         var groupsY = (uint)_numTilesY;
         _gl.DispatchCompute(groupsX, groupsY, 1);
-        
-        // 5) memory barrier so SSBO writes are visible to fragment shader reads
         _gl.MemoryBarrier( MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
-        
-        // 6) Forward shading pass (bind the SSBOs and draw scene)
-        _fragmentShader.Activate();
-        _fragmentShader.SetUniform("view", view);
-        _fragmentShader.SetUniform("projection", projection);
-        _fragmentShader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
-        _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
-        _gl.Uniform2(_gl.GetUniformLocation(_fragmentShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
-        _gl.Uniform1(_gl.GetUniformLocation(_fragmentShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        
-        // ensure SSBO bindings are set (we already Bound base earlier). But set again to be safe:
-        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 0, _lightsSSBO);
-        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);
-        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
-    {
-    }
+    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection) { }
     
     protected override void ShaderActivationCallback(ShaderProgram shader)
     {
@@ -385,6 +357,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.ActiveTexture(TextureUnit.Texture5);
         _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
         shader.SetUniform("uAO", 5);
-        shader.SetUniform("ambientLightning", _ambientLight);
+        shader.SetUniform("uAmbientLight", _ambientLight);
     }
 }

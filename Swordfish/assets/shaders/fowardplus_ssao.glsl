@@ -7,7 +7,6 @@ layout (location = 1) in vec2 vUV;
 inout vec2 UV;
 
 uniform sampler2D uDepthTex;
-uniform ivec2 uScreenSize;
 uniform mat4 uInvProj;
 
 uniform float uRadius = 0.1;

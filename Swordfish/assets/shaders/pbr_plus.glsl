@@ -10,7 +10,7 @@ float Roughness;
 #ifdef FRAGMENT
 struct Light
 {
-    vec4 pos_radius;      // view-space pos.xyz, radius in w
+    vec4 pos_radius; // view-space pos.xyz, radius in w
     vec4 color_intensity; // rgb, intensity in w
 };
 
@@ -36,7 +36,7 @@ uniform ivec2 uTileSize;
 uniform int uMaxLightsPerTile;
 
 uniform vec3 uCameraPos;
-uniform vec3 ambientLightning = vec3(0.05);
+uniform vec3 uAmbientLight = vec3(0.05);
 uniform float uMetallic = 0.5;
 uniform float uRoughness = 0.5;
 
@@ -148,7 +148,7 @@ vec4 shade()
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
-    vec3 color = ambientLightning;
+    vec3 color = uAmbientLight;
     for (uint i = 0u; i < count; ++i) {
         uint indexPos = base + i;
         if (indexPos >= indices.length())
