@@ -144,10 +144,6 @@ vec4 shade()
     int tilesX = (uScreenSize.x + uTileSize.x - 1) / uTileSize.x;
     int tId = tile.y * tilesX + tile.x;
 
-    if (tId >= counts.length()) {
-        return vec4(0, 1, 0, 1);    
-    }
-
     uint count = counts[tId];
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
@@ -165,7 +161,9 @@ vec4 shade()
         }
     }
 
-    float aoSample = texture(uAO, gl_FragCoord.xy / uScreenSize).r;
+    vec2 ssaoUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
+    vec2 ssaoUV2 = ssaoUV * 0.5;
+    float aoSample = texture(uAO, ssaoUV).r;
     color = color * aoSample;
 
     return vec4(color, 1.0);
