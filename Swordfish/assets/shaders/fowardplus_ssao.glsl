@@ -1,21 +1,18 @@
 #version 430
 
 #ifdef VERTEX
-layout (location = 0) in vec3 aPos;
-layout (location = 1) in vec2 aTexCoords;
+layout (location = 1) in vec2 vUV;
 #endif
 
-inout vec2 TexCoords;
+inout vec2 UV;
 
 uniform sampler2D uDepthTex;
 uniform ivec2     uScreenSize;
 uniform mat4      uInvProj;
 
 uniform float uRadius = 0.5;     // base sampling radius
-uniform float SIGMA   = 1.0;     // scaling factor for occlusion strength
+uniform float SIGMA   = 0.5;     // scaling factor for occlusion strength
 uniform float SAO_K   = 1.0;     // exponent shaping
-uniform int   SLICES  = 8;       // number of angular slices
-uniform int   STEPS   = 4;       // number of radial steps
 
 #ifdef FRAGMENT
 
@@ -76,35 +73,23 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
 
 vec4 fragment()
 {
-    vec2 jitterUV = 1.0 / uScreenSize;
-    vec2 jitter = GetNoise() * jitterUV; // Small jitter to break vertical reuse
-    vec2 sampleUV = TexCoords + jitter;
-    
-    float depth = texture(uDepthTex, sampleUV).r;
+    float depth = texture(uDepthTex, UV).r;
     if (depth >= 1.0) {
         return vec4(1);
     }
 
-    vec3 posVS = ReconstructVSPos(sampleUV, depth);
+    vec3 posVS = ReconstructVSPos(UV, depth);
 
-    vec2 texelSize = 1.0 / uScreenSize * 2.0;
-    float depthRight = texture(uDepthTex, sampleUV + vec2(texelSize.x, 0)).r;
-    float depthDown  = texture(uDepthTex, sampleUV + vec2(0, texelSize.y)).r;
-    vec3 n;
-    if (depthRight >= 1.0 || depthDown >= 1.0) {
-        // The reconstruction position was incorrect.
-        // This can occur when using a downsampled SSAO tex.
-        n = vec3(0.0, 0.0, 1.0);
-        return vec4(1.0);
-    } else {
-        vec3 posX = ReconstructVSPos(sampleUV + vec2(texelSize.x, 0), depthRight);
-        vec3 posY = ReconstructVSPos(sampleUV + vec2(0, texelSize.y), depthDown);
-        n = normalize(cross(posX - posVS, posY - posVS));
-    }
+    vec2 texelSize = 1.0 / uScreenSize;
+    float depthRight = texture(uDepthTex, UV + vec2(texelSize.x, 0)).r;
+    float depthDown  = texture(uDepthTex, UV + vec2(0, texelSize.y)).r;
+    vec3 posX = ReconstructVSPos(UV + vec2(texelSize.x, 0), depthRight);
+    vec3 posY = ReconstructVSPos(UV + vec2(0, texelSize.y), depthDown);
+    vec3 n = normalize(cross(posX - posVS, posY - posVS));
 
     vec2 noise = GetNoise();
     
-    float ao = SAO(sampleUV, posVS, n, noise, uRadius);
+    float ao = SAO(UV, posVS, n, noise, uRadius);
     return vec4(ao, ao, ao, 1.0);
 }
 #endif
@@ -112,7 +97,7 @@ vec4 fragment()
 #ifdef VERTEX
 vec4 vertex()
 {
-    TexCoords = aTexCoords;
-    return vec4(aPos, 1.0);
+    UV = vUV;
+    return vec4(VertexPosition, 1.0);
 }
 #endif
