@@ -10,6 +10,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Serialization;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -18,8 +19,6 @@ namespace WaywardBeyond.Client.Core.Bricks;
 /// </summary>
 internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate
 {
-    private ushort _lastDataID;
-
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<ushort, BrickInfo> _bricksByDataID = [];
     
@@ -93,9 +92,11 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     /// <inheritdoc/>
     protected override Result<BrickInfo> LoadAsset(string id, BrickDefinition assetInfo)
     {
-        //  Allocate an incremented ID for each brick.
-        //  This is not externally unique, and is valid solely for the current run of the game.
-        _lastDataID++;
+        Result<ushort> dataIDResult = GenerateDataID(id);
+        if (!dataIDResult.Success)
+        {
+            return new Result<BrickInfo>(success: false, null!, dataIDResult.Message, dataIDResult.Exception);
+        }
         
         Mesh? mesh = null;
         if (assetInfo.Shape == BrickShape.Custom && assetInfo.Mesh != null)
@@ -107,12 +108,45 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             }
         }
         
-        var brickInfo = new BrickInfo(id, _lastDataID, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
+        var brickInfo = new BrickInfo(id, dataIDResult, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
         lock (_bricksByDataID)
         {
-            _bricksByDataID[_lastDataID] = brickInfo;
+            _bricksByDataID[dataIDResult] = brickInfo;
         }
         
         return Result<BrickInfo>.FromSuccess(brickInfo);
+    }
+
+    private Result<ushort> GenerateDataID(string str)
+    {
+        uint hash = FNV1a.ComputeHash32(str);
+        var id = (ushort)(hash % ushort.MaxValue);
+        
+        var collisions = 0;
+        lock (_bricksByDataID)
+        {
+            ushort startID = id;
+            while (_bricksByDataID.ContainsKey(id))
+            {
+                collisions++;
+                id++;
+                
+                if (id == ushort.MaxValue)
+                {
+                    id = 0;
+                }
+                else if (id == startID)
+                {
+                    return Result<ushort>.FromFailure("No brick IDs are available");
+                }
+            }
+        }
+        
+        if (collisions != 0)
+        {
+            Logger.LogWarning("Brick \"{str}\" had {collisions} ID collisions! This brick may not be stable across load orders.", str, collisions);
+        }
+        
+        return Result<ushort>.FromSuccess(id);
     }
 }
