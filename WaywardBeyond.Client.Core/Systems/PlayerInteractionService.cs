@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.Linq;
 using System.Numerics;
 using Reef;
@@ -6,6 +7,7 @@ using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -482,6 +484,46 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         {
             _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, LightQuery);
             void LightQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
+            {
+                if (brickIdentifier.X != x || brickIdentifier.Y != y || brickIdentifier.Z != z)
+                {
+                    return;
+                }
+                
+                if (!store.TryGet(lightEntity, out ChildComponent childComponent))
+                {
+                    return;
+                }
+                
+                if (childComponent.Parent != entity) 
+                {
+                    return;
+                }
+                
+                store.Free(lightEntity);
+            }
+        }
+        
+        //  If the new brick is a thruster, create an entity
+        brickInfoResult = _brickDatabase.Get(brick.ID);
+        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("thruster"))
+        {
+            int lightEntity = _ecsContext.World.DataStore.Alloc();
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 0.75f, color: Color.FromArgb(244, 126, 27).ToVector3() * 20, size: 0.25f));
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new ChildComponent(entity)
+            {
+                LocalPosition = new Vector3(x, y, z),
+            });
+        }
+        
+        //  If the existing brick was a thruster, delete its entity
+        brickInfoResult = _brickDatabase.Get(currentBrick.ID);
+        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("thruster"))
+        {
+            _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, ThrusterQuery);
+            void ThrusterQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
             {
                 if (brickIdentifier.X != x || brickIdentifier.Y != y || brickIdentifier.Z != z)
                 {

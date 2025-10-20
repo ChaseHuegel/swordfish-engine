@@ -4,6 +4,7 @@ Shape   = "custom"
 Mesh    = "thruster.obj"
 Tags    = [
     "metal",
+    "thruster",
     "buildable",
     "orientable",
     "convertable_truss",
