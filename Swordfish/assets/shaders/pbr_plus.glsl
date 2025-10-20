@@ -97,7 +97,7 @@ vec3 EvalLight(Light light)
     float intensity = light.color_intensity.w;
 
     // --- Vector from fragment to light ---
-    vec3 L = lightPos - posFrag;
+    vec3 L = posFrag - lightPos;
     float dist = length(L);
 
     // Avoid division by zero / NaNs
