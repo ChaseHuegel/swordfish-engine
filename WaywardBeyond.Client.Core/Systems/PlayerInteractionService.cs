@@ -469,7 +469,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             int lightEntity = _ecsContext.World.DataStore.Alloc();
             _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
             _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 5f, color: Vector3.One, intensity: 5f));
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 10f, color: Vector3.One, intensity: 0.25f));
             _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new ChildComponent(entity)
             {
                 LocalPosition = new Vector3(x, y, z),
