@@ -96,7 +96,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
     vec3 H = normalize(V + L);
     float dist = length(lightPos - vWorldPos);
     float attenuation = clamp(1.0 - (dist / radius) * (dist / radius), 0.0, 1.0);
-    vec3 radiance = lightColor * attenuation * radius;
+    vec3 radiance = lightColor * attenuation * radius * intensity;
     
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(N, H, Roughness);
