@@ -1,4 +1,5 @@
 Shader   = "ui_reef_textured"
+Transparent = true
 Textures = [
     "ui/menu/title.png",
 ]

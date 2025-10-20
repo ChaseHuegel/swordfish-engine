@@ -115,8 +115,13 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         _renderTargets = glRenderContext.RectRenderTargets;
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
+        if (isDepthPass)
+        {
+            return;
+        }
+        
         if (_renderTargets == null)
         {
             throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
@@ -138,9 +143,9 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_vao == null)
+        if (_vao == null || isDepthPass)
         {
             return 0;
         }

@@ -1,4 +1,5 @@
 Shader   = "ui/crosshair"
+Transparent = true
 Textures = [
     "ui/crosshair.png",
 ]

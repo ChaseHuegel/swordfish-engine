@@ -39,6 +39,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private int _numTilesY;
     private int _numTiles;
     
+    private readonly uint _preDepthTex;
+    private readonly uint _preDepthFBO;
     private readonly uint _depthTex;
     private readonly uint _depthFBO;
     
@@ -152,6 +154,24 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
         
+        _preDepthTex = gl.GenTexture();
+        gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
+        gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenWidth, _screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
+        _preDepthFBO = gl.GenFramebuffer();
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _preDepthFBO);
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, _preDepthTex, 0);
+        GLEnum status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException("Forward+ pre-pass depth framebuffer is incomplete.");
+        }
+        
         _depthTex = gl.GenTexture();
         gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenWidth, _screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
@@ -163,11 +183,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthFBO = gl.GenFramebuffer();
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, _depthFBO);
         gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, _depthTex, 0);
-        GLEnum status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
         gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         if (status != GLEnum.FramebufferComplete)
         {
-            throw new FatalAlertException("Forward+ renderer framebuffer is incomplete.");
+            throw new FatalAlertException("Forward+ depth framebuffer is incomplete.");
         }
         
         _ssaoTex = gl.GenTexture();
@@ -325,6 +345,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
         
+        _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenWidth, _screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenWidth, _screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
@@ -387,7 +414,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
         
         // Depth pre-pass
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _depthFBO);
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _preDepthFBO);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         _gl.DepthMask(true);
         _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
@@ -401,7 +428,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthShader.SetUniform("near", near);
         _depthShader.SetUniform("far", far);
         
-        Draw(delta, view, projection);
+        Draw(delta, view, projection, isDepthPass: true);
         
         // SSAO pass
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _ssaoFBO);
@@ -410,7 +437,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
         _ssaoShader.Activate();
         _gl.ActiveTexture(TextureUnit.Texture0);
-        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
         _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
         _ssaoShader.SetUniform("uInvProj", inverseProjection);
@@ -418,6 +445,22 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _screenVAO.Bind();
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _screenVAO.Unbind();
+        
+        // Depth full pass
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _depthFBO);
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+        _gl.DepthMask(true);
+        _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
+        _gl.Enable(GLEnum.DepthTest);
+        
+        _depthShader.Activate();
+        _depthShader.SetUniform("view", view);
+        _depthShader.SetUniform("projection", projection);
+        _depthShader.SetUniform("near", near);
+        _depthShader.SetUniform("far", far);
+        
+        Draw(delta, view, projection, isDepthPass: false);
+        
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
 
@@ -580,10 +623,18 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        shader.SetUniform("uAO", 5);
         shader.SetUniform("uAmbientLight", _ambientLight);
         
         _gl.ActiveTexture(TextureUnit.Texture5);
         _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
+        shader.SetUniform("uAO", 5);
+        
+        _gl.ActiveTexture(TextureUnit.Texture6);
+        _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
+        shader.SetUniform("uPreDepth", 6);
+        
+        _gl.ActiveTexture(TextureUnit.Texture7);
+        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        shader.SetUniform("uDepth", 7);
     }
 }

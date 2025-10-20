@@ -121,8 +121,13 @@ internal sealed class ReefRenderer(
         _defaultShader.BindAttributeLocation("in_clipRect", 3);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
+        if (isDepthPass)
+        {
+            return;
+        }
+        
         RenderCommand<Material>[] commands = _reefContext.Builder.Build();
 
         _instances.Clear();
@@ -170,9 +175,9 @@ internal sealed class ReefRenderer(
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_vao == null)
+        if (_vao == null || isDepthPass)
         {
             return 0;
         }

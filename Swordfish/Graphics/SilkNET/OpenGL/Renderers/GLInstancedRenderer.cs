@@ -26,7 +26,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _renderTargets = glRenderContext.RenderTargets;
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
         if (_renderTargets == null)
         {
@@ -44,6 +44,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             if (renderTarget.Materials.Any(material => material.Transparent))
             {
+                //  Exclude anything with transparency from depth passes
+                if (isDepthPass)
+                {
+                    return;
+                }
+                
                 if (!_transparentInstances.TryGetValue(renderTarget, out matrices))
                 {
                     matrices = [];
@@ -63,7 +69,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_renderTargets == null)
         {
@@ -79,9 +85,15 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         var drawCalls = 0;
-        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
-        drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
         
+        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+        
+        //  Exclude rendering transparent targets during a depth pass
+        if (!isDepthPass)
+        {
+            drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+        }
+
         _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }

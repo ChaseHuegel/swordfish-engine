@@ -31,8 +31,13 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
     {
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
+        if (isDepthPass)
+        {
+            return;
+        }
+        
         if (_debugSettings.Gizmos.Physics)
         {
             _joltPhysics.System.DrawBodies(_drawSettings, this);
@@ -68,7 +73,7 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         _drawBuffer.Clear();
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         return 0;   //  Do nothing, the line renderer is doing the real work
     }

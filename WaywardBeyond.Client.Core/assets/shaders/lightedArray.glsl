@@ -18,7 +18,7 @@ vec4 fragment()
     Roughness = 1.0 - texture(texture2, TextureCoord).r;
     Normal = vNormal * (texture(texture3, TextureCoord).rgb * 2.0 - 1.0);
     vec4 emissive = texture(texture4, TextureCoord);
-    vec4 color = max(diffuse * VertexColor * shade(), emissive);
+    vec4 color = max(diffuse * VertexColor * shade() * ao(diffuse), emissive);
     
     if (length(emissive) > 0.0)
     {

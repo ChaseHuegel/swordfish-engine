@@ -25,17 +25,17 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         return drawCalls;
     }
     
-    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection)
+    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass = false)
     {
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            _renderStages[i].PreRender(delta, view, projection);
+            _renderStages[i].PreRender(delta, view, projection, isDepthPass);
         }
 
         var drawCalls = 0;
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            drawCalls += _renderStages[i].Render(delta, view, projection, ShaderActivationCallback);
+            drawCalls += _renderStages[i].Render(delta, view, projection, ShaderActivationCallback, isDepthPass);
         }
 
         return drawCalls;

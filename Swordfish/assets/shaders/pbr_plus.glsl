@@ -41,6 +41,8 @@ uniform float uMetallic = 0.5;
 uniform float uRoughness = 0.5;
 
 uniform sampler2D uAO;
+uniform sampler2D uPreDepth;
+uniform sampler2D uDepth;
 
 float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
@@ -161,12 +163,20 @@ vec4 shade()
         }
     }
 
-    vec2 ssaoUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
-    vec2 ssaoUV2 = ssaoUV * 0.5;
-    float aoSample = texture(uAO, ssaoUV).r;
-    color = color * aoSample;
-
     return vec4(color, 1.0);
+}
+
+vec4 ao(vec4 diffuse)
+{
+    vec2 screenUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
+
+    float fragDepth = texture(uDepth, screenUV).r;
+    float aoDepth = texture(uPreDepth, screenUV).r;
+
+    float visibility = step(aoDepth, fragDepth);
+    
+    float ao = mix(1.0, texture(uAO, screenUV).r, diffuse.a * visibility);
+    return vec4(ao, ao, ao, 1.0);
 }
 #endif
 
