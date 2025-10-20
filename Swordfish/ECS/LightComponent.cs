@@ -6,12 +6,12 @@ public struct LightComponent : IDataComponent
 {
     public float Radius;
     public Vector3 Color;
-    public float Intensity;
+    public float Size;
 
-    public LightComponent(float radius, Vector3 color, float intensity)
+    public LightComponent(float radius, Vector3 color, float size)
     {
         Radius = radius;
         Color = color;
-        Intensity = intensity;
+        Size = size;
     }
 }

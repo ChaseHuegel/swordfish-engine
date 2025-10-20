@@ -10,8 +10,8 @@ float Roughness;
 #ifdef FRAGMENT
 struct Light
 {
-    vec4 pos_radius; // view-space pos.xyz, radius in w
-    vec4 color_intensity; // rgb, intensity in w
+    vec4 PosRadius; // view-space pos.xyz, radius in w
+    vec4 ColorSize; // rgb, size in w
 };
 
 layout(std430, binding = 0) buffer LightBuffer
@@ -86,17 +86,17 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
 
 vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
 {
-    vec3 lightPos = light.pos_radius.xyz;
-    float radius = light.pos_radius.w;
-    vec3 lightColor = light.color_intensity.rgb;
-    float intensity = light.color_intensity.w;
+    vec3 lightPos = light.PosRadius.xyz;
+    float radius = light.PosRadius.w;
+    vec3 lightColor = light.ColorSize.rgb;
+    float size = light.ColorSize.w;
     
     // Radiance
     vec3 L = normalize(lightPos - vWorldPos);
     vec3 H = normalize(V + L);
     float dist = length(lightPos - vWorldPos);
     float attenuation = clamp(1.0 - (dist / radius) * (dist / radius), 0.0, 1.0);
-    vec3 radiance = lightColor * attenuation * radius * intensity;
+    vec3 radiance = lightColor * attenuation * radius;
     
     // Cook-Torrance BRDF
     float NDF = DistributionGGX(N, H, Roughness);
@@ -112,7 +112,12 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
     kD *= 1.0 - Metallic;
     
     float NdotL = max(dot(N, L), 0.0);
-    return (kD * vec3(1.0) / PI + specular) * radiance * NdotL;
+    vec3 lighting = (kD * vec3(1.0) / PI + specular) * radiance * NdotL;
+
+    float proximityRadiance = smoothstep(size, 0.0, dist);
+    vec3 proximityLighting = lightColor * proximityRadiance;
+    
+    return lighting + proximityLighting;
 }
 
 vec4 shade()

@@ -301,7 +301,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private void LightQuery(float f, DataStore store, int entity, ref TransformComponent transform, ref LightComponent light)
     {
         var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
-        var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
+        var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Size);
         _lights.Write(new GPULight(posRadius, colorIntensity));
     }
 
