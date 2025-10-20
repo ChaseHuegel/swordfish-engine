@@ -84,59 +84,35 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
-vec3 EvalLight(Light light)
+vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
 {
-    vec3 posFrag = vWorldPos;
-    vec3 viewDir = normalize(uCameraPos - posFrag);
-    vec3 N       = Normal;
-
-    // --- Light parameters ---
-    vec3 lightPos   = light.pos_radius.xyz;
-    float radius    = light.pos_radius.w;
+    vec3 lightPos = light.pos_radius.xyz;
+    float radius = light.pos_radius.w;
     vec3 lightColor = light.color_intensity.rgb;
     float intensity = light.color_intensity.w;
-
-    // --- Vector from fragment to light ---
-    vec3 L = posFrag - lightPos;
-    float dist = length(L);
-
-    // Avoid division by zero / NaNs
-    if (dist > 0.001)
-        L /= dist;
-    else
-        L = vec3(0.0, 0.0, 1.0);
-
-    // --- Attenuation by light radius ---
+    
+    // Radiance
+    vec3 L = normalize(lightPos - vWorldPos);
+    vec3 H = normalize(V + L);
+    float dist = length(lightPos - vWorldPos);
     float attenuation = clamp(1.0 - (dist / radius) * (dist / radius), 0.0, 1.0);
+    vec3 radiance = lightColor * attenuation * radius;
+    
+    // Cook-Torrance BRDF
+    float NDF = DistributionGGX(N, H, Roughness);
+    float G = GeometrySmith(N, V, L, Roughness);
+    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-    // --- Diffuse lighting (Lambert) ---
-    // Add tiny bias to prevent black spot directly under light
-    float NdotL = max(dot(N, L), 0.05);
-
-    // --- Specular lighting (Cook-Torrance) ---
-    vec3 H       = normalize(viewDir + L);
-    if(length(H) > 0.05) H = normalize(H); else H = vec3(0,0,1);
-
-    float roughness = Roughness;
-    float metallic  = Metallic;
-    vec3 albedo     = vec3(1.0);
-    vec3 F0        = mix(vec3(0.04), albedo, metallic);
-
-    float NdotV = max(dot(N, viewDir), 0.05);
-    float NDF = DistributionGGX(N, H, roughness);
-    float G   = GeometrySmith(N, viewDir, L, roughness);
-    vec3 F    = fresnelSchlick(clamp(dot(H, viewDir), 0.0, 1.0), F0);
-
-    float denom = max(4.0 * NdotV * NdotL, 0.001);
-    vec3 specular = NDF * G * F / denom;
-
-    vec3 kD = (vec3(1.0) - F) * (1.0 - metallic);
-
-    // --- Final color ---
-    vec3 radiance = lightColor * intensity * attenuation;
-    vec3 color = (kD * albedo / PI + specular) * radiance * NdotL;
-
-    return color;
+    vec3 numerator = NDF * G * F;
+    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+    vec3 specular = numerator / denominator;
+    
+    vec3 kS = F;
+    vec3 kD = vec3(1.0) - kS;
+    kD *= 1.0 - Metallic;
+    
+    float NdotL = max(dot(N, L), 0.0);
+    return (kD * vec3(1.0) / PI + specular) * radiance * NdotL;
 }
 
 vec4 shade()
@@ -150,16 +126,21 @@ vec4 shade()
     count = min(count, uint(uMaxLightsPerTile));
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
+    vec3 V = normalize(uCameraPos - vWorldPos);
+    vec3 F0 = mix(vec3(0.04), vec3(1.0), Metallic);
+
     vec3 color = uAmbientLight;
     for (uint i = 0u; i < count; ++i) {
         uint indexPos = base + i;
         if (indexPos >= indices.length())
+        {
             break;
+        }
 
-        uint li = indices[base + i];
-        if (li < lights.length()) {
-            Light L = lights[li];
-            color += EvalLight(L);
+        uint lightIndex = indices[base + i];
+        if (lightIndex < lights.length()) {
+            Light light = lights[lightIndex];
+            color += EvalLight(light, vNormal, V, F0);
         }
     }
 
