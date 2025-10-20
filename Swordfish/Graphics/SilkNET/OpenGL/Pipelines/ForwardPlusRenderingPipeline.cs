@@ -2,17 +2,17 @@ using System.Drawing;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 
-internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : RenderPipeline<TRenderStage>
+internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : RenderPipeline<TRenderStage>, IEntitySystem
     where TRenderStage : IRenderStage
 {
     private const int TILE_WIDTH = 16;
@@ -65,7 +65,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly VertexArrayObject<float> _screenVAO;
 
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
-    private readonly List<LightData> _lights = [];
+    private readonly DoubleList<GPULight> _lights = new();
     private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     
     private readonly float[] _quadVertices =
@@ -83,8 +83,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         in RenderSettings renderSettings,
         in IWindowContext windowContext,
         in IAssetDatabase<Shader> shaderDatabase,
-        in GLContext glContext,
-        in IShortcutService shortcutService
+        in GLContext glContext
     ) : base(renderStages) {
         _gl = gl;
         _renderSettings = renderSettings;
@@ -288,50 +287,22 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
         
         windowContext.Resized += OnWindowResized;
-        
-        _lights.Add(new LightData
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        lock (_lights)
         {
-            Position = new Vector3(-5f, 10f, 1f),
-            Radius = 20f,
-            Color = new Vector3(1f, 1f, 1f),
-            Intensity = 5f,
-        });
-        
-        _lights.Add(new LightData
-        {
-            Position = new Vector3(10f, 5f, 1f),
-            Radius = 20f,
-            Color = new Vector3(1f, 1f, 1f),
-            Intensity = 5f,
-        });
-        
-        Shortcut lightShortcut = new(
-            "Add lights",
-            "General",
-            ShortcutModifiers.None,
-            Key.F1,
-            Shortcut.DefaultEnabled,
-            () =>
-            {
-                lock (_lights)
-                {
-                    for (int i = 0; i < 50; i++)
-                    {
-                        _lights.Add(new LightData
-                        {
-                            Position = new Vector3(Random.Shared.NextSingle() * 30f - 15f,
-                                Random.Shared.NextSingle() * 10f - 5f, Random.Shared.NextSingle() * 30f - 15f),
-                            Radius = Random.Shared.NextSingle() * 5f + 2f,
-                            Color = new Vector3(Random.Shared.NextSingle() + 0.1f, Random.Shared.NextSingle() + 0.1f,
-                                Random.Shared.NextSingle() + 0.1f),
-                            Intensity = Random.Shared.NextSingle() * 5f + 2f,
-                        });
-                    }
-                    Console.WriteLine($"Lights: {_lights.Count}");
-                }
-            }
-        );
-        shortcutService.RegisterShortcut(lightShortcut);
+            _lights.Clear();
+            store.Query<TransformComponent, LightComponent>(0f, LightQuery);
+        }
+    }
+
+    private void LightQuery(float f, DataStore store, int entity, ref TransformComponent transform, ref LightComponent light)
+    {
+        var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
+        var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
+        _lights.Write(new GPULight(posRadius, colorIntensity));
     }
 
     private void OnWindowResized(Vector2 size)
@@ -463,26 +434,18 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-
+        
         // Upload lights
-        int numLights;
-        GPULight[] gpuLights;
+        GPULight[] lights;
         lock (_lights)
         {
-            numLights = _lights.Count;
-            gpuLights = new GPULight[numLights];
-            for (var i = 0; i < numLights; ++i)
-            {
-                LightData light = _lights[i];
-                var worldPos = new Vector4(light.Position.X, light.Position.Y, light.Position.Z, 1.0f);
-                gpuLights[i].PosRadius = new Vector4(worldPos.X, worldPos.Y, worldPos.Z, light.Radius);
-                gpuLights[i].ColorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Intensity);
-            }
+            lights = _lights.Read();
+            _lights.Swap();
         }
-                
+
         _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
-        int bytes = numLights * Marshal.SizeOf<GPULight>();
-        fixed (GPULight* p = gpuLights)
+        int bytes = lights.Length * Marshal.SizeOf<GPULight>();
+        fixed (GPULight* p = lights)
         {
             _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, p);
         }
@@ -500,7 +463,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), numLights);
+        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), lights.Length);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
         _computeShader.SetUniform("uInvProj", inverseProjection);

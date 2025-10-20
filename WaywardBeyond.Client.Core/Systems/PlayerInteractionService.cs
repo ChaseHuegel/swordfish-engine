@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
@@ -453,12 +454,52 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return Vector3.Transform(localCenter, orientation) + origin;
     }
     
-    private void SetBrick(int _, BrickGrid grid, int x, int y, int z, Brick brick)
+    private void SetBrick(int entity, BrickGrid grid, int x, int y, int z, Brick brick)
     {
         Brick currentBrick = grid.Get(x, y, z);
         if (!grid.Set(x, y, z, brick))
         {
             return;
+        }
+        
+        //  If the new brick is a light, create an entity
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(brick.ID);
+        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("light"))
+        {
+            int lightEntity = _ecsContext.World.DataStore.Alloc();
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 5f, color: Vector3.One, intensity: 10f));
+            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new ChildComponent(entity)
+            {
+                LocalPosition = new Vector3(x, y, z),
+            });
+        }
+        
+        //  If the existing brick was a light, delete its entity
+        brickInfoResult = _brickDatabase.Get(currentBrick.ID);
+        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("light"))
+        {
+            _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, LightQuery);
+            void LightQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
+            {
+                if (brickIdentifier.X != x || brickIdentifier.Y != y || brickIdentifier.Z != z)
+                {
+                    return;
+                }
+                
+                if (!store.TryGet(lightEntity, out ChildComponent childComponent))
+                {
+                    return;
+                }
+                
+                if (childComponent.Parent != entity) 
+                {
+                    return;
+                }
+                
+                store.Free(lightEntity);
+            }
         }
 
         //  TODO reimplement thrusters

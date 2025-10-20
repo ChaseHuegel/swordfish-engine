@@ -43,7 +43,9 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);
         
-        container.Register<IRenderPipeline, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>(Reuse.Singleton);
+        container.Register<ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>(Reuse.Singleton);
+        container.RegisterMapping<IRenderPipeline, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>();
+        container.RegisterMapping<IEntitySystem, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>();
         container.Register<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<IWorldSpaceRenderStage, GLInstancedRenderer>();
         container.RegisterMapping<IRenderStage, GLInstancedRenderer>();
