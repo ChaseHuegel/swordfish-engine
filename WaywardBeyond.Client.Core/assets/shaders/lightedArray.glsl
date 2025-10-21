@@ -30,12 +30,12 @@ vec3 GetNormal()
 
 vec4 fragment()
 {
-    vec4 diffuse = texture(texture0, TextureCoord);
+    vec4 albedo = texture(texture0, TextureCoord);
     Metallic = texture(texture1, TextureCoord).r;
     Roughness = 1.0 - texture(texture2, TextureCoord).r;
     Normal = GetNormal();
     vec4 emissive = texture(texture4, TextureCoord);
-    vec4 color = max(diffuse * VertexColor * shade() * ao(diffuse), emissive);
+    vec4 color = max(albedo * VertexColor * shade(albedo.rgb) * ao(albedo), emissive);
     
     if (length(emissive) > 0.0)
     {

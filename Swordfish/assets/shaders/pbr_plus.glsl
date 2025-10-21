@@ -84,7 +84,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
-vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
+vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo)
 {
     vec3 lightPos = light.PosRadius.xyz;
     float radius = light.PosRadius.w;
@@ -112,7 +112,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
     kD *= 1.0 - Metallic;
     
     float NdotL = max(dot(N, L), 0.0);
-    vec3 lighting = (kD * vec3(1.0) / PI + specular) * radiance * NdotL;
+    vec3 lighting = (kD * albedo / PI + specular) * radiance * NdotL;
 
     float proximityRadiance = smoothstep(size, 0.0, dist);
     vec3 proximityLighting = lightColor * proximityRadiance;
@@ -120,7 +120,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0)
     return lighting + proximityLighting;
 }
 
-vec4 shade()
+vec4 shade(vec3 albedo)
 {
     ivec2 pix = ivec2(gl_FragCoord.xy);
     ivec2 tile = pix / uTileSize;
@@ -132,7 +132,7 @@ vec4 shade()
     uint base = uint(tId) * uint(uMaxLightsPerTile);
 
     vec3 V = normalize(uCameraPos - vWorldPos);
-    vec3 F0 = mix(vec3(0.04), vec3(1.0), Metallic);
+    vec3 F0 = mix(vec3(0.04), albedo, Metallic);
 
     vec3 color = uAmbientLight;
     for (uint i = 0u; i < count; ++i) {
@@ -145,14 +145,14 @@ vec4 shade()
         uint lightIndex = indices[base + i];
         if (lightIndex < lights.length()) {
             Light light = lights[lightIndex];
-            color += EvalLight(light, vNormal, V, F0);
+            color += EvalLight(light, vNormal, V, F0, albedo);
         }
     }
 
     return vec4(color, 1.0);
 }
 
-vec4 ao(vec4 diffuse)
+vec4 ao(vec4 albedo)
 {
     vec2 screenUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
 
@@ -161,7 +161,7 @@ vec4 ao(vec4 diffuse)
 
     float visibility = step(aoDepth, fragDepth);
     
-    float ao = mix(1.0, texture(uAO, screenUV).r, diffuse.a * visibility);
+    float ao = mix(1.0, texture(uAO, screenUV).r, albedo.a * visibility);
     return vec4(ao, ao, ao, 1.0);
 }
 #endif
