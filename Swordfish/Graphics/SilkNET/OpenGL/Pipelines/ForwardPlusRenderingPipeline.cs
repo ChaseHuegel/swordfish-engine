@@ -386,7 +386,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         // Depth pre-pass
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _preDepthFBO);
-        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+        _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
         _gl.DepthMask(true);
         _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
         _gl.Enable(GLEnum.DepthTest);
