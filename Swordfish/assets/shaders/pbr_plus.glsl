@@ -84,7 +84,7 @@ vec3 fresnelSchlick(float cosTheta, vec3 F0)
     return F0 + (1.0 - F0) * pow(max(1.0 - cosTheta, 0.0), 5.0);
 }
 
-vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo)
+vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughness, float metallic)
 {
     vec3 lightPos = light.PosRadius.xyz;
     float radius = light.PosRadius.w;
@@ -99,8 +99,8 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo)
     vec3 radiance = lightColor * attenuation * radius;
     
     // Cook-Torrance BRDF
-    float NDF = DistributionGGX(N, H, Roughness);
-    float G = GeometrySmith(N, V, L, Roughness);
+    float NDF = DistributionGGX(N, H, roughness);
+    float G = GeometrySmith(N, V, L, roughness);
     vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
     vec3 numerator = NDF * G * F;
@@ -109,7 +109,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo)
     
     vec3 kS = F;
     vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - Metallic;
+    kD *= 1.0 - metallic;
     
     float NdotL = max(dot(N, L), 0.0);
     vec3 lighting = (kD * albedo / PI + specular) * radiance * NdotL;
@@ -145,7 +145,7 @@ vec4 shade(vec3 albedo)
         uint lightIndex = indices[base + i];
         if (lightIndex < lights.length()) {
             Light light = lights[lightIndex];
-            color += EvalLight(light, vNormal, V, F0, albedo);
+            color += EvalLight(light, vNormal, V, F0, albedo, Roughness, Metallic);
         }
     }
 
