@@ -91,28 +91,13 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     vec3 lightColor = light.ColorSize.rgb;
     float size = light.ColorSize.w;
     
-    // Radiance
-    vec3 L = normalize(lightPos - vWorldPos);
-    vec3 H = normalize(V + L);
     float dist = length(lightPos - vWorldPos);
     float attenuation = clamp(1.0 - (dist / radius) * (dist / radius), 0.0, 1.0);
     vec3 radiance = lightColor * attenuation * radius;
-    
-    // Cook-Torrance BRDF
-    float NDF = DistributionGGX(N, H, roughness);
-    float G = GeometrySmith(N, V, L, roughness);
-    vec3 F = fresnelSchlick(max(dot(H, V), 0.0), F0);
 
-    vec3 numerator = NDF * G * F;
-    float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
-    vec3 specular = numerator / denominator;
-    
-    vec3 kS = F;
-    vec3 kD = vec3(1.0) - kS;
-    kD *= 1.0 - metallic;
-    
+    vec3 L = normalize(lightPos - vWorldPos);
     float NdotL = max(dot(N, L), 0.0);
-    vec3 lighting = (kD * albedo / PI + specular) * radiance * NdotL;
+    vec3 lighting = (albedo / PI) * radiance * NdotL;
 
     float proximityRadiance = smoothstep(size, 0.0, dist);
     vec3 proximityLighting = lightColor * proximityRadiance;
