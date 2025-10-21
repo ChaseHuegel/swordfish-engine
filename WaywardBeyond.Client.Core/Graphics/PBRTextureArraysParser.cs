@@ -23,7 +23,7 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
     object IFileParser.Parse(PathInfo path) => Parse(path);
     public PBRTextureArrays Parse(PathInfo path)
     {
-        var diffuseFiles = new List<PathInfo>();
+        var albedoFiles = new List<PathInfo>();
         var metallicFiles = new List<PathInfo>();
         var smoothnessFiles = new List<PathInfo>();
         var normalFiles = new List<PathInfo>();
@@ -56,46 +56,46 @@ internal sealed class PBRTextureArraysParser(in VirtualFileSystem vfs, in IFileP
                 continue;
             }
             
-            diffuseFiles.Add(file);
+            albedoFiles.Add(file);
         }
         
-        List<Texture> diffuseTextures = diffuseFiles.Select(_textureParser.Parse).ToList();
+        List<Texture> albedoTextures = albedoFiles.Select(_textureParser.Parse).ToList();
         List<Texture> metallicTextures = metallicFiles.Select(_textureParser.Parse).ToList();
         List<Texture> smoothnessTextures = smoothnessFiles.Select(_textureParser.Parse).ToList();
         List<Texture> normalTextures = normalFiles.Select(_textureParser.Parse).ToList();
         List<Texture> emissiveTextures = emissiveFiles.Select(_textureParser.Parse).ToList();
 
-        GenerateMissingTextures(diffuseTextures, metallicTextures, ".m", new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        GenerateMissingTextures(diffuseTextures, smoothnessTextures, ".s", new Rgba32(r: 0, g: 0, b: 0, a: 255));
-        GenerateMissingTextures(diffuseTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: 255, a: 255));
-        GenerateMissingTextures(diffuseTextures, emissiveTextures, ".e", new Rgba32(r: 0, g: 0, b: 0, a: 0));
+        GenerateMissingTextures(albedoTextures, metallicTextures, ".m", new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        GenerateMissingTextures(albedoTextures, smoothnessTextures, ".s", new Rgba32(r: 0, g: 0, b: 0, a: 255));
+        GenerateMissingTextures(albedoTextures, normalTextures, ".n", new Rgba32(r: 0, g: 0, b: 255, a: 255));
+        GenerateMissingTextures(albedoTextures, emissiveTextures, ".e", new Rgba32(r: 0, g: 0, b: 0, a: 0));
 
-        Texture[] diffuseTexturesArray = diffuseTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
+        Texture[] albedoTexturesArray = albedoTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] metallicTexturesArray = metallicTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] smoothnessTexturesArray = smoothnessTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] normalTexturesArray = normalTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         Texture[] emissiveTexturesArray = emissiveTextures.OrderBy(texture => texture.Name, new NaturalComparer()).ToArray();
         
-        var diffuseTextureArray = new TextureArray("bricks_diffuse", diffuseTexturesArray, mipmaps: true);
+        var albedoTextureArray = new TextureArray("bricks_albedo", albedoTexturesArray, mipmaps: true);
         var metallicTextureArray = new TextureArray("bricks_metallic", metallicTexturesArray, mipmaps: true);
         var smoothnessTextureArray = new TextureArray("bricks_smoothness", smoothnessTexturesArray, mipmaps: true);
         var normalTextureArray = new TextureArray("bricks_normal", normalTexturesArray, mipmaps: true);
         var emissiveTextureArray = new TextureArray("bricks_emissive", emissiveTexturesArray, mipmaps: true);
         
-        return new PBRTextureArrays(diffuseTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
+        return new PBRTextureArrays(albedoTextureArray, metallicTextureArray, smoothnessTextureArray, normalTextureArray, emissiveTextureArray);
     }
 
-    private static void GenerateMissingTextures(List<Texture> diffuseTextures, List<Texture> textures, string suffix, Rgba32 color)
+    private static void GenerateMissingTextures(List<Texture> albedoTextures, List<Texture> textures, string suffix, Rgba32 color)
     {
-        IEnumerable<Texture> missingTextures = diffuseTextures.Except(textures, new TextureNameComparer(suffix));
-        foreach (Texture diffuseTexture in missingTextures)
+        IEnumerable<Texture> missingTextures = albedoTextures.Except(textures, new TextureNameComparer(suffix));
+        foreach (Texture albedoTexture in missingTextures)
         {
-            var pixels = new byte[diffuseTexture.Pixels.Length];
+            var pixels = new byte[albedoTexture.Pixels.Length];
             
-            var image = new Image<Rgba32>(diffuseTexture.Width, diffuseTexture.Height, color);
+            var image = new Image<Rgba32>(albedoTexture.Width, albedoTexture.Height, color);
             image.CopyPixelDataTo(pixels);
             
-            var texture = new Texture(diffuseTexture.Name + suffix, pixels, diffuseTexture.Width, diffuseTexture.Height, diffuseTexture.Mipmaps);
+            var texture = new Texture(albedoTexture.Name + suffix, pixels, albedoTexture.Width, albedoTexture.Height, albedoTexture.Mipmaps);
             textures.Add(texture);
         }
     }

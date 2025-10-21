@@ -63,7 +63,7 @@ internal sealed class BrickGridBuilder
 
             var meshBuilder = new BrickGridMeshBuilder(
                 _brickDatabase,
-                _textureArrays.Diffuse,
+                _textureArrays.Albedo,
                 vertices,
                 colors,
                 uv,
@@ -233,7 +233,7 @@ internal sealed class BrickGridBuilder
 
                     foreach (Vector3 texCoord in mesh.Uv)
                     {
-                        int textureIndex = _textureArrays.Diffuse.IndexOf(brickInfo.Textures.Default![0]!);
+                        int textureIndex = _textureArrays.Albedo.IndexOf(brickInfo.Textures.Default![0]!);
                         uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
                     }
 
