@@ -44,6 +44,55 @@ uniform sampler2D uAO;
 uniform sampler2D uPreDepth;
 uniform sampler2D uDepth;
 
+const int   g_sss_max_steps        = 16;
+const float g_sss_ray_max_distance = 0.05;
+const float g_sss_thickness        = 0.02;
+const float g_sss_step_length      = g_sss_ray_max_distance / float(g_sss_max_steps);
+
+uniform mat4 view;
+uniform mat4 projection;
+
+float screen_fade(vec2 uv)
+{
+    float edgeDist = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+    return clamp(edgeDist * 8.0, 0.0, 1.0); // soft fade within ~1/8 of screen border
+}
+
+float ScreenSpaceShadows(vec3 fragWorldPos, vec3 lightWorldPos)
+{
+    vec3 L = lightWorldPos - fragWorldPos;
+    vec3 ray_pos = fragWorldPos;
+    vec3 ray_dir = L;
+
+    vec3 ray_step = ray_dir * g_sss_step_length;
+
+    float occlusion = 0.0;
+    vec3 ray_screenPos = vec3(0.0);
+
+    for (int i = 0; i < g_sss_max_steps; ++i)
+    {
+        ray_pos += ray_step;
+
+        vec4 rayClip = projection * view * vec4(ray_pos, 1.0);
+        vec3 rayNDC = rayClip.xyz / rayClip.w;
+        vec2 rayUV = rayNDC.xy * 0.5 + 0.5;
+
+        if (all(greaterThanEqual(rayUV, vec2(0.0))) && all(lessThanEqual(rayUV, vec2(1.0))))
+        {
+            float depth = texture(uDepth, rayUV).r;
+            float depthNDC = depth * 2.0 - 1.0;
+
+            if (depthNDC < rayNDC.z - 0.001)
+            {
+                occlusion = 1.0;
+                break;
+            }
+        }
+    }
+
+    return 1.0 - occlusion;
+}
+
 float DistributionGGX(vec3 Normal, vec3 H, float Roughness)
 {
     float a = Roughness*Roughness;
@@ -102,7 +151,10 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     float proximityRadiance = smoothstep(size, 0.0, dist);
     vec3 proximityLighting = lightColor * proximityRadiance;
     
-    return lighting + proximityLighting;
+    vec3 surface = mat3(view) * vWorldPos;
+    vec3 lightDir = mat3(transpose(inverse(view))) * -L;
+    float shadow = ScreenSpaceShadows(vWorldPos, lightPos);
+    return vec3(shadow);//(lighting + proximityLighting) * shadow;
 }
 
 vec4 shade(vec3 albedo)
