@@ -115,12 +115,11 @@ public class BrickGrid
             if (currentBrick != brick)
             {
                 int newBrickCount = _brickCount + (brick == Brick.Empty ? -1 : 1);
-
-                Bricks[x, y, z] = brick;
                 _brickCount = newBrickCount;
-
-                UpdateCenterOfMass(previousCount, new Vector3(x, y, z));
             }
+
+            Bricks[x, y, z] = brick;
+            UpdateCenterOfMass(previousCount, new Vector3(x, y, z));
         }
 
         _dirty = true;
