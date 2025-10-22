@@ -18,13 +18,14 @@ internal sealed class BrickEntityBuilder(
     in PBRTextureArrays textureArrays,
     in BrickDatabase brickDatabase,
     in IAssetDatabase<Mesh> meshDatabase,
-    in DataStore dataStore
+    in DataStore dataStore,
+    in BrickGridService brickGridService
 ) {
     private readonly ILogger _logger = logger;
     
     private readonly DataStore _dataStore = dataStore;
     
-    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArrays, meshDatabase);
+    private readonly BrickGridBuilder _brickGridBuilder = new(brickDatabase, textureArrays, meshDatabase, brickGridService);
     
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
     
@@ -61,7 +62,7 @@ internal sealed class BrickEntityBuilder(
         int ptr = _dataStore.Alloc(new IdentifierComponent(name, "bricks"));
         int transparencyPtr = _dataStore.Alloc(new IdentifierComponent($"{name} [Transparency]", "bricks"));
 
-        Mesh mesh = _brickGridBuilder.CreateMesh(grid);
+        Mesh mesh = _brickGridBuilder.CreateMesh(_dataStore, ptr, grid);
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(ptr, transform);
         _dataStore.AddOrUpdate(ptr, new MeshRendererComponent(renderer));
@@ -69,7 +70,7 @@ internal sealed class BrickEntityBuilder(
         _dataStore.AddOrUpdate(ptr, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
         _dataStore.AddOrUpdate(ptr, new BrickComponent(grid, transparencyPtr));
         
-        mesh = _brickGridBuilder.CreateMesh(grid, true);
+        mesh = _brickGridBuilder.CreateMesh(_dataStore, ptr, grid, true);
         renderer = new MeshRenderer(mesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(transparencyPtr, transform);
         _dataStore.AddOrUpdate(transparencyPtr, new MeshRendererComponent(renderer));
@@ -101,13 +102,13 @@ internal sealed class BrickEntityBuilder(
             brickRotations[i] = Quaternion.Identity;
         }
 
-        Mesh mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid);
+        Mesh mesh = _brickGridBuilder.CreateMesh(_dataStore, entity, brickComponent.Grid);
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(entity, new ColliderComponent(new CompoundShape(brickShapes, brickLocations, brickRotations)));
         _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
         
-        mesh = _brickGridBuilder.CreateMesh(brickComponent.Grid, true);
+        mesh = _brickGridBuilder.CreateMesh(_dataStore, entity, brickComponent.Grid, true);
         renderer = new MeshRenderer(mesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(brickComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));

@@ -8,6 +8,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Bricks.Decorators;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
@@ -31,6 +32,7 @@ public class Injector : IDryIocInjector
         RegisterDatabases(container);
         RegisterParsers(container);
         RegisterEntitySystems(container);
+        RegisterBrickDecorators(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -124,5 +126,12 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
+    }
+    
+    private void RegisterBrickDecorators(IContainer container)
+    {
+        container.Register<BrickGridService>();
+        container.Register<IBrickDecorator, LightDecorator>();
+        container.Register<IBrickDecorator, ThrusterDecorator>();
     }
 }

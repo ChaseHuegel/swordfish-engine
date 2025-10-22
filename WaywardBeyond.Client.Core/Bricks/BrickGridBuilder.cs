@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
@@ -19,11 +20,13 @@ internal sealed class BrickGridBuilder
     private readonly Mesh _plate;
     private readonly PBRTextureArrays _textureArrays;
     private readonly BrickDatabase _brickDatabase;
+    private readonly BrickGridService _brickGridService;
     
-    public BrickGridBuilder(BrickDatabase brickDatabase, PBRTextureArrays textureArrays, IAssetDatabase<Mesh> meshDatabase)
+    public BrickGridBuilder(BrickDatabase brickDatabase, PBRTextureArrays textureArrays, IAssetDatabase<Mesh> meshDatabase, BrickGridService brickGridService)
     {
         _brickDatabase = brickDatabase;
         _textureArrays = textureArrays;
+        _brickGridService = brickGridService;
         _slope = meshDatabase.Get("slope.obj");
         _stair = meshDatabase.Get("stair.obj");
         _slab = meshDatabase.Get("slab.obj");
@@ -31,7 +34,7 @@ internal sealed class BrickGridBuilder
         _plate = meshDatabase.Get("plate.obj");
     }
     
-    public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
+    public Mesh CreateMesh(DataStore store, int entity, BrickGrid grid, bool transparent = false)
     {
         var lightQueue = new Queue<BrickGridItem>();
         //  Seed lights
@@ -47,16 +50,16 @@ internal sealed class BrickGridBuilder
             if (!brickInfoResult.Success || !brickInfo.LightSource)
             {
                 data = item.Brick.Data;
-                newData = new BrickData(data.Shape, lightLevel: 0);
+                newData = new BrickData(data.Shape, lightLevel: 0); // Clear out any stale light level
                 brick = new Brick(item.Brick.ID, newData, item.Brick.Orientation);
-                grid.Set(item.X, item.Y, item.Z, brick);
+                _brickGridService.SetBrick(store, entity, grid, item.X, item.Y, item.Z, brick);
                 continue;
             }
             
             data = item.Brick.Data;
             newData = new BrickData(data.Shape, brickInfo.Brightness);
             brick = new Brick(item.Brick.ID, newData, item.Brick.Orientation);
-            grid.Set(item.X, item.Y, item.Z, brick);
+            _brickGridService.SetBrick(store, entity, grid, item.X, item.Y, item.Z, brick);
             
             lightQueue.Enqueue(new BrickGridItem(brick, item.X, item.Y, item.Z));
         }

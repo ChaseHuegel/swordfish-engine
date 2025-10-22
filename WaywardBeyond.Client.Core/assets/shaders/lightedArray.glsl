@@ -15,14 +15,14 @@ vec3 GetNormal()
 {
     vec3 tangentNormal = texture(texture3, TextureCoord).xyz * 2.0 - 1.0;
 
-    vec3 Q1  = dFdx(vWorldPos);
-    vec3 Q2  = dFdy(vWorldPos);
+    vec3 Q1 = dFdx(vWorldPos);
+    vec3 Q2 = dFdy(vWorldPos);
     vec2 st1 = dFdx(TextureCoord.xy);
     vec2 st2 = dFdy(TextureCoord.xy);
 
-    vec3 N   = normalize(vNormal);
-    vec3 T  = normalize(Q1*st2.t - Q2*st1.t);
-    vec3 B  = -normalize(cross(N, T));
+    vec3 N = vNormal;
+    vec3 T = normalize(Q1 * st2.t - Q2 * st1.t);
+    vec3 B = -normalize(cross(N, T));
     mat3 TBN = mat3(T, B, N);
 
     return normalize(TBN * tangentNormal);

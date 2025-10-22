@@ -34,6 +34,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
+    private readonly BrickGridService _brickGridService;
     private readonly CubeGizmo _cubeGizmo;
 
     private (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -50,7 +51,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector
+        in OrientationSelector orientationSelector,
+        in BrickGridService brickGridService
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -63,6 +65,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
+        _brickGridService = brickGridService;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
     }
 
@@ -102,7 +105,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
         
-        SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
+        _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
         _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -175,7 +178,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             }
 
             var brick = brickInfo.ToBrick(shape, orientation);
-            SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
+            _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
             _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
@@ -452,126 +455,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         );
 
         return Vector3.Transform(localCenter, orientation) + origin;
-    }
-    
-    private void SetBrick(int entity, BrickGrid grid, int x, int y, int z, Brick brick)
-    {
-        Brick currentBrick = grid.Get(x, y, z);
-        if (!grid.Set(x, y, z, brick))
-        {
-            return;
-        }
-        
-        //  If the new brick is a light, create an entity
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(brick.ID);
-        if (brickInfoResult && brickInfoResult.Value.LightSource)
-        {
-            int lightEntity = _ecsContext.World.DataStore.Alloc();
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 10f, color: new Vector3(0.25f), size: 2.5f));
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new ChildComponent(entity)
-            {
-                LocalPosition = new Vector3(x, y, z),
-            });
-        }
-        
-        //  If the existing brick was a light, delete its entity
-        brickInfoResult = _brickDatabase.Get(currentBrick.ID);
-        if (brickInfoResult && brickInfoResult.Value.LightSource)
-        {
-            _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, LightQuery);
-            void LightQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
-            {
-                if (brickIdentifier.X != x || brickIdentifier.Y != y || brickIdentifier.Z != z)
-                {
-                    return;
-                }
-                
-                if (!store.TryGet(lightEntity, out ChildComponent childComponent))
-                {
-                    return;
-                }
-                
-                if (childComponent.Parent != entity) 
-                {
-                    return;
-                }
-                
-                store.Free(lightEntity);
-            }
-        }
-        
-        //  If the new brick is a thruster, create an entity
-        brickInfoResult = _brickDatabase.Get(brick.ID);
-        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("thruster"))
-        {
-            int lightEntity = _ecsContext.World.DataStore.Alloc();
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new LightComponent(radius: 0.75f, color: Color.FromArgb(244, 126, 27).ToVector3() * 20, size: 0.25f));
-            _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new ChildComponent(entity)
-            {
-                LocalPosition = new Vector3(x, y, z),
-            });
-        }
-        
-        //  If the existing brick was a thruster, delete its entity
-        brickInfoResult = _brickDatabase.Get(currentBrick.ID);
-        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("thruster"))
-        {
-            _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, ThrusterQuery);
-            void ThrusterQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
-            {
-                if (brickIdentifier.X != x || brickIdentifier.Y != y || brickIdentifier.Z != z)
-                {
-                    return;
-                }
-                
-                if (!store.TryGet(lightEntity, out ChildComponent childComponent))
-                {
-                    return;
-                }
-                
-                if (childComponent.Parent != entity) 
-                {
-                    return;
-                }
-                
-                store.Free(lightEntity);
-            }
-        }
-
-        //  TODO reimplement thrusters
-        // if (currentBrick.Name == "thruster")
-        // {
-        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-        //     {
-        //         thruster.Power--;
-        //
-        //         if (thruster.Power <= 0)
-        //         {
-        //             store.Remove<ThrusterComponent>(thrusterEntity);
-        //         }
-        //     }
-        // }
-        //
-        // if (brick.Name == "thruster")
-        // {
-        //     var updated = false;
-        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-        //     {
-        //         thruster.Power++;
-        //         updated = true;
-        //     }
-        //
-        //     if (!updated)
-        //     {
-        //         _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
-        //     }
-        // }
     }
     
     private bool IsMainHandPlaceable() 
