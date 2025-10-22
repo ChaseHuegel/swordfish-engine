@@ -158,7 +158,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     vec3 surface = mat3(view) * vWorldPos;
     vec3 lightDir = mat3(transpose(inverse(view))) * -L;
     float shadow = ScreenSpaceShadows(vWorldPos, lightPos);
-    return vec3(shadow);//(lighting + proximityLighting) * shadow;
+    return (lighting + proximityLighting);
 }
 
 vec4 shade(vec3 albedo)
