@@ -71,7 +71,7 @@ public struct BrickOrientation : IEquatable<BrickOrientation>
         return $"<{PitchRotations * 90}, {YawRotations * 90}, {RollRotations * 90}>";
     }
 
-    public byte ToByte()
+    public readonly byte ToByte()
     {
         return _value;
     }

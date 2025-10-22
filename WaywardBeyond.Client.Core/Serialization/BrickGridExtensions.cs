@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using Swordfish.Bricks;
-
+using WaywardBeyond.Client.Core.Bricks;
 using Int3 = (int X, int Y, int Z);
 
 namespace WaywardBeyond.Client.Core.Serialization;
@@ -13,6 +13,17 @@ internal static class BrickGridExtensions
     {
         var rawBricks = new List<RawBrick>(value.Size);
 
+        foreach (BrickGridItem item in value.GetBricks())
+        {
+            rawBricks.Add(new RawBrick(item.X, item.Y, item.Z, item.Brick.ID, item.Brick.Data, item.Brick.Orientation.ToByte()));
+        }
+
+        RawBrick[] rawBrickArr = rawBricks.ToArray();
+        return new RawBrickGrid(rawBrickArr, _X: 0, _Y: 0, _Z: 0, _OrientationX: 0, _OrientationY: 0, _OrientationZ: 0, _OrientationW: 1);
+    }
+    
+    public static IEnumerable<BrickGridItem> GetBricks(this BrickGrid value)
+    {
         HashSet<BrickGrid> processed = [];
         var toProcess = new Stack<ItemToProcess>();
         toProcess.Push(new ItemToProcess(value, new Int3(0, 0, 0)));
@@ -26,7 +37,7 @@ internal static class BrickGridExtensions
             for (var x = 0; x < brickGrid.DimensionSize; x++)
             {
                 Brick brick = brickGrid.Bricks[x, y, z];
-                if (brick.ID == Brick.UNDEFINED_ID)
+                if (brick.ID == Brick.UNDEFINED_ID && brick.Data == 0)
                 {
                     continue;
                 }
@@ -34,7 +45,8 @@ internal static class BrickGridExtensions
                 int gridX = x + item.Offset.X;
                 int gridY = y + item.Offset.Y;
                 int gridZ = z + item.Offset.Z;
-                rawBricks.Add(new RawBrick(gridX, gridY, gridZ, brick.ID, brick.Data, brick.Orientation.ToByte()));
+                
+                yield return new BrickGridItem(brick, gridX, gridY, gridZ);
             }
 
             for (var z = 0; z < brickGrid.NeighborGrids.GetLength(2); z++)
@@ -55,8 +67,5 @@ internal static class BrickGridExtensions
                 toProcess.Push(new ItemToProcess(neighborGrid, offset));
             }
         }
-
-        RawBrick[] rawBrickArr = rawBricks.ToArray();
-        return new RawBrickGrid(rawBrickArr, _X: 0, _Y: 0, _Z: 0, _OrientationX: 0, _OrientationY: 0, _OrientationZ: 0, _OrientationW: 1);
     }
 }

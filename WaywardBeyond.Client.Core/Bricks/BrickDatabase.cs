@@ -41,7 +41,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
         
         //  If this is not a block shape, it doesn't cull
-        if (brick.Data != 0)
+        BrickData data = brick.Data;
+        if (data.Shape != BrickShape.Block)
         {
             return false;
         }

@@ -305,11 +305,15 @@ internal readonly struct BrickGridMeshBuilder
         _normals.Add(Vector3.Transform(normal, rotation));
         _normals.Add(Vector3.Transform(normal, rotation));
         _normals.Add(Vector3.Transform(normal, rotation));
-        
-        _colors.Add(Vector4.One);
-        _colors.Add(Vector4.One);
-        _colors.Add(Vector4.One);
-        _colors.Add(Vector4.One);
+
+        Brick neighbor = _grid.Get(x + (int)normal.X, y + (int)normal.Y, z + (int)normal.Z);
+        BrickData data = neighbor.Data;
+        float light = Math.Clamp(data.LightLevel / 15f, 0.1f, 1f);
+        var color = new Vector4(light, light, light, 1f);
+        _colors.Add(color);
+        _colors.Add(color);
+        _colors.Add(color);
+        _colors.Add(color);
         
         _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V0, rotation));
         _vertices.Add(_origin + new Vector3(x, y, z) + Vector3.Transform(faceInfo.Vertices.V1, rotation));
@@ -349,9 +353,10 @@ internal readonly struct BrickGridMeshBuilder
             
             Brick neighbor = _grid.Get(nX, nY, nZ);
             
-            //  Only connect to neighbors with matching ID and data.
-            //  Data is used to identify the shape, so only like shapes will connect.
-            if (neighbor.ID != brick.ID || neighbor.Data != brick.Data) 
+            //  Only connect to neighbors with matching ID and shape.
+            BrickData neighborData = neighbor.Data;
+            BrickData brickData = brick.Data;
+            if (neighbor.ID != brick.ID || neighborData.Shape != brickData.Shape) 
             {
                 continue;
             }

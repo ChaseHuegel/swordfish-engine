@@ -174,10 +174,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 orientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
             }
 
-            var brick = brickInfo.ToBrick();
-            brick.Data = (byte)shape;
-            brick.Orientation = orientation;
-            
+            var brick = brickInfo.ToBrick(shape, orientation);
             SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
             _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
@@ -204,7 +201,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
 
         //  Clone the target brick's shape
-        _shapeSelector.SelectedShape.Set((BrickShape)clickedBrick.Data);
+        BrickData brickData = clickedBrick.Data;
+        _shapeSelector.SelectedShape.Set(brickData.Shape);
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -466,7 +464,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         //  If the new brick is a light, create an entity
         Result<BrickInfo> brickInfoResult = _brickDatabase.Get(brick.ID);
-        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("light"))
+        if (brickInfoResult && brickInfoResult.Value.LightSource)
         {
             int lightEntity = _ecsContext.World.DataStore.Alloc();
             _ecsContext.World.DataStore.AddOrUpdate(lightEntity, new TransformComponent());
@@ -480,7 +478,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         //  If the existing brick was a light, delete its entity
         brickInfoResult = _brickDatabase.Get(currentBrick.ID);
-        if (brickInfoResult && brickInfoResult.Value.Tags.Contains("light"))
+        if (brickInfoResult && brickInfoResult.Value.LightSource)
         {
             _ecsContext.World.DataStore.Query<BrickIdentifierComponent, LightComponent>(0f, LightQuery);
             void LightQuery(float delta, DataStore store, int lightEntity, ref BrickIdentifierComponent brickIdentifier, ref LightComponent light)
