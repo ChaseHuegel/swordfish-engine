@@ -62,14 +62,13 @@ float ScreenSpaceShadows(vec3 fragWorldPos, vec3 lightWorldPos)
 {
     vec3 L = lightWorldPos - fragWorldPos;
     vec3 ray_pos = fragWorldPos;
-    vec3 ray_dir = L;
+    vec3 ray_dir = -L;
 
     vec3 ray_step = ray_dir * g_sss_step_length;
 
     float occlusion = 0.0;
     vec3 ray_screenPos = vec3(0.0);
-
-    for (int i = 0; i < g_sss_max_steps; ++i)
+    for (int i = 0; i < g_sss_max_steps; i++)
     {
         ray_pos += ray_step;
 
@@ -82,14 +81,19 @@ float ScreenSpaceShadows(vec3 fragWorldPos, vec3 lightWorldPos)
             float depth = texture(uDepth, rayUV).r;
             float depthNDC = depth * 2.0 - 1.0;
 
-            if (depthNDC < rayNDC.z - 0.001)
+            vec4 depthViewPos = inverse(projection) * vec4(0.0, 0.0, depthNDC, 1.0);
+            float depthView = depthViewPos.z / depthViewPos.w;
+
+            vec4 rayView = view * vec4(ray_pos, 1.0);
+
+            if (depthView < rayView.z - 0.01)
             {
-                occlusion = 1.0;
-                break;
+                occlusion += smoothstep(0.0, 0.05, rayView.z - depthView);
             }
         }
     }
 
+    occlusion = clamp(occlusion / float(g_sss_max_steps), 0.0, 1.0);
     return 1.0 - occlusion;
 }
 
