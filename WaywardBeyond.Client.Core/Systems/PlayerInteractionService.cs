@@ -1,13 +1,10 @@
 using System;
-using System.Drawing;
-using System.Linq;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
 using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
