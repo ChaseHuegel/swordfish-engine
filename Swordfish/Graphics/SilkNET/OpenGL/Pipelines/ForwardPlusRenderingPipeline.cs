@@ -321,6 +321,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             Draw(delta, view, projection, isDepthPass: false);
         }
         
+        //  Reset to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         
@@ -348,8 +349,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         //  Dispatch tile compute shader
         _computeShader.Activate();
-        _gl.ActiveTexture(TextureUnit.Texture0);
-        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        _depthTex.Activate();
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
         _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
         _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), lights.Length);
@@ -398,7 +398,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
-        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        _blurTex.Bind();
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
         _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _blurFBO);
         _gl.ReadBuffer(GLEnum.ColorAttachment1);
@@ -412,31 +412,34 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         );
         
         //  Blur the bloom texture
-        _blurShader.Activate();
-        _blurShader.SetUniform("texture0", 0);
-        _gl.ActiveTexture(TextureUnit.Texture0);
-        //  TODO Blur should be done with separate textures for
-        //       the horizontal and vertical blurs. This creates artifacts,
-        //       but they aren't too noticeable. since this is just for bloom.
-        //       Using a single texture and single pass is a bit more performant.
-        //       Whether one or two textures is used could be driven by quality settings.
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _blurFBO);
-        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
-        var horizontal = true;
-        for (var i = 0; i <= 10; i++)
+        using (_blurFBO.Use())
         {
-            int horizontalInt = horizontal ? 0 : 1;
-            horizontal = !horizontal;
+            //  TODO Blur should be done with separate textures for
+            //       the horizontal and vertical blurs. This creates artifacts,
+            //       but they aren't too noticeable. since this is just for bloom.
+            //       Using a single texture and single pass is a bit more performant.
+            //       Whether one or two textures is used could be driven by quality settings.
+            _blurShader.Activate();
             
-            _blurShader.SetUniform("uHorizontal", horizontalInt);
+            _blurTex.Activate();
+            _blurShader.SetUniform("texture0", 0);
             
-            _screenVAO.Bind();
-            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-            _screenVAO.Unbind();
+            var horizontal = true;
+            for (var i = 0; i <= 10; i++)
+            {
+                int horizontalInt = horizontal ? 0 : 1;
+                horizontal = !horizontal;
+                
+                _blurShader.SetUniform("uHorizontal", horizontalInt);
+                
+                _screenVAO.Bind();
+                _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+                _screenVAO.Unbind();
+            }
         }
         
         //  Blit the bloom renderbuffer to the screen texture
-        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
+        _screenTex.Bind();
         _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
         _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _screenFBO);
         _gl.ReadBuffer(GLEnum.ColorAttachment1);
@@ -456,16 +459,19 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.DepthMask(false);
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+        
         _bloomShader.Activate();
+        
+        _blurTex.Activate();
         _bloomShader.SetUniform("texture0", 0);
-        _gl.ActiveTexture(TextureUnit.Texture0);
-        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
+        
+        _screenTex.Activate(TextureUnit.Texture1);
         _bloomShader.SetUniform("texture1", 1);
-        _gl.ActiveTexture(TextureUnit.Texture1);
-        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
+        
         _screenVAO.Bind();
         _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
         _screenVAO.Unbind();
+        
         _gl.Disable(EnableCap.Blend);
         _gl.DepthMask(true);
     }
