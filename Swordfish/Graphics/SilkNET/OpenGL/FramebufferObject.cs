@@ -1,40 +1,29 @@
 using Silk.NET.OpenGL;
+using Swordfish.Library.Diagnostics;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-// ReSharper disable once UnusedType.Global
 internal sealed class FramebufferObject : GLHandle
 {
+    public string Name { get; }
+    
     private readonly GL _gl;
-    private readonly uint _width;
-    private readonly uint _height;
-    private readonly uint _textureHandle;
+    private readonly TexImage2D _texture;
 
-    public unsafe FramebufferObject(GL gl,  uint width, uint height)
+    public FramebufferObject(GL gl, string name, TexImage2D texture, FramebufferAttachment attachment)
     {
         _gl = gl;
-        _width = width;
-        _height = height;
+        Name = name;
+        _texture = texture;
 
-        Bind();
-        _textureHandle = _gl.GenTexture();
-        _gl.BindTexture(TextureTarget.Texture2D, _textureHandle);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent, _width, _height, 0, PixelFormat.DepthComponent, PixelType.Float, null);
-
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToBorder);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, [1f, 1f, 1f, 1f]);
-
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-
-        _gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthAttachment, TextureTarget.Texture2D, _textureHandle, 0);
-
-        //  Disable reading/writing the color buffer
-        _gl.DrawBuffer(DrawBufferMode.None);
-        _gl.ReadBuffer(ReadBufferMode.None);
-
-        Unbind();
+        using Scope _ = Use();
+        gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment, textarget: TextureTarget.Texture2D, texture.Handle, level: 0);
+        
+        GLEnum status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException($"Framebuffer \"{name}\" is incomplete.");
+        }
     }
 
     protected override uint CreateHandle()
@@ -49,7 +38,7 @@ internal sealed class FramebufferObject : GLHandle
 
     protected override void BindHandle()
     {
-        _gl.Viewport(0, 0, _width, _height);
+        _gl.Viewport(0, 0, _texture.Width, _texture.Height);
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
     }
 
@@ -58,10 +47,7 @@ internal sealed class FramebufferObject : GLHandle
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 
-    // ReSharper disable once UnusedMember.Global
     public void Activate()
     {
-        _gl.ActiveTexture(TextureUnit.Texture1);
-        _gl.BindTexture(TextureTarget.Texture2D, _textureHandle);
     }
 }
