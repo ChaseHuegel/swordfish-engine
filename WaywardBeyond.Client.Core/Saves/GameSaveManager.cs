@@ -48,7 +48,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             inventory.Contents[5] = new ItemStack("display_monitor", count: 1000);
             inventory.Contents[6] = new ItemStack("storage", count: 1000);
             inventory.Contents[7] = new ItemStack("truss", count: 1000);
-            inventory.Contents[8] = new ItemStack("light", count: 1000);
+            inventory.Contents[8] = new ItemStack("small_light", count: 1000);
         
             WaywardBeyond.GameState = GameState.Playing;
             _playerControllerSystem.SetMouseLook(true);
