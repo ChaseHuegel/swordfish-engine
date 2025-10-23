@@ -477,16 +477,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
         shader.SetUniform("uAmbientLight", _ambientLight);
         
-        _gl.ActiveTexture(TextureUnit.Texture5);
-        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
+        _ssaoTex.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
         
-        _gl.ActiveTexture(TextureUnit.Texture6);
-        _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
+        _preDepthTex.Activate(TextureUnit.Texture6);
         shader.SetUniform("uPreDepth", 6);
         
-        _gl.ActiveTexture(TextureUnit.Texture7);
-        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
+        _depthTex.Activate(TextureUnit.Texture7);
         shader.SetUniform("uDepth", 7);
     }
 }
