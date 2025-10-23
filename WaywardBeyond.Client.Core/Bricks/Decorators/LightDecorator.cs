@@ -17,7 +17,7 @@ internal sealed class LightDecorator : IBrickDecorator
         int lightEntity = store.Alloc();
         store.AddOrUpdate(lightEntity, new TransformComponent());
         store.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
-        store.AddOrUpdate(lightEntity, new LightComponent(radius: 10f, color: new Vector3(0.25f), size: 2.5f));
+        store.AddOrUpdate(lightEntity, new LightComponent(radius: info.Brightness, color: new Vector3(0.25f), size: 2.5f));
         store.AddOrUpdate(lightEntity, new ChildComponent(entity)
         {
             LocalPosition = new Vector3(x, y, z),
