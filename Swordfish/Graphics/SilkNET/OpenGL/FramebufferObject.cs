@@ -1,4 +1,3 @@
-using Silk.NET.Core.Contexts;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -9,14 +8,12 @@ internal sealed class FramebufferObject : GLHandle
     public string Name { get; }
     
     private readonly GL _gl;
-    private readonly TexImage2D _texture;
+    private readonly uint _width;
+    private readonly uint _height;
 
     public FramebufferObject(GL gl, string name, TexImage2D texture, FramebufferAttachment attachment)
+        : this(gl, name, texture.Width, texture.Height, drawBufferModes: null, renderBuffers: null)
     {
-        _gl = gl;
-        Name = name;
-        _texture = texture;
-
         using Scope _ = Use();
         gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment, textarget: TextureTarget.Texture2D, texture.Handle, level: 0);
         
@@ -25,6 +22,42 @@ internal sealed class FramebufferObject : GLHandle
         {
             throw new FatalAlertException($"Framebuffer \"{name}\" is incomplete.");
         }
+    }
+
+    public FramebufferObject(GL gl, string name, uint width, uint height, DrawBufferMode[]? drawBufferModes, RenderbufferObject[]? renderBuffers) 
+        : this(gl, name, width, height)
+    {
+        using Scope _ = Use();
+        
+        if (drawBufferModes != null)
+        {
+            gl.DrawBuffers((uint)drawBufferModes.Length, drawBufferModes);
+        }
+        
+        if (renderBuffers != null)
+        {
+            for (var i = 0; i < renderBuffers.Length; i++)
+            {
+                RenderbufferObject rbo = renderBuffers[i];
+                
+                using Scope rboScope = rbo.Use();
+                gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, rbo.Attachment, RenderbufferTarget.Renderbuffer, rbo.Handle);
+            }
+        }
+        
+        GLEnum status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
+        if (status != GLEnum.FramebufferComplete)
+        {
+            throw new FatalAlertException($"Framebuffer \"{name}\" is incomplete.");
+        }
+    }
+
+    private FramebufferObject(GL gl, string name, uint width, uint height)
+    {
+        _gl = gl;
+        Name = name;
+        _width = width;
+        _height = height;
     }
 
     protected override uint CreateHandle()
@@ -39,7 +72,7 @@ internal sealed class FramebufferObject : GLHandle
 
     protected override void BindHandle()
     {
-        _gl.Viewport(0, 0, _texture.Width, _texture.Height);
+        _gl.Viewport(0, 0, _width, _height);
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
     }
 

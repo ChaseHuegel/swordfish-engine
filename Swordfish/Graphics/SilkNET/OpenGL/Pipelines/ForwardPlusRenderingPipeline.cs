@@ -48,17 +48,17 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     
     private readonly TexImage2D _ssaoTex;
     private readonly FramebufferObject _ssaoFBO;
-    
-    private readonly FramebufferObject _renderFBO;
-    private readonly uint _colorRBO;
-    private readonly uint _bloomRBO;
-    private readonly uint _depthStencilRBO;
 
     private readonly TexImage2D _blurTex;
     private readonly FramebufferObject _blurFBO;
     
     private readonly TexImage2D _screenTex;
     private readonly FramebufferObject _screenFBO;
+    
+    private readonly FramebufferObject _renderFBO;
+    private readonly RenderbufferObject _colorRBO;
+    private readonly RenderbufferObject _bloomRBO;
+    private readonly RenderbufferObject _depthStencilRBO;
     
     private readonly BufferObject<GPULight> _lightsSSBO;
     private readonly BufferObject<uint> _tileIndicesSSBO;
@@ -67,11 +67,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly BufferObject<float> _screenVBO;
     private readonly VertexArrayObject<float> _screenVAO;
 
-    private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     private readonly DoubleList<GPULight> _lights = new();
     private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
+    private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     
-    private readonly float[] _quadVertices =
+    private readonly float[] _screenQuadVertices =
     [
         //  x, y, z, u, v
         -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
@@ -130,38 +130,19 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _screenTex = new TexImage2D(_gl, name: "screen", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
         _screenFBO = new FramebufferObject(_gl, name: "screen", _preDepthTex, FramebufferAttachment.ColorAttachment0);
         
-        _screenVBO = new BufferObject<float>(_gl, _quadVertices, BufferTargetARB.ArrayBuffer);
+        _screenVBO = new BufferObject<float>(_gl, _screenQuadVertices, BufferTargetARB.ArrayBuffer);
         _screenVAO = new VertexArrayObject<float>(_gl, _screenVBO);
         _screenVAO.SetVertexAttributePointer(index: 0, count: 3, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 0);
         _screenVAO.SetVertexAttributePointer(index: 1, count: 2, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 3 * sizeof(float));
-
+        
         _lightsSSBO = new BufferObject<GPULight>(_gl, Span<GPULight>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 0);
         _tileIndicesSSBO = new BufferObject<uint>(_gl, Span<uint>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 1);
         _tileCountsSSBO = new BufferObject<uint>(_gl, Span<uint>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 2);
         
-        //  TODO renderbuffer support in the framebuffer object
-        _renderFBO = gl.GenFramebuffer();
-        gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
-        gl.DrawBuffers(2, _drawBuffers);
-        _colorRBO = gl.GenRenderbuffer();
-        gl.BindRenderbuffer(GLEnum.Renderbuffer, _colorRBO);
-        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba16f, _screenWidth, _screenHeight);
-        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, _colorRBO);
-        _bloomRBO = gl.GenRenderbuffer();
-        gl.BindRenderbuffer(GLEnum.Renderbuffer, _bloomRBO);
-        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba8, _screenWidth, _screenHeight);
-        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, RenderbufferTarget.Renderbuffer, _bloomRBO);
-        _depthStencilRBO = gl.GenRenderbuffer();
-        gl.BindRenderbuffer(GLEnum.Renderbuffer, _depthStencilRBO);
-        gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Depth24Stencil8, _screenWidth, _screenHeight);
-        gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthStencilRBO);
-        GLEnum status = gl.CheckFramebufferStatus(FramebufferTarget.Framebuffer);
-        gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        gl.BindRenderbuffer(GLEnum.Renderbuffer, 0);
-        if (status != GLEnum.FramebufferComplete)
-        {
-            throw new FatalAlertException("Forward+ render framebuffer is incomplete.");
-        }
+        _colorRBO = new RenderbufferObject(_gl, name: "render_color", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment0, InternalFormat.Rgba16f, samples: 4);
+        _bloomRBO = new RenderbufferObject(_gl, name: "render_bloom", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment1, InternalFormat.Rgba8, samples: 4);
+        _depthStencilRBO = new RenderbufferObject(_gl, name: "render_DS", _screenWidth, _screenHeight, FramebufferAttachment.DepthStencilAttachment, InternalFormat.Depth24Stencil8, samples: 4);
+        _renderFBO = new FramebufferObject(_gl, name: "render", _screenWidth, _screenHeight, _drawBuffers, renderBuffers: [_colorRBO, _bloomRBO, _depthStencilRBO]);
         
         windowContext.Resized += OnWindowResized;
     }
