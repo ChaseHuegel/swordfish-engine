@@ -1,6 +1,7 @@
 ﻿using DryIoc;
 using JoltPhysicsSharp;
 using Reef;
+using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
@@ -36,9 +37,12 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         GL gl = _window.CreateOpenGL();
         
         container.RegisterInstance<GL>(gl);
-        container.RegisterMany<GLDebug>(Reuse.Singleton);
-        container.RegisterInstance<IWindow>(_window);
         container.Register<GLContext>(Reuse.Singleton);
+        container.Register<GLDebug>(Reuse.Singleton);
+        container.RegisterMapping<IDisposable, GLDebug>();
+        container.RegisterMapping<IAutoActivate, GLDebug>();
+        
+        container.RegisterInstance<IWindow>(_window);
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         
         container.RegisterMany<GLRenderContext>(Reuse.Singleton);

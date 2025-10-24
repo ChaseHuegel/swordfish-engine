@@ -1,7 +1,8 @@
 using System.Drawing;
 using System.Numerics;
-using System.Runtime.InteropServices;
+using Microsoft.Extensions.Logging;
 using Silk.NET.OpenGL;
+using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
@@ -21,6 +22,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const int MAX_LIGHTS_PER_TILE = 1024;
     
     private readonly GL _gl;
+    private readonly GLDebug _glDebug;
     private readonly RenderSettings _renderSettings;
     
     private readonly ShaderProgram _depthShader;
@@ -81,14 +83,16 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     ];
     
     public ForwardPlusRenderingPipeline(
-        in TRenderStage[] renderStages,
         in GL gl,
+        in GLDebug glDebug,
+        in TRenderStage[] renderStages,
         in RenderSettings renderSettings,
         in IWindowContext windowContext,
         in IAssetDatabase<Shader> shaderDatabase,
         in GLContext glContext
     ) : base(renderStages) {
         _gl = gl;
+        _glDebug = glDebug;
         _renderSettings = renderSettings;
         
         Shader depthShader = GetShaderOrDie(shaderDatabase, name: "forward/depth");
@@ -192,12 +196,18 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _blurTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
         _screenTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
         
+        _glDebug.TryLogError();
+        
         _colorRBO.Resize(_screenWidth, _screenHeight);
         _bloomRBO.Resize(_screenWidth, _screenHeight);
         _depthStencilRBO.Resize(_screenWidth, _screenHeight);
         
+        _glDebug.TryLogError();
+        
         _tileIndicesSSBO.Resize(_numTiles * MAX_LIGHTS_PER_TILE);
         _tileCountsSSBO.Resize(_numTiles);
+        
+        _glDebug.TryLogError();
     }
 
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
@@ -225,6 +235,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             Draw(delta, view, projection, isDepthPass: true);
         }
 
+        _glDebug.TryLogError();
+
         // SSAO pass
         using (_ssaoFBO.Use())
         using (_ssaoShader.Use())
@@ -239,6 +251,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
             _screenVAO.Unbind();
         }
+        
+        _glDebug.TryLogError();
 
         // Depth full pass
         using (_depthFBO.Use())
@@ -255,11 +269,15 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
             Draw(delta, view, projection, isDepthPass: false);
         }
+        
+        _glDebug.TryLogError();
 
         //  Reset to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
 
+        _glDebug.TryLogError();
+        
         // Upload lights
         GPULight[] lights;
         lock (_lights)
@@ -268,9 +286,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _lights.Swap();
         }
         _lightsSSBO.UpdateData(lights);
+        
+        _glDebug.TryLogError();
 
         // Clear tile counts
         _tileCountsSSBO.UpdateData(_emptyTileCounts);
+        
+        _glDebug.TryLogError();
 
         //  Dispatch tile compute shader
         using (_computeShader.Use())
@@ -289,12 +311,16 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.DispatchCompute(groupsX, groupsY, groupsZ);
             _gl.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
         }
+        
+        _glDebug.TryLogError();
 
         //  Clear and begin drawing to the render buffer
         _renderFBO.Bind();
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
 
+        _glDebug.TryLogError();
+        
         //  Skybox pass
         using (_skyboxShader.Use())
         {
@@ -310,12 +336,18 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.DepthMask(true);
         }
         
+        _glDebug.TryLogError();
+        
         //  Reset draw buffers
         _gl.DrawBuffers(_drawBuffers);
+        
+        _glDebug.TryLogError();
     }
 
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
+        _glDebug.TryLogError();
+        
         //  Blit the render buffer to the back buffer
         using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment0))
         {
@@ -330,6 +362,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             );
         }
         
+        _glDebug.TryLogError();
+        
         //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
         using (_blurTex.Use()) 
@@ -343,6 +377,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 BlitFramebufferFilter.Linear
             );
         }
+        
+        _glDebug.TryLogError();
         
         //  Blur the bloom texture
         //  TODO Blur should be done with separate textures for
@@ -370,10 +406,12 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             }
         }
         
+        _glDebug.TryLogError();
+        
         //  Blit the bloom renderbuffer to the screen texture
         using (_screenTex.Use())
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
         using (_screenFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
         {
             _gl.BlitFramebuffer(
                 srcX0: 0, srcY0: 0, srcX1: (int)_screenWidth, srcY1: (int)_screenHeight,
@@ -382,6 +420,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 filter: BlitFramebufferFilter.Linear
             );
         }
+        
+        _glDebug.TryLogError();
 
         //  Render the bloom overlay
         using (_bloomShader.Use())
@@ -402,6 +442,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Disable(EnableCap.Blend);
             _gl.DepthMask(true);
         }
+        
+        _glDebug.TryLogError();
     }
     
     protected override void ShaderActivationCallback(ShaderProgram shader)
