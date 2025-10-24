@@ -42,7 +42,7 @@ internal sealed class GLMaterial : Handle
             ShaderProgram.SetUniform("texture" + i, i);
         }
 
-        return new Scope(scopes);
+        return new Scope(new ArraySegment<GLHandle.Scope>(scopes, 0, Textures.Length));
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -79,9 +79,9 @@ internal sealed class GLMaterial : Handle
 
     public struct Scope : IDisposable
     {
-        private GLHandle.Scope[]? _scopes;
+        private ArraySegment<GLHandle.Scope>? _scopes;
         
-        public Scope(GLHandle.Scope[] scopes)
+        public Scope(ArraySegment<GLHandle.Scope> scopes)
         {
             _scopes = scopes;
         }
@@ -93,12 +93,12 @@ internal sealed class GLMaterial : Handle
                 return;
             }
             
-            for (var i = 0; i < _scopes.Length; i++)
+            for (var i = 0; i < _scopes.Value.Count; i++)
             {
-                _scopes[i].Dispose();
+                _scopes.Value[i].Dispose();
             }
             
-            ArrayPool<GLHandle.Scope>.Shared.Return(_scopes);
+            ArrayPool<GLHandle.Scope>.Shared.Return(_scopes.Value.Array!);
             _scopes = null;
         }
     }

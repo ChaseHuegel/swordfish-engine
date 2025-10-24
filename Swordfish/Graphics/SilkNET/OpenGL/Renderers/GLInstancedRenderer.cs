@@ -151,7 +151,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
 
-            for (var n = 0; n < materialScopes.Length; n++)
+            for (var n = 0; n < target.Materials.Length; n++)
             {
                 materialScopes[n].Dispose();
             }

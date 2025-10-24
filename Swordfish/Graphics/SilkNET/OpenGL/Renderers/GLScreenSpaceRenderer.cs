@@ -195,7 +195,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
         _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
         
-        for (var n = 0; n < materialScopes.Length; n++)
+        for (var n = 0; n < target.Materials.Length; n++)
         {
             materialScopes[n].Dispose();
         }
