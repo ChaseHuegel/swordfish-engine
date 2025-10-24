@@ -38,6 +38,7 @@ internal sealed class BufferObject<TData> : GLHandle
             nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
             _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
+        Unbind();
     }
 
     protected override uint CreateHandle()

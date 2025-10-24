@@ -38,6 +38,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private int _numTilesX;
     private int _numTilesY;
     private int _numTiles;
+    private uint[] _emptyTileCounts;
     
     private readonly TexImage2D _preDepthTex;
     private readonly FramebufferObject _preDepthFBO;
@@ -112,6 +113,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesX = (int)(_screenWidth + TILE_WIDTH - 1) / TILE_WIDTH;
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
+        _emptyTileCounts = new uint[_numTiles];
         
         _preDepthTex = new TexImage2D(_gl, name: "prepass_depth", pixels: null, _screenHalfWidth, _screenHalfHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
         _preDepthFBO = new FramebufferObject(_gl, name: "prepass_depth", _preDepthTex, FramebufferAttachment.DepthAttachment);
@@ -201,6 +203,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesX = (int)(_screenWidth + TILE_WIDTH - 1) / TILE_WIDTH;
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
+        _emptyTileCounts = new uint[_numTiles];
         
         _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
         _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenHalfWidth, _screenHalfHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
@@ -269,62 +272,62 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
-        
+
         float near = projection.M34 / (projection.M33 - 1.0f);
         float far = projection.M34 / (projection.M33 + 1.0f);
         Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
-        
+
         // Depth pre-pass
         using (_preDepthFBO.Use())
+        using (_depthShader.Use())
         {
-            _gl.DepthMask(true);
-            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
-            _gl.Enable(GLEnum.DepthTest);
-            
-            _depthShader.Activate();
             _depthShader.SetUniform("view", view);
             _depthShader.SetUniform("projection", projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
+            _gl.DepthMask(true);
+            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
+            _gl.Enable(GLEnum.DepthTest);
+
             Draw(delta, view, projection, isDepthPass: true);
         }
-        
+
         // SSAO pass
         using (_ssaoFBO.Use())
+        using (_ssaoShader.Use())
+        using (_preDepthTex.Activate(TextureUnit.Texture0))
         {
-            _gl.Clear(ClearBufferMask.ColorBufferBit);
-
-            _ssaoShader.Activate();
-            _preDepthTex.Activate();
             _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
             _ssaoShader.SetUniform("uInvProj", inverseProjection);
             
+            _gl.Clear(ClearBufferMask.ColorBufferBit);
+
             _screenVAO.Bind();
             _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
             _screenVAO.Unbind();
         }
-        
+
         // Depth full pass
-        using (_depthFBO.Use()) 
+        using (_depthFBO.Use())
+        using (_depthShader.Use())
         {
-            _gl.DepthMask(true);
-            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
-            _gl.Enable(GLEnum.DepthTest);
-            
-            _depthShader.Activate();
             _depthShader.SetUniform("view", view);
             _depthShader.SetUniform("projection", projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
+            _gl.DepthMask(true);
+            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
+            _gl.Enable(GLEnum.DepthTest);
+
             Draw(delta, view, projection, isDepthPass: false);
         }
-        
+
         //  Reset to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-        
+
         // Upload lights
         GPULight[] lights;
         lock (_lights)
@@ -332,51 +335,50 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             lights = _lights.Read();
             _lights.Swap();
         }
+        _lightsSSBO.UpdateData(lights);
 
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _lightsSSBO);
-        int bytes = lights.Length * Marshal.SizeOf<GPULight>();
-        fixed (GPULight* p = lights)
-        {
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)bytes, p);
-        }
-        
         // Clear tile counts
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
-        var zeros = new uint[_numTiles];
-        fixed (uint* z = zeros) {
-            _gl.BufferSubData(BufferTargetARB.ShaderStorageBuffer, 0, (nuint)(zeros.Length * sizeof(uint)), z);
-        }
-        
+        _tileCountsSSBO.UpdateData(_emptyTileCounts);
+
         //  Dispatch tile compute shader
-        _computeShader.Activate();
-        _depthTex.Activate();
-        _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
-        _gl.Uniform2(_gl.GetUniformLocation(_computeShader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uNumLights"), lights.Length);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
-        _gl.Uniform1(_gl.GetUniformLocation(_computeShader.Handle, "uMaxLightViewDistance"), 1000f);
-        _computeShader.SetUniform("uInvProj", inverseProjection);
-        
-        var groupsX = (uint)_numTilesX;
-        var groupsY = (uint)_numTilesY;
-        _gl.DispatchCompute(groupsX, groupsY, 1);
-        _gl.MemoryBarrier( MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
-        
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, _renderFBO);
-        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+        using (_computeShader.Use())
+        using (_depthTex.Activate(TextureUnit.Texture0))
+        {
+            _computeShader.SetUniform("uScreenSize", (int)_screenWidth, (int)_screenHeight);
+            _computeShader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
+            _computeShader.SetUniform("uNumLights", lights.Length);
+            _computeShader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
+            _computeShader.SetUniform("uMaxLightViewDistance", 1000f);
+            _computeShader.SetUniform("uInvProj", inverseProjection);
+            
+            var groupsX = (uint)_numTilesX;
+            var groupsY = (uint)_numTilesY;
+            const int groupsZ = 1;
+            _gl.DispatchCompute(groupsX, groupsY, groupsZ);
+            _gl.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
+        }
+
+        //  Clear and begin drawing to the render buffer
+        _renderFBO.Bind();
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-        
+
         //  Skybox pass
-        _gl.DrawBuffer(DrawBufferMode.ColorAttachment0); // Only render to the color buffer
-        _gl.DepthMask(false);
-        _skyboxShader.Activate();
-        _skyboxShader.SetUniform("uRGB", _ambientLight);
-        _screenVAO.Bind();
-        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-        _screenVAO.Unbind();
-        _gl.DepthMask(true);
+        using (_skyboxShader.Use())
+        {
+            _skyboxShader.SetUniform("uRGB", _ambientLight);
+
+            _gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
+            _gl.DepthMask(false);
+            
+            _screenVAO.Bind();
+            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+            _screenVAO.Unbind();
+            
+            _gl.DepthMask(true);
+        }
         
+        //  Reset draw buffers
         _gl.DrawBuffers(_drawBuffers);
     }
 
