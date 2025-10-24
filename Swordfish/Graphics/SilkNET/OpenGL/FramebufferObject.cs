@@ -12,7 +12,7 @@ internal sealed class FramebufferObject : GLHandle
     private readonly uint _height;
 
     public FramebufferObject(GL gl, string name, TexImage2D texture, FramebufferAttachment attachment)
-        : this(gl, name, texture.Width, texture.Height, drawBufferModes: null, renderBuffers: null)
+        : this(gl, name, texture.Width, texture.Height)
     {
         using Scope _ = Use();
         gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment, textarget: TextureTarget.Texture2D, texture.Handle, level: 0);
@@ -72,8 +72,8 @@ internal sealed class FramebufferObject : GLHandle
 
     protected override void BindHandle()
     {
-        _gl.Viewport(0, 0, _width, _height);
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, Handle);
+        _gl.Viewport(0, 0, _width, _height);
     }
 
     protected override void UnbindHandle()
