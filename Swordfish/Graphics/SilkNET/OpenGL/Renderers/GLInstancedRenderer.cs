@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
@@ -7,7 +7,7 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
@@ -27,7 +27,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _renderTargets = glRenderContext.RenderTargets;
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
         if (_renderTargets == null)
         {
@@ -45,6 +45,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             if (renderTarget.Materials.Any(material => material.Transparent))
             {
+                //  Exclude anything with transparency from depth passes
+                if (isDepthPass)
+                {
+                    return;
+                }
+                
                 if (!_transparentInstances.TryGetValue(renderTarget, out matrices))
                 {
                     matrices = [];
@@ -64,7 +70,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_renderTargets == null)
         {
@@ -75,14 +81,25 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         {
             return 0;
         }
+        
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         var drawCalls = 0;
-        drawCalls += Draw(view, projection, _instances, sort: false);
-        drawCalls += Draw(view, projection, _transparentInstances, sort: true);
+        
+        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+        
+        //  Exclude rendering transparent targets during a depth pass
+        if (!isDepthPass)
+        {
+            drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+        }
+
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(Matrix4x4 view, Matrix4x4 projection, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
+    private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
     {
         if (instances.Count == 0)
         {
@@ -113,14 +130,17 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
+            GLMaterial.Scope[] materialScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
             for (var n = 0; n < target.Materials.Length; n++)
             {
                 GLMaterial material = target.Materials[n];
                 ShaderProgram shader = material.ShaderProgram;
-                material.Use();
-
+                
+                materialScopes[n] = material.Use();
                 shader.SetUniform("view", view);
                 shader.SetUniform("projection", projection);
+                shader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
+                shaderActivationCallback(shader);
             }
 
             target.VertexArrayObject.Bind();
@@ -130,6 +150,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
+
+            for (var n = 0; n < target.Materials.Length; n++)
+            {
+                materialScopes[n].Dispose();
+            }
+            ArrayPool<GLMaterial.Scope>.Shared.Return(materialScopes);
         }
 
         return drawCalls;

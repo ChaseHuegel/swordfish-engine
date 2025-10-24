@@ -19,7 +19,7 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
         _gl = gl;
         VertexBufferObject = vertexBufferObject;
 
-        Bind();
+        using Scope _ = Use();
         VertexBufferObject.Bind();
     }
 
@@ -51,18 +51,21 @@ internal class VertexArrayObject<TVertexType> : GLHandle, IEquatable<VertexArray
 
     public unsafe void SetVertexAttributePointer(uint index, int count, VertexAttribPointerType type, uint stride, int offset)
     {
+        using Scope _ = Use();
         _gl.EnableVertexAttribArray(index);
         _gl.VertexAttribPointer(index, count, type, false, stride, (void*)offset);
     }
 
     public unsafe void SetVertexAttribute(uint index, int count, VertexAttribPointerType type, uint vertexSize, int offset)
     {
+        using Scope _ = Use();
         _gl.EnableVertexAttribArray(index);
         _gl.VertexAttribPointer(index, count, type, false, vertexSize * (uint)sizeof(TVertexType), (void*)(offset * sizeof(TVertexType)));
     }
 
     public void SetVertexAttributeDivisor(uint index, uint divisor)
     {
+        using Scope _ = Use();
         _gl.VertexAttribDivisor(index, divisor);
     }
 

@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Diagnostics;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
@@ -36,6 +37,19 @@ internal sealed class GLDebug : IDisposable, IAutoActivate
     public void Dispose()
     {
         _windowContext.Render -= OnRender;
+    }
+    
+    public bool TryLogError() 
+    {
+        GLEnum error = _gl.GetError();
+        if (error == GLEnum.NoError)
+        {
+            return false;
+        }
+
+        _logger.LogError("[OpenGL] {output} {stack}", error.ToString(), new StackTrace(fNeedFileInfo: true));
+        return true;
+
     }
 
     private void OnRender(double delta)
