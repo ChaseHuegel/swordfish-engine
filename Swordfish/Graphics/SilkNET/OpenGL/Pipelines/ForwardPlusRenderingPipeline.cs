@@ -48,7 +48,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly TexImage2D _ssaoTex;
     private readonly FramebufferObject _ssaoFBO;
     
-    private readonly uint _renderFBO;
+    private readonly FramebufferObject _renderFBO;
     private readonly uint _colorRBO;
     private readonly uint _bloomRBO;
     private readonly uint _depthStencilRBO;
@@ -383,45 +383,43 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
     {
         //  Blit the render buffer to the back buffer
-        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
-        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
-        
-        _gl.ReadBuffer(GLEnum.ColorAttachment0);
-        _gl.DrawBuffer(GLEnum.Back);
-        
-        _gl.BlitFramebuffer(
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            ClearBufferMask.ColorBufferBit,
-            BlitFramebufferFilter.Linear
-        );
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment0))
+        {
+            _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
+            _gl.DrawBuffer(GLEnum.Back);
+            
+            _gl.BlitFramebuffer(
+                0, 0, (int)_screenWidth, (int)_screenHeight,
+                0, 0, (int)_screenWidth, (int)_screenHeight,
+                ClearBufferMask.ColorBufferBit,
+                BlitFramebufferFilter.Linear
+            );
+        }
         
         //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
-        _blurTex.Bind();
-        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
-        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _blurFBO);
-        _gl.ReadBuffer(GLEnum.ColorAttachment1);
-        _gl.DrawBuffer(GLEnum.ColorAttachment0);
-        
-        _gl.BlitFramebuffer(
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            ClearBufferMask.ColorBufferBit,
-            BlitFramebufferFilter.Linear
-        );
+        using (_blurTex.Use()) 
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
+        using (_blurFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
+        {
+            _gl.BlitFramebuffer(
+                0, 0, (int)_screenWidth, (int)_screenHeight,
+                0, 0, (int)_screenWidth, (int)_screenHeight,
+                ClearBufferMask.ColorBufferBit,
+                BlitFramebufferFilter.Linear
+            );
+        }
         
         //  Blur the bloom texture
+        //  TODO Blur should be done with separate textures for
+        //       the horizontal and vertical blurs. This creates artifacts,
+        //       but they aren't too noticeable. since this is just for bloom.
+        //       Using a single texture and single pass is a bit more performant.
+        //       Whether one or two textures is used could be driven by quality settings.
         using (_blurFBO.Use())
+        using (_blurShader.Use())
+        using (_blurTex.Activate(TextureUnit.Texture0))
         {
-            //  TODO Blur should be done with separate textures for
-            //       the horizontal and vertical blurs. This creates artifacts,
-            //       but they aren't too noticeable. since this is just for bloom.
-            //       Using a single texture and single pass is a bit more performant.
-            //       Whether one or two textures is used could be driven by quality settings.
-            _blurShader.Activate();
-            
-            _blurTex.Activate();
             _blurShader.SetUniform("texture0", 0);
             
             var horizontal = true;
@@ -439,48 +437,44 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         }
         
         //  Blit the bloom renderbuffer to the screen texture
-        _screenTex.Bind();
-        _gl.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _renderFBO);
-        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, _screenFBO);
-        _gl.ReadBuffer(GLEnum.ColorAttachment1);
-        _gl.DrawBuffer(GLEnum.ColorAttachment0);
-        
-        _gl.BlitFramebuffer(
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            0, 0, (int)_screenWidth, (int)_screenHeight,
-            ClearBufferMask.ColorBufferBit,
-            BlitFramebufferFilter.Linear
-        );
-        
-        //  Return to the back buffer
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        
+        using (_screenTex.Use())
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
+        using (_screenFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
+        {
+            _gl.BlitFramebuffer(
+                srcX0: 0, srcY0: 0, srcX1: (int)_screenWidth, srcY1: (int)_screenHeight,
+                dstX0: 0, dstY0: 0, dstX1: (int)_screenWidth, dstY1: (int)_screenHeight,
+                mask: ClearBufferMask.ColorBufferBit,
+                filter: BlitFramebufferFilter.Linear
+            );
+        }
+
         //  Render the bloom overlay
-        _gl.DepthMask(false);
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-        
-        _bloomShader.Activate();
-        
-        _blurTex.Activate();
-        _bloomShader.SetUniform("texture0", 0);
-        
-        _screenTex.Activate(TextureUnit.Texture1);
-        _bloomShader.SetUniform("texture1", 1);
-        
-        _screenVAO.Bind();
-        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-        _screenVAO.Unbind();
-        
-        _gl.Disable(EnableCap.Blend);
-        _gl.DepthMask(true);
+        using (_bloomShader.Use())
+        using (_blurTex.Activate(TextureUnit.Texture0))
+        using (_screenTex.Activate(TextureUnit.Texture1))
+        {
+            _bloomShader.SetUniform("texture0", 0);
+            _bloomShader.SetUniform("texture1", 1);
+
+            _gl.DepthMask(false);
+            _gl.Enable(EnableCap.Blend);
+            _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+
+            _screenVAO.Bind();
+            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+            _screenVAO.Unbind();
+
+            _gl.Disable(EnableCap.Blend);
+            _gl.DepthMask(true);
+        }
     }
     
     protected override void ShaderActivationCallback(ShaderProgram shader)
     {
-        _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uScreenSize"), (int)_screenWidth, (int)_screenHeight);
-        _gl.Uniform2(_gl.GetUniformLocation(shader.Handle, "uTileSize"), TILE_WIDTH, TILE_HEIGHT);
-        _gl.Uniform1(_gl.GetUniformLocation(shader.Handle, "uMaxLightsPerTile"), MAX_LIGHTS_PER_TILE);
+        shader.SetUniform("uScreenSize", (int)_screenWidth, (int)_screenHeight);
+        shader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
+        shader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
         shader.SetUniform("uAmbientLight", _ambientLight);
         
         _ssaoTex.Activate(TextureUnit.Texture5);

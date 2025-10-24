@@ -1,3 +1,4 @@
+using Silk.NET.Core.Contexts;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Diagnostics;
 
@@ -47,7 +48,48 @@ internal sealed class FramebufferObject : GLHandle
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
     }
 
-    public void Activate()
+    public FramebufferScope Use(FramebufferTarget target)
     {
+        return new FramebufferScope(_gl, fbo: this, target);
+    }
+    
+    public FramebufferScope Use(FramebufferTarget target, DrawBufferMode mode)
+    {
+        return new FramebufferScope(_gl, fbo: this, target, mode);
+    }
+    
+    public FramebufferScope Use(FramebufferTarget target, ReadBufferMode mode)
+    {
+        return new FramebufferScope(_gl, fbo: this, target, mode);
+    }
+    
+    public readonly struct FramebufferScope : IDisposable
+    {
+        private readonly GL _gl;
+        private readonly FramebufferTarget _target;
+
+        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target)
+        {
+            _gl = gl;
+            _target = target;
+            gl.BindFramebuffer(target, fbo.Handle);
+        }
+        
+        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, DrawBufferMode mode) 
+            : this(gl, fbo, target)
+        {
+            gl.DrawBuffer(mode);
+        }
+        
+        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, ReadBufferMode mode)
+            : this(gl, fbo, target)
+        {
+            gl.ReadBuffer(mode);
+        }
+
+        public void Dispose()
+        {
+            _gl.BindFramebuffer(_target, 0);
+        }
     }
 }

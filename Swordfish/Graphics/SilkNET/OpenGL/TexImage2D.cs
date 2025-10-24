@@ -67,15 +67,10 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
         _gl.BindTexture(TextureTarget.Texture2D, 0);
     }
 
-    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
+    public Scope Activate(TextureUnit textureSlot)
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         _gl.ActiveTexture(textureSlot);
-        Bind();
+        return Use();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

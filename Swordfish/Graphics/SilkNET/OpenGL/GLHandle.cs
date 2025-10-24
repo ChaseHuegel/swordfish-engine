@@ -2,24 +2,8 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-public abstract class GLHandle : ManagedHandle<uint>, IBindable
+internal abstract class GLHandle : ManagedHandle<uint>, IBindable
 {
-    public readonly struct Scope : IDisposable
-    {
-        private readonly GLHandle _handle;
-
-        public Scope(in GLHandle handle)
-        {
-            _handle = handle;
-            handle.Bind();
-        }
-
-        public void Dispose()
-        {
-            _handle.Unbind();
-        }
-    }
-    
     public void Bind()
     {
         if (IsDisposed)
@@ -47,4 +31,20 @@ public abstract class GLHandle : ManagedHandle<uint>, IBindable
 
     protected abstract void BindHandle();
     protected abstract void UnbindHandle();
+    
+    public readonly struct Scope : IDisposable
+    {
+        private readonly GLHandle _handle;
+
+        public Scope(in GLHandle handle)
+        {
+            handle.Bind();
+            _handle = handle;
+        }
+
+        public void Dispose()
+        {
+            _handle.Unbind();
+        }
+    }
 }

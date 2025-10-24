@@ -69,11 +69,6 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         _gl.UseProgram(0);
     }
 
-    public void Activate()
-    {
-        Bind();
-    }
-
     public void BindAttributeLocation(string attribute, uint location)
     {
         _gl.BindAttribLocation(Handle, location, attribute);
@@ -102,6 +97,14 @@ internal sealed class ShaderProgram : GLHandle, IEquatable<ShaderProgram>
         if (TryGetUniform(uniform, out int location))
         {
             _gl.Uniform1(location, value);
+        }
+    }
+    
+    public void SetUniform(string uniform, int value1, int value2)
+    {
+        if (TryGetUniform(uniform, out int location))
+        {
+            _gl.Uniform2(location, value1, value2);
         }
     }
 
