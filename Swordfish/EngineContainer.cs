@@ -1,5 +1,7 @@
 ﻿using DryIoc;
+using JoltPhysicsSharp;
 using Reef;
+using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
@@ -9,6 +11,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.Jolt;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Input;
 using Swordfish.IO;
@@ -34,19 +37,41 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         GL gl = _window.CreateOpenGL();
         
         container.RegisterInstance<GL>(gl);
-        container.RegisterMany<GLDebug>(Reuse.Singleton);
-        container.RegisterInstance<IWindow>(_window);
         container.Register<GLContext>(Reuse.Singleton);
-        container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
-        container.RegisterMany<GLRenderContext>(Reuse.Singleton);
-        container.Register<IRenderStage, GLInstancedRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterMany<GLScreenSpaceRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
-        container.RegisterMany<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IRenderStage, JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register<GLDebug>(Reuse.Singleton);
+        container.RegisterMapping<IDisposable, GLDebug>();
+        container.RegisterMapping<IAutoActivate, GLDebug>();
         
-        container.Register<IRenderStage, ReefRenderer>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterInstance<IWindow>(_window);
+        container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
+        
+        container.RegisterMany<GLRenderContext>(Reuse.Singleton);
+        
+        container.Register<ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>(Reuse.Singleton);
+        container.RegisterMapping<IRenderPipeline, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>();
+        container.RegisterMapping<IEntitySystem, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>();
+        container.Register<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IWorldSpaceRenderStage, GLInstancedRenderer>();
+        container.RegisterMapping<IRenderStage, GLInstancedRenderer>();
+        container.Register<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<ILineRenderer, GLLineRenderer>();
+        container.RegisterMapping<IWorldSpaceRenderStage, GLLineRenderer>();
+        container.RegisterMapping<IRenderStage, GLLineRenderer>();
+        container.Register<JoltDebugRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IWorldSpaceRenderStage, JoltDebugRenderer>();
+        container.RegisterMapping<IRenderStage, JoltDebugRenderer>();
+        container.RegisterMapping<DebugRenderer, JoltDebugRenderer>();
+        
+        container.Register<IRenderPipeline, ForwardRenderingPipeline<IScreenSpaceRenderStage>>(Reuse.Singleton);
+        container.Register<GLScreenSpaceRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IScreenSpaceRenderStage, GLScreenSpaceRenderer>();
+        container.RegisterMapping<IRenderStage, GLScreenSpaceRenderer>();
+        container.Register<ReefRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMapping<IScreenSpaceRenderStage, ReefRenderer>();
+        container.RegisterMapping<IRenderStage, ReefRenderer>();
+        
         container.Register<ReefContext>(Reuse.Singleton);
+        container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         
@@ -60,11 +85,11 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IInputService, SilkInputService>(Reuse.Singleton);
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
 
-        container.Register<IFileParser, GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IFileParser, TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IFileParser, TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IFileParser, ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.Register<IFileParser, LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<MaterialDefinition>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<TextureDatabase>(Reuse.Singleton);

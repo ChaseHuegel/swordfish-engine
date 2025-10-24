@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
@@ -9,7 +10,7 @@ using Swordfish.Types;
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings) : IRenderStage
+internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings) : IScreenSpaceRenderStage
 {
     private readonly struct RectVertices()
     {
@@ -115,8 +116,13 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         _renderTargets = glRenderContext.RectRenderTargets;
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
+        if (isDepthPass)
+        {
+            return;
+        }
+        
         if (_renderTargets == null)
         {
             throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
@@ -138,9 +144,9 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_vao == null)
+        if (_vao == null || isDepthPass)
         {
             return 0;
         }
@@ -154,34 +160,47 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         {
             return 0;
         }
+        
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
         var drawCalls = 0;
         _vao.Bind();
         foreach (KeyValuePair<GLRectRenderTarget, RectVertices> instance in _instances)
         {
-            drawCalls += Draw(_vao, instance.Key, instance.Value);
+            drawCalls += Draw(_vao, instance.Key, instance.Value, shaderActivationCallback);
         }
         
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, GLRectRenderTarget target, RectVertices vertices)
+    private int Draw(VertexArrayObject<float> vao, GLRectRenderTarget target, RectVertices vertices, Action<ShaderProgram> shaderActivationCallback)
     {
         if (vertices.Count == 0)
         {
             return 0;
         }
 
+        GLMaterial.Scope[] materialScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
         for (var n = 0; n < target.Materials.Length; n++)
         {
             GLMaterial material = target.Materials[n];
             material.Use();
+            shaderActivationCallback(material.ShaderProgram);
         }
 
         vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));
         _gl.Set(EnableCap.DepthTest, false);
         _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
         _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
+        
+        for (var n = 0; n < target.Materials.Length; n++)
+        {
+            materialScopes[n].Dispose();
+        }
+        ArrayPool<GLMaterial.Scope>.Shared.Return(materialScopes);
+        
         return 1;
     }
 }

@@ -59,6 +59,7 @@ internal sealed class MaterialDatabase : ResourceVirtualAssetDatabase<MaterialDe
         }
         
         var material = new Material(shader, textures);
+        material.Transparent = assetInfo.Value.Transparent;
         return Result<Material>.FromSuccess(material);
     }
 }

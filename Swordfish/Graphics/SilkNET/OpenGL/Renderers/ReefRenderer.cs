@@ -22,7 +22,7 @@ internal sealed class ReefRenderer(
     in ReefContext reefContext,
     in IFileParseService fileParseService,
     in VirtualFileSystem vfs,
-    in ILogger logger) : IRenderStage
+    in ILogger logger) : IScreenSpaceRenderStage
 {
     private readonly GL _gl = gl;
     private readonly GLContext _glContext = glContext;
@@ -121,8 +121,13 @@ internal sealed class ReefRenderer(
         _defaultShader.BindAttributeLocation("in_clipRect", 3);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
+        if (isDepthPass)
+        {
+            return;
+        }
+        
         RenderCommand<Material>[] commands = _reefContext.Builder.Build();
 
         _instances.Clear();
@@ -170,32 +175,36 @@ internal sealed class ReefRenderer(
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_vao == null)
+        if (_vao == null || isDepthPass)
         {
             return 0;
         }
+        
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
         var drawCalls = 0;
         _vao.Bind();
         foreach (KeyValuePair<RenderCommand<Material>, InstanceVertexData> instance in _instances)
         {
             RenderCommand<Material> command = instance.Key;
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect);
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Rect, shaderActivationCallback);
 
             if (instance.Value.Text == null)
             {
                 continue;
             }
             
-            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, isTextPass: true);
+            drawCalls += Draw(_vao, command, vertices: instance.Value.Text.Value, shaderActivationCallback, isTextPass: true);
         }
         
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 
-    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, bool isTextPass = false)
+    private int Draw(VertexArrayObject<float> vao, RenderCommand<Material> command, Vertices vertices, Action<ShaderProgram> shaderActivationCallback, bool isTextPass = false)
     {
         if (vertices.Count == 0)
         {
@@ -212,25 +221,40 @@ internal sealed class ReefRenderer(
             }
             
             GLMaterial typefaceGLMaterial = _renderContext.BindMaterial(typefaceMaterial);
-            typefaceGLMaterial.Use();
+            
+            using GLMaterial.Scope _ = typefaceGLMaterial.Use();
+            shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
+            
+            DrawArrays(vao, vertices);
         }
         else if (command.RendererData != null)
         {
             GLMaterial glMaterial = _renderContext.BindMaterial(command.RendererData);
-            glMaterial.Use();
+            
+            using GLMaterial.Scope _ = glMaterial.Use();
+            shaderActivationCallback(glMaterial.ShaderProgram);
+            
+            DrawArrays(vao, vertices);
         }
         else
         {
-            _defaultShader.Activate();
+            using GLHandle.Scope _ = _defaultShader.Use();
+            shaderActivationCallback(_defaultShader);
+            
+            DrawArrays(vao, vertices);
         }
 
+        return 1;
+    }
+
+    private void DrawArrays(VertexArrayObject<float> vao, Vertices vertices)
+    {
         vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));
         _gl.Set(EnableCap.DepthTest, false);
         _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
         _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
-        return 1;
     }
-    
+
     private readonly struct InstanceVertexData(Vertices rect, Vertices? text)
     {
         public readonly Vertices Rect = rect;

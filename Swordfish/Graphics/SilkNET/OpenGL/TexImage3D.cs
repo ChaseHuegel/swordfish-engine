@@ -8,20 +8,31 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
     public string Name { get; }
 
     private readonly GL _gl;
-    // ReSharper disable once NotAccessedField.Local
-    private readonly byte _mipmapLevels; //  TODO implement mipmaps
 
-    public unsafe TexImage3D(GL gl, string name, byte* pixels, uint width, uint height, uint depth, bool generateMipmaps)
-    {
+    public unsafe TexImage3D(
+        GL gl,
+        string name,
+        byte* pixels,
+        uint width,
+        uint height,
+        uint depth,
+        TextureFormat format,
+        TextureParams @params
+    ) {
         _gl = gl;
         Name = name;
-        _mipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
 
-        Activate();
+        using Scope _ = Use();
+        _gl.TexImage3D(TextureTarget.Texture2DArray, 0, format.InternalFormat, width, height, depth, border: 0, format.PixelFormat, format.PixelType, pixels);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)@params.WrapS);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)@params.WrapT);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)@params.MinFilter);
+        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)@params.MagFilter);
 
-        //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
-        _gl.TexImage3D(TextureTarget.Texture2DArray, 0, InternalFormat.Rgba, width, height, depth, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
-        SetDefaultParameters();
+        if (@params.GenerateMipmaps)
+        {
+            _gl.GenerateMipmap(TextureTarget.Texture2DArray);
+        }
     }
 
     protected override uint CreateHandle()
@@ -44,26 +55,10 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
         _gl.BindTexture(TextureTarget.Texture2DArray, 0);
     }
 
-    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
+    public Scope Activate(TextureUnit textureSlot)
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         _gl.ActiveTexture(textureSlot);
-        Bind();
-    }
-
-    private void SetDefaultParameters()
-    {
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureBaseLevel, 0);
-        _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureMaxLevel, 0);
-        _gl.GenerateMipmap(TextureTarget.Texture2DArray);
+        return Use();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

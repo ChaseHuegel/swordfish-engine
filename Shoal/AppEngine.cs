@@ -96,6 +96,11 @@ public sealed class AppEngine : IDisposable
 
     private static ILogger CreateLogger(Request request)
     {
+        if (request.Parent?.ImplementationType == null)
+        {
+            return _loggerFactory.CreateLogger("Default");
+        }
+        
         return _loggerFactory.CreateLogger(request.Parent.ImplementationType);
     }
 
