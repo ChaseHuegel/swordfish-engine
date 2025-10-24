@@ -1,6 +1,5 @@
 using System.Drawing;
 using System.Numerics;
-using Microsoft.Extensions.Logging;
 using Silk.NET.OpenGL;
 using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;

@@ -14,8 +14,8 @@ uniform bool uHorizontal;
 
 vec4 fragment()
 {
-    vec2 texelSize = 1.0 / textureSize(texture0, 0); // gets size of single texel
-    vec3 result = texture(texture0, UV).rgb * WEIGHTS[0]; // current fragment's contribution
+    vec2 texelSize = 1.0 / textureSize(texture0, 0);
+    vec3 result = texture(texture0, UV).rgb * WEIGHTS[0];
     if (uHorizontal)
     {
         for(int i = 1; i < 5; ++i)

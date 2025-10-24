@@ -15,14 +15,14 @@ uniform float SAO_K = 1.0;
 
 #ifdef FRAGMENT
 
-const vec2 NOISE[16] = vec2[16](
+const vec2 NOISE[16] = vec2[16] (
     vec2(-0.6461,  0.7633), vec2( 0.1163, -0.9932), vec2( 0.3344,  0.9424), vec2( 0.7127, -0.7014),
     vec2(-0.8596, -0.5109), vec2(-0.9344, -0.3563), vec2( 0.7430,  0.6693), vec2( 0.2133,  0.9770),
     vec2( 0.5804,  0.8143), vec2( 0.5128, -0.8585), vec2( 0.8621, -0.5068), vec2(-0.8259, -0.5638),
     vec2( 0.6577, -0.7533), vec2(-0.5417, -0.8406), vec2(-0.9951, -0.0987), vec2(-0.8237,  0.5671)
 );
 
-vec3 ReconstructVSPos(vec2 uv, float depth)
+vec3 UVToView(vec2 uv, float depth)
 {
     vec4 ndc = vec4(uv * 2.0 - 1.0, depth * 2.0 - 1.0, 1.0);
     vec4 view = uInvProj * ndc;
@@ -62,7 +62,7 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
             continue;
         }
        
-        vec3 samPos = ReconstructVSPos(nxy, sampleDepth);
+        vec3 samPos = UVToView(nxy, sampleDepth);
         vec3 tv = samPos - verPos;
 
         acc += vec2(max(0.0, dot(tv, n)) / (dot(tv, tv) + 0.1), 1.0);
@@ -78,13 +78,13 @@ vec4 fragment()
         return vec4(1);
     }
 
-    vec3 posVS = ReconstructVSPos(UV, depth);
+    vec3 posVS = UVToView(UV, depth);
 
     vec2 texelSize = 1.0 / textureSize(uDepthTex, 0);
     float depthRight = texture(uDepthTex, UV + vec2(texelSize.x, 0)).r;
     float depthDown  = texture(uDepthTex, UV + vec2(0, texelSize.y)).r;
-    vec3 posX = ReconstructVSPos(UV + vec2(texelSize.x, 0), depthRight);
-    vec3 posY = ReconstructVSPos(UV + vec2(0, texelSize.y), depthDown);
+    vec3 posX = UVToView(UV + vec2(texelSize.x, 0), depthRight);
+    vec3 posY = UVToView(UV + vec2(0, texelSize.y), depthDown);
     vec3 n = normalize(cross(posX - posVS, posY - posVS));
 
     vec2 noise = GetNoise();

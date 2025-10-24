@@ -52,12 +52,6 @@ const float g_sss_step_length      = g_sss_ray_max_distance / float(g_sss_max_st
 uniform mat4 view;
 uniform mat4 projection;
 
-float screen_fade(vec2 uv)
-{
-    float edgeDist = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-    return clamp(edgeDist * 8.0, 0.0, 1.0); // soft fade within ~1/8 of screen border
-}
-
 float ScreenSpaceShadows(vec3 fragWorldPos, vec3 lightWorldPos)
 {
     vec3 L = lightWorldPos - fragWorldPos;
@@ -158,7 +152,7 @@ vec3 EvalLight(Light light, vec3 N, vec3 V, vec3 F0, vec3 albedo, float roughnes
     vec3 surface = mat3(view) * vWorldPos;
     vec3 lightDir = mat3(transpose(inverse(view))) * -L;
     float shadow = ScreenSpaceShadows(vWorldPos, lightPos);
-    return (lighting + proximityLighting);
+    return (lighting + proximityLighting) * shadow;
 }
 
 vec4 shade(vec3 albedo)
