@@ -6,7 +6,7 @@ internal interface IGLTexture
 {
     string Name { get; }
 
-    GLHandle.Scope Activate(TextureUnit textureSlot = TextureUnit.Texture0);
+    GLHandle.Scope Activate(TextureUnit textureSlot);
 }
 
 internal interface IGLTexture<T> : IGLTexture, IEquatable<T>;

@@ -31,8 +31,7 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
         _gl = gl;
         Name = name;
 
-        Activate();
-
+        using Scope _ = Use();
         _gl.TexImage3D(TextureTarget.Texture2DArray, 0, format.InternalFormat, width, height, depth, border: 0, format.PixelFormat, format.PixelType, pixels);
         _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapS, (int)@params.WrapS);
         _gl.TexParameter(TextureTarget.Texture2DArray, TextureParameterName.TextureWrapT, (int)@params.WrapT);
@@ -65,15 +64,10 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
         _gl.BindTexture(TextureTarget.Texture2DArray, 0);
     }
 
-    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
+    public Scope Activate(TextureUnit textureSlot)
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         _gl.ActiveTexture(textureSlot);
-        Bind();
+        return Use();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

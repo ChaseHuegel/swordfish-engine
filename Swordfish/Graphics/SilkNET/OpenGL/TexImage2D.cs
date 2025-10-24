@@ -11,6 +11,8 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
     public uint Height { get; }
 
     private readonly GL _gl;
+    private readonly TextureFormat _format;
+    private readonly TextureParams _params;
 
     public unsafe TexImage2D(
         GL gl,
@@ -33,6 +35,8 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
         Name = name;
         Width = width;
         Height = height;
+        _format = format;
+        _params = @params;
 
         using Scope _ = Use();
         _gl.TexImage2D(TextureTarget.Texture2D, 0, format.InternalFormat, width, height, border: 0, format.PixelFormat, format.PixelType, pixels);
@@ -42,6 +46,17 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
         _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)@params.MagFilter);
 
         if (@params.GenerateMipmaps)
+        {
+            _gl.GenerateMipmap(TextureTarget.Texture2D);
+        }
+    }
+    
+    public unsafe void UpdateData(uint width, uint height, byte* pixels)
+    {
+        using Scope _ = Use();
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, _format.InternalFormat, width, height, border: 0, _format.PixelFormat, _format.PixelType, pixels);
+        
+        if (_params.GenerateMipmaps)
         {
             _gl.GenerateMipmap(TextureTarget.Texture2D);
         }
