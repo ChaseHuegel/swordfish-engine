@@ -31,7 +31,7 @@ internal sealed class ThrusterDecorator : IBrickDecorator
 
     public void OnBrickRemoved(DataStore store, int entity, BrickGrid grid, int x, int y, int z, Brick brick, BrickInfo info)
     {
-        if (!info.LightSource)
+        if (!info.Tags.Contains("thruster"))
         {
             return;
         }
