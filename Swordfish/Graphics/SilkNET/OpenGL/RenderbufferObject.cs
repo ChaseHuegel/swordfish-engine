@@ -9,12 +9,16 @@ internal sealed class RenderbufferObject : GLHandle
     public FramebufferAttachment Attachment { get; }
     
     private readonly GL _gl;
+    private readonly uint? _samples;
+    private readonly InternalFormat _format;
     
     public RenderbufferObject(GL gl, string name, uint width, uint height, FramebufferAttachment attachment, InternalFormat format, uint? samples) 
     {
         _gl = gl;
         Name = name;
         Attachment = attachment;
+        _format = format;
+        _samples = samples;
         
         using Scope _ = Use();
         
@@ -31,6 +35,18 @@ internal sealed class RenderbufferObject : GLHandle
         if (status != GLEnum.FramebufferComplete)
         {
             throw new FatalAlertException($"Framebuffer \"{name}\" is incomplete.");
+        }
+    }
+    
+    public void Resize(uint width, uint height)
+    {
+        if (_samples != null)
+        {
+            _gl.RenderbufferStorageMultisample(RenderbufferTarget.Renderbuffer, _samples.Value, _format, width, height);
+        }
+        else
+        {
+            _gl.RenderbufferStorage(RenderbufferTarget.Renderbuffer, _format, width, height);
         }
     }
 

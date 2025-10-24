@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Collections;
@@ -129,12 +130,13 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _gl.BindBuffer(BufferTargetARB.ArrayBuffer, 0);
 
+            GLMaterial.Scope[] materialScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
             for (var n = 0; n < target.Materials.Length; n++)
             {
                 GLMaterial material = target.Materials[n];
                 ShaderProgram shader = material.ShaderProgram;
-                material.Use();
-            
+                
+                materialScopes[n] = material.Use();
                 shader.SetUniform("view", view);
                 shader.SetUniform("projection", projection);
                 shader.SetUniform("uCameraPos", new Vector3(view.M41, view.M42, view.M43));
@@ -148,6 +150,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe || target.RenderOptions.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
             _gl.DrawElementsInstanced(PrimitiveType.Triangles, (uint)target.VertexArrayObject.ElementBufferObject.Length, DrawElementsType.UnsignedInt, (void*)0, (uint)models.Length);
             drawCalls++;
+
+            for (var n = 0; n < materialScopes.Length; n++)
+            {
+                materialScopes[n].Dispose();
+            }
+            ArrayPool<GLMaterial.Scope>.Shared.Return(materialScopes);
         }
 
         return drawCalls;

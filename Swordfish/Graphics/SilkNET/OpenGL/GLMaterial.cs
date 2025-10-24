@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
 using Swordfish.Library.Types;
@@ -29,20 +30,19 @@ internal sealed class GLMaterial : Handle
         //  We do not want to dispose the shader and textures, they may be shared with other materials.
     }
 
-    public void Use()
+    public Scope Use()
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
-        ShaderProgram.Activate();
+        GLHandle.Scope[] scopes = ArrayPool<GLHandle.Scope>.Shared.Rent(Textures.Length + 1);
+        
+        scopes[0] = ShaderProgram.Use();
 
         for (var i = 0; i < Textures.Length; i++)
         {
-            Textures[i].Activate(TextureUnit.Texture0 + i);
+            scopes[1 + i] = Textures[i].Activate(TextureUnit.Texture0 + i);
             ShaderProgram.SetUniform("texture" + i, i);
         }
+
+        return new Scope(scopes);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -75,5 +75,31 @@ internal sealed class GLMaterial : Handle
     public override string? ToString()
     {
         return base.ToString() + $"[{ShaderProgram}]" + $"[{Textures.Length}]";
+    }
+
+    public struct Scope : IDisposable
+    {
+        private GLHandle.Scope[]? _scopes;
+        
+        public Scope(GLHandle.Scope[] scopes)
+        {
+            _scopes = scopes;
+        }
+
+        public void Dispose()
+        {
+            if (_scopes == null)
+            {
+                return;
+            }
+            
+            for (var i = 0; i < _scopes.Length; i++)
+            {
+                _scopes[i].Dispose();
+            }
+            
+            ArrayPool<GLHandle.Scope>.Shared.Return(_scopes);
+            _scopes = null;
+        }
     }
 }

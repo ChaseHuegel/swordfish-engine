@@ -221,28 +221,40 @@ internal sealed class ReefRenderer(
             }
             
             GLMaterial typefaceGLMaterial = _renderContext.BindMaterial(typefaceMaterial);
-            typefaceGLMaterial.Use();
+            
+            using GLMaterial.Scope _ = typefaceGLMaterial.Use();
             shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
+            
+            DrawArrays(vao, vertices);
         }
         else if (command.RendererData != null)
         {
             GLMaterial glMaterial = _renderContext.BindMaterial(command.RendererData);
-            glMaterial.Use();
+            
+            using GLMaterial.Scope _ = glMaterial.Use();
             shaderActivationCallback(glMaterial.ShaderProgram);
+            
+            DrawArrays(vao, vertices);
         }
         else
         {
-            _defaultShader.Activate();
+            using GLHandle.Scope _ = _defaultShader.Use();
             shaderActivationCallback(_defaultShader);
+            
+            DrawArrays(vao, vertices);
         }
 
+        return 1;
+    }
+
+    private void DrawArrays(VertexArrayObject<float> vao, Vertices vertices)
+    {
         vao.VertexBufferObject.UpdateData(CollectionsMarshal.AsSpan(vertices.Data));
         _gl.Set(EnableCap.DepthTest, false);
         _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
         _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
-        return 1;
     }
-    
+
     private readonly struct InstanceVertexData(Vertices rect, Vertices? text)
     {
         public readonly Vertices Rect = rect;

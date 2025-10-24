@@ -135,9 +135,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _screenVAO.SetVertexAttributePointer(index: 0, count: 3, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 0);
         _screenVAO.SetVertexAttributePointer(index: 1, count: 2, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 3 * sizeof(float));
         
-        _lightsSSBO = new BufferObject<GPULight>(_gl, Span<GPULight>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 0);
-        _tileIndicesSSBO = new BufferObject<uint>(_gl, Span<uint>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 1);
-        _tileCountsSSBO = new BufferObject<uint>(_gl, Span<uint>.Empty, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 2);
+        _lightsSSBO = new BufferObject<GPULight>(_gl, size: MAX_LIGHTS, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 0);
+        _tileIndicesSSBO = new BufferObject<uint>(_gl, size: _numTiles * MAX_LIGHTS_PER_TILE, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 1);
+        _tileCountsSSBO = new BufferObject<uint>(_gl, size: _numTiles, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 2);
         
         _colorRBO = new RenderbufferObject(_gl, name: "render_color", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment0, InternalFormat.Rgba16f, samples: 4);
         _bloomRBO = new RenderbufferObject(_gl, name: "render_bloom", _screenWidth, _screenHeight, FramebufferAttachment.ColorAttachment1, InternalFormat.Rgba8, samples: 4);
@@ -185,68 +185,19 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTilesY = (int)(_screenHeight + TILE_HEIGHT - 1) / TILE_HEIGHT;
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
+
+        _preDepthTex.UpdateData(_screenHalfWidth, _screenHalfHeight, pixels: null);
+        _depthTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
+        _ssaoTex.UpdateData(_screenHalfWidth, _screenHalfHeight, pixels: null);
+        _blurTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
+        _screenTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
         
-        _gl.BindTexture(TextureTarget.Texture2D, _preDepthTex);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenHalfWidth, _screenHalfHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
+        _colorRBO.Resize(_screenWidth, _screenHeight);
+        _bloomRBO.Resize(_screenWidth, _screenHeight);
+        _depthStencilRBO.Resize(_screenWidth, _screenHeight);
         
-        _gl.BindTexture(TextureTarget.Texture2D, _depthTex);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.DepthComponent24, _screenWidth, _screenHeight, 0, GLEnum.DepthComponent, GLEnum.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
-        _gl.BindTexture(TextureTarget.Texture2D, _ssaoTex);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.R32f, _screenHalfWidth, _screenHalfHeight, 0, PixelFormat.Red, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
-        _gl.BindTexture(TextureTarget.Texture2D, _blurTex);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgb16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgb, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
-        _gl.BindTexture(TextureTarget.Texture2D, _screenTex);
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba16f, _screenWidth, _screenHeight, 0, PixelFormat.Rgba, PixelType.Float, null);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)GLEnum.Linear);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)GLEnum.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)GLEnum.ClampToEdge);
-        
-        _gl.BindTexture(TextureTarget.Texture2D, 0);
-        
-        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _colorRBO);
-        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba16f, _screenWidth, _screenHeight);
-        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0, RenderbufferTarget.Renderbuffer, _colorRBO);
-        
-        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _bloomRBO);
-        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Rgba8, _screenWidth, _screenHeight);
-        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment1, RenderbufferTarget.Renderbuffer, _bloomRBO);
-        
-        _gl.BindRenderbuffer(GLEnum.Renderbuffer, _depthStencilRBO);
-        _gl.RenderbufferStorageMultisample(GLEnum.Renderbuffer, samples: 4, InternalFormat.Depth24Stencil8, _screenWidth, _screenHeight);
-        _gl.FramebufferRenderbuffer(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, RenderbufferTarget.Renderbuffer, _depthStencilRBO);
-        
-        _gl.BindRenderbuffer(GLEnum.Renderbuffer, 0);
-        
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileIndicesSSBO);
-        int indicesCount = _numTiles * MAX_LIGHTS_PER_TILE;
-        _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(indicesCount * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
-        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 1, _tileIndicesSSBO);
-        
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, _tileCountsSSBO);
-        _gl.BufferData(BufferTargetARB.ShaderStorageBuffer, (nuint)(_numTiles * sizeof(uint)), null, BufferUsageARB.DynamicDraw);
-        _gl.BindBufferBase(BufferTargetARB.ShaderStorageBuffer, 2, _tileCountsSSBO);
-        
-        _gl.BindBuffer(BufferTargetARB.ShaderStorageBuffer, 0);
+        _tileIndicesSSBO.Resize(_numTiles * MAX_LIGHTS_PER_TILE);
+        _tileCountsSSBO.Resize(_numTiles);
     }
 
     public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)

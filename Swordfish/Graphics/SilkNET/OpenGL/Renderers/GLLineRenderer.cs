@@ -84,7 +84,7 @@ internal sealed class GLLineRenderer(
         _gl.Enable(EnableCap.Blend);
         _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
-        _shaderProgram.Activate();
+        using GLHandle.Scope _ = _shaderProgram.Use();
         _shaderProgram.SetUniform("view", view);
         _shaderProgram.SetUniform("projection", projection);
         shaderActivationCallback(_shaderProgram);

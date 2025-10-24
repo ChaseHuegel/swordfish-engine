@@ -101,20 +101,20 @@ internal sealed class FramebufferObject : GLHandle
         private readonly GL _gl;
         private readonly FramebufferTarget _target;
 
-        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target)
+        public FramebufferScope(in GL gl, in FramebufferObject fbo, FramebufferTarget target)
         {
             _gl = gl;
             _target = target;
             gl.BindFramebuffer(target, fbo.Handle);
         }
         
-        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, DrawBufferMode mode) 
+        public FramebufferScope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, DrawBufferMode mode) 
             : this(gl, fbo, target)
         {
             gl.DrawBuffer(mode);
         }
         
-        public Scope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, ReadBufferMode mode)
+        public FramebufferScope(in GL gl, in FramebufferObject fbo, FramebufferTarget target, ReadBufferMode mode)
             : this(gl, fbo, target)
         {
             gl.ReadBuffer(mode);

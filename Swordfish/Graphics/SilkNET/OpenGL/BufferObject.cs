@@ -10,6 +10,9 @@ internal sealed class BufferObject<TData> : GLHandle
     private readonly BufferTargetARB _bufferType;
     private readonly BufferUsageARB _usage;
 
+    public unsafe BufferObject(GL gl, int size, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw, uint? index = null)
+     : this(gl, new Span<TData>(pointer: null, size), bufferType, usage, index) { }
+    
     public unsafe BufferObject(GL gl, Span<TData> data, BufferTargetARB bufferType, BufferUsageARB usage = BufferUsageARB.StaticDraw, uint? index = null)
     {
         _gl = gl;
@@ -38,6 +41,14 @@ internal sealed class BufferObject<TData> : GLHandle
             nuint bufferSize = new((uint)(data.Length * sizeof(TData)));
             _gl.BufferData(_bufferType, bufferSize, dataPtr, _usage);
         }
+        Unbind();
+    }
+    
+    public unsafe void Resize(int size)
+    {
+        Bind();
+        nuint bufferSize = new((uint)(size * sizeof(TData)));
+        _gl.BufferData(_bufferType, bufferSize, data: null, _usage);
         Unbind();
     }
 

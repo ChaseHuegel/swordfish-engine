@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Silk.NET.OpenGL;
@@ -181,6 +182,7 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
             return 0;
         }
 
+        GLMaterial.Scope[] materialScopes = ArrayPool<GLMaterial.Scope>.Shared.Rent(target.Materials.Length);
         for (var n = 0; n < target.Materials.Length; n++)
         {
             GLMaterial material = target.Materials[n];
@@ -192,6 +194,13 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         _gl.Set(EnableCap.DepthTest, false);
         _gl.PolygonMode(TriangleFace.FrontAndBack, _renderSettings.Wireframe ? PolygonMode.Line : PolygonMode.Fill);
         _gl.MultiDrawArrays(PrimitiveType.TriangleFan, CollectionsMarshal.AsSpan(vertices.Offsets), CollectionsMarshal.AsSpan(vertices.Counts), (uint)vertices.Count);
+        
+        for (var n = 0; n < materialScopes.Length; n++)
+        {
+            materialScopes[n].Dispose();
+        }
+        ArrayPool<GLMaterial.Scope>.Shared.Return(materialScopes);
+        
         return 1;
     }
 }
