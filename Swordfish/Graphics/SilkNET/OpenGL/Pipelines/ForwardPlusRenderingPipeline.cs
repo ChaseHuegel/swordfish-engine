@@ -119,16 +119,16 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _preDepthFBO = new FramebufferObject(_gl, name: "prepass_depth", _preDepthTex, FramebufferAttachment.DepthAttachment);
         
         _depthTex = new TexImage2D(_gl, name: "depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
-        _depthFBO = new FramebufferObject(_gl, name: "depth", _preDepthTex, FramebufferAttachment.DepthAttachment);
+        _depthFBO = new FramebufferObject(_gl, name: "depth", _depthTex, FramebufferAttachment.DepthAttachment);
         
         _ssaoTex = new TexImage2D(_gl, name: "ssao", pixels: null, _screenHalfWidth, _screenHalfHeight, TextureFormat.R32f, TextureParams.ClampLinear);
-        _ssaoFBO = new FramebufferObject(_gl, name: "ssao", _preDepthTex, FramebufferAttachment.ColorAttachment0);
+        _ssaoFBO = new FramebufferObject(_gl, name: "ssao", _ssaoTex, FramebufferAttachment.ColorAttachment0);
         
         _blurTex = new TexImage2D(_gl, name: "blur", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
-        _blurFBO = new FramebufferObject(_gl, name: "blur", _preDepthTex, FramebufferAttachment.ColorAttachment0);
+        _blurFBO = new FramebufferObject(_gl, name: "blur", _blurTex, FramebufferAttachment.ColorAttachment0);
         
         _screenTex = new TexImage2D(_gl, name: "screen", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
-        _screenFBO = new FramebufferObject(_gl, name: "screen", _preDepthTex, FramebufferAttachment.ColorAttachment0);
+        _screenFBO = new FramebufferObject(_gl, name: "screen", _screenTex, FramebufferAttachment.ColorAttachment0);
         
         _screenVBO = new BufferObject<float>(_gl, _screenQuadVertices, BufferTargetARB.ArrayBuffer);
         _screenVAO = new VertexArrayObject<float>(_gl, _screenVBO);
