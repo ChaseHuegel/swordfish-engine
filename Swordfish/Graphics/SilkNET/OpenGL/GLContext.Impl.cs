@@ -45,18 +45,20 @@ internal unsafe partial class GLContext
         in byte* pixels,
         in uint width,
         in uint height,
-        in bool generateMipmaps)
+        in TextureFormat format,
+        in TextureParams @params)
     {
         private readonly GL _gl = gl;
         private readonly string _name = name;
         private readonly byte* _pixels = pixels;
         private readonly uint _width = width;
         private readonly uint _height = height;
-        private readonly bool _generateMipmaps = generateMipmaps;
+        private readonly TextureFormat _format = format;
+        private readonly TextureParams _params = @params;
 
         public static TexImage2D Factory(TextureArgs args)
         {
-            return new TexImage2D(args._gl, args._name, args._pixels, args._width, args._height, args._generateMipmaps);
+            return new TexImage2D(args._gl, args._name, args._pixels, args._width, args._height, args._format, args._params);
         }
     }
 
@@ -67,7 +69,8 @@ internal unsafe partial class GLContext
         in uint width,
         in uint height,
         in uint depth,
-        in bool generateMipmaps)
+        in TextureFormat format,
+        in TextureParams @params)
     {
         private readonly GL _gl = gl;
         private readonly string _name = name;
@@ -75,11 +78,12 @@ internal unsafe partial class GLContext
         private readonly uint _width = width;
         private readonly uint _height = height;
         private readonly uint _depth = depth;
-        private readonly bool _generateMipmaps = generateMipmaps;
+        private readonly TextureFormat _format = format;
+        private readonly TextureParams _params = @params;
 
         public static TexImage3D Factory(TextureArrayArgs args)
         {
-            return new TexImage3D(args._gl, args._name, args._pixels, args._width, args._height, args._depth, args._generateMipmaps);
+            return new TexImage3D(args._gl, args._name, args._pixels, args._width, args._height, args._depth, args._format, args._params);
         }
     }
 

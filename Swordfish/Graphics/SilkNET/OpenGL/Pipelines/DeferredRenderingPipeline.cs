@@ -74,25 +74,27 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         
         //  Render the gbuffer
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        _screenShader.Activate();
-        _screenShader.SetUniform("gPosition", 0);
-        _screenShader.SetUniform("gNormal", 1);
-        _screenShader.SetUniform("gColor", 2);
-        Vector3 viewLightDirection = Vector3.Normalize(Vector3.TransformNormal(Vector3.Normalize(new Vector3(1, 1, 1f)), view));
-        _screenShader.SetUniform("viewLightDirection", viewLightDirection);
-        _gBuffer.Activate();
-        
-        //  Draw the screen quad
-        _gl.Set(EnableCap.CullFace, false);
-        _screenVAO.Bind();
-        _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-        _screenVAO.Unbind();
-        
-        //  Copy the gbuffer's depth to the default framebuffer
-        _gl.BindFramebuffer(GLEnum.ReadFramebuffer, _gBuffer.Handle);
-        _gl.BindFramebuffer(GLEnum.DrawFramebuffer, 0);
-        _gl.BlitFramebuffer(0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, 0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
-        _gl.BindFramebuffer(GLEnum.ReadFramebuffer, 0);
+        using (_screenShader.Use())
+        {
+            _screenShader.SetUniform("gPosition", 0);
+            _screenShader.SetUniform("gNormal", 1);
+            _screenShader.SetUniform("gColor", 2);
+            Vector3 viewLightDirection = Vector3.Normalize(Vector3.TransformNormal(Vector3.Normalize(new Vector3(1, 1, 1f)), view));
+            _screenShader.SetUniform("viewLightDirection", viewLightDirection);
+            _gBuffer.Activate();
+            
+            //  Draw the screen quad
+            _gl.Set(EnableCap.CullFace, false);
+            _screenVAO.Bind();
+            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+            _screenVAO.Unbind();
+            
+            //  Copy the gbuffer's depth to the default framebuffer
+            _gl.BindFramebuffer(GLEnum.ReadFramebuffer, _gBuffer.Handle);
+            _gl.BindFramebuffer(GLEnum.DrawFramebuffer, 0);
+            _gl.BlitFramebuffer(0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, 0, 0, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y, ClearBufferMask.DepthBufferBit, BlitFramebufferFilter.Nearest);
+            _gl.BindFramebuffer(GLEnum.ReadFramebuffer, 0);
+        }
     }
 
     protected override void ShaderActivationCallback(ShaderProgram shader)

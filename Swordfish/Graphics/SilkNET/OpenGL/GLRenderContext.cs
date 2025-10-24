@@ -140,13 +140,19 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return Unsafe.As<IGLTexture>(handle);
         }
 
+        TextureFormat format = TextureFormat.Rgb16f;
+        TextureParams @params = TextureParams.ClampNearest with
+        {
+            GenerateMipmaps = texture.Mipmaps,
+        };
+        
         if (texture is TextureArray textureArray)
         {
-            handle = _glContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, textureArray.Mipmaps);
+            handle = _glContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, format, @params);
         }
         else
         {
-            handle = _glContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, texture.Mipmaps);
+            handle = _glContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, format, @params);
         }
 
         if (_linkedHandles.TryAdd(texture, handle))
