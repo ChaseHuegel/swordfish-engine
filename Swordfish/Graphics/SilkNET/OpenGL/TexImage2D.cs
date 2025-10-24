@@ -19,14 +19,6 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
         string name,
         byte* pixels,
         uint width,
-        uint height)
-    : this(gl, name, pixels, width, height, TextureFormat.RgbaByte, TextureParams.ClampNearest) { }
-
-    public unsafe TexImage2D(
-        GL gl,
-        string name,
-        byte* pixels,
-        uint width,
         uint height,
         TextureFormat format,
         TextureParams @params

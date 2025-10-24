@@ -127,7 +127,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _blurTex = new TexImage2D(_gl, name: "blur", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
         _blurFBO = new FramebufferObject(_gl, name: "blur", _blurTex, FramebufferAttachment.ColorAttachment0);
         
-        _screenTex = new TexImage2D(_gl, name: "screen", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
+        _screenTex = new TexImage2D(_gl, name: "screen", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgba16f, TextureParams.ClampLinear);
         _screenFBO = new FramebufferObject(_gl, name: "screen", _screenTex, FramebufferAttachment.ColorAttachment0);
         
         _screenVBO = new BufferObject<float>(_gl, _screenQuadVertices, BufferTargetARB.ArrayBuffer);

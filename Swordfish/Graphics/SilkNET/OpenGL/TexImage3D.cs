@@ -8,15 +8,6 @@ internal sealed class TexImage3D : GLHandle, IGLTexture<TexImage3D>
     public string Name { get; }
 
     private readonly GL _gl;
-    
-    public unsafe TexImage3D(
-        GL gl,
-        string name,
-        byte* pixels,
-        uint width,
-        uint height, 
-        uint depth
-    ) : this(gl, name, pixels, width, height, depth, TextureFormat.RgbaByte, TextureParams.ClampNearest) { }
 
     public unsafe TexImage3D(
         GL gl,
