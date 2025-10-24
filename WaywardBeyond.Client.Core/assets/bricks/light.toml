@@ -1,0 +1,14 @@
+[[Bricks]]
+ID      = "light"
+Shape   = "any"
+Tags    = [
+    "light",
+    "metal",
+    "glass",
+    "decoration",
+    "buildable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Connected = true
+Default   = ["light.0"]

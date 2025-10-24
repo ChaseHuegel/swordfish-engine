@@ -6,22 +6,52 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
 {
     public string Name { get; }
+    
+    public uint Width { get; }
+    public uint Height { get; }
 
     private readonly GL _gl;
-    // ReSharper disable once NotAccessedField.Local
-    private readonly byte _mipmapLevels; //  TODO implement mipmaps
+    private readonly TextureFormat _format;
+    private readonly TextureParams _params;
 
-    public unsafe TexImage2D(GL gl, string name, byte* pixels, uint width, uint height, bool generateMipmaps)
-    {
+    public unsafe TexImage2D(
+        GL gl,
+        string name,
+        byte* pixels,
+        uint width,
+        uint height,
+        TextureFormat format,
+        TextureParams @params
+    ) {
         _gl = gl;
         Name = name;
-        _mipmapLevels = generateMipmaps == false ? (byte)0 : (byte)Math.Floor(Math.Log(Math.Max(width, height), 2));
+        Width = width;
+        Height = height;
+        _format = format;
+        _params = @params;
 
-        Activate();
+        using Scope _ = Use();
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, format.InternalFormat, width, height, border: 0, format.PixelFormat, format.PixelType, pixels);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)@params.WrapS);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)@params.WrapT);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)@params.MinFilter);
+        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)@params.MagFilter);
 
-        //  TODO introduce texture options. ie. need to be able to specify Srgba[Alpha]
-        _gl.TexImage2D(TextureTarget.Texture2D, 0, InternalFormat.Rgba, width, height, 0, PixelFormat.Rgba, PixelType.UnsignedByte, pixels);
-        SetDefaultParameters();
+        if (@params.GenerateMipmaps)
+        {
+            _gl.GenerateMipmap(TextureTarget.Texture2D);
+        }
+    }
+    
+    public unsafe void UpdateData(uint width, uint height, byte* pixels)
+    {
+        using Scope _ = Use();
+        _gl.TexImage2D(TextureTarget.Texture2D, 0, _format.InternalFormat, width, height, border: 0, _format.PixelFormat, _format.PixelType, pixels);
+        
+        if (_params.GenerateMipmaps)
+        {
+            _gl.GenerateMipmap(TextureTarget.Texture2D);
+        }
     }
 
     protected override uint CreateHandle()
@@ -44,26 +74,10 @@ internal sealed class TexImage2D : GLHandle, IGLTexture<TexImage2D>
         _gl.BindTexture(TextureTarget.Texture2D, 0);
     }
 
-    public void Activate(TextureUnit textureSlot = TextureUnit.Texture0)
+    public Scope Activate(TextureUnit textureSlot)
     {
-        if (IsDisposed)
-        {
-            return;
-        }
-
         _gl.ActiveTexture(textureSlot);
-        Bind();
-    }
-
-    private void SetDefaultParameters()
-    {
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBaseLevel, 0);
-        _gl.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMaxLevel, 0);
-        _gl.GenerateMipmap(TextureTarget.Texture2D);
+        return Use();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

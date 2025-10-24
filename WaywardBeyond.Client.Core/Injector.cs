@@ -8,7 +8,9 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Bricks.Decorators;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
@@ -28,8 +30,9 @@ public class Injector : IDryIocInjector
         RegisterUI(container);
         RegisterInput(container);
         RegisterDatabases(container);
-        RegisterTomlParsers(container);
+        RegisterParsers(container);
         RegisterEntitySystems(container);
+        RegisterBrickDecorators(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -41,6 +44,7 @@ public class Injector : IDryIocInjector
         container.Register<BrickEntityBuilder>(Reuse.Singleton);
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
         container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
+        container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
         container.Register<Entry>(Reuse.Singleton);
@@ -109,10 +113,12 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
     }
     
-    private static void RegisterTomlParsers(IContainer container)
+    private static void RegisterParsers(IContainer container)
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
+        
+        container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
     }
 
     private static void RegisterEntitySystems(IContainer container)
@@ -120,5 +126,12 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
+    }
+    
+    private void RegisterBrickDecorators(IContainer container)
+    {
+        container.Register<BrickGridService>();
+        container.Register<IBrickDecorator, LightDecorator>();
+        container.Register<IBrickDecorator, ThrusterDecorator>();
     }
 }

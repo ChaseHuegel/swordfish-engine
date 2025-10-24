@@ -2,9 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Graphics;
+using WaywardBeyond.Client.Core.Serialization;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -15,13 +18,15 @@ internal sealed class BrickGridBuilder
     private readonly Mesh _slab;
     private readonly Mesh _column;
     private readonly Mesh _plate;
-    private readonly TextureArray _textureArray;
+    private readonly PBRTextureArrays _textureArrays;
     private readonly BrickDatabase _brickDatabase;
+    private readonly BrickGridService _brickGridService;
     
-    public BrickGridBuilder(BrickDatabase brickDatabase, TextureArray textureArray, IAssetDatabase<Mesh> meshDatabase)
+    public BrickGridBuilder(BrickDatabase brickDatabase, PBRTextureArrays textureArrays, IAssetDatabase<Mesh> meshDatabase, BrickGridService brickGridService)
     {
         _brickDatabase = brickDatabase;
-        _textureArray = textureArray;
+        _textureArrays = textureArrays;
+        _brickGridService = brickGridService;
         _slope = meshDatabase.Get("slope.obj");
         _stair = meshDatabase.Get("stair.obj");
         _slab = meshDatabase.Get("slab.obj");
@@ -29,8 +34,70 @@ internal sealed class BrickGridBuilder
         _plate = meshDatabase.Get("plate.obj");
     }
     
-    public Mesh CreateMesh(BrickGrid grid, bool transparent = false)
+    public Mesh CreateMesh(DataStore store, int entity, BrickGrid grid, bool transparent = false)
     {
+        var lightQueue = new Queue<BrickGridItem>();
+        //  Seed lights
+        foreach (BrickGridItem item in grid.GetBricks())
+        {
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(item.Brick.ID);
+            
+            BrickData data;
+            BrickData newData;
+            Brick brick;
+            BrickInfo brickInfo = brickInfoResult.Value;
+            
+            if (!brickInfoResult.Success || !brickInfo.LightSource)
+            {
+                data = item.Brick.Data;
+                newData = new BrickData(data.Shape, lightLevel: 0); // Clear out any stale light level
+                brick = new Brick(item.Brick.ID, newData, item.Brick.Orientation);
+                _brickGridService.SetBrick(store, entity, grid, item.X, item.Y, item.Z, brick);
+                continue;
+            }
+            
+            data = item.Brick.Data;
+            newData = new BrickData(data.Shape, brickInfo.Brightness);
+            brick = new Brick(item.Brick.ID, newData, item.Brick.Orientation);
+            _brickGridService.SetBrick(store, entity, grid, item.X, item.Y, item.Z, brick);
+            
+            lightQueue.Enqueue(new BrickGridItem(brick, item.X, item.Y, item.Z));
+        }
+        
+        //  Propagate light
+        while (lightQueue.Count > 0)
+        {
+            BrickGridItem item = lightQueue.Dequeue();
+            BrickData data = item.Brick.Data;
+            if (data.LightLevel <= 1)
+            {
+                continue;
+            }
+
+            int nextLight = data.LightLevel - 1;
+            PropagateLight(item.X + 1, item.Y, item.Z);
+            PropagateLight(item.X - 1, item.Y, item.Z);
+            PropagateLight(item.X, item.Y + 1, item.Z);
+            PropagateLight(item.X, item.Y - 1, item.Z);
+            PropagateLight(item.X, item.Y, item.Z + 1);
+            PropagateLight(item.X, item.Y, item.Z - 1);
+            
+            void PropagateLight(int x, int y, int z)
+            {
+                Brick neighbor = grid.Get(x, y, z);
+                BrickData neighborData = neighbor.Data;
+                if (neighborData.LightLevel + 2 > nextLight || _brickDatabase.IsCuller(neighbor))
+                {
+                    return;
+                }
+
+                var newData = new BrickData(neighborData.Shape, nextLight);
+                var newBrick = new Brick(neighbor.ID, newData, neighbor.Orientation);
+                grid.Set(x, y, z, newBrick);
+                lightQueue.Enqueue(new BrickGridItem(newBrick, x, y, z));
+            }
+        }
+        
         var triangles = new List<uint>();
         var vertices = new List<Vector3>();
         var colors = new List<Vector4>();
@@ -62,7 +129,7 @@ internal sealed class BrickGridBuilder
 
             var meshBuilder = new BrickGridMeshBuilder(
                 _brickDatabase,
-                _textureArray,
+                _textureArrays.Albedo,
                 vertices,
                 colors,
                 uv,
@@ -126,7 +193,8 @@ internal sealed class BrickGridBuilder
                     }
 
                     //  Non-block shaped bricks of the same type cull one another 
-                    if (neighbor.ID == target.ID && neighbor.Data == 0)
+                    BrickData neighborData = neighbor.Data;
+                    if (neighbor.ID == target.ID && neighborData.Shape == BrickShape.Block)
                     {
                         return true;
                     }
@@ -156,8 +224,9 @@ internal sealed class BrickGridBuilder
                 {
                     continue;
                 }
-                
-                switch ((BrickShape)brick.Data)
+
+                BrickData data = brick.Data;
+                switch (data.Shape)
                 {
                     case BrickShape.Slab:
                         AddMesh(_slab);
@@ -228,11 +297,16 @@ internal sealed class BrickGridBuilder
                 {
                     Quaternion rotation = brick.GetQuaternion();
                     
-                    colors.AddRange(mesh.Colors);
+                    float light = Math.Clamp(data.LightLevel / 15f, 0.1f, 1f);
+                    var color = new Vector4(light, light, light, 1f);
+                    for (var i = 0; i < mesh.Colors.Length; i++)
+                    {
+                        colors.Add(color);
+                    }
 
                     foreach (Vector3 texCoord in mesh.Uv)
                     {
-                        int textureIndex = _textureArray.IndexOf(brickInfo.Textures.Default![0]!);
+                        int textureIndex = _textureArrays.Albedo.IndexOf(brickInfo.Textures.Default![0]!);
                         uv.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
                     }
 

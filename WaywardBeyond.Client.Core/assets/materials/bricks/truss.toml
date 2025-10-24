@@ -1,4 +1,5 @@
 Shader   = "textured"
+Transparent = true
 Textures = [
     "block/truss.png",
 ]

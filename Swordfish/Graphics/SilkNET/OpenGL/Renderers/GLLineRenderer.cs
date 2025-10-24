@@ -15,7 +15,7 @@ internal sealed class GLLineRenderer(
     in GLContext glContext,
     in IFileParseService fileParseService,
     in VirtualFileSystem vfs)
-    : IRenderStage, ILineRenderer
+    : IWorldSpaceRenderStage, ILineRenderer
 {
     private ShaderProgram? _shaderProgram;
     private VertexArrayObject<float>? _vao;
@@ -70,26 +70,31 @@ internal sealed class GLLineRenderer(
         _shaderProgram.BindAttributeLocation("in_color", 1);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_shaderProgram == null || _vao == null)
+        if (_shaderProgram == null || _vao == null || isDepthPass)
         {
             return 0;
         }
         
-        _shaderProgram.Activate();
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+        
+        using GLHandle.Scope _ = _shaderProgram.Use();
         _shaderProgram.SetUniform("view", view);
         _shaderProgram.SetUniform("projection", projection);
+        shaderActivationCallback(_shaderProgram);
 
         _vao.Bind();
 
         int drawCalls = DrawLines(_vao, _linesLock, _lines, _lineVertexOffsets, _lineVertexCounts, _lineVertexData, true);
         drawCalls += DrawLines(_vao, _noDepthLinesLock, _noDepthLines, _noDepthLineVertexOffsets, _noDepthLineVertexCounts, _noDepthLineVertexData, false);
 
+        _gl.Disable(EnableCap.Blend);
         return drawCalls;
     }
 

@@ -23,15 +23,28 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
     {
         string? name = file.GetFileNameWithoutExtension();
 
-        (string vertexSource, string fragmentSource) = ParseVertAndFrag(file);
+        (string? vertexSource, string? fragmentSource, string? computeSource) = ParseSource(file);
 
-        var vertex = new ShaderSource(name + ".vertex", vertexSource, ShaderType.Vertex);
-        var fragment = new ShaderSource(name + ".fragment", fragmentSource, ShaderType.Fragment);
-
-        return new Shader(name, vertex, fragment);
+        List<ShaderSource> sources = new(2);
+        if (vertexSource != null)
+        {
+            sources.Add(new ShaderSource(name + ".vertex", vertexSource, ShaderType.Vertex));
+        }
+        
+        if (fragmentSource != null)
+        {
+            sources.Add(new ShaderSource(name + ".fragment", fragmentSource, ShaderType.Fragment));
+        }
+        
+        if (computeSource != null)
+        {
+            sources.Add(new ShaderSource(name + ".compute", computeSource, ShaderType.Compute));
+        }
+        
+        return new Shader(name, sources.ToArray());
     }
 
-    private (string vertexSource, string fragmentSource) ParseVertAndFrag(PathInfo file)
+    private (string? vertexSource, string? fragmentSource, string? computeSource) ParseSource(PathInfo file)
     {
         string shaderName = file.GetFileNameWithoutExtension();
 
@@ -49,8 +62,8 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         //  Recursively process all included sources
         while (includedFiles.Count > 0)
         {
-            PathInfo includePath = file.GetDirectory().At(includedFiles[0]);
-            PathInfo includedFile = _vfs.TryGetFile(includePath, out PathInfo virtualFile) ? virtualFile : includePath;
+            PathInfo includePath = includedFiles[0];
+            PathInfo includedFile = _vfs.TryGetFile(AssetPaths.Shaders.At(includePath), out PathInfo virtualFile) ? virtualFile : includePath;
             
             includedFiles.RemoveAt(0);
 
@@ -92,11 +105,12 @@ internal class GlslParser(in ILogger logger, in VirtualFileSystem vfs) : IFilePa
         attributesBuilder.AppendLine("#endif");
         attributesBuilder.AppendLine();
         attributesBuilder.AppendLine("#ifdef FRAGMENT");
+        attributesBuilder.AppendLine("layout (location = 0) out vec4 FragColor;");
+        attributesBuilder.AppendLine("layout (location = 1) out vec4 BrightColor;");
         attributesBuilder.AppendLine("in vec3 VertexPosition;");
         attributesBuilder.AppendLine("in vec4 VertexColor;");
         attributesBuilder.AppendLine("in vec3 TextureCoord;");
         attributesBuilder.AppendLine("in vec3 VertexNormal;");
-        attributesBuilder.AppendLine("out vec4 FragColor;");
         attributesBuilder.AppendLine("#endif");
         var attributes = attributesBuilder.ToString();
 
@@ -113,9 +127,12 @@ void main()
 #endif
 
 #ifdef FRAGMENT
+    BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
     FragColor = fragment();
-    if (FragColor.a == 0)
-        discard;
+#endif
+
+#ifdef COMPUTE
+    compute();
 #endif
 }";
 
@@ -135,14 +152,31 @@ void main()
             combinedSources.Insert(2, includedSources[i]);
         }
 
-        combinedSources.Insert(1, $"#define {SilkShaderType.VertexShader.GetDirective()}");
-        string vertexSource = string.Join(Environment.NewLine, combinedSources);
+        string? vertexSource = null;
+        if (source.Contains("vertex()") || includedSources.Any(includedSource => includedSource.Contains("vertex()"))) 
+        {
+            combinedSources.Insert(1, $"#define {SilkShaderType.VertexShader.GetDirective()}");
+            vertexSource = string.Join(Environment.NewLine, combinedSources);
+            combinedSources.RemoveAt(1);
+        }
 
-        combinedSources.RemoveAt(1);
-        combinedSources.Insert(1, $"#define {SilkShaderType.FragmentShader.GetDirective()}");
-        string fragmentSource = string.Join(Environment.NewLine, combinedSources);
+        string? fragmentSource = null;
+        if (source.Contains("fragment()") || includedSources.Any(includedSource => includedSource.Contains("fragment()")))
+        {
+            combinedSources.Insert(1, $"#define {SilkShaderType.FragmentShader.GetDirective()}");
+            fragmentSource = string.Join(Environment.NewLine, combinedSources);
+            combinedSources.RemoveAt(1);
+        }
+        
+        string? computeSource = null;
+        if (source.Contains("compute()") || includedSources.Any(includedSource => includedSource.Contains("compute()")))
+        {
+            combinedSources.Insert(1, $"#define {SilkShaderType.ComputeShader.GetDirective()}");
+            computeSource = string.Join(Environment.NewLine, combinedSources);
+            combinedSources.RemoveAt(1);
+        }
 
-        return (vertexSource, fragmentSource);
+        return (vertexSource, fragmentSource, computeSource);
     }
 
     private static void ProcessSource(PathInfo file, out string? versionDirective, out string? source, ref List<string> includedFiles)

@@ -31,6 +31,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
+    private readonly BrickGridService _brickGridService;
     private readonly CubeGizmo _cubeGizmo;
 
     private (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -47,7 +48,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector
+        in OrientationSelector orientationSelector,
+        in BrickGridService brickGridService
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -60,6 +62,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
+        _brickGridService = brickGridService;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
     }
 
@@ -99,7 +102,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
         
-        SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
+        _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
         _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -171,11 +174,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 orientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
             }
 
-            var brick = brickInfo.ToBrick();
-            brick.Data = (byte)shape;
-            brick.Orientation = orientation;
-            
-            SetBrick(clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
+            var brick = brickInfo.ToBrick(shape, orientation);
+            _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
             _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
@@ -201,7 +201,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
 
         //  Clone the target brick's shape
-        _shapeSelector.SelectedShape.Set((BrickShape)clickedBrick.Data);
+        BrickData brickData = clickedBrick.Data;
+        _shapeSelector.SelectedShape.Set(brickData.Shape);
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -451,46 +452,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         );
 
         return Vector3.Transform(localCenter, orientation) + origin;
-    }
-    
-    private void SetBrick(int _, BrickGrid grid, int x, int y, int z, Brick brick)
-    {
-        Brick currentBrick = grid.Get(x, y, z);
-        if (!grid.Set(x, y, z, brick))
-        {
-            return;
-        }
-
-        //  TODO reimplement thrusters
-        // if (currentBrick.Name == "thruster")
-        // {
-        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-        //     {
-        //         thruster.Power--;
-        //
-        //         if (thruster.Power <= 0)
-        //         {
-        //             store.Remove<ThrusterComponent>(thrusterEntity);
-        //         }
-        //     }
-        // }
-        //
-        // if (brick.Name == "thruster")
-        // {
-        //     var updated = false;
-        //     _ecsContext.World.DataStore.Query<ThrusterComponent>(entity, 0f, ThrusterQuery);
-        //     void ThrusterQuery(float delta, DataStore store, int thrusterEntity, ref ThrusterComponent thruster)
-        //     {
-        //         thruster.Power++;
-        //         updated = true;
-        //     }
-        //
-        //     if (!updated)
-        //     {
-        //         _ecsContext.World.DataStore.AddOrUpdate(entity, new ThrusterComponent(power: 1));
-        //     }
-        // }
     }
     
     private bool IsMainHandPlaceable() 

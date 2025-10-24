@@ -21,19 +21,19 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         return _glThread.WaitForResult(ShaderProgramArgs.Factory, new ShaderProgramArgs(_gl, name, shaderComponents));
     }
 
-    public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, bool generateMipmaps = false)
+    public TexImage2D CreateTexImage2D(string name, byte[] pixels, uint width, uint height, TextureFormat format, TextureParams @params)
     {
         fixed (byte* pixelPtr = pixels)
         {
-            return _glThread.WaitForResult(TextureArgs.Factory, new TextureArgs(_gl, name, pixelPtr, width, height, generateMipmaps));
+            return _glThread.WaitForResult(TextureArgs.Factory, new TextureArgs(_gl, name, pixelPtr, width, height, format, @params));
         }
     }
 
-    public TexImage3D CreateTexImage3D(string name, byte[] pixels, uint width, uint height, uint depth, bool generateMipmaps = false)
+    public TexImage3D CreateTexImage3D(string name, byte[] pixels, uint width, uint height, uint depth, TextureFormat format, TextureParams @params)
     {
         fixed (byte* pixelPtr = pixels)
         {
-            return _glThread.WaitForResult(TextureArrayArgs.Factory, new TextureArrayArgs(_gl, name, pixelPtr, width, height, depth, generateMipmaps));
+            return _glThread.WaitForResult(TextureArrayArgs.Factory, new TextureArrayArgs(_gl, name, pixelPtr, width, height, depth, format, @params));
         }
     }
 
