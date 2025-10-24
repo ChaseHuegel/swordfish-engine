@@ -1,4 +1,0 @@
-Shader   = "textured"
-Textures = [
-    "block/small_light.png",
-]
