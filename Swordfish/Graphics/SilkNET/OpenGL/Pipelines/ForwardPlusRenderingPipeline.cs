@@ -349,7 +349,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
         
         //  Blit the render buffer to the back buffer
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment0))
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment0))
         {
             _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
             _gl.DrawBuffer(GLEnum.Back);
@@ -366,9 +366,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
-        using (_blurTex.Use()) 
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
         using (_blurFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment1))
+        using (_blurTex.Use())
         {
             _gl.BlitFramebuffer(
                 0, 0, (int)_screenWidth, (int)_screenHeight,
@@ -386,8 +386,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         //       but they aren't too noticeable. since this is just for bloom.
         //       Using a single texture and single pass is a bit more performant.
         //       Whether one or two textures is used could be driven by quality settings.
-        using (_blurFBO.Use())
         using (_blurShader.Use())
+        using (_blurFBO.Use())
         using (_blurTex.Activate(TextureUnit.Texture0))
         {
             _blurShader.SetUniform("texture0", 0);
@@ -409,9 +409,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
         
         //  Blit the bloom renderbuffer to the screen texture
-        using (_screenTex.Use())
+        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment1))
         using (_screenFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, DrawBufferMode.ColorAttachment1))
+        using (_screenTex.Use())
         {
             _gl.BlitFramebuffer(
                 srcX0: 0, srcY0: 0, srcX1: (int)_screenWidth, srcY1: (int)_screenHeight,
@@ -422,6 +422,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         }
         
         _glDebug.TryLogError();
+        
+        //  Return to the back buffer
+        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
 
         //  Render the bloom overlay
         using (_bloomShader.Use())
