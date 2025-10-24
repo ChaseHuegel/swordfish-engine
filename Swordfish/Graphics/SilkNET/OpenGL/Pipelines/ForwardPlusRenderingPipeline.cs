@@ -195,18 +195,15 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _ssaoTex.UpdateData(_screenHalfWidth, _screenHalfHeight, pixels: null);
         _blurTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
         _screenTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
-        
         _glDebug.TryLogError();
         
         _colorRBO.Resize(_screenWidth, _screenHeight);
         _bloomRBO.Resize(_screenWidth, _screenHeight);
         _depthStencilRBO.Resize(_screenWidth, _screenHeight);
-        
         _glDebug.TryLogError();
         
         _tileIndicesSSBO.Resize(_numTiles * MAX_LIGHTS_PER_TILE);
         _tileCountsSSBO.Resize(_numTiles);
-        
         _glDebug.TryLogError();
     }
 
@@ -234,7 +231,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
             Draw(delta, view, projection, isDepthPass: true);
         }
-
         _glDebug.TryLogError();
 
         // SSAO pass
@@ -251,7 +247,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
             _screenVAO.Unbind();
         }
-        
         _glDebug.TryLogError();
 
         // Depth full pass
@@ -269,13 +264,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
             Draw(delta, view, projection, isDepthPass: false);
         }
-        
         _glDebug.TryLogError();
 
         //  Reset to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-
         _glDebug.TryLogError();
         
         // Upload lights
@@ -286,12 +279,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _lights.Swap();
         }
         _lightsSSBO.UpdateData(lights);
-        
         _glDebug.TryLogError();
 
         // Clear tile counts
         _tileCountsSSBO.UpdateData(_emptyTileCounts);
-        
         _glDebug.TryLogError();
 
         //  Dispatch tile compute shader
@@ -311,15 +302,12 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.DispatchCompute(groupsX, groupsY, groupsZ);
             _gl.MemoryBarrier(MemoryBarrierMask.ShaderStorageBarrierBit | MemoryBarrierMask.TextureUpdateBarrierBit);
         }
-        
         _glDebug.TryLogError();
 
         //  Clear and begin drawing to the render buffer
         _renderFBO.Bind();
         _gl.ClearColor(0f, 0f, 0f, 1f);
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
-
-        _glDebug.TryLogError();
         
         //  Skybox pass
         using (_skyboxShader.Use())
@@ -335,12 +323,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             
             _gl.DepthMask(true);
         }
-        
         _glDebug.TryLogError();
         
         //  Reset draw buffers
         _gl.DrawBuffers(_drawBuffers);
-        
         _glDebug.TryLogError();
     }
 
@@ -382,12 +368,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 _screenVAO.Unbind();
             }
         }
-        
         _glDebug.TryLogError();
         
         //  Blit the bloom renderbuffer to the screen texture
         _renderFBO.Blit(_screenFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
-        
         _glDebug.TryLogError();
         
         //  Return to the back buffer
@@ -412,7 +396,6 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Disable(EnableCap.Blend);
             _gl.DepthMask(true);
         }
-        
         _glDebug.TryLogError();
     }
     
