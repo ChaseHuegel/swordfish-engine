@@ -10,10 +10,13 @@ internal sealed class FramebufferObject : GLHandle
     private readonly GL _gl;
     private readonly uint _width;
     private readonly uint _height;
+    private readonly TexImage2D? _texture;
 
     public FramebufferObject(GL gl, string name, TexImage2D texture, FramebufferAttachment attachment)
         : this(gl, name, texture.Width, texture.Height)
     {
+        _texture = texture;
+        
         using Scope _ = Use();
         gl.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment, textarget: TextureTarget.Texture2D, texture.Handle, level: 0);
         
@@ -79,6 +82,43 @@ internal sealed class FramebufferObject : GLHandle
     protected override void UnbindHandle()
     {
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+    }
+    
+    public void Blit(FramebufferObject destination, ReadBufferMode readMode, DrawBufferMode drawMode, ClearBufferMask mask, BlitFramebufferFilter filter)
+    {
+        using FramebufferScope readScope = Use(FramebufferTarget.ReadFramebuffer, readMode);
+        using FramebufferScope drawScope = destination.Use(FramebufferTarget.DrawFramebuffer, drawMode);
+        
+        if (_texture != null)
+        {
+            using Scope textureScope = _texture.Use();
+        }
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_width, (int)_height,
+            0, 0, (int)destination._width, (int)destination._height,
+            mask,
+            filter
+        );
+    }
+    
+    public void Blit(ReadBufferMode readMode, DrawBufferMode drawMode, ClearBufferMask mask, BlitFramebufferFilter filter)
+    {
+        using FramebufferScope readScope = Use(FramebufferTarget.ReadFramebuffer, readMode);
+        _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
+        _gl.DrawBuffer(drawMode);
+        
+        if (_texture != null)
+        {
+            using Scope textureScope = _texture.Use();
+        }
+        
+        _gl.BlitFramebuffer(
+            0, 0, (int)_width, (int)_height,
+            0, 0, (int)_width, (int)_height,
+            mask,
+            filter
+        );
     }
 
     public FramebufferScope Use(FramebufferTarget target)

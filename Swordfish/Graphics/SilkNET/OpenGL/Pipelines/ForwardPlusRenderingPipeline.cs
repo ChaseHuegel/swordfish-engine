@@ -348,36 +348,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         _glDebug.TryLogError();
         
-        //  Blit the render buffer to the back buffer
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment0))
-        {
-            _gl.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
-            _gl.DrawBuffer(GLEnum.Back);
-            
-            _gl.BlitFramebuffer(
-                0, 0, (int)_screenWidth, (int)_screenHeight,
-                0, 0, (int)_screenWidth, (int)_screenHeight,
-                ClearBufferMask.ColorBufferBit,
-                BlitFramebufferFilter.Linear
-            );
-        }
-        
+        //  Blit the render buffer to the back buffer to display it
+        _renderFBO.Blit(ReadBufferMode.ColorAttachment0, DrawBufferMode.Back, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
         _glDebug.TryLogError();
         
         //  Bloom pre-pass
         //  Blit the bloom renderbuffer to the blur texture
-        using (_blurFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment1))
-        using (_blurTex.Use())
-        {
-            _gl.BlitFramebuffer(
-                0, 0, (int)_screenWidth, (int)_screenHeight,
-                0, 0, (int)_screenWidth, (int)_screenHeight,
-                ClearBufferMask.ColorBufferBit,
-                BlitFramebufferFilter.Linear
-            );
-        }
-        
+        _renderFBO.Blit(_blurFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
         _glDebug.TryLogError();
         
         //  Blur the bloom texture
@@ -409,17 +386,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
         
         //  Blit the bloom renderbuffer to the screen texture
-        using (_renderFBO.Use(FramebufferTarget.ReadFramebuffer, ReadBufferMode.ColorAttachment1))
-        using (_screenFBO.Use(FramebufferTarget.DrawFramebuffer, DrawBufferMode.ColorAttachment0))
-        using (_screenTex.Use())
-        {
-            _gl.BlitFramebuffer(
-                srcX0: 0, srcY0: 0, srcX1: (int)_screenWidth, srcY1: (int)_screenHeight,
-                dstX0: 0, dstY0: 0, dstX1: (int)_screenWidth, dstY1: (int)_screenHeight,
-                mask: ClearBufferMask.ColorBufferBit,
-                filter: BlitFramebufferFilter.Linear
-            );
-        }
+        _renderFBO.Blit(_screenFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
         
         _glDebug.TryLogError();
         
