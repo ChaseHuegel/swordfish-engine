@@ -189,16 +189,14 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
 
-        _preDepthTex.UpdateData(_screenHalfWidth, _screenHalfHeight, pixels: null);
-        _depthTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
-        _ssaoTex.UpdateData(_screenHalfWidth, _screenHalfHeight, pixels: null);
-        _blurTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
-        _screenTex.UpdateData(_screenWidth, _screenHeight, pixels: null);
+        _preDepthFBO.Resize(_screenHalfWidth, _screenHalfHeight);
+        _depthFBO.Resize(_screenWidth, _screenHeight);
+        _ssaoFBO.Resize(_screenHalfWidth, _screenHalfHeight);
+        _blurFBO.Resize(_screenWidth, _screenHeight);
+        _screenFBO.Resize(_screenWidth, _screenHeight);
         _glDebug.TryLogError();
         
-        _colorRBO.Resize(_screenWidth, _screenHeight);
-        _bloomRBO.Resize(_screenWidth, _screenHeight);
-        _depthStencilRBO.Resize(_screenWidth, _screenHeight);
+        _renderFBO.Resize(_screenWidth, _screenHeight);
         _glDebug.TryLogError();
         
         _tileIndicesSSBO.Resize(_numTiles * MAX_LIGHTS_PER_TILE);
@@ -375,6 +373,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         //  Return to the back buffer
         _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
 
         //  Render the bloom overlay
         using (_bloomShader.Use())
