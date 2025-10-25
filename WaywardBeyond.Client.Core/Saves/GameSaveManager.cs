@@ -20,11 +20,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 {
     private readonly struct GameLoadContext : IDisposable
     {
+        private readonly GameSave _save;
         private readonly IECSContext _ecs;
         private readonly PlayerControllerSystem _playerControllerSystem;
         
-        public GameLoadContext(IPhysics physics, IECSContext ecs, PlayerControllerSystem playerControllerSystem)
+        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, PlayerControllerSystem playerControllerSystem)
         {
+            _save = save;
             _ecs = ecs;
             _playerControllerSystem = playerControllerSystem;
             WaywardBeyond.GameState = GameState.Loading;
@@ -38,7 +40,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             player.Add<PlayerComponent>();
             player.Add<EquipmentComponent>();
             player.AddOrUpdate(new IdentifierComponent("Player", "player"));
-            player.AddOrUpdate(new TransformComponent(new Vector3(0f, 1f, 5f), Quaternion.Identity));
+            player.AddOrUpdate(new TransformComponent(new Vector3(_save.Level.SpawnX, _save.Level.SpawnY, _save.Level.SpawnZ), Quaternion.Identity));
             player.AddOrUpdate(inventory);
             inventory.Contents[0] = new ItemStack("panel", count: 1000);
             inventory.Contents[1] = new ItemStack("thruster", count: 1000);
@@ -130,6 +132,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
     public async Task NewGame(GameOptions options)
     {
+        GameSave save;
         lock (_activeSaveLock)
         {
             if (ActiveSave != null)
@@ -137,14 +140,15 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return;
             }
             
-            ActiveSave = _gameSaveService.CreateSave(options.Name);
+            save = _gameSaveService.CreateSave(options);
+            ActiveSave = save;
         }
         
-        using var gameLoadContext = new GameLoadContext(_physics, _ecs, _playerControllerSystem);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _playerControllerSystem);
         
         var shipGrid = new BrickGrid(dimensionSize: 16);
         shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
-        _brickEntityBuilder.Create("ship", shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
+        _brickEntityBuilder.Create(Guid.NewGuid(), shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         var worldGenerator = new WorldGenerator(options.Seed, _brickEntityBuilder, _brickDatabase);
         await worldGenerator.Generate();
@@ -154,19 +158,27 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     public Task Load()
     {
-        GameSave activeSave;
+        GameSave save;
         lock (_activeSaveLock)
         {
             if (ActiveSave == null)
             {
                 return Task.CompletedTask;
             }
-
-            activeSave = ActiveSave.Value;
+            
+            save = ActiveSave.Value;
         }
+        
+        long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Level level = save.Level with
+        {
+            LastPlayedMs = nowUtcMs,
+        };
+        
+        save = new GameSave(save.Path, save.Name, level);
 
-        using var gameLoadContext = new GameLoadContext(_physics, _ecs, _playerControllerSystem);
-        _gameSaveService.Load(activeSave);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _playerControllerSystem);
+        _gameSaveService.Load(save);
         return Task.CompletedTask;
     }
     
@@ -183,8 +195,18 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return Task.CompletedTask;
         }
+
+        GameSave save = ActiveSave.Value;
         
-        _gameSaveService.Save(ActiveSave.Value);
+        long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Level level = save.Level with
+        {
+            AgeMs = nowUtcMs - save.Level.LastPlayedMs,
+        };
+        
+        save = new GameSave(save.Path, save.Name, level);
+        
+        _gameSaveService.Save(save);
         return Task.CompletedTask;
     }
     
@@ -216,26 +238,26 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         ActiveSave = null;
         
         //  TODO should create a new ECS world instead of trying to cleanup state
-
-        _ecs.World.DataStore.Query<IdentifierComponent>(0f, CleanupBrickEntityQuery);
-        void CleanupBrickEntityQuery(float delta, DataStore store, int entity, ref IdentifierComponent identifier)
+        
+        _ecs.World.DataStore.Query<IdentifierComponent>(0f, CleanupGameEntitiesQuery);
+        void CleanupGameEntitiesQuery(float delta, DataStore store, int entity, ref IdentifierComponent identifier)
         {
-            if (identifier.Tag != "bricks")
+            if (identifier.Tag != "game")
             {
                 return;
             }
-                
+            
             if (store.TryGet(entity, out MeshRendererComponent meshRendererComponent))
             {
                 meshRendererComponent.MeshRenderer.Dispose();
                 meshRendererComponent.MeshRenderer.Mesh.Dispose();
             }
-
+            
             if (store.TryGet(entity, out PhysicsComponent physicsComponent))
             {
                 physicsComponent.Dispose();
             }
-
+            
             store.Free(entity);
         }
         

@@ -20,6 +20,7 @@ internal sealed class ThrusterDecorator : IBrickDecorator
         }
         
         int lightEntity = store.Alloc();
+        store.AddOrUpdate(lightEntity, new IdentifierComponent(name: null, tag: "game"));
         store.AddOrUpdate(lightEntity, new TransformComponent());
         store.AddOrUpdate(lightEntity, new BrickIdentifierComponent(x, y, z));
         store.AddOrUpdate(lightEntity, new LightComponent(radius: 0.75f, color: _lightColor, size: 0.25f));

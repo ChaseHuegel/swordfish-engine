@@ -1,0 +1,48 @@
+﻿#version 1.0;
+#namespace WaywardBeyond.Client.Core.Saves;
+
+message Version
+{
+    uint DataVersion   = 0;
+    string Name        = 1;
+    string Environment = 2;
+}
+
+message Level
+{
+    Version Version = 0;
+    
+    int Seed = 1;
+    
+    long LastPlayedMs = 2;
+    long AgeMs        = 3;
+    
+    int SpawnX = 4;
+    int SpawnY = 5;
+    int SpawnZ = 6;
+}
+
+message BrickEntityData
+{
+    string Guid = 0;
+    
+    double X           = 1;
+    double Y           = 2;
+    double Z           = 3;
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    
+    RawBrick[] Bricks = 50;
+}
+
+message RawBrick
+{
+    short X;
+    short Y;
+    short Z;
+    ushort ID;
+    byte Data;
+    byte Orientation;
+}

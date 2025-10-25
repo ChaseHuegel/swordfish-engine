@@ -19,7 +19,7 @@ internal sealed class Entry : IAutoActivate
         _windowContext = windowContext;
 
         windowSettings.Title.Set("Wayward Beyond");
-        logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version);
+        logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version.Name);
 
         MachineInformation? machineInformation = MachineInformationGatherer.GatherInformation();
         if (machineInformation == null)

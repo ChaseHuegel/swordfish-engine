@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
@@ -55,6 +56,6 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
         float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         
-        _brickEntityBuilder.Create("asteroid", asteroidGrid, position, orientation, Vector3.One);
+        _brickEntityBuilder.Create(Guid.NewGuid(), asteroidGrid, position, orientation, Vector3.One);
     }
 }

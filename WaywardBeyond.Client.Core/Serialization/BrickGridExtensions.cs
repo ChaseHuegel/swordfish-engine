@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Swordfish.Bricks;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Saves;
 using Int3 = (int X, int Y, int Z);
 
 namespace WaywardBeyond.Client.Core.Serialization;
@@ -9,17 +10,15 @@ using ItemToProcess = (BrickGrid BrickGrid, Int3 Offset);
 
 internal static class BrickGridExtensions
 {
-    public static RawBrickGrid ToRawBrickGrid(this BrickGrid value)
+    public static RawBrick[] ToRawBricks(this BrickGrid value)
     {
         var rawBricks = new List<RawBrick>(value.Size);
-
         foreach (BrickGridItem item in value.GetBricks())
         {
-            rawBricks.Add(new RawBrick(item.X, item.Y, item.Z, item.Brick.ID, item.Brick.Data, item.Brick.Orientation.ToByte()));
+            rawBricks.Add(new RawBrick((short)item.X, (short)item.Y, (short)item.Z, item.Brick.ID, item.Brick.Data, item.Brick.Orientation.ToByte()));
         }
 
-        RawBrick[] rawBrickArr = rawBricks.ToArray();
-        return new RawBrickGrid(rawBrickArr, _X: 0, _Y: 0, _Z: 0, _OrientationX: 0, _OrientationY: 0, _OrientationZ: 0, _OrientationW: 1);
+        return rawBricks.ToArray();
     }
     
     public static IEnumerable<BrickGridItem> GetBricks(this BrickGrid value)

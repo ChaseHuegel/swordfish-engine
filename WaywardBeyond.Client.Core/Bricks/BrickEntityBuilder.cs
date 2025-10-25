@@ -1,3 +1,4 @@
+using System;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.Bricks;
@@ -46,7 +47,7 @@ internal sealed class BrickEntityBuilder(
         Wireframe = false,
     };
 
-    public Entity Create(string name, BrickGrid grid, Vector3 position, Quaternion orientation, Vector3 scale)
+    public Entity Create(Guid guid, BrickGrid grid, Vector3 position, Quaternion orientation, Vector3 scale)
     {
         Vector3[] brickLocations = _brickGridBuilder.CreateCollisionData(grid);
         var brickRotations = new Quaternion[brickLocations.Length];
@@ -59,8 +60,8 @@ internal sealed class BrickEntityBuilder(
 
         var transform = new TransformComponent(position, orientation, scale);
 
-        int ptr = _dataStore.Alloc(new IdentifierComponent(name, "bricks"));
-        int transparencyPtr = _dataStore.Alloc(new IdentifierComponent($"{name} [Transparency]", "bricks"));
+        int ptr = _dataStore.Alloc(new IdentifierComponent(name: null, tag: "game"), new GuidComponent(guid));
+        int transparencyPtr = _dataStore.Alloc(new IdentifierComponent(name: null, tag: "game"), new GuidComponent(guid));
 
         Mesh mesh = _brickGridBuilder.CreateMesh(_dataStore, ptr, grid);
         var renderer = new MeshRenderer(mesh, _opaqueMaterial, _renderOptions);

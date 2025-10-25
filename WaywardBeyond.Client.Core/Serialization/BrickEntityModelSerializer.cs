@@ -1,8 +1,10 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.Bricks;
 using Swordfish.Library.Serialization;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Serialization;
 
@@ -28,36 +30,41 @@ internal class BrickEntityModelSerializer : ISerializer<BrickEntityModel>
 
     public byte[] Serialize(BrickEntityModel value)
     {
-        var rawBrickGrid = value.Grid.ToRawBrickGrid();
+        RawBrick[] rawBricks = value.Grid.ToRawBricks();
+
+        var brickEntityData = new BrickEntityData(
+            value.Guid.ToString(),
+            value.Position.X,
+            value.Position.Y,
+            value.Position.Z,
+            value.Orientation.X,
+            value.Orientation.Y,
+            value.Orientation.Z,
+            value.Orientation.W,
+            rawBricks
+        );
         
-        rawBrickGrid.X = value.Position.X;
-        rawBrickGrid.Y = value.Position.Y;
-        rawBrickGrid.Z = value.Position.Z;
-        
-        rawBrickGrid.OrientationX = value.Orientation.X;
-        rawBrickGrid.OrientationY = value.Orientation.Y;
-        rawBrickGrid.OrientationZ = value.Orientation.Z;
-        rawBrickGrid.OrientationW = value.Orientation.W;
-        
-        return rawBrickGrid.Serialize();
+        return brickEntityData.Serialize();
     }
 
     public BrickEntityModel Deserialize(byte[] data)
     {
-        RawBrickGrid rawBrickGrid = RawBrickGrid.Deserialize(data);
+        BrickEntityData brickEntityData = BrickEntityData.Deserialize(data);
 
+        Guid guid = Guid.TryParse(brickEntityData.Guid, out Guid parsedGuid) ? parsedGuid : Guid.NewGuid();
+        var position = new Vector3((float)brickEntityData.X, (float)brickEntityData.Y, (float)brickEntityData.Z);
+        var orientation = new Quaternion(brickEntityData.OrientationX, brickEntityData.OrientationY, brickEntityData.OrientationZ, brickEntityData.OrientationW);
+        
         var brickGrid = new BrickGrid(dimensionSize: 16);
-        for (var i = 0; i < rawBrickGrid.Bricks.Length; i++)
+        for (var i = 0; i < brickEntityData.Bricks.Length; i++)
         {
-            RawBrick rawBrick = rawBrickGrid.Bricks[i];
+            RawBrick rawBrick = brickEntityData.Bricks[i];
             var brickOrientation = new BrickOrientation(rawBrick.Orientation);
             
             ushort id = _brickRemapping.TryGetValue(rawBrick.ID, out ushort remappedID) ? remappedID : rawBrick.ID;
             brickGrid.Set(rawBrick.X, rawBrick.Y, rawBrick.Z, new Brick(id, rawBrick.Data, brickOrientation));
         }
-
-        var position = new Vector3(rawBrickGrid.X ?? 0, rawBrickGrid.Y ?? 0, rawBrickGrid.Z ?? 0);
-        var orientation = new Quaternion(rawBrickGrid.OrientationX ?? 0, rawBrickGrid.OrientationY ?? 0, rawBrickGrid.OrientationZ ?? 0, rawBrickGrid.OrientationW ?? 1);
-        return new BrickEntityModel(position, orientation, brickGrid);
+        
+        return new BrickEntityModel(guid, position, orientation, brickGrid);
     }
 }

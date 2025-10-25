@@ -15,7 +15,7 @@ internal class VersionWatermark : IUILayer
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        using (ui.Text($"{WaywardBeyond.Version}"))
+        using (ui.Text($"{WaywardBeyond.Version.Name}"))
         {
             ui.FontSize = 20;
             ui.Color = new Vector4(0.5f);
