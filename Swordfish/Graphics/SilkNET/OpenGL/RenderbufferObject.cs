@@ -40,6 +40,7 @@ internal sealed class RenderbufferObject : GLHandle
     
     public void Resize(uint width, uint height)
     {
+        using Scope _ = Use();
         if (_samples != null)
         {
             _gl.RenderbufferStorageMultisample(RenderbufferTarget.Renderbuffer, _samples.Value, _format, width, height);

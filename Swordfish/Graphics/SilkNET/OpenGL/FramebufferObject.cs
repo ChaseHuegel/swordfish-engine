@@ -7,10 +7,12 @@ internal sealed class FramebufferObject : GLHandle
 {
     public string Name { get; }
     
+    private uint _width;
+    private uint _height;
+    
     private readonly GL _gl;
-    private readonly uint _width;
-    private readonly uint _height;
     private readonly TexImage2D? _texture;
+    private readonly RenderbufferObject[]? _renderBuffers;
 
     public FramebufferObject(GL gl, string name, TexImage2D texture, FramebufferAttachment attachment)
         : this(gl, name, texture.Width, texture.Height)
@@ -30,6 +32,7 @@ internal sealed class FramebufferObject : GLHandle
     public FramebufferObject(GL gl, string name, uint width, uint height, DrawBufferMode[]? drawBufferModes, RenderbufferObject[]? renderBuffers) 
         : this(gl, name, width, height)
     {
+        _renderBuffers = renderBuffers;
         using Scope _ = Use();
         
         if (drawBufferModes != null)
@@ -119,6 +122,24 @@ internal sealed class FramebufferObject : GLHandle
             mask,
             filter
         );
+    }
+    
+    public unsafe void Resize(uint width, uint height)
+    {
+        _width = width;
+        _height = height;
+        
+        _texture?.UpdateData(width, height, pixels: null);
+
+        if (_renderBuffers == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _renderBuffers.Length; i++)
+        {
+            _renderBuffers[i].Resize(width, height);
+        }
     }
 
     public FramebufferScope Use(FramebufferTarget target)
