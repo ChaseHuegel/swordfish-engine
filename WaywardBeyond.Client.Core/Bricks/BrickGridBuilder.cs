@@ -64,6 +64,72 @@ internal sealed class BrickGridBuilder
             lightQueue.Enqueue(new BrickGridItem(brick, item.X, item.Y, item.Z));
         }
         
+        const int ambientRange = 32;
+        
+        for (int x = -ambientRange; x <= ambientRange; x++)
+        for (int z = -ambientRange; z <= ambientRange; z++)
+        {
+            CastAmbientLight(x, ambientRange, z, 0, -1, 0);
+            CastAmbientLight(x, -ambientRange, z, 0, 1, 0);
+        }
+        
+        for (int y = -ambientRange; y <= ambientRange; y++)
+        for (int z = -ambientRange; z <= ambientRange; z++)
+        {
+            CastAmbientLight(ambientRange, y, z, -1, 0, 0);
+            CastAmbientLight(-ambientRange, y, z, 1, 0, 0);
+        }
+        
+        for (int x = -ambientRange; x <= ambientRange; x++)
+        for (int y = -ambientRange; y <= ambientRange; y++)
+        {
+            CastAmbientLight(x, y, ambientRange, 0, 0, -1);
+            CastAmbientLight(x, y, -ambientRange, 0, 0, 1);
+        }
+        
+        void CastAmbientLight(int x, int y, int z, int vectorX, int vectorY, int vectorZ)
+        {
+            for (var step = 1; step <= 32; step++)
+            {
+                int bx = x + vectorX * step;
+                int by = y + vectorY * step;
+                int bz = z + vectorZ * step;
+                Brick brick = grid.Get(bx, by, bz);
+
+                if (brick.ID != 0)
+                {
+                    return;
+                }
+
+                if (!HasAnyNeighbor(bx, by, bz))
+                {
+                    continue;
+                }
+
+                var lightBrick = new Brick(0, new BrickData(BrickShape.Block, lightLevel: 15), BrickOrientation.Identity);
+                grid.Set(bx, by, bz, lightBrick);
+                lightQueue.Enqueue(new BrickGridItem(lightBrick, bx, by, bz));
+            }
+        }
+        
+        bool HasAnyNeighbor(int x, int y, int z)
+        {
+            return HasNeighborAt(x, y, z, 1, 0, 0) ||
+                   HasNeighborAt(x, y, z, -1, 0, 0) ||
+                   HasNeighborAt(x, y, z, 0, 1, 0) ||
+                   HasNeighborAt(x, y, z, 0, -1, 0) ||
+                   HasNeighborAt(x, y, z, 0, 0, 1) ||
+                   HasNeighborAt(x, y, z, 0, 0, -1);
+        }
+        
+        bool HasNeighborAt(int x, int y, int z, int vectorX, int vectorY, int vectorZ)
+        {
+            int bx = x + vectorX;
+            int by = y + vectorY;
+            int bz = z + vectorZ;
+            return grid.Get(bx, by, bz).ID != 0;
+        }
+        
         //  Propagate light
         while (lightQueue.Count > 0)
         {
