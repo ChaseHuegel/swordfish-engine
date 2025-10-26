@@ -1,0 +1,44 @@
+﻿#version 1.0;
+#namespace WaywardBeyond.Client.Core.Voxels;
+
+message VoxelEntityData
+{
+    string Guid = 0;
+    
+    double X = 1;
+    double Y = 2;
+    double Z = 3;
+    
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    
+    float ScaleX = 8;
+    float ScaleY = 9;
+    float ScaleZ = 10;
+    
+    ChunkInfo[] Chunks = 50;
+}
+
+message ChunkInfo
+{
+    short OffsetX = 0;
+    short OffsetY = 1;
+    short OffsetZ = 2;
+    
+    Chunk Chunk = 3;
+}
+
+message Chunk
+{
+    byte Size = 0;
+    Voxel[] Voxels = 1;
+}
+
+message Voxel
+{
+    ushort ID = 0;
+    byte ShapeLight = 1;
+    byte Orientation = 2;
+}
