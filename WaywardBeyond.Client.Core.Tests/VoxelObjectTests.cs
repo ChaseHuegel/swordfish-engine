@@ -9,7 +9,13 @@ public class VoxelObjectTests
     {
         var voxelObject = new VoxelObject(chunkSize: 16);
         
+        voxelObject.Set(-1, 0, 0, new Voxel(1, 0, 0));
         voxelObject.Set(0, 0, 0, new Voxel(1, 0, 0));
+        voxelObject.Set(8, 8, 8, new Voxel(1, 0, 0));
+        voxelObject.Set(15, 15, 15, new Voxel(1, 0, 0));
+        voxelObject.Set(16, 16, 16, new Voxel(1, 0, 0));
+        voxelObject.Set(24, 24, 24, new Voxel(1, 0, 0));
+        voxelObject.Set(31, 31, 31, new Voxel(1, 0, 0));
 
         foreach (Voxel voxel in voxelObject)
         {
