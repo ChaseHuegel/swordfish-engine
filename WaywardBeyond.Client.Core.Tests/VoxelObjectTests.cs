@@ -9,6 +9,7 @@ public class VoxelObjectTests
     {
         var voxelObject = new VoxelObject(chunkSize: 16);
         
+        voxelObject.Set(-1, 0, 0, new Voxel(1, 0, 0));
         voxelObject.Set(0, 0, 0, new Voxel(1, 0, 0));
         voxelObject.Set(8, 8, 8, new Voxel(1, 0, 0));
         voxelObject.Set(15, 15, 15, new Voxel(1, 0, 0));
@@ -47,7 +48,14 @@ public class VoxelObjectTests
         
         Console.WriteLine();
 
-        VoxelSample sample = voxelObject.Sample(0, 0, 0);
-        Console.WriteLine($"Sample: {sample.Center.ID}, Above: {sample.Above.ID}, Below: {sample.Below.ID}, Left: {sample.Left.ID}, Right: {sample.Right.ID}, Ahead: {sample.Ahead.ID}, Behind: {sample.Behind.ID}");
+        foreach (VoxelSample sample in voxelObject.Sample())
+        {
+            if (!sample.HasAny())
+            {
+                continue;
+            }
+
+            Console.WriteLine($"Sample: {sample.Center.ID}, Above: {sample.Above.ID}, Below: {sample.Below.ID}, Left: {sample.Left.ID}, Right: {sample.Right.ID}, Ahead: {sample.Ahead.ID}, Behind: {sample.Behind.ID}");
+        }
     }
 }

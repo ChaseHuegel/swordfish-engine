@@ -174,12 +174,11 @@ public sealed class VoxelObject : IDisposable
         Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
         {
             int neighborIndex = localX + offsetX + ((localY + offsetY) << _chunkShift) + ((localZ + offsetZ) << _chunkShift2);
-            if (neighborIndex >= 0 && neighborIndex <= _voxelsPerChunk)
+            if (neighborIndex >= 0 && neighborIndex < _voxelsPerChunk)
             {
                 return voxels[neighborIndex];
             }
 
-            //  TODO introduce an internal get that doesn't re-enter the lock
             return GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
         }
         
@@ -192,18 +191,6 @@ public sealed class VoxelObject : IDisposable
         _lock.EnterUpgradeableReadLock();
         _lock.EnterWriteLock();
         return new ReadWriteEnumerator(_chunks, _lock);
-    }
-    
-    public ReadEnumerator GetReadEnumerator()
-    {
-        _lock.EnterWriteLock();
-        return new ReadEnumerator(_chunks, _lock);
-    }
-    
-    public SampleEnumerator GetSampleEnumerator()
-    {
-        _lock.EnterReadLock();
-        return new SampleEnumerator(this);
     }
     
     public ref struct ReadWriteEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock)
@@ -286,6 +273,19 @@ public sealed class VoxelObject : IDisposable
             return false;
         }
     }
+
+    public Sampler Sample()
+    {
+        return new Sampler(this);
+    }
+
+    public readonly ref struct Sampler(VoxelObject voxelObject)
+    {
+        public SampleEnumerator GetEnumerator()
+        {
+            return new SampleEnumerator(voxelObject);
+        }
+    }
     
     public ref struct SampleEnumerator
     {
@@ -303,6 +303,8 @@ public sealed class VoxelObject : IDisposable
             _voxelObject = voxelObject;
             _chunkEnumerator = voxelObject._chunks.GetEnumerator();
             _lock = voxelObject._lock;
+            
+            _lock.EnterReadLock();
         }
 
         public void Dispose()
@@ -339,7 +341,7 @@ public sealed class VoxelObject : IDisposable
                 Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
                 {
                     int neighborIndex = x + offsetX + ((y + offsetY) << chunkShift) + ((z + offsetZ) << chunkShift2);
-                    if (neighborIndex >= 0 && neighborIndex <= voxelsPerChunk)
+                    if (neighborIndex >= 0 && neighborIndex < voxelsPerChunk)
                     {
                         return voxels![neighborIndex];
                     }
