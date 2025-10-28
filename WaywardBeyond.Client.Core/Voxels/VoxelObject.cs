@@ -48,7 +48,8 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
         {
-            _chunks[chunkOffset] = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
+            chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
+            _chunks[chunkOffset] = chunk;
         }
         
         int localX = x & _chunkMask;
@@ -179,7 +180,7 @@ public sealed class VoxelObject : IDisposable
             }
 
             //  TODO introduce an internal get that doesn't re-enter the lock
-            return Get(x, y, z);
+            return GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
         }
         
         _lock.ExitReadLock();
@@ -188,8 +189,8 @@ public sealed class VoxelObject : IDisposable
     
     public ReadWriteEnumerator GetEnumerator()
     {
+        _lock.EnterUpgradeableReadLock();
         _lock.EnterWriteLock();
-        _lock.EnterReadLock();
         return new ReadWriteEnumerator(_chunks, _lock);
     }
     
@@ -217,8 +218,8 @@ public sealed class VoxelObject : IDisposable
         
         public void Dispose()
         {
-            _lock.ExitReadLock();
             _lock.ExitWriteLock();
+            _lock.ExitUpgradeableReadLock();
         }
 
         public bool MoveNext()
@@ -343,7 +344,7 @@ public sealed class VoxelObject : IDisposable
                         return voxels![neighborIndex];
                     }
 
-                    return voxelObject.GetUnsafe(x, y, z);
+                    return voxelObject.GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
                 }
 
                 Current = sample;
