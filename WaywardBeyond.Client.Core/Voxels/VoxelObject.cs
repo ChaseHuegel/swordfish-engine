@@ -75,10 +75,17 @@ public sealed class VoxelObject : IDisposable
 
         _lock.ExitWriteLock();
     }
-    
+
     public Voxel Get(int x, int y, int z)
     {
         _lock.EnterReadLock();
+        Voxel voxel = GetUnsafe(x, y, z);
+        _lock.ExitReadLock();
+        return voxel;
+    }
+    
+    private Voxel GetUnsafe(int x, int y, int z)
+    {
 
         var chunkX = (short)(x >> _chunkShift);
         var chunkY = (short)(y >> _chunkShift);
@@ -112,10 +119,73 @@ public sealed class VoxelObject : IDisposable
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         Voxel voxel = chunk.Voxels[index];
         
-        _lock.ExitReadLock();
         return voxel;
     }
+    
+    public VoxelSample Sample(int x, int y, int z)
+    {
+        _lock.EnterReadLock();
 
+        var chunkX = (short)(x >> _chunkShift);
+        var chunkY = (short)(y >> _chunkShift);
+        var chunkZ = (short)(z >> _chunkShift);
+        var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
+        
+        if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
+        {
+            return new VoxelSample();
+        }
+        
+        int localX = x & _chunkMask;
+        int localY = y & _chunkMask;
+        int localZ = z & _chunkMask;
+        
+        if (localX < 0)
+        {
+            localX += _chunkSize;
+        }
+
+        if (localY < 0)
+        {
+            localY += _chunkSize;
+        }
+
+        if (localZ < 0)
+        {
+            localZ += _chunkSize;
+        }
+
+        Voxel[] voxels = chunk.Voxels;
+
+        
+        int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
+        var sample = new VoxelSample
+        {
+            Center = voxels[index],
+            Left = GetNeighbor(-1, 0, 0),
+            Right = GetNeighbor(1, 0, 0),
+            Above = GetNeighbor(0, 1, 0),
+            Below = GetNeighbor(0, -1, 0),
+            Ahead = GetNeighbor(0, 0, -1),
+            Behind = GetNeighbor(0, 0, 1)
+        };
+
+        Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
+        {
+            int neighborIndex = localX + offsetX + ((localY + offsetY) << _chunkShift) + ((localZ + offsetZ) << _chunkShift2);
+            if (neighborIndex >= 0 && neighborIndex <= _voxelsPerChunk)
+            {
+                return voxels[neighborIndex];
+            }
+
+            //  TODO introduce an internal get that doesn't re-enter the lock
+            return Get(x, y, z);
+        }
+        
+        _lock.ExitReadLock();
+        return sample;
+    }
+    
     public ReadWriteEnumerator GetEnumerator()
     {
         _lock.EnterWriteLock();
@@ -127,6 +197,12 @@ public sealed class VoxelObject : IDisposable
     {
         _lock.EnterWriteLock();
         return new ReadEnumerator(_chunks, _lock);
+    }
+    
+    public SampleEnumerator GetSampleEnumerator()
+    {
+        _lock.EnterReadLock();
+        return new SampleEnumerator(this);
     }
     
     public ref struct ReadWriteEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock)
@@ -190,6 +266,87 @@ public sealed class VoxelObject : IDisposable
             _voxelIndex++;
             if (_currentVoxels != null && _voxelIndex < _currentVoxels.Length)
             {
+                return true;
+            }
+
+            while (_chunkEnumerator.MoveNext())
+            {
+                Chunk chunk = _chunkEnumerator.Current.Value;
+                _currentVoxels = chunk.Voxels;
+                _voxelIndex = 0;
+             
+                if (_currentVoxels.Length > 0)
+                {
+                    return true;
+                }
+            }
+
+            _currentVoxels = null;
+            return false;
+        }
+    }
+    
+    public ref struct SampleEnumerator
+    {
+        public VoxelSample Current { get; private set; }
+
+        private readonly VoxelObject _voxelObject;
+        private Dictionary<Short3, Chunk>.Enumerator _chunkEnumerator;
+        private readonly ReaderWriterLockSlim _lock;
+        
+        private Voxel[]? _currentVoxels = null;
+        private int _voxelIndex = -1;
+
+        public SampleEnumerator(VoxelObject voxelObject)
+        {
+            _voxelObject = voxelObject;
+            _chunkEnumerator = voxelObject._chunks.GetEnumerator();
+            _lock = voxelObject._lock;
+        }
+
+        public void Dispose()
+        {
+            _lock.ExitReadLock();
+        }
+
+        public bool MoveNext()
+        {
+            _voxelIndex++;
+            if (_currentVoxels != null && _voxelIndex < _currentVoxels.Length)
+            {
+                int chunkShift = _voxelObject._chunkShift;
+                int chunkShift2 = _voxelObject._chunkShift2;
+                int voxelsPerChunk = _voxelObject._voxelsPerChunk;
+                Voxel[] voxels = _currentVoxels;
+                VoxelObject voxelObject = _voxelObject;
+                
+                int x = _voxelIndex & ((1 << chunkShift) - 1);
+                int y = (_voxelIndex >> chunkShift) & ((1 << (chunkShift2 - chunkShift)) - 1);
+                int z = _voxelIndex >> chunkShift2;
+                
+                var sample = new VoxelSample
+                {
+                    Center = _currentVoxels![_voxelIndex],
+                    Left = GetNeighbor(-1, 0, 0),
+                    Right = GetNeighbor(1, 0, 0),
+                    Above = GetNeighbor(0, 1, 0),
+                    Below = GetNeighbor(0, -1, 0),
+                    Ahead = GetNeighbor(0, 0, -1),
+                    Behind = GetNeighbor(0, 0, 1)
+                };
+
+                Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
+                {
+                    int neighborIndex = x + offsetX + ((y + offsetY) << chunkShift) + ((z + offsetZ) << chunkShift2);
+                    if (neighborIndex >= 0 && neighborIndex <= voxelsPerChunk)
+                    {
+                        return voxels![neighborIndex];
+                    }
+
+                    return voxelObject.GetUnsafe(x, y, z);
+                }
+
+                Current = sample;
                 return true;
             }
 
