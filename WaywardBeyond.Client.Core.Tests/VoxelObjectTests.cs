@@ -11,12 +11,12 @@ public class VoxelObjectTests
         var voxelObject = new VoxelObject(chunkSize: 16);
         
         voxelObject.Set(-1, 0, 0, new Voxel(1, 0, 0));
-        voxelObject.Set(0, 0, 0, new Voxel(1, 0, 0));
-        voxelObject.Set(8, 8, 8, new Voxel(1, 0, 0));
-        voxelObject.Set(15, 15, 15, new Voxel(1, 0, 0));
-        voxelObject.Set(16, 16, 16, new Voxel(1, 0, 0));
-        voxelObject.Set(24, 24, 24, new Voxel(1, 0, 0));
-        voxelObject.Set(31, 31, 31, new Voxel(1, 0, 0));
+        voxelObject.Set(0, 0, 0, new Voxel(2, 0, 0));
+        voxelObject.Set(8, 8, 8, new Voxel(3, 0, 0));
+        voxelObject.Set(15, 15, 15, new Voxel(4, 0, 0));
+        voxelObject.Set(16, 16, 16, new Voxel(5, 0, 0));
+        voxelObject.Set(24, 24, 24, new Voxel(6, 0, 0));
+        voxelObject.Set(31, 31, 31, new Voxel(7, 0, 0));
 
         foreach (Voxel voxel in voxelObject)
         {
@@ -33,7 +33,7 @@ public class VoxelObjectTests
             {
                 continue;
             }
-            voxel.ID = 2;
+            voxel.ID++;
         }
         
         Console.WriteLine();
