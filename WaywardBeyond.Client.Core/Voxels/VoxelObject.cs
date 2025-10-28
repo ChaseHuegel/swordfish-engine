@@ -193,7 +193,7 @@ public sealed class VoxelObject : IDisposable
         return new ReadWriteEnumerator(_chunks, _lock);
     }
     
-    public ref struct ReadWriteEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock)
+    public ref struct ReadWriteEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock) : IDisposable
     {
         public ref Voxel Current => ref _currentVoxels![_voxelIndex];
         
@@ -234,7 +234,7 @@ public sealed class VoxelObject : IDisposable
         }
     }
     
-    public ref struct ReadEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock)
+    public ref struct ReadEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock) : IDisposable
     {
         public Voxel Current => _currentVoxels![_voxelIndex];
         
@@ -274,7 +274,7 @@ public sealed class VoxelObject : IDisposable
         }
     }
 
-    public Sampler Sample()
+    public Sampler GetSampler()
     {
         return new Sampler(this);
     }
@@ -287,7 +287,7 @@ public sealed class VoxelObject : IDisposable
         }
     }
     
-    public ref struct SampleEnumerator
+    public ref struct SampleEnumerator : IDisposable
     {
         public VoxelSample Current { get; private set; }
 
