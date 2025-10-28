@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using WaywardBeyond.Client.Core.Voxels;
 
 namespace WaywardBeyond.Client.Core.Tests;
@@ -48,8 +49,11 @@ public class VoxelObjectTests
         
         Console.WriteLine();
 
+        var sw = Stopwatch.StartNew();
+        var samples = 0;
         foreach (VoxelSample sample in voxelObject.GetSampler())
         {
+            samples++;
             if (!sample.HasAny())
             {
                 continue;
@@ -57,5 +61,7 @@ public class VoxelObjectTests
 
             Console.WriteLine($"Sample: {sample.Center.ID}, Above: {sample.Above.ID}, Below: {sample.Below.ID}, Left: {sample.Left.ID}, Right: {sample.Right.ID}, Ahead: {sample.Ahead.ID}, Behind: {sample.Behind.ID}");
         }
+        sw.Stop();
+        Console.WriteLine($"{samples} samples in {sw.ElapsedMilliseconds} ms");
     }
 }
