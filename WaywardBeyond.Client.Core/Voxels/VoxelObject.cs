@@ -211,9 +211,9 @@ public sealed class VoxelObject : IDisposable
 
         public bool MoveNext()
         {
-            _voxelIndex++;
-            if (_currentVoxels != null && _voxelIndex < _currentVoxels.Length)
+            if (_currentVoxels != null && _voxelIndex + 1 < _currentVoxels.Length)
             {
+                _voxelIndex++;
                 return true;
             }
 
@@ -251,9 +251,9 @@ public sealed class VoxelObject : IDisposable
 
         public bool MoveNext()
         {
-            _voxelIndex++;
-            if (_currentVoxels != null && _voxelIndex < _currentVoxels.Length)
+            if (_currentVoxels != null && _voxelIndex + 1 < _currentVoxels.Length)
             {
+                _voxelIndex++;
                 return true;
             }
 
@@ -314,19 +314,18 @@ public sealed class VoxelObject : IDisposable
 
         public bool MoveNext()
         {
-            _voxelIndex++;
-            if (_currentVoxels != null && _voxelIndex < _currentVoxels.Length)
+            if (_currentVoxels != null && _voxelIndex + 1 < _currentVoxels.Length)
             {
                 int chunkShift = _voxelObject._chunkShift;
                 int chunkShift2 = _voxelObject._chunkShift2;
                 int voxelsPerChunk = _voxelObject._voxelsPerChunk;
                 Voxel[] voxels = _currentVoxels;
                 VoxelObject voxelObject = _voxelObject;
-                
+
                 int x = _voxelIndex & ((1 << chunkShift) - 1);
                 int y = (_voxelIndex >> chunkShift) & ((1 << (chunkShift2 - chunkShift)) - 1);
                 int z = _voxelIndex >> chunkShift2;
-                
+
                 var sample = new VoxelSample
                 {
                     Center = _currentVoxels![_voxelIndex],
@@ -340,7 +339,8 @@ public sealed class VoxelObject : IDisposable
 
                 Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
                 {
-                    int neighborIndex = x + offsetX + ((y + offsetY) << chunkShift) + ((z + offsetZ) << chunkShift2);
+                    int neighborIndex = x + offsetX + ((y + offsetY) << chunkShift) +
+                                        ((z + offsetZ) << chunkShift2);
                     if (neighborIndex >= 0 && neighborIndex < voxelsPerChunk)
                     {
                         return voxels![neighborIndex];
@@ -350,6 +350,7 @@ public sealed class VoxelObject : IDisposable
                 }
 
                 Current = sample;
+                _voxelIndex++;
                 return true;
             }
 
