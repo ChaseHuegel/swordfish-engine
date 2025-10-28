@@ -59,6 +59,9 @@ public class VoxelObjectTests
                 continue;
             }
 
+            //  TODO samples are sometimes wrong. Ex:
+            //      Sample: 3, Above: 0, Below: 0, Left: 2, Right: 0, Ahead: 0, Behind: 0
+            //      In the output above, ID 3 is NOT a neighbor to ID 2
             Console.WriteLine($"Sample: {sample.Center.ID}, Above: {sample.Above.ID}, Below: {sample.Below.ID}, Left: {sample.Left.ID}, Right: {sample.Right.ID}, Ahead: {sample.Ahead.ID}, Behind: {sample.Behind.ID}");
         }
         sw.Stop();
