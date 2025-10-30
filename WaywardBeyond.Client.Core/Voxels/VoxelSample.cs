@@ -1,6 +1,10 @@
-﻿namespace WaywardBeyond.Client.Core.Voxels;
+﻿using WaywardBeyond.Client.Core.Numerics;
+
+namespace WaywardBeyond.Client.Core.Voxels;
 
 public ref struct VoxelSample(
+    Int3 chunkCoords,
+    Int3 coords,
     Voxel center,
     Voxel left,
     Voxel right,
@@ -9,6 +13,8 @@ public ref struct VoxelSample(
     Voxel above,
     Voxel below
 ) {
+    public Int3 ChunkCoords = chunkCoords;
+    public Int3 Coords = coords;
     public Voxel Center = center;
     public Voxel Left = left;
     public Voxel Right = right;

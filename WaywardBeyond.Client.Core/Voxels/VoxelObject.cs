@@ -52,24 +52,24 @@ public sealed class VoxelObject : IDisposable
             _chunks[chunkOffset] = chunk;
         }
         
+        if (x < 0)
+        {
+            x += _chunkSize * Math.Abs(chunkX);
+        }
+
+        if (y < 0)
+        {
+            y += _chunkSize * Math.Abs(chunkY);
+        }
+
+        if (z < 0)
+        {
+            z += _chunkSize * Math.Abs(chunkZ);
+        }
+        
         int localX = x & _chunkMask;
         int localY = y & _chunkMask;
         int localZ = z & _chunkMask;
-        
-        if (localX < 0)
-        {
-            localX += _chunkSize;
-        }
-
-        if (localY < 0)
-        {
-            localY += _chunkSize;
-        }
-
-        if (localZ < 0)
-        {
-            localZ += _chunkSize;
-        }
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         chunk.Voxels[index] = voxel;
@@ -98,24 +98,24 @@ public sealed class VoxelObject : IDisposable
             return new Voxel();
         }
         
+        if (x < 0)
+        {
+            x += _chunkSize * Math.Abs(chunkX);
+        }
+
+        if (y < 0)
+        {
+            y += _chunkSize * Math.Abs(chunkY);
+        }
+
+        if (z < 0)
+        {
+            z += _chunkSize * Math.Abs(chunkZ);
+        }
+        
         int localX = x & _chunkMask;
         int localY = y & _chunkMask;
         int localZ = z & _chunkMask;
-        
-        if (localX < 0)
-        {
-            localX += _chunkSize;
-        }
-
-        if (localY < 0)
-        {
-            localY += _chunkSize;
-        }
-
-        if (localZ < 0)
-        {
-            localZ += _chunkSize;
-        }
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         Voxel voxel = chunk.Voxels[index];
@@ -287,6 +287,8 @@ public sealed class VoxelObject : IDisposable
         private Dictionary<Short3, Chunk>.Enumerator _chunkEnumerator;
         private readonly ReaderWriterLockSlim _lock;
         
+        private Int3 _chunkPos;
+        private Int3 _chunkWorldCoords;
         private Voxel[]? _currentVoxels = null;
         private int _voxelIndex = -1;
 
@@ -314,7 +316,10 @@ public sealed class VoxelObject : IDisposable
 
             while (_chunkEnumerator.MoveNext())
             {
-                Chunk chunk = _chunkEnumerator.Current.Value;
+                KeyValuePair<Short3, Chunk> kvp = _chunkEnumerator.Current;
+                Chunk chunk = kvp.Value;
+                _chunkPos = new Int3(kvp.Key.X, kvp.Key.Y, kvp.Key.Z);
+                _chunkWorldCoords = new Int3(kvp.Key.X * chunk.Size, kvp.Key.Y * chunk.Size, kvp.Key.Z * chunk.Size);
                 _currentVoxels = chunk.Voxels;
                 _voxelIndex = 0;
                 return true;
@@ -331,6 +336,7 @@ public sealed class VoxelObject : IDisposable
             int voxelsPerChunk = _voxelObject._voxelsPerChunk;
             Voxel[] voxels = _currentVoxels!;
             VoxelObject voxelObject = _voxelObject;
+            Int3 worldOrigin = _chunkWorldCoords;
 
             int x = _voxelIndex & ((1 << chunkShift) - 1);
             int y = (_voxelIndex >> chunkShift) & ((1 << (chunkShift2 - chunkShift)) - 1);
@@ -338,7 +344,9 @@ public sealed class VoxelObject : IDisposable
 
             var sample = new VoxelSample
             {
-                Center = _currentVoxels![_voxelIndex],
+                ChunkCoords = _chunkPos,
+                Coords = new Int3(x, y, z),
+                Center = voxels[_voxelIndex],
                 Left = GetNeighbor(-1, 0, 0),
                 Right = GetNeighbor(1, 0, 0),
                 Above = GetNeighbor(0, 1, 0),
@@ -349,13 +357,22 @@ public sealed class VoxelObject : IDisposable
 
             Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
             {
-                int neighborIndex = x + offsetX + ((y + offsetY) << chunkShift) + ((z + offsetZ) << chunkShift2);
-                if (neighborIndex >= 0 && neighborIndex < voxelsPerChunk)
+                int nX = x + offsetX;
+                int nY = y + offsetY;
+                int nZ = z + offsetZ;
+
+                if (nX < 0 || nY < 0 || nZ < 0)
                 {
-                    return voxels![neighborIndex];
+                    return voxelObject.GetUnsafe(nX + worldOrigin.X, nY + worldOrigin.Y, nZ + worldOrigin.Z);
                 }
 
-                return voxelObject.GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
+                int neighborIndex = nX + (nY << chunkShift) + (nZ << chunkShift2);
+                if (neighborIndex < 0 || neighborIndex >= voxelsPerChunk)
+                {
+                    return voxelObject.GetUnsafe(nX + worldOrigin.X, nY + worldOrigin.Y, nZ + worldOrigin.Z);
+                }
+
+                return voxels![neighborIndex];
             }
 
             return sample;
