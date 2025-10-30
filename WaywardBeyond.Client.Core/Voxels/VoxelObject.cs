@@ -331,51 +331,43 @@ public sealed class VoxelObject : IDisposable
         
         private VoxelSample GetCurrentSample()
         {
-            int chunkShift = _voxelObject._chunkShift;
-            int chunkShift2 = _voxelObject._chunkShift2;
-            int voxelsPerChunk = _voxelObject._voxelsPerChunk;
-            Voxel[] voxels = _currentVoxels!;
-            VoxelObject voxelObject = _voxelObject;
-            Int3 worldOrigin = _chunkWorldCoords;
-
-            int x = _voxelIndex & ((1 << chunkShift) - 1);
-            int y = (_voxelIndex >> chunkShift) & ((1 << (chunkShift2 - chunkShift)) - 1);
-            int z = _voxelIndex >> chunkShift2;
-
-            var sample = new VoxelSample
-            {
-                ChunkCoords = _chunkPos,
-                Coords = new Int3(x, y, z),
-                Center = voxels[_voxelIndex],
-                Left = GetNeighbor(-1, 0, 0),
-                Right = GetNeighbor(1, 0, 0),
-                Above = GetNeighbor(0, 1, 0),
-                Below = GetNeighbor(0, -1, 0),
-                Ahead = GetNeighbor(0, 0, -1),
-                Behind = GetNeighbor(0, 0, 1)
-            };
-
-            Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
-            {
-                int nX = x + offsetX;
-                int nY = y + offsetY;
-                int nZ = z + offsetZ;
-
-                if (nX < 0 || nY < 0 || nZ < 0)
-                {
-                    return voxelObject.GetUnsafe(nX + worldOrigin.X, nY + worldOrigin.Y, nZ + worldOrigin.Z);
-                }
-
-                int neighborIndex = nX + (nY << chunkShift) + (nZ << chunkShift2);
-                if (neighborIndex < 0 || neighborIndex >= voxelsPerChunk)
-                {
-                    return voxelObject.GetUnsafe(nX + worldOrigin.X, nY + worldOrigin.Y, nZ + worldOrigin.Z);
-                }
-
-                return voxels![neighborIndex];
-            }
+            int x = _voxelIndex & ((1 << _voxelObject._chunkShift) - 1);
+            int y = (_voxelIndex >> _voxelObject._chunkShift) & ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
+            int z = _voxelIndex >> _voxelObject._chunkShift2;
+            
+            var sample = new VoxelSample(
+                chunkCoords: _chunkPos,
+                coords: new Int3(x, y, z),
+                center: _currentVoxels![_voxelIndex],
+                left: GetNeighbor(x, y, z, -1, 0, 0),
+                right: GetNeighbor(x, y, z, 1, 0, 0),
+                ahead: GetNeighbor(x, y, z, 0, 1, 0),
+                behind: GetNeighbor(x, y, z, 0, -1, 0),
+                above: GetNeighbor(x, y, z, 0, 0, -1),
+                below: GetNeighbor(x, y, z, 0, 0, 1)
+            );
 
             return sample;
+        }
+
+        private Voxel GetNeighbor(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
+        {
+            int nX = x + offsetX;
+            int nY = y + offsetY;
+            int nZ = z + offsetZ;
+
+            if (nX < 0 || nY < 0 || nZ < 0)
+            {
+                return _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
+            }
+
+            int neighborIndex = nX + (nY << _voxelObject._chunkShift) + (nZ << _voxelObject._chunkShift2);
+            if (neighborIndex < 0 || neighborIndex >= _voxelObject._voxelsPerChunk)
+            {
+                return _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
+            }
+
+            return _currentVoxels![neighborIndex];
         }
     }
 }
