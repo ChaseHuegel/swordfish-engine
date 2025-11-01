@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class VoxelObjectAmbientLightPass : VoxelObjectProcessor.IPass
+internal sealed class AmbientLightPass : VoxelObjectProcessor.IPass
 {
     public void Process(VoxelObject voxelObject)
     {

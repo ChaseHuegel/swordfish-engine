@@ -1,6 +1,6 @@
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class VoxelObjectMeshPass : VoxelObjectProcessor.ISamplePass
+internal sealed class MeshPostPass : VoxelObjectProcessor.ISamplePass
 {
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PostPass;
     

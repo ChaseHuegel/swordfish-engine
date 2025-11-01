@@ -1,20 +1,31 @@
 ﻿using Swordfish.Bricks;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels;
 
 public static class VoxelExtensions
 {
-    public static BrickData GetData(this Voxel voxel)
+    public static ShapeLight GetShapeLight(this Voxel voxel)
     {
-        return new BrickData(voxel.ShapeLight);
+        return new ShapeLight(voxel.ShapeLight);
     }
-
+    
     public static BrickOrientation GetOrientation(this Voxel voxel)
     {
         return new BrickOrientation(voxel.Orientation);
     }
-
+    
+    public static BrickShape GetShape(this Voxel voxel)
+    {
+        return voxel.GetShapeLight().Shape;
+    }
+    
+    public static int GetLightLevel(this Voxel voxel)
+    {
+        return voxel.GetShapeLight().LightLevel;
+    }
+    
     public static bool HasAny(this VoxelSample sample)
     {
         return sample.Center.ID != 0 ||

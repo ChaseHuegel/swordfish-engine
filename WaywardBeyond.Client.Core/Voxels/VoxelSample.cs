@@ -4,6 +4,7 @@ namespace WaywardBeyond.Client.Core.Voxels;
 
 public ref struct VoxelSample
 {
+    public Int3 ChunkOffset;
     public Int3 ChunkCoords;
     public Int3 Coords;
     public ref Voxel Center;
@@ -15,6 +16,7 @@ public ref struct VoxelSample
     public ref Voxel Below;
 
     public VoxelSample(
+        Int3 chunkOffset,
         Int3 chunkCoords,
         Int3 coords,
         ref Voxel center,
@@ -25,6 +27,7 @@ public ref struct VoxelSample
         ref Voxel above,
         ref Voxel below
     ) {
+        ChunkOffset = chunkOffset;
         ChunkCoords = chunkCoords;
         Coords = coords;
         Center = ref center;

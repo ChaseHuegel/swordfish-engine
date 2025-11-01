@@ -338,6 +338,7 @@ public sealed class VoxelObject : IDisposable
             int z = _voxelIndex >> _voxelObject._chunkShift2;
 
             return new VoxelSample(
+                chunkOffset: _chunkWorldCoords,
                 chunkCoords: _chunkPos,
                 coords: new Int3(x, y, z),
                 center: ref _currentVoxels![_voxelIndex],

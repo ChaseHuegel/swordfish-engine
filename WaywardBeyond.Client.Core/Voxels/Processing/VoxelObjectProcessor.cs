@@ -37,26 +37,39 @@ internal sealed class VoxelObjectProcessor
         }
     }
     
-    public void Process(VoxelObject voxelObject)
+    /// <summary>
+    ///     Processes a <see cref="VoxelObject"/>, generating all data to build its representation(s).
+    /// </summary>
+    /// <returns>The number of passes over the <see cref="VoxelObject"/>.</returns>
+    public int Process(VoxelObject voxelObject)
     {
-        PrePass(voxelObject);
-        MainPass(voxelObject);
-        PostPass(voxelObject);
+        var passes = 0;
+        passes += PrePass(voxelObject);
+        passes += MainPass(voxelObject);
+        passes += PostPass(voxelObject);
+        return passes;
     }
 
-    private void MainPass(VoxelObject voxelObject)
+    private int MainPass(VoxelObject voxelObject)
     {
+        var passes = 0;
         for (var i = 0; i < _passes.Length; i++)
         {
             _passes[i].Process(voxelObject);
+            passes++;
         }
+
+        return passes;
     }
 
-    private void PrePass(VoxelObject voxelObject)
+    private int PrePass(VoxelObject voxelObject)
     {
+        var passes = 0;
+        
         //  Run voxel pre-pass
         if (_voxelPasses.TryGetValue(Stage.PrePass, out List<IVoxelPass>? voxelPasses))
         {
+            passes++;
             foreach (ref Voxel voxel in voxelObject)
             {
                 for (var i = 0; i < voxelPasses.Count; i++)
@@ -69,6 +82,7 @@ internal sealed class VoxelObjectProcessor
         //  Run sample pre-pass
         if (_samplePasses.TryGetValue(Stage.PrePass, out List<ISamplePass>? samplePasses))
         {
+            passes++;
             foreach (VoxelSample sample in voxelObject.GetSampler())
             {
                 for (var i = 0; i < samplePasses.Count; i++)
@@ -77,13 +91,18 @@ internal sealed class VoxelObjectProcessor
                 }
             }
         }
+        
+        return passes;
     }
     
-    private void PostPass(VoxelObject voxelObject)
+    private int PostPass(VoxelObject voxelObject)
     {
+        var passes = 0;
+        
         //  Run voxel post-pass
         if (_voxelPasses.TryGetValue(Stage.PostPass, out List<IVoxelPass>? voxelPasses))
         {
+            passes++;
             foreach (ref Voxel voxel in voxelObject)
             {
                 for (var i = 0; i < voxelPasses.Count; i++)
@@ -96,6 +115,7 @@ internal sealed class VoxelObjectProcessor
         //  Run sample post-pass
         if (_samplePasses.TryGetValue(Stage.PostPass, out List<ISamplePass>? samplePasses))
         {
+            passes++;
             foreach (VoxelSample sample in voxelObject.GetSampler())
             {
                 for (var i = 0; i < samplePasses.Count; i++)
@@ -104,6 +124,8 @@ internal sealed class VoxelObjectProcessor
                 }
             }
         }
+        
+        return passes;
     }
     
     public interface IPass

@@ -11,6 +11,8 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Serialization;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -48,6 +50,33 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
         
         BrickInfo brickInfo = Get(brick.ID).Value;
+        return !brickInfo.Passable && !brickInfo.Transparent;
+    }
+    
+    public bool IsCuller(Voxel voxel)
+    {
+        return IsCuller(voxel, voxel.GetShapeLight().Shape);
+    }
+    
+    public bool IsCuller(Voxel voxel, ShapeLight shapeLight)
+    {
+        return IsCuller(voxel, shapeLight.Shape);
+    }
+    
+    public bool IsCuller(Voxel voxel, BrickShape shape)
+    {
+        if (voxel.ID == 0)
+        {
+            return false;
+        }
+        
+        //  If this is not a block shape, it doesn't cull
+        if (shape != BrickShape.Block)
+        {
+            return false;
+        }
+        
+        BrickInfo brickInfo = Get(voxel.ID).Value;
         return !brickInfo.Passable && !brickInfo.Transparent;
     }
     
