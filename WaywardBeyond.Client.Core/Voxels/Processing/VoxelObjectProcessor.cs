@@ -2,147 +2,132 @@
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-public class VoxelObjectLightSeedPass : IVoxelSampleProcessor
+internal sealed class VoxelObjectProcessor
 {
-    public VoxelProcessorPass Pass => VoxelProcessorPass.PrePass;
-    
-    public void Process(VoxelSample sample)
+    private readonly IPass[] _passes;
+    private readonly Dictionary<Stage, List<IVoxelPass>> _voxelPasses;
+    private readonly Dictionary<Stage, List<ISamplePass>> _samplePasses;
+
+    public VoxelObjectProcessor(IPass[] passes, IVoxelPass[] voxelPasses, ISamplePass[] samplePasses)
     {
-    }
-}
-
-public class VoxelObjectLightPropagationPass : IVoxelSampleProcessor
-{
-    public VoxelProcessorPass Pass => VoxelProcessorPass.PrePass;
-    
-    public void Process(VoxelSample sample)
-    {
-    }
-}
-
-public class VoxelObjectMeshPass : IVoxelSampleProcessor
-{
-    public VoxelProcessorPass Pass => VoxelProcessorPass.PostPass;
-    
-    public void Process(VoxelSample sample)
-    {
-    }
-}
-
-public class VoxelObjectTexturePass : IVoxelSampleProcessor
-{
-    public VoxelProcessorPass Pass => VoxelProcessorPass.PostPass;
-    
-    public void Process(VoxelSample sample)
-    {
-    }
-}
-
-public interface IVoxelProcessor
-{
-    VoxelProcessorPass Pass { get; }
-    
-    void Process(ref Voxel voxel);
-}
-
-public interface IVoxelSampleProcessor
-{
-    VoxelProcessorPass Pass { get; }
-    
-    void Process(VoxelSample sample);
-}
-
-public enum VoxelProcessorPass
-{
-    PrePass,
-    PostPass,
-}
-
-public class VoxelObjectProcessor
-{
-    private readonly Dictionary<VoxelProcessorPass, List<IVoxelProcessor>> _voxelProcessors;
-    private readonly Dictionary<VoxelProcessorPass, List<IVoxelSampleProcessor>> _sampleProcessors;
-
-    public VoxelObjectProcessor(IVoxelProcessor[] voxelProcessors, IVoxelSampleProcessor[] sampleProcessors)
-    {
-        _voxelProcessors = [];
-        foreach (IVoxelProcessor voxelProcessor in voxelProcessors)
+        _passes = passes;
+        
+        _voxelPasses = [];
+        foreach (IVoxelPass voxelPass in voxelPasses)
         {
-            if (!_voxelProcessors.TryGetValue(voxelProcessor.Pass, out List<IVoxelProcessor>? processors))
+            if (!_voxelPasses.TryGetValue(voxelPass.Stage, out List<IVoxelPass>? stagePasses))
             {
-                processors = [];
-                _voxelProcessors[voxelProcessor.Pass] = processors;
+                stagePasses = [];
+                _voxelPasses[voxelPass.Stage] = stagePasses;
             }
             
-            processors.Add(voxelProcessor);
+            stagePasses.Add(voxelPass);
         }
 
-        _sampleProcessors = [];
-        foreach (IVoxelSampleProcessor sampleProcessor in sampleProcessors)
+        _samplePasses = [];
+        foreach (ISamplePass samplePass in samplePasses)
         {
-            if (!_sampleProcessors.TryGetValue(sampleProcessor.Pass, out List<IVoxelSampleProcessor>? processors))
+            if (!_samplePasses.TryGetValue(samplePass.Stage, out List<ISamplePass>? stagePasses))
             {
-                processors = [];
-                _sampleProcessors[sampleProcessor.Pass] = processors;
+                stagePasses = [];
+                _samplePasses[samplePass.Stage] = stagePasses;
             }
             
-            processors.Add(sampleProcessor);
+            stagePasses.Add(samplePass);
         }
     }
     
     public void Process(VoxelObject voxelObject)
     {
-        ProcessVoxels(voxelObject);
-        SampleVoxels(voxelObject);
+        PrePass(voxelObject);
+        MainPass(voxelObject);
+        PostPass(voxelObject);
     }
 
-    private void ProcessVoxels(VoxelObject voxelObject)
+    private void MainPass(VoxelObject voxelObject)
     {
-        if (_voxelProcessors.TryGetValue(VoxelProcessorPass.PrePass, out List<IVoxelProcessor>? processors))
+        for (var i = 0; i < _passes.Length; i++)
+        {
+            _passes[i].Process(voxelObject);
+        }
+    }
+
+    private void PrePass(VoxelObject voxelObject)
+    {
+        //  Run voxel pre-pass
+        if (_voxelPasses.TryGetValue(Stage.PrePass, out List<IVoxelPass>? voxelPasses))
         {
             foreach (ref Voxel voxel in voxelObject)
             {
-                for (var i = 0; i < processors.Count; i++)
+                for (var i = 0; i < voxelPasses.Count; i++)
                 {
-                    processors[i].Process(ref voxel);
+                    voxelPasses[i].Process(ref voxel);
                 }
             }
         }
-
-        if (_voxelProcessors.TryGetValue(VoxelProcessorPass.PostPass, out processors))
+        
+        //  Run sample pre-pass
+        if (_samplePasses.TryGetValue(Stage.PrePass, out List<ISamplePass>? samplePasses))
         {
-            foreach (ref Voxel voxel in voxelObject)
+            foreach (VoxelSample sample in voxelObject.GetSampler())
             {
-                for (var i = 0; i < processors.Count; i++)
+                for (var i = 0; i < samplePasses.Count; i++)
                 {
-                    processors[i].Process(ref voxel);
+                    samplePasses[i].Process(sample);
                 }
             }
         }
     }
     
-    private void SampleVoxels(VoxelObject voxelObject)
+    private void PostPass(VoxelObject voxelObject)
     {
-        if (_sampleProcessors.TryGetValue(VoxelProcessorPass.PrePass, out List<IVoxelSampleProcessor>? processors))
+        //  Run voxel post-pass
+        if (_voxelPasses.TryGetValue(Stage.PostPass, out List<IVoxelPass>? voxelPasses))
         {
-            foreach (VoxelSample sample in voxelObject.GetSampler())
+            foreach (ref Voxel voxel in voxelObject)
             {
-                for (var i = 0; i < processors.Count; i++)
+                for (var i = 0; i < voxelPasses.Count; i++)
                 {
-                    processors[i].Process(sample);
+                    voxelPasses[i].Process(ref voxel);
                 }
             }
         }
 
-        if (_sampleProcessors.TryGetValue(VoxelProcessorPass.PostPass, out processors))
+        //  Run sample post-pass
+        if (_samplePasses.TryGetValue(Stage.PostPass, out List<ISamplePass>? samplePasses))
         {
             foreach (VoxelSample sample in voxelObject.GetSampler())
             {
-                for (var i = 0; i < processors.Count; i++)
+                for (var i = 0; i < samplePasses.Count; i++)
                 {
-                    processors[i].Process(sample);
+                    samplePasses[i].Process(sample);
                 }
             }
         }
+    }
+    
+    public interface IPass
+    {
+        void Process(VoxelObject voxelObject);
+    }
+    
+    public interface IVoxelPass
+    {
+        Stage Stage { get; }
+        
+        void Process(ref Voxel voxel);
+    }
+
+    public interface ISamplePass
+    {
+        Stage Stage { get; }
+        
+        void Process(VoxelSample sample);
+    }
+
+    public enum Stage
+    {
+        PrePass,
+        PostPass,
     }
 }
