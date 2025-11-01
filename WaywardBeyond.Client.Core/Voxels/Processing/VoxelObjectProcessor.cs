@@ -55,7 +55,7 @@ public interface IVoxelSampleProcessor
 public enum VoxelProcessorPass
 {
     PrePass,
-    PostPass
+    PostPass,
 }
 
 public class VoxelObjectProcessor

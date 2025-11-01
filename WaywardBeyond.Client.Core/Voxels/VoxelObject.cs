@@ -168,7 +168,7 @@ public sealed class VoxelObject : IDisposable
             Above = GetNeighbor(0, 1, 0),
             Below = GetNeighbor(0, -1, 0),
             Ahead = GetNeighbor(0, 0, -1),
-            Behind = GetNeighbor(0, 0, 1)
+            Behind = GetNeighbor(0, 0, 1),
         };
 
         Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
