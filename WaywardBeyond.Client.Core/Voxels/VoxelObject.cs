@@ -8,6 +8,8 @@ namespace WaywardBeyond.Client.Core.Voxels;
 
 public sealed class VoxelObject : IDisposable
 {
+    private static Voxel _emptyVoxel;
+    
     private readonly ReaderWriterLockSlim _lock;
     private readonly Dictionary<Short3, Chunk> _chunks;
     private readonly byte _chunkSize;
@@ -85,7 +87,7 @@ public sealed class VoxelObject : IDisposable
         return voxel;
     }
     
-    private Voxel GetUnsafe(int x, int y, int z)
+    private ref Voxel GetUnsafe(int x, int y, int z)
     {
 
         var chunkX = (short)(x >> _chunkShift);
@@ -95,7 +97,8 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
         {
-            return new Voxel();
+            _emptyVoxel = new Voxel();
+            return ref _emptyVoxel;
         }
         
         if (x < 0)
@@ -118,9 +121,7 @@ public sealed class VoxelObject : IDisposable
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        Voxel voxel = chunk.Voxels[index];
-        
-        return voxel;
+        return ref chunk.Voxels[index];
     }
     
     public VoxelSample Sample(int x, int y, int z)
@@ -162,24 +163,24 @@ public sealed class VoxelObject : IDisposable
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var sample = new VoxelSample
         {
-            Center = voxels[index],
-            Left = GetNeighbor(-1, 0, 0),
-            Right = GetNeighbor(1, 0, 0),
-            Above = GetNeighbor(0, 1, 0),
-            Below = GetNeighbor(0, -1, 0),
-            Ahead = GetNeighbor(0, 0, -1),
-            Behind = GetNeighbor(0, 0, 1),
+            Center = ref voxels[index],
+            Left = ref GetNeighbor(-1, 0, 0),
+            Right = ref GetNeighbor(1, 0, 0),
+            Above = ref GetNeighbor(0, 1, 0),
+            Below = ref GetNeighbor(0, -1, 0),
+            Ahead = ref GetNeighbor(0, 0, -1),
+            Behind = ref GetNeighbor(0, 0, 1),
         };
 
-        Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
+        ref Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
         {
             int neighborIndex = localX + offsetX + ((localY + offsetY) << _chunkShift) + ((localZ + offsetZ) << _chunkShift2);
             if (neighborIndex >= 0 && neighborIndex < _voxelsPerChunk)
             {
-                return voxels[neighborIndex];
+                return ref voxels[neighborIndex];
             }
 
-            return GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
+            return ref GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
         }
         
         _lock.ExitReadLock();
@@ -328,29 +329,28 @@ public sealed class VoxelObject : IDisposable
             _currentVoxels = null;
             return false;
         }
-        
+
         private VoxelSample GetCurrentSample()
         {
             int x = _voxelIndex & ((1 << _voxelObject._chunkShift) - 1);
-            int y = (_voxelIndex >> _voxelObject._chunkShift) & ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
+            int y = (_voxelIndex >> _voxelObject._chunkShift) &
+                    ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
             int z = _voxelIndex >> _voxelObject._chunkShift2;
-            
-            var sample = new VoxelSample(
+
+            return new VoxelSample(
                 chunkCoords: _chunkPos,
                 coords: new Int3(x, y, z),
-                center: _currentVoxels![_voxelIndex],
-                left: GetNeighbor(x, y, z, -1, 0, 0),
-                right: GetNeighbor(x, y, z, 1, 0, 0),
-                ahead: GetNeighbor(x, y, z, 0, 1, 0),
-                behind: GetNeighbor(x, y, z, 0, -1, 0),
-                above: GetNeighbor(x, y, z, 0, 0, -1),
-                below: GetNeighbor(x, y, z, 0, 0, 1)
+                center: ref _currentVoxels![_voxelIndex],
+                left: ref GetNeighbor(x, y, z, -1, 0, 0),
+                right: ref GetNeighbor(x, y, z, 1, 0, 0),
+                ahead: ref GetNeighbor(x, y, z, 0, 1, 0),
+                behind: ref GetNeighbor(x, y, z, 0, -1, 0),
+                above: ref GetNeighbor(x, y, z, 0, 0, -1),
+                below: ref GetNeighbor(x, y, z, 0, 0, 1)
             );
-
-            return sample;
         }
 
-        private Voxel GetNeighbor(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
+        private ref Voxel GetNeighbor(int x, int y, int z, int offsetX, int offsetY, int offsetZ)
         {
             int nX = x + offsetX;
             int nY = y + offsetY;
@@ -358,16 +358,16 @@ public sealed class VoxelObject : IDisposable
 
             if (nX < 0 || nY < 0 || nZ < 0)
             {
-                return _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
+                return ref _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
             }
 
             int neighborIndex = nX + (nY << _voxelObject._chunkShift) + (nZ << _voxelObject._chunkShift2);
             if (neighborIndex < 0 || neighborIndex >= _voxelObject._voxelsPerChunk)
             {
-                return _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
+                return ref _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
             }
 
-            return _currentVoxels![neighborIndex];
+            return ref _currentVoxels![neighborIndex];
         }
     }
 }

@@ -72,5 +72,25 @@ public class VoxelObjectTests
         }
         sw.Stop();
         Console.WriteLine($"{samples} samples in {sw.ElapsedMilliseconds} ms");
+        
+        foreach (VoxelSample sample in voxelObject.GetSampler())
+        {
+            if (sample.Center.ID == 0)
+            {
+                continue;
+            }
+            
+            Console.WriteLine("Sampled: " + sample.Center.ID);
+            sample.Center.ID = 99;
+        }
+        
+        foreach (Voxel voxel in voxelObject)
+        {
+            if (voxel.ID == 0)
+            {
+                continue;
+            }
+            Console.WriteLine("Found voxel: " + voxel.ID);
+        }
     }
 }
