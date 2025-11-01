@@ -135,7 +135,20 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
         {
-            return new VoxelSample();
+            _lock.ExitReadLock();
+            _emptyVoxel = new Voxel();
+            return new VoxelSample(
+                chunkOffset: default,
+                chunkCoords: default,
+                coords: default,
+                center: ref _emptyVoxel,
+                left: ref _emptyVoxel,
+                right: ref _emptyVoxel,
+                ahead: ref _emptyVoxel,
+                behind: ref _emptyVoxel,
+                above: ref _emptyVoxel,
+                below: ref _emptyVoxel
+            );
         }
         
         int localX = x & _chunkMask;

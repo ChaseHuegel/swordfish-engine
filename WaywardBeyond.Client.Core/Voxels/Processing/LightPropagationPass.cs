@@ -3,11 +3,11 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightPropagationPass(in LightingState lightingState, in BrickDatabase brickDatabase)
+internal sealed class LightPropagationPass(in LightingState lightingState, in IBrickDatabase brickDatabase)
     : VoxelObjectProcessor.IPass
 {
     private readonly LightingState _lightingState = lightingState;
-    private readonly BrickDatabase _brickDatabase = brickDatabase;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
     
     public void Process(VoxelObject voxelObject)
     {

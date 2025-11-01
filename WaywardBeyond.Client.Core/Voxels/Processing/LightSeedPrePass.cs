@@ -4,10 +4,10 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightSeedPrePass(in BrickDatabase brickDatabase)
+internal sealed class LightSeedPrePass(in IBrickDatabase brickDatabase)
     : VoxelObjectProcessor.IVoxelPass
 {
-    private readonly BrickDatabase _brickDatabase = brickDatabase;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
     
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
     

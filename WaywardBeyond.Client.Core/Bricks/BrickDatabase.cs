@@ -19,7 +19,7 @@ namespace WaywardBeyond.Client.Core.Bricks;
 /// <summary>
 ///     Provides access to brick information from virtual resources.
 /// </summary>
-internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate
+internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase
 {
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<ushort, BrickInfo> _bricksByDataID = [];
@@ -80,9 +80,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         return !brickInfo.Passable && !brickInfo.Transparent;
     }
     
-    /// <summary>
-    ///     Attempts to get a brick's info by its data ID.
-    /// </summary>
+    /// <inheritdoc/>
     public Result<BrickInfo> Get(ushort id)
     {
         lock (_bricksByDataID)
