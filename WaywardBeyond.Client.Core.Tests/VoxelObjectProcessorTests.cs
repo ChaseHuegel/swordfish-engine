@@ -16,13 +16,10 @@ public class VoxelObjectProcessorTests
     {
         var voxelObject = new VoxelObject(chunkSize: 16);
         
-        voxelObject.Set(-1, 0, 0, new Voxel(SOLID_VOXEL, 0, 0));
-        voxelObject.Set(0, 0, 0, new Voxel(SOLID_VOXEL, 0, 0));
-        voxelObject.Set(8, 8, 8, new Voxel(LIGHT_VOXEL, 0, 0));
-        voxelObject.Set(15, 15, 15, new Voxel(SOLID_VOXEL, 0, 0));
-        voxelObject.Set(16, 16, 16, new Voxel(SOLID_VOXEL, 0, 0));
-        voxelObject.Set(24, 24, 24, new Voxel(SOLID_VOXEL, 0, 0));
-        voxelObject.Set(31, 31, 31, new Voxel(SOLID_VOXEL, 0, 0));
+        voxelObject.Set(-1, 0, 0, new Voxel(LIGHT_VOXEL, 0, 0));
+        voxelObject.Set(0, 0, -1, new Voxel(LIGHT_VOXEL, 0, 0));
+        voxelObject.Set(-1, 0, -1, new Voxel(LIGHT_VOXEL, 0, 0));
+        voxelObject.Set(0, 0, 0, new Voxel(LIGHT_VOXEL, 0, 0));
 
         var lightingState = new LightingState();
         IBrickDatabase brickDatabase = new TestBrickDatabase();
@@ -47,6 +44,31 @@ public class VoxelObjectProcessorTests
         var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
         int passCount = processor.Process(voxelObject);
         Console.WriteLine($"Completed {passCount} passes.");
+
+        var lightData = new int[64, 64];
+        foreach (VoxelSample sample in voxelObject.GetSampler())
+        {
+            int y = sample.Coords.Y + sample.ChunkOffset.Y;
+            if (y != 0)
+            {
+                continue;
+            }
+            
+            int x = sample.Coords.X + sample.ChunkOffset.X + 32;
+            int z = sample.Coords.Z + sample.ChunkOffset.Z + 32;
+            lightData[x, z] = sample.Center.GetLightLevel();
+        }
+
+        for (var x = 0; x < lightData.GetLength(0); x++)
+        {
+            for (var y = 0; y < lightData.GetLength(1); y++)
+            {
+                int light = lightData[x, y];
+                string lightStr = light != 0 ? light.ToString("00") : "--";
+                Console.Write(lightStr + "-");
+            }
+            Console.WriteLine();
+        }
     }
     
     private class TestBrickDatabase : IBrickDatabase
