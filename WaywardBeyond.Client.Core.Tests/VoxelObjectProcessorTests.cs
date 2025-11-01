@@ -45,7 +45,7 @@ public class VoxelObjectProcessorTests
         int passCount = processor.Process(voxelObject);
         Console.WriteLine($"Completed {passCount} passes.");
 
-        var lightData = new int[64, 64];
+        var lightData = new int[32, 32];
         foreach (VoxelSample sample in voxelObject.GetSampler())
         {
             int y = sample.Coords.Y + sample.ChunkOffset.Y;
@@ -54,14 +54,14 @@ public class VoxelObjectProcessorTests
                 continue;
             }
             
-            int x = sample.Coords.X + sample.ChunkOffset.X + 32;
-            int z = sample.Coords.Z + sample.ChunkOffset.Z + 32;
+            int x = sample.Coords.X + sample.ChunkOffset.X + 16;
+            int z = sample.Coords.Z + sample.ChunkOffset.Z + 16;
             lightData[x, z] = sample.Center.GetLightLevel();
         }
 
-        for (var x = 0; x < lightData.GetLength(0); x++)
+        for (var y = 0; y < lightData.GetLength(1); y++)
         {
-            for (var y = 0; y < lightData.GetLength(1); y++)
+            for (var x = 0; x < lightData.GetLength(0); x++)
             {
                 int light = lightData[x, y];
                 string lightStr = light != 0 ? light.ToString("00") : "--";
