@@ -171,7 +171,6 @@ public sealed class VoxelObject : IDisposable
         }
 
         Voxel[] voxels = chunk.Voxels;
-
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var sample = new VoxelSample
@@ -357,10 +356,10 @@ public sealed class VoxelObject : IDisposable
                 center: ref _currentVoxels![_voxelIndex],
                 left: ref GetNeighbor(x, y, z, -1, 0, 0),
                 right: ref GetNeighbor(x, y, z, 1, 0, 0),
-                ahead: ref GetNeighbor(x, y, z, 0, 1, 0),
-                behind: ref GetNeighbor(x, y, z, 0, -1, 0),
-                above: ref GetNeighbor(x, y, z, 0, 0, -1),
-                below: ref GetNeighbor(x, y, z, 0, 0, 1)
+                ahead: ref GetNeighbor(x, y, z, 0, 0, -1),
+                behind: ref GetNeighbor(x, y, z, 0, 0, 1),
+                above: ref GetNeighbor(x, y, z, 0, 1, 0),
+                below: ref GetNeighbor(x, y, z, 0, -1, 0)
             );
         }
 
