@@ -56,7 +56,8 @@ public class VoxelObjectProcessorTests
             
             int x = sample.Coords.X + sample.ChunkOffset.X + 16;
             int z = sample.Coords.Z + sample.ChunkOffset.Z + 16;
-            lightData[x, z] = sample.Center.GetLightLevel();
+            int lightLevel = sample.Center.GetLightLevel();
+            lightData[x, z] = lightLevel;
         }
 
         for (var y = 0; y < lightData.GetLength(1); y++)
