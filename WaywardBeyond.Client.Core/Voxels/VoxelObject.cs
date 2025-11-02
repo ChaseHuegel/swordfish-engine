@@ -345,8 +345,7 @@ public sealed class VoxelObject : IDisposable
         private VoxelSample GetCurrentSample()
         {
             int x = _voxelIndex & ((1 << _voxelObject._chunkShift) - 1);
-            int y = (_voxelIndex >> _voxelObject._chunkShift) &
-                    ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
+            int y = (_voxelIndex >> _voxelObject._chunkShift) & ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
             int z = _voxelIndex >> _voxelObject._chunkShift2;
 
             return new VoxelSample(
