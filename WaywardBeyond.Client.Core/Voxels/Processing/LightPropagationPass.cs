@@ -33,7 +33,12 @@ internal sealed class LightPropagationPass(in LightingState lightingState, in IB
             void PropagateLight(ref Voxel voxel, int x, int y, int z)
             {
                 ShapeLight shapeLight = voxel.GetShapeLight();
-                if (shapeLight.LightLevel + 1 > nextLightLevel || _brickDatabase.IsCuller(voxel, shapeLight))
+                if (shapeLight.LightLevel + 1 > nextLightLevel)
+                {
+                    return;
+                }
+
+                if (_brickDatabase.IsCuller(voxel, shapeLight))
                 {
                     return;
                 }

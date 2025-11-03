@@ -186,10 +186,17 @@ public sealed class VoxelObject : IDisposable
 
         ref Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
         {
-            int neighborIndex = localX + offsetX + ((localY + offsetY) << _chunkShift) + ((localZ + offsetZ) << _chunkShift2);
-            if (neighborIndex >= 0 && neighborIndex < _voxelsPerChunk)
+            int nX = localX + offsetX;
+            int nY = localY + offsetY;
+            int nZ = localZ + offsetZ;
+
+            if (nX > 0 && nY > 0 && nZ > 0 && nX < _chunkSize && nY < _chunkSize && nZ < _chunkSize)
             {
-                return ref voxels[neighborIndex];
+                int neighborIndex = nX + (nY << _chunkShift) + (nZ << _chunkShift2);
+                if (neighborIndex >= 0 && neighborIndex < _voxelsPerChunk)
+                {
+                    return ref voxels[neighborIndex];
+                }
             }
 
             return ref GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
