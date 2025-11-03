@@ -8,7 +8,7 @@ internal sealed class AmbientLightPass(in LightingState lightingState) : VoxelOb
     
     public void Process(VoxelObject voxelObject)
     {
-        //  TODO dont use hardcoded raystep range
+        //  TODO dont use hardcoded ray step range
         //  TODO each ambient cast should have a unique distance based on the chunks in that dir
         const int ambientRange = 32;
         
