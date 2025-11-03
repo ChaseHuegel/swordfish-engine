@@ -12,7 +12,7 @@ public class VoxelObjectProcessorTests
     private const int LIGHT_VOXEL = 2;
     
     [Test]
-    public void Test1()
+    public void LightPropagationTest()
     {
         var voxelObject = new VoxelObject(chunkSize: 16);
         
@@ -26,7 +26,68 @@ public class VoxelObjectProcessorTests
         
         var passes = new VoxelObjectProcessor.IPass[]
         {
-            new AmbientLightPass(),
+            new AmbientLightPass(lightingState),
+            new LightPropagationPass(lightingState, brickDatabase),
+        };
+
+        var voxelPasses = new VoxelObjectProcessor.IVoxelPass[]
+        {
+            new LightSeedPrePass(brickDatabase),
+        };
+
+        var samplePasses = new VoxelObjectProcessor.ISamplePass[]
+        {
+            new LightPropagationPrePass(lightingState),
+            new MeshPostPass(),
+        };
+        
+        var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
+        int passCount = processor.Process(voxelObject);
+        Console.WriteLine($"Completed {passCount} passes.");
+
+        var lightData = new int[32, 32];
+        foreach (VoxelSample sample in voxelObject.GetSampler())
+        {
+            int y = sample.Coords.Y + sample.ChunkOffset.Y;
+            if (y != 0)
+            {
+                continue;
+            }
+            
+            int x = sample.Coords.X + sample.ChunkOffset.X + 16;
+            int z = sample.Coords.Z + sample.ChunkOffset.Z + 16;
+            int lightLevel = sample.Center.GetLightLevel();
+            lightData[x, z] = lightLevel;
+        }
+
+        for (var y = 0; y < lightData.GetLength(1); y++)
+        {
+            for (var x = 0; x < lightData.GetLength(0); x++)
+            {
+                int light = lightData[x, y];
+                string lightStr = light != 0 ? light.ToString("00") : "--";
+                Console.Write(lightStr + "-");
+            }
+            Console.WriteLine();
+        }
+    }
+    
+    [Test]
+    public void AmbientLightTest()
+    {
+        var voxelObject = new VoxelObject(chunkSize: 16);
+        
+        voxelObject.Set(-1, 0, 0, new Voxel(SOLID_VOXEL, 0, 0));
+        voxelObject.Set(0, 0, -1, new Voxel(SOLID_VOXEL, 0, 0));
+        voxelObject.Set(-1, 0, -1, new Voxel(SOLID_VOXEL, 0, 0));
+        voxelObject.Set(0, 0, 0, new Voxel(SOLID_VOXEL, 0, 0));
+
+        var lightingState = new LightingState();
+        IBrickDatabase brickDatabase = new TestBrickDatabase();
+        
+        var passes = new VoxelObjectProcessor.IPass[]
+        {
+            new AmbientLightPass(lightingState),
             new LightPropagationPass(lightingState, brickDatabase),
         };
 
