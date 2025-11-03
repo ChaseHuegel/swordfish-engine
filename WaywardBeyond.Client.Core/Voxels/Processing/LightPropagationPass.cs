@@ -27,8 +27,8 @@ internal sealed class LightPropagationPass(in LightingState lightingState, in IB
             PropagateLight(ref sample.Right, item.X + 1, item.Y, item.Z);
             PropagateLight(ref sample.Above, item.X, item.Y + 1, item.Z);
             PropagateLight(ref sample.Below, item.X, item.Y - 1, item.Z);
-            PropagateLight(ref sample.Ahead, item.X, item.Y, item.Z + 1);
-            PropagateLight(ref sample.Behind, item.X, item.Y, item.Z - 1);
+            PropagateLight(ref sample.Ahead, item.X, item.Y, item.Z - 1);
+            PropagateLight(ref sample.Behind, item.X, item.Y, item.Z + 1);
             
             void PropagateLight(ref Voxel voxel, int x, int y, int z)
             {

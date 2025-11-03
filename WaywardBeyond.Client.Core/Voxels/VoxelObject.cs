@@ -180,8 +180,8 @@ public sealed class VoxelObject : IDisposable
             Right = ref GetNeighbor(1, 0, 0),
             Above = ref GetNeighbor(0, 1, 0),
             Below = ref GetNeighbor(0, -1, 0),
-            Ahead = ref GetNeighbor(0, 0, 1),
-            Behind = ref GetNeighbor(0, 0, -1),
+            Ahead = ref GetNeighbor(0, 0, -1),
+            Behind = ref GetNeighbor(0, 0, 1),
         };
 
         ref Voxel GetNeighbor(int offsetX, int offsetY, int offsetZ)
@@ -362,8 +362,8 @@ public sealed class VoxelObject : IDisposable
                 center: ref _currentVoxels![_voxelIndex],
                 left: ref GetNeighbor(x, y, z, -1, 0, 0),
                 right: ref GetNeighbor(x, y, z, 1, 0, 0),
-                ahead: ref GetNeighbor(x, y, z, 0, 0, 1),
-                behind: ref GetNeighbor(x, y, z, 0, 0, -1),
+                ahead: ref GetNeighbor(x, y, z, 0, 0, -1),
+                behind: ref GetNeighbor(x, y, z, 0, 0, 1),
                 above: ref GetNeighbor(x, y, z, 0, 1, 0),
                 below: ref GetNeighbor(x, y, z, 0, -1, 0)
             );
