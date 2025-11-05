@@ -35,11 +35,11 @@ public readonly struct VoxelPalette()
         }
     }
 
-    public void Clear()
+    public bool Any(ushort id)
     {
         lock (_voxelCounts)
         {
-            _voxelCounts.Clear();
+            return _voxelCounts.TryGetValue(id, out int value) && value > 0;
         }
     }
 }

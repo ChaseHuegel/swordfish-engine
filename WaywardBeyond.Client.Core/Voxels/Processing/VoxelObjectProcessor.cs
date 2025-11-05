@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
@@ -136,6 +137,9 @@ internal sealed class VoxelObjectProcessor
     public interface IVoxelPass
     {
         Stage Stage { get; }
+
+        //  TODO implement usages
+        bool ShouldProcessChunk(ChunkData chunkData);
         
         void Process(ref Voxel voxel);
     }
@@ -143,7 +147,10 @@ internal sealed class VoxelObjectProcessor
     public interface ISamplePass
     {
         Stage Stage { get; }
-        
+
+        //  TODO implement usages
+        bool ShouldProcessChunk(ChunkData chunkData);
+
         void Process(VoxelSample sample);
     }
 

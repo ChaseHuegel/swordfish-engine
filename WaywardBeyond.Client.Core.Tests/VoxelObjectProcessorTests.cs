@@ -37,7 +37,7 @@ public class VoxelObjectProcessorTests
 
         var samplePasses = new VoxelObjectProcessor.ISamplePass[]
         {
-            new LightPropagationPrePass(lightingState),
+            new LightPropagationPrePass(lightingState, brickDatabase),
             new MeshPostPass(),
         };
         
@@ -98,7 +98,7 @@ public class VoxelObjectProcessorTests
 
         var samplePasses = new VoxelObjectProcessor.ISamplePass[]
         {
-            new LightPropagationPrePass(lightingState),
+            new LightPropagationPrePass(lightingState, brickDatabase),
             new MeshPostPass(),
         };
         
@@ -193,6 +193,11 @@ public class VoxelObjectProcessorTests
             };
 
             return Result<BrickInfo>.FromSuccess(info);
+        }
+
+        public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
+        {
+            return [_lightBrickInfo];
         }
     }
 }

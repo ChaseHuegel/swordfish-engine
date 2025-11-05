@@ -94,9 +94,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
     }
 
-    /// <summary>
-    ///     Attempts to get all brick's infos that match a predicate.
-    /// </summary>
+    
+    /// <inheritdoc/>
     public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
     {
         lock (_bricksByDataID)

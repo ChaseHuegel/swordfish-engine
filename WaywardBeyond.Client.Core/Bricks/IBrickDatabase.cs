@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;
@@ -14,4 +16,9 @@ internal interface IBrickDatabase
     ///     Attempts to get a brick's info by its data ID.
     /// </summary>
     Result<BrickInfo> Get(ushort id);
+
+    /// <summary>
+    ///     Attempts to get all brick's infos that match a predicate.
+    /// </summary>
+    List<BrickInfo> Get(Func<BrickInfo, bool> predicate);
 }
