@@ -36,4 +36,35 @@ public static class VoxelExtensions
                sample.Above.ID != 0 ||
                sample.Below.ID != 0;
     }
+    
+    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id, BrickOrientation orientation)
+    {
+        Set(ref chunkVoxel, id, shapeLight: 0, orientation.ToByte());
+    }
+    
+    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id, ShapeLight shapeLight)
+    {
+        Set(ref chunkVoxel, id, shapeLight, orientation: 0);
+    }
+    
+    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id)
+    {
+        Set(ref chunkVoxel, id, shapeLight: 0, orientation: 0);
+    }
+    
+    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id, byte shapeLight, byte orientation)
+    {
+        chunkVoxel.ChunkData.Palette.Decrement(chunkVoxel.Voxel.ID);
+        chunkVoxel.Voxel.ID = id;
+        chunkVoxel.Voxel.ShapeLight = shapeLight;
+        chunkVoxel.Voxel.Orientation = orientation;
+        chunkVoxel.ChunkData.Palette.Increment(id);
+    }
+    
+    public static void Set(this ref ChunkVoxel chunkVoxel, in Voxel voxel)
+    {
+        chunkVoxel.ChunkData.Palette.Decrement(chunkVoxel.Voxel.ID);
+        chunkVoxel.Voxel = voxel;
+        chunkVoxel.ChunkData.Palette.Increment(voxel.ID);
+    }
 }

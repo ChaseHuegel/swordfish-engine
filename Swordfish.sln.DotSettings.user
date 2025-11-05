@@ -120,7 +120,7 @@
     &lt;TestId&gt;NUnit3x::A006D15A-6525-4E92-947F-B2AAC98395DC::net9.0::WaywardBeyond.Client.Core.Tests.VoxelObjectProcessorTests&lt;/TestId&gt;&#xD;
   &lt;/TestAncestor&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e56fd6f6_002Dd938_002D41d7_002Db108_002D20ceef34b453/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="UITest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=e56fd6f6_002Dd938_002D41d7_002Db108_002D20ceef34b453/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="UITest" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
   &lt;ProjectFile&gt;A006D15A-6525-4E92-947F-B2AAC98395DC/f:VoxelObjectTests.cs&lt;/ProjectFile&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	

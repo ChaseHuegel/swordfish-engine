@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
 using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels;
 
@@ -11,7 +12,7 @@ public sealed class VoxelObject : IDisposable
     private static Voxel _emptyVoxel;
     
     private readonly ReaderWriterLockSlim _lock;
-    private readonly Dictionary<Short3, Chunk> _chunks;
+    private readonly Dictionary<Short3, ChunkData> _chunks;
     private readonly byte _chunkSize;
     private readonly int _chunkMask;
     private readonly int _chunkShift;
@@ -48,10 +49,11 @@ public sealed class VoxelObject : IDisposable
         var chunkZ = (short)(z >> _chunkShift);
         var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
         
-        if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
+        if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
-            chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
-            _chunks[chunkOffset] = chunk;
+            var chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
+            chunkData = new ChunkData(chunkOffset, chunk);
+            _chunks[chunkOffset] = chunkData;
         }
         
         if (x < 0)
@@ -74,7 +76,8 @@ public sealed class VoxelObject : IDisposable
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        chunk.Voxels[index] = voxel;
+        var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Chunk.Voxels[index]);
+        chunkVoxel.Set(voxel);
 
         _lock.ExitWriteLock();
     }
@@ -95,7 +98,7 @@ public sealed class VoxelObject : IDisposable
         var chunkZ = (short)(z >> _chunkShift);
         var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
         
-        if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
+        if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             _emptyVoxel = new Voxel();
             return ref _emptyVoxel;
@@ -121,7 +124,7 @@ public sealed class VoxelObject : IDisposable
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        return ref chunk.Voxels[index];
+        return ref chunkData.Chunk.Voxels[index];
     }
     
     public VoxelSample Sample(int x, int y, int z)
@@ -133,7 +136,7 @@ public sealed class VoxelObject : IDisposable
         var chunkZ = (short)(z >> _chunkShift);
         var chunkOffset = new Short3(chunkX, chunkY, chunkZ);
         
-        if (!_chunks.TryGetValue(chunkOffset, out Chunk chunk))
+        if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             _lock.ExitReadLock();
             _emptyVoxel = new Voxel();
@@ -170,7 +173,7 @@ public sealed class VoxelObject : IDisposable
             localZ += _chunkSize;
         }
 
-        Voxel[] voxels = chunk.Voxels;
+        Voxel[] voxels = chunkData.Chunk.Voxels;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var sample = new VoxelSample
@@ -213,11 +216,11 @@ public sealed class VoxelObject : IDisposable
         return new ReadWriteEnumerator(_chunks, _lock);
     }
     
-    public ref struct ReadWriteEnumerator(in Dictionary<Short3, Chunk> chunks, in ReaderWriterLockSlim @lock) : IDisposable
+    public ref struct ReadWriteEnumerator(in Dictionary<Short3, ChunkData> chunks, in ReaderWriterLockSlim @lock) : IDisposable
     {
         public ref Voxel Current => ref _currentVoxels![_voxelIndex];
         
-        private Dictionary<Short3, Chunk>.Enumerator _chunkEnumerator = chunks.GetEnumerator();
+        private Dictionary<Short3, ChunkData>.Enumerator _chunkEnumerator = chunks.GetEnumerator();
         private readonly ReaderWriterLockSlim _lock = @lock;
 
         private Voxel[]? _currentVoxels = null;
@@ -239,8 +242,8 @@ public sealed class VoxelObject : IDisposable
 
             while (_chunkEnumerator.MoveNext())
             {
-                Chunk chunk = _chunkEnumerator.Current.Value;
-                _currentVoxels = chunk.Voxels;
+                ChunkData chunkData = _chunkEnumerator.Current.Value;
+                _currentVoxels = chunkData.Chunk.Voxels;
                 _voxelIndex = 0;
                 return true;
             }
@@ -304,7 +307,7 @@ public sealed class VoxelObject : IDisposable
         public VoxelSample Current => GetCurrentSample();
 
         private readonly VoxelObject _voxelObject;
-        private Dictionary<Short3, Chunk>.Enumerator _chunkEnumerator;
+        private Dictionary<Short3, ChunkData>.Enumerator _chunkEnumerator;
         private readonly ReaderWriterLockSlim _lock;
         
         private Int3 _chunkPos;
@@ -336,11 +339,11 @@ public sealed class VoxelObject : IDisposable
 
             while (_chunkEnumerator.MoveNext())
             {
-                KeyValuePair<Short3, Chunk> kvp = _chunkEnumerator.Current;
-                Chunk chunk = kvp.Value;
+                KeyValuePair<Short3, ChunkData> kvp = _chunkEnumerator.Current;
+                ChunkData chunkData = kvp.Value;
                 _chunkPos = new Int3(kvp.Key.X, kvp.Key.Y, kvp.Key.Z);
-                _chunkWorldCoords = new Int3(kvp.Key.X * chunk.Size, kvp.Key.Y * chunk.Size, kvp.Key.Z * chunk.Size);
-                _currentVoxels = chunk.Voxels;
+                _chunkWorldCoords = new Int3(kvp.Key.X * chunkData.Chunk.Size, kvp.Key.Y * chunkData.Chunk.Size, kvp.Key.Z * chunkData.Chunk.Size);
+                _currentVoxels = chunkData.Chunk.Voxels;
                 _voxelIndex = 0;
                 return true;
             }
