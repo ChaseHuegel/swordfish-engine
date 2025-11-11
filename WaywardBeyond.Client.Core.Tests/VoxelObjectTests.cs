@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Tests;
 
@@ -18,7 +19,8 @@ public class VoxelObjectTests
         voxelObject.Set(24, 24, 24, new Voxel(6, 0, 0));
         voxelObject.Set(31, 31, 31, new Voxel(7, 0, 0));
 
-        foreach (Voxel voxel in voxelObject)
+        foreach (ChunkData chunk in voxelObject)
+        foreach (Voxel voxel in chunk)
         {
             if (voxel.ID == 0)
             {
@@ -27,7 +29,8 @@ public class VoxelObjectTests
             Console.WriteLine("Found voxel: " + voxel.ID);
         }
         
-        foreach (ref Voxel voxel in voxelObject)
+        foreach (ChunkData chunk in voxelObject)
+        foreach (ref Voxel voxel in chunk)
         {
             if (voxel.ID == 0)
             {
@@ -38,7 +41,8 @@ public class VoxelObjectTests
         
         Console.WriteLine();
         
-        foreach (Voxel voxel in voxelObject)
+        foreach (ChunkData chunk in voxelObject)
+        foreach (Voxel voxel in chunk)
         {
             if (voxel.ID == 0)
             {
@@ -47,7 +51,8 @@ public class VoxelObjectTests
             Console.WriteLine("Found voxel: " + voxel.ID);
         }
         
-        foreach (ref Voxel voxel in voxelObject)
+        foreach (ChunkData chunk in voxelObject)
+        foreach (ref Voxel voxel in chunk)
         {
             if (voxel.ID == 0)
             {
@@ -60,7 +65,8 @@ public class VoxelObjectTests
 
         var sw = Stopwatch.StartNew();
         var samples = 0;
-        foreach (VoxelSample sample in voxelObject.GetSampler())
+        foreach (ChunkData chunk in voxelObject)
+        foreach (VoxelSample sample in chunk.GetSampler())
         {
             samples++;
             if (!sample.HasAny())
@@ -73,7 +79,8 @@ public class VoxelObjectTests
         sw.Stop();
         Console.WriteLine($"{samples} samples in {sw.ElapsedMilliseconds} ms");
         
-        foreach (VoxelSample sample in voxelObject.GetSampler())
+        foreach (ChunkData chunk in voxelObject)
+        foreach (VoxelSample sample in chunk.GetSampler())
         {
             if (sample.Center.ID == 0)
             {
@@ -84,7 +91,8 @@ public class VoxelObjectTests
             sample.Center.ID = 99;
         }
         
-        foreach (Voxel voxel in voxelObject)
+        foreach (ChunkData chunk in voxelObject)
+        foreach (Voxel voxel in chunk)
         {
             if (voxel.ID == 0)
             {

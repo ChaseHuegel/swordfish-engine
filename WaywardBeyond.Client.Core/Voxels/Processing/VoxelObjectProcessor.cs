@@ -66,16 +66,41 @@ internal sealed class VoxelObjectProcessor
     private int PrePass(VoxelObject voxelObject)
     {
         var passes = 0;
+        var chunksToProcess = new List<ChunkData>(voxelObject._chunks.Count);
         
         //  Run voxel pre-pass
         if (_voxelPasses.TryGetValue(Stage.PrePass, out List<IVoxelPass>? voxelPasses))
         {
             passes++;
-            foreach (ref Voxel voxel in voxelObject)
+            
+            var passesToRun = new List<IVoxelPass>(voxelPasses.Count);
+            foreach (ChunkData chunk in voxelObject)
             {
+                var anyProcessors = false;
                 for (var i = 0; i < voxelPasses.Count; i++)
                 {
-                    voxelPasses[i].Process(ref voxel);
+                    IVoxelPass pass = voxelPasses[i];
+                    if (!pass.ShouldProcessChunk(chunk))
+                    {
+                        continue;
+                    }
+                    
+                    passesToRun.Add(pass);
+                    anyProcessors = true;
+                }
+
+                if (anyProcessors)
+                {
+                    chunksToProcess.Add(chunk);
+                }
+            }
+
+            foreach (ChunkData chunk in chunksToProcess)
+            foreach (ref Voxel voxel in chunk)
+            {
+                for (var i = 0; i < passesToRun.Count; i++)
+                {
+                    passesToRun[i].Process(ref voxel);
                 }
             }
         }
@@ -84,11 +109,36 @@ internal sealed class VoxelObjectProcessor
         if (_samplePasses.TryGetValue(Stage.PrePass, out List<ISamplePass>? samplePasses))
         {
             passes++;
-            foreach (VoxelSample sample in voxelObject.GetSampler())
+
+            chunksToProcess.Clear();
+            var passesToRun = new List<ISamplePass>(samplePasses.Count);
+            foreach (ChunkData chunk in voxelObject)
             {
+                var anyProcessors = false;
                 for (var i = 0; i < samplePasses.Count; i++)
                 {
-                    samplePasses[i].Process(sample);
+                    ISamplePass pass = samplePasses[i];
+                    if (!pass.ShouldProcessChunk(chunk))
+                    {
+                        continue;
+                    }
+                    
+                    passesToRun.Add(pass);
+                    anyProcessors = true;
+                }
+
+                if (anyProcessors)
+                {
+                    chunksToProcess.Add(chunk);
+                }
+            }
+            
+            foreach (ChunkData chunk in chunksToProcess)
+            foreach (VoxelSample sample in chunk.GetSampler())
+            {
+                for (var i = 0; i < passesToRun.Count; i++)
+                {
+                    passesToRun[i].Process(sample);
                 }
             }
         }
@@ -99,16 +149,41 @@ internal sealed class VoxelObjectProcessor
     private int PostPass(VoxelObject voxelObject)
     {
         var passes = 0;
+        var chunksToProcess = new List<ChunkData>(voxelObject._chunks.Count);
         
         //  Run voxel post-pass
         if (_voxelPasses.TryGetValue(Stage.PostPass, out List<IVoxelPass>? voxelPasses))
         {
             passes++;
-            foreach (ref Voxel voxel in voxelObject)
+            
+            var passesToRun = new List<IVoxelPass>(voxelPasses.Count);
+            foreach (ChunkData chunk in voxelObject)
             {
+                var anyProcessors = false;
                 for (var i = 0; i < voxelPasses.Count; i++)
                 {
-                    voxelPasses[i].Process(ref voxel);
+                    IVoxelPass pass = voxelPasses[i];
+                    if (!pass.ShouldProcessChunk(chunk))
+                    {
+                        continue;
+                    }
+                    
+                    passesToRun.Add(pass);
+                    anyProcessors = true;
+                }
+
+                if (anyProcessors)
+                {
+                    chunksToProcess.Add(chunk);
+                }
+            }
+
+            foreach (ChunkData chunk in chunksToProcess)
+            foreach (ref Voxel voxel in chunk)
+            {
+                for (var i = 0; i < passesToRun.Count; i++)
+                {
+                    passesToRun[i].Process(ref voxel);
                 }
             }
         }
@@ -117,11 +192,36 @@ internal sealed class VoxelObjectProcessor
         if (_samplePasses.TryGetValue(Stage.PostPass, out List<ISamplePass>? samplePasses))
         {
             passes++;
-            foreach (VoxelSample sample in voxelObject.GetSampler())
+
+            chunksToProcess.Clear();
+            var passesToRun = new List<ISamplePass>(samplePasses.Count);
+            foreach (ChunkData chunk in voxelObject)
             {
+                var anyProcessors = false;
                 for (var i = 0; i < samplePasses.Count; i++)
                 {
-                    samplePasses[i].Process(sample);
+                    ISamplePass pass = samplePasses[i];
+                    if (!pass.ShouldProcessChunk(chunk))
+                    {
+                        continue;
+                    }
+                    
+                    passesToRun.Add(pass);
+                    anyProcessors = true;
+                }
+
+                if (anyProcessors)
+                {
+                    chunksToProcess.Add(chunk);
+                }
+            }
+            
+            foreach (ChunkData chunk in chunksToProcess)
+            foreach (VoxelSample sample in chunk.GetSampler())
+            {
+                for (var i = 0; i < passesToRun.Count; i++)
+                {
+                    passesToRun[i].Process(sample);
                 }
             }
         }
@@ -138,7 +238,6 @@ internal sealed class VoxelObjectProcessor
     {
         Stage Stage { get; }
 
-        //  TODO implement usages
         bool ShouldProcessChunk(ChunkData chunkData);
         
         void Process(ref Voxel voxel);
@@ -148,7 +247,6 @@ internal sealed class VoxelObjectProcessor
     {
         Stage Stage { get; }
 
-        //  TODO implement usages
         bool ShouldProcessChunk(ChunkData chunkData);
 
         void Process(VoxelSample sample);

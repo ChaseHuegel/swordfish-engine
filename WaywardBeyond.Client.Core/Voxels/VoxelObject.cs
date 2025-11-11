@@ -11,13 +11,13 @@ public sealed class VoxelObject : IDisposable
 {
     private static Voxel _emptyVoxel;
     
-    private readonly ReaderWriterLockSlim _lock;
-    private readonly Dictionary<Short3, ChunkData> _chunks;
-    private readonly byte _chunkSize;
-    private readonly int _chunkMask;
-    private readonly int _chunkShift;
-    private readonly int _chunkShift2;
-    private readonly int _voxelsPerChunk;
+    internal readonly ReaderWriterLockSlim _lock;
+    internal readonly Dictionary<Short3, ChunkData> _chunks;
+    internal readonly byte _chunkSize;
+    internal readonly int _chunkMask;
+    internal readonly int _chunkShift;
+    internal readonly int _chunkShift2;
+    internal readonly int _voxelsPerChunk;
     
     public VoxelObject(byte chunkSize)
     {
@@ -52,7 +52,7 @@ public sealed class VoxelObject : IDisposable
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             var chunk = new Chunk(_chunkSize, new Voxel[_voxelsPerChunk]);
-            chunkData = new ChunkData(chunkOffset, chunk);
+            chunkData = new ChunkData(chunkOffset, chunk, voxelObject: this);
             _chunks[chunkOffset] = chunkData;
         }
         
@@ -76,7 +76,7 @@ public sealed class VoxelObject : IDisposable
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Chunk.Voxels[index]);
+        var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Data.Voxels[index]);
         chunkVoxel.Set(voxel);
 
         _lock.ExitWriteLock();
@@ -90,7 +90,7 @@ public sealed class VoxelObject : IDisposable
         return voxel;
     }
     
-    private ref Voxel GetUnsafe(int x, int y, int z)
+    internal ref Voxel GetUnsafe(int x, int y, int z)
     {
 
         var chunkX = (short)(x >> _chunkShift);
@@ -124,7 +124,7 @@ public sealed class VoxelObject : IDisposable
         int localZ = z & _chunkMask;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
-        return ref chunkData.Chunk.Voxels[index];
+        return ref chunkData.Data.Voxels[index];
     }
     
     public VoxelSample Sample(int x, int y, int z)
@@ -173,7 +173,7 @@ public sealed class VoxelObject : IDisposable
             localZ += _chunkSize;
         }
 
-        Voxel[] voxels = chunkData.Chunk.Voxels;
+        Voxel[] voxels = chunkData.Data.Voxels;
         
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var sample = new VoxelSample

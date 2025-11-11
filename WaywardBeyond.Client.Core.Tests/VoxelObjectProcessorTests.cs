@@ -46,7 +46,8 @@ public class VoxelObjectProcessorTests
         Console.WriteLine($"Completed {passCount} passes.");
 
         var lightData = new int[32, 32];
-        foreach (VoxelSample sample in voxelObject.GetSampler())
+        foreach (ChunkData chunk in voxelObject)
+        foreach (VoxelSample sample in chunk.GetSampler())
         {
             int y = sample.Coords.Y + sample.ChunkOffset.Y;
             if (y != 0)
@@ -107,7 +108,8 @@ public class VoxelObjectProcessorTests
         Console.WriteLine($"Completed {passCount} passes.");
 
         var lightData = new int[32, 32];
-        foreach (VoxelSample sample in voxelObject.GetSampler())
+        foreach (ChunkData chunk in voxelObject)
+        foreach (VoxelSample sample in chunk.GetSampler())
         {
             int y = sample.Coords.Y + sample.ChunkOffset.Y;
             if (y != 0)
