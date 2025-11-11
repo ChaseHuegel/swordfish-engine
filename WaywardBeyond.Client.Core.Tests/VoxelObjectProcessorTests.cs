@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Voxels;
@@ -42,8 +43,10 @@ public class VoxelObjectProcessorTests
         };
         
         var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
+        var sw = Stopwatch.StartNew();
         int passCount = processor.Process(voxelObject);
-        Console.WriteLine($"Completed {passCount} passes.");
+        sw.Stop();
+        Console.WriteLine($"Completed {passCount} passes in {sw.ElapsedMilliseconds} ms.");
 
         var lightData = new int[32, 32];
         foreach (ChunkData chunk in voxelObject)
@@ -104,8 +107,10 @@ public class VoxelObjectProcessorTests
         };
         
         var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
+        var sw = Stopwatch.StartNew();
         int passCount = processor.Process(voxelObject);
-        Console.WriteLine($"Completed {passCount} passes.");
+        sw.Stop();
+        Console.WriteLine($"Completed {passCount} passes in {sw.ElapsedMilliseconds} ms.");
 
         var lightData = new int[32, 32];
         foreach (ChunkData chunk in voxelObject)
