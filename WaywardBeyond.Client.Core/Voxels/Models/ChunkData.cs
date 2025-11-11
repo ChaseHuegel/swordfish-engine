@@ -61,12 +61,11 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         }
     }
     
-    public ref struct SampleEnumerator : IDisposable
+    public ref struct SampleEnumerator
     {
         public VoxelSample Current => GetCurrentSample();
 
         private readonly VoxelObject _voxelObject;
-        private readonly ReaderWriterLockSlim _lock;
         
         private readonly Int3 _chunkPos;
         private readonly Int3 _chunkWorldCoords;
@@ -76,19 +75,10 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         public SampleEnumerator(ChunkData chunkData, VoxelObject voxelObject)
         {
             _voxelObject = voxelObject;
-            _lock = voxelObject._lock;
-            
             _chunkPos = new Int3(chunkData.Coords.X, chunkData.Coords.Y, chunkData.Coords.Z);
             _chunkWorldCoords = new Int3(chunkData.Coords.X * chunkData.Data.Size, chunkData.Coords.Y * chunkData.Data.Size, chunkData.Coords.Z * chunkData.Data.Size);
             _currentVoxels = chunkData.Data.Voxels;
             _voxelIndex = 0;
-            
-            _lock.EnterReadLock();
-        }
-
-        public void Dispose()
-        {
-            _lock.ExitReadLock();
         }
 
         public bool MoveNext()
