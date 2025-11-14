@@ -70,7 +70,7 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         private readonly Int3 _chunkPos;
         private readonly Int3 _chunkWorldCoords;
         private readonly Voxel[] _currentVoxels;
-        private int _voxelIndex;
+        private int _voxelIndex = -1;
 
         public SampleEnumerator(ChunkData chunkData, VoxelObject voxelObject)
         {
@@ -78,7 +78,6 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             _chunkPos = new Int3(chunkData.Coords.X, chunkData.Coords.Y, chunkData.Coords.Z);
             _chunkWorldCoords = new Int3(chunkData.Coords.X * chunkData.Data.Size, chunkData.Coords.Y * chunkData.Data.Size, chunkData.Coords.Z * chunkData.Data.Size);
             _currentVoxels = chunkData.Data.Voxels;
-            _voxelIndex = 0;
         }
 
         public bool MoveNext()
@@ -90,7 +89,6 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
 
             _voxelIndex++;
             return true;
-
         }
 
         private VoxelSample GetCurrentSample()
