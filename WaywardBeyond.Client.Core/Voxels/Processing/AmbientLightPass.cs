@@ -1,75 +1,19 @@
 using System.Collections.Generic;
-using Swordfish.Library.Extensions;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class AmbientLightPass(in LightingState lightingState) : VoxelObjectProcessor.IPass
+internal sealed class AmbientLightPass(in LightingState lightingState, in DepthState depthState) : VoxelObjectProcessor.IPass
 {
     private readonly LightingState _lightingState = lightingState;
+    private readonly DepthState _depthState = depthState;
     
     public void Process(VoxelObject voxelObject)
     {
-        var xy = new Dictionary<Int2, Int2>();
-        var xz = new Dictionary<Int2, Int2>();
-        var zy = new Dictionary<Int2, Int2>();
+        //  Seed ambient light at all min and max voxels at each depth plane
         
-        foreach (ChunkData chunk in voxelObject)
-        {
-            foreach (VoxelSample sample in chunk.GetSampler())
-            {
-                if (sample.Center.ID == 0)
-                {
-                    continue;
-                }
-                
-                int x = sample.Coords.X + sample.ChunkOffset.X;
-                int y = sample.Coords.Y + sample.ChunkOffset.Y;
-                int z = sample.Coords.Z + sample.ChunkOffset.Z;
-                
-                var key = new Int2(x, y);
-                Int2 depth = xy.GetOrAdd(key, DefaultDepthFactory);
-                if (z < depth.Min)
-                {
-                    depth.Min = z;
-                    xy[key] = depth;
-                }
-                if (z > depth.Max)
-                {
-                    depth.Max = z;
-                    xy[key] = depth;
-                }
-                
-                key = new Int2(x, z);
-                depth = xz.GetOrAdd(key, DefaultDepthFactory);
-                if (y < depth.Min)
-                {
-                    depth.Min = y;
-                    xz[key] = depth;
-                }
-                if (y > depth.Max)
-                {
-                    depth.Max = y;
-                    xz[key] = depth;
-                }
-                
-                key = new Int2(z, y);
-                depth = zy.GetOrAdd(key, DefaultDepthFactory);
-                if (x < depth.Min)
-                {
-                    depth.Min = x;
-                    zy[key] = depth;
-                }
-                if (x > depth.Max)
-                {
-                    depth.Max = x;
-                    zy[key] = depth;
-                }
-            }
-        }
-
-        foreach (KeyValuePair<Int2, Int2> pair in xy)
+        foreach (KeyValuePair<Int2, Int2> pair in _depthState.XY)
         {
             Int2 coords = pair.Key;
             Int2 depth = pair.Value;
@@ -87,7 +31,7 @@ internal sealed class AmbientLightPass(in LightingState lightingState) : VoxelOb
             _lightingState.Lights.Enqueue(light);
         }
         
-        foreach (KeyValuePair<Int2, Int2> pair in xz)
+        foreach (KeyValuePair<Int2, Int2> pair in _depthState.XZ)
         {
             Int2 coords = pair.Key;
             Int2 depth = pair.Value;
@@ -105,7 +49,7 @@ internal sealed class AmbientLightPass(in LightingState lightingState) : VoxelOb
             _lightingState.Lights.Enqueue(light);
         }
         
-        foreach (KeyValuePair<Int2, Int2> pair in zy)
+        foreach (KeyValuePair<Int2, Int2> pair in _depthState.ZY)
         {
             Int2 coords = pair.Key;
             Int2 depth = pair.Value;

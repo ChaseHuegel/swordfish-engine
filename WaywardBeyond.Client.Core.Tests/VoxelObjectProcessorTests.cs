@@ -87,11 +87,12 @@ public class VoxelObjectProcessorTests
         voxelObject.Set(0, 0, 0, new Voxel(SOLID_VOXEL, 0, 0));
 
         var lightingState = new LightingState();
+        var depthState = new DepthState();
         IBrickDatabase brickDatabase = new TestBrickDatabase();
         
         var passes = new VoxelObjectProcessor.IPass[]
         {
-            new AmbientLightPass(lightingState),
+            new AmbientLightPass(lightingState, depthState),
             new LightPropagationPass(lightingState, brickDatabase),
         };
 
@@ -102,6 +103,7 @@ public class VoxelObjectProcessorTests
 
         var samplePasses = new VoxelObjectProcessor.ISamplePass[]
         {
+            new DepthPrePass(depthState),
             new LightPropagationPrePass(lightingState, brickDatabase),
             new MeshPostPass(),
         };
