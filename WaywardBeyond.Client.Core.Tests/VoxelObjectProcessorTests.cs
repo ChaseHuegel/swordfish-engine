@@ -27,7 +27,7 @@ public class VoxelObjectProcessorTests
         
         var passes = new VoxelObjectProcessor.IPass[]
         {
-            new AmbientLightPass(lightingState),
+            // new AmbientLightPass(lightingState),
             new LightPropagationPass(lightingState, brickDatabase),
         };
 
@@ -70,7 +70,7 @@ public class VoxelObjectProcessorTests
             {
                 int light = lightData[x, y];
                 string lightStr = light != 0 ? light.ToString("00") : "--";
-                Console.Write(lightStr + "-");
+                Console.Write(lightStr + " ");
             }
             Console.WriteLine();
         }
@@ -134,7 +134,7 @@ public class VoxelObjectProcessorTests
             {
                 int light = lightData[x, y];
                 string lightStr = light != 0 ? light.ToString("00") : "--";
-                Console.Write(lightStr + "-");
+                Console.Write(lightStr + " ");
             }
             Console.WriteLine();
         }
