@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using Swordfish.Library.Extensions;
+using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
@@ -8,56 +11,121 @@ internal sealed class AmbientLightPass(in LightingState lightingState) : VoxelOb
     
     public void Process(VoxelObject voxelObject)
     {
-        //  TODO dont use hardcoded ray step range
-        //  TODO each ambient cast should have a unique distance based on the chunks in that dir
-        const int ambientRange = 32;
+        var xy = new Dictionary<Int2, Int2>();
+        var xz = new Dictionary<Int2, Int2>();
+        var zy = new Dictionary<Int2, Int2>();
         
-        for (int x = -ambientRange; x <= ambientRange; x++)
-        for (int z = -ambientRange; z <= ambientRange; z++)
+        foreach (ChunkData chunk in voxelObject)
         {
-            CastAmbientLight(x, ambientRange, z, 0, -1, 0);
-            CastAmbientLight(x, -ambientRange, z, 0, 1, 0);
-        }
-        
-        for (int y = -ambientRange; y <= ambientRange; y++)
-        for (int z = -ambientRange; z <= ambientRange; z++)
-        {
-            CastAmbientLight(ambientRange, y, z, -1, 0, 0);
-            CastAmbientLight(-ambientRange, y, z, 1, 0, 0);
-        }
-        
-        for (int x = -ambientRange; x <= ambientRange; x++)
-        for (int y = -ambientRange; y <= ambientRange; y++)
-        {
-            CastAmbientLight(x, y, ambientRange, 0, 0, -1);
-            CastAmbientLight(x, y, -ambientRange, 0, 0, 1);
-        }
-        
-        void CastAmbientLight(int x, int y, int z, int vectorX, int vectorY, int vectorZ)
-        {
-            for (var step = 1; step <= 32; step++)
+            foreach (VoxelSample sample in chunk.GetSampler())
             {
-                int bx = x + vectorX * step;
-                int by = y + vectorY * step;
-                int bz = z + vectorZ * step;
-                VoxelSample sample = voxelObject.Sample(bx, by, bz);
-
-                if (sample.Center.ID != 0)
-                {
-                    return;
-                }
-
-                if (!sample.HasAny())
+                if (sample.Center.ID == 0)
                 {
                     continue;
                 }
                 
-                ShapeLight shapeLight = sample.Center.ShapeLight;
-                sample.Center.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+                int x = sample.Coords.X + sample.ChunkOffset.X;
+                int y = sample.Coords.Y + sample.ChunkOffset.Y;
+                int z = sample.Coords.Z + sample.ChunkOffset.Z;
                 
-                var light = new LightingState.VoxelLight(bx, by, bz, sample.Center);
-                _lightingState.Lights.Enqueue(light);
+                var key = new Int2(x, y);
+                Int2 depth = xy.GetOrAdd(key, DefaultDepthFactory);
+                if (z < depth.Min)
+                {
+                    depth.Min = z;
+                    xy[key] = depth;
+                }
+                if (z > depth.Max)
+                {
+                    depth.Max = z;
+                    xy[key] = depth;
+                }
+                
+                key = new Int2(x, z);
+                depth = xz.GetOrAdd(key, DefaultDepthFactory);
+                if (y < depth.Min)
+                {
+                    depth.Min = y;
+                    xz[key] = depth;
+                }
+                if (y > depth.Max)
+                {
+                    depth.Max = y;
+                    xz[key] = depth;
+                }
+                
+                key = new Int2(z, y);
+                depth = zy.GetOrAdd(key, DefaultDepthFactory);
+                if (x < depth.Min)
+                {
+                    depth.Min = x;
+                    zy[key] = depth;
+                }
+                if (x > depth.Max)
+                {
+                    depth.Max = x;
+                    zy[key] = depth;
+                }
             }
         }
+
+        foreach (KeyValuePair<Int2, Int2> pair in xy)
+        {
+            Int2 coords = pair.Key;
+            Int2 depth = pair.Value;
+            
+            VoxelSample min = voxelObject.Sample(coords.X, coords.Y, depth.Min);
+            ShapeLight shapeLight = min.Ahead.ShapeLight;
+            min.Ahead.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            var light = new LightingState.VoxelLight(coords.X, coords.Y, depth.Min - 1, min.Ahead);
+            _lightingState.Lights.Enqueue(light);
+            
+            VoxelSample max = voxelObject.Sample(coords.X, coords.Y, depth.Max);
+            shapeLight = max.Behind.ShapeLight;
+            max.Behind.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            light = new LightingState.VoxelLight(coords.X, coords.Y, depth.Max + 1, max.Behind);
+            _lightingState.Lights.Enqueue(light);
+        }
+        
+        foreach (KeyValuePair<Int2, Int2> pair in xz)
+        {
+            Int2 coords = pair.Key;
+            Int2 depth = pair.Value;
+            
+            VoxelSample min = voxelObject.Sample(coords.X, depth.Min, coords.Y);
+            ShapeLight shapeLight = min.Below.ShapeLight;
+            min.Below.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            var light = new LightingState.VoxelLight(coords.X, depth.Min - 1, coords.Y, min.Below);
+            _lightingState.Lights.Enqueue(light);
+            
+            VoxelSample max = voxelObject.Sample(coords.X, depth.Max, coords.Y);
+            shapeLight = max.Above.ShapeLight;
+            max.Above.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            light = new LightingState.VoxelLight(coords.X, depth.Max + 1, coords.Y, max.Above);
+            _lightingState.Lights.Enqueue(light);
+        }
+        
+        foreach (KeyValuePair<Int2, Int2> pair in zy)
+        {
+            Int2 coords = pair.Key;
+            Int2 depth = pair.Value;
+            
+            VoxelSample min = voxelObject.Sample(depth.Min, coords.Y, coords.X);
+            ShapeLight shapeLight = min.Left.ShapeLight;
+            min.Left.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            var light = new LightingState.VoxelLight(depth.Min - 1, coords.Y, coords.X, min.Left);
+            _lightingState.Lights.Enqueue(light);
+            
+            VoxelSample max = voxelObject.Sample(depth.Max, coords.Y, coords.X);
+            shapeLight = max.Right.ShapeLight;
+            max.Right.ShapeLight = new ShapeLight(shapeLight.Shape, lightLevel: 15);
+            light = new LightingState.VoxelLight(depth.Max + 1, coords.Y, coords.X, max.Right);
+            _lightingState.Lights.Enqueue(light);
+        }
+    }
+
+    private static Int2 DefaultDepthFactory()
+    {
+        return new Int2(int.MaxValue, int.MinValue);
     }
 }
