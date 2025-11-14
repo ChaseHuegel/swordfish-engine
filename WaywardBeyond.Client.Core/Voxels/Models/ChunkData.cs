@@ -23,7 +23,7 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         public ref Voxel Current => ref _voxels[_index];
 
         private Voxel[] _voxels;
-        private int _index = 0;
+        private int _index = -1;
 
         public Enumerator(Voxel[] voxels)
         {
