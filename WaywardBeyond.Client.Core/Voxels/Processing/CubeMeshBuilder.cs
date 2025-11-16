@@ -116,14 +116,14 @@ internal readonly struct CubeMeshBuilder
     );
     
     private readonly TextureArray _textureArray;
-    private readonly MeshState _meshState;
+    private readonly MeshState.MeshData _meshData;
     
     public CubeMeshBuilder(
         TextureArray textureArray,
-        MeshState meshState
+        MeshState.MeshData meshData
     ) {
         _textureArray = textureArray;
-        _meshState = meshState;
+        _meshData = meshData;
     }
 
     public void AddTopFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
@@ -219,7 +219,7 @@ internal readonly struct CubeMeshBuilder
         BrickInfo brickInfo,
         string? textureName
     ) {
-        var vertexStart = (uint)_meshState.Vertices.Count;
+        var vertexStart = (uint)_meshData.Vertices.Count;
         int textureIndex = GetTextureIndex(
             sample,
             brickInfo,
@@ -227,36 +227,36 @@ internal readonly struct CubeMeshBuilder
             faceInfo.Face
         );
         
-        _meshState.UV.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
-        _meshState.UV.Add(new Vector3(faceInfo.UV.U1.X, faceInfo.UV.U1.Y, textureIndex));
-        _meshState.UV.Add(new Vector3(faceInfo.UV.U2.X, faceInfo.UV.U2.Y, textureIndex));
-        _meshState.UV.Add(new Vector3(faceInfo.UV.U3.X, faceInfo.UV.U3.Y, textureIndex));
+        _meshData.UV.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
+        _meshData.UV.Add(new Vector3(faceInfo.UV.U1.X, faceInfo.UV.U1.Y, textureIndex));
+        _meshData.UV.Add(new Vector3(faceInfo.UV.U2.X, faceInfo.UV.U2.Y, textureIndex));
+        _meshData.UV.Add(new Vector3(faceInfo.UV.U3.X, faceInfo.UV.U3.Y, textureIndex));
         
-        _meshState.Triangles.Add(vertexStart + 0);
-        _meshState.Triangles.Add(vertexStart + 1);
-        _meshState.Triangles.Add(vertexStart + 2);
-        _meshState.Triangles.Add(vertexStart + 0);
-        _meshState.Triangles.Add(vertexStart + 2);
-        _meshState.Triangles.Add(vertexStart + 3);
+        _meshData.Triangles.Add(vertexStart + 0);
+        _meshData.Triangles.Add(vertexStart + 1);
+        _meshData.Triangles.Add(vertexStart + 2);
+        _meshData.Triangles.Add(vertexStart + 0);
+        _meshData.Triangles.Add(vertexStart + 2);
+        _meshData.Triangles.Add(vertexStart + 3);
 
         Vector3 vertNormal = Vector3.Transform(faceInfo.Normal, orientation);
-        _meshState.Normals.Add(vertNormal);
-        _meshState.Normals.Add(vertNormal);
-        _meshState.Normals.Add(vertNormal);
-        _meshState.Normals.Add(vertNormal);
+        _meshData.Normals.Add(vertNormal);
+        _meshData.Normals.Add(vertNormal);
+        _meshData.Normals.Add(vertNormal);
+        _meshData.Normals.Add(vertNormal);
         
         ShapeLight shapeLight = neighbor.ShapeLight;
         float light = Math.Clamp(shapeLight.LightLevel / 15f, 0.1f, 1f);
         var color = new Vector4(light, light, light, 1f);
-        _meshState.Colors.Add(color);
-        _meshState.Colors.Add(color);
-        _meshState.Colors.Add(color);
-        _meshState.Colors.Add(color);
+        _meshData.Colors.Add(color);
+        _meshData.Colors.Add(color);
+        _meshData.Colors.Add(color);
+        _meshData.Colors.Add(color);
         
-        _meshState.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V0, orientation));
-        _meshState.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V1, orientation));
-        _meshState.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V2, orientation));
-        _meshState.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V3, orientation));
+        _meshData.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V0, orientation));
+        _meshData.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V1, orientation));
+        _meshData.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V2, orientation));
+        _meshData.Vertices.Add(origin + Vector3.Transform(faceInfo.Vertices.V3, orientation));
     }
     
     /// <summary>
