@@ -6,7 +6,7 @@ using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
-internal sealed class VoxelObjectBuilder(in IContainer container)
+internal sealed class VoxelEntityBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
     
