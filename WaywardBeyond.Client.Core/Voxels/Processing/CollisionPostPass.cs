@@ -12,7 +12,21 @@ internal sealed class CollisionPostPass(in CollisionState collisionState) : Voxe
     
     public bool ShouldProcessChunk(ChunkData chunkData)
     {
-        return !chunkData.Palette.Only(id: 0);
+        int totalVoxels = chunkData.Palette.Count();
+        int emptyVoxels = chunkData.Palette.Count(id: 0);
+        if (emptyVoxels == totalVoxels)
+        {
+            return false;
+        }
+        
+        //  Attempt to expand collections pre-emptively to
+        //  reduce allocations that may occur during processing.
+        int nonEmptyVoxels = totalVoxels - emptyVoxels;
+        _collisionState.Shapes.EnsureCapacity(_collisionState.Shapes.Count + nonEmptyVoxels);
+        _collisionState.Locations.EnsureCapacity(_collisionState.Locations.Count + nonEmptyVoxels);
+        _collisionState.Orientations.EnsureCapacity(_collisionState.Orientations.Count + nonEmptyVoxels);
+        
+        return true;
     }
     
     public void Process(VoxelSample sample)
@@ -23,9 +37,9 @@ internal sealed class CollisionPostPass(in CollisionState collisionState) : Voxe
         }
         
         var origin = new Vector3(sample.Coords.X + sample.ChunkOffset.X, sample.Coords.Y + sample.ChunkOffset.Y, sample.Coords.Z + sample.ChunkOffset.Z);
-
-        _collisionState.Locations.Add(origin);
+        
         _collisionState.Shapes.Add(new Box3(Vector3.One));
+        _collisionState.Locations.Add(origin);
         _collisionState.Orientations.Add(Quaternion.Identity);
     }
 }

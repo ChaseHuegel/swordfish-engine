@@ -58,4 +58,12 @@ public readonly struct VoxelPalette()
             return _voxelCounts.Count;
         }
     }
+    
+    public int Count(ushort id)
+    {
+        lock (_voxelCounts)
+        {
+            return _voxelCounts.TryGetValue(id, out int value) ? value : 0;
+        }
+    }
 }
