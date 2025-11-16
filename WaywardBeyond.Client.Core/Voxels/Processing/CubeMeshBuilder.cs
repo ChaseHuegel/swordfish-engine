@@ -332,15 +332,64 @@ internal readonly struct CubeMeshBuilder
         var connectedTextureMask = 0;
         
         //  YZ plane (Left face)
-        // private static readonly NeighborMask[] _neighborMasksYZ = [
-        //     (0, 1, 0, 1),   // up
-        //     (0, 0, -1, 2),  // left
-        //     (0, 0, 1, 4),   // right
-        //     (0, -1, 0, 8),  // down
-        // ];
+        //  Up
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+        
+        //  Inv YZ plane (Right face)
+        //  Up
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+        
+        
+        //  XZ plane (Top face)
+        //  Up
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 8, ref connectedTextureMask, shapeLight);
+
+        //  Inv XZ plane (Bottom face)
+        //  Up
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 8, ref connectedTextureMask, shapeLight);
+
+        //  XY plane (Front face)
+        //  Up
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+
+        //  Inv XY plane (Back face)
+        //  Up
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+        //  Left
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 2, ref connectedTextureMask, shapeLight);
+        //  Right
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 4, ref connectedTextureMask, shapeLight);
+        //  Down
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
         
         return textureIndex + connectedTextureMask;

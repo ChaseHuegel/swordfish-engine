@@ -22,7 +22,7 @@ internal sealed class MeshPostPass(
     private readonly BrickDatabase _brickDatabase = brickDatabase;
     private readonly PBRTextureArrays _textureArrays = textureArrays;
 
-    private readonly CubeMeshBuilder _cubeMeshBuilder = new(brickDatabase, textureArrays.Albedo, meshState);
+    private readonly CubeMeshBuilder _cubeMeshBuilder = new(textureArrays.Albedo, meshState);
     private readonly bool _transparent = transparent;
     private readonly Mesh _slope = meshDatabase.Get("slope.obj");
     private readonly Mesh _stair = meshDatabase.Get("stair.obj");
