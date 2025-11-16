@@ -147,16 +147,13 @@ internal readonly struct CubeMeshBuilder
         )
     );
     
-    private readonly BrickDatabase _brickDatabase;
     private readonly TextureArray _textureArray;
     private readonly MeshState _meshState;
     
     public CubeMeshBuilder(
-        BrickDatabase brickDatabase,
         TextureArray textureArray,
         MeshState meshState
     ) {
-        _brickDatabase = brickDatabase;
         _textureArray = textureArray;
         _meshState = meshState;
     }
@@ -271,17 +268,13 @@ internal readonly struct CubeMeshBuilder
         Vector3 origin,
         Quaternion orientation,
         BrickInfo brickInfo,
-        string? textureName,
-        int cullingX, int cullingY, int cullingZ,
-        NeighborMask[] neighborMasks
+        string? textureName
     ) {
         var vertexStart = (uint)_meshState.Vertices.Count;
         int textureIndex = GetTextureIndex(
             sample,
             brickInfo,
-            textureName,
-            cullingX, cullingY, cullingZ,
-            neighborMasks
+            textureName
         );
         
         _meshState.UV.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
@@ -325,42 +318,56 @@ internal readonly struct CubeMeshBuilder
     private int GetTextureIndex(
         in VoxelSample sample,
         BrickInfo brickInfo,
-        string? textureName,
-        int cullingX, int cullingY, int cullingZ,
-        NeighborMask[] neighborMasks
+        string? textureName
     ) {
+        //  TODO support randomized textures
         int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
         
-        //  TODO support randomized textures
         if (!brickInfo.Textures.Connected)
         {
             return textureIndex;
         }
-
+        
+        ShapeLight shapeLight = sample.Center.ShapeLight;
         var connectedTextureMask = 0;
-        for (var i = 0; i < neighborMasks.Length; i++)
-        {
-            NeighborMask neighborMask = neighborMasks[i];
-            
-            Voxel neighbor = _grid.Get(nX, nY, nZ);
-            
-            //  Only connect to neighbors with matching ID and shape.
-            ShapeLight neighborShapeLight = neighbor.ShapeLight;
-            ShapeLight shapeLight = sample.Center.ShapeLight;
-            if (neighbor.ID != sample.Center.ID || neighborShapeLight.Shape != shapeLight.Shape) 
-            {
-                continue;
-            }
-            
-            Voxel culler = _grid.Get(nX + cullingX, nY + cullingY, nZ + cullingZ);
-            if (culler.ID == 0 || !_brickDatabase.IsCuller(culler))
-            {
-                //  Texture is connected to the neighbor if it isn't culled
-                connectedTextureMask |= neighborMask.Bit;
-            }
-        }
+        
+        //  YZ plane (Left face)
+        // private static readonly NeighborMask[] _neighborMasksYZ = [
+        //     (0, 1, 0, 1),   // up
+        //     (0, 0, -1, 2),  // left
+        //     (0, 0, 1, 4),   // right
+        //     (0, -1, 0, 8),  // down
+        // ];
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
         
         return textureIndex + connectedTextureMask;
+    }
+    
+    private static void ConnectToNeighbor(in Voxel voxel, in Voxel neighbor, int bit, ref int mask, ShapeLight shapeLight)
+    {
+        if (neighbor.ID != voxel.ID) 
+        {
+            return;
+        }
+        
+        ShapeLight neighborShapeLight = neighbor.ShapeLight;
+        if (neighborShapeLight.Shape != shapeLight.Shape)
+        {
+            return;
+        }
+        
+        mask |= bit;
+        
+        //  TODO don't connect to culled neighbors. This likely will be best handled by expanding samples to a 3x3.
+        // Voxel culler = _grid.Get(nX + cullingX, nY + cullingY, nZ + cullingZ);
+        // if (culler.ID == 0 || !_brickDatabase.IsCuller(culler))
+        // {
+        //     //  Texture is connected to the neighbor if it isn't culled
+        //     connectedTextureMask |= neighborMask.Bit;
+        // }
     }
     
     private static string? GetTextureName(Vector3 origin, string?[]? textures)
