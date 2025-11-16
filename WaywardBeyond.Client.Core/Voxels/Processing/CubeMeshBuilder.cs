@@ -339,8 +339,8 @@ internal readonly struct CubeMeshBuilder
         //     (0, -1, 0, 8),  // down
         // ];
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
+        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
         ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
         
         return textureIndex + connectedTextureMask;
