@@ -1,21 +1,21 @@
 using System;
 using System.Numerics;
-using Swordfish.Bricks;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
-using NeighborMask = (int X, int Y, int Z, int Bit);
 using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);
 using FaceUVs = (System.Numerics.Vector2 U0, System.Numerics.Vector2 U1, System.Numerics.Vector2 U2, System.Numerics.Vector2 U3);
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-using FaceInfo = (FaceVertices Vertices, FaceUVs UV);
+using FaceInfo = (CubeMeshBuilder.Face Face, Vector3 Normal, FaceVertices Vertices, FaceUVs UV);
 
 internal readonly struct CubeMeshBuilder
 {
     private static readonly FaceInfo _topFace = new(
+        Face.Top,
+        new Vector3(0, 1, 0),
         new FaceVertices(
             new Vector3(-0.5f, 0.5f,  0.5f),
             new Vector3( 0.5f, 0.5f,  0.5f),
@@ -31,6 +31,8 @@ internal readonly struct CubeMeshBuilder
     );
     
     private static readonly FaceInfo _bottomFace = new(
+        Face.Bottom,
+        new Vector3(0, -1, 0),
         new FaceVertices(
             new Vector3(-0.5f, -0.5f, -0.5f),
             new Vector3( 0.5f, -0.5f, -0.5f),
@@ -46,6 +48,8 @@ internal readonly struct CubeMeshBuilder
     );
     
     private static readonly FaceInfo _frontFace = new(
+        Face.Front,
+        new Vector3(0, 0, 1),
         new FaceVertices(
             new Vector3(-0.5f, -0.5f, 0.5f),
             new Vector3( 0.5f, -0.5f, 0.5f),
@@ -61,6 +65,8 @@ internal readonly struct CubeMeshBuilder
     );
     
     private static readonly FaceInfo _backFace = new(
+        Face.Back,
+        new Vector3(0, 0, -1),
         new FaceVertices(
             new Vector3( 0.5f, -0.5f, -0.5f),
             new Vector3(-0.5f, -0.5f, -0.5f),
@@ -76,6 +82,8 @@ internal readonly struct CubeMeshBuilder
     );
     
     private static readonly FaceInfo _rightFace = new(
+        Face.Right,
+        new Vector3(1, 0, 0),
         new FaceVertices(
             new Vector3(0.5f, -0.5f,  0.5f),
             new Vector3(0.5f, -0.5f, -0.5f),
@@ -91,6 +99,8 @@ internal readonly struct CubeMeshBuilder
     );
     
     private static readonly FaceInfo _leftFace = new(
+        Face.Left,
+        new Vector3(-1, 0, 0),
         new FaceVertices(
             new Vector3(-0.5f, -0.5f, -0.5f),
             new Vector3(-0.5f, -0.5f,  0.5f),
@@ -120,10 +130,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Top ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Top,
             sample,
             neighbor: ref sample.Above,
-            normal: new Vector3(0, 1, 0),
             _topFace,
             origin,
             orientation,
@@ -136,10 +144,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Bottom ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Bottom,
             sample,
             neighbor: ref sample.Below,
-            normal: new Vector3(0, -1, 0),
             _bottomFace,
             origin,
             orientation,
@@ -152,10 +158,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Front ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Front,
             sample,
             neighbor: ref sample.Ahead,
-            normal: new Vector3(0, 0, 1),
             _frontFace,
             origin,
             orientation,
@@ -168,10 +172,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Back ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Back,
             sample,
             neighbor: ref sample.Behind,
-            normal: new Vector3(0, 0, -1),
             _backFace,
             origin,
             orientation,
@@ -184,10 +186,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Right ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Right,
             sample,
             neighbor: ref sample.Right,
-            normal: new Vector3(1, 0, 0),
             _rightFace,
             origin,
             orientation,
@@ -200,10 +200,8 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Left ?? brickInfo.Textures.Default);
         AddFace(
-            Face.Left,
             sample,
             neighbor: ref sample.Left,
-            normal: new Vector3(-1, 0, 0),
             _leftFace,
             origin,
             orientation,
@@ -213,10 +211,8 @@ internal readonly struct CubeMeshBuilder
     }
     
     private void AddFace(
-        Face face,
         in VoxelSample sample,
         ref Voxel neighbor,
-        Vector3 normal,
         FaceInfo faceInfo,
         Vector3 origin,
         Quaternion orientation,
@@ -228,7 +224,7 @@ internal readonly struct CubeMeshBuilder
             sample,
             brickInfo,
             textureName,
-            face
+            faceInfo.Face
         );
         
         _meshState.UV.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
@@ -243,7 +239,7 @@ internal readonly struct CubeMeshBuilder
         _meshState.Triangles.Add(vertexStart + 2);
         _meshState.Triangles.Add(vertexStart + 3);
 
-        Vector3 vertNormal = Vector3.Transform(normal, orientation);
+        Vector3 vertNormal = Vector3.Transform(faceInfo.Normal, orientation);
         _meshState.Normals.Add(vertNormal);
         _meshState.Normals.Add(vertNormal);
         _meshState.Normals.Add(vertNormal);
@@ -378,7 +374,7 @@ internal readonly struct CubeMeshBuilder
         return textures[hash % textures.Length];
     }
 
-    private enum Face
+    internal enum Face
     {
         Top,
         Bottom,
