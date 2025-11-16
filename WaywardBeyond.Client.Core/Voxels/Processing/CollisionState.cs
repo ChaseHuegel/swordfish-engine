@@ -7,6 +7,6 @@ namespace WaywardBeyond.Client.Core.Voxels.Processing;
 internal sealed class CollisionState
 {
     public readonly List<Shape> Shapes = [];
-    public readonly List<Vector3> Locations = [];
+    public readonly List<Vector3> Positions = [];
     public readonly List<Quaternion> Orientations = [];
 }

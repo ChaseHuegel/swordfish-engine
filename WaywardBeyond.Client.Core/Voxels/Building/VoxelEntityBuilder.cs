@@ -23,7 +23,7 @@ internal sealed class VoxelEntityBuilder(in IContainer container)
         var mesh = new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
         
         var collisionState = scope.Resolve<CollisionState>();
-        var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Locations.ToArray(), collisionState.Orientations.ToArray());
+        var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
         
         return new Data(mesh, collisionShape);
     }
