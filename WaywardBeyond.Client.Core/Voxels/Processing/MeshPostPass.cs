@@ -142,7 +142,7 @@ internal sealed class MeshPostPass(
         bool culledLeft
     ) {
         Vector3 origin = offset + new Vector3(coords.X, coords.Y, coords.Z);
-            
+        
         if (!culledAbove)
         {
             _cubeMeshBuilder.AddTopFace(origin, orientation, sample, brickInfo);
