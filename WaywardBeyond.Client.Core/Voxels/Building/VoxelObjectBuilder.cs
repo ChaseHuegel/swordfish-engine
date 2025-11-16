@@ -1,7 +1,9 @@
+using System.Collections.Generic;
 using System.Numerics;
 using DryIoc;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Types.Shapes;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
@@ -22,13 +24,15 @@ internal sealed class VoxelObjectBuilder(in IContainer container)
         MeshState.MeshData meshData = transparent ? meshState.Transparent : meshState.Opaque;
         var mesh = new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
 
-        //  TODO implement collision data pass
-        return new Data(mesh, []);
+        var collisionState = scope.Resolve<CollisionState>();
+        var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Locations.ToArray(), collisionState.Orientations.ToArray());
+
+        return new Data(mesh, collisionShape);
     }
 
-    public readonly struct Data(in Mesh mesh, in Vector3[] collisionPoints)
+    public readonly struct Data(in Mesh mesh, in CompoundShape collisionShape)
     {
         public readonly Mesh Mesh = mesh;
-        public readonly Vector3[] CollisionPoints = collisionPoints;
+        public readonly CompoundShape CollisionShape = collisionShape;
     }
 }

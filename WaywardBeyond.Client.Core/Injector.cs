@@ -146,6 +146,7 @@ public class Injector : IDryIocInjector
         container.Register<DepthState>(Reuse.Scoped);
         container.Register<LightingState>(Reuse.Scoped);
         container.Register<MeshState>(Reuse.Scoped);
+        container.Register<CollisionState>(Reuse.Scoped);
         
         container.Register<VoxelObjectProcessor.IPass, AmbientLightPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.IPass, LightPropagationPass>(Reuse.Scoped);
@@ -155,7 +156,8 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
-
+        container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
+        
         container.Register<VoxelObjectProcessor>(Reuse.Scoped);
     }
 }
