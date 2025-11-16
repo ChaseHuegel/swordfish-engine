@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using DryIoc;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -6,14 +7,12 @@ using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
-internal sealed class VoxelEntityBuilder(in IContainer container)
+internal sealed class VoxelObjectBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
     
     public Data Build(DataStore store, int entity, VoxelObject voxelObject, bool transparent = false)
     {
-        //  TODO implement passes for managing entities (ie. lights)
-        
         using IResolverContext? scope = _container.OpenScope();
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
         voxelObjectProcessor.Process(voxelObject);
@@ -24,13 +23,16 @@ internal sealed class VoxelEntityBuilder(in IContainer container)
         
         var collisionState = scope.Resolve<CollisionState>();
         var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
+
+        var lightingState = scope.Resolve<LightingState>();
         
-        return new Data(mesh, collisionShape);
+        return new Data(mesh, collisionShape, lightingState.Sources);
     }
     
-    public readonly struct Data(in Mesh mesh, in CompoundShape collisionShape)
+    public readonly struct Data(in Mesh mesh, in CompoundShape collisionShape, in List<LightingState.LightSource> lightSources)
     {
         public readonly Mesh Mesh = mesh;
         public readonly CompoundShape CollisionShape = collisionShape;
+        public readonly List<LightingState.LightSource> LightSources = lightSources;
     }
 }

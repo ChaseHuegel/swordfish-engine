@@ -141,7 +141,7 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
-        container.Register<VoxelEntityBuilder>(Reuse.Singleton);
+        container.Register<VoxelObjectBuilder>(Reuse.Singleton);
 
         container.Register<DepthState>(Reuse.Scoped);
         container.Register<LightingState>(Reuse.Scoped);
@@ -157,6 +157,8 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, LightSourcePostPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, ThrusterPostPass>(Reuse.Scoped);
         
         container.Register<VoxelObjectProcessor>(Reuse.Scoped);
     }

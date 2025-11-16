@@ -11,9 +11,9 @@ internal sealed class LightPropagationPass(in LightingState lightingState, in IB
     
     public void Process(VoxelObject voxelObject)
     {
-        while (_lightingState.Lights.Count > 0)
+        while (_lightingState.ToPropagate.Count > 0)
         {
-            LightingState.VoxelLight item = _lightingState.Lights.Dequeue();
+            LightingState.VoxelLight item = _lightingState.ToPropagate.Dequeue();
             int lightLevel = item.Voxel.GetLightLevel();
             if (lightLevel <= 1)
             {
@@ -44,7 +44,7 @@ internal sealed class LightPropagationPass(in LightingState lightingState, in IB
                 }
                 
                 voxel.ShapeLight = new ShapeLight(shapeLight.Shape, nextLightLevel);
-                _lightingState.Lights.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
+                _lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
             }
         }
     }
