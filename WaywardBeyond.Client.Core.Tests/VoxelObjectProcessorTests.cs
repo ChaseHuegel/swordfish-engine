@@ -39,7 +39,6 @@ public class VoxelObjectProcessorTests
         var samplePasses = new VoxelObjectProcessor.ISamplePass[]
         {
             new LightPropagationPrePass(lightingState, brickDatabase),
-            new MeshPostPass(),
         };
         
         var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
@@ -105,7 +104,6 @@ public class VoxelObjectProcessorTests
         {
             new DepthPrePass(depthState),
             new LightPropagationPrePass(lightingState, brickDatabase),
-            new MeshPostPass(),
         };
         
         var processor = new VoxelObjectProcessor(passes, voxelPasses, samplePasses);
