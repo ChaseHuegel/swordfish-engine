@@ -15,48 +15,6 @@ using FaceInfo = (FaceVertices Vertices, FaceUVs UV);
 
 internal readonly struct CubeMeshBuilder
 {
-    private static readonly NeighborMask[] _neighborMasksXZ = [
-        (0, 0, -1, 1),   // front
-        (-1, 0, 0, 2),  // left
-        (1, 0, 0, 4),   // right
-        (0, 0, 1, 8),  // back
-    ];
-    
-    private static readonly NeighborMask[] _neighborMasksInvXZ = [
-        (0, 0, 1, 1),   // front
-        (-1, 0, 0, 2),  // left
-        (1, 0, 0, 4),   // right
-        (0, 0, -1, 8),  // back
-    ];
-
-    private static readonly NeighborMask[] _neighborMasksXY = [
-        (0, 1, 0, 1),   // up
-        (-1, 0, 0, 2),  // left
-        (1, 0, 0, 4),   // right
-        (0, -1, 0, 8),  // down
-    ];
-    
-    private static readonly NeighborMask[] _neighborMasksInvXY = [
-        (0, 1, 0, 1),   // up
-        (1, 0, 0, 2),  // left
-        (-1, 0, 0, 4),   // right
-        (0, -1, 0, 8),  // down
-    ];
-
-    private static readonly NeighborMask[] _neighborMasksYZ = [
-        (0, 1, 0, 1),   // up
-        (0, 0, -1, 2),  // left
-        (0, 0, 1, 4),   // right
-        (0, -1, 0, 8),  // down
-    ];
-    
-    private static readonly NeighborMask[] _neighborMasksInvYZ = [
-        (0, 1, 0, 1),   // up
-        (0, 0, 1, 2),  // left
-        (0, 0, -1, 4),   // right
-        (0, -1, 0, 8),  // down
-    ];
-
     private static readonly FaceInfo _topFace = new(
         new FaceVertices(
             new Vector3(-0.5f, 0.5f,  0.5f),
@@ -162,6 +120,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Top ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Top,
             sample,
             neighbor: ref sample.Above,
             normal: new Vector3(0, 1, 0),
@@ -169,9 +128,7 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: 0, cullingY: 1, cullingZ: 0,
-            _neighborMasksXZ
+            textureName
         );
     }
     
@@ -179,6 +136,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Bottom ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Bottom,
             sample,
             neighbor: ref sample.Below,
             normal: new Vector3(0, -1, 0),
@@ -186,9 +144,7 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: 0, cullingY: -1, cullingZ: 0,
-            _neighborMasksInvXZ
+            textureName
         );
     }
     
@@ -196,6 +152,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Front ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Front,
             sample,
             neighbor: ref sample.Ahead,
             normal: new Vector3(0, 0, 1),
@@ -203,9 +160,7 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: 0, cullingY: 0, cullingZ: 1,
-            _neighborMasksXY
+            textureName
         );
     }
     
@@ -213,6 +168,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Back ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Back,
             sample,
             neighbor: ref sample.Behind,
             normal: new Vector3(0, 0, -1),
@@ -220,9 +176,7 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: 0, cullingY: 0, cullingZ: -1,
-            _neighborMasksInvXY
+            textureName
         );
     }
     
@@ -230,6 +184,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Right ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Right,
             sample,
             neighbor: ref sample.Right,
             normal: new Vector3(1, 0, 0),
@@ -237,9 +192,7 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: 1, cullingY: 0, cullingZ: 0,
-            _neighborMasksInvYZ
+            textureName
         );
     }
     
@@ -247,6 +200,7 @@ internal readonly struct CubeMeshBuilder
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Left ?? brickInfo.Textures.Default);
         AddFace(
+            Face.Left,
             sample,
             neighbor: ref sample.Left,
             normal: new Vector3(-1, 0, 0),
@@ -254,13 +208,12 @@ internal readonly struct CubeMeshBuilder
             origin,
             orientation,
             brickInfo,
-            textureName,
-            cullingX: -1, cullingY: 0, cullingZ: 0,
-            _neighborMasksYZ
+            textureName
         );
     }
     
     private void AddFace(
+        Face face,
         in VoxelSample sample,
         ref Voxel neighbor,
         Vector3 normal,
@@ -274,7 +227,8 @@ internal readonly struct CubeMeshBuilder
         int textureIndex = GetTextureIndex(
             sample,
             brickInfo,
-            textureName
+            textureName,
+            face
         );
         
         _meshState.UV.Add(new Vector3(faceInfo.UV.U0.X, faceInfo.UV.U0.Y, textureIndex));
@@ -318,7 +272,8 @@ internal readonly struct CubeMeshBuilder
     private int GetTextureIndex(
         in VoxelSample sample,
         BrickInfo brickInfo,
-        string? textureName
+        string? textureName,
+        Face face
     ) {
         //  TODO support randomized textures
         int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
@@ -331,66 +286,54 @@ internal readonly struct CubeMeshBuilder
         ShapeLight shapeLight = sample.Center.ShapeLight;
         var connectedTextureMask = 0;
         
-        //  YZ plane (Left face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
-        
-        //  Inv YZ plane (Right face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
-        
-        
-        //  XZ plane (Top face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 8, ref connectedTextureMask, shapeLight);
-
-        //  Inv XZ plane (Bottom face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 8, ref connectedTextureMask, shapeLight);
-
-        //  XY plane (Front face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
-
-        //  Inv XY plane (Back face)
-        //  Up
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-        //  Left
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 2, ref connectedTextureMask, shapeLight);
-        //  Right
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 4, ref connectedTextureMask, shapeLight);
-        //  Down
-        ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+        //  Neighbor bit masking is ordered: Up, left, right, down
+        switch (face)
+        {
+            case Face.Top:
+                //  XZ plane (Top face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            case Face.Bottom:
+                //  Inv XZ plane (Bottom face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            case Face.Left:
+                //  YZ plane (Left face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            case Face.Right:
+                //  Inv YZ plane (Right face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            case Face.Front:
+                //  XY plane (Front face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            case Face.Back:
+                //  Inv XY plane (Back face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(face), face, null);
+        }
         
         return textureIndex + connectedTextureMask;
     }
@@ -433,5 +376,15 @@ internal readonly struct CubeMeshBuilder
 
         int hash = (int)origin.X ^ (int)origin.Y ^ (int)origin.Z;
         return textures[hash % textures.Length];
+    }
+
+    private enum Face
+    {
+        Top,
+        Bottom,
+        Left,
+        Right,
+        Front,
+        Back,
     }
 }
