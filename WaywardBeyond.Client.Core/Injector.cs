@@ -18,6 +18,7 @@ using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menu;
+using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core;
@@ -140,6 +141,8 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
+        container.Register<VoxelObjectBuilder>(Reuse.Singleton);
+
         container.Register<DepthState>(Reuse.Scoped);
         container.Register<LightingState>(Reuse.Scoped);
         container.Register<MeshState>(Reuse.Scoped);
