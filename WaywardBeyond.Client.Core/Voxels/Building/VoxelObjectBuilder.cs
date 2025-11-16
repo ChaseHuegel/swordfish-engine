@@ -19,17 +19,17 @@ internal sealed class VoxelObjectBuilder(in IContainer container)
         using IResolverContext? scope = _container.OpenScope();
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
         voxelObjectProcessor.Process(voxelObject);
-
+        
         var meshState = scope.Resolve<MeshState>();
         MeshState.MeshData meshData = transparent ? meshState.Transparent : meshState.Opaque;
         var mesh = new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
-
+        
         var collisionState = scope.Resolve<CollisionState>();
         var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Locations.ToArray(), collisionState.Orientations.ToArray());
-
+        
         return new Data(mesh, collisionShape);
     }
-
+    
     public readonly struct Data(in Mesh mesh, in CompoundShape collisionShape)
     {
         public readonly Mesh Mesh = mesh;
