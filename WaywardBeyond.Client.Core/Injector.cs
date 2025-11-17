@@ -20,6 +20,7 @@ using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menu;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using LightDecorator = WaywardBeyond.Client.Core.Voxels.Building.LightDecorator;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -128,7 +129,7 @@ public class Injector : IDryIocInjector
     private void RegisterBrickDecorators(IContainer container)
     {
         container.Register<BrickGridService>();
-        container.Register<IBrickDecorator, LightDecorator>();
+        container.Register<IBrickDecorator, Bricks.Decorators.LightDecorator>();
         container.Register<IBrickDecorator, ThrusterDecorator>();
     }
     
@@ -141,8 +142,13 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
+        container.Register<VoxelEntityBuilder>(Reuse.Transient);
+        container.Register<IVoxelDecorator, LightDecorator>(Reuse.Transient);
+        
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
-
+        
+        container.Register<VoxelObjectProcessor>(Reuse.Scoped);
+        
         container.Register<DepthState>(Reuse.Scoped);
         container.Register<LightingState>(Reuse.Scoped);
         container.Register<MeshState>(Reuse.Scoped);
@@ -159,7 +165,5 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightSourcePostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, ThrusterPostPass>(Reuse.Scoped);
-        
-        container.Register<VoxelObjectProcessor>(Reuse.Scoped);
     }
 }

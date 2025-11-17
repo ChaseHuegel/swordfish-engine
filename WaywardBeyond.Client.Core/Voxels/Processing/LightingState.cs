@@ -3,7 +3,7 @@ using Swordfish.ECS;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightingState
+public sealed class LightingState
 {
     public readonly Queue<VoxelLight> ToPropagate = [];
     

@@ -2,7 +2,7 @@ using Swordfish.ECS;
 
 namespace WaywardBeyond.Client.Core.Components;
 
-internal struct VoxelIdentifierComponent : IDataComponent
+public struct VoxelIdentifierComponent : IDataComponent
 {
     public readonly int X;
     public readonly int Y;

@@ -1,17 +1,16 @@
 using System.Collections.Generic;
 using DryIoc;
-using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
-internal sealed class VoxelObjectBuilder(in IContainer container)
+public sealed class VoxelObjectBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
     
-    public Data Build(DataStore store, int entity, VoxelObject voxelObject)
+    public Data Build(VoxelObject voxelObject)
     {
         using IResolverContext? scope = _container.OpenScope();
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
@@ -23,7 +22,7 @@ internal sealed class VoxelObjectBuilder(in IContainer container)
         
         var collisionState = scope.Resolve<CollisionState>();
         var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
-
+        
         var lightingState = scope.Resolve<LightingState>();
         
         return new Data(opaqueMesh, transparentMesh, collisionShape, lightingState.Sources);
@@ -34,6 +33,8 @@ internal sealed class VoxelObjectBuilder(in IContainer container)
         return new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
     }
     
+    //  TODO need the ability to store arbitrary information in here for decorators
+    //       or else update decorators to be ran within a sample or voxel pass.
     public readonly struct Data(in Mesh opaqueMesh, in Mesh transparentMesh, in CompoundShape collisionShape, in List<LightingState.LightSource> lightSources)
     {
         public readonly Mesh OpaqueMesh = opaqueMesh;

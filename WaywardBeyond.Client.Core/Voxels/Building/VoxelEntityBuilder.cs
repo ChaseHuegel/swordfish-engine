@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Numerics;
 using DryIoc;
 using Microsoft.Extensions.Logging;
@@ -8,7 +7,6 @@ using Swordfish.Graphics;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Graphics;
-using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
@@ -17,10 +15,12 @@ internal sealed class VoxelEntityBuilder(
     in Shader shader,
     in PBRTextureArrays textureArrays,
     in DataStore dataStore,
-    in IContainer container
+    in IContainer container,
+    in IVoxelDecorator[] decorators
 ) {
     private readonly ILogger _logger = logger;
     private readonly DataStore _dataStore = dataStore;
+    private readonly IVoxelDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
     
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
@@ -55,9 +55,9 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(transparencyPtr, transform);
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(entity));
         
-        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(_dataStore, entity, voxelObject);
+        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelObject);
         var voxelComponent = new VoxelComponent(voxelObject, transparencyPtr);
-        UpdateEntity(entity, data, voxelComponent);
+        UpdateEntity(entity, voxelComponent, data);
         
         return new Entity(entity, _dataStore);
     }
@@ -80,11 +80,11 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));
         
-        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(_dataStore, entity, voxelComponent.VoxelObject);
-        UpdateEntity(entity, data, voxelComponent);
+        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelComponent.VoxelObject);
+        UpdateEntity(entity, voxelComponent, data);
     }
     
-    private void UpdateEntity(int entity, VoxelObjectBuilder.Data data, VoxelComponent voxelComponent)
+    private void UpdateEntity(int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
     {
         var renderer = new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
@@ -93,7 +93,6 @@ internal sealed class VoxelEntityBuilder(
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         
-        var updatedLightSources = new HashSet<int>();
         _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
         void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, ref VoxelIdentifierComponent voxelIdentifier, ref ChildComponent child)
         {
@@ -102,47 +101,17 @@ internal sealed class VoxelEntityBuilder(
                 return;
             }
             
-            //  TODO implement decorators
-            for (var i = 0; i < data.LightSources.Count; i++)
+            for (var i = 0; i < _decorators.Length; i++)
             {
-                LightingState.LightSource lightSource = data.LightSources[i];
-                if (lightSource.X != voxelIdentifier.X || lightSource.Y != voxelIdentifier.Y || lightSource.Z != voxelIdentifier.Z)
-                {
-                    continue;
-                }
-                
-                _dataStore.AddOrUpdate(voxelEntity, new TransformComponent());
-                _dataStore.AddOrUpdate(voxelEntity, lightSource.Light);
-                _dataStore.AddOrUpdate(voxelEntity, new ChildComponent(voxelEntity)
-                {
-                    LocalPosition = new Vector3(lightSource.X, lightSource.Y, lightSource.Z),
-                });
-                
-                updatedLightSources.Add(i);
-                return;
+                _decorators[i].Process(data, _dataStore, parent: entity, voxelEntity, voxelComponent, voxelIdentifier);
             }
             
             store.Free(voxelEntity);
         }
         
-        //  TODO implement decorators
-        for (var i = 0; i < data.LightSources.Count; i++)
+        for (var i = 0; i < _decorators.Length; i++)
         {
-            if (updatedLightSources.Contains(i))
-            {
-                continue;
-            }
-            
-            LightingState.LightSource lightSource = data.LightSources[i];
-            int lightEntity = _dataStore.Alloc();
-            _dataStore.AddOrUpdate(lightEntity, new IdentifierComponent(name: null, tag: "game"));
-            _dataStore.AddOrUpdate(lightEntity, new TransformComponent());
-            _dataStore.AddOrUpdate(lightEntity, new VoxelIdentifierComponent(lightSource.X, lightSource.Y, lightSource.Z));
-            _dataStore.AddOrUpdate(lightEntity, lightSource.Light);
-            _dataStore.AddOrUpdate(lightEntity, new ChildComponent(lightEntity)
-            {
-                LocalPosition = new Vector3(lightSource.X, lightSource.Y, lightSource.Z),
-            });
+            _decorators[i].Process(data, _dataStore, entity, voxelComponent);
         }
     }
 }
