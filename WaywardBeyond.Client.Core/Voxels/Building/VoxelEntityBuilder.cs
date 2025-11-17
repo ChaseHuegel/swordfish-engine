@@ -92,7 +92,18 @@ internal sealed class VoxelEntityBuilder(
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         
-        //  TODO cleanup pre-existing lights and update existing ones
+        //  TODO update existing lights
+        _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
+        void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, ref VoxelIdentifierComponent voxelIdentifier, ref ChildComponent child)
+        {
+            if (child.Parent != entity)
+            {
+                return;
+            }
+            
+            store.Free(voxelEntity);
+        }
+        
         for (var i = 0; i < data.LightSources.Count; i++)
         {
             LightingState.LightSource lightSource = data.LightSources[i];
