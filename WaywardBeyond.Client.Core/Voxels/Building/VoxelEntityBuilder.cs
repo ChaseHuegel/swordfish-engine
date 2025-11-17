@@ -102,6 +102,7 @@ internal sealed class VoxelEntityBuilder(
                 return;
             }
             
+            //  TODO implement decorators
             for (var i = 0; i < data.LightSources.Count; i++)
             {
                 LightingState.LightSource lightSource = data.LightSources[i];
@@ -124,6 +125,7 @@ internal sealed class VoxelEntityBuilder(
             store.Free(voxelEntity);
         }
         
+        //  TODO implement decorators
         for (var i = 0; i < data.LightSources.Count; i++)
         {
             if (updatedLightSources.Contains(i))
