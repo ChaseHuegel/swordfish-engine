@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using DryIoc;
 using Microsoft.Extensions.Logging;
@@ -92,7 +93,7 @@ internal sealed class VoxelEntityBuilder(
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         
-        //  TODO update existing lights
+        var updatedLightSources = new HashSet<int>();
         _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
         void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, ref VoxelIdentifierComponent voxelIdentifier, ref ChildComponent child)
         {
@@ -101,11 +102,35 @@ internal sealed class VoxelEntityBuilder(
                 return;
             }
             
+            for (var i = 0; i < data.LightSources.Count; i++)
+            {
+                LightingState.LightSource lightSource = data.LightSources[i];
+                if (lightSource.X != voxelIdentifier.X || lightSource.Y != voxelIdentifier.Y || lightSource.Z != voxelIdentifier.Z)
+                {
+                    continue;
+                }
+                
+                _dataStore.AddOrUpdate(voxelEntity, new TransformComponent());
+                _dataStore.AddOrUpdate(voxelEntity, lightSource.Light);
+                _dataStore.AddOrUpdate(voxelEntity, new ChildComponent(voxelEntity)
+                {
+                    LocalPosition = new Vector3(lightSource.X, lightSource.Y, lightSource.Z),
+                });
+                
+                updatedLightSources.Add(i);
+                return;
+            }
+            
             store.Free(voxelEntity);
         }
         
         for (var i = 0; i < data.LightSources.Count; i++)
         {
+            if (updatedLightSources.Contains(i))
+            {
+                continue;
+            }
+            
             LightingState.LightSource lightSource = data.LightSources[i];
             int lightEntity = _dataStore.Alloc();
             _dataStore.AddOrUpdate(lightEntity, new IdentifierComponent(name: null, tag: "game"));
