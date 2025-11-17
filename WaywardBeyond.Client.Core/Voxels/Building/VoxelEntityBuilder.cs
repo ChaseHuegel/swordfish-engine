@@ -7,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Graphics;
+using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
@@ -60,7 +61,19 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(transparencyPtr, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(ptr));
         
-        //  TODO need to handle light entities
+        for (var i = 0; i < data.LightSources.Count; i++)
+        {
+            LightingState.LightSource lightSource = data.LightSources[i];
+            int lightEntity = _dataStore.Alloc();
+            _dataStore.AddOrUpdate(lightEntity, new IdentifierComponent(name: null, tag: "game"));
+            _dataStore.AddOrUpdate(lightEntity, new TransformComponent());
+            _dataStore.AddOrUpdate(lightEntity, new VoxelIdentifierComponent(lightSource.X, lightSource.Y, lightSource.Z));
+            _dataStore.AddOrUpdate(lightEntity, lightSource.Light);
+            _dataStore.AddOrUpdate(lightEntity, new ChildComponent(lightEntity)
+            {
+                LocalPosition = new Vector3(lightSource.X, lightSource.Y, lightSource.Z),
+            });
+        }
         
         return new Entity(ptr, _dataStore);
     }

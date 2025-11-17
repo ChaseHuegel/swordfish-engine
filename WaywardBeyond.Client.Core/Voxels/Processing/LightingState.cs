@@ -10,5 +10,5 @@ internal sealed class LightingState
     public readonly List<LightSource> Sources = [];
     
     public record struct VoxelLight(int X, int Y, int Z, Voxel Voxel);
-    public record struct LightSource(int X, int Y, int Z, LightComponent light);
+    public record struct LightSource(int X, int Y, int Z, LightComponent Light);
 }
