@@ -11,27 +11,33 @@ internal sealed class VoxelObjectBuilder(in IContainer container)
 {
     private readonly IContainer _container = container;
     
-    public Data Build(DataStore store, int entity, VoxelObject voxelObject, bool transparent = false)
+    public Data Build(DataStore store, int entity, VoxelObject voxelObject)
     {
         using IResolverContext? scope = _container.OpenScope();
         var voxelObjectProcessor = scope.Resolve<VoxelObjectProcessor>();
         voxelObjectProcessor.Process(voxelObject);
         
         var meshState = scope.Resolve<MeshState>();
-        MeshState.MeshData meshData = transparent ? meshState.Transparent : meshState.Opaque;
-        var mesh = new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
+        Mesh opaqueMesh = GenerateMesh(meshState.Opaque);
+        Mesh transparentMesh = GenerateMesh(meshState.Transparent);
         
         var collisionState = scope.Resolve<CollisionState>();
         var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
 
         var lightingState = scope.Resolve<LightingState>();
         
-        return new Data(mesh, collisionShape, lightingState.Sources);
+        return new Data(opaqueMesh, transparentMesh, collisionShape, lightingState.Sources);
     }
     
-    public readonly struct Data(in Mesh mesh, in CompoundShape collisionShape, in List<LightingState.LightSource> lightSources)
+    private static Mesh GenerateMesh(in MeshState.MeshData meshData)
     {
-        public readonly Mesh Mesh = mesh;
+        return new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
+    }
+    
+    public readonly struct Data(in Mesh opaqueMesh, in Mesh transparentMesh, in CompoundShape collisionShape, in List<LightingState.LightSource> lightSources)
+    {
+        public readonly Mesh OpaqueMesh = opaqueMesh;
+        public readonly Mesh TransparentMesh = transparentMesh;
         public readonly CompoundShape CollisionShape = collisionShape;
         public readonly List<LightingState.LightSource> LightSources = lightSources;
     }
