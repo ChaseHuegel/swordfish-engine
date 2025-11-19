@@ -1,14 +1,13 @@
-using System.Numerics;
-using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightSourcePostPass(in IBrickDatabase brickDatabase, in LightingState lightingState) 
+internal sealed class LightSourcePostPass(in IBrickDatabase brickDatabase, in EntityState entityState) 
     : LightPrePass(brickDatabase), VoxelObjectProcessor.ISamplePass
 {
-    private readonly LightingState _lightingState = lightingState;
+    private readonly EntityState _entityState = entityState;
     
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PostPass;
     
@@ -24,9 +23,7 @@ internal sealed class LightSourcePostPass(in IBrickDatabase brickDatabase, in Li
         int x = sample.Coords.X + sample.ChunkOffset.X;
         int y = sample.Coords.Y + sample.ChunkOffset.Y;
         int z = sample.Coords.Z + sample.ChunkOffset.Z;
-        var light = new LightComponent(radius: brickInfo.Brightness, color: new Vector3(0.25f), size: 2.5f);
-        
-        var lightSource = new LightingState.LightSource(x, y, z, light);
-        _lightingState.Sources.Add(lightSource);
+        var voxelInfo = new VoxelInfo(x, y, z, sample.Center);
+        _entityState.Voxels.Add(voxelInfo);
     }
 }

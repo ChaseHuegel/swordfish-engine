@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
+using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
@@ -23,9 +24,9 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         var collisionState = scope.Resolve<CollisionState>();
         var collisionShape = new CompoundShape(collisionState.Shapes.ToArray(), collisionState.Positions.ToArray(), collisionState.Orientations.ToArray());
         
-        var lightingState = scope.Resolve<LightingState>();
+        var entityState = scope.Resolve<EntityState>();
         
-        return new Data(opaqueMesh, transparentMesh, collisionShape, lightingState.Sources);
+        return new Data(opaqueMesh, transparentMesh, collisionShape, entityState.Voxels);
     }
     
     private static Mesh GenerateMesh(in MeshState.MeshData meshData)
@@ -33,13 +34,11 @@ public sealed class VoxelObjectBuilder(in IContainer container)
         return new Mesh(meshData.Triangles.ToArray(), meshData.Vertices.ToArray(), meshData.Colors.ToArray(), meshData.UV.ToArray(), meshData.Normals.ToArray());
     }
     
-    //  TODO need the ability to store arbitrary information in here for decorators
-    //       or else update decorators to be ran within a sample or voxel pass.
-    public readonly struct Data(in Mesh opaqueMesh, in Mesh transparentMesh, in CompoundShape collisionShape, in List<LightingState.LightSource> lightSources)
+    public readonly struct Data(in Mesh opaqueMesh, in Mesh transparentMesh, in CompoundShape collisionShape, in List<VoxelInfo> voxelEntities)
     {
         public readonly Mesh OpaqueMesh = opaqueMesh;
         public readonly Mesh TransparentMesh = transparentMesh;
         public readonly CompoundShape CollisionShape = collisionShape;
-        public readonly List<LightingState.LightSource> LightSources = lightSources;
+        public readonly List<VoxelInfo> VoxelEntities = voxelEntities;
     }
 }
