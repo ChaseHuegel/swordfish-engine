@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Swordfish.Bricks;
 using Swordfish.Graphics;
@@ -13,7 +14,7 @@ internal sealed class BrickInfo
     public readonly Mesh? Mesh;
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
-    public readonly string[] Tags;
+    public readonly HashSet<string> Tags;
     
     public readonly bool Shapeable;
     public readonly bool LightSource;
@@ -39,7 +40,7 @@ internal sealed class BrickInfo
         Mesh = mesh;
         Shape = shape;
         Textures = textures;
-        Tags = tags ?? [];
+        Tags = new HashSet<string>(tags ?? []);
         Shapeable = shape == BrickShape.Any;
         LightSource = tags?.Contains("light") ?? false;
         Brightness = LightSource ? 15 : 0;
