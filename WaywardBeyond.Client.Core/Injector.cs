@@ -162,6 +162,6 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
-        container.Register<VoxelObjectProcessor.ISamplePass, LightSourcePostPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, VoxelEntityPostPass>(Reuse.Scoped);
     }
 }

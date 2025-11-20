@@ -14,14 +14,15 @@ internal sealed class BrickInfo
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
     public readonly string[] Tags;
-
+    
     public readonly bool Shapeable;
     public readonly bool LightSource;
     public readonly int Brightness;
-
+    public readonly bool Entity;
+    
     private readonly bool _hasOrientableTag;
     private readonly Brick _defaultBrick;
-
+    
     public BrickInfo(in string id,
         in ushort dataID,
         in bool transparent,
@@ -42,6 +43,7 @@ internal sealed class BrickInfo
         Shapeable = shape == BrickShape.Any;
         LightSource = tags?.Contains("light") ?? false;
         Brightness = LightSource ? 15 : 0;
+        Entity = tags?.Contains("entity") ?? false;
         _hasOrientableTag = tags?.Contains("orientable") ?? false;
         _defaultBrick = new Brick(dataID, new BrickData(shape == BrickShape.Any ? BrickShape.Block : shape, Brightness));
     }
