@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using DryIoc;
 using Microsoft.Extensions.Logging;
@@ -22,7 +23,8 @@ internal sealed class VoxelEntityBuilder(
     private readonly DataStore _dataStore = dataStore;
     private readonly IVoxelDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
-    
+    private readonly HashSet<int> _updatedEntities = [];
+
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
     
     private readonly Material _transparentMaterial = new(shader, textureArrays.ToArray())

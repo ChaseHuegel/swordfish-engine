@@ -9,8 +9,6 @@ namespace WaywardBeyond.Client.Core.Voxels.Building;
 
 internal class LightDecorator : IVoxelDecorator
 {
-    private readonly HashSet<int> _updatedLightSources = [];
-    
     public void Process(in VoxelObjectBuilder.Data data, in DataStore store, in int parent, in int entity, in VoxelComponent voxelComponent, in VoxelIdentifierComponent voxelIdentifier)
     {
         for (var i = 0; i < data.VoxelEntities.Count; i++)
