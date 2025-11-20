@@ -8,6 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Graphics;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
@@ -95,6 +96,7 @@ internal sealed class VoxelEntityBuilder(
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
         
+        //  Update any existing entities and cleanup old ones
         _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
         void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, ref VoxelIdentifierComponent voxelIdentifier, ref ChildComponent child)
         {
@@ -103,17 +105,52 @@ internal sealed class VoxelEntityBuilder(
                 return;
             }
             
-            for (var i = 0; i < _decorators.Length; i++)
+            //  If this voxel entity still exists, update it.
+            for (var i = 0; i < data.VoxelEntities.Count; i++)
             {
-                _decorators[i].Process(data, _dataStore, parent: entity, voxelEntity, voxelComponent, voxelIdentifier);
+                VoxelInfo voxelInfo = data.VoxelEntities[i];
+                if (voxelInfo.X != voxelIdentifier.X || voxelInfo.Y != voxelIdentifier.Y || voxelInfo.Z != voxelIdentifier.Z)
+                {
+                    continue;
+                }
+                
+                for (var n = 0; n < _decorators.Length; n++)
+                {
+                    _decorators[n].Process(_dataStore, parent: entity, voxelEntity, voxelComponent, voxelInfo);
+                }
+                
+                _updatedEntities.Add(i);
+                return;
             }
             
+            //  Else this entity isn't associated with a voxel anymore, free it.
             store.Free(voxelEntity);
         }
         
-        for (var i = 0; i < _decorators.Length; i++)
+        //  Init any new entities
+        for (var i = 0; i < data.VoxelEntities.Count; i++)
         {
-            _decorators[i].Process(data, _dataStore, entity, voxelComponent);
+            if (_updatedEntities.Contains(i))
+            {
+                continue;
+            }
+            
+            VoxelInfo voxelInfo = data.VoxelEntities[i];
+            
+            int voxelEntity = _dataStore.Alloc();
+            _dataStore.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: "game"));
+            _dataStore.AddOrUpdate(voxelEntity, new VoxelIdentifierComponent(voxelInfo.X, voxelInfo.Y, voxelInfo.Z));
+            _dataStore.AddOrUpdate(voxelEntity, new TransformComponent());
+            _dataStore.AddOrUpdate(voxelEntity, new ChildComponent(entity)
+            {
+                LocalPosition = new Vector3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z),
+            });
+            
+            for (var n = 0; n < _decorators.Length; n++)
+            {
+                _decorators[n].Process(_dataStore, parent: entity, voxelEntity, voxelComponent, voxelInfo);
+            }
         }
+        _updatedEntities.Clear();
     }
 }
