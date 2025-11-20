@@ -18,11 +18,11 @@ internal sealed class VoxelEntityBuilder(
     in PBRTextureArrays textureArrays,
     in DataStore dataStore,
     in IContainer container,
-    in IVoxelDecorator[] decorators
+    in IVoxelEntityDecorator[] decorators
 ) {
     private readonly ILogger _logger = logger;
     private readonly DataStore _dataStore = dataStore;
-    private readonly IVoxelDecorator[] _decorators = decorators;
+    private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
     private readonly HashSet<int> _updatedEntities = [];
 

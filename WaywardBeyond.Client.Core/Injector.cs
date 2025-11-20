@@ -8,7 +8,6 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Bricks;
-using WaywardBeyond.Client.Core.Bricks.Decorators;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
@@ -20,7 +19,6 @@ using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menu;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Processing;
-using LightDecorator = WaywardBeyond.Client.Core.Voxels.Building.LightDecorator;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -130,7 +128,7 @@ public class Injector : IDryIocInjector
     {
         container.Register<BrickGridService>();
         container.Register<IBrickDecorator, Bricks.Decorators.LightDecorator>();
-        container.Register<IBrickDecorator, ThrusterDecorator>();
+        container.Register<IBrickDecorator, Bricks.Decorators.ThrusterDecorator>();
     }
     
     private void RegisterVoxels(IContainer container)
@@ -143,7 +141,8 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
         container.Register<VoxelEntityBuilder>(Reuse.Transient);
-        container.Register<IVoxelDecorator, LightDecorator>(Reuse.Transient);
+        container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
+        container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
         
         container.Register<VoxelObjectBuilder>(Reuse.Singleton);
         
@@ -164,6 +163,5 @@ public class Injector : IDryIocInjector
         container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.ISamplePass, LightSourcePostPass>(Reuse.Scoped);
-        container.Register<VoxelObjectProcessor.ISamplePass, ThrusterPostPass>(Reuse.Scoped);
     }
 }
