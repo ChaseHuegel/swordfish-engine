@@ -3,6 +3,7 @@ ID      = "thruster"
 Shape   = "custom"
 Mesh    = "thruster.obj"
 Tags    = [
+    "entity",
     "metal",
     "thruster",
     "buildable",
