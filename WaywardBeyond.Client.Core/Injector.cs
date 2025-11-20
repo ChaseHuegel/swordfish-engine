@@ -152,6 +152,7 @@ public class Injector : IDryIocInjector
         container.Register<LightingState>(Reuse.Scoped);
         container.Register<MeshState>(Reuse.Scoped);
         container.Register<CollisionState>(Reuse.Scoped);
+        container.Register<EntityState>(Reuse.Scoped);
         
         container.Register<VoxelObjectProcessor.IPass, AmbientLightPass>(Reuse.Scoped);
         container.Register<VoxelObjectProcessor.IPass, LightPropagationPass>(Reuse.Scoped);
