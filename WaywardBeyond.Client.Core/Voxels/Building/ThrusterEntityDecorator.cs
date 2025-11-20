@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client.Core.Voxels.Building;
 
 internal class ThrusterEntityDecorator(in IBrickDatabase brickDatabase) : IVoxelEntityDecorator
 {
-    private static readonly Vector3 _lightColor = Color.FromArgb(244, 126, 27).ToVector3() * 20;
+    private static readonly Vector3 _lightColor = Color.FromArgb(red: 244, green: 126, blue: 27).ToVector3() * 20;
     
     private readonly HashSet<ushort> _thrusterBrickIDs = [..brickDatabase.Get(info => info.Tags.Contains("thruster")).Select(info => info.DataID)];
     
