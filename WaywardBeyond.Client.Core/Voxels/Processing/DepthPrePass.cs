@@ -4,8 +4,7 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class DepthPrePass(in DepthState depthState) 
-    : VoxelObjectProcessor.ISamplePass
+internal sealed class DepthPrePass(DepthState depthState) : VoxelObjectProcessor.ISamplePass
 {
     private readonly DepthState _depthState = depthState;
     

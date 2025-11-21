@@ -1,10 +1,11 @@
+using System;
 using System.Numerics;
 using Swordfish.Library.Types.Shapes;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class CollisionPostPass(in CollisionState collisionState) : VoxelObjectProcessor.ISamplePass
+internal sealed class CollisionPostPass(CollisionState collisionState) : VoxelObjectProcessor.ISamplePass
 {
     private readonly CollisionState _collisionState = collisionState;
     
@@ -21,7 +22,7 @@ internal sealed class CollisionPostPass(in CollisionState collisionState) : Voxe
         
         //  Attempt to expand collections pre-emptively to
         //  reduce allocations that may occur during processing.
-        int nonEmptyVoxels = totalVoxels - emptyVoxels;
+        int nonEmptyVoxels = Math.Max(totalVoxels, emptyVoxels) - Math.Min(totalVoxels, emptyVoxels);
         _collisionState.Shapes.EnsureCapacity(_collisionState.Shapes.Count + nonEmptyVoxels);
         _collisionState.Positions.EnsureCapacity(_collisionState.Positions.Count + nonEmptyVoxels);
         _collisionState.Orientations.EnsureCapacity(_collisionState.Orientations.Count + nonEmptyVoxels);

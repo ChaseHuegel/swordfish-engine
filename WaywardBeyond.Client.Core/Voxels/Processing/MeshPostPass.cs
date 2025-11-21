@@ -11,10 +11,10 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
 internal sealed class MeshPostPass(
-    in MeshState meshState,
-    in BrickDatabase brickDatabase,
-    in PBRTextureArrays textureArrays,
-    in IAssetDatabase<Mesh> meshDatabase
+    MeshState meshState,
+    BrickDatabase brickDatabase,
+    PBRTextureArrays textureArrays,
+    IAssetDatabase<Mesh> meshDatabase
 ) : VoxelObjectProcessor.ISamplePass
 {
     private readonly MeshState _meshState = meshState;
@@ -23,11 +23,11 @@ internal sealed class MeshPostPass(
 
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
-    private readonly Mesh _slope = meshDatabase.Get("slope.obj");
-    private readonly Mesh _stair = meshDatabase.Get("stair.obj");
-    private readonly Mesh _slab = meshDatabase.Get("slab.obj");
-    private readonly Mesh _column = meshDatabase.Get("column.obj");
-    private readonly Mesh _plate = meshDatabase.Get("plate.obj");
+    private readonly Mesh _slope = meshDatabase.Get("slope.obj").Value;
+    private readonly Mesh _stair = meshDatabase.Get("stair.obj").Value;
+    private readonly Mesh _slab = meshDatabase.Get("slab.obj").Value;
+    private readonly Mesh _column = meshDatabase.Get("column.obj").Value;
+    private readonly Mesh _plate = meshDatabase.Get("plate.obj").Value;
     
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PostPass;
 

@@ -3,8 +3,7 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightPropagationPass(in LightingState lightingState, in IBrickDatabase brickDatabase)
-    : VoxelObjectProcessor.IPass
+internal sealed class LightPropagationPass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.IPass
 {
     private readonly LightingState _lightingState = lightingState;
     private readonly IBrickDatabase _brickDatabase = brickDatabase;

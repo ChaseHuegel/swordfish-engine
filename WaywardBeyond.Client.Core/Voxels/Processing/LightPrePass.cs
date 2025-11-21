@@ -12,7 +12,7 @@ internal abstract class LightPrePass
     protected readonly IBrickDatabase BrickDatabase;
     private readonly ushort[] _lightBrickIDs;
 
-    protected LightPrePass(in IBrickDatabase brickDatabase)
+    protected LightPrePass(IBrickDatabase brickDatabase)
     {
         BrickDatabase = brickDatabase;
         _lightBrickIDs = brickDatabase.Get(info => info.LightSource).Select(info => info.DataID).ToArray();

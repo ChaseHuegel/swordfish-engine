@@ -2,7 +2,7 @@ using WaywardBeyond.Client.Core.Bricks;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightPropagationPrePass(in LightingState lightingState, in IBrickDatabase brickDatabase) 
+internal sealed class LightPropagationPrePass(LightingState lightingState, IBrickDatabase brickDatabase) 
     : LightPrePass(brickDatabase), VoxelObjectProcessor.ISamplePass
 {
     private readonly LightingState _lightingState = lightingState;

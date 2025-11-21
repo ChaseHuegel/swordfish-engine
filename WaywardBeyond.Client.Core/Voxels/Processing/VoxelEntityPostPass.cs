@@ -4,7 +4,7 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class VoxelEntityPostPass(in IBrickDatabase brickDatabase, in EntityState entityState) 
+internal sealed class VoxelEntityPostPass(IBrickDatabase brickDatabase, EntityState entityState) 
     : LightPrePass(brickDatabase), VoxelObjectProcessor.ISamplePass
 {
     private readonly EntityState _entityState = entityState;
