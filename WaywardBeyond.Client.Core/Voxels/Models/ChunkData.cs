@@ -109,8 +109,8 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
                 center: ref _currentVoxels[_voxelIndex],
                 left: ref GetNeighbor(x, y, z, -1, 0, 0),
                 right: ref GetNeighbor(x, y, z, 1, 0, 0),
-                ahead: ref GetNeighbor(x, y, z, 0, 0, -1),
-                behind: ref GetNeighbor(x, y, z, 0, 0, 1),
+                ahead: ref GetNeighbor(x, y, z, 0, 0, 1),
+                behind: ref GetNeighbor(x, y, z, 0, 0, -1),
                 above: ref GetNeighbor(x, y, z, 0, 1, 0),
                 below: ref GetNeighbor(x, y, z, 0, -1, 0)
             );
