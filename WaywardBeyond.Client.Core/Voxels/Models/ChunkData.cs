@@ -122,7 +122,7 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             int nY = y + offsetY;
             int nZ = z + offsetZ;
 
-            if (nX < 0 || nY < 0 || nZ < 0)
+            if (nX < 0 || nY < 0 || nZ < 0 || nX >= _voxelObject._chunkSize || nY >= _voxelObject._chunkSize || nZ >= _voxelObject._chunkSize)
             {
                 return ref _voxelObject.GetUnsafe(nX + _chunkWorldCoords.X, nY + _chunkWorldCoords.Y, nZ + _chunkWorldCoords.Z);
             }
