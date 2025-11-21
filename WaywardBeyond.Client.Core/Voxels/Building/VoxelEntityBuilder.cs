@@ -84,12 +84,12 @@ internal sealed class VoxelEntityBuilder(
             return;
         }
         
+        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelComponent.VoxelObject);
+        UpdateEntity(entity, voxelComponent, data);
+        
         //  Cleanup existing renderers
         _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));
-        
-        VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelComponent.VoxelObject);
-        UpdateEntity(entity, voxelComponent, data);
     }
     
     private void UpdateEntity(int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
