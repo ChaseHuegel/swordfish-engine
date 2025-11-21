@@ -287,30 +287,30 @@ internal readonly struct CubeMeshBuilder
         {
             case Face.Top:
                 //  XZ plane (Top face)
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 1, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 8, ref connectedTextureMask, shapeLight);
-                break;
-            case Face.Bottom:
-                //  Inv XZ plane (Bottom face)
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 1, ref connectedTextureMask, shapeLight);
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 8, ref connectedTextureMask, shapeLight);
                 break;
+            case Face.Bottom:
+                //  Inv XZ plane (Bottom face)
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 1, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Left, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Right, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 8, ref connectedTextureMask, shapeLight);
+                break;
             case Face.Left:
                 //  YZ plane (Left face)
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
                 break;
             case Face.Right:
                 //  Inv YZ plane (Right face)
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Above, bit: 1, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 2, ref connectedTextureMask, shapeLight);
-                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 4, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Ahead, bit: 2, ref connectedTextureMask, shapeLight);
+                ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Behind, bit: 4, ref connectedTextureMask, shapeLight);
                 ConnectToNeighbor(voxel: sample.Center, neighbor: sample.Below, bit: 8, ref connectedTextureMask, shapeLight);
                 break;
             case Face.Front:
