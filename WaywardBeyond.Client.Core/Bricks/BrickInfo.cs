@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Swordfish.Bricks;
 using Swordfish.Graphics;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -23,6 +25,7 @@ internal sealed class BrickInfo
     
     private readonly bool _hasOrientableTag;
     private readonly Brick _defaultBrick;
+    private readonly Voxel _defaultVoxel;
     
     public BrickInfo(in string id,
         in ushort dataID,
@@ -47,6 +50,7 @@ internal sealed class BrickInfo
         Entity = tags?.Contains("entity") ?? false;
         _hasOrientableTag = tags?.Contains("orientable") ?? false;
         _defaultBrick = new Brick(dataID, new BrickData(shape == BrickShape.Any ? BrickShape.Block : shape, Brightness));
+        _defaultVoxel = new Voxel(dataID, new ShapeLight(shape == BrickShape.Any ? BrickShape.Block : shape, Brightness), _Orientation: 0);
     }
 
     /// <summary>
@@ -75,6 +79,34 @@ internal sealed class BrickInfo
         }
 
         return brick;
+    }
+    
+    /// <summary>
+    ///     Returns a data representation of this <see cref="BrickInfo"/>.
+    /// </summary>
+    public Voxel ToVoxel()
+    {
+        return _defaultVoxel;
+    }
+    
+    /// <summary>
+    ///     Returns a data representation of this <see cref="BrickInfo"/>
+    ///     with a desired shape and optional orientation.
+    /// </summary>
+    public Voxel ToVoxel(BrickShape shape, Orientation orientation = default)
+    {
+        Voxel voxel = ToVoxel();
+        if (Shapeable)
+        {
+            voxel.ShapeLight = new ShapeLight(shape, Brightness);
+        }
+        
+        if (IsOrientable(shape))
+        {
+            voxel.Orientation = orientation;
+        }
+
+        return voxel;
     }
     
     /// <summary>

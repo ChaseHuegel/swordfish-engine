@@ -4,13 +4,18 @@ using WaywardBeyond.Client.Core.Numerics;
 
 namespace WaywardBeyond.Client.Core.Voxels.Models;
 
-public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject)
+public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject, in VoxelPalette? palette = null)
 {
     public readonly Short3 Coords = coords;
     public readonly Chunk Data = data;
-    public readonly VoxelPalette Palette = new(data.Voxels.Length);
+    public readonly VoxelPalette Palette = palette ?? new VoxelPalette(data.Voxels.Length);
     
     private readonly VoxelObject _voxelObject = voxelObject;
+
+    public ChunkInfo ToChunkInfo()
+    {
+        return new ChunkInfo(Coords.X, Coords.Y, Coords.Z, Data);
+    }
 
     public Enumerator GetEnumerator()
     {

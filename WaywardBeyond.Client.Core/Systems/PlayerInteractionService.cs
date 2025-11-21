@@ -15,6 +15,7 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.Voxels.Building;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -24,7 +25,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly IPhysics _physics;
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
-    private readonly BrickEntityBuilder _brickEntityBuilder;
+    private readonly VoxelEntityBuilder _voxelEntityBuilder;
     private readonly IECSContext _ecsContext;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -42,7 +43,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
         in IWindowContext windowContext,
-        in BrickEntityBuilder brickEntityBuilder,
+        in VoxelEntityBuilder voxelEntityBuilder,
         in IECSContext ecsContext,
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
@@ -55,7 +56,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _physics = physics;
         _renderContext = renderContext;
         _windowContext = windowContext;
-        _brickEntityBuilder = brickEntityBuilder;
+        _voxelEntityBuilder = voxelEntityBuilder;
         _ecsContext = ecsContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -103,7 +104,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
-        _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
+        _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
@@ -176,7 +177,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
             var brick = brickInfo.ToBrick(shape, orientation);
             _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
-            _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
+            _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
     

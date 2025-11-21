@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Threading;
 using WaywardBeyond.Client.Core.Numerics;
@@ -33,6 +34,24 @@ public sealed class VoxelObject : IDisposable
         _chunkShift = BitOperations.TrailingZeroCount(_chunkSize);
         _chunkShift2 = _chunkShift * 2;
         _voxelsPerChunk = chunkSize * chunkSize * chunkSize;
+    }
+
+    public VoxelObject(byte chunkSize, ChunkInfo[] chunkInfos) : this(chunkSize)
+    {
+        for (var i = 0; i < chunkInfos.Length; i++)
+        {
+            ChunkInfo chunkInfo = chunkInfos[i];
+
+            var palette = new VoxelPalette();
+            for (var n = 0; n < chunkInfo.Chunk.Voxels.Length; n++)
+            {
+                palette.Increment(chunkInfo.Chunk.Voxels[n].ID);
+            }
+            
+            var chunkOffset = new Short3(chunkInfo.OffsetX, chunkInfo.OffsetY, chunkInfo.OffsetZ);
+            var chunkData = new ChunkData(chunkOffset, chunkInfo.Chunk, voxelObject: this, palette);
+            _chunks[chunkOffset] = chunkData;
+        }
     }
 
     public void Dispose()
@@ -233,5 +252,13 @@ public sealed class VoxelObject : IDisposable
         {
             return _chunkEnumerator.MoveNext();
         }
+    }
+    
+    public ChunkInfo[] GetChunkInfos()
+    {
+        _lock.EnterReadLock();
+        ChunkInfo[] chunkInfos = _chunks.Values.Select(chunkData => chunkData.ToChunkInfo()).ToArray();
+        _lock.ExitReadLock();
+        return chunkInfos;
     }
 }

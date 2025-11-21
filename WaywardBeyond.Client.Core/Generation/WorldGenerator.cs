@@ -9,6 +9,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Generation.Structures;
+using WaywardBeyond.Client.Core.Voxels.Building;
 
 namespace WaywardBeyond.Client.Core.Generation;
 
@@ -19,14 +20,14 @@ internal sealed class WorldGenerator
     private readonly AsteroidGenerator _asteroidGenerator;
     private readonly Randomizer _randomizer;
 
-    public WorldGenerator(in string seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
+    public WorldGenerator(in string seed, in VoxelEntityBuilder voxelEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
     {
         byte[] seedBytes = Encoding.UTF8.GetBytes(seed);
         byte[] seedHash = SHA1.HashData(seedBytes);
         var seedValue = BitConverter.ToInt32(seedHash);
         _randomizer = new Randomizer(seedValue);
 
-        _asteroidGenerator = new AsteroidGenerator(seedValue, brickEntityBuilder, brickDatabase);
+        _asteroidGenerator = new AsteroidGenerator(seedValue, voxelEntityBuilder, brickDatabase);
     }
     
     public Task Generate()

@@ -2,26 +2,27 @@ using System;
 using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
-using Swordfish.Bricks;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Generation.Noise;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Building;
 
 namespace WaywardBeyond.Client.Core.Generation.Structures;
 
-internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brickEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
+internal sealed class AsteroidGenerator(in int seed, in VoxelEntityBuilder voxelEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
 {
     private readonly Randomizer _randomizer = new(seed);
-    private readonly BrickEntityBuilder _brickEntityBuilder = brickEntityBuilder;
+    private readonly VoxelEntityBuilder _voxelEntityBuilder = voxelEntityBuilder;
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
-    private readonly Brick RockBrick = brickDatabase.Get("rock").Value.ToBrick();
-    private readonly Brick IceBrick = brickDatabase.Get("ice").Value.ToBrick();
+    private readonly Voxel _rockVoxel = brickDatabase.Get("rock").Value.ToVoxel();
+    private readonly Voxel _iceVoxel = brickDatabase.Get("ice").Value.ToVoxel();
 
     public void GenerateAt(Vector3 position, int diameter)
     {
-        var asteroidGrid = new BrickGrid(16);
-        Brick brick = _randomizer.NextFloat() > 0.5f ? RockBrick : IceBrick;
+        var voxelObject = new VoxelObject(chunkSize: 16);
+        Voxel voxel = _randomizer.NextFloat() > 0.5f ? _rockVoxel : _iceVoxel;
         
         int width = diameter / 2;
         int centerOfMass = diameter / 2;
@@ -48,7 +49,7 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
                 continue;
             }
             
-            asteroidGrid.Set(x - width, y - width, z - width, brick);
+            voxelObject.Set(x - width, y - width, z - width, voxel);
         }
         
         float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
@@ -56,6 +57,6 @@ internal sealed class AsteroidGenerator(in int seed, in BrickEntityBuilder brick
         float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         
-        _brickEntityBuilder.Create(Guid.NewGuid(), asteroidGrid, position, orientation, Vector3.One);
+        _voxelEntityBuilder.Create(Guid.NewGuid(), voxelObject, position, orientation, Vector3.One);
     }
 }

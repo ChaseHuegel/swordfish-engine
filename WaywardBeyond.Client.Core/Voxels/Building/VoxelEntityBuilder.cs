@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
@@ -19,11 +20,14 @@ internal sealed class VoxelEntityBuilder(
     in DataStore dataStore,
     in IContainer container,
     in IVoxelEntityDecorator[] decorators
-) {
+)
+{
     private readonly ILogger _logger = logger;
     private readonly DataStore _dataStore = dataStore;
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
+    
+    private readonly Lock _updatedEntitiesLock = new();
     private readonly HashSet<int> _updatedEntities = [];
 
     private readonly Material _opaqueMaterial = new(shader, textureArrays.ToArray());
@@ -51,15 +55,16 @@ internal sealed class VoxelEntityBuilder(
         int transparencyPtr = _dataStore.Alloc(new IdentifierComponent(name: null, tag: "game"), new GuidComponent(guid));
         
         var transform = new TransformComponent(position, orientation, scale);
+        var voxelComponent = new VoxelComponent(voxelObject, transparencyPtr);
         
         _dataStore.AddOrUpdate(entity, transform);
+        _dataStore.AddOrUpdate(entity, voxelComponent);
         _dataStore.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
         
         _dataStore.AddOrUpdate(transparencyPtr, transform);
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(entity));
         
         VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelObject);
-        var voxelComponent = new VoxelComponent(voxelObject, transparencyPtr);
         UpdateEntity(entity, voxelComponent, data);
         
         return new Entity(entity, _dataStore);
@@ -89,6 +94,8 @@ internal sealed class VoxelEntityBuilder(
     
     private void UpdateEntity(int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
     {
+        using Lock.Scope _ = _updatedEntitiesLock.EnterScope();
+        
         var renderer = new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(entity, new ColliderComponent(data.CollisionShape));
