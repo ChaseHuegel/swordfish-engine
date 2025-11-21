@@ -3,7 +3,6 @@ using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -14,6 +13,7 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
@@ -21,7 +21,7 @@ using OrientationSelectorElement = (string ID, Material BaseImage, Material Sele
 
 internal class OrientationSelector : IUILayer
 {
-    public readonly DataBinding<BrickOrientation> SelectedOrientation = new();
+    public readonly DataBinding<Orientation> SelectedOrientation = new();
     public bool Available => IsMainHandOrientable();
     
     private readonly PlayerControllerSystem _playerControllerSystem;
@@ -31,13 +31,13 @@ internal class OrientationSelector : IUILayer
     private readonly ShapeSelector _shapeSelector;
     
     private readonly Material _backgroundImage;
-    private readonly Dictionary<BrickOrientation, OrientationSelectorElement> _orientationSelectorElements;
+    private readonly Dictionary<Orientation, OrientationSelectorElement> _orientationSelectorElements;
 
-    private readonly BrickOrientation _orientRight = new(pitch: 0, yaw: 0, roll: 1);
-    private readonly BrickOrientation _orientDown = new(pitch: 0, yaw: 0, roll: 2);
-    private readonly BrickOrientation _orientLeft = new(pitch: 0, yaw: 0, roll: 3);
-    private readonly BrickOrientation _orientUp = new(pitch: 0, yaw: 0, roll: 0);
-    private readonly BrickOrientation[] _orientations;
+    private readonly Orientation _orientRight = new(pitch: 0, yaw: 0, roll: 1);
+    private readonly Orientation _orientDown = new(pitch: 0, yaw: 0, roll: 2);
+    private readonly Orientation _orientLeft = new(pitch: 0, yaw: 0, roll: 3);
+    private readonly Orientation _orientUp = new(pitch: 0, yaw: 0, roll: 0);
+    private readonly Orientation[] _orientations;
     
     private bool _changingOrientation;
     private bool _previousMouseLookState;
@@ -68,7 +68,7 @@ internal class OrientationSelector : IUILayer
             _orientRight,
         ];
         
-        _orientationSelectorElements = new Dictionary<BrickOrientation, OrientationSelectorElement>
+        _orientationSelectorElements = new Dictionary<Orientation, OrientationSelectorElement>
         {
             [_orientDown]  = new("orientationSelector1", new Material(shader, textureDatabase.Get("ui/face_down.png")), new Material(shader, textureDatabase.Get("ui/face_down_selected.png"))),
             [_orientLeft] = new("orientationSelector2", new Material(shader, textureDatabase.Get("ui/face_left.png")), new Material(shader, textureDatabase.Get("ui/face_left_selected.png"))),
@@ -125,7 +125,7 @@ internal class OrientationSelector : IUILayer
         var updatedSelection = false;
         for (var i = 0; i < _orientations.Length; i++)
         {
-            BrickOrientation orientation = _orientations[i];
+            Orientation orientation = _orientations[i];
             OrientationSelectorElement shapeSelectorElement = _orientationSelectorElements[orientation];
             
             //  Create the selectable rect

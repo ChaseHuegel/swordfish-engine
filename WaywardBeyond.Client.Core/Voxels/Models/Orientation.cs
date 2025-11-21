@@ -1,6 +1,5 @@
 using System;
 using System.Numerics;
-using Swordfish.Bricks;
 
 namespace WaywardBeyond.Client.Core.Voxels.Models;
 
@@ -116,7 +115,7 @@ public struct Orientation : IEquatable<Orientation>
     
     public override bool Equals(object? obj)
     {
-        return obj is BrickOrientation other && Equals(other);
+        return obj is Orientation other && Equals(other);
     }
     
     public override int GetHashCode()

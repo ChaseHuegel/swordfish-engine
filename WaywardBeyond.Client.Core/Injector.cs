@@ -33,7 +33,6 @@ public class Injector : IDryIocInjector
         RegisterDatabases(container);
         RegisterParsers(container);
         RegisterEntitySystems(container);
-        RegisterBrickDecorators(container);
         RegisterVoxels(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
@@ -122,13 +121,6 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
-    }
-    
-    private void RegisterBrickDecorators(IContainer container)
-    {
-        container.Register<BrickGridService>();
-        container.Register<IBrickDecorator, Bricks.Decorators.LightDecorator>();
-        container.Register<IBrickDecorator, Bricks.Decorators.ThrusterDecorator>();
     }
     
     private void RegisterVoxels(IContainer container)

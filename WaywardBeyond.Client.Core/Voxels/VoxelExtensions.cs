@@ -1,5 +1,4 @@
-﻿using Swordfish.Bricks;
-using WaywardBeyond.Client.Core.Bricks;
+﻿using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels;
@@ -11,9 +10,9 @@ public static class VoxelExtensions
         return new ShapeLight(voxel.ShapeLight);
     }
     
-    public static BrickOrientation GetOrientation(this Voxel voxel)
+    public static Orientation GetOrientation(this Voxel voxel)
     {
-        return new BrickOrientation(voxel.Orientation);
+        return new Orientation(voxel.Orientation);
     }
     
     public static BrickShape GetShape(this Voxel voxel)
@@ -37,7 +36,7 @@ public static class VoxelExtensions
                sample.Below.ID != 0;
     }
     
-    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id, BrickOrientation orientation)
+    public static void Set(this ref ChunkVoxel chunkVoxel, ushort id, Orientation orientation)
     {
         Set(ref chunkVoxel, id, shapeLight: 0, orientation.ToByte());
     }

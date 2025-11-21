@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Shoal.Modularity;
-using Swordfish.Bricks;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
@@ -33,24 +31,6 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
     {
         _meshDatabase = meshDatabase;
         Load();
-    }
-
-    public bool IsCuller(Brick brick)
-    {
-        if (brick.ID == 0)
-        {
-            return false;
-        }
-        
-        //  If this is not a block shape, it doesn't cull
-        BrickData data = brick.Data;
-        if (data.Shape != BrickShape.Block)
-        {
-            return false;
-        }
-        
-        BrickInfo brickInfo = Get(brick.ID).Value;
-        return !brickInfo.Passable && !brickInfo.Transparent;
     }
     
     public bool IsCuller(Voxel voxel)
