@@ -94,14 +94,14 @@ internal sealed class VoxelEntityBuilder(
     
     private void UpdateEntity(int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)
     {
-        using Lock.Scope _ = _updatedEntitiesLock.EnterScope();
-        
         var renderer = new MeshRenderer(data.OpaqueMesh, _opaqueMaterial, _renderOptions);
         _dataStore.AddOrUpdate(entity, new MeshRendererComponent(renderer));
         _dataStore.AddOrUpdate(entity, new ColliderComponent(data.CollisionShape));
         
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
         _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
+     
+        using Lock.Scope _ = _updatedEntitiesLock.EnterScope();
         
         //  Update any existing entities and cleanup old ones
         _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
