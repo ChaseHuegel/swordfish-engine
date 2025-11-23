@@ -273,7 +273,7 @@ internal readonly struct CubeMeshBuilder
         string? textureName,
         Face face
     ) {
-        //  TODO support randomized textures
+        //  TODO #302 support randomized textures
         int textureIndex = textureName != null ? Math.Max(_textureArray.IndexOf(textureName), 0) : 0;
         
         if (!brickInfo.Textures.Connected)
