@@ -4,14 +4,20 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightSeedPrePass(IBrickDatabase brickDatabase) 
-    : LightPrePass(brickDatabase), VoxelObjectProcessor.IVoxelPass
+internal sealed class LightSeedPrePass(IBrickDatabase brickDatabase) : VoxelObjectProcessor.IVoxelPass
 {
-    public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
     
+    public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
+
+    public bool ShouldProcessChunk(ChunkData chunkData)
+    {
+        return true;
+    }
+
     public void Process(ref Voxel voxel)
     {
-        Result<BrickInfo> brickInfoResult = BrickDatabase.Get(voxel.ID);
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(voxel.ID);
         
         ShapeLight shapeLight = voxel.ShapeLight;
         BrickInfo brickInfo = brickInfoResult.Value;
