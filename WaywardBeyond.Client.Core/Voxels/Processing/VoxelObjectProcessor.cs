@@ -73,7 +73,7 @@ internal sealed class VoxelObjectProcessor
         {
             passes++;
             
-            var passesToRun = new List<IVoxelPass>(voxelPasses.Count);
+            var passesToRun = new HashSet<IVoxelPass>(voxelPasses.Count);
             foreach (ChunkData chunk in voxelObject)
             {
                 var anyProcessors = false;
@@ -97,11 +97,9 @@ internal sealed class VoxelObjectProcessor
 
             foreach (ChunkData chunk in chunksToProcess)
             foreach (ref Voxel voxel in chunk)
+            foreach (IVoxelPass pass in passesToRun)
             {
-                for (var i = 0; i < passesToRun.Count; i++)
-                {
-                    passesToRun[i].Process(ref voxel);
-                }
+                pass.Process(ref voxel);
             }
         }
         
@@ -111,7 +109,7 @@ internal sealed class VoxelObjectProcessor
             passes++;
 
             chunksToProcess.Clear();
-            var passesToRun = new List<ISamplePass>(samplePasses.Count);
+            var passesToRun = new HashSet<ISamplePass>(samplePasses.Count);
             foreach (ChunkData chunk in voxelObject)
             {
                 var anyProcessors = false;
@@ -135,11 +133,9 @@ internal sealed class VoxelObjectProcessor
             
             foreach (ChunkData chunk in chunksToProcess)
             foreach (VoxelSample sample in chunk.GetSampler())
+            foreach (ISamplePass pass in passesToRun)
             {
-                for (var i = 0; i < passesToRun.Count; i++)
-                {
-                    passesToRun[i].Process(sample);
-                }
+                pass.Process(sample);
             }
         }
         
@@ -156,7 +152,7 @@ internal sealed class VoxelObjectProcessor
         {
             passes++;
             
-            var passesToRun = new List<IVoxelPass>(voxelPasses.Count);
+            var passesToRun = new HashSet<IVoxelPass>(voxelPasses.Count);
             foreach (ChunkData chunk in voxelObject)
             {
                 var anyProcessors = false;
@@ -180,11 +176,9 @@ internal sealed class VoxelObjectProcessor
 
             foreach (ChunkData chunk in chunksToProcess)
             foreach (ref Voxel voxel in chunk)
+            foreach (IVoxelPass pass in passesToRun)
             {
-                for (var i = 0; i < passesToRun.Count; i++)
-                {
-                    passesToRun[i].Process(ref voxel);
-                }
+                pass.Process(ref voxel);
             }
         }
 
@@ -194,7 +188,7 @@ internal sealed class VoxelObjectProcessor
             passes++;
 
             chunksToProcess.Clear();
-            var passesToRun = new List<ISamplePass>(samplePasses.Count);
+            var passesToRun = new HashSet<ISamplePass>(samplePasses.Count);
             foreach (ChunkData chunk in voxelObject)
             {
                 var anyProcessors = false;
@@ -218,11 +212,9 @@ internal sealed class VoxelObjectProcessor
             
             foreach (ChunkData chunk in chunksToProcess)
             foreach (VoxelSample sample in chunk.GetSampler())
+            foreach (ISamplePass pass in passesToRun)
             {
-                for (var i = 0; i < passesToRun.Count; i++)
-                {
-                    passesToRun[i].Process(sample);
-                }
+                pass.Process(sample);
             }
         }
         
