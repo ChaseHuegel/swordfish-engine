@@ -10,8 +10,10 @@ namespace WaywardBeyond.Client.Core.Voxels;
 
 public sealed class VoxelObject : IDisposable
 {
-    private static Voxel _emptyVoxel;
+    private static readonly Voxel _outOfBoundsVoxel = new(_ID: 0, _ShapeLight: new ShapeLight(default, lightLevel: 15), _Orientation: 0);
+    private Voxel _emptyVoxel = _outOfBoundsVoxel;
     
+    //  TODO these being internal isn't great
     internal readonly ReaderWriterLockSlim _lock;
     internal readonly Dictionary<Short3, ChunkData> _chunks;
     internal readonly byte _chunkSize;
@@ -119,7 +121,7 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
-            _emptyVoxel = new Voxel();
+            _emptyVoxel = _outOfBoundsVoxel;
             return ref _emptyVoxel;
         }
         
@@ -158,7 +160,7 @@ public sealed class VoxelObject : IDisposable
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
             _lock.ExitReadLock();
-            _emptyVoxel = new Voxel();
+            _emptyVoxel = _outOfBoundsVoxel;
             return new VoxelSample(
                 chunkOffset: default,
                 chunkCoords: default,
