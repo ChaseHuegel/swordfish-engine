@@ -245,6 +245,8 @@ internal readonly struct CubeMeshBuilder
         _meshData.Normals.Add(vertNormal);
         _meshData.Normals.Add(vertNormal);
         
+        //  TODO #299 Rotated blocks receive lighting on the wrong faces
+        //            because samples don't account for orientation
         ShapeLight shapeLight = neighbor.ShapeLight;
         float light = Math.Clamp(shapeLight.LightLevel / 15f, 0.1f, 1f);
         var color = new Vector4(light, light, light, 1f);
@@ -349,7 +351,7 @@ internal readonly struct CubeMeshBuilder
         
         mask |= bit;
         
-        //  TODO don't connect to culled neighbors. This likely will be best handled by expanding samples to a 3x3.
+        //  TODO #298 don't connect to culled neighbors. This likely will be best handled by expanding samples to a 3x3.
         // Voxel culler = _grid.Get(nX + cullingX, nY + cullingY, nZ + cullingZ);
         // if (culler.ID == 0 || !_brickDatabase.IsCuller(culler))
         // {
