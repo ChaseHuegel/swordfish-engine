@@ -67,9 +67,4 @@ internal sealed class AmbientLightPass(LightingState lightingState, DepthState d
             _lightingState.ToPropagate.Enqueue(light);
         }
     }
-
-    private static Int2 DefaultDepthFactory()
-    {
-        return new Int2(int.MaxValue, int.MinValue);
-    }
 }
