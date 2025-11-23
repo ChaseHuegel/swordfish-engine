@@ -2,6 +2,7 @@
 ID      = "small_light"
 Shape   = "any"
 Tags    = [
+    "entity",
     "light",
     "metal",
     "glass",

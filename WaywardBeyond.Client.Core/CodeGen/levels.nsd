@@ -21,28 +21,3 @@ message Level
     int SpawnY = 5;
     int SpawnZ = 6;
 }
-
-message BrickEntityData
-{
-    string Guid = 0;
-    
-    double X           = 1;
-    double Y           = 2;
-    double Z           = 3;
-    float OrientationX = 4;
-    float OrientationY = 5;
-    float OrientationZ = 6;
-    float OrientationW = 7;
-    
-    RawBrick[] Bricks = 50;
-}
-
-message RawBrick
-{
-    short X;
-    short Y;
-    short Z;
-    ushort ID;
-    byte Data;
-    byte Orientation;
-}

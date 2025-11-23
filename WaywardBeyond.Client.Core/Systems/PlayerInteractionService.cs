@@ -2,7 +2,6 @@ using System;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
-using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -15,6 +14,9 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -24,17 +26,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly IPhysics _physics;
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
-    private readonly BrickEntityBuilder _brickEntityBuilder;
+    private readonly VoxelEntityBuilder _voxelEntityBuilder;
     private readonly IECSContext _ecsContext;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
-    private readonly BrickGridService _brickGridService;
     private readonly CubeGizmo _cubeGizmo;
 
-    private (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
+    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
 
     public PlayerInteractionService(
         in IInputService inputService,
@@ -42,27 +43,25 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
         in IWindowContext windowContext,
-        in BrickEntityBuilder brickEntityBuilder,
+        in VoxelEntityBuilder voxelEntityBuilder,
         in IECSContext ecsContext,
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector,
-        in BrickGridService brickGridService
+        in OrientationSelector orientationSelector
     ) {
         _inputService = inputService;
         _physics = physics;
         _renderContext = renderContext;
         _windowContext = windowContext;
-        _brickEntityBuilder = brickEntityBuilder;
+        _voxelEntityBuilder = voxelEntityBuilder;
         _ecsContext = ecsContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
-        _brickGridService = brickGridService;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
     }
 
@@ -97,20 +96,20 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnLeftClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, true, out Entity clickedEntity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent))
         {
             return;
         }
         
-        _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, Brick.Empty);
-        _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
+        voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
+        _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
-            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedBrick.ID);
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
             if (brickInfoResult.Success)
             {
                 inventory.Add(new ItemStack(brickInfoResult.Value.ID));
@@ -120,7 +119,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnRightClick()
     {
-        if (!TryGetBrickFromScreenSpace(offset: true, reachAround: true, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
+        if (!TryGetBrickFromScreenSpace(offset: true, reachAround: true, out Entity clickedEntity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
         {
             return;
         }
@@ -161,7 +160,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             BrickShape shape = brickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : brickInfo.Shape;
             
             //  If the selected shape is orientable for the brick, apply orientation.
-            BrickOrientation orientation = BrickOrientation.Identity;
+            Orientation orientation = Orientation.Identity;
             if (brickInfo.IsOrientable(shape))
             {
                 //  Base off the selected orientation
@@ -174,9 +173,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 orientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
             }
 
-            var brick = brickInfo.ToBrick(shape, orientation);
-            _brickGridService.SetBrick(_ecsContext.World.DataStore, clickedEntity.Ptr, brickComponent.Grid, brickPos.X, brickPos.Y, brickPos.Z, brick);
-            _brickEntityBuilder.Rebuild(clickedEntity.Ptr);
+            var voxel = brickInfo.ToVoxel(shape, orientation);
+            voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
+            _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
     
@@ -195,20 +194,20 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     private void OnMiddleClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, false, out Entity clickedEntity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent))
+        if (!TryGetBrickFromScreenSpace(false, false, out Entity clickedEntity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent))
         {
             return;
         }
 
         //  Clone the target brick's shape
-        BrickData brickData = clickedBrick.Data;
-        _shapeSelector.SelectedShape.Set(brickData.Shape);
+        ShapeLight shapeLight = clickedVoxel.ShapeLight;
+        _shapeSelector.SelectedShape.Set(shapeLight.Shape);
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
-            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedBrick.ID);
+            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
             if (!brickInfoResult.Success)
             {
                 return;
@@ -234,7 +233,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                     return;
                 }
 
-                if (placeableBrickResult.Value.DataID != clickedBrick.ID)
+                if (placeableBrickResult.Value.DataID != clickedVoxel.ID)
                 {
                     continue;
                 }
@@ -252,8 +251,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
         bool holdingPlaceable = IsMainHandPlaceable();
-        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Brick clickedBrick, out (int X, int Y, int Z) brickPos, out BrickComponent brickComponent, out TransformComponent transformComponent) 
-            || !holdingPlaceable && clickedBrick == Brick.Empty)
+        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent) 
+            || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _cubeGizmo.Visible = false;
             return;
@@ -263,15 +262,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _cubeGizmo.Visible = true;
         _cubeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, transformComponent.Orientation));
 
-        _debugInfo = (BrickComponent: brickComponent, Brick: clickedBrick, Coordinate: brickPos, Position: worldPos);
+        _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
     }
     
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
-        (BrickComponent BrickComponent, Brick Brick, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
+        (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
         
-        using (ui.Text($"Center of mass: {debugInfo.BrickComponent.Grid.CenterOfMass}")) {}
-        using (ui.Text($"Brick: {debugInfo.Brick}")) {}
+        using (ui.Text($"Voxel: {debugInfo.Voxel}")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position}")) {}
         
@@ -282,18 +280,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         bool offset,
         bool reachAround,
         out Entity entity,
-        out Brick brick,
+        out Voxel voxel,
         out (int X, int Y, int Z) coordinate,
-        out BrickComponent brickComponent,
+        out VoxelComponent voxelComponent,
         out TransformComponent transformComponent
     ) {
         return TryGetBrickFromScreenSpace(
             offset,
             reachAround,
             out entity,
-            out brick,
+            out voxel,
             out coordinate,
-            out brickComponent,
+            out voxelComponent,
             out transformComponent,
             out _
         );
@@ -303,9 +301,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         bool offset,
         bool reachAround,
         out Entity entity,
-        out Brick brick,
+        out Voxel voxel,
         out (int X, int Y, int Z) coordinate,
-        out BrickComponent brickComponent,
+        out VoxelComponent voxelComponent,
         out TransformComponent transformComponent,
         out Vector3 clickedPoint
     ) {
@@ -315,12 +313,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Vector3? reachAroundDir = null;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         ray *= 9.5f;
-        if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out brickComponent, out transformComponent))
+        if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out voxelComponent, out transformComponent))
         {
-            if (!reachAround || !TryReachAroundRaycasts(ray, camera, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+            if (!reachAround || !TryReachAroundRaycasts(ray, camera, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
             {
                 entity = default;
-                brick = default;
+                voxel = default;
                 coordinate = default;
                 clickedPoint = default;
                 return false;
@@ -339,11 +337,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
-        brick = brickComponent.Grid.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         
         if (reachAroundDir != null)
         {
-            TryGetRelativeBrickInWorldSpace(brickComponent, transformComponent, reachAroundDir.Value, ref coordinate, out brick);
+            TryGetRelativeBrickInWorldSpace(voxelComponent, transformComponent, reachAroundDir.Value, ref coordinate, out voxel);
         }
         
         entity = raycast.Entity;
@@ -354,18 +352,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Ray centerRay,
         Camera camera,
         ref Vector3? reachAroundDir,
-        out BrickComponent brickComponent,
+        out VoxelComponent voxelComponent,
         out TransformComponent transformComponent,
         out RaycastResult raycast
     ) {
         const float reachAroundWidth = 0.5f;
         
-        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
         {
             return true;
         }
 
-        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out brickComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
         {
             return true;
         }
@@ -378,19 +376,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Vector3 direction,
         float reachAroundWidth,
         ref Vector3? reachAroundDir,
-        out BrickComponent brickComponent,
+        out VoxelComponent voxelComponent,
         out TransformComponent transformComponent,
         out RaycastResult raycast
     ) {
         var ray = new Ray(centerRay.Origin + direction * reachAroundWidth, centerRay.Vector);
-        if (TryRaycastBrickEntity(ray, out raycast, out brickComponent, out transformComponent))
+        if (TryRaycastBrickEntity(ray, out raycast, out voxelComponent, out transformComponent))
         {
             reachAroundDir = -direction;
             return true;
         }
 
         ray = new Ray(centerRay.Origin + direction * -reachAroundWidth, centerRay.Vector);
-        if (TryRaycastBrickEntity(ray, out raycast, out brickComponent, out transformComponent))
+        if (TryRaycastBrickEntity(ray, out raycast, out voxelComponent, out transformComponent))
         {
             reachAroundDir = direction;
             return true;
@@ -400,11 +398,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     }
 
     private static void TryGetRelativeBrickInWorldSpace(
-        BrickComponent brickComponent,
+        VoxelComponent voxelComponent,
         TransformComponent transformComponent,
         Vector3 worldNormal,
         ref (int X, int Y, int Z) coordinate,
-        out Brick brick
+        out Voxel voxel
     ) {
         Vector3 worldPos = BrickToWorldSpace(coordinate, transformComponent.Position, transformComponent.Orientation);
 
@@ -416,18 +414,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         worldPos += worldNormal;
         coordinate = WorldToBrickSpace(worldPos, transformComponent.Position, transformComponent.Orientation);
-        brick = brickComponent.Grid.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        voxel = voxelComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
     }
 
-    private bool TryRaycastBrickEntity(Ray ray, out RaycastResult raycast, out BrickComponent brickComponent, out TransformComponent transformComponent)
+    private bool TryRaycastBrickEntity(Ray ray, out RaycastResult raycast, out VoxelComponent voxelComponent, out TransformComponent transformComponent)
     {
         raycast = _physics.Raycast(ray);
-        if (raycast.Hit && raycast.Entity.TryGet(out brickComponent) && raycast.Entity.TryGet(out transformComponent))
+        if (raycast.Hit && raycast.Entity.TryGet(out voxelComponent) && raycast.Entity.TryGet(out transformComponent))
         {
             return true;
         }
 
-        brickComponent = default;
+        voxelComponent = default;
         transformComponent = default;
         return false;
     }

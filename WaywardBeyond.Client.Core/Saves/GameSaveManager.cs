@@ -3,7 +3,6 @@ using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoal.DependencyInjection;
-using Swordfish.Bricks;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -13,6 +12,8 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Generation;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Building;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -72,7 +73,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     }
     
     private readonly GameSaveService _gameSaveService;
-    private readonly BrickEntityBuilder _brickEntityBuilder;
+    private readonly VoxelEntityBuilder _voxelEntityBuilder;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
@@ -87,14 +88,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in GameSaveService gameSaveService,
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
-        in BrickEntityBuilder brickEntityBuilder,
+        in VoxelEntityBuilder voxelEntityBuilder,
         in BrickDatabase brickDatabase,
         in IECSContext ecs,
         in IPhysics physics,
         in PlayerControllerSystem playerControllerSystem
     ) {
         _gameSaveService = gameSaveService;
-        _brickEntityBuilder = brickEntityBuilder;
+        _voxelEntityBuilder = voxelEntityBuilder;
         _brickDatabase = brickDatabase;
         _ecs = ecs;
         _physics = physics;
@@ -146,11 +147,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _playerControllerSystem);
         
-        var shipGrid = new BrickGrid(dimensionSize: 16);
-        shipGrid.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToBrick());
-        _brickEntityBuilder.Create(Guid.NewGuid(), shipGrid, Vector3.Zero, Quaternion.Identity, Vector3.One);
+        var shipVoxelObject = new VoxelObject(chunkSize: 16);
+        shipVoxelObject.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToVoxel());
+        _voxelEntityBuilder.Create(Guid.NewGuid(), shipVoxelObject, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
-        var worldGenerator = new WorldGenerator(options.Seed, _brickEntityBuilder, _brickDatabase);
+        var worldGenerator = new WorldGenerator(options.Seed, _voxelEntityBuilder, _brickDatabase);
         await worldGenerator.Generate();
 
         await Save();

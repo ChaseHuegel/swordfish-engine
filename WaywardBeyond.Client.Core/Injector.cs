@@ -8,7 +8,6 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Bricks;
-using WaywardBeyond.Client.Core.Bricks.Decorators;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
@@ -18,6 +17,8 @@ using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menu;
+using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -32,20 +33,13 @@ public class Injector : IDryIocInjector
         RegisterDatabases(container);
         RegisterParsers(container);
         RegisterEntitySystems(container);
-        RegisterBrickDecorators(container);
+        RegisterVoxels(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
-        
-        //  TODO this was thrown together for testing and needs cleaned up
-        container.Register<BrickEntityBuilder>(Reuse.Singleton);
-        container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
-        container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
-        container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
-        container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
@@ -110,6 +104,7 @@ public class Injector : IDryIocInjector
         container.Register<ItemDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         container.Register<BrickDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IBrickDatabase, BrickDatabase>();
         container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
     }
     
@@ -128,10 +123,37 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ThrusterSystem>();
     }
     
-    private void RegisterBrickDecorators(IContainer container)
+    private void RegisterVoxels(IContainer container)
     {
-        container.Register<BrickGridService>();
-        container.Register<IBrickDecorator, LightDecorator>();
-        container.Register<IBrickDecorator, ThrusterDecorator>();
+        //  TODO this was thrown together for testing and needs cleaned up
+        container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
+        container.RegisterDelegate<TextureArray>(context => context.Resolve<IFileParseService>().Parse<TextureArray>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
+        container.RegisterDelegate<PBRTextureArrays>(context => context.Resolve<IFileParseService>().Parse<PBRTextureArrays>(AssetPaths.Textures.At("block\\")), Reuse.Singleton);
+        container.RegisterDelegate<DataStore>(context => context.Resolve<IECSContext>().World.DataStore, Reuse.Singleton);
+        
+        container.Register<VoxelEntityBuilder>(Reuse.Transient);
+        container.Register<IVoxelEntityDecorator, LightEntityDecorator>(Reuse.Transient);
+        container.Register<IVoxelEntityDecorator, ThrusterEntityDecorator>(Reuse.Transient);
+        
+        container.Register<VoxelObjectBuilder>(Reuse.Singleton);
+        
+        container.Register<VoxelObjectProcessor>(Reuse.Scoped);
+        
+        container.Register<DepthState>(Reuse.Scoped);
+        container.Register<LightingState>(Reuse.Scoped);
+        container.Register<MeshState>(Reuse.Scoped);
+        container.Register<CollisionState>(Reuse.Scoped);
+        container.Register<EntityState>(Reuse.Scoped);
+        
+        container.Register<VoxelObjectProcessor.IPass, AmbientLightPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.IPass, LightPropagationPass>(Reuse.Scoped);
+        
+        container.Register<VoxelObjectProcessor.IVoxelPass, LightSeedPrePass>(Reuse.Scoped);
+        
+        container.Register<VoxelObjectProcessor.ISamplePass, DepthPrePass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, LightPropagationPrePass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, MeshPostPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, CollisionPostPass>(Reuse.Scoped);
+        container.Register<VoxelObjectProcessor.ISamplePass, VoxelEntityPostPass>(Reuse.Scoped);
     }
 }

@@ -1,6 +1,8 @@
+using System.Collections.Generic;
 using System.Linq;
-using Swordfish.Bricks;
 using Swordfish.Graphics;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
@@ -13,15 +15,16 @@ internal sealed class BrickInfo
     public readonly Mesh? Mesh;
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
-    public readonly string[] Tags;
-
+    public readonly HashSet<string> Tags;
+    
     public readonly bool Shapeable;
     public readonly bool LightSource;
     public readonly int Brightness;
-
+    public readonly bool Entity;
+    
     private readonly bool _hasOrientableTag;
-    private readonly Brick _defaultBrick;
-
+    private readonly Voxel _defaultVoxel;
+    
     public BrickInfo(in string id,
         in ushort dataID,
         in bool transparent,
@@ -38,40 +41,41 @@ internal sealed class BrickInfo
         Mesh = mesh;
         Shape = shape;
         Textures = textures;
-        Tags = tags ?? [];
+        Tags = new HashSet<string>(tags ?? []);
         Shapeable = shape == BrickShape.Any;
         LightSource = tags?.Contains("light") ?? false;
         Brightness = LightSource ? 15 : 0;
+        Entity = tags?.Contains("entity") ?? false;
         _hasOrientableTag = tags?.Contains("orientable") ?? false;
-        _defaultBrick = new Brick(dataID, new BrickData(shape == BrickShape.Any ? BrickShape.Block : shape, Brightness));
+        _defaultVoxel = new Voxel(dataID, new ShapeLight(shape == BrickShape.Any ? BrickShape.Block : shape, Brightness), _Orientation: 0);
     }
-
+    
     /// <summary>
     ///     Returns a data representation of this <see cref="BrickInfo"/>.
     /// </summary>
-    public Brick ToBrick()
+    public Voxel ToVoxel()
     {
-        return _defaultBrick;
+        return _defaultVoxel;
     }
     
     /// <summary>
     ///     Returns a data representation of this <see cref="BrickInfo"/>
     ///     with a desired shape and optional orientation.
     /// </summary>
-    public Brick ToBrick(BrickShape shape, BrickOrientation orientation = default)
+    public Voxel ToVoxel(BrickShape shape, Orientation orientation = default)
     {
-        Brick brick = ToBrick();
+        Voxel voxel = ToVoxel();
         if (Shapeable)
         {
-            brick.Data = new BrickData(shape, Brightness);
+            voxel.ShapeLight = new ShapeLight(shape, Brightness);
         }
         
         if (IsOrientable(shape))
         {
-            brick.Orientation = orientation;
+            voxel.Orientation = orientation;
         }
 
-        return brick;
+        return voxel;
     }
     
     /// <summary>

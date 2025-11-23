@@ -3,21 +3,21 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Shoal.Modularity;
-using Swordfish.Bricks;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Serialization;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 
 /// <summary>
 ///     Provides access to brick information from virtual resources.
 /// </summary>
-internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate
+internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase
 {
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<ushort, BrickInfo> _bricksByDataID = [];
@@ -32,28 +32,35 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         _meshDatabase = meshDatabase;
         Load();
     }
-
-    public bool IsCuller(Brick brick)
+    
+    public bool IsCuller(Voxel voxel)
     {
-        if (brick.ID == 0)
+        return IsCuller(voxel, voxel.GetShapeLight().Shape);
+    }
+    
+    public bool IsCuller(Voxel voxel, ShapeLight shapeLight)
+    {
+        return IsCuller(voxel, shapeLight.Shape);
+    }
+    
+    public bool IsCuller(Voxel voxel, BrickShape shape)
+    {
+        if (voxel.ID == 0)
         {
             return false;
         }
         
         //  If this is not a block shape, it doesn't cull
-        BrickData data = brick.Data;
-        if (data.Shape != BrickShape.Block)
+        if (shape != BrickShape.Block)
         {
             return false;
         }
         
-        BrickInfo brickInfo = Get(brick.ID).Value;
+        BrickInfo brickInfo = Get(voxel.ID).Value;
         return !brickInfo.Passable && !brickInfo.Transparent;
     }
     
-    /// <summary>
-    ///     Attempts to get a brick's info by its data ID.
-    /// </summary>
+    /// <inheritdoc/>
     public Result<BrickInfo> Get(ushort id)
     {
         lock (_bricksByDataID)
@@ -67,9 +74,8 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         }
     }
 
-    /// <summary>
-    ///     Attempts to get all brick's infos that match a predicate.
-    /// </summary>
+    
+    /// <inheritdoc/>
     public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
     {
         lock (_bricksByDataID)

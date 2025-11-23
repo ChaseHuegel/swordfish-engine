@@ -4,33 +4,33 @@ using System.Linq;
 using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
 internal sealed class GameSaveService(
     in ILogger<GameSaveService> logger,
     in IECSContext ecs,
-    in ISerializer<BrickEntityModel> brickEntitySerializer,
-    in BrickEntityBuilder brickEntityBuilder,
+    in ISerializer<VoxelEntityModel> voxelEntitySerializer,
+    in VoxelEntityBuilder voxelEntityBuilder,
     in NotificationService notificationService
 ) {
     private const string SAVES_FOLDER = "saves/";
-    private const string GRIDS_FOLDER = "grids/";
+    private const string GRIDS_FOLDER = "voxelEntities/";
     
     private readonly ILogger _logger = logger;
     private readonly IECSContext _ecs = ecs;
-    private readonly ISerializer<BrickEntityModel> _brickEntitySerializer = brickEntitySerializer;
-    private readonly BrickEntityBuilder _brickEntityBuilder = brickEntityBuilder;
+    private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
+    private readonly VoxelEntityBuilder _voxelEntityBuilder = voxelEntityBuilder;
     private readonly NotificationService _notificationService = notificationService;
 
     private readonly PathInfo _savesDirectory = new(SAVES_FOLDER);
@@ -82,9 +82,9 @@ internal sealed class GameSaveService(
         foreach (PathInfo gridFile in saveDirectory.GetFiles().OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer()))
         {
             byte[] data = gridFile.ReadBytes();
-            BrickEntityModel brickEntityModel = _brickEntitySerializer.Deserialize(data);
+            VoxelEntityModel voxelEntityModel = _voxelEntitySerializer.Deserialize(data);
             
-            _brickEntityBuilder.Create(brickEntityModel.Guid, brickEntityModel.Grid, brickEntityModel.Position, brickEntityModel.Orientation, Vector3.One);
+            _voxelEntityBuilder.Create(voxelEntityModel.Guid, voxelEntityModel.VoxelObject, voxelEntityModel.Position, voxelEntityModel.Orientation, Vector3.One);
         }
         
         _notificationService.Push(new Notification($"Loaded save \"{save.Name}\"."));
@@ -102,10 +102,10 @@ internal sealed class GameSaveService(
         using var levelDataStream = new MemoryStream(levelData);
         levelPath.Write(levelDataStream);
 
-        //  Save brick entities
+        //  Save voxel entities
         var anyErrors = false;
-        _ecs.World.DataStore.Query<BrickComponent, TransformComponent>(0f, ForEachBrickEntity);
-        void ForEachBrickEntity(float delta, DataStore store, int entity, ref BrickComponent brickComponent, ref TransformComponent transform)
+        _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
+        void ForEachVoxelEntity(float delta, DataStore store, int entity, ref VoxelComponent voxelComponent, ref TransformComponent transform)
         {
             if (!store.TryGet(entity, out GuidComponent guidComponent))
             {
@@ -114,9 +114,9 @@ internal sealed class GameSaveService(
             
             try
             {
-                var model = new BrickEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, brickComponent.Grid);
+                var model = new VoxelEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
                 
-                byte[] data = _brickEntitySerializer.Serialize(model);
+                byte[] data = _voxelEntitySerializer.Serialize(model);
                 using var dataStream = new MemoryStream(data);
                 
                 PathInfo saveDirectory = save.Path.At(GRIDS_FOLDER);
@@ -127,7 +127,7 @@ internal sealed class GameSaveService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "There was an error saving brick entity \"{entity}\".", entity);
+                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\".", entity);
                 anyErrors = true;
             }
         }
