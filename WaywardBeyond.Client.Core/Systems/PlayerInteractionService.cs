@@ -2,8 +2,10 @@ using System;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
+using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -34,6 +36,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
     private readonly CubeGizmo _cubeGizmo;
+    private readonly IAudioService _audioService;
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
 
@@ -49,7 +52,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector
+        in OrientationSelector orientationSelector,
+        in IAudioService audioService
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -62,7 +66,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _itemDatabase = itemDatabase;
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
+        _audioService = audioService;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
+        
     }
 
     public void Run()
@@ -103,6 +109,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
         _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
+        
+        var soundIndex = Random.Shared.Next(1, 4);
+        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav");
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
@@ -176,6 +185,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
             _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
+            
+            var soundIndex = Random.Shared.Next(1, 4);
+            _audioService.Play($"sounds/metal_place.{soundIndex}.wav");
         }
     }
     

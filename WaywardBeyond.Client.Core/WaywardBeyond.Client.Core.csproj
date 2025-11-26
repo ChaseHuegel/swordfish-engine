@@ -28,7 +28,7 @@
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-        <Exec Command="nsdc -r -i CodeGen -o CodeGen/Output" />
+        <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output" />
     </Target>
 
 </Project>
