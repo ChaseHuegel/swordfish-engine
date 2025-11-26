@@ -35,7 +35,7 @@ internal sealed class ShaderComponent : ManagedHandle<uint>, IEquatable<ShaderCo
         _gl.CompileShader(Handle);
 
         string shaderError = _gl.GetShaderInfoLog(Handle);
-        if (!string.IsNullOrWhiteSpace(shaderError))
+        if (!string.IsNullOrWhiteSpace(shaderError) && !shaderError.Contains("warning"))
         {
             //  TODO dont want to throw
             throw new GLException($"Failed to compile {_type} '{Name}'.\n{shaderError}");
