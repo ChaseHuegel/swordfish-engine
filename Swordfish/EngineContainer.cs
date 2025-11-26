@@ -1,11 +1,14 @@
 ﻿using DryIoc;
 using JoltPhysicsSharp;
-using Reef;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Silk.NET.Input;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
+using SoundFlow.Abstracts;
+using SoundFlow.Backends.MiniAudio;
+using Swordfish.Audio;
+using Swordfish.Audio.SoundFlow;
 using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -15,14 +18,12 @@ using Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Input;
 using Swordfish.IO;
-using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI;
 using Swordfish.UI.Reef;
-using Texture = Swordfish.Graphics.Texture;
 
 namespace Swordfish;
 
@@ -84,18 +85,23 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterInstance<IInputContext>(inputContext);
         container.Register<IInputService, SilkInputService>(Reuse.Singleton);
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
-
+        
+        container.Register<AudioEngine, MiniAudioEngine>(Reuse.Singleton);
+        container.Register<IAudioService, AudioService>(Reuse.Singleton);
+        
         container.RegisterMany<GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TextureArrayParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<ObjParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<LegacyVoxelObjectParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TomlParser<MaterialDefinition>>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterMany<AudioStreamParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
 
         container.RegisterMany<TextureDatabase>(Reuse.Singleton);
         container.RegisterMany<ShaderDatabase>(Reuse.Singleton);
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
         container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
+        container.RegisterMany<AudioSourceDatabase>(Reuse.Singleton);
         
         var debugSettings = new DebugSettings();
         debugSettings.Stats.Set(true);
@@ -104,6 +110,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         
         container.RegisterConfig<RenderSettings>(file: "render.toml");
         container.RegisterConfig<WindowSettings>(file: "window.toml");
+        container.RegisterConfig<AudioSettings>(file: "audio.toml");
         
         container.RegisterDataBinding<AntiAliasing>();
         container.RegisterDataBinding<WindowMode>();
