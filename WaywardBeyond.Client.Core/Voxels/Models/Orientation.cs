@@ -51,6 +51,30 @@ public struct Orientation : IEquatable<Orientation>
     {
         _value = (byte)((pitch & 3) | ((yaw & 3) << 2) | ((roll & 3) << 4));
     }
+
+    /// <summary>
+    ///     Creates an <see cref="Orientation"/> from a quaternion.
+    /// </summary>
+    public Orientation(Quaternion quaternion)
+    {
+        float sinrCosp = 2.0f * (quaternion.W * quaternion.X + quaternion.Y * quaternion.Z);
+        float cosrCosp = 1.0f - 2.0f * (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y);
+        float roll = MathF.Atan2(sinrCosp, cosrCosp);
+        roll *= 180f / MathF.PI; 
+        
+        float sinp = 2.0f * (quaternion.W * quaternion.Y - quaternion.Z * quaternion.X);
+        float pitch = MathF.Abs(sinp) >= 1 ? MathF.CopySign(MathF.PI / 2, sinp) : MathF.Asin(sinp);
+        pitch *= 180f / MathF.PI;
+        
+        float sinyCosp = 2.0f * (quaternion.W * quaternion.Z + quaternion.X * quaternion.Y);
+        float cosyCosp = 1.0f - 2.0f * (quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
+        float yaw = MathF.Atan2(sinyCosp, cosyCosp);
+        yaw *= 180f / MathF.PI;
+        
+        PitchRotations = (int)Math.Round(pitch / 90, MidpointRounding.ToEven);
+        YawRotations = (int)Math.Round(yaw / 90, MidpointRounding.ToEven);
+        RollRotations = (int)Math.Round(roll / 90, MidpointRounding.ToEven);
+    }
     
     /// <summary>
     ///     Pitches by a number of rotations.

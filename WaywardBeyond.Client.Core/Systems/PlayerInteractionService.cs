@@ -5,7 +5,7 @@ using Shoal.Modularity;
 using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Collections;
+using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -36,6 +36,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
     private readonly CubeGizmo _cubeGizmo;
+    private readonly Line[] _debugLines;
     private readonly IAudioService _audioService;
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -68,7 +69,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _orientationSelector = orientationSelector;
         _audioService = audioService;
         _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-        
+
+        _debugLines = new Line[3];
+        _debugLines[0] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
+        _debugLines[1] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
+        _debugLines[2] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
     }
 
     public void Run()
@@ -177,9 +182,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
                 //  Apply pitch and yaw to look toward the camera
                 Camera camera = _renderContext.Camera.Get();
-                Vector2 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position);
-                orientation.PitchRotations -= (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-                orientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position);
+                orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+                orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+                orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
             }
 
             var voxel = brickInfo.ToVoxel(shape, orientation);
@@ -191,7 +197,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
     }
     
-    private static Vector2 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view)
+    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view)
     {
         Vector3 worldDir = Vector3.Normalize(view - model);
     
@@ -200,8 +206,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
         float yaw = MathF.Atan2(localDir.X, localDir.Z);
         float pitch = MathF.Atan2(localDir.Y, MathF.Sqrt(localDir.X * localDir.X + localDir.Z * localDir.Z));
+        
+        Vector3 localUp = Vector3.Transform(Vector3.UnitY, invOrientation);
+        float roll = MathF.Atan2(localUp.X, localUp.Z);
     
-        return new Vector2(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI));
+        return new Vector3(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI), roll * (180f / MathF.PI));
     }
     
     private void OnMiddleClick()
@@ -267,6 +276,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _cubeGizmo.Visible = false;
+            _debugLines[0].Color = Vector4.Zero;
+            _debugLines[1].Color = Vector4.Zero;
+            _debugLines[2].Color = Vector4.Zero;
             return;
         }
 
@@ -274,6 +286,28 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _cubeGizmo.Visible = true;
         _cubeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, transformComponent.Orientation));
 
+        
+        Orientation orientation = _orientationSelector.SelectedOrientation.Get();
+
+        //  Apply pitch and yaw to look toward the camera
+        Camera camera = _renderContext.Camera.Get();
+        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera.Transform.Position);
+        orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+        orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+        orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
+        
+        _debugLines[0].Color = new Vector4(1, 0, 0, 1);
+        _debugLines[0].Start = worldPos;
+        _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, orientation.ToQuaternion());
+        
+        _debugLines[1].Color = new Vector4(0, 1, 0, 1);
+        _debugLines[1].Start = worldPos;
+        _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, orientation.ToQuaternion());
+        
+        _debugLines[2].Color = new Vector4(0, 0, 1, 1);
+        _debugLines[2].Start = worldPos;
+        _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, orientation.ToQuaternion());
+        
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
     }
     
