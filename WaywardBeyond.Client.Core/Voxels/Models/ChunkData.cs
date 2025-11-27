@@ -6,6 +6,62 @@ namespace WaywardBeyond.Client.Core.Voxels.Models;
 
 public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject, in VoxelPalette? palette = null)
 {
+    /// <summary>
+    ///     Lookup table of relative X/Y/Z oriented offsets to neighbors.
+    ///     This is indexed with: [Orientation][Neighbor]
+    /// </summary>
+    private static readonly Int3[][] _neighborOffsetLookup = new Int3[64][];
+
+    /// <summary>
+    ///     Relative X/Y/Z offsets to neighbors for an Identity orientation.
+    /// </summary>
+    private static readonly Int3[] _neighborOffset =
+    {
+        new(-1, 0,  0), // Left
+        new( 1, 0,  0), // Right
+        new( 0, 0,  1), // Ahead
+        new( 0, 0, -1), // Behind
+        new( 0, 1,  0), // Above
+        new( 0,-1,  0), // Below
+    };
+    
+    static ChunkData()
+    {
+        //  Precalculate the lookup table of neighbor offsets
+        for (byte orientationValue = 0; orientationValue < 64; orientationValue++)
+        {
+            var orientation = new Orientation(orientationValue);
+
+            _neighborOffsetLookup[orientationValue] = new Int3[6];
+            for (var neighbor = 0; neighbor < 6; neighbor++)
+            {
+                _neighborOffsetLookup[orientationValue][neighbor] = RotateOffset(_neighborOffset[neighbor], orientation);
+            }
+        }
+        
+        Int3 RotateOffset(Int3 offset, Orientation orientation)
+        {
+            Int3 result = offset;
+        
+            for (var i = 0; i < orientation.RollRotations; i++)
+            {
+                result = new Int3(-result.Y, result.X, result.Z);
+            }
+
+            for (var i = 0; i < orientation.PitchRotations; i++)
+            {
+                result = new Int3(result.X, -result.Z, result.Y);
+            }
+        
+            for (var i = 0; i < orientation.YawRotations; i++)
+            {
+                result = new Int3(result.Z, result.Y, -result.X);
+            }
+
+            return result;
+        }
+    }
+    
     public readonly Short3 Coords = coords;
     public readonly Chunk Data = data;
     public readonly VoxelPalette Palette = palette ?? new VoxelPalette(data.Voxels.Length);
@@ -102,17 +158,26 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             int y = (_voxelIndex >> _voxelObject._chunkShift) & ((1 << (_voxelObject._chunkShift2 - _voxelObject._chunkShift)) - 1);
             int z = _voxelIndex >> _voxelObject._chunkShift2;
 
+            ref Voxel center = ref _currentVoxels[_voxelIndex];
+            
+            Int3 leftOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Left];
+            Int3 rightOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Right];
+            Int3 aheadOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Ahead];
+            Int3 behindOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Behind];
+            Int3 aboveOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Above];
+            Int3 belowOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Below];
+
             return new VoxelSample(
                 chunkOffset: _chunkWorldCoords,
                 chunkCoords: _chunkPos,
                 coords: new Int3(x, y, z),
-                center: ref _currentVoxels[_voxelIndex],
-                left: ref GetNeighbor(x, y, z, -1, 0, 0),
-                right: ref GetNeighbor(x, y, z, 1, 0, 0),
-                ahead: ref GetNeighbor(x, y, z, 0, 0, 1),
-                behind: ref GetNeighbor(x, y, z, 0, 0, -1),
-                above: ref GetNeighbor(x, y, z, 0, 1, 0),
-                below: ref GetNeighbor(x, y, z, 0, -1, 0)
+                center: ref center,
+                left:   ref GetNeighbor(x, y, z, leftOffset.X,   leftOffset.Y,   leftOffset.Z),
+                right:  ref GetNeighbor(x, y, z, rightOffset.X,  rightOffset.Y,  rightOffset.Z),
+                ahead:  ref GetNeighbor(x, y, z, aheadOffset.X,  aheadOffset.Y,  aheadOffset.Z),
+                behind: ref GetNeighbor(x, y, z, behindOffset.X, behindOffset.Y, behindOffset.Z),
+                above:  ref GetNeighbor(x, y, z, aboveOffset.X,  aboveOffset.Y,  aboveOffset.Z),
+                below:  ref GetNeighbor(x, y, z, belowOffset.X,  belowOffset.Y,  belowOffset.Z)
             );
         }
 
@@ -135,5 +200,15 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
 
             return ref _currentVoxels[neighborIndex];
         }
+    }
+    
+    private enum Neighbor
+    {
+        Left = 0,
+        Right = 1,
+        Ahead = 2,
+        Behind = 3,
+        Above = 4,
+        Below = 5,
     }
 }
