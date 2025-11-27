@@ -27,7 +27,7 @@ internal class AudioService : IDisposable, IAudioService
         {
             Format = SampleFormat.F32,
             SampleRate = audioSettings.Playback.SampleRate,
-            Channels = audioSettings.Playback.Channels
+            Channels = audioSettings.Playback.Channels,
         };
         
         DeviceInfo defaultPlaybackDevice = _engine.PlaybackDevices.FirstOrDefault(device => device.IsDefault);
