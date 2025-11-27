@@ -372,7 +372,7 @@ internal readonly struct CubeMeshBuilder
             return textures[0];
         }
 
-        int hash = (int)origin.X ^ (int)origin.Y ^ (int)origin.Z;
+        int hash = Math.Abs((int)origin.X ^ (int)origin.Y ^ (int)origin.Z);
         return textures[hash % textures.Length];
     }
 
