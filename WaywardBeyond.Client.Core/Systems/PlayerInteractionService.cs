@@ -312,6 +312,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         
+        _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
+        
         Orientation orientation = _orientationSelector.SelectedOrientation.Get();
         Camera camera = _renderContext.Camera.Get();
         Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera.Transform.Position, camera.Transform.GetUp());
@@ -331,41 +333,38 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugLines[2].Color = new Vector4(0, 0, 1, 1);
         _debugLines[2].Start = worldPos;
         _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, placeableOrientation);
-
-        if (holdingPlaceable)
+        
+        if (!holdingPlaceable)
         {
-            BrickInfo placeableBrickInfo = placeableResult.Value;
-            BrickShape placeableShape = placeableBrickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : placeableBrickInfo.Shape;
-            
-            if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
+            _activeGizmo.Visible = false;
+            return;
+        }
+        
+        BrickInfo placeableBrickInfo = placeableResult.Value;
+        BrickShape placeableShape = placeableBrickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : placeableBrickInfo.Shape;
+        
+        if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
+        {
+            if (!_meshGizmos.TryGetValue(placeableBrickInfo.Mesh, out MeshGizmo? meshGizmo))
             {
-                if (!_meshGizmos.TryGetValue(placeableBrickInfo.Mesh, out MeshGizmo? meshGizmo))
-                {
-                    meshGizmo = new MeshGizmo(_lineRenderer, new Vector4(0f, 0f, 0f, 1f), placeableBrickInfo.Mesh);
-                    _meshGizmos.Add(placeableBrickInfo.Mesh, meshGizmo);
-                }
-                
-                if (_activeGizmo != meshGizmo)
-                {
-                    _activeGizmo.Visible = false;
-                    _activeGizmo = meshGizmo;
-                }
+                meshGizmo = new MeshGizmo(_lineRenderer, new Vector4(0f, 0f, 0f, 1f), placeableBrickInfo.Mesh);
+                _meshGizmos.Add(placeableBrickInfo.Mesh, meshGizmo);
             }
-            else if (_shapeGizmos.TryGetValue(placeableShape, out MeshGizmo? meshGizmo) && _activeGizmo != meshGizmo)
+            
+            if (_activeGizmo != meshGizmo)
             {
                 _activeGizmo.Visible = false;
                 _activeGizmo = meshGizmo;
             }
-
-            _activeGizmo.Visible = true;
-            _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation * transformComponent.Orientation));
         }
-        else
+        else if (_shapeGizmos.TryGetValue(placeableShape, out MeshGizmo? meshGizmo) && _activeGizmo != meshGizmo)
         {
             _activeGizmo.Visible = false;
+            _activeGizmo = meshGizmo;
         }
         
-        _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
+        _activeGizmo.Visible = true;
+        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation * transformComponent.Orientation));
     }
     
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
