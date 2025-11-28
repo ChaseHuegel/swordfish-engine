@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using Reef;
 using Shoal.Modularity;
@@ -6,6 +8,7 @@ using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -26,6 +29,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 {
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
+    private readonly ILineRenderer _lineRenderer;
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
     private readonly VoxelEntityBuilder _voxelEntityBuilder;
@@ -35,7 +39,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly ItemDatabase _itemDatabase;
     private readonly ShapeSelector _shapeSelector;
     private readonly OrientationSelector _orientationSelector;
-    private readonly CubeGizmo _cubeGizmo;
+    private readonly Dictionary<BrickShape, MeshGizmo> _shapeGizmos;
+    private readonly Dictionary<Mesh, MeshGizmo> _meshGizmos = [];
+    private MeshGizmo _activeGizmo;
     private readonly Line[] _debugLines;
     private readonly IAudioService _audioService;
 
@@ -54,10 +60,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ItemDatabase itemDatabase,
         in ShapeSelector shapeSelector,
         in OrientationSelector orientationSelector,
-        in IAudioService audioService
+        in IAudioService audioService,
+        in IAssetDatabase<Mesh> meshDatabase
     ) {
         _inputService = inputService;
         _physics = physics;
+        _lineRenderer = lineRenderer;
         _renderContext = renderContext;
         _windowContext = windowContext;
         _voxelEntityBuilder = voxelEntityBuilder;
@@ -68,8 +76,27 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _shapeSelector = shapeSelector;
         _orientationSelector = orientationSelector;
         _audioService = audioService;
-        _cubeGizmo = new CubeGizmo(lineRenderer, Vector4.One);
-
+        
+        Mesh slope = meshDatabase.Get("slope.obj").Value;
+        Mesh stair = meshDatabase.Get("stair.obj").Value;
+        Mesh slab = meshDatabase.Get("slab.obj").Value;
+        Mesh column = meshDatabase.Get("column.obj").Value;
+        Mesh plate = meshDatabase.Get("plate.obj").Value;
+        
+        _shapeGizmos = new Dictionary<BrickShape, MeshGizmo>
+        {
+            { BrickShape.Any, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
+            { BrickShape.Custom, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
+            { BrickShape.Block, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
+            { BrickShape.Slab, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), slab)},
+            { BrickShape.Stair, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), stair)},
+            { BrickShape.Slope, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), slope)},
+            { BrickShape.Column, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), column)},
+            { BrickShape.Plate, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), plate)},
+        };
+        
+        _activeGizmo = _shapeGizmos.Values.First();
+        
         _debugLines = new Line[3];
         _debugLines[0] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         _debugLines[1] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
@@ -182,7 +209,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
                 //  Apply pitch and yaw to look toward the camera
                 Camera camera = _renderContext.Camera.Get();
-                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position);
+                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position, camera.Transform.GetUp());
                 orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
                 orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
                 orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
@@ -197,19 +224,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
     }
     
-    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view)
+    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view, Vector3 up)
     {
         Vector3 worldDir = Vector3.Normalize(view - model);
-    
+        
         Quaternion invOrientation = Quaternion.Inverse(orientation);
         Vector3 localDir = Vector3.Transform(worldDir, invOrientation);
-    
+        
         float yaw = MathF.Atan2(localDir.X, localDir.Z);
         float pitch = MathF.Atan2(localDir.Y, MathF.Sqrt(localDir.X * localDir.X + localDir.Z * localDir.Z));
         
-        Vector3 localUp = Vector3.Transform(Vector3.UnitY, invOrientation);
+        Vector3 localUp = Vector3.Transform(up, invOrientation);
         float roll = MathF.Atan2(localUp.X, localUp.Z);
-    
+        
         return new Vector3(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI), roll * (180f / MathF.PI));
     }
     
@@ -271,11 +298,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        bool holdingPlaceable = IsMainHandPlaceable();
+        Result<BrickInfo> placeableResult = TryGetPlaceableBrickInfo();
+        bool holdingPlaceable = placeableResult.Success;
         if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent) 
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
-            _cubeGizmo.Visible = false;
+            _activeGizmo.Visible = false;
             _debugLines[0].Color = Vector4.Zero;
             _debugLines[1].Color = Vector4.Zero;
             _debugLines[2].Color = Vector4.Zero;
@@ -283,30 +311,59 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
 
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
-        _cubeGizmo.Visible = true;
-        _cubeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, transformComponent.Orientation));
-
         
         Orientation orientation = _orientationSelector.SelectedOrientation.Get();
-
-        //  Apply pitch and yaw to look toward the camera
         Camera camera = _renderContext.Camera.Get();
-        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera.Transform.Position);
+        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera.Transform.Position, camera.Transform.GetUp());
         orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
         orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
         orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
+        var placeableOrientation = orientation.ToQuaternion();
         
         _debugLines[0].Color = new Vector4(1, 0, 0, 1);
         _debugLines[0].Start = worldPos;
-        _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, orientation.ToQuaternion());
+        _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, placeableOrientation);
         
         _debugLines[1].Color = new Vector4(0, 1, 0, 1);
         _debugLines[1].Start = worldPos;
-        _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, orientation.ToQuaternion());
+        _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, placeableOrientation);
         
         _debugLines[2].Color = new Vector4(0, 0, 1, 1);
         _debugLines[2].Start = worldPos;
-        _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, orientation.ToQuaternion());
+        _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, placeableOrientation);
+
+        if (holdingPlaceable)
+        {
+            BrickInfo placeableBrickInfo = placeableResult.Value;
+            BrickShape placeableShape = placeableBrickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : placeableBrickInfo.Shape;
+            
+            if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
+            {
+                if (!_meshGizmos.TryGetValue(placeableBrickInfo.Mesh, out MeshGizmo? meshGizmo))
+                {
+                    meshGizmo = new MeshGizmo(_lineRenderer, new Vector4(0f, 0f, 0f, 1f), placeableBrickInfo.Mesh);
+                    _meshGizmos.Add(placeableBrickInfo.Mesh, meshGizmo);
+                }
+                
+                if (_activeGizmo != meshGizmo)
+                {
+                    _activeGizmo.Visible = false;
+                    _activeGizmo = meshGizmo;
+                }
+            }
+            else if (_shapeGizmos.TryGetValue(placeableShape, out MeshGizmo? meshGizmo) && _activeGizmo != meshGizmo)
+            {
+                _activeGizmo.Visible = false;
+                _activeGizmo = meshGizmo;
+            }
+
+            _activeGizmo.Visible = true;
+            _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation * transformComponent.Orientation));
+        }
+        else
+        {
+            _activeGizmo.Visible = false;
+        }
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
     }
@@ -498,14 +555,29 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return Vector3.Transform(localCenter, orientation) + origin;
     }
     
-    private bool IsMainHandPlaceable() 
+    private Result<BrickInfo> TryGetPlaceableBrickInfo()
     {
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
-        if (!mainHandResult.Success)
+        if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
         {
-            return false;
+            return new Result<BrickInfo>(success: false, null!, mainHandResult.Message, mainHandResult.Exception);
+        }
+        
+        ItemSlot mainHand = mainHandResult.Value;
+        Item item = mainHand.Item;
+        PlaceableDefinition placeable = item.Placeable.Value;
+
+        if (placeable.Type != PlaceableType.Brick)
+        {
+            return new Result<BrickInfo>(success: false, null!);
         }
 
-        return mainHandResult.Value.Item.Placeable != null;
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        if (!brickInfoResult.Success)
+        {
+            return new Result<BrickInfo>(success: false, null!, brickInfoResult.Message, brickInfoResult.Exception);
+        }
+        
+        return Result<BrickInfo>.FromSuccess(brickInfoResult.Value);
     }
 }
