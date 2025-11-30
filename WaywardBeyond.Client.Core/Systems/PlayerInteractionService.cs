@@ -322,8 +322,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         brickOrientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
         brickOrientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
         
-        var brickQuaternion = brickOrientation.ToQuaternion();
-        brickQuaternion = SnapToNearestRightAngle();
+        var brickQuaternion = new Orientation(0, 1, 0).ToQuaternion();
+        // brickQuaternion = SnapToNearestRightAngle();
         
         Quaternion SnapToNearestRightAngle()
         {
@@ -360,7 +360,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             }
         }
         
-        Quaternion placeableOrientation = brickQuaternion * Quaternion.Inverse(transformComponent.Orientation);
+        Quaternion placeableOrientation = brickQuaternion;
         placeableOrientation = transformComponent.Orientation * placeableOrientation;
         
         _debugLines[0].Color = new Vector4(1, 0, 0, 1);
