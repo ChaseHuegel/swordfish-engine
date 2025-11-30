@@ -57,23 +57,51 @@ public struct Orientation : IEquatable<Orientation>
     /// </summary>
     public Orientation(Quaternion quaternion)
     {
-        float sinrCosp = 2.0f * (quaternion.W * quaternion.X + quaternion.Y * quaternion.Z);
-        float cosrCosp = 1.0f - 2.0f * (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y);
-        float roll = MathF.Atan2(sinrCosp, cosrCosp);
-        roll *= 180f / MathF.PI; 
+        float sinRCosP = 2.0f * (quaternion.W * quaternion.X + quaternion.Y * quaternion.Z);
+        float cosRCosP = 1.0f - 2.0f * (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y);
+        float pitch = MathF.Atan2(sinRCosP, cosRCosP);
+        pitch *= 180f / MathF.PI; 
         
-        float sinp = 2.0f * (quaternion.W * quaternion.Y - quaternion.Z * quaternion.X);
-        float pitch = MathF.Abs(sinp) >= 1 ? MathF.CopySign(MathF.PI / 2, sinp) : MathF.Asin(sinp);
-        pitch *= 180f / MathF.PI;
-        
-        float sinyCosp = 2.0f * (quaternion.W * quaternion.Z + quaternion.X * quaternion.Y);
-        float cosyCosp = 1.0f - 2.0f * (quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
-        float yaw = MathF.Atan2(sinyCosp, cosyCosp);
+        float sinP = 2.0f * (quaternion.W * quaternion.Y - quaternion.Z * quaternion.X);
+        float yaw = MathF.Abs(sinP) >= 1 ? MathF.CopySign(MathF.PI / 2, sinP) : MathF.Asin(sinP);
         yaw *= 180f / MathF.PI;
+        
+        float sinYCosP = 2.0f * (quaternion.W * quaternion.Z + quaternion.X * quaternion.Y);
+        float cosYCosP = 1.0f - 2.0f * (quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
+        float roll = MathF.Atan2(sinYCosP, cosYCosP);
+        roll *= 180f / MathF.PI;
         
         PitchRotations = (int)Math.Round(pitch / 90, MidpointRounding.ToEven);
         YawRotations = (int)Math.Round(yaw / 90, MidpointRounding.ToEven);
         RollRotations = (int)Math.Round(roll / 90, MidpointRounding.ToEven);
+    }
+    
+    private Vector3 ToEulerAngles(Quaternion q)
+    {
+        Vector3 angles = new();
+
+        // roll / x
+        double sinr_cosp = 2 * (q.W * q.X + q.Y * q.Z);
+        double cosr_cosp = 1 - 2 * (q.X * q.X + q.Y * q.Y);
+        angles.X = (float)Math.Atan2(sinr_cosp, cosr_cosp);
+
+        // pitch / y
+        double sinp = 2 * (q.W * q.Y - q.Z * q.X);
+        if (Math.Abs(sinp) >= 1)
+        {
+            angles.Y = (float)Math.CopySign(Math.PI / 2, sinp);
+        }
+        else
+        {
+            angles.Y = (float)Math.Asin(sinp);
+        }
+
+        // yaw / z
+        double siny_cosp = 2 * (q.W * q.Z + q.X * q.Y);
+        double cosy_cosp = 1 - 2 * (q.Y * q.Y + q.Z * q.Z);
+        angles.Z = (float)Math.Atan2(siny_cosp, cosy_cosp);
+
+        return angles;
     }
     
     /// <summary>

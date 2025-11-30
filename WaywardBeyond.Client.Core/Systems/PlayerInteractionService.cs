@@ -9,6 +9,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -209,7 +210,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
                 //  Apply pitch and yaw to look toward the camera
                 Camera camera = _renderContext.Camera.Get();
-                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera.Transform.Position, camera.Transform.GetUp());
+                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera);
                 orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
                 orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
                 orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
@@ -224,9 +225,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
     }
     
-    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Vector3 view, Vector3 up)
+    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Camera camera)
     {
-        Vector3 worldDir = Vector3.Normalize(view - model);
+        Vector3 worldDir = Vector3.Normalize(camera.Transform.Position - model);
         
         Quaternion invOrientation = Quaternion.Inverse(orientation);
         Vector3 localDir = Vector3.Transform(worldDir, invOrientation);
@@ -234,7 +235,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         float yaw = MathF.Atan2(localDir.X, localDir.Z);
         float pitch = MathF.Atan2(localDir.Y, MathF.Sqrt(localDir.X * localDir.X + localDir.Z * localDir.Z));
         
-        Vector3 localUp = Vector3.Transform(up, invOrientation);
+        Vector3 localUp = Vector3.UnitY;//Vector3.Transform(camera.Transform.GetUp(), invOrientation);
         float roll = MathF.Atan2(localUp.X, localUp.Z);
         
         return new Vector3(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI), roll * (180f / MathF.PI));
@@ -314,13 +315,53 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
-        Orientation orientation = _orientationSelector.SelectedOrientation.Get();
+        Orientation brickOrientation = _orientationSelector.SelectedOrientation.Get();
         Camera camera = _renderContext.Camera.Get();
-        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera.Transform.Position, camera.Transform.GetUp());
-        orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-        orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
-        orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
-        var placeableOrientation = orientation.ToQuaternion();
+        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera);
+        brickOrientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+        brickOrientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+        brickOrientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
+        
+        var brickQuaternion = brickOrientation.ToQuaternion();
+        brickQuaternion = SnapToNearestRightAngle();
+        
+        Quaternion SnapToNearestRightAngle()
+        {
+            Vector3 forward = SnappedToNearestAxis(camera.Transform.GetForward());
+            Vector3 up = SnappedToNearestAxis(camera.Transform.GetUp());
+            Vector3 right = SnappedToNearestAxis(camera.Transform.GetRight());
+            
+            var mat = new Matrix4x4(
+                right.X, up.X, forward.X, 0,
+                right.Y, up.Y, forward.Y, 0,
+                right.Z, up.Z, forward.Z, 0,
+                0, 0, 0, 1
+            );
+            
+            return Quaternion.CreateFromRotationMatrix(mat);
+            
+            Vector3 SnappedToNearestAxis(Vector3 direction)
+            {
+                float x = Math.Abs(direction.X);
+                float y = Math.Abs(direction.Y);
+                float z = Math.Abs(direction.Z);
+                
+                if (x > y && x > z)
+                {
+                    return new Vector3(Math.Sign(direction.X), 0, 0);
+                }
+                
+                if (y > x && y > z)
+                {
+                    return new Vector3(0, Math.Sign(direction.Y), 0);
+                }
+                
+                return new Vector3(0, 0, Math.Sign(direction.Z));
+            }
+        }
+        
+        Quaternion placeableOrientation = brickQuaternion * Quaternion.Inverse(transformComponent.Orientation);
+        placeableOrientation = transformComponent.Orientation * placeableOrientation;
         
         _debugLines[0].Color = new Vector4(1, 0, 0, 1);
         _debugLines[0].Start = worldPos;
@@ -364,7 +405,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         _activeGizmo.Visible = true;
-        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation * transformComponent.Orientation));
+        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation));
     }
     
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
