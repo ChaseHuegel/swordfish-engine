@@ -453,10 +453,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         out Vector3 clickedPoint
     ) {
         Camera camera = _renderContext.Camera.Get();
-        Vector2 cursorPos = _inputService.CursorPosition;
 
         Vector3? reachAroundDir = null;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = camera.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         ray *= 9.5f;
         if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out voxelComponent, out transformComponent))
         {
