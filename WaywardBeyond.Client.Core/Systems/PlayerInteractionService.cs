@@ -9,7 +9,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Collections;
-using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
@@ -28,6 +27,8 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 {
+    private static readonly Vector4 _gizmoColor = new(1f, 1f, 1f, 0.5f);
+    
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
@@ -86,14 +87,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _shapeGizmos = new Dictionary<BrickShape, MeshGizmo>
         {
-            { BrickShape.Any, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
-            { BrickShape.Custom, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
-            { BrickShape.Block, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), new Cube())},
-            { BrickShape.Slab, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), slab)},
-            { BrickShape.Stair, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), stair)},
-            { BrickShape.Slope, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), slope)},
-            { BrickShape.Column, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), column)},
-            { BrickShape.Plate, new MeshGizmo(lineRenderer, new Vector4(0f, 0f, 0f, 1f), plate)},
+            { BrickShape.Any, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
+            { BrickShape.Custom, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
+            { BrickShape.Block, new MeshGizmo(lineRenderer, _gizmoColor, new Cube())},
+            { BrickShape.Slab, new MeshGizmo(lineRenderer, _gizmoColor, slab)},
+            { BrickShape.Stair, new MeshGizmo(lineRenderer, _gizmoColor, stair)},
+            { BrickShape.Slope, new MeshGizmo(lineRenderer, _gizmoColor, slope)},
+            { BrickShape.Column, new MeshGizmo(lineRenderer, _gizmoColor, column)},
+            { BrickShape.Plate, new MeshGizmo(lineRenderer, _gizmoColor, plate)},
         };
         
         _activeGizmo = _shapeGizmos.Values.First();
@@ -318,11 +319,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Orientation brickOrientation = _orientationSelector.SelectedOrientation.Get();
         Camera camera = _renderContext.Camera.Get();
         Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera);
-        brickOrientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-        brickOrientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
-        brickOrientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
-        
-        var brickQuaternion = new Orientation(0, 1, 0).ToQuaternion();
+        brickOrientation.PitchRotations += (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+        brickOrientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+        brickOrientation.RollRotations += (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
+
+        // brickOrientation = new Orientation(Quaternion.Inverse(transformComponent.Orientation));
+        var brickQuaternion = brickOrientation.ToQuaternion();//Quaternion.Inverse(transformComponent.Orientation);
         // brickQuaternion = SnapToNearestRightAngle();
         
         Quaternion SnapToNearestRightAngle()
@@ -388,7 +390,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         {
             if (!_meshGizmos.TryGetValue(placeableBrickInfo.Mesh, out MeshGizmo? meshGizmo))
             {
-                meshGizmo = new MeshGizmo(_lineRenderer, new Vector4(0f, 0f, 0f, 1f), placeableBrickInfo.Mesh);
+                meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, placeableBrickInfo.Mesh);
                 _meshGizmos.Add(placeableBrickInfo.Mesh, meshGizmo);
             }
             
