@@ -318,21 +318,17 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         Orientation brickOrientation = _orientationSelector.SelectedOrientation.Get();
         Camera camera = _renderContext.Camera.Get();
-        Vector3 lookAt = LookAtEuler(worldPos, transformComponent.Orientation, camera);
-        brickOrientation.PitchRotations += (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-        brickOrientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
-        brickOrientation.RollRotations += (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
+        // Vector3 lookAt = new Orientation(SnapToNearestRightAngle()).ToEulerAngles();//LookAtEuler(worldPos, transformComponent.Orientation, camera);
+        // brickOrientation.PitchRotations += (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
+        // brickOrientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
+        // brickOrientation.RollRotations += (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
 
-        // brickOrientation = new Orientation(Quaternion.Inverse(transformComponent.Orientation));
+        brickOrientation = new Orientation(transformComponent.Orientation);
+        // brickOrientation = new Orientation(Quaternion.Inverse(SnapToNearestRightAngle(transformComponent.GetForward(), transformComponent.GetUp(), transformComponent.GetRight())))
         var brickQuaternion = brickOrientation.ToQuaternion();//Quaternion.Inverse(transformComponent.Orientation);
-        // brickQuaternion = SnapToNearestRightAngle();
         
-        Quaternion SnapToNearestRightAngle()
+        Quaternion SnapToNearestRightAngle(Vector3 forward, Vector3 up, Vector3 right)
         {
-            Vector3 forward = SnappedToNearestAxis(camera.Transform.GetForward());
-            Vector3 up = SnappedToNearestAxis(camera.Transform.GetUp());
-            Vector3 right = SnappedToNearestAxis(camera.Transform.GetRight());
-            
             var mat = new Matrix4x4(
                 right.X, up.X, forward.X, 0,
                 right.Y, up.Y, forward.Y, 0,
