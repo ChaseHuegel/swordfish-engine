@@ -7,7 +7,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
@@ -20,10 +19,10 @@ using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedIm
 
 internal class ShapeSelector : IUILayer
 {
-    public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
     public bool Available => IsMainHandShapeable();
 
     private readonly PlayerControllerSystem _playerControllerSystem;
+    private readonly PlayerInteractionService _playerInteractionService;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
@@ -34,17 +33,20 @@ internal class ShapeSelector : IUILayer
     
     private bool _changingShape;
     private bool _previousMouseLookState;
+    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
     
     public ShapeSelector(
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
         PlayerControllerSystem playerControllerSystem,
+        PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
         IECSContext ecsContext
     ) {
         _playerControllerSystem = playerControllerSystem;
+        _playerInteractionService = playerInteractionService;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _ecsContext = ecsContext;
@@ -85,8 +87,10 @@ internal class ShapeSelector : IUILayer
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        BrickShape selectedShape = _playerInteractionService.SelectedShape.Get();
+        
         //  Draw the currently selected shape
-        ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[SelectedShape.Get()];
+        ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[selectedShape];
         using (ui.Image(selectedShapeElement.BaseImage))
         {
             ui.Constraints = new Constraints
@@ -132,10 +136,10 @@ internal class ShapeSelector : IUILayer
                     Height = new Fixed(96),
                 };
                 
-                bool isSelected = SelectedShape.Get() == shape;
+                bool isSelected = _playerInteractionService.SelectedShape.Get() == shape;
                 if (!updatedSelection && ui.Hovering())
                 {
-                    SelectedShape.Set(shape);
+                    _playerInteractionService.SelectedShape.Set(shape);
                     updatedSelection = true;
                     isSelected = true;
                 }
@@ -194,7 +198,7 @@ internal class ShapeSelector : IUILayer
                 Height = new Fixed(24),
             };
 
-            using (ui.Text(SelectedShape.Get().ToString()))
+            using (ui.Text(_playerInteractionService.SelectedShape.Get().ToString()))
             {
                 ui.Constraints = new Constraints
                 {
@@ -210,7 +214,7 @@ internal class ShapeSelector : IUILayer
     
     private void OnChangeShapePressed()
     {
-        if (!IsMainHandShapeable())
+        if (!IsMainHandShapeable() || !_playerInteractionService.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }
@@ -222,11 +226,13 @@ internal class ShapeSelector : IUILayer
     
     private void OnChangeShapeReleased()
     {
-        if (!IsMainHandShapeable())
+        if (!_changingShape)
         {
             return;
         }
         
+        _interactionBlocker?.Dispose();
+        _interactionBlocker = null;
         _changingShape = false;
         _playerControllerSystem.SetMouseLook(_previousMouseLookState);
     }

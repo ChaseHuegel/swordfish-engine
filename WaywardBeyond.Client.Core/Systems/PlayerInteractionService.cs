@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using Reef;
@@ -10,6 +11,7 @@ using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
@@ -27,7 +29,10 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 {
-    private static readonly Vector4 _gizmoColor = new(1f, 1f, 1f, 0.5f);
+    public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
+    public readonly DataBinding<Orientation> SelectedOrientation = new();
+    
+    private static readonly Vector4 _gizmoColor = new(0.5f, 0.5f, 0.5f, 1f);
     
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
@@ -39,13 +44,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
-    private readonly ShapeSelector _shapeSelector;
-    private readonly OrientationSelector _orientationSelector;
     private readonly Dictionary<BrickShape, MeshGizmo> _shapeGizmos;
     private readonly Dictionary<Mesh, MeshGizmo> _meshGizmos = [];
     private MeshGizmo _activeGizmo;
     private readonly Line[] _debugLines;
     private readonly IAudioService _audioService;
+    private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
 
@@ -60,8 +64,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
-        in ShapeSelector shapeSelector,
-        in OrientationSelector orientationSelector,
         in IAudioService audioService,
         in IAssetDatabase<Mesh> meshDatabase
     ) {
@@ -75,8 +77,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
-        _shapeSelector = shapeSelector;
-        _orientationSelector = orientationSelector;
         _audioService = audioService;
         
         Mesh slope = meshDatabase.Get("slope.obj").Value;
@@ -110,10 +110,38 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _physics.FixedUpdate += OnFixedUpdate;
         _inputService.Clicked += OnClicked;
     }
+    
+    public InteractionBlocker BlockInteraction()
+    {
+        return new InteractionBlocker(this);
+    }
+
+    public bool TryBlockInteractionExclusive([NotNullWhen(true)] out InteractionBlocker? interactionBlocker)
+    {
+        lock (_interactionBlockers)
+        {
+            if (_interactionBlockers.Count != 0)
+            {
+                interactionBlocker = null;
+                return false;
+            }
+
+            interactionBlocker = BlockInteraction();
+            return true;
+        }
+    }
+    
+    public bool IsInteractionBlocked()
+    {
+        lock (_interactionBlockers)
+        {
+            return _interactionBlockers.Count != 0;
+        }
+    }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
+        if (WaywardBeyond.GameState != GameState.Playing || IsInteractionBlocked())
         {
             return;
         }
@@ -200,14 +228,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             BrickInfo brickInfo = brickInfoResult.Value;
             
             //  If this brick is shapeable, use the selected shape.
-            BrickShape shape = brickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : brickInfo.Shape;
+            BrickShape shape = brickInfo.Shapeable ? SelectedShape.Get() : brickInfo.Shape;
             
             //  If the selected shape is orientable for the brick, apply orientation.
             Orientation orientation = Orientation.Identity;
             if (brickInfo.IsOrientable(shape))
             {
                 //  Base off the selected orientation
-                orientation = _orientationSelector.SelectedOrientation.Get();
+                orientation = SelectedOrientation.Get();
 
                 //  Apply pitch and yaw to look toward the camera
                 Camera camera = _renderContext.Camera.Get();
@@ -251,7 +279,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         //  Clone the target brick's shape
         ShapeLight shapeLight = clickedVoxel.ShapeLight;
-        _shapeSelector.SelectedShape.Set(shapeLight.Shape);
+        SelectedShape.Set(shapeLight.Shape);
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -316,7 +344,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
-        Orientation brickOrientation = _orientationSelector.SelectedOrientation.Get();
+        Orientation brickOrientation = SelectedOrientation.Get();
         Camera camera = _renderContext.Camera.Get();
         // Vector3 lookAt = new Orientation(SnapToNearestRightAngle()).ToEulerAngles();//LookAtEuler(worldPos, transformComponent.Orientation, camera);
         // brickOrientation.PitchRotations += (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
@@ -380,7 +408,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         BrickInfo placeableBrickInfo = placeableResult.Value;
-        BrickShape placeableShape = placeableBrickInfo.Shapeable ? _shapeSelector.SelectedShape.Get() : placeableBrickInfo.Shape;
+        BrickShape placeableShape = placeableBrickInfo.Shapeable ? SelectedShape.Get() : placeableBrickInfo.Shape;
         
         if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
         {
@@ -616,5 +644,27 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         return Result<BrickInfo>.FromSuccess(brickInfoResult.Value);
+    }
+    
+    public sealed class InteractionBlocker : IDisposable
+    {
+        private readonly PlayerInteractionService _playerInteractionService;
+
+        internal InteractionBlocker(in PlayerInteractionService playerInteractionService)
+        {
+            _playerInteractionService = playerInteractionService;
+            lock (playerInteractionService._interactionBlockers)
+            {
+                playerInteractionService._interactionBlockers.Add(this);
+            }
+        }
+
+        public void Dispose()
+        {
+            lock (_playerInteractionService._interactionBlockers)
+            {
+                _playerInteractionService._interactionBlockers.Remove(this);
+            }
+        }
     }
 }

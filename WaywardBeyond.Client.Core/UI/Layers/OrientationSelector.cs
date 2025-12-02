@@ -7,7 +7,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Items;
@@ -21,14 +20,13 @@ using OrientationSelectorElement = (string ID, Material BaseImage, Material Sele
 
 internal class OrientationSelector : IUILayer
 {
-    public readonly DataBinding<Orientation> SelectedOrientation = new();
     public bool Available => IsMainHandOrientable();
     
     private readonly PlayerControllerSystem _playerControllerSystem;
+    private readonly PlayerInteractionService _playerInteractionService;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
-    private readonly ShapeSelector _shapeSelector;
     
     private readonly Material _backgroundImage;
     private readonly Dictionary<Orientation, OrientationSelectorElement> _orientationSelectorElements;
@@ -41,22 +39,23 @@ internal class OrientationSelector : IUILayer
     
     private bool _changingOrientation;
     private bool _previousMouseLookState;
+    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
     
     public OrientationSelector(
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
         PlayerControllerSystem playerControllerSystem,
+        PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
-        IECSContext ecsContext,
-        ShapeSelector shapeSelector
+        IECSContext ecsContext
     ) {
         _playerControllerSystem = playerControllerSystem;
+        _playerInteractionService = playerInteractionService;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _ecsContext = ecsContext;
-        _shapeSelector = shapeSelector;
         
         Result<Shader> shader = shaderDatabase.Get("ui_reef_textured");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
@@ -99,7 +98,7 @@ internal class OrientationSelector : IUILayer
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         //  Draw the currently selected orientation
-        OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[SelectedOrientation.Get()];
+        OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[_playerInteractionService.SelectedOrientation.Get()];
         using (ui.Image(selectedShapeElement.BaseImage))
         {
             ui.Constraints = new Constraints
@@ -146,10 +145,10 @@ internal class OrientationSelector : IUILayer
                     Height = new Fixed(96),
                 };
                 
-                bool isSelected = SelectedOrientation.Get().Equals(orientation);
+                bool isSelected = _playerInteractionService.SelectedOrientation.Get().Equals(orientation);
                 if (!updatedSelection && ui.Hovering())
                 {
-                    SelectedOrientation.Set(orientation);
+                    _playerInteractionService.SelectedOrientation.Set(orientation);
                     updatedSelection = true;
                     isSelected = true;
                 }
@@ -201,7 +200,7 @@ internal class OrientationSelector : IUILayer
     
     private void OnChangeOrientationPressed()
     {
-        if (!IsMainHandOrientable())
+        if (!IsMainHandOrientable() || !_playerInteractionService.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }
@@ -213,11 +212,13 @@ internal class OrientationSelector : IUILayer
     
     private void OnChangeOrientationReleased()
     {
-        if (!IsMainHandOrientable())
+        if (!_changingOrientation)
         {
             return;
         }
         
+        _interactionBlocker?.Dispose();
+        _interactionBlocker = null;
         _changingOrientation = false;
         _playerControllerSystem.SetMouseLook(_previousMouseLookState);
     }
@@ -243,7 +244,7 @@ internal class OrientationSelector : IUILayer
         }
 
         BrickInfo brickInfo = brickInfoResult.Value;
-        BrickShape brickShape = _shapeSelector.SelectedShape.Get();
+        BrickShape brickShape = _playerInteractionService.SelectedShape.Get();
         return brickInfo.IsOrientable(brickShape);
     }
 }
