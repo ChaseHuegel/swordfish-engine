@@ -22,9 +22,6 @@ internal sealed class SettingsPage(
     in IAudioService audioService
 ) : IMenuPage<MenuPage>
 {
-    private const string INCREASE_UNICODE = "\uf0fe";
-    private const string DECREASE_UNICODE = "\uf146";
-    
     public MenuPage ID => MenuPage.Settings;
 
     private readonly SettingsManager _settingsManager = settingsManager;
