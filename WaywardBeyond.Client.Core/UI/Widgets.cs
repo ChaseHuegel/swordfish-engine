@@ -8,7 +8,7 @@ using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal static class Widgets
+internal static partial class Widgets
 {
     /// <summary>
     ///     Plays standard button audio for interactions.
@@ -21,7 +21,7 @@ internal static class Widgets
             return false;
         }
         
-        audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.Master);
+        audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.MixInterface());
         return true;
     }
     
@@ -36,7 +36,7 @@ internal static class Widgets
             return false;
         }
         
-        audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.Master);
+        audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.MixInterface());
         return true;
     }
     
@@ -51,7 +51,7 @@ internal static class Widgets
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 2.wav", volumeSettings.Master);
+        audioService.Play("sounds/misc effects_tap 2.wav", volumeSettings.MixInterface());
         return true;
     }
     
@@ -66,7 +66,7 @@ internal static class Widgets
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 1.wav", volumeSettings.Master);
+        audioService.Play("sounds/misc effects_tap 1.wav", volumeSettings.MixInterface());
         return true;
     }
     

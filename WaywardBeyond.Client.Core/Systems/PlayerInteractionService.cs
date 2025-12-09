@@ -177,7 +177,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         var soundIndex = Random.Shared.Next(1, 4);
-        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav", _volumeSettings.Master);
+        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav", _volumeSettings.MixEffects());
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
@@ -254,7 +254,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
             
             int soundIndex = Random.Shared.Next(1, 4);
-            _audioService.Play($"sounds/metal_place.{soundIndex}.wav", _volumeSettings.Master);
+            _audioService.Play($"sounds/metal_place.{soundIndex}.wav", _volumeSettings.MixEffects());
         }
     }
     

@@ -27,6 +27,12 @@
         <PackageReference Include="LibNoise" Version="0.2.0" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Update="UI\Widgets.NumberControl.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
         <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output" />
     </Target>

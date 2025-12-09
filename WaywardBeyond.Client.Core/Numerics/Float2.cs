@@ -1,25 +1,25 @@
 ﻿namespace WaywardBeyond.Client.Core.Numerics;
 
-public record struct Int2
+public record struct Float2
 {
-    public int X;
-    public int Y;
+    public float X;
+    public float Y;
 
-    public int Min
+    public float Min
     {
         get => X;
         set => X = value;
     }
     
-    public int Max
+    public float Max
     {
         get => Y;
         set => Y = value;
     }
+
+    public float Length => Y - X;
     
-    public int Length => Y - X;
-    
-    public Int2(int x, int y)
+    public Float2(float x, float y)
     {
         X = x;
         Y = y;
