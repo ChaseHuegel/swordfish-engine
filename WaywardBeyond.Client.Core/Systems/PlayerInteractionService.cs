@@ -16,6 +16,7 @@ using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
@@ -49,6 +50,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private MeshGizmo _activeGizmo;
     private readonly Line[] _debugLines;
     private readonly IAudioService _audioService;
+    private readonly VolumeSettings _volumeSettings;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -65,6 +67,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
         in IAudioService audioService,
+        in VolumeSettings volumeSettings,
         in IAssetDatabase<Mesh> meshDatabase
     ) {
         _inputService = inputService;
@@ -78,6 +81,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
         _audioService = audioService;
+        _volumeSettings = volumeSettings;
         
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -173,7 +177,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         
         var soundIndex = Random.Shared.Next(1, 4);
-        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav");
+        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav", _volumeSettings.Master);
         
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
@@ -250,7 +254,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
             
             int soundIndex = Random.Shared.Next(1, 4);
-            _audioService.Play($"sounds/metal_place.{soundIndex}.wav");
+            _audioService.Play($"sounds/metal_place.{soundIndex}.wav", _volumeSettings.Master);
         }
     }
     

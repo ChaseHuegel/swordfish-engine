@@ -4,15 +4,17 @@ using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class HomePage(in Entry entry, in IAudioService audioService) : IMenuPage<MenuPage>
+internal sealed class HomePage(in Entry entry, in IAudioService audioService, in VolumeSettings volumeSettings) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
 
     private readonly Entry _entry = entry;
     private readonly IAudioService _audioService = audioService;
+    private readonly VolumeSettings _volumeSettings = volumeSettings;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -31,7 +33,7 @@ internal sealed class HomePage(in Entry entry, in IAudioService audioService) : 
                 Y = new Relative(0.5f),
             };
 
-            if (ui.TextButton(id: "Button_Singleplayer", text: "Singleplayer", _buttonFontOptions, _audioService))
+            if (ui.TextButton(id: "Button_Singleplayer", text: "Singleplayer", _buttonFontOptions, _audioService, _volumeSettings))
             {
                 menu.GoToPage(MenuPage.Singleplayer);
             }
@@ -47,7 +49,7 @@ internal sealed class HomePage(in Entry entry, in IAudioService audioService) : 
                 };
             }
 
-            if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions, _audioService))
+            if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions, _audioService, _volumeSettings))
             {
                 menu.GoToPage(MenuPage.Settings);
             }
@@ -62,7 +64,7 @@ internal sealed class HomePage(in Entry entry, in IAudioService audioService) : 
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions, _audioService))
+            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions, _audioService, _volumeSettings))
             {
                 _entry.Quit();
             }

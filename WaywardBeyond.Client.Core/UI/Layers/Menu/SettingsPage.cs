@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -16,6 +17,7 @@ internal sealed class SettingsPage(
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
+    in VolumeSettings volumeSettings,
     in IAudioService audioService
 ) : IMenuPage<MenuPage>
 {
@@ -24,10 +26,11 @@ internal sealed class SettingsPage(
     
     public MenuPage ID => MenuPage.Settings;
 
+    private readonly SettingsManager _settingsManager = settingsManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
-    private readonly SettingsManager _settingsManager = settingsManager;
+    private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly IAudioService _audioService = audioService;
     
     private readonly FontOptions _buttonFontOptions = new()
@@ -38,6 +41,7 @@ internal sealed class SettingsPage(
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         int currentSensitivity = _controlSettings.LookSensitivity;
+        var currentMasterVolume = (int)(_volumeSettings.Master * 10);
         
         using (ui.Element())
         {
@@ -56,13 +60,13 @@ internal sealed class SettingsPage(
                 ui.FontSize = 24;
             }
             
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync, _audioService);
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
             _renderSettings.VSync.Set(value);
 
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService);
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
             
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService);
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
             using (ui.Element())
@@ -113,7 +117,7 @@ internal sealed class SettingsPage(
                     bool hovering = ui.Hovering();
                     
                     Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
-                    interactions.WithButtonDecreaseAudio(_audioService);
+                    interactions.WithButtonDecreaseAudio(_audioService, _volumeSettings);
                     
                     using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
@@ -158,7 +162,7 @@ internal sealed class SettingsPage(
                     bool hovering = ui.Hovering();
                     
                     Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
-                    interactions.WithButtonIncreaseAudio(_audioService);
+                    interactions.WithButtonIncreaseAudio(_audioService, _volumeSettings);
                     
                     using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
@@ -187,6 +191,129 @@ internal sealed class SettingsPage(
                     }
                 }
             }
+            
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    Height = new Fixed(50),
+                };
+            }
+            
+            using (ui.Text("Volume"))
+            {
+                ui.FontSize = 24;
+            }
+            
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                ui.LayoutDirection = LayoutDirection.Horizontal;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                };
+                
+                using (ui.Text("Master"))
+                {
+                    ui.FontSize = 20;
+                    ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center | Anchors.Left,
+                        Y = new Relative(0.5f),
+                    };
+                }
+                
+                using (ui.Element())
+                {
+                    ui.Constraints = new Constraints
+                    {
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    };
+                }
+                
+                using (ui.Element("Button_Decrease_Volume"))
+                {
+                    bool clicked = ui.Clicked();
+                    bool hovering = ui.Hovering();
+                    
+                    using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
+                    {
+                        ui.FontSize = 30;
+                        
+                        //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
+                        ui.Padding = new Padding
+                        {
+                            Right = 4,
+                            Bottom = 12,
+                        };
+                        
+                        if (clicked)
+                        {
+                            ui.Color = new Vector4(0f, 0f, 0f, 1f);
+                            _volumeSettings.Master.Set(Math.Clamp((currentMasterVolume - 1) / 10f, 0f, 1f));
+                        }
+                        else if (hovering)
+                        {
+                            ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                        }
+                        else
+                        {
+                            ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        }
+                    }
+                    
+                    Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
+                    interactions.WithButtonDecreaseAudio(_audioService, _volumeSettings);
+                }
+                
+                using (ui.Text(currentMasterVolume.ToString(CultureInfo.CurrentCulture)))
+                {
+                    ui.FontSize = 20;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center | Anchors.Left,
+                        Y = new Relative(0.5f),
+                    };
+                }
+                
+                using (ui.Element("Button_Increase_Volume"))
+                {
+                    bool clicked = ui.Clicked();
+                    bool hovering = ui.Hovering();
+                    
+                    using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
+                    {
+                        ui.FontSize = 30;
+                        
+                        //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
+                        ui.Padding = new Padding
+                        {
+                            Right = 4,
+                            Bottom = 12,
+                        };
+                        
+                        if (clicked)
+                        {
+                            ui.Color = new Vector4(0f, 0f, 0f, 1f);
+                            _volumeSettings.Master.Set(Math.Clamp((currentMasterVolume + 1) / 10f, 0f, 1f));
+                        }
+                        else if (hovering)
+                        {
+                            ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                        }
+                        else
+                        {
+                            ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        }
+                    }
+                    
+                    Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
+                    interactions.WithButtonIncreaseAudio(_audioService, _volumeSettings);
+                }
+            }
         }
         
         using (ui.Element())
@@ -198,7 +325,7 @@ internal sealed class SettingsPage(
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService))
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService, _volumeSettings))
             {
                 _settingsManager.ApplySettings();
                 menu.GoBack();

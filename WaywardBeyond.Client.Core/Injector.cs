@@ -51,6 +51,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAutoActivate, SettingsManager>();
         
         container.RegisterConfig<ControlSettings>(file: "control.toml");
+        container.RegisterConfig<VolumeSettings>(file: "volume.toml");
     }
 
     private static void RegisterUI(IContainer container)

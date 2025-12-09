@@ -48,7 +48,7 @@ internal class AudioService : IDisposable, IAudioService
         _playbackDevice?.Dispose();
     }
 
-    public Result Play(string id, bool block = false)
+    public Result Play(string id, float volume = 1, bool block = false)
     {
         Library.Util.Result<AudioSource> audioSource = _audioSourceDatabase.Get(id);
         if (!audioSource.Success)
@@ -56,16 +56,16 @@ internal class AudioService : IDisposable, IAudioService
             return new Result(success: false, audioSource.Message, audioSource.Exception);
         }
 
-        return Play(audioSource, block);
+        return Play(audioSource, volume, block);
     }
     
-    public Result Play(AudioSource audioSource, bool block = false)
+    public Result Play(AudioSource audioSource, float volume = 1, bool block = false)
     {
         AudioPlaybackDevice? playbackDevice = _playbackDevice;
-        return playbackDevice != null ? Play(playbackDevice, audioSource, block) : Result.FromFailure("No playback device is selected.");
+        return playbackDevice != null ? Play(playbackDevice, audioSource, volume, block) : Result.FromFailure("No playback device is selected.");
     }
     
-    private Result Play(AudioPlaybackDevice playbackDevice, AudioSource audioSource, bool block)
+    private Result Play(AudioPlaybackDevice playbackDevice, AudioSource audioSource, float volume, bool block)
     {
         if (!playbackDevice.IsRunning)
         {
@@ -74,8 +74,9 @@ internal class AudioService : IDisposable, IAudioService
         
         var provider = new StreamDataProvider(_engine, _format, audioSource.CreateStream());
         var player = new SoundPlayer(_engine, _format, provider);
+        player.Volume = volume;
         
-        var waitHandle = block ? new EventWaitHandle(false, EventResetMode.ManualReset) : null;
+        EventWaitHandle? waitHandle = block ? new EventWaitHandle(false, EventResetMode.ManualReset) : null;
         player.PlaybackEnded += PlayerOnPlaybackEnded;
         
         playbackDevice.MasterMixer.AddComponent(player);

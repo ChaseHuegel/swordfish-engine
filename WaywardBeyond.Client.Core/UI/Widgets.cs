@@ -4,6 +4,7 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -13,14 +14,14 @@ internal static class Widgets
     ///     Plays standard button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonAudio(this Interactions interactions, IAudioService audioService)
+    public static bool WithButtonAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/menu sounds_exit click 1.wav");
+        audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.Master);
         return true;
     }
     
@@ -28,14 +29,14 @@ internal static class Widgets
     ///     Plays toggle button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonToggleAudio(this Interactions interactions, IAudioService audioService)
+    public static bool WithButtonToggleAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_click 1.wav");
+        audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.Master);
         return true;
     }
     
@@ -43,14 +44,14 @@ internal static class Widgets
     ///     Plays increase button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonIncreaseAudio(this Interactions interactions, IAudioService audioService)
+    public static bool WithButtonIncreaseAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 2.wav");
+        audioService.Play("sounds/misc effects_tap 2.wav", volumeSettings.Master);
         return true;
     }
     
@@ -58,14 +59,14 @@ internal static class Widgets
     ///     Plays decrease button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonDecreaseAudio(this Interactions interactions, IAudioService audioService)
+    public static bool WithButtonDecreaseAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 1.wav");
+        audioService.Play("sounds/misc effects_tap 1.wav", volumeSettings.Master);
         return true;
     }
     
@@ -82,9 +83,9 @@ internal static class Widgets
     ///     Creates a text-only button, with audio cues.
     /// </summary>
     /// <returns>True if the button was clicked; otherwise false.</returns>
-    public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions, IAudioService audioService)
+    public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions, IAudioService audioService, VolumeSettings volumeSettings)
     {
-        return TextButton(ui, id, text, fontOptions, out Interactions interactions) && interactions.WithButtonAudio(audioService);
+        return TextButton(ui, id, text, fontOptions, out Interactions interactions) && interactions.WithButtonAudio(audioService, volumeSettings);
     }
     
     /// <summary>
@@ -169,10 +170,10 @@ internal static class Widgets
     ///     Creates a text-only checkbox, with audio cues.
     /// </summary>
     /// <returns>True if the box is currently checked; otherwise false.</returns>
-    public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, IAudioService audioService)
+    public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, IAudioService audioService, VolumeSettings volumeSettings)
     {
         bool value = Checkbox(ui, id, text, isChecked, out Interactions interactions);
-        interactions.WithButtonToggleAudio(audioService);
+        interactions.WithButtonToggleAudio(audioService, volumeSettings);
         return value;
     }
     
