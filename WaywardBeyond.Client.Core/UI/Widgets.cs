@@ -25,6 +25,51 @@ internal static class Widgets
     }
     
     /// <summary>
+    ///     Plays toggle button audio for interactions.
+    /// </summary>
+    /// <returns>True if clicked; otherwise false.</returns>
+    public static bool WithButtonToggleAudio(this Interactions interactions, IAudioService audioService)
+    {
+        if ((interactions & Interactions.Click) != Interactions.Click)
+        {
+            return false;
+        }
+        
+        audioService.Play("sounds/misc effects_click 1.wav");
+        return true;
+    }
+    
+    /// <summary>
+    ///     Plays increase button audio for interactions.
+    /// </summary>
+    /// <returns>True if clicked; otherwise false.</returns>
+    public static bool WithButtonIncreaseAudio(this Interactions interactions, IAudioService audioService)
+    {
+        if ((interactions & Interactions.Click) != Interactions.Click)
+        {
+            return false;
+        }
+        
+        audioService.Play("sounds/misc effects_tap 2.wav");
+        return true;
+    }
+    
+    /// <summary>
+    ///     Plays decrease button audio for interactions.
+    /// </summary>
+    /// <returns>True if clicked; otherwise false.</returns>
+    public static bool WithButtonDecreaseAudio(this Interactions interactions, IAudioService audioService)
+    {
+        if ((interactions & Interactions.Click) != Interactions.Click)
+        {
+            return false;
+        }
+        
+        audioService.Play("sounds/misc effects_tap 1.wav");
+        return true;
+    }
+    
+    /// <summary>
     ///     Creates a text-only button.
     /// </summary>
     /// <returns>True if the button was clicked; otherwise false.</returns>
@@ -127,7 +172,7 @@ internal static class Widgets
     public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, IAudioService audioService)
     {
         bool value = Checkbox(ui, id, text, isChecked, out Interactions interactions);
-        interactions.WithButtonAudio(audioService);
+        interactions.WithButtonToggleAudio(audioService);
         return value;
     }
     

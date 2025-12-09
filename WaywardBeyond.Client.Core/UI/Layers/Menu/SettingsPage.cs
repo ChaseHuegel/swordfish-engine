@@ -113,7 +113,7 @@ internal sealed class SettingsPage(
                     bool hovering = ui.Hovering();
                     
                     Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
-                    interactions.WithButtonAudio(_audioService);
+                    interactions.WithButtonDecreaseAudio(_audioService);
                     
                     using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
@@ -158,7 +158,7 @@ internal sealed class SettingsPage(
                     bool hovering = ui.Hovering();
                     
                     Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
-                    interactions.WithButtonAudio(_audioService);
+                    interactions.WithButtonIncreaseAudio(_audioService);
                     
                     using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
