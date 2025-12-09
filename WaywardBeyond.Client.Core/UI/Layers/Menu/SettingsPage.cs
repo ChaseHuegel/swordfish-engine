@@ -3,6 +3,7 @@ using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
@@ -14,7 +15,8 @@ internal sealed class SettingsPage(
     in SettingsManager settingsManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
-    in RenderSettings renderSettings
+    in RenderSettings renderSettings,
+    in IAudioService audioService
 ) : IMenuPage<MenuPage>
 {
     private const string INCREASE_UNICODE = "\uf0fe";
@@ -26,6 +28,7 @@ internal sealed class SettingsPage(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly SettingsManager _settingsManager = settingsManager;
+    private readonly IAudioService _audioService = audioService;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -53,13 +56,13 @@ internal sealed class SettingsPage(
                 ui.FontSize = 24;
             }
             
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync);
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync, _audioService);
             _renderSettings.VSync.Set(value);
 
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen);
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
             
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA);
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
             using (ui.Element())
@@ -108,18 +111,21 @@ internal sealed class SettingsPage(
                 {
                     bool clicked = ui.Clicked();
                     bool hovering = ui.Hovering();
-                
+                    
+                    Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
+                    interactions.WithButtonAudio(_audioService);
+                    
                     using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
                         ui.FontSize = 30;
-                    
+                        
                         //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
                         ui.Padding = new Padding
                         {
                             Right = 4,
                             Bottom = 12,
                         };
-                    
+                        
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
@@ -150,18 +156,21 @@ internal sealed class SettingsPage(
                 {
                     bool clicked = ui.Clicked();
                     bool hovering = ui.Hovering();
-                
+                    
+                    Widgets.Interactions interactions = clicked ? Widgets.Interactions.Click : Widgets.Interactions.None;
+                    interactions.WithButtonAudio(_audioService);
+                    
                     using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
                         ui.FontSize = 30;
-                    
+                        
                         //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
                         ui.Padding = new Padding
                         {
                             Right = 4,
                             Bottom = 12,
                         };
-                    
+                        
                         if (clicked)
                         {
                             ui.Color = new Vector4(0f, 0f, 0f, 1f);
@@ -189,7 +198,7 @@ internal sealed class SettingsPage(
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService))
             {
                 _settingsManager.ApplySettings();
                 menu.GoBack();

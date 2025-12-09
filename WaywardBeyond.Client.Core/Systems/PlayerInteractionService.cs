@@ -249,7 +249,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
             _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
             
-            var soundIndex = Random.Shared.Next(1, 4);
+            int soundIndex = Random.Shared.Next(1, 4);
             _audioService.Play($"sounds/metal_place.{soundIndex}.wav");
         }
     }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -10,13 +11,19 @@ using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class SingleplayerPage(in GameSaveManager gameSaveManager, in GameSaveService gameSaveService, in IInputService inputService) : IMenuPage<MenuPage>
+internal sealed class SingleplayerPage(
+    in GameSaveManager gameSaveManager,
+    in GameSaveService gameSaveService,
+    in IInputService inputService,
+    in IAudioService audioService
+) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Singleplayer;
-
+    
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly IInputService _inputService = inputService;
+    private readonly IAudioService _audioService = audioService;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -58,7 +65,7 @@ internal sealed class SingleplayerPage(in GameSaveManager gameSaveManager, in Ga
                 }
             }
             
-            if (ui.TextButton(id: "Button_NewGame", text: "+ New game", _saveFontOptions))
+            if (ui.TextButton(id: "Button_NewGame", text: "+ New game", _saveFontOptions, _audioService))
             {
                 var options = new GameOptions(name: $"playtest{saves.Length + 1}", seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
@@ -95,7 +102,7 @@ internal sealed class SingleplayerPage(in GameSaveManager gameSaveManager, in Ga
                 
                 foreach (GameSave save in saves)
                 {
-                    if (ui.TextButton(id: $"Button_ContinueGame_{save.Name}", text: save.Name, _saveFontOptions))
+                    if (ui.TextButton(id: $"Button_ContinueGame_{save.Name}", text: save.Name, _saveFontOptions, _audioService))
                     {
                         _gameSaveManager.ActiveSave = save;
                         Task.Run(_gameSaveManager.Load);
@@ -113,7 +120,7 @@ internal sealed class SingleplayerPage(in GameSaveManager gameSaveManager, in Ga
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService))
             {
                 menu.GoBack();
             }

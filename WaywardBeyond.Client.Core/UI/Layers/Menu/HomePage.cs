@@ -1,16 +1,18 @@
 using System.Numerics;
 using Reef;
 using Reef.UI;
+using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
 
-internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
+internal sealed class HomePage(in Entry entry, in IAudioService audioService) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
 
     private readonly Entry _entry = entry;
+    private readonly IAudioService _audioService = audioService;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -29,7 +31,7 @@ internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
                 Y = new Relative(0.5f),
             };
 
-            if (ui.TextButton(id: "Button_Singleplayer", text: "Singleplayer", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Singleplayer", text: "Singleplayer", _buttonFontOptions, _audioService))
             {
                 menu.GoToPage(MenuPage.Singleplayer);
             }
@@ -45,7 +47,7 @@ internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
                 };
             }
 
-            if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Settings", text: "Settings", _buttonFontOptions, _audioService))
             {
                 menu.GoToPage(MenuPage.Settings);
             }
@@ -60,7 +62,7 @@ internal sealed class HomePage(in Entry entry) : IMenuPage<MenuPage>
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions))
+            if (ui.TextButton(id: "Button_Quit", text: "Quit", _buttonFontOptions, _audioService))
             {
                 _entry.Quit();
             }
