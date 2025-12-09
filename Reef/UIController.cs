@@ -74,6 +74,8 @@ public sealed class UIController
     internal bool IsHeld(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsHeld(interactionState.Button);
 
     internal bool IsHovering(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && interactionState.Hovering.Current;
+    internal bool IsEntering(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsPressed(interactionState.Hovering);
+    internal bool IsExiting(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsReleased(interactionState.Hovering);
 
     internal void UpdateInteraction(string id, IntRect rect)
     {

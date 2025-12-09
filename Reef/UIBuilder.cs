@@ -211,6 +211,8 @@ public sealed class UIBuilder<TRendererData>
     public bool Held() => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"));
 
     public bool Hovering() => _controller.IsHovering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be hovered"));
+    public bool Entered() => _controller.IsEntering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be entered"));
+    public bool Exited() => _controller.IsExiting(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be exited"));
 
     public bool LeftPressed() => _controller.IsLeftPressed();
     public bool LeftReleased() => _controller.IsLeftReleased();
