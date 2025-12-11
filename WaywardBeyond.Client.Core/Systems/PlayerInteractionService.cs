@@ -235,19 +235,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             BrickShape shape = brickInfo.Shapeable ? SelectedShape.Get() : brickInfo.Shape;
             
             //  If the selected shape is orientable for the brick, apply orientation.
-            Orientation orientation = Orientation.Identity;
-            if (brickInfo.IsOrientable(shape))
-            {
-                //  Base off the selected orientation
-                orientation = SelectedOrientation.Get();
-
-                //  Apply pitch and yaw to look toward the camera
-                Camera camera = _renderContext.Camera.Get();
-                Vector3 lookAt = LookAtEuler(clickedPoint, transformComponent.Orientation, camera);
-                orientation.PitchRotations = (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-                orientation.YawRotations = (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
-                orientation.RollRotations = (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
-            }
+            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementOrientation(transformComponent) : Orientation.Identity;
 
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
@@ -256,22 +244,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             int soundIndex = Random.Shared.Next(1, 4);
             _audioService.Play($"sounds/metal_place.{soundIndex}.wav", _volumeSettings.MixEffects());
         }
-    }
-    
-    private static Vector3 LookAtEuler(Vector3 model, Quaternion orientation, Camera camera)
-    {
-        Vector3 worldDir = Vector3.Normalize(camera.Transform.Position - model);
-        
-        Quaternion invOrientation = Quaternion.Inverse(orientation);
-        Vector3 localDir = Vector3.Transform(worldDir, invOrientation);
-        
-        float yaw = MathF.Atan2(localDir.X, localDir.Z);
-        float pitch = MathF.Atan2(localDir.Y, MathF.Sqrt(localDir.X * localDir.X + localDir.Z * localDir.Z));
-        
-        Vector3 localUp = Vector3.UnitY;//Vector3.Transform(camera.Transform.GetUp(), invOrientation);
-        float roll = MathF.Atan2(localUp.X, localUp.Z);
-        
-        return new Vector3(pitch * (180f / MathF.PI), yaw * (180f / MathF.PI), roll * (180f / MathF.PI));
     }
     
     private void OnMiddleClick()
@@ -348,50 +320,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
-        Orientation brickOrientation = SelectedOrientation.Get();
-        Camera camera = _renderContext.Camera.Get();
-        // Vector3 lookAt = new Orientation(SnapToNearestRightAngle()).ToEulerAngles();//LookAtEuler(worldPos, transformComponent.Orientation, camera);
-        // brickOrientation.PitchRotations += (int)Math.Round(lookAt.X / 90, MidpointRounding.ToEven);
-        // brickOrientation.YawRotations += (int)Math.Round(lookAt.Y / 90, MidpointRounding.ToEven);
-        // brickOrientation.RollRotations += (int)Math.Round(lookAt.Z / 90, MidpointRounding.ToEven);
-
-        brickOrientation = new Orientation(transformComponent.Orientation);
-        // brickOrientation = new Orientation(Quaternion.Inverse(SnapToNearestRightAngle(transformComponent.GetForward(), transformComponent.GetUp(), transformComponent.GetRight())))
-        var brickQuaternion = brickOrientation.ToQuaternion();//Quaternion.Inverse(transformComponent.Orientation);
-        
-        Quaternion SnapToNearestRightAngle(Vector3 forward, Vector3 up, Vector3 right)
-        {
-            var mat = new Matrix4x4(
-                right.X, up.X, forward.X, 0,
-                right.Y, up.Y, forward.Y, 0,
-                right.Z, up.Z, forward.Z, 0,
-                0, 0, 0, 1
-            );
-            
-            return Quaternion.CreateFromRotationMatrix(mat);
-            
-            Vector3 SnappedToNearestAxis(Vector3 direction)
-            {
-                float x = Math.Abs(direction.X);
-                float y = Math.Abs(direction.Y);
-                float z = Math.Abs(direction.Z);
-                
-                if (x > y && x > z)
-                {
-                    return new Vector3(Math.Sign(direction.X), 0, 0);
-                }
-                
-                if (y > x && y > z)
-                {
-                    return new Vector3(0, Math.Sign(direction.Y), 0);
-                }
-                
-                return new Vector3(0, 0, Math.Sign(direction.Z));
-            }
-        }
-        
-        Quaternion placeableOrientation = brickQuaternion;
-        placeableOrientation = transformComponent.Orientation * placeableOrientation;
+        Quaternion placeableOrientation = GetPlacementQuaternion(transformComponent);
         
         _debugLines[0].Color = new Vector4(1, 0, 0, 1);
         _debugLines[0].Start = worldPos;
@@ -438,6 +367,24 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation));
     }
     
+    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent)
+    {
+        return transformComponent.Orientation * GetPlacementOrientation(transformComponent).ToQuaternion();
+    }
+    
+    private Orientation GetPlacementOrientation(TransformComponent transformComponent)
+    {
+        Camera camera = _renderContext.Camera.Get();
+        var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Orientation * transformComponent.Orientation);
+        
+        Orientation brickOrientation = SelectedOrientation.Get();
+        brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
+        brickOrientation.RollRotations += lookAtOrientation.RollRotations;
+        brickOrientation.YawRotations += lookAtOrientation.YawRotations;
+        
+        return brickOrientation;
+    }
+
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
         (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
