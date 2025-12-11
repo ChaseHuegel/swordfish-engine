@@ -51,6 +51,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly Line[] _debugLines;
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
+    private readonly DebugSettings _debugSettings;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -68,6 +69,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ItemDatabase itemDatabase,
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
+        in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase
     ) {
         _inputService = inputService;
@@ -82,7 +84,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _itemDatabase = itemDatabase;
         _audioService = audioService;
         _volumeSettings = volumeSettings;
-        
+        _debugSettings = debugSettings;
+
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
         Mesh slab = meshDatabase.Get("slab.obj").Value;
@@ -321,19 +324,29 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
         Quaternion placeableOrientation = GetPlacementQuaternion(transformComponent);
-        
-        _debugLines[0].Color = new Vector4(1, 0, 0, 1);
-        _debugLines[0].Start = worldPos;
-        _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, placeableOrientation);
-        
-        _debugLines[1].Color = new Vector4(0, 1, 0, 1);
-        _debugLines[1].Start = worldPos;
-        _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, placeableOrientation);
-        
-        _debugLines[2].Color = new Vector4(0, 0, 1, 1);
-        _debugLines[2].Start = worldPos;
-        _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, placeableOrientation);
-        
+
+        //  TODO clean this up
+        if (_debugSettings.OverlayVisible)
+        {
+            _debugLines[0].Color = new Vector4(1, 0, 0, 1);
+            _debugLines[0].Start = worldPos;
+            _debugLines[0].End = worldPos + Vector3.Transform(Vector3.UnitX, placeableOrientation);
+            
+            _debugLines[1].Color = new Vector4(0, 1, 0, 1);
+            _debugLines[1].Start = worldPos;
+            _debugLines[1].End = worldPos + Vector3.Transform(Vector3.UnitY, placeableOrientation);
+            
+            _debugLines[2].Color = new Vector4(0, 0, 1, 1);
+            _debugLines[2].Start = worldPos;
+            _debugLines[2].End = worldPos + Vector3.Transform(Vector3.UnitZ, placeableOrientation);
+        }
+        else
+        {
+            _debugLines[0].Color = Vector4.Zero;
+            _debugLines[1].Color = Vector4.Zero;
+            _debugLines[2].Color = Vector4.Zero;
+        }
+
         if (!holdingPlaceable)
         {
             _activeGizmo.Visible = false;

@@ -6,6 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -13,14 +14,19 @@ internal class DebugOverlayRenderer : IUILayer
 {
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
+    private readonly DebugSettings _debugSettings;
     private readonly IDebugOverlay[] _overlays;
-
-    private bool _visible;
     
-    public DebugOverlayRenderer(ILogger<DebugOverlayRenderer> logger, ReefContext reefContext, IShortcutService shortcutService, IDebugOverlay[] overlays)
-    {
+    public DebugOverlayRenderer(
+        ILogger<DebugOverlayRenderer> logger,
+        ReefContext reefContext,
+        IShortcutService shortcutService,
+        DebugSettings debugSettings,
+        IDebugOverlay[] overlays
+    ) {
         _logger = logger;
         _reefContext = reefContext;
+        _debugSettings = debugSettings;
         _overlays = overlays;
 
         var shortcut = new Shortcut
@@ -36,7 +42,7 @@ internal class DebugOverlayRenderer : IUILayer
 
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing && _visible;
+        return WaywardBeyond.GameState == GameState.Playing && _debugSettings.OverlayVisible;
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
@@ -80,6 +86,6 @@ internal class DebugOverlayRenderer : IUILayer
     
     private void OnToggleDebugOverlay()
     {
-        _visible = !_visible;
+        _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
     }
 }
