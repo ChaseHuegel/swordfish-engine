@@ -401,8 +401,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
         (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
+
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
+        string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : "UNKNOWN";
         
-        using (ui.Text($"Voxel: {debugInfo.Voxel}")) {}
+        using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position}")) {}
         
