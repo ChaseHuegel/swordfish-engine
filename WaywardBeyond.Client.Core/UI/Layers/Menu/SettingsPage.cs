@@ -49,7 +49,7 @@ internal sealed class SettingsPage(
                 Width = new Fixed(250),
                 Height = new Relative(0.5f),
             };
-
+            
             using (ui.Text("Display"))
             {
                 ui.FontSize = 24;
@@ -57,7 +57,7 @@ internal sealed class SettingsPage(
             
             bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
             _renderSettings.VSync.Set(value);
-
+            
             value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
             
@@ -88,12 +88,7 @@ internal sealed class SettingsPage(
                 _volumeSettings,
                 OnLookSensitivityChanged
             );
-            
-            void OnLookSensitivityChanged(int newValue)
-            {
-                _controlSettings.LookSensitivity.Set(newValue);
-            }
-            
+
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -118,12 +113,7 @@ internal sealed class SettingsPage(
                 _volumeSettings,
                 OnMasterVolumeChanged
             );
-            
-            void OnMasterVolumeChanged(float newValue)
-            {
-                _volumeSettings.Master.Set(newValue);
-            }
-            
+
             ui.NumberControl(
                 id: "Control_Volume_Interface",
                 text: "Interface",
@@ -135,12 +125,7 @@ internal sealed class SettingsPage(
                 _volumeSettings,
                 OnInterfaceVolumeChanged
             );
-            
-            void OnInterfaceVolumeChanged(float newValue)
-            {
-                _volumeSettings.Interface.Set(newValue);
-            }
-            
+
             ui.NumberControl(
                 id: "Control_Volume_Effects",
                 text: "Effects",
@@ -176,5 +161,20 @@ internal sealed class SettingsPage(
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void OnLookSensitivityChanged(int newValue)
+    {
+        _controlSettings.LookSensitivity.Set(newValue);
+    }
+
+    private void OnMasterVolumeChanged(float newValue)
+    {
+        _volumeSettings.Master.Set(newValue);
+    }
+
+    private void OnInterfaceVolumeChanged(float newValue)
+    {
+        _volumeSettings.Interface.Set(newValue);
     }
 }
