@@ -9,11 +9,12 @@ using WaywardBeyond.Client.Core.Configuration;
 namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class PlayerControllerSystem
-    : EntitySystem<PlayerComponent, TransformComponent>
+    : EntitySystem<PlayerComponent, PhysicsComponent>
 {
     private const float MOUSE_SENSITIVITY = 0.15f;
-    private const float BASE_SPEED = 20;
+    private const float BASE_SPEED = 10;
     private const float ROLL_RATE = 60;
+    private const float DECELERATION = 0.5f;
 
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
@@ -68,9 +69,14 @@ internal sealed class PlayerControllerSystem
         SetMouseLook(!_mouseLookEnabled);
     }
 
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
+    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref PhysicsComponent physics)
     {
         if (_windowUnfocused)
+        {
+            return;
+        }
+        
+        if (!store.TryGet(entity, out TransformComponent transform))
         {
             return;
         }
@@ -79,56 +85,72 @@ internal sealed class PlayerControllerSystem
         {
             Vector2 cursorDelta = _inputService.CursorDelta;
             float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-            Rotate(ref transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
-            Rotate(ref transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            // Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            // Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
         }
         
         Vector3 forward = transform.GetForward();
         Vector3 right = transform.GetRight();
         Vector3 up = transform.GetUp();
-
+        
+        var velocity = new Vector3();
+        
         if (_inputService.IsKeyHeld(Key.W))
         {
-            transform.Position -= forward * BASE_SPEED * delta;
+            velocity -= forward;
         }
-
+        
         if (_inputService.IsKeyHeld(Key.S))
         {
-            transform.Position += forward * BASE_SPEED * delta;
+            velocity += forward;
         }
-
+        
         if (_inputService.IsKeyHeld(Key.D))
         {
-            transform.Position += right * BASE_SPEED * delta;
+            velocity += right;
         }
-
+        
         if (_inputService.IsKeyHeld(Key.A))
         {
-            transform.Position -= right * BASE_SPEED * delta;
+            velocity -= right;
         }
-
+        
         if (_inputService.IsKeyHeld(Key.Space))
         {
-            transform.Position += up * BASE_SPEED * delta;
+            velocity += up;
         }
-
+        
         if (_inputService.IsKeyHeld(Key.Control))
         {
-            transform.Position -= up * BASE_SPEED * delta;
+            velocity -= up;
         }
         
         if (_inputService.IsKeyHeld(Key.Q))
         {
-            Rotate(ref transform, new Vector3(0, 0, ROLL_RATE * delta), true);
+            // Rotate(ref transform, new Vector3(0, 0, ROLL_RATE * delta), true);
         }
         
         if (_inputService.IsKeyHeld(Key.E))
         {
-            Rotate(ref transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
+            // Rotate(ref transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
         }
+        
+        physics.Velocity += -physics.Velocity * delta * DECELERATION;
+        if (physics.Velocity.LengthSquared() <= 0.001f)
+        {
+            physics.Velocity = new Vector3();
+        }
+
+        physics.Torque += -physics.Torque * delta * DECELERATION;
+        if (physics.Torque.LengthSquared() <= 0.001f)
+        {
+            physics.Torque = new Vector3();
+        }
+        
+        physics.Velocity += velocity * BASE_SPEED * delta;
     }
-    
-    private void Rotate(ref TransformComponent transform, Vector3 rotation, bool local = false)
+
+    private void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation, bool local = false)
     {
         var eulerQuaternion = Quaternion.CreateFromYawPitchRoll(rotation.Y * MathS.DEGREES_TO_RADIANS, rotation.X * MathS.DEGREES_TO_RADIANS, rotation.Z * MathS.DEGREES_TO_RADIANS);
         if (local)

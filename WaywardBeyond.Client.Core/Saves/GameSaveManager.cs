@@ -6,6 +6,7 @@ using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
@@ -42,6 +43,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             player.Add<EquipmentComponent>();
             player.AddOrUpdate(new IdentifierComponent("Player", "player"));
             player.AddOrUpdate(new TransformComponent(new Vector3(_save.Level.SpawnX, _save.Level.SpawnY, _save.Level.SpawnZ), Quaternion.Identity));
+            player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+            player.AddOrUpdate(new ColliderComponent(new Shape(new Capsule(height: 1.77f, radius: 0.2f))));
             player.AddOrUpdate(inventory);
             inventory.Contents[0] = new ItemStack("panel", count: 1000);
             inventory.Contents[1] = new ItemStack("thruster", count: 1000);
