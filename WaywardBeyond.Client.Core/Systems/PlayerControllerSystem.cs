@@ -11,10 +11,11 @@ namespace WaywardBeyond.Client.Core.Systems;
 internal sealed class PlayerControllerSystem
     : EntitySystem<PlayerComponent, PhysicsComponent>
 {
-    private const float MOUSE_SENSITIVITY = 0.15f;
+    private const float MOUSE_SENSITIVITY = 0.01f;
     private const float BASE_SPEED = 10;
-    private const float ROLL_RATE = 60;
+    private const float ROLL_RATE = 20;
     private const float DECELERATION = 0.5f;
+    private const float ANGULAR_DECELERATION = 7f;
 
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
@@ -81,12 +82,24 @@ internal sealed class PlayerControllerSystem
             return;
         }
         
+        physics.Torque += -physics.Torque * delta * ANGULAR_DECELERATION;
+        if (physics.Torque.LengthSquared() <= 0.001f)
+        {
+            physics.Torque = new Vector3();
+        }
+        
+        physics.Velocity += -physics.Velocity * delta * DECELERATION;
+        if (physics.Velocity.LengthSquared() <= 0.001f)
+        {
+            physics.Velocity = new Vector3();
+        }
+        
         if (_mouseLookEnabled && !_inputService.IsKeyHeld(Key.Alt))
         {
             Vector2 cursorDelta = _inputService.CursorDelta;
             float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-            // Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
-            // Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
         }
         
         Vector3 forward = transform.GetForward();
@@ -127,24 +140,12 @@ internal sealed class PlayerControllerSystem
         
         if (_inputService.IsKeyHeld(Key.Q))
         {
-            // Rotate(ref transform, new Vector3(0, 0, ROLL_RATE * delta), true);
+            Rotate(ref physics, transform, new Vector3(0, 0, ROLL_RATE * delta), true);
         }
         
         if (_inputService.IsKeyHeld(Key.E))
         {
-            // Rotate(ref transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
-        }
-        
-        physics.Velocity += -physics.Velocity * delta * DECELERATION;
-        if (physics.Velocity.LengthSquared() <= 0.001f)
-        {
-            physics.Velocity = new Vector3();
-        }
-
-        physics.Torque += -physics.Torque * delta * DECELERATION;
-        if (physics.Torque.LengthSquared() <= 0.001f)
-        {
-            physics.Torque = new Vector3();
+            Rotate(ref physics, transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
         }
         
         physics.Velocity += velocity * BASE_SPEED * delta;
@@ -152,15 +153,7 @@ internal sealed class PlayerControllerSystem
 
     private void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation, bool local = false)
     {
-        var eulerQuaternion = Quaternion.CreateFromYawPitchRoll(rotation.Y * MathS.DEGREES_TO_RADIANS, rotation.X * MathS.DEGREES_TO_RADIANS, rotation.Z * MathS.DEGREES_TO_RADIANS);
-        if (local)
-        {
-            transform.Orientation = Quaternion.Multiply(transform.Orientation, eulerQuaternion);
-        }
-        else
-        {
-            transform.Orientation = Quaternion.Multiply(eulerQuaternion, transform.Orientation);
-        }
+        physics.Torque += Vector3.Transform(rotation, transform.Orientation);
     }
     
     private void OnWindowFocused()
