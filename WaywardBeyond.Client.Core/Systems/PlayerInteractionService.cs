@@ -446,7 +446,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         Vector3? reachAroundDir = null;
         Ray ray = camera.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
-        //  TODO offset origin by the player's collider without hardcoded value or allow raycasting against a layer mask
+        //  TODO #319 offset origin by the player's collider without hardcoded value or allow raycasting against a layer mask
         ray = new Ray(ray.Origin + new Vector3(0.26f) * ray.Vector, ray.Vector * 9.5f);
         if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out voxelComponent, out transformComponent))
         {
