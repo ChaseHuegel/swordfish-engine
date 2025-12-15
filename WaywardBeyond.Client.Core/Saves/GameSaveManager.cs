@@ -45,8 +45,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             player.AddOrUpdate(new TransformComponent(new Vector3(_save.Level.SpawnX, _save.Level.SpawnY, _save.Level.SpawnZ), Quaternion.Identity));
             player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
             
-            var playerCapsule = new Shape(new Capsule(height: 1f, radius: 0.2f));
-            var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, 0f, 0f)], [Quaternion.Identity]);
+            var playerCapsule = new Shape(new Box3(new Vector3(0.25f, 1.7f, 0.25f)));
+            var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, -0.75f, 0f)], [Quaternion.Identity]);
             player.AddOrUpdate(new ColliderComponent(playerCollider));
             
             player.AddOrUpdate(inventory);

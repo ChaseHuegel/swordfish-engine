@@ -11,11 +11,11 @@ namespace WaywardBeyond.Client.Core.Systems;
 internal sealed class PlayerControllerSystem
     : EntitySystem<PlayerComponent, PhysicsComponent>
 {
-    private const float MOUSE_SENSITIVITY = 0.01f;
+    private const float MOUSE_SENSITIVITY = 0.1f;
     private const float BASE_SPEED = 10;
-    private const float ROLL_RATE = 20;
-    private const float DECELERATION = 0.5f;
-    private const float ANGULAR_DECELERATION = 7f;
+    private const float ROLL_RATE = 50;
+    private const float DECELERATION = 2f;
+    private const float ANGULAR_DECELERATION = 50f;
 
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
@@ -83,13 +83,13 @@ internal sealed class PlayerControllerSystem
         }
         
         physics.Torque += -physics.Torque * delta * ANGULAR_DECELERATION;
-        if (physics.Torque.LengthSquared() <= 0.001f)
+        if (physics.Torque.LengthSquared() <= 0.0001f)
         {
             physics.Torque = new Vector3();
         }
         
         physics.Velocity += -physics.Velocity * delta * DECELERATION;
-        if (physics.Velocity.LengthSquared() <= 0.001f)
+        if (physics.Velocity.LengthSquared() <= 0.0001f)
         {
             physics.Velocity = new Vector3();
         }
