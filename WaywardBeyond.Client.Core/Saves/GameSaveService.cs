@@ -1,18 +1,15 @@
 using System;
 using System.IO;
-using System.Linq;
-using System.Numerics;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
-using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
-using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Saves;
@@ -21,8 +18,9 @@ internal sealed class GameSaveService(
     in ILogger<GameSaveService> logger,
     in IECSContext ecs,
     in ISerializer<VoxelEntityModel> voxelEntitySerializer,
-    in VoxelEntityBuilder voxelEntityBuilder,
-    in NotificationService notificationService
+    in NotificationService notificationService,
+    in ILoadStage<GameOptions>[] createStages,
+    in ILoadStage<GameSave>[] loadStages
 ) {
     private const string SAVES_FOLDER = "saves/";
     private const string GRIDS_FOLDER = "voxelEntities/";
@@ -30,11 +28,20 @@ internal sealed class GameSaveService(
     private readonly ILogger _logger = logger;
     private readonly IECSContext _ecs = ecs;
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
-    private readonly VoxelEntityBuilder _voxelEntityBuilder = voxelEntityBuilder;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly ILoadStage<GameOptions>[] _createStages = createStages;
+    private readonly ILoadStage<GameSave>[] _loadStages = loadStages;
 
     private readonly PathInfo _savesDirectory = new(SAVES_FOLDER);
-
+    
+    private IProgressStage? _currentStage;
+    
+    public string GetStatus()
+    {
+        IProgressStage? stage = _currentStage;
+        return stage != null ? stage.GetStatus() : "Complete";
+    }
+    
     public GameSave[] GetSaves()
     {
         PathInfo[] saveDirectories = _savesDirectory.GetFolders();
@@ -59,6 +66,8 @@ internal sealed class GameSaveService(
     
     public GameSave CreateSave(GameOptions options)
     {
+        _notificationService.Push(new Notification($"Creating \"{options.Name}\"..."));
+        
         PathInfo saveDirectory = _savesDirectory.At(options.Name);
         Directory.CreateDirectory(saveDirectory);
         
@@ -71,22 +80,40 @@ internal sealed class GameSaveService(
         var save = new GameSave(saveDirectory, options.Name, level);
         
         Save(save);
+        
+        _notificationService.Push(new Notification($"Created save \"{options.Name}\"."));
         return save;
     }
-
-    public void Load(GameSave save)
+    
+    //  TODO #325 loading a save should implicitly generate any missing data
+    [Obsolete("This will be unified with Load in the future.")]
+    public async Task GenerateSaveData(GameOptions options)
     {
-        _notificationService.Push(new Notification("Loading..."));
-
-        PathInfo saveDirectory = save.Path.At(GRIDS_FOLDER);
-        foreach (PathInfo gridFile in saveDirectory.GetFiles().OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer()))
-        {
-            byte[] data = gridFile.ReadBytes();
-            VoxelEntityModel voxelEntityModel = _voxelEntitySerializer.Deserialize(data);
-            
-            _voxelEntityBuilder.Create(voxelEntityModel.Guid, voxelEntityModel.VoxelObject, voxelEntityModel.Position, voxelEntityModel.Orientation, Vector3.One);
-        }
+        _notificationService.Push(new Notification($"Loading \"{options.Name}\"..."));
         
+        for (var i = 0; i < _createStages.Length; i++)
+        {
+            ILoadStage<GameOptions> stage = _createStages[i];
+            _currentStage = stage;
+            await stage.Load(options);
+        }
+
+        _currentStage = null;
+        _notificationService.Push(new Notification($"Loaded save \"{options.Name}\"."));
+    }
+
+    public async Task Load(GameSave save)
+    {
+        _notificationService.Push(new Notification($"Loading \"{save.Name}\"..."));
+        
+        for (var i = 0; i < _loadStages.Length; i++)
+        {
+            ILoadStage<GameSave> stage = _loadStages[i];
+            _currentStage = stage;
+            await stage.Load(save);
+        }
+
+        _currentStage = null;
         _notificationService.Push(new Notification($"Loaded save \"{save.Name}\"."));
     }
     

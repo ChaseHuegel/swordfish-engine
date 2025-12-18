@@ -13,6 +13,8 @@ using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Saves.LoadGame;
+using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -40,6 +42,9 @@ public class Injector : IDryIocInjector
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
+        container.Register<ILoadStage<GameOptions>, StarterShipNewGameStage>();
+        container.Register<ILoadStage<GameOptions>, WorldGenNewGameStage>();
+        container.Register<ILoadStage<GameSave>, VoxelEntityLoadStage>();
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
