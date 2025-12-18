@@ -97,8 +97,8 @@ internal sealed class PlayerControllerSystem
         {
             Vector2 cursorDelta = _inputService.CursorDelta;
             float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-            Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
-            Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier, true);
+            Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+            Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
         }
         
         Vector3 forward = transform.GetForward();
@@ -139,18 +139,18 @@ internal sealed class PlayerControllerSystem
         
         if (_inputService.IsKeyHeld(Key.Q))
         {
-            Rotate(ref physics, transform, new Vector3(0, 0, ROLL_RATE * delta), true);
+            Rotate(ref physics, transform, new Vector3(0, 0, ROLL_RATE * delta));
         }
         
         if (_inputService.IsKeyHeld(Key.E))
         {
-            Rotate(ref physics, transform, new Vector3(0, 0, -ROLL_RATE * delta), true);
+            Rotate(ref physics, transform, new Vector3(0, 0, -ROLL_RATE * delta));
         }
         
         physics.Velocity += velocity * BASE_SPEED * delta;
     }
 
-    private void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation, bool local = false)
+    private static void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation)
     {
         physics.Torque += Vector3.Transform(rotation, transform.Orientation);
     }
