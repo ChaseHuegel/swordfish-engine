@@ -254,6 +254,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _ecs.World.DataStore.Query<PlayerComponent>(0f, CleanupPlayerQuery);
         void CleanupPlayerQuery(float delta, DataStore store, int entity, ref PlayerComponent player)
         {
+            if (store.TryGet(entity, out PhysicsComponent physicsComponent))
+            {
+                physicsComponent.Dispose();
+            }
+            
             store.Free(entity);
         }
         
