@@ -82,13 +82,13 @@ internal sealed class PlayerControllerSystem
         }
         
         physics.Torque += -physics.Torque * delta * ANGULAR_DECELERATION;
-        if (physics.Torque.LengthSquared() <= 0.0001f)
+        if (physics.Torque.LengthSquared() <= 0.00001f)
         {
             physics.Torque = new Vector3();
         }
         
         physics.Velocity += -physics.Velocity * delta * DECELERATION;
-        if (physics.Velocity.LengthSquared() <= 0.0001f)
+        if (physics.Velocity.LengthSquared() <= 0.00001f)
         {
             physics.Velocity = new Vector3();
         }
