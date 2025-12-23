@@ -11,6 +11,7 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
@@ -110,15 +111,20 @@ public class Injector : IDryIocInjector
     {
         container.Register<ItemDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
+        
         container.Register<BrickDatabase>(Reuse.Singleton);
         container.RegisterMapping<IBrickDatabase, BrickDatabase>();
         container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
+        
+        container.Register<LocalizedTagsDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<LocalizedTags>, LocalizedTagsDatabase>();
     }
     
     private static void RegisterParsers(IContainer container)
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
+        container.RegisterTomlParser<LocalizedTagsDefinition>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
     }
