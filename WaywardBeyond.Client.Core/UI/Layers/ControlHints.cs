@@ -2,14 +2,20 @@
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
-internal class ControlHints(in OrientationSelector orientationSelector, in ShapeSelector shapeSelector) : IUILayer
+internal class ControlHints(
+    in OrientationSelector orientationSelector,
+    in ShapeSelector shapeSelector,
+    in ILocalization localization
+) : IUILayer
 {
     private readonly OrientationSelector _orientationSelector = orientationSelector;
     private readonly ShapeSelector _shapeSelector = shapeSelector;
+    private readonly ILocalization _localization = localization;
 
     public bool IsVisible()
     {
@@ -30,17 +36,17 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
 
             if (_shapeSelector.Available)
             {
-                using (ui.Text("R: Change shape")) {}
+                using (ui.Text(_localization.GetString("ui.hint.changeShape")!)) {}
             }
 
             if (_orientationSelector.Available)
             {
-                using (ui.Text("T: Change orientation")) {}
+                using (ui.Text(_localization.GetString("ui.hint.changeOrientation")!)) {}
             }
             
-            using (ui.Text("MMB: Pick brick")) {}
-            using (ui.Text("LMB: Break brick")) {}
-            using (ui.Text("RMB: Place brick")) {}
+            using (ui.Text(_localization.GetString("ui.hint.pickBrick")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.breakBrick")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.placeBrick")!)) {}
             
             using (ui.Element())
             {
@@ -51,10 +57,10 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 };
             }
             
-            using (ui.Text("Q/E: Roll")) {}
-            using (ui.Text("Space: Up")) {}
-            using (ui.Text("Ctrl: Down")) {}
-            using (ui.Text("W/A/S/D: Fly")) {}
+            using (ui.Text(_localization.GetString("ui.hint.movement.roll")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.movement.up")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.movement.down")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.movement")!)) {}
             
             using (ui.Element())
             {
@@ -65,9 +71,9 @@ internal class ControlHints(in OrientationSelector orientationSelector, in Shape
                 };
             }
             
-            using (ui.Text("Esc: Quit")) {}
-            using (ui.Text("F5: Quicksave")) {}
-            using (ui.Text("Tab: Toggle mouselook")) {}
+            using (ui.Text(_localization.GetString("ui.hint.quit")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.quicksave")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.toggleMouselook")!)) {}
         }
         
         return Result.FromSuccess();

@@ -1,0 +1,9 @@
+"Language" = "en"
+
+[Translations]
+"brick.shape.block" = "Block"
+"brick.shape.slab" = "Slab"
+"brick.shape.stair" = "Stair"
+"brick.shape.slope" = "Slope"
+"brick.shape.column" = "Column"
+"brick.shape.plate" = "Plate"

@@ -1,11 +1,9 @@
-using System;
-using System.Globalization;
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.Configuration;
@@ -19,7 +17,8 @@ internal sealed class SettingsPage(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
-    in IAudioService audioService
+    in IAudioService audioService,
+    in ILocalization localization
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Settings;
@@ -30,6 +29,7 @@ internal sealed class SettingsPage(
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly IAudioService _audioService = audioService;
+    private readonly ILocalization _localization = localization;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -50,18 +50,18 @@ internal sealed class SettingsPage(
                 Height = new Relative(0.5f),
             };
             
-            using (ui.Text("Display"))
+            using (ui.Text(_localization.GetString("ui.menu.display")!))
             {
                 ui.FontSize = 24;
             }
             
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: "VSync", isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
             _renderSettings.VSync.Set(value);
             
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: "Fullscreen", isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
             
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: "Anti-aliasing", isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
             using (ui.Element())
@@ -72,14 +72,14 @@ internal sealed class SettingsPage(
                 };
             }
             
-            using (ui.Text("Controls"))
+            using (ui.Text(_localization.GetString("ui.menu.controls")!))
             {
                 ui.FontSize = 24;
             }
             
             ui.NumberControl(
                 id: "Control_LookSensitivity",
-                text: "Sensitivity",
+                text: _localization.GetString("ui.setting.mouseSensitivity")!,
                 _controlSettings.LookSensitivity,
                 constraints: new Int2(1, 10),
                 display: new Int2(1, 10),
@@ -97,14 +97,14 @@ internal sealed class SettingsPage(
                 };
             }
             
-            using (ui.Text("Volume"))
+            using (ui.Text(_localization.GetString("ui.menu.volume")!))
             {
                 ui.FontSize = 24;
             }
             
             ui.NumberControl(
                 id: "Control_Volume_Master",
-                text: "Master",
+                text: _localization.GetString("ui.setting.volume.master")!,
                 _volumeSettings.Master,
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
@@ -116,7 +116,7 @@ internal sealed class SettingsPage(
 
             ui.NumberControl(
                 id: "Control_Volume_Interface",
-                text: "Interface",
+                text: _localization.GetString("ui.setting.volume.interface")!,
                 _volumeSettings.Interface,
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
@@ -128,7 +128,7 @@ internal sealed class SettingsPage(
 
             ui.NumberControl(
                 id: "Control_Volume_Effects",
-                text: "Effects",
+                text: _localization.GetString("ui.setting.volume.effects")!,
                 _volumeSettings.Effects,
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
@@ -153,7 +153,7 @@ internal sealed class SettingsPage(
                 Y = new Relative(0.99f),
             };
 
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService, _volumeSettings))
+            if (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonFontOptions, _audioService, _volumeSettings))
             {
                 _settingsManager.ApplySettings();
                 menu.GoBack();

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -6,6 +7,7 @@ using Reef.UI;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
@@ -26,6 +28,7 @@ internal class ShapeSelector : IUILayer
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
+    private readonly ILocalization _localization;
     
     private readonly Material _labelImage;
     private readonly Material _backgroundImage;
@@ -43,13 +46,15 @@ internal class ShapeSelector : IUILayer
         PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
-        IECSContext ecsContext
+        IECSContext ecsContext,
+        in ILocalization localization
     ) {
         _playerControllerSystem = playerControllerSystem;
         _playerInteractionService = playerInteractionService;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _ecsContext = ecsContext;
+        _localization = localization;
         
         Result<Shader> shader = shaderDatabase.Get("ui_reef_textured");
         _backgroundImage = new Material(shader, textureDatabase.Get("ui/shape_background.png"));
@@ -198,7 +203,8 @@ internal class ShapeSelector : IUILayer
                 Height = new Fixed(24),
             };
 
-            using (ui.Text(_playerInteractionService.SelectedShape.Get().ToString()))
+            string shapeTranslationKey = GetShapeTranslationKey(_playerInteractionService.SelectedShape);
+            using (ui.Text(_localization.GetString(shapeTranslationKey)!))
             {
                 ui.Constraints = new Constraints
                 {
@@ -253,5 +259,19 @@ internal class ShapeSelector : IUILayer
         PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
         Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
         return brickInfoResult.Success && brickInfoResult.Value.Shapeable;
+    }
+
+    private static string GetShapeTranslationKey(BrickShape shape)
+    {
+        return shape switch
+        {
+            BrickShape.Block => "brick.shape.block",
+            BrickShape.Slab => "brick.shape.slab",
+            BrickShape.Stair => "brick.shape.stair",
+            BrickShape.Slope => "brick.shape.slope",
+            BrickShape.Column => "brick.shape.column",
+            BrickShape.Plate => "brick.shape.plate",
+            _ => "UNKNOWN",
+        };
     }
 }

@@ -5,6 +5,7 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
@@ -17,7 +18,8 @@ internal sealed class SingleplayerPage(
     in GameSaveService gameSaveService,
     in IInputService inputService,
     in IAudioService audioService,
-    in VolumeSettings volumeSettings
+    in VolumeSettings volumeSettings,
+    in ILocalization localization
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Singleplayer;
@@ -27,6 +29,7 @@ internal sealed class SingleplayerPage(
     private readonly IInputService _inputService = inputService;
     private readonly IAudioService _audioService = audioService;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
+    private readonly ILocalization _localization = localization;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -62,15 +65,15 @@ internal sealed class SingleplayerPage(
                     X = new Relative(0.5f),
                 };
 
-                using (ui.Text("Game Saves"))
+                using (ui.Text(_localization.GetString("ui.menu.saves")!))
                 {
                     ui.FontSize = 24;
                 }
             }
             
-            if (ui.TextButton(id: "Button_NewGame", text: "+ New game", _saveFontOptions, _audioService, _volumeSettings))
+            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings))
             {
-                var options = new GameOptions(name: $"playtest{saves.Length + 1}", seed: "wayward beyond");
+                var options = new GameOptions(name: $"{_localization.GetString("ui.field.defaultSaveName")!}{saves.Length + 1}", seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             

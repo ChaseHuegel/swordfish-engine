@@ -9,6 +9,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Meta;
@@ -39,6 +40,8 @@ public class Injector : IDryIocInjector
         RegisterVoxels(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
+        
+        container.Register<LocalizedFormatter>(Reuse.Singleton);
         
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);

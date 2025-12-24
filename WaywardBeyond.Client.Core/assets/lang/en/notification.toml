@@ -1,0 +1,11 @@
+"Language" = "en"
+
+[Translations]
+"notification.save.creating" = "Creating \"{0}\"..."
+"notification.save.created" = "Created save \"{0}\"."
+"notification.save.loading" = "Loading \"{0}\"..."
+"notification.save.loaded" = "Loaded save \"{0}\"."
+"notification.save.saving" = "Saving \"{0}\"..."
+"notification.save.saved" = "Saved \"{0}\"."
+"notification.save.saving.failed" = "Save failed, some information may be lost."
+

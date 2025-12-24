@@ -8,7 +8,7 @@ using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using WaywardBeyond.Client.Core.Components;
-using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels.Models;
 
@@ -16,6 +16,7 @@ namespace WaywardBeyond.Client.Core.Saves;
 
 internal sealed class GameSaveService(
     in ILogger<GameSaveService> logger,
+    in LocalizedFormatter localizedFormatter,
     in IECSContext ecs,
     in ISerializer<VoxelEntityModel> voxelEntitySerializer,
     in NotificationService notificationService,
@@ -26,6 +27,7 @@ internal sealed class GameSaveService(
     private const string GRIDS_FOLDER = "voxelEntities/";
     
     private readonly ILogger _logger = logger;
+    private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly IECSContext _ecs = ecs;
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
     private readonly NotificationService _notificationService = notificationService;
@@ -66,7 +68,7 @@ internal sealed class GameSaveService(
     
     public GameSave CreateSave(GameOptions options)
     {
-        _notificationService.Push(new Notification($"Creating \"{options.Name}\"..."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
         
         PathInfo saveDirectory = _savesDirectory.At(options.Name);
         Directory.CreateDirectory(saveDirectory);
@@ -81,7 +83,7 @@ internal sealed class GameSaveService(
         
         Save(save);
         
-        _notificationService.Push(new Notification($"Created save \"{options.Name}\"."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.created", options.Name));
         return save;
     }
     
@@ -89,7 +91,7 @@ internal sealed class GameSaveService(
     [Obsolete("This will be unified with Load in the future.")]
     public async Task GenerateSaveData(GameOptions options)
     {
-        _notificationService.Push(new Notification($"Loading \"{options.Name}\"..."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.loading", options.Name));
         
         for (var i = 0; i < _createStages.Length; i++)
         {
@@ -99,12 +101,12 @@ internal sealed class GameSaveService(
         }
 
         _currentStage = null;
-        _notificationService.Push(new Notification($"Loaded save \"{options.Name}\"."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.loaded", options.Name));
     }
 
     public async Task Load(GameSave save)
     {
-        _notificationService.Push(new Notification($"Loading \"{save.Name}\"..."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.loading", save.Name));
         
         for (var i = 0; i < _loadStages.Length; i++)
         {
@@ -114,12 +116,12 @@ internal sealed class GameSaveService(
         }
 
         _currentStage = null;
-        _notificationService.Push(new Notification($"Loaded save \"{save.Name}\"."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.loaded", save.Name));
     }
     
     public void Save(GameSave save)
     {
-        _notificationService.Push(new Notification("Saving..."));
+        _notificationService.Push(_localizedFormatter.GetString("notification.save.saving", save.Name));
         
         //  Save the level.dat
         Directory.CreateDirectory(save.Path);
@@ -161,11 +163,11 @@ internal sealed class GameSaveService(
 
         if (anyErrors)
         {
-            _notificationService.Push(new Notification("Save failed, some information may be lost."));
+            _notificationService.Push(_localizedFormatter.GetString("notification.save.saving.failed", save.Name));
         }
         else
         {
-            _notificationService.Push(new Notification("Save complete."));
+            _notificationService.Push(_localizedFormatter.GetString("notification.save.saved", save.Name));
         }
     }
 }
