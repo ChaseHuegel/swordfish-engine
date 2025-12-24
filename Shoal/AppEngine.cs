@@ -196,7 +196,9 @@ public sealed class AppEngine : IDisposable
         container.RegisterDataBinding<string>();
 
         container.RegisterDelegate(SmartFormatterProvider.Resolve);
-        container.Register<ILocalizationProvider, Localization>(Reuse.Singleton);
+        container.Register<Localization>(Reuse.Singleton);
+        container.RegisterMapping<ILocalization, Localization>();
+        container.RegisterMapping<ILocalizationProvider, Localization>();
         container.Register<IFormatter, LocalizationFormatter>(Reuse.Singleton);
         container.RegisterDelegate<IReadOnlyCollection<Language>>(() => container.Resolve<ConfigurationProvider>().GetLanguages().Select(languageFile => languageFile.Value).ToList());
 
