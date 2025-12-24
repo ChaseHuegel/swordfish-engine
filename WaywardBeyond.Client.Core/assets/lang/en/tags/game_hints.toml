@@ -1,0 +1,9 @@
+"Language" = "en"
+
+[Tags]
+"game_hints" = [
+    "The game auto-saves every 5 minutes",
+    "Pressing [MMB] copies bricks",
+    "[TAB] toggles mouse look",
+    "Use [F5] to save at any time",
+]
