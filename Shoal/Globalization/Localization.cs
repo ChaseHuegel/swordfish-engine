@@ -13,7 +13,7 @@ internal class Localization : ILocalizationProvider, ILocalization
             {
                 foreach (KeyValuePair<string, string> translation in languageDefinition.Translations)
                 {
-                    language.Translations.Add(translation.Key, translation.Value);
+                    language.Translations[translation.Key] = translation.Value;
                 }
             }
             else
