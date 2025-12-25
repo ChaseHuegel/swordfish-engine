@@ -203,8 +203,14 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     private void SyncJoltToEntity(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
-        if (physics.Body == null)
+        if (physics.Body == null || physics.Disposed)
         {
+            return;
+        }
+
+        if (physics.Disposing)
+        {
+            physics.FinalizeDispose();
             return;
         }
         

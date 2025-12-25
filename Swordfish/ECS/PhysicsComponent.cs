@@ -17,6 +17,9 @@ public struct PhysicsComponent : IDataComponent, IDisposable
     internal BodyInterface? BodyInterface;
     internal Body? Body;
     internal BodyID? BodyID;
+    internal bool Disposing;
+    
+    internal bool Disposed => Disposing && Body == null;
 
     public PhysicsComponent(byte layer, BodyType type, CollisionDetection collisionDetection)
     {
@@ -37,11 +40,22 @@ public struct PhysicsComponent : IDataComponent, IDisposable
 
     public void Dispose()
     {
+        Disposing = true;
+    }
+
+    //  TODO really need a better way to handle cleaning up native resources tied to components
+    internal void FinalizeDispose()
+    {
+        if (Disposed)
+        {
+            return;
+        }
+        
         if (BodyID != null && BodyInterface != null)
         {
-            BodyInterface?.RemoveAndDestroyBody(BodyID.Value);
             BodyID = null;
             BodyInterface = null;
+            BodyInterface?.RemoveAndDestroyBody(BodyID.Value);
         }
 
         if (Body != null)
