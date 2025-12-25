@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
+using System.Threading.Tasks;
 using Reef;
 using Shoal.Modularity;
 using Swordfish.Audio;
@@ -151,21 +152,24 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         {
             return;
         }
-        
-        if (e.MouseButton == MouseButton.Left)
+
+        Task.Run(() =>
         {
-            OnLeftClick();
-        }
+            if (e.MouseButton == MouseButton.Left)
+            {
+                OnLeftClick();
+            }
         
-        if (e.MouseButton == MouseButton.Right)
-        {
-            OnRightClick();
-        }
+            if (e.MouseButton == MouseButton.Right)
+            {
+                OnRightClick();
+            }
         
-        if (e.MouseButton == MouseButton.Middle)
-        {
-            OnMiddleClick();
-        }
+            if (e.MouseButton == MouseButton.Middle)
+            {
+                OnMiddleClick();
+            } 
+        });
     }
 
     private void OnLeftClick()

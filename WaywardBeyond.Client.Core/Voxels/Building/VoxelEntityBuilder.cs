@@ -27,6 +27,8 @@ internal sealed class VoxelEntityBuilder(
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
     private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
     
+    private readonly Lock _rebuildLock = new();
+    
     private readonly Lock _updatedEntitiesLock = new();
     private readonly HashSet<int> _updatedEntities = [];
 
@@ -60,6 +62,7 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(entity, transform);
         _dataStore.AddOrUpdate(entity, voxelComponent);
         _dataStore.AddOrUpdate(entity, new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+        _dataStore.AddOrUpdate(entity, new MeshRendererCleanup());
         
         _dataStore.AddOrUpdate(transparencyPtr, transform);
         _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(entity));
@@ -72,15 +75,25 @@ internal sealed class VoxelEntityBuilder(
     
     public void Rebuild(int entity)
     {
+        using Lock.Scope _ = _rebuildLock.EnterScope();
+        
         if (!_dataStore.TryGet(entity, out VoxelComponent voxelComponent))
         {
             _logger.LogWarning("Tried to rebuild entity {Entity} that doesn't have a VoxelComponent.", entity);
             return;
         }
         
-        if (!_dataStore.TryGet(entity, out MeshRendererComponent opaqueRendererComponent) || !_dataStore.TryGet(voxelComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent))
+        if (!_dataStore.TryGet(entity, out MeshRendererComponent opaqueRendererComponent) ||
+            !_dataStore.TryGet(voxelComponent.TransparencyPtr, out MeshRendererComponent transparentRendererComponent))
         {
-            _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing a MeshRendererComponent.", entity);
+            _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing a MeshRendererComponent.",
+                entity);
+            return;
+        }
+        
+        if (!_dataStore.TryGet(entity, out MeshRendererCleanup meshRendererCleanup))
+        {
+            _logger.LogWarning("Tried to rebuild entity {Entity} but it is missing MeshRendererCleanup.", entity);
             return;
         }
         
@@ -88,8 +101,8 @@ internal sealed class VoxelEntityBuilder(
         UpdateEntity(entity, voxelComponent, data);
         
         //  Cleanup existing renderers
-        _dataStore.AddOrUpdate(entity, new MeshRendererCleanup(opaqueRendererComponent.MeshRenderer));
-        _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererCleanup(transparentRendererComponent.MeshRenderer));
+        meshRendererCleanup.MeshRenderers.Add(opaqueRendererComponent.MeshRenderer);
+        meshRendererCleanup.MeshRenderers.Add(transparentRendererComponent.MeshRenderer);
     }
     
     private void UpdateEntity(int entity, VoxelComponent voxelComponent, VoxelObjectBuilder.Data data)

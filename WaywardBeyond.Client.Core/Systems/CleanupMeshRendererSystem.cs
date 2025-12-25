@@ -12,9 +12,11 @@ internal sealed class CleanupMeshRendererSystem : EntitySystem<MeshRendererClean
         {
             return;
         }
-        
-        meshRendererCleanup.MeshRenderer.Dispose();
-        meshRendererCleanup.MeshRenderer.Mesh.Dispose();
-        store.Remove<MeshRendererCleanup>(entity);
+
+        while (meshRendererCleanup.MeshRenderers.TryTake(out MeshRenderer? meshRenderer))
+        {
+            meshRenderer.Dispose();
+            meshRenderer.Mesh.Dispose();
+        }
     }
 }
