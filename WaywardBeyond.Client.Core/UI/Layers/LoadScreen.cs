@@ -19,7 +19,7 @@ internal sealed class LoadScreen(
     in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) : IUILayer
 {
-    private const float WORDS_PER_MINUTE = 180;
+    private const float WORDS_PER_MINUTE = 150;
     private const float WORDS_PER_SECOND = WORDS_PER_MINUTE / 60f;
     private const float SECONDS_PER_WORD = 1f / WORDS_PER_SECOND;
     
