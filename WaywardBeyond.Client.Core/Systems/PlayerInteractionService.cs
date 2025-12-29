@@ -52,6 +52,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
     private readonly DebugSettings _debugSettings;
+    private readonly PlayerControllerSystem _playerControllerSystem;
+
+    private InteractionBlocker? _inputBlocker;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
@@ -70,7 +73,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
         in DebugSettings debugSettings,
-        in IAssetDatabase<Mesh> meshDatabase
+        in IAssetDatabase<Mesh> meshDatabase,
+        in IShortcutService shortcutService,
+        in PlayerControllerSystem playerControllerSystem
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -85,6 +90,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _audioService = audioService;
         _volumeSettings = volumeSettings;
         _debugSettings = debugSettings;
+        _playerControllerSystem = playerControllerSystem;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -110,6 +116,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugLines[0] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         _debugLines[1] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         _debugLines[2] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
+        
+        Shortcut mouseLookShortcut = new(
+            name: "Toggle mouselook",
+            category: "Interaction",
+            ShortcutModifiers.None,
+            Key.Tab,
+            isEnabled: () => WaywardBeyond.GameState == GameState.Playing,
+            action: OnToggleMouselook
+        );
+        shortcutService.RegisterShortcut(mouseLookShortcut);
+        
+        WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }
 
     public void Run()
@@ -143,6 +161,36 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         lock (_interactionBlockers)
         {
             return _interactionBlockers.Count != 0;
+        }
+    }
+    
+    private void OnToggleMouselook() 
+    {
+        ToggleInteraction();
+    }
+    
+    private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
+    {
+        SetInteractionEnabled(e.NewValue == GameState.Playing);
+    }
+
+    private void ToggleInteraction()
+    {
+        lock (_interactionBlockers)
+        {
+            SetInteractionEnabled(_inputBlocker != null);
+        }
+    }
+    
+    private void SetInteractionEnabled(bool enabled) 
+    {
+        lock (_interactionBlockers)
+        {
+            InteractionBlocker? blocker = _inputBlocker;
+            blocker?.Dispose();
+            _inputBlocker = enabled ? BlockInteraction() : null;
+            
+            _playerControllerSystem.SetInputEnabled(enabled);
         }
     }
 

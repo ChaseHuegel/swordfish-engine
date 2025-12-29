@@ -1,3 +1,4 @@
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
@@ -8,19 +9,18 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
-namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
-internal sealed class MainMenu : Menu<MenuPage>
+internal sealed class PauseMenu : Menu<PausePage>
 {
     private readonly Material? _titleMaterial;
-    private readonly Material? _backgroundMaterial;
     
-    public MainMenu(
-        ILogger<Menu<MenuPage>> logger,
+    public PauseMenu(
+        ILogger<Menu<PausePage>> logger,
         IAssetDatabase<Material> materialDatabase,
         ReefContext reefContext,
         IShortcutService shortcutService,
-        IMenuPage<MenuPage>[] pages
+        IMenuPage<PausePage>[] pages
     ) : base(logger, reefContext, pages)
     {
         Result<Material> materialResult = materialDatabase.Get("ui/menu/title");
@@ -33,47 +33,42 @@ internal sealed class MainMenu : Menu<MenuPage>
             logger.LogError(materialResult, "Failed to load the title material, it will not be able to render.");
         }
         
-        materialResult = materialDatabase.Get("ui/menu/background");
-        if (materialResult)
-        {
-            _backgroundMaterial = materialResult;
-        }
-        else
-        {
-            logger.LogError(materialResult, "Failed to load the background material, it will not be able to render.");
-        }
-        
-        Shortcut backShortcut = new(
-            "Go back",
-            "General",
+        Shortcut pauseShortcut = new(
+            name: "Toggle paused",
+            category: "General",
             ShortcutModifiers.None,
             Key.Esc,
-            IsVisible,
-            () => GoBack()
+            isEnabled: () => WaywardBeyond.GameState >= GameState.Playing,
+            action: OnPauseToggled
+        );
+        shortcutService.RegisterShortcut(pauseShortcut);
+        
+        Shortcut backShortcut = new(
+            name: "Go back",
+            category: "Pause",
+            ShortcutModifiers.None,
+            Key.Esc,
+            isEnabled: IsVisible,
+            action: () => GoBack()
         );
         shortcutService.RegisterShortcut(backShortcut);
     }
-    
+
     public override bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.MainMenu;
+        return WaywardBeyond.GameState == GameState.Paused;
     }
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (_backgroundMaterial != null)
+        using (ui.Element())
         {
-            using (ui.Image(_backgroundMaterial))
+            ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+            ui.Constraints = new Constraints
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
-                    Width = new Fixed(_backgroundMaterial.Textures[0].Width),
-                    Height = new Fixed(_backgroundMaterial.Textures[0].Height),
-                };
-            }
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
         }
         
         if (_titleMaterial != null)
@@ -92,5 +87,18 @@ internal sealed class MainMenu : Menu<MenuPage>
         }
         
         return base.RenderUI(delta, ui);
+    }
+    
+    private void OnPauseToggled()
+    {
+        switch (WaywardBeyond.GameState.Get())
+        {
+            case GameState.Playing:
+                WaywardBeyond.Pause();
+                return;
+            case GameState.Paused when GetCurrentPage() == PausePage.Home:
+                WaywardBeyond.Unpause();
+                return;
+        }
     }
 }

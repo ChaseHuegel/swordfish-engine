@@ -22,7 +22,6 @@ internal class OrientationSelector : IUILayer
 {
     public bool Available => IsMainHandOrientable();
     
-    private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerInteractionService _playerInteractionService;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -38,20 +37,17 @@ internal class OrientationSelector : IUILayer
     private readonly Orientation[] _orientations;
     
     private bool _changingOrientation;
-    private bool _previousMouseLookState;
     private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
     
     public OrientationSelector(
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
-        PlayerControllerSystem playerControllerSystem,
         PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
         IECSContext ecsContext
     ) {
-        _playerControllerSystem = playerControllerSystem;
         _playerInteractionService = playerInteractionService;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -206,8 +202,6 @@ internal class OrientationSelector : IUILayer
         }
         
         _changingOrientation = true;
-        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
-        _playerControllerSystem.SetMouseLook(false);
     }
     
     private void OnChangeOrientationReleased()
@@ -220,7 +214,6 @@ internal class OrientationSelector : IUILayer
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _changingOrientation = false;
-        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
     }
     
     private bool IsMainHandOrientable() 

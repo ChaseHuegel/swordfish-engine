@@ -1,4 +1,4 @@
-using System.Numerics;
+using System.Threading.Tasks;
 using Reef;
 using Reef.UI;
 using Swordfish.Audio;
@@ -6,29 +6,30 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Saves;
 
-namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
 internal sealed class HomePage(
-    in Entry entry,
     in IAudioService audioService,
     in VolumeSettings volumeSettings,
-    in ILocalization localization
-) : IMenuPage<MenuPage>
+    in ILocalization localization,
+    in GameSaveManager gameSaveManager
+) : IMenuPage<PausePage>
 {
-    public MenuPage ID => MenuPage.Home;
+    public PausePage ID => PausePage.Home;
 
-    private readonly Entry _entry = entry;
     private readonly IAudioService _audioService = audioService;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly ILocalization _localization = localization;
-    
+    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
+
     private readonly FontOptions _buttonFontOptions = new()
     {
         Size = 32,
     };
 
-    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
         using (ui.Element())
         {
@@ -40,25 +41,14 @@ internal sealed class HomePage(
                 Y = new Relative(0.5f),
             };
 
-            if (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonFontOptions, _audioService, _volumeSettings))
+            if (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonFontOptions, _audioService, _volumeSettings))
             {
-                menu.GoToPage(MenuPage.Singleplayer);
-            }
-
-            using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
-            {
-                ui.FontOptions = _buttonFontOptions;
-                ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                };
+                WaywardBeyond.Unpause();
             }
 
             if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
             {
-                menu.GoToPage(MenuPage.Settings);
+                menu.GoToPage(PausePage.Settings);
             }
         }
         
@@ -70,10 +60,10 @@ internal sealed class HomePage(
                 X = new Relative(0.5f),
                 Y = new Relative(0.99f),
             };
-
-            if (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        
+            if (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonFontOptions, _audioService, _volumeSettings))
             {
-                _entry.Quit();
+                _gameSaveManager.SaveAndExit();
             }
         }
         

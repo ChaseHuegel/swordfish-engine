@@ -5,4 +5,5 @@ internal enum GameState
     MainMenu,
     Loading,
     Playing,
+    Paused,
 }

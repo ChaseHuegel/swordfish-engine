@@ -9,9 +9,9 @@ using Swordfish.Settings;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Numerics;
 
-namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menus;
 
-internal sealed class SettingsPage(
+internal abstract class SettingsPage<TIdentifier>(
     in SettingsManager settingsManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
@@ -19,10 +19,8 @@ internal sealed class SettingsPage(
     in VolumeSettings volumeSettings,
     in IAudioService audioService,
     in ILocalization localization
-) : IMenuPage<MenuPage>
+) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
-    public MenuPage ID => MenuPage.Settings;
-
     private readonly SettingsManager _settingsManager = settingsManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
@@ -36,7 +34,9 @@ internal sealed class SettingsPage(
         Size = 32,
     };
 
-    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
+    public abstract TIdentifier ID { get; }
+
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<TIdentifier> menu)
     {
         using (ui.Element())
         {

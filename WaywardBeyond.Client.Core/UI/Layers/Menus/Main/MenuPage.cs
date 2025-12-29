@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal enum MenuPage
 {

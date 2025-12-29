@@ -6,7 +6,10 @@
 "ui.button.singleplayer" = "Singleplayer"
 "ui.button.multiplayer" = "Multiplayer"
 "ui.button.settings" = "Settings"
-"ui.button.quit" = "Quit"
+"ui.button.quit" = "Quit game"
+
+"ui.button.continue" = "Continue game"
+"ui.button.saveAndExit" = "Save & exit"
 
 "ui.menu.saves" = "Game Saves"
 "ui.button.newGame" = "+ New game"

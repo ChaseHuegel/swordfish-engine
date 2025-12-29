@@ -6,11 +6,12 @@ using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
-using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -20,14 +21,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         private readonly GameSave _save;
         private readonly IECSContext _ecs;
-        private readonly PlayerControllerSystem _playerControllerSystem;
         
-        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, PlayerControllerSystem playerControllerSystem)
+        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs)
         {
             _save = save;
             _ecs = ecs;
-            _playerControllerSystem = playerControllerSystem;
-            WaywardBeyond.GameState = GameState.Loading;
+            WaywardBeyond.GameState.Set(GameState.Loading);
             physics.SetGravity(Vector3.Zero);
         }
         
@@ -56,8 +55,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             inventory.Contents[7] = new ItemStack("truss", count: 1000);
             inventory.Contents[8] = new ItemStack("small_light", count: 1000);
         
-            WaywardBeyond.GameState = GameState.Playing;
-            _playerControllerSystem.SetMouseLook(true);
+            WaywardBeyond.GameState.Set(GameState.Playing);
         }
     }
     
@@ -78,7 +76,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly GameSaveService _gameSaveService;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
-    private readonly PlayerControllerSystem _playerControllerSystem;
 
     private readonly Timer _autosaveTimer;
     
@@ -90,15 +87,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
         in IECSContext ecs,
-        in IPhysics physics,
-        in PlayerControllerSystem playerControllerSystem
+        in IPhysics physics
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
-        _playerControllerSystem = playerControllerSystem;
-        
-        _autosaveTimer = new Timer(OnAutosave, state: null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
         
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -110,17 +103,10 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         );
         shortcutService.RegisterShortcut(saveShortcut);
         
-        Shortcut saveAndExitShortcut = new(
-            "Save & exit",
-            "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            Shortcut.DefaultEnabled,
-            OnSaveAndExit
-        );
-        shortcutService.RegisterShortcut(saveAndExitShortcut);
-        
+        //  Automatically save on an interval, on close, and when pausing.
+        _autosaveTimer = new Timer(OnAutosave, state: null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
         windowContext.Closed += OnWindowClosed;
+        WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }
 
     public void Dispose()
@@ -142,7 +128,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             ActiveSave = save;
         }
         
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _playerControllerSystem);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs);
         await _gameSaveService.GenerateSaveData(options);
         await Save();
     }
@@ -168,13 +154,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         save = new GameSave(save.Path, save.Name, level);
 
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _playerControllerSystem);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs);
         return _gameSaveService.Load(save);
     }
     
     public Task Save()
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
+        if (WaywardBeyond.GameState < GameState.Playing)
         {
             return Task.CompletedTask;
         }
@@ -215,14 +201,22 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         Save();
     }
     
-    private void OnSaveAndExit()
+    private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
-        if (WaywardBeyond.GameState != GameState.Playing)
+        if (e.NewValue != GameState.Paused)
         {
             return;
         }
-
-        _playerControllerSystem.SetMouseLook(false);
+        
+        Save();
+    }
+    
+    public void SaveAndExit()
+    {
+        if (WaywardBeyond.GameState < GameState.Playing)
+        {
+            return;
+        }
 
         Save();
         ActiveSave = null;
@@ -262,6 +256,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             store.Free(entity);
         }
         
-        WaywardBeyond.GameState = GameState.MainMenu;
+        WaywardBeyond.GameState.Set(GameState.MainMenu);
     }
 }

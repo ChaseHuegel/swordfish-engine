@@ -37,6 +37,14 @@ internal abstract class Menu<TIdentifier> : IUILayer
 
     public abstract bool IsVisible();
 
+    public TIdentifier GetCurrentPage()
+    {
+        lock (_pageLock)
+        {
+            return _currentPage;
+        }
+    }
+
     public Result GoToPage(TIdentifier page)
     {
         lock (_pageLock)

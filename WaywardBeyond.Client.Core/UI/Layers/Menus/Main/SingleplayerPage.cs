@@ -11,7 +11,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
 
-namespace WaywardBeyond.Client.Core.UI.Layers.Menu;
+namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class SingleplayerPage(
     in GameSaveManager gameSaveManager,

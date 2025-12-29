@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Numerics;
 using Reef;
 using Reef.Constraints;
@@ -23,7 +22,6 @@ internal class ShapeSelector : IUILayer
 {
     public bool Available => IsMainHandShapeable();
 
-    private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly PlayerInteractionService _playerInteractionService;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
@@ -35,21 +33,18 @@ internal class ShapeSelector : IUILayer
     private readonly Dictionary<BrickShape, ShapeSelectorElement> _shapeSelectorElements;
     
     private bool _changingShape;
-    private bool _previousMouseLookState;
     private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
     
     public ShapeSelector(
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
-        PlayerControllerSystem playerControllerSystem,
         PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
         IECSContext ecsContext,
         in ILocalization localization
     ) {
-        _playerControllerSystem = playerControllerSystem;
         _playerInteractionService = playerInteractionService;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
@@ -226,8 +221,6 @@ internal class ShapeSelector : IUILayer
         }
         
         _changingShape = true;
-        _previousMouseLookState = _playerControllerSystem.IsMouseLookEnabled();
-        _playerControllerSystem.SetMouseLook(false);
     }
     
     private void OnChangeShapeReleased()
@@ -240,7 +233,6 @@ internal class ShapeSelector : IUILayer
         _interactionBlocker?.Dispose();
         _interactionBlocker = null;
         _changingShape = false;
-        _playerControllerSystem.SetMouseLook(_previousMouseLookState);
     }
     
     private bool IsMainHandShapeable() 
