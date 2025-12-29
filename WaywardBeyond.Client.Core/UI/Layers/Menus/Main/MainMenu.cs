@@ -5,6 +5,7 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
@@ -52,8 +53,10 @@ internal sealed class MainMenu : Menu<MenuPage>
             () => GoBack()
         );
         shortcutService.RegisterShortcut(backShortcut);
+
+        WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }
-    
+
     public override bool IsVisible()
     {
         return WaywardBeyond.GameState == GameState.MainMenu;
@@ -92,5 +95,15 @@ internal sealed class MainMenu : Menu<MenuPage>
         }
         
         return base.RenderUI(delta, ui);
+    }
+    
+    private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
+    {
+        if (e.NewValue != GameState.MainMenu)
+        {
+            return;
+        }
+        
+        GoToPage(MenuPage.Home);
     }
 }
