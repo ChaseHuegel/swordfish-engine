@@ -37,6 +37,6 @@
 "ui.hint.movement.up" = "Space: Up"
 "ui.hint.movement.down" = "Ctrl: Down"
 "ui.hint.movement" = "W/A/S/D: Fly"
-"ui.hint.quit" = "Esc: Save & quit"
+"ui.hint.quit" = "Esc: Pause"
 "ui.hint.quicksave" = "F5: Quicksave"
 "ui.hint.toggleMouselook" = "Tab: Toggle mouselook"
