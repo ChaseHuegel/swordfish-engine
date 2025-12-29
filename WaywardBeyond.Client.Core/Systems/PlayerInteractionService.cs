@@ -356,7 +356,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
-        if (WaywardBeyond.GameState != GameState.Playing || IsInteractionBlocked())
+        if (WaywardBeyond.GameState < GameState.Playing)
         {
             return;
         }
