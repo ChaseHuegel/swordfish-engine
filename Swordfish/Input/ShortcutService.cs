@@ -36,7 +36,7 @@ public class ShortcutService : IShortcutService
     {
         lock (_registeredShortcuts)
         {
-            return _registeredShortcuts.TryAdd(shortcut.Name, new RegisteredShortcut(shortcut));
+            return _registeredShortcuts.TryAdd($"{shortcut.Category}/{shortcut.Name}", new RegisteredShortcut(shortcut));
         }
     }
 
