@@ -11,6 +11,7 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 namespace WaywardBeyond.Client.Core.Saves;
@@ -92,13 +93,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
-        
+
         Shortcut saveShortcut = new(
             "Quicksave",
             "General",
             ShortcutModifiers.None,
             Key.F5,
-            Shortcut.DefaultEnabled,
+            () => WaywardBeyond.GameState == GameState.Playing,
             OnQuicksave
         );
         shortcutService.RegisterShortcut(saveShortcut);
