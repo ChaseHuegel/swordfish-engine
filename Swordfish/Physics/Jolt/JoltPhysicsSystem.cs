@@ -196,6 +196,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             physics.Body = body;
             physics.BodyID = body.ID;
             physics.BodyInterface = _bodyInterface;
+            physics.ThreadContext = _context;
 
             SyncJoltToEntity(delta, store, entity, ref physics, ref transform);
         }
@@ -203,14 +204,8 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     private void SyncJoltToEntity(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
     {
-        if (physics.Body == null || physics.Disposed)
+        if (physics.Body == null)
         {
-            return;
-        }
-
-        if (physics.Disposing)
-        {
-            physics.FinalizeDispose();
             return;
         }
         
