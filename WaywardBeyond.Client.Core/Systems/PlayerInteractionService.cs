@@ -138,7 +138,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     public InteractionBlocker BlockInteraction()
     {
-        return new InteractionBlocker(this);
+        return new InteractionBlocker(this, _playerControllerSystem);
     }
 
     public bool TryBlockInteractionExclusive([NotNullWhen(true)] out InteractionBlocker? interactionBlocker)
@@ -189,8 +189,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             InteractionBlocker? blocker = _inputBlocker;
             blocker?.Dispose();
             _inputBlocker = enabled ? null : BlockInteraction();
-            
-            _playerControllerSystem.SetInputEnabled(enabled);
         }
     }
 
@@ -673,13 +671,16 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     public sealed class InteractionBlocker : IDisposable
     {
         private readonly PlayerInteractionService _playerInteractionService;
+        private readonly PlayerControllerSystem _playerControllerSystem;
 
-        internal InteractionBlocker(in PlayerInteractionService playerInteractionService)
+        internal InteractionBlocker(in PlayerInteractionService playerInteractionService, in PlayerControllerSystem playerControllerSystem)
         {
             _playerInteractionService = playerInteractionService;
+            _playerControllerSystem = playerControllerSystem;
             lock (playerInteractionService._interactionBlockers)
             {
                 playerInteractionService._interactionBlockers.Add(this);
+                playerControllerSystem.SetInputEnabled(false);
             }
         }
 
@@ -688,6 +689,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             lock (_playerInteractionService._interactionBlockers)
             {
                 _playerInteractionService._interactionBlockers.Remove(this);
+                _playerControllerSystem.SetInputEnabled(!_playerInteractionService.IsInteractionBlocked());
             }
         }
     }
