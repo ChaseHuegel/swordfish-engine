@@ -188,7 +188,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         {
             InteractionBlocker? blocker = _inputBlocker;
             blocker?.Dispose();
-            _inputBlocker = enabled ? BlockInteraction() : null;
+            _inputBlocker = enabled ? null : BlockInteraction();
             
             _playerControllerSystem.SetInputEnabled(enabled);
         }
@@ -358,6 +358,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnFixedUpdate(object? sender, EventArgs e)
     {
+        if (WaywardBeyond.GameState != GameState.Playing || IsInteractionBlocked())
+        {
+            return;
+        }
+        
         Result<BrickInfo> placeableResult = TryGetPlaceableBrickInfo();
         bool holdingPlaceable = placeableResult.Success;
         if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent) 
