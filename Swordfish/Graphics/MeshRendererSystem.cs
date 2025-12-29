@@ -8,14 +8,22 @@ public class MeshRendererSystem(in IRenderContext renderContext) : EntitySystem<
 
     protected override void OnTick(float delta, DataStore store, int entity, ref MeshRendererComponent rendererComponent, ref TransformComponent transformComponent)
     {
+        //  The component should always have a valid renderer because of the ctor,
+        //  but it is possible to init without one (ex: using `default`).
+        MeshRenderer? meshRenderer = rendererComponent.MeshRenderer;
+        if (meshRenderer == null)
+        {
+            return;
+        }
+        
         if (!rendererComponent.Bound)
         {
-            _renderContext.Bind(rendererComponent.MeshRenderer);
+            _renderContext.Bind(meshRenderer);
             rendererComponent.Bound = true;
         }
 
-        rendererComponent.MeshRenderer.Transform.Position = transformComponent.Position;
-        rendererComponent.MeshRenderer.Transform.Orientation = transformComponent.Orientation;
-        rendererComponent.MeshRenderer.Transform.Scale = transformComponent.Scale;
+        meshRenderer.Transform.Position = transformComponent.Position;
+        meshRenderer.Transform.Orientation = transformComponent.Orientation;
+        meshRenderer.Transform.Scale = transformComponent.Scale;
     }
 }

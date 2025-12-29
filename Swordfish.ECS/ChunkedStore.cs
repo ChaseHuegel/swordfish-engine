@@ -15,7 +15,7 @@ internal class ChunkedStore<T>(in int chunkSize) : ChunkedStore where T : struct
 
     public override void SetAt(int chunkIndex, int localEntity, bool exists)
     {
-        SetAt(chunkIndex, localEntity, default!, exists);
+        SetAt(chunkIndex, localEntity, new T(), exists);
     }
 
     public void SetAt(int chunkIndex, int localEntity, T data, bool exists)
