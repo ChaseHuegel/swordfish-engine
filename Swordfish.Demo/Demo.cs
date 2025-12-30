@@ -20,8 +20,6 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Types;
-using Swordfish.UI;
-using Swordfish.UI.Elements;
 using Swordfish.UI.Reef;
 
 // ReSharper disable UnusedMember.Local
@@ -76,11 +74,10 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly IFileParseService _fileParseService;
     private readonly IPhysics _physics;
     private readonly IInputService _inputService;
-    private readonly TextElement _debugText;
     private readonly ILogger _logger;
     private readonly Material _swordfishMaterial;
 
-    public Demo(ReefContext reefContext, IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger, IUIContext uiContext)
+    public Demo(ReefContext reefContext, IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger)
     {
         _reefContext = reefContext;
         _fileParseService = fileParseService;
@@ -93,36 +90,36 @@ public class Demo : IEntryPoint, IAutoActivate
 
         // _windowContext.Update += OnWindowUpdate;
 
-        _debugText = new TextElement("");
+        //  TODO #346 Update to use Reef UI
         // ReSharper disable once UnusedVariable
-        CanvasElement myCanvas = new(uiContext, windowContext, "Demo Debug Canvas")
-        {
-            Constraints = new RectConstraints
-            {
-                Anchor = ConstraintAnchor.TOP_RIGHT,
-                X = new RelativeConstraint(0.2f),
-                Y = new RelativeConstraint(0.1f),
-                Width = new RelativeConstraint(0.1f),
-                Height = new RelativeConstraint(0.1f),
-            },
-            Content = {
-                new PanelElement("Demo Debug Panel")
-                {
-                    Constraints = new RectConstraints
-                    {
-                        Height = new FillConstraint(),
-                    },
-                    Tooltip = new Tooltip
-                    {
-                        Help = true,
-                        Text = "This is a panel for debugging in the demo.",
-                    },
-                    Content = {
-                        _debugText,
-                    },
-                },
-            },
-        };
+        // CanvasElement myCanvas = new(uiContext, windowContext, "Demo Debug Canvas")
+        // {
+        //     Constraints = new RectConstraints
+        //     {
+        //         Anchor = ConstraintAnchor.TOP_RIGHT,
+        //         X = new RelativeConstraint(0.2f),
+        //         Y = new RelativeConstraint(0.1f),
+        //         Width = new RelativeConstraint(0.1f),
+        //         Height = new RelativeConstraint(0.1f),
+        //     },
+        //     Content = {
+        //         new PanelElement("Demo Debug Panel")
+        //         {
+        //             Constraints = new RectConstraints
+        //             {
+        //                 Height = new FillConstraint(),
+        //             },
+        //             Tooltip = new Tooltip
+        //             {
+        //                 Help = true,
+        //                 Text = "This is a panel for debugging in the demo.",
+        //             },
+        //             Content = {
+        //                 _debugText,
+        //             },
+        //         },
+        //     },
+        // };
 
         inputService.Scrolled += OnScroll;
         _physics.FixedUpdate += OnFixedUpdate;
@@ -466,11 +463,13 @@ public class Demo : IEntryPoint, IAutoActivate
 
         if (!raycast.Hit)
         {
-            _debugText.Text = "";
+            //  TODO #346 Update to use Reef UI
+            // _debugText.Text = "";
             return;
         }
 
-        _debugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
+        //  TODO #346 Update to use Reef UI
+        // _debugText.Text = $"Hovering {raycast.Entity.Get<IdentifierComponent>()?.Name} ({raycast.Entity.Ptr})";
 
         if (!_inputService.IsMouseHeld(MouseButton.Left))
         {
