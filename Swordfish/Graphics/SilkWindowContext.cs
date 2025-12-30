@@ -9,7 +9,6 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
-using Swordfish.UI;
 using Key = Swordfish.Library.IO.Key;
 
 namespace Swordfish.Graphics;
@@ -32,7 +31,6 @@ public class SilkWindowContext : IWindowContext
     public Action<Vector2>? Resized { get; set; }
 
     private IWindow Window { get; }
-    private IUIContext UIContext { get; }
     private IShortcutService ShortcutService { get; }
     private ILogger Logger { get; }
     private WindowSettings WindowSettings { get; }
@@ -44,7 +42,6 @@ public class SilkWindowContext : IWindowContext
     public SilkWindowContext(
         GL gl,
         SynchronizationContext mainThread,
-        IUIContext uiContext,
         IShortcutService shortcutService,
         IWindow window,
         ILogger logger,
@@ -54,7 +51,6 @@ public class SilkWindowContext : IWindowContext
         _gl = gl;
         _mainThread = mainThread;
         Window = window;
-        UIContext = uiContext;
         ShortcutService = shortcutService;
         Logger = logger;
         WindowSettings = windowSettings;
@@ -122,7 +118,6 @@ public class SilkWindowContext : IWindowContext
         Logger.LogDebug("OpenGL MaxVertexAttribs: {maxVertexAttribs}", _gl.GetInt(GetPName.MaxVertexAttribs));
         Logger.LogDebug("OpenGL extensions: {extensions}", string.Join(", ", _gl.GetExtensions()));
 
-        UIContext.Initialize();
         Loaded?.Invoke();
     }
 

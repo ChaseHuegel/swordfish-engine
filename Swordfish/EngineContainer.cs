@@ -22,7 +22,6 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
-using Swordfish.UI;
 using Swordfish.UI.Reef;
 
 namespace Swordfish;
@@ -72,7 +71,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMapping<IRenderStage, ReefRenderer>();
         
         container.Register<ReefContext>(Reuse.Singleton);
-        container.Register<IUIContext, ImGuiContext>(Reuse.Singleton);
 
         container.RegisterInstance<SynchronizationContext>(_mainThreadContext);
         
