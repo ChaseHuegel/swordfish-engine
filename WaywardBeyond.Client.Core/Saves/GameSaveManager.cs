@@ -46,15 +46,21 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             player.AddOrUpdate(new ColliderComponent(playerCollider));
             
             player.AddOrUpdate(inventory);
-            inventory.Contents[0] = new ItemStack("panel", count: 1000);
-            inventory.Contents[1] = new ItemStack("thruster", count: 1000);
-            inventory.Contents[2] = new ItemStack("display_control", count: 1000);
-            inventory.Contents[3] = new ItemStack("caution_panel", count: 1000);
-            inventory.Contents[4] = new ItemStack("glass", count: 1000);
-            inventory.Contents[5] = new ItemStack("display_monitor", count: 1000);
-            inventory.Contents[6] = new ItemStack("storage", count: 1000);
-            inventory.Contents[7] = new ItemStack("truss", count: 1000);
-            inventory.Contents[8] = new ItemStack("small_light", count: 1000);
+            inventory.Add(new ItemStack("panel", count: 1000));
+            inventory.Add(new ItemStack("thruster", count: 1000));
+            inventory.Add(new ItemStack("display_control", count: 1000));
+            inventory.Add(new ItemStack("caution_panel", count: 1000));
+            inventory.Add(new ItemStack("glass", count: 1000));
+            inventory.Add(new ItemStack("display_monitor", count: 1000));
+            inventory.Add(new ItemStack("storage", count: 1000));
+            inventory.Add(new ItemStack("truss", count: 1000));
+            inventory.Add(new ItemStack("small_light", count: 1000));
+            inventory.Add(new ItemStack("light", count: 1000));
+            inventory.Add(new ItemStack("display_console", count: 1000));
+            inventory.Add(new ItemStack("drill", count: 1000));
+            inventory.Add(new ItemStack("laser", count: 1000));
+            inventory.Add(new ItemStack("ice", count: 1000));
+            inventory.Add(new ItemStack("rock", count: 1000));
         
             WaywardBeyond.GameState.Set(GameState.Playing);
         }
