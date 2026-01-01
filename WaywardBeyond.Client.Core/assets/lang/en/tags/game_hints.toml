@@ -4,6 +4,6 @@
 "game_hints" = [
     "The game auto-saves every 5 minutes",
     "Pressing [MMB] copies bricks",
-    "[TAB] toggles mouse look",
+    "Use [1-9] to move items",
     "Use [F5] to save at any time",
 ]

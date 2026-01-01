@@ -73,7 +73,7 @@ internal class ControlHints(
             
             using (ui.Text(_localization.GetString("ui.hint.quit")!)) {}
             using (ui.Text(_localization.GetString("ui.hint.quicksave")!)) {}
-            using (ui.Text(_localization.GetString("ui.hint.toggleMouselook")!)) {}
+            using (ui.Text(_localization.GetString("ui.hint.inventory")!)) {}
         }
         
         return Result.FromSuccess();
