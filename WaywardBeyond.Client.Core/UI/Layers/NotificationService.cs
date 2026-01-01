@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
@@ -31,6 +32,30 @@ internal class NotificationService : IUILayer
     
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        DateTime now = DateTime.Now;
+        
+        //  Collect notifications that have been pushed
+        while (_pushedNotifications.TryDequeue(out ToastNotification pushedNotification))
+        {
+            _notifications.Insert(0, pushedNotification);
+        }
+        
+        //  Remove expired notifications
+        while (_notifications.Count > 0)
+        {
+            int lastIndex = _notifications.Count - 1;
+            ToastNotification toastNotification = _notifications[lastIndex];
+            
+            TimeSpan elapsed = now - toastNotification.CreatedAt;
+            if (elapsed.TotalMilliseconds < MAX_LIFETIME_MS)
+            {
+                break;
+            }
+            
+            _notifications.RemoveAt(lastIndex);
+        }
+        
+        //  Render toast notifications
         using (ui.Element())
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
@@ -40,47 +65,62 @@ internal class NotificationService : IUILayer
                 X = new Relative(0.01f),
                 Y = new Relative(0.03f),
             };
-
-
-            while (_pushedNotifications.TryDequeue(out ToastNotification pushedNotification))
-            {
-                _notifications.Insert(0, pushedNotification);
-            }
-            
-            DateTime now = DateTime.Now;
             
             for (var i = 0; i < _notifications.Count; i++)
             {
                 ToastNotification toastNotification = _notifications[i];
-                
-                using (ui.Text(toastNotification.Notification.Text))
+                if (toastNotification.Notification.Type != NotificationType.Toast)
                 {
-                    TimeSpan elapsed = now - toastNotification.CreatedAt;
-                    
-                    float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, MAX_LIFETIME_MS, 0f, 1f);
-                    //  Falloff near the end of the notification's lifetime
-                    //      Graph: https://www.desmos.com/calculator/udfsvtcbgn
-                    alpha = 1f - (float)Math.Pow(alpha, 9f);
-                    
-                    ui.Color = new Vector4(1f, 1f, 1f, alpha);
+                    continue;
                 }
+                
+                RenderNotification(ui, toastNotification, now);
             }
-
-            while (_notifications.Count > 0)
+        }
+        
+        if (!WaywardBeyond.IsPlaying())
+        {
+            return Result.FromSuccess();
+        }
+        
+        //  Render action notifications
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
             {
-                int lastIndex = _notifications.Count - 1;
-                ToastNotification toastNotification = _notifications[lastIndex];
-                
-                TimeSpan elapsed = now - toastNotification.CreatedAt;
-                if (elapsed.TotalMilliseconds < MAX_LIFETIME_MS)
+                Anchors = Anchors.Center | Anchors.Bottom,
+                X = new Relative(0.5f),
+                Y = new Fixed(ui.Height - 196),
+            };
+            
+            for (var i = 0; i < _notifications.Count; i++)
+            {
+                ToastNotification toastNotification = _notifications[i];
+                if (toastNotification.Notification.Type != NotificationType.Action)
                 {
-                    break;
+                    continue;
                 }
                 
-                _notifications.RemoveAt(lastIndex);
+                RenderNotification(ui, toastNotification, now);
+                break;  //  Only render the most recent notification
             }
         }
         
         return Result.FromSuccess();
+    }
+
+    private static void RenderNotification(UIBuilder<Material> ui, ToastNotification toastNotification, DateTime now)
+    {
+        using (ui.Text(toastNotification.Notification.Text))
+        {
+            TimeSpan elapsed = now - toastNotification.CreatedAt;
+                    
+            float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, MAX_LIFETIME_MS, 0f, 1f);
+            //  Falloff near the end of the notification's lifetime
+            //      Graph: https://www.desmos.com/calculator/udfsvtcbgn
+            alpha = 1f - (float)Math.Pow(alpha, 9f);
+                    
+            ui.Color = new Vector4(1f, 1f, 1f, alpha);
+        }
     }
 }

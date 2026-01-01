@@ -23,14 +23,16 @@ internal class Hotbar : IUILayer
     private const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
-    private readonly IInputService _inputService;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     private readonly PlayerInteractionService _playerInteractionService;
+    private readonly NotificationService _notificationService;
 
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
     private readonly Vector4 _selectedColor;
+
+    private string? _previousActiveItemName;
     
     public Hotbar(
         in IShortcutService shortcutService,
@@ -38,13 +40,14 @@ internal class Hotbar : IUILayer
         in IAssetDatabase<Item> itemDatabase,
         in PlayerData playerData,
         in IECSContext ecsContext,
-        in PlayerInteractionService playerInteractionService
+        in PlayerInteractionService playerInteractionService,
+        in NotificationService notificationService
     ) {
-        _inputService = inputService;
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _playerInteractionService = playerInteractionService;
+        _notificationService = notificationService;
 
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
@@ -60,7 +63,7 @@ internal class Hotbar : IUILayer
                 Category = "Interaction",
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
-                IsEnabled = () => WaywardBeyond.GameState == GameState.Playing && !_playerInteractionService.IsInteractionBlocked(),
+                IsEnabled = IsInputAllowed,
                 Action = () => _playerData.SetActiveSlot(_ecsContext.World.DataStore, slotIndex),
             };
             
@@ -69,7 +72,7 @@ internal class Hotbar : IUILayer
         
         inputService.Scrolled += OnScrolled;
     }
-    
+
     public bool IsVisible()
     {
         return WaywardBeyond.GameState == GameState.Playing;
@@ -86,7 +89,16 @@ internal class Hotbar : IUILayer
 
         InventoryComponent inventory = inventoryResult.Value;
         int activeSlot = activeSlotResult.Value;
-
+        ItemStack activeStack = inventory.Contents.Length > activeSlot ? inventory.Contents[activeSlot] : ItemStack.Empty;
+        
+        //  Display the active item's name if it changes
+        Result<Item> activeItemResult = _itemDatabase.Get(activeStack.ID);
+        if (activeItemResult.Success && _previousActiveItemName != activeItemResult.Value.Name)
+        {
+            _notificationService.Push(new Notification(activeItemResult.Value.Name, NotificationType.Action));
+            _previousActiveItemName = activeItemResult.Value.Name;
+        }
+        
         //  Hotbar
         using (ui.Element())
         {
@@ -167,9 +179,14 @@ internal class Hotbar : IUILayer
         return Result.FromSuccess();
     }
     
+    private bool IsInputAllowed()
+    {
+        return WaywardBeyond.GameState == GameState.Playing && !_playerInteractionService.IsInteractionBlocked();
+    }
+    
     private void OnScrolled(object? sender, ScrolledEventArgs e)
     {
-        if (_inputService.IsKeyHeld(Key.Shift))
+        if (!IsInputAllowed())
         {
             return;
         }
