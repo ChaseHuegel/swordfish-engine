@@ -57,8 +57,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             inventory.Add(new ItemStack("small_light", count: 1000));
             inventory.Add(new ItemStack("light", count: 1000));
             inventory.Add(new ItemStack("display_console", count: 1000));
-            inventory.Add(new ItemStack("drill", count: 1000));
-            inventory.Add(new ItemStack("laser", count: 1000));
+            inventory.Add(new ItemStack("drill", count: 1));
+            inventory.Add(new ItemStack("laser", count: 1));
             inventory.Add(new ItemStack("ice", count: 1000));
             inventory.Add(new ItemStack("rock", count: 1000));
         
