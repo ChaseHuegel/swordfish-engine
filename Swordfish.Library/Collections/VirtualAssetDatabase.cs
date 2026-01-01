@@ -40,7 +40,7 @@ public abstract class VirtualAssetDatabase<TResource, TAssetInfo, TAsset>(
     {
         lock (_assets)
         {
-            if (_assets.TryGetValue(id, out TAsset value))
+            if (!string.IsNullOrEmpty(id) && _assets.TryGetValue(id, out TAsset value))
             {
                 return Result<TAsset>.FromSuccess(value);
             }
