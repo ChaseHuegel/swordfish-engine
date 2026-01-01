@@ -92,6 +92,9 @@ public class Injector : IDryIocInjector
         container.Register<Hotbar>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Hotbar>();
         
+        container.Register<Inventory>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, Inventory>();
+        
         container.Register<ShapeSelector>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ShapeSelector>();
         

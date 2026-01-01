@@ -14,6 +14,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
+using WaywardBeyond.Client.Core.Systems;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
@@ -25,23 +26,26 @@ internal class Hotbar : IUILayer
     private readonly IInputService _inputService;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
+    private readonly PlayerInteractionService _playerInteractionService;
 
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
     private readonly Vector4 _selectedColor;
     
     public Hotbar(
-        IShortcutService shortcutService,
-        IInputService inputService,
-        IAssetDatabase<Item> itemDatabase,
-        PlayerData playerData,
-        IECSContext ecsContext
+        in IShortcutService shortcutService,
+        in IInputService inputService,
+        in IAssetDatabase<Item> itemDatabase,
+        in PlayerData playerData,
+        in IECSContext ecsContext,
+        in PlayerInteractionService playerInteractionService
     ) {
         _inputService = inputService;
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
-        
+        _playerInteractionService = playerInteractionService;
+
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
         _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
@@ -56,7 +60,7 @@ internal class Hotbar : IUILayer
                 Category = "Interaction",
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
-                IsEnabled = Shortcut.DefaultEnabled,
+                IsEnabled = () => WaywardBeyond.GameState == GameState.Playing && !_playerInteractionService.IsInteractionBlocked(),
                 Action = () => _playerData.SetActiveSlot(_ecsContext.World.DataStore, slotIndex),
             };
             

@@ -34,7 +34,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         public void Dispose()
         {
             Entity player = _ecs.World.NewEntity();
-            var inventory = new InventoryComponent(size: 9);
+            var inventory = new InventoryComponent(size: 45);
             player.Add<PlayerComponent>();
             player.Add<EquipmentComponent>();
             player.AddOrUpdate(new IdentifierComponent("Player", "player"));

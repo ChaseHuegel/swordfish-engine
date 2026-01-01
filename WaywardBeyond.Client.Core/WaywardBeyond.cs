@@ -13,6 +13,11 @@ internal static class WaywardBeyond
     private static string AssemblyVersion => _assemblyVersion ??= typeof(WaywardBeyond).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "VERSION UNKNOWN";
     private static string? _assemblyVersion;
 
+    public static bool IsPlaying()
+    {
+        return GameState == Core.GameState.Playing;
+    }
+
     public static bool Pause()
     {
         if (GameState != Core.GameState.Playing)

@@ -74,7 +74,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in VolumeSettings volumeSettings,
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
-        in IShortcutService shortcutService,
         in PlayerControllerSystem playerControllerSystem
     ) {
         _inputService = inputService;
@@ -117,16 +116,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugLines[1] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         _debugLines[2] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         
-        Shortcut mouseLookShortcut = new(
-            name: "Toggle mouselook",
-            category: "Interaction",
-            ShortcutModifiers.None,
-            Key.Tab,
-            isEnabled: () => WaywardBeyond.GameState == GameState.Playing,
-            action: OnToggleMouselook
-        );
-        shortcutService.RegisterShortcut(mouseLookShortcut);
-        
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }
 
@@ -164,22 +153,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
     }
     
-    private void OnToggleMouselook() 
-    {
-        ToggleInteraction();
-    }
-    
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
         SetInteractionEnabled(e.NewValue == GameState.Playing);
-    }
-
-    private void ToggleInteraction()
-    {
-        lock (_interactionBlockers)
-        {
-            SetInteractionEnabled(_inputBlocker != null);
-        }
     }
     
     private void SetInteractionEnabled(bool enabled) 
