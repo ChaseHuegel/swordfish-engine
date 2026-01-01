@@ -1,6 +1,6 @@
 [[Items]]
 ID         = "laser"
-Name       = "Mining Laser"
+Name       = "item.base.laser"
 Icon       = "items/laser.png"
 MaxStack   = 1
 [Items.Tool]

@@ -1,0 +1,18 @@
+"Language" = "en"
+
+[Translations]
+"item.base.caution_panel" = "Caution Panel"
+"item.base.display_console" = "Console"
+"item.base.display_control" = "Display"
+"item.base.display_monitor" = "Computer"
+"item.base.drill" = "Drill"
+"item.base.glass" = "Glass"
+"item.base.ice" = "Ice"
+"item.base.laser" = "Mining Laser"
+"item.base.light" = "Light"
+"item.base.panel" = "Panel"
+"item.base.rock" = "Rock"
+"item.base.small_light" = "Small Light"
+"item.base.storage" = "Storage Unit"
+"item.base.thruster" = "Thruster"
+"item.base.truss" = "Truss"

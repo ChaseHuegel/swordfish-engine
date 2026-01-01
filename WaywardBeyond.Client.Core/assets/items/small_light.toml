@@ -1,6 +1,6 @@
 [[Items]]
 ID         = "small_light"
-Name       = "Small Light"
+Name       = "item.base.small_light"
 Icon       = "block/small_light.png"
 MaxStack   = 100
 [Items.Placeable]

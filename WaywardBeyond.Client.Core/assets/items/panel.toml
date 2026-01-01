@@ -1,6 +1,6 @@
 [[Items]]
 ID         = "panel"
-Name       = "Panel"
+Name       = "item.base.panel"
 Icon       = "items/panel.png"
 MaxStack   = 100
 [Items.Placeable]

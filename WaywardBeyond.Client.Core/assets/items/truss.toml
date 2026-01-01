@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "truss"
-Name     = "Truss"
+Name     = "item.base.truss"
 Icon     = "block/truss.png"
 MaxStack = 100
 [Items.Placeable]

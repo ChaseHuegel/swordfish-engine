@@ -1,6 +1,6 @@
 [[Items]]
 ID              = "drill"
-Name            = "Drill"
+Name            = "item.base.drill"
 Icon            = "items/drill.png"
 MaxStack        = 1
 [Items.Tool]

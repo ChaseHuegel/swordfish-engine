@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "display_control"
-Name     = "Display"
+Name     = "item.base.display_control"
 Icon     = "block/display_control.0.png"
 MaxStack = 100
 [Items.Placeable]

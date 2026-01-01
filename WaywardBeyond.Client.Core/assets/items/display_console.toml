@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "display_console"
-Name     = "Console"
+Name     = "item.base.display_console"
 Icon     = "block/display_console.png"
 MaxStack = 100
 [Items.Placeable]

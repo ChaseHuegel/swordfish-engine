@@ -5,6 +5,7 @@ using Shoal.Modularity;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
+using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 
@@ -18,16 +19,20 @@ internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemD
     private readonly Shader _iconShader;
     private readonly Material _unknownIcon;
     private readonly IAssetDatabase<Texture> _textureDatabase;
+    private readonly ILocalization _localization;
     private readonly Dictionary<string, Material> _icons = [];
 
     public ItemDatabase(
         in ILogger<ItemDatabase> logger,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
-        in IAssetDatabase<Texture> textureDatabase) 
+        in IAssetDatabase<Texture> textureDatabase,
+        in ILocalization localization
+        )
         : base(logger, fileParseService, vfs)
     {
         _textureDatabase = textureDatabase;
+        _localization = localization;
         _iconShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         _unknownIcon = new Material(_iconShader, textureDatabase.Get("items/unknown.png"));
         Load();
@@ -69,7 +74,11 @@ internal sealed class ItemDatabase : VirtualAssetDatabase<ItemDefinitions, ItemD
             }
         }
         
-        var item = new Item(id, assetInfo.Name, icon, assetInfo.MaxStack ?? 1, assetInfo.Placeable, assetInfo.Tool, assetInfo.ViewModel, assetInfo.WorldModel);
+        //  TODO #349 when allowing language to be changed at runtime, these assets need to be reinitialized
+        //  Localize the display name if a translation exists
+        string localizedName = _localization.GetString(assetInfo.Name) ?? assetInfo.Name;
+        
+        var item = new Item(id, localizedName, icon, assetInfo.MaxStack ?? 1, assetInfo.Placeable, assetInfo.Tool, assetInfo.ViewModel, assetInfo.WorldModel);
         return Result<Item>.FromSuccess(item);
     }
 }

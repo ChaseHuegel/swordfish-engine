@@ -1,6 +1,6 @@
 [[Items]]
 ID         = "glass"
-Name       = "Glass"
+Name       = "item.base.glass"
 Icon       = "block/glass.0.png"
 MaxStack   = 100
 [Items.Placeable]

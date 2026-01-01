@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "caution_panel"
-Name     = "Caution Panel"
+Name     = "item.base.caution_panel"
 Icon     = "block/caution_panel.png"
 MaxStack = 100
 [Items.Placeable]

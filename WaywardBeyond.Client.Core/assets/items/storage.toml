@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "storage"
-Name     = "Storage Unit"
+Name     = "item.base.storage"
 Icon     = "block/storage_front.png"
 MaxStack = 100
 [Items.Placeable]

@@ -1,6 +1,6 @@
 [[Items]]
 ID       = "display_monitor"
-Name     = "Computer"
+Name     = "item.base.display_monitor"
 Icon     = "block/display_monitor.png"
 MaxStack = 100
 [Items.Placeable]
