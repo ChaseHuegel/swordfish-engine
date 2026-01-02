@@ -22,6 +22,7 @@ using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
@@ -301,18 +302,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 Result<Item> itemResult = _itemDatabase.Get(itemID);
                 if (!itemResult.Success)
                 {
-                    return;
+                    continue;
                 }
 
                 if (itemResult.Value.Placeable == null)
                 {
-                    return;
+                    continue;
                 }
 
                 Result<BrickInfo> placeableBrickResult =  _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
                 if (!placeableBrickResult.Success)
                 {
-                    return;
+                    continue;
                 }
 
                 if (placeableBrickResult.Value.DataID != clickedVoxel.ID)
@@ -320,10 +321,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                     continue;
                 }
 
+                InventoryComponent playerInventory = inventory;
                 store.Query<EquipmentComponent>(playerEntity, 0f, UpdateActiveSlotQuery);
                 void UpdateActiveSlotQuery(float _, DataStore dataStore, int entity, ref EquipmentComponent equipment)
                 {
-                    equipment.ActiveInventorySlot = i;
+                    if (i >= Hotbar.SLOT_COUNT)
+                    {
+                        playerInventory.Swap(equipment.ActiveInventorySlot, i);
+                    }
+                    else
+                    {
+                        equipment.ActiveInventorySlot = i;
+                    }
                 }
                 break;
             }

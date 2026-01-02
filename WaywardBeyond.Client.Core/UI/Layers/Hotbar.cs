@@ -20,7 +20,7 @@ namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class Hotbar : IUILayer
 {
-    private const int SLOT_COUNT = 9;
+    public const int SLOT_COUNT = 9;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly PlayerData _playerData;
