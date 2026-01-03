@@ -362,7 +362,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
-        Quaternion placeableOrientation = GetPlacementQuaternion(transformComponent);
+        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementQuaternion(transformComponent) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
 
         //  TODO clean this up
         if (_debugSettings.OverlayVisible)
@@ -386,14 +386,25 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             _debugLines[2].Color = Vector4.Zero;
         }
 
-        if (!holdingPlaceable)
+        BrickShape placeableShape;
+        BrickInfo placeableBrickInfo;
+        if (holdingPlaceable)
         {
-            _activeGizmo.Visible = false;
-            return;
+            placeableBrickInfo = placeableResult.Value;
+            placeableShape = placeableBrickInfo.Shapeable ? SelectedShape.Get() : placeableBrickInfo.Shape;
         }
-        
-        BrickInfo placeableBrickInfo = placeableResult.Value;
-        BrickShape placeableShape = placeableBrickInfo.Shapeable ? SelectedShape.Get() : placeableBrickInfo.Shape;
+        else
+        {
+            placeableResult = _brickDatabase.Get(clickedVoxel.ID);
+            if (!placeableResult.Success)
+            {
+                _activeGizmo.Visible = false;
+                return;
+            }
+            
+            placeableBrickInfo = placeableResult.Value;
+            placeableShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
+        }
         
         if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
         {
@@ -416,7 +427,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         _activeGizmo.Visible = true;
-        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation));
+        _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
     private Quaternion GetPlacementQuaternion(TransformComponent transformComponent)

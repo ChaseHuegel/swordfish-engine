@@ -70,8 +70,8 @@ public sealed class MeshGizmo : IDisposable
         for (var i = 0; i < _lines.Length; i++)
         {
             Line line = _lines[i];
-            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * scale, transform.Orientation);
-            line.End = transform.Position + Vector3.Transform(_templates[i].End * scale, transform.Orientation);
+            line.Start = transform.Position + Vector3.Transform(_templates[i].Start * transform.Scale * scale, transform.Orientation);
+            line.End = transform.Position + Vector3.Transform(_templates[i].End * transform.Scale * scale, transform.Orientation);
         }
     }
 }
