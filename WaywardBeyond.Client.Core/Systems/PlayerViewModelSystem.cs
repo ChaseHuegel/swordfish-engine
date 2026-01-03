@@ -1,5 +1,4 @@
 using System.Numerics;
-using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -11,13 +10,11 @@ using WaywardBeyond.Client.Core.Player;
 namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class PlayerViewModelSystem(
-    in ILogger<PlayerViewModelSystem> logger,
     in PlayerData playerData,
     in IAssetDatabase<Material> materialDatabase,
     in IAssetDatabase<Mesh> meshDatabase
 ) : EntitySystem<PlayerComponent, InventoryComponent>
 {
-    private readonly ILogger _logger = logger;
     private readonly PlayerData _playerData = playerData;
     private readonly IAssetDatabase<Material> _materialDatabase = materialDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase = meshDatabase;
@@ -27,21 +24,6 @@ internal sealed class PlayerViewModelSystem(
     
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
     {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
-        if (!mainHandResult)
-        {
-            return;
-        }
-
-        ModelDefinition viewModel = mainHandResult.Value.Item.ViewModel ?? default;
-        if (viewModel.Equals(_currentViewModel))
-        {
-            //  Do nothing if the view model isn't changing
-            return;
-        }
-        
-        _currentViewModel = viewModel;
-        
         //  Create the entity if it doesn't exist yet
         if (!_viewModelEntity.HasValue)
         {
@@ -50,11 +32,30 @@ internal sealed class PlayerViewModelSystem(
             _viewModelEntity.Value.AddOrUpdate(new TransformComponent());
         }
         
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
+        ModelDefinition viewModel;
+        if (mainHandResult.Success)
+        {
+            viewModel = mainHandResult.Value.Item.ViewModel ?? default;
+        }
+        else
+        {
+            viewModel = default;
+        }
+
+        if (viewModel.Equals(_currentViewModel))
+        {
+            //  Do nothing if the view model isn't changing
+            return;
+        }
+        
+        _currentViewModel = viewModel;
+        
         //  Cleanup any pre-existing mesh renderer
         MeshRendererComponent? meshRendererComponent = _viewModelEntity.Value.Get<MeshRendererComponent>();
         if (meshRendererComponent != null)
         {
-            meshRendererComponent.Value.MeshRenderer.Dispose();
+            meshRendererComponent.Value.MeshRenderer?.Dispose();
             _viewModelEntity.Value.Remove<MeshRendererComponent>();
         }
         
