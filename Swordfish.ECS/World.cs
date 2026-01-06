@@ -36,13 +36,10 @@ public class World(in byte chunkBitWidth = 16)
     {
         lock (_systemsLock)
         {
-            //  TODO Should this stay parallel? Makes debugging harder and won't allow ordering system execution.
-            Parallel.ForEach(_systems, ParallelTick);
-        }
-
-        void ParallelTick(IEntitySystem system, ParallelLoopState state, long index)
-        {
-            system.Tick(delta, DataStore);
+            foreach (IEntitySystem system in _systems)
+            {
+                system.Tick(delta, DataStore);
+            }
         }
     }
 }
