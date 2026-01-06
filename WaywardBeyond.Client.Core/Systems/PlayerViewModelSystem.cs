@@ -55,7 +55,12 @@ internal sealed class PlayerViewModelSystem(
         MeshRendererComponent? meshRendererComponent = _viewModelEntity.Value.Get<MeshRendererComponent>();
         if (meshRendererComponent != null)
         {
-            meshRendererComponent.Value.MeshRenderer?.Dispose();
+            if (meshRendererComponent.Value.MeshRenderer != null)
+            {
+                meshRendererComponent.Value.MeshRenderer.Dispose();
+                meshRendererComponent.Value.MeshRenderer.Mesh.Dispose();
+            }
+
             _viewModelEntity.Value.Remove<MeshRendererComponent>();
         }
         
