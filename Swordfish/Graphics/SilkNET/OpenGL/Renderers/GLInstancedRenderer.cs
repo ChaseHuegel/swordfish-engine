@@ -107,7 +107,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 }
             }
 
-            _renderTargetEntities.Add(renderTarget.Entity, renderTarget);
+            _renderTargetEntities[renderTarget.Entity] = renderTarget;
         }
     }
 
