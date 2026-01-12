@@ -8,10 +8,14 @@ internal sealed class FirstPersonCameraSystem(in IRenderContext renderContext)
     : EntitySystem<PlayerComponent, TransformComponent>
 {
     private readonly Camera _camera = renderContext.Camera.Get();
+    
+    public override int Order => 100_000;
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref TransformComponent transform)
     {
-        _camera.Transform.Position = transform.Position;
-        _camera.Transform.Orientation = transform.Orientation;
+        lock (_camera)
+        {
+            _camera.Transform.Update(transform.Position, transform.Orientation);
+        }
     }
 }

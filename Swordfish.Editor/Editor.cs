@@ -747,42 +747,42 @@ public class Editor : IEntryPoint, IAutoActivate
 
         if (_inputService.IsKeyHeld(Key.W))
         {
-            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+            camera.Transform.Translate(-forward * cameraSpeed * (float)delta);
         }
 
         if (_inputService.IsKeyHeld(Key.S))
         {
-            camera.Transform.Position += forward * cameraSpeed * (float)delta;
+            camera.Transform.Translate(forward * cameraSpeed * (float)delta);
         }
 
         if (_inputService.IsKeyHeld(Key.D))
         {
-            camera.Transform.Position += right * cameraSpeed * (float)delta;
+            camera.Transform.Translate(right * cameraSpeed * (float)delta);
         }
 
         if (_inputService.IsKeyHeld(Key.A))
         {
-            camera.Transform.Position -= right * cameraSpeed * (float)delta;
+            camera.Transform.Translate(-right * cameraSpeed * (float)delta);
         }
 
         if (_inputService.IsKeyHeld(Key.E))
         {
-            camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+            camera.Transform.Translate(new Vector3(0, cameraSpeed * (float)delta, 0));
         }
 
         if (_inputService.IsKeyHeld(Key.Q))
         {
-            camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
+            camera.Transform.Translate(new Vector3(0, -cameraSpeed * (float)delta, 0));
         }
 
         if (_inputService.IsKeyPressed(Key.UpArrow))
         {
-            camera.Transform.Position += new Vector3(0, 1, 0);
+            camera.Transform.Translate(new Vector3(0, 1, 0));
         }
 
         if (_inputService.IsKeyPressed(Key.DownArrow))
         {
-            camera.Transform.Position -= new Vector3(0, 1, 0);
+            camera.Transform.Translate(new Vector3(0, -1, 0));
         }
     }
 }

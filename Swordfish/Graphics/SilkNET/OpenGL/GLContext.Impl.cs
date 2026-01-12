@@ -104,14 +104,14 @@ internal unsafe partial class GLContext
 
     private readonly struct GLRenderTargetArgs(
         in GL gl,
-        in Transform transform,
+        in int entity,
         in VertexArrayObject<float, uint> vertexArrayObject,
         in BufferObject<Matrix4x4> modelsBufferObject,
         in GLMaterial[] materials,
         in RenderOptions renderOptions)
     {
         private readonly GL _gl = gl;
-        private readonly Transform _transform = transform;
+        private readonly int _entity = entity;
         private readonly VertexArrayObject<float, uint> _vertexArrayObject = vertexArrayObject;
         private readonly BufferObject<Matrix4x4> _modelsBufferObject = modelsBufferObject;
         private readonly GLMaterial[] _materials = materials;
@@ -119,7 +119,7 @@ internal unsafe partial class GLContext
 
         public static GLRenderTarget Factory(GLRenderTargetArgs args)
         {
-            return new GLRenderTarget(args._gl, args._transform, args._vertexArrayObject, args._modelsBufferObject, args._materials, args._renderOptions);
+            return new GLRenderTarget(args._gl, args._entity, args._vertexArrayObject, args._modelsBufferObject, args._materials, args._renderOptions);
         }
     }
     

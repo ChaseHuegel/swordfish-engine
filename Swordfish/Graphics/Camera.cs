@@ -7,7 +7,7 @@ namespace Swordfish.Graphics;
 
 public class Camera
 {
-    public Transform Transform { get; set; } = new();
+    public Transform Transform { get; } = new();
 
     public int Fov
     {
@@ -23,8 +23,6 @@ public class Camera
     public float NearPlane { get; set; }
     public float FarPlane { get; set; }
 
-    private readonly Transform _viewTransform = new();
-
     private int _fovDegrees;
     private float _fovRadians;
 
@@ -38,11 +36,7 @@ public class Camera
 
     public Matrix4x4 GetView()
     {
-        _viewTransform.Position = Transform.Position;
-        _viewTransform.Orientation = Transform.Orientation;
-        _viewTransform.Scale = Transform.Scale;
-
-        Matrix4x4.Invert(_viewTransform.ToMatrix4X4(), out Matrix4x4 view);
+        Matrix4x4.Invert(Transform.ToMatrix4X4(), out Matrix4x4 view);
         return view;
     }
 

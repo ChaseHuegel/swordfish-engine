@@ -1,17 +1,20 @@
 using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
+using Swordfish.Library.Types;
 using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings, in IECSContext ecs) : IWorldSpaceRenderStage
 {
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
-    
+    private readonly IECSContext _ecs = ecs;
+
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
     private LockedList<GLRenderTarget>? _renderTargets;
@@ -27,6 +30,9 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _renderTargets = glRenderContext.RenderTargets;
     }
 
+    private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
+    private readonly Transform _reusableTransform = new();
+    
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
         if (_renderTargets == null)
@@ -36,9 +42,9 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         _instances.Clear();
         _transparentInstances.Clear();
+        _renderTargetEntities.Clear();
+        
         _renderTargets.ForEach(ForEachRenderTarget);
-        return;
-
         void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
             List<Matrix4x4>? matrices;
@@ -66,7 +72,22 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                 }
             }
 
-            matrices.Add(renderTarget.Transform.ToMatrix4X4());
+            _renderTargetEntities.Add(renderTarget.Entity, renderTarget);
+        }
+        
+        _ecs.World.DataStore.Query<MeshRendererComponent, TransformComponent>(0f, ForEachEntity);
+        void ForEachEntity(float _, DataStore store, int entity, ref MeshRendererComponent meshRenderer, ref TransformComponent transform)
+        {
+            if (!_renderTargetEntities.TryGetValue(entity, out GLRenderTarget? renderTarget))
+            {
+                return;
+            }
+            
+            _reusableTransform.Update(transform.Position, transform.Orientation, transform.Scale);
+            if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
+            {
+                matrices.Add(_reusableTransform.ToMatrix4X4());
+            }
         }
     }
 

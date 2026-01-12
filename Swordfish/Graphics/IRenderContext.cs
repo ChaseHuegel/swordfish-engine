@@ -14,7 +14,7 @@ public interface IRenderContext
 
     void Bind(Mesh mesh);
 
-    void Bind(MeshRenderer meshRenderer);
+    void Bind(MeshRenderer meshRenderer, int entity);
     
     void Bind(RectRenderer rectRenderer);
 }

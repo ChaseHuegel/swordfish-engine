@@ -69,7 +69,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Texture texture) => BindTexture(texture);
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
-    public void Bind(MeshRenderer meshRenderer) => BindMeshRenderer(meshRenderer);
+    public void Bind(MeshRenderer meshRenderer, int entity) => BindMeshRenderer(meshRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
 
     private void OnHandleDisposed(object? sender, EventArgs _)
@@ -88,16 +88,20 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private void OnWindowRender(double delta)
     {
         Camera camera = Camera.Get();
-        Matrix4x4 view = camera.GetView();
-        Matrix4x4 projection = camera.GetProjection();
-
-        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        var drawCalls = 0;
-        for (var i = 0; i < _renderPipelines.Length; i++)
+        lock (camera)
         {
-            drawCalls += _renderPipelines[i].Render(delta, view, projection);
+            Matrix4x4 view = camera.GetView();
+            Matrix4x4 projection = camera.GetProjection();
+
+            _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            var drawCalls = 0;
+            for (var i = 0; i < _renderPipelines.Length; i++)
+            {
+                drawCalls += _renderPipelines[i].Render(delta, view, projection);
+            }
+
+            DrawCalls.Set(drawCalls);
         }
-        DrawCalls.Set(drawCalls);
     }
 
     private ShaderComponent BindShaderSource(ShaderSource shaderSource)
@@ -203,7 +207,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    private void BindMeshRenderer(MeshRenderer meshRenderer)
+    private void BindMeshRenderer(MeshRenderer meshRenderer, int entity)
     {
         if (_linkedHandles.TryGetValue(meshRenderer, out IHandle? _))
         {
@@ -220,7 +224,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         GLRenderTarget renderTarget = _glContext.CreateGLRenderTarget(
-            meshRenderer.Transform,
+            entity,
             vao,
             mbo,
             glMaterials,

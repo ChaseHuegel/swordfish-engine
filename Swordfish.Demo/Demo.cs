@@ -535,7 +535,7 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateDonutDemo();
         CreatePhysicsTest();
 
-        _renderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
+        _renderContext.Camera.Get().Transform.Update(position: new Vector3(0, 5, 15));
         _renderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
 
         foreach (string line in Benchmark.CollectOutput())

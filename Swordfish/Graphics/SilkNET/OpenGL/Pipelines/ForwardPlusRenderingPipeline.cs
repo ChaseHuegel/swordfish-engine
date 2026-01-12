@@ -15,6 +15,8 @@ namespace Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : RenderPipeline<TRenderStage>, IEntitySystem
     where TRenderStage : IRenderStage
 {
+    public int Order => 10_000;
+    
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
     private const int MAX_LIGHTS = 1024;

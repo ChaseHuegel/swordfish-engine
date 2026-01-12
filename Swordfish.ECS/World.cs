@@ -23,6 +23,7 @@ public class World(in byte chunkBitWidth = 16)
             }
 
             _systems.Add(system);
+            _systems.Sort(Comparison);
             return true;
         }
 
@@ -30,6 +31,21 @@ public class World(in byte chunkBitWidth = 16)
         {
             return system.GetType() == other.GetType();
         }
+    }
+
+    private int Comparison(IEntitySystem x, IEntitySystem y)
+    {
+        if (x.Order < y.Order)
+        {
+            return -1;
+        }
+        
+        if (x.Order > y.Order)
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     public void Tick(float delta)

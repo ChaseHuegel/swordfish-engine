@@ -438,7 +438,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private Orientation GetPlacementOrientation(TransformComponent transformComponent)
     {
         Camera camera = _renderContext.Camera.Get();
-        var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Orientation * transformComponent.Orientation);
+        var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Read().Orientation * transformComponent.Orientation);
         
         Orientation brickOrientation = SelectedOrientation.Get();
         brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
