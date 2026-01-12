@@ -9,14 +9,22 @@ using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings, in IECSContext ecs) : IWorldSpaceRenderStage
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage, IEntitySystem
 {
+    public int Order => 10_000;
+    
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
-    private readonly IECSContext _ecs = ecs;
 
+    private readonly SemaphoreSlim _renderSemaphore = new(1, 1);
+    
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
+    private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
+    
+    private readonly Transform _reusableTransform = new();
+    private DataStore? _store;
+    
     private LockedList<GLRenderTarget>? _renderTargets;
 
     public void Initialize(IRenderContext renderContext)
@@ -30,8 +38,33 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _renderTargets = glRenderContext.RenderTargets;
     }
 
-    private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
-    private readonly Transform _reusableTransform = new();
+    public void Tick(float delta, DataStore store)
+    {
+        _store = store;
+        // _renderSemaphore.Wait();
+        // try
+        // {
+        //     store.Query<MeshRendererComponent, TransformComponent>(0f, QueryRenderableEntities);
+        // }
+        // finally
+        // {
+        //     _renderSemaphore.Release();
+        // }
+    }
+
+    private void QueryRenderableEntities(float _, DataStore store, int entity, ref MeshRendererComponent meshRenderer, ref TransformComponent transform)
+    {
+        if (!_renderTargetEntities.TryGetValue(entity, out GLRenderTarget? renderTarget))
+        {
+            return;
+        }
+        
+        _reusableTransform.Update(transform.Position, transform.Orientation, transform.Scale);
+        if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
+        {
+            matrices.Add(_reusableTransform.ToMatrix4X4());
+        }
+    }
     
     public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
     {
@@ -40,11 +73,13 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
         }
 
+        _renderSemaphore.Wait();
         _instances.Clear();
         _transparentInstances.Clear();
         _renderTargetEntities.Clear();
-        
         _renderTargets.ForEach(ForEachRenderTarget);
+        _store?.Query<MeshRendererComponent, TransformComponent>(0f, QueryRenderableEntities);
+
         void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
             List<Matrix4x4>? matrices;
@@ -74,50 +109,42 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _renderTargetEntities.Add(renderTarget.Entity, renderTarget);
         }
-        
-        _ecs.World.DataStore.Query<MeshRendererComponent, TransformComponent>(0f, ForEachEntity);
-        void ForEachEntity(float _, DataStore store, int entity, ref MeshRendererComponent meshRenderer, ref TransformComponent transform)
-        {
-            if (!_renderTargetEntities.TryGetValue(entity, out GLRenderTarget? renderTarget))
-            {
-                return;
-            }
-            
-            _reusableTransform.Update(transform.Position, transform.Orientation, transform.Scale);
-            if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
-            {
-                matrices.Add(_reusableTransform.ToMatrix4X4());
-            }
-        }
     }
 
     public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_renderTargets == null)
+        try
         {
-            throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
-        }
+            if (_renderTargets == null)
+            {
+                throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
+            }
 
-        if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
+            if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
+            {
+                return 0;
+            }
+
+            _gl.Enable(EnableCap.Blend);
+            _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+            var drawCalls = 0;
+
+            drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+
+            //  Exclude rendering transparent targets during a depth pass
+            if (!isDepthPass)
+            {
+                drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+            }
+
+            _gl.Disable(EnableCap.Blend);
+            return drawCalls;
+        }
+        finally
         {
-            return 0;
+            _renderSemaphore.Release();
         }
-        
-        _gl.Enable(EnableCap.Blend);
-        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-        var drawCalls = 0;
-        
-        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
-        
-        //  Exclude rendering transparent targets during a depth pass
-        if (!isDepthPass)
-        {
-            drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
-        }
-
-        _gl.Disable(EnableCap.Blend);
-        return drawCalls;
     }
 
     private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
