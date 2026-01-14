@@ -74,6 +74,7 @@ public class Injector : IDryIocInjector
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
+        container.Register<IDebugOverlay, PerformanceStatsOverlay>();
         
         container.Register<MainMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, MainMenu>();
