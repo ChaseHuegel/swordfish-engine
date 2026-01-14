@@ -23,23 +23,28 @@ internal class Localization : ILocalizationProvider, ILocalization
         }
     }
     
-    public string? GetString(string value)
+    public string GetString(string value)
     {
         return GetTranslation(value, CultureInfo.CurrentUICulture.TwoLetterISOLanguageName);
     }
 
-    public string? GetString(string value, string cultureName)
+    public string GetString(string value, string cultureName)
     {
         return GetTranslation(value, cultureName);
     }
 
-    public string? GetString(string value, CultureInfo cultureInfo)
+    public string GetString(string value, CultureInfo cultureInfo)
     {
         return GetTranslation(value, cultureInfo.TwoLetterISOLanguageName);
     }
 
-    private string? GetTranslation(string value, string cultureName)
+    private string GetTranslation(string value, string cultureName)
     {
-        return _languages.TryGetValue(cultureName, out Language? language) ? language.Translations.GetValueOrDefault(value) : null;
+        if (_languages.TryGetValue(cultureName, out Language? language))
+        {
+            return language.Translations.GetValueOrDefault(value) ?? value;
+        }
+        
+        return value;
     }
 }
