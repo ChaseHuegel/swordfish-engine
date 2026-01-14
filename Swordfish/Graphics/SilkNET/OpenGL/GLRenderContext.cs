@@ -32,7 +32,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly IRenderPipeline[] _renderPipelines;
     private readonly SynchronizationContext _synchronizationContext;
     
-    private readonly DoubleList<RenderInstance> _renderInstances = new();
+    private readonly DoubleList<RenderInstance> _renderInstancesBuffer = new();
 
     private Matrix4x4 _cameraView;
     private Matrix4x4 _cameraProjection;
@@ -91,11 +91,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     public void Tick(float delta, DataStore store)
     {
-        lock (_renderInstances)
+        lock (_renderInstancesBuffer)
         {
             store.Query<TransformComponent, ViewFrustumComponent>(QueryCamera);
             
-            _renderInstances.Clear();
+            _renderInstancesBuffer.Clear();
             store.Query<TransformComponent, MeshRendererComponent>(QueryRenderableEntities);
         }
     }
@@ -116,7 +116,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return;
         }
         
-        _renderInstances.Write(new RenderInstance(entity, transform.ToMatrix4X4()));
+        _renderInstancesBuffer.Write(new RenderInstance(entity, transform.ToMatrix4X4()));
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -129,12 +129,12 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 view;
         Matrix4x4 projection;
         RenderInstance[] instances;
-        lock (_renderInstances)
+        lock (_renderInstancesBuffer)
         {
             view = _cameraView;
             projection = _cameraProjection;
-            _renderInstances.Swap();
-            instances = _renderInstances.Read();
+            _renderInstancesBuffer.Swap();
+            instances = _renderInstancesBuffer.Read();
         }
         
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);

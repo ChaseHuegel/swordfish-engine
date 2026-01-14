@@ -71,7 +71,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly BufferObject<float> _screenVBO;
     private readonly VertexArrayObject<float> _screenVAO;
 
-    private readonly DoubleList<GPULight> _lights = new();
+    private readonly DoubleList<GPULight> _lightsBuffer = new();
     private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     
@@ -166,9 +166,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     public void Tick(float delta, DataStore store)
     {
-        lock (_lights)
+        lock (_lightsBuffer)
         {
-            _lights.Clear();
+            _lightsBuffer.Clear();
             store.Query<TransformComponent, LightComponent>(0f, LightQuery);
         }
     }
@@ -177,7 +177,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
         var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Size);
-        _lights.Write(new GPULight(posRadius, colorIntensity));
+        _lightsBuffer.Write(new GPULight(posRadius, colorIntensity));
     }
 
     private void OnWindowResized(Vector2 size)
@@ -273,10 +273,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         // Upload lights
         GPULight[] lights;
-        lock (_lights)
+        lock (_lightsBuffer)
         {
-            _lights.Swap();
-            lights = _lights.Read();
+            _lightsBuffer.Swap();
+            lights = _lightsBuffer.Read();
         }
         _lightsSSBO.UpdateData(lights);
         _glDebug.TryLogError();
