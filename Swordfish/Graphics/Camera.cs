@@ -1,38 +1,13 @@
 using System.Numerics;
-using Swordfish.Library.Types;
-using Swordfish.Library.Util;
+using Swordfish.ECS;
 using Swordfish.Physics;
 
 namespace Swordfish.Graphics;
 
-public class Camera
+public readonly struct Camera(in ViewFrustumComponent viewFrustum, in TransformComponent transform)
 {
-    public Transform Transform { get; } = new();
-
-    public int Fov
-    {
-        get => _fovDegrees;
-        set
-        {
-            _fovDegrees = value;
-            _fovRadians = MathS.DEGREES_TO_RADIANS * value;
-        }
-    }
-
-    public float AspectRatio { get; set; }
-    public float NearPlane { get; set; }
-    public float FarPlane { get; set; }
-
-    private int _fovDegrees;
-    private float _fovRadians;
-
-    public Camera(int fov, float aspectRatio, float nearPlane, float farPlane)
-    {
-        Fov = fov;
-        AspectRatio = aspectRatio;
-        NearPlane = nearPlane;
-        FarPlane = farPlane;
-    }
+    public readonly ViewFrustumComponent ViewFrustum = viewFrustum;
+    public readonly TransformComponent Transform = transform;
 
     public Matrix4x4 GetView()
     {
@@ -40,19 +15,21 @@ public class Camera
         return view;
     }
 
-    public Matrix4x4 GetProjection()
+    public Matrix4x4 GetProjection(float aspectRatio)
     {
-        return Matrix4x4.CreatePerspectiveFieldOfView(_fovRadians, AspectRatio, NearPlane, FarPlane);
+        return Matrix4x4.CreatePerspectiveFieldOfView(ViewFrustum.Fov.Radians, aspectRatio, ViewFrustum.NearPlane, ViewFrustum.FarPlane);
     }
 
     public Ray ScreenPointToRay(int x, int y, int screenWidth, int screenHeight)
     {
+        float aspectRatio = (float)screenWidth / screenHeight;
+        
         float ndcX = 2.0f * x / screenWidth - 1.0f;
         float ndcY = 1.0f - 2.0f * y / screenHeight;
 
         var clipFar = new Vector4(ndcX, ndcY, 1f, 1f);
 
-        Matrix4x4.Invert(GetProjection(), out Matrix4x4 invProjection);
+        Matrix4x4.Invert(GetProjection(aspectRatio), out Matrix4x4 invProjection);
         Vector4 eyeFar = Vector4.Transform(clipFar, invProjection);
         eyeFar /= eyeFar.W;
 

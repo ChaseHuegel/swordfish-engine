@@ -3,6 +3,7 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
@@ -15,7 +16,7 @@ namespace Swordfish.Graphics.SilkNET.OpenGL.Pipelines;
 internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : RenderPipeline<TRenderStage>, IEntitySystem
     where TRenderStage : IRenderStage
 {
-    public int Order => 10_000;
+    public int Order => 100_003;
     
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
@@ -206,7 +207,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
@@ -228,7 +229,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, isDepthPass: true);
+            Draw(delta, view, projection, renderInstances, isDepthPass: true);
         }
         _glDebug.TryLogError();
 
@@ -261,7 +262,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, isDepthPass: false);
+            Draw(delta, view, projection, renderInstances, isDepthPass: false);
         }
         _glDebug.TryLogError();
 
@@ -274,8 +275,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         GPULight[] lights;
         lock (_lights)
         {
-            lights = _lights.Read();
             _lights.Swap();
+            lights = _lights.Read();
         }
         _lightsSSBO.UpdateData(lights);
         _glDebug.TryLogError();
@@ -329,7 +330,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
     {
         _glDebug.TryLogError();
         

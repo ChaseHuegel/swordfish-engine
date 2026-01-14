@@ -70,11 +70,11 @@ internal sealed class GLLineRenderer(
         _shaderProgram.BindAttributeLocation("in_color", 1);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
+    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
     {
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_shaderProgram == null || _vao == null || isDepthPass)
         {

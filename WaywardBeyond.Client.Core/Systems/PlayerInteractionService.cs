@@ -437,8 +437,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     private Orientation GetPlacementOrientation(TransformComponent transformComponent)
     {
-        Camera camera = _renderContext.Camera.Get();
-        var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Read().Orientation * transformComponent.Orientation);
+        if (!_ecsContext.World.DataStore.TryGetLast(out ViewFrustumComponent _, out TransformComponent cameraTransform))
+        {
+            return Orientation.Identity;
+        }
+
+        var lookAtOrientation = new Orientation(transformComponent.Orientation * cameraTransform.Orientation * transformComponent.Orientation);
         
         Orientation brickOrientation = SelectedOrientation.Get();
         brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
@@ -493,7 +497,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         out TransformComponent transformComponent,
         out Vector3 clickedPoint
     ) {
-        Camera camera = _renderContext.Camera.Get();
+        Camera camera = _renderContext.MainCamera.Get();
 
         Vector3? reachAroundDir = null;
         Ray ray = camera.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);

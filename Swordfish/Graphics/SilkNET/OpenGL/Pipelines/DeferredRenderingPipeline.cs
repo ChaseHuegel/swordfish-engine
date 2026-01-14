@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
@@ -56,7 +57,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _screenShader = screenShader.Value.CreateProgram(glContext);
     }
     
-    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
@@ -68,7 +69,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
     {
         _gBuffer.Unbind();
         

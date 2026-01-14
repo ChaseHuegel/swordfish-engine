@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
+using Swordfish.Graphics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 
@@ -33,6 +34,10 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 
     public void Run()
     {
+        Entity camera = World.NewEntity();
+        camera.AddOrUpdate(new ViewFrustumComponent(nearPlane: 0.1f, farPlane: 1000f, fovDegrees: 90));
+        camera.AddOrUpdate(new TransformComponent());
+        
         _threadWorker.Start();
         _logger.LogInformation("Started ECS thread.");
     }

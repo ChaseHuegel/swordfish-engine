@@ -172,6 +172,8 @@ public class DataStore
         }
     }
 
+    public void Query(ForEach forEach) => Query(delta: 0f, forEach);
+    
     public void Query(float delta, ForEach forEach)
     {
         lock (_chunkAndStoreLock)
@@ -190,6 +192,9 @@ public class DataStore
             }
         }
     }
+
+    public void Query<T1>(ForEach<T1> forEach) where T1 : struct, IDataComponent => Query(delta: 0f, forEach);
+
     public void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
@@ -221,6 +226,13 @@ public class DataStore
                 chunk.Components[componentIndex] = c1;  //  TODO use a buffer to apply changes?
             }
         }
+    }
+
+    public void Query<T1, T2>(ForEach<T1, T2> forEach)
+        where T1 : struct, IDataComponent
+        where T2 : struct, IDataComponent
+    {
+        Query(delta: 0f, forEach);
     }
 
     public void Query<T1, T2>(float delta, ForEach<T1, T2> forEach)
@@ -266,15 +278,26 @@ public class DataStore
             store1.SetAt(chunkIndex, localEntity, component1, true);
         }
     }
-
+    
     public bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
+    {
+        return Find(predicate, out entity, out _);
+    }
+
+    public bool Find<T1>(Predicate<T1> predicate, out T1 component1) where T1 : struct, IDataComponent
+    {
+        return Find(predicate, out _, out component1);
+    }
+    
+    public bool Find<T1>(Predicate<T1> predicate, out int entity, out T1 component1) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
         lock (_chunkAndStoreLock)
         {
             if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store))
             {
-                entity = default!;
+                entity = -1;
+                component1 = default;
                 return false;
             }
 
@@ -292,16 +315,19 @@ public class DataStore
                 }
 
                 entity = ToGlobalSpace(chunkIndex, componentIndex);
-                T1 c1 = chunk.Components[componentIndex];
+                component1 = chunk.Components[componentIndex];
 
-                if (predicate(c1))
+                if (!predicate(component1))
                 {
-                    return true;
+                    continue;
                 }
+                
+                return true;
             }
         }
 
-        entity = default!;
+        entity = 0;
+        component1 = default;
         return false;
     }
 
@@ -318,6 +344,45 @@ public class DataStore
             (int chunkIndex, int localEntity) = ToChunkSpace(entity);
             return ((ChunkedStore<T1>)store).TryGetAt(chunkIndex, localEntity, out component1);
         }
+    }
+
+    public bool TryGet<T1, T2>(Predicate<T1> predicate, out T1 component1, out T2 component2)
+        where T1 : struct, IDataComponent
+        where T2 : struct, IDataComponent
+    {
+        if (Find(predicate, out int entity, out component1))
+        {
+            return TryGet(entity, out component2);
+        }
+        
+        component2 = default;
+        return false;
+    }
+    
+    public bool TryGetLast<T1, T2>(out T1 component1, out T2 component2)
+        where T1 : struct, IDataComponent
+        where T2 : struct, IDataComponent
+    {
+        T1? c1 = null;
+        T2? c2 = null;
+        
+        Query<T1, T2>(ForEach);
+        void ForEach(float delta, DataStore store, int entity, ref T1 t1, ref T2 t2)
+        {
+            c1 = t1;
+            c2 = t2;
+        }
+
+        if (!c1.HasValue || !c2.HasValue)
+        {
+            component1 = default;
+            component2 = default;
+            return false;
+        }
+
+        component1 = c1.Value;
+        component2 = c2.Value;
+        return true;
     }
 
     public Span<IDataComponent> Get(int entity)

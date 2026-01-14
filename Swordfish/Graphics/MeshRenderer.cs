@@ -8,8 +8,6 @@ public sealed class MeshRenderer : IHandle
 
     public RenderOptions RenderOptions { get; set; }
 
-    public Transform Transform { get; } = new();
-
     public Mesh Mesh { get; }
 
     public Material[] Materials { get; }

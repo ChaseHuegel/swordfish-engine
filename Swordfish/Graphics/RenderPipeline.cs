@@ -1,5 +1,6 @@
 using System.Numerics;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 namespace Swordfish.Graphics;
 
@@ -13,29 +14,29 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         _renderStages = renderStages;
     }
     
-    public abstract void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection);
+    public abstract void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances);
 
-    public abstract void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection);
+    public abstract void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances);
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
     {
-        PreRender(delta, view, projection);
-        int drawCalls = Draw(delta, view, projection);
-        PostRender(delta, view, projection);
+        PreRender(delta, view, projection, renderInstances);
+        int drawCalls = Draw(delta, view, projection, renderInstances);
+        PostRender(delta, view, projection, renderInstances);
         return drawCalls;
     }
     
-    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass = false)
+    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass = false)
     {
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            _renderStages[i].PreRender(delta, view, projection, isDepthPass);
+            _renderStages[i].PreRender(delta, view, projection, renderInstances, isDepthPass);
         }
 
         var drawCalls = 0;
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            drawCalls += _renderStages[i].Render(delta, view, projection, ShaderActivationCallback, isDepthPass);
+            drawCalls += _renderStages[i].Render(delta, view, projection, renderInstances, ShaderActivationCallback, isDepthPass);
         }
 
         return drawCalls;

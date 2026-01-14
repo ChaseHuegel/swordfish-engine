@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
@@ -13,10 +14,12 @@ using Swordfish.Library.Types;
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate
+internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate, IEntitySystem
 {
-    public DataBinding<Camera> Camera { get; set; } = new();
+    public int Order => 100_002;
 
+    public DataBinding<Camera> MainCamera { get; } = new();
+    
     public DataBinding<int> DrawCalls { get; } = new();
 
     internal readonly LockedList<GLRenderTarget> RenderTargets = new();
@@ -28,6 +31,12 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly GLContext _glContext;
     private readonly IRenderPipeline[] _renderPipelines;
     private readonly SynchronizationContext _synchronizationContext;
+    
+    private readonly DoubleList<RenderInstance> _renderInstances = new();
+
+    private Matrix4x4 _cameraView;
+    private Matrix4x4 _cameraProjection;
+    private float _aspectRatio;
 
     public GLRenderContext(
         GL gl,
@@ -43,18 +52,18 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _renderPipelines = renderPipelines;
         _synchronizationContext = synchronizationContext;
 
+        _aspectRatio = _windowContext.GetSize().GetRatio();
+        
         gl.Enable(EnableCap.DepthTest);
         gl.Enable(EnableCap.CullFace);
         gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-
-        Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.1f, 1000f));
         
         for (var i = 0; i < renderers.Length; i++)
         {
             //  TODO there has to be a better way to do this without a circular dependency
             renderers[i].Initialize(this);
         }
-                
+        
         _windowContext.Resized += OnWindowResized;
         _windowContext.Render += OnWindowRender;
     }
@@ -80,28 +89,62 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
     }
 
+    public void Tick(float delta, DataStore store)
+    {
+        lock (_renderInstances)
+        {
+            store.Query<TransformComponent, ViewFrustumComponent>(QueryCamera);
+            
+            _renderInstances.Clear();
+            store.Query<TransformComponent, MeshRendererComponent>(QueryRenderableEntities);
+        }
+    }
+
+    private void QueryCamera(float delta, DataStore store, int entity, ref TransformComponent transform, ref ViewFrustumComponent viewFrustum)
+    {
+        var camera = new Camera(viewFrustum, transform);
+        MainCamera.Set(camera);
+        
+        _cameraView = camera.GetView();
+        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(camera.ViewFrustum.Fov.Radians, _aspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+    }
+
+    private void QueryRenderableEntities(float f, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
+    {
+        if (meshRendererComponent.MeshRenderer == null)
+        {
+            return;
+        }
+        
+        _renderInstances.Write(new RenderInstance(entity, transform.ToMatrix4X4()));
+    }
+
     private void OnWindowResized(Vector2 newSize)
     {
-        Camera.Get().AspectRatio = newSize.GetRatio();
+        _aspectRatio = newSize.GetRatio();
     }
 
     private void OnWindowRender(double delta)
     {
-        Camera camera = Camera.Get();
-        lock (camera)
+        Matrix4x4 view;
+        Matrix4x4 projection;
+        RenderInstance[] instances;
+        lock (_renderInstances)
         {
-            Matrix4x4 view = camera.GetView();
-            Matrix4x4 projection = camera.GetProjection();
-
-            _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            var drawCalls = 0;
-            for (var i = 0; i < _renderPipelines.Length; i++)
-            {
-                drawCalls += _renderPipelines[i].Render(delta, view, projection);
-            }
-
-            DrawCalls.Set(drawCalls);
+            view = _cameraView;
+            projection = _cameraProjection;
+            _renderInstances.Swap();
+            instances = _renderInstances.Read();
         }
+        
+        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+        var drawCalls = 0;
+        for (var i = 0; i < _renderPipelines.Length; i++)
+        {
+            drawCalls += _renderPipelines[i].Render(delta, view, projection, instances);
+        }
+        
+        DrawCalls.Set(drawCalls);
     }
 
     private ShaderComponent BindShaderSource(ShaderSource shaderSource)

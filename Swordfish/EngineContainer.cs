@@ -53,7 +53,6 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<GLInstancedRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<IWorldSpaceRenderStage, GLInstancedRenderer>();
         container.RegisterMapping<IRenderStage, GLInstancedRenderer>();
-        container.RegisterMapping<IEntitySystem, GLInstancedRenderer>();
         container.Register<GLLineRenderer>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMapping<ILineRenderer, GLLineRenderer>();
         container.RegisterMapping<IWorldSpaceRenderStage, GLLineRenderer>();

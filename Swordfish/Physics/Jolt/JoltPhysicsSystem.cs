@@ -31,7 +31,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public event EventHandler<EventArgs>? FixedUpdate;
 
-    public int Order => 50_000;
+    public int Order => -100_001;
 
     public PhysicsSystem System { get; }
     

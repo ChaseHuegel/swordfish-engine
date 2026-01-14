@@ -38,7 +38,7 @@ public sealed class ScaleGizmo : IDisposable
         Vector3 right = transform.GetRight();
 
         const float baseSize = 0.85f;
-        float scale = Vector3.Distance(pos, _camera.Transform.Read().Position) * 0.1f;
+        float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
         float size = baseSize * scale;
         float handleSize = 0.35f * scale;
 

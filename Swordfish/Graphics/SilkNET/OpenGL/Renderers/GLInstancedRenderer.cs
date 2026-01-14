@@ -1,18 +1,14 @@
 using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
-using Swordfish.Library.Types;
 using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
-internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage, IEntitySystem
+internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSettings) : IWorldSpaceRenderStage
 {
-    public int Order => 10_000;
-    
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
 
@@ -21,9 +17,6 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
     private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
-    
-    private readonly Transform _reusableTransform = new();
-    private DataStore? _store;
     
     private LockedList<GLRenderTarget>? _renderTargets;
 
@@ -37,36 +30,8 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         //  TODO this is bad
         _renderTargets = glRenderContext.RenderTargets;
     }
-
-    public void Tick(float delta, DataStore store)
-    {
-        _store = store;
-        // _renderSemaphore.Wait();
-        // try
-        // {
-        //     store.Query<MeshRendererComponent, TransformComponent>(0f, QueryRenderableEntities);
-        // }
-        // finally
-        // {
-        //     _renderSemaphore.Release();
-        // }
-    }
-
-    private void QueryRenderableEntities(float _, DataStore store, int entity, ref MeshRendererComponent meshRenderer, ref TransformComponent transform)
-    {
-        if (!_renderTargetEntities.TryGetValue(entity, out GLRenderTarget? renderTarget))
-        {
-            return;
-        }
-        
-        _reusableTransform.Update(transform.Position, transform.Orientation, transform.Scale);
-        if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
-        {
-            matrices.Add(_reusableTransform.ToMatrix4X4());
-        }
-    }
     
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, bool isDepthPass)
+    public void PreRender(double delta, Matrix4x4 _, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
     {
         if (_renderTargets == null)
         {
@@ -77,9 +42,8 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         _instances.Clear();
         _transparentInstances.Clear();
         _renderTargetEntities.Clear();
+        
         _renderTargets.ForEach(ForEachRenderTarget);
-        _store?.Query<MeshRendererComponent, TransformComponent>(0f, QueryRenderableEntities);
-
         void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
             List<Matrix4x4>? matrices;
@@ -109,9 +73,23 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
             _renderTargetEntities[renderTarget.Entity] = renderTarget;
         }
+
+        for (var i = 0; i < renderInstances.Length; i++)
+        {
+            RenderInstance instance = renderInstances[i];
+            if (!_renderTargetEntities.TryGetValue(instance.Entity, out GLRenderTarget? renderTarget))
+            {
+                return;
+            }
+            
+            if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
+            {
+                matrices.Add(instance.Matrix);
+            }
+        }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         try
         {

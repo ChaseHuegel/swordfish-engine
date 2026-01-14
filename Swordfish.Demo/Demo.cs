@@ -121,9 +121,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
         inputService.Scrolled += OnScroll;
         _physics.FixedUpdate += OnFixedUpdate;
-        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
-        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
-        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
+        // _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
+        // _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
+        // _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
         
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         var astronautTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("astronaut.png"));
@@ -454,7 +454,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
-        Camera camera = _renderContext.Camera.Get();
+        Camera camera = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
@@ -501,7 +501,7 @@ public class Demo : IEntryPoint, IAutoActivate
     private volatile float _scrollBuffer;
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
-        Camera camera = _renderContext.Camera.Get();
+        Camera camera = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
@@ -534,9 +534,13 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateShipTest();
         // CreateDonutDemo();
         CreatePhysicsTest();
-
-        _renderContext.Camera.Get().Transform.Update(position: new Vector3(0, 5, 15));
-        _renderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
+        
+        _ecsContext.World.DataStore.Query<ViewFrustumComponent, TransformComponent>(QueryCamera);
+        void QueryCamera(float delta, DataStore store, int entity, ref ViewFrustumComponent component1, ref TransformComponent component2)
+        {
+            component2.Position = new Vector3(0, 5, 15);
+            component2.Rotate(new Vector3(-30, 0, 0));
+        }
 
         foreach (string line in Benchmark.CollectOutput())
         {

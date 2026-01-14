@@ -61,7 +61,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             inventory.Add(new ItemStack("laser", count: 1));
             inventory.Add(new ItemStack("ice", count: 1000));
             inventory.Add(new ItemStack("rock", count: 1000));
-        
+
+            if (_ecs.World.DataStore.Find<ViewFrustumComponent>(_ => true, out int cameraEntity))
+            {
+                _ecs.World.DataStore.AddOrUpdate(cameraEntity, new ChildComponent(player));
+            }
+
             WaywardBeyond.GameState.Set(GameState.Playing);
         }
     }

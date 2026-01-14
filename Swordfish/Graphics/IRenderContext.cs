@@ -4,7 +4,7 @@ namespace Swordfish.Graphics;
 
 public interface IRenderContext
 {
-    DataBinding<Camera> Camera { get; set; }
+    DataBinding<Camera> MainCamera { get; }
 
     DataBinding<int> DrawCalls { get; }
 

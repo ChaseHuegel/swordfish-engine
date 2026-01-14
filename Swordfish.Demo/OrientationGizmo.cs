@@ -41,7 +41,7 @@ public sealed class OrientationGizmo : IDisposable
         const float baseSize = 1.25f;
         const int segmentsPerAxis = 30;
         const float segmentFactor = 1f / segmentsPerAxis;
-        float scale = Vector3.Distance(pos, _camera.Transform.Read().Position) * 0.1f;
+        float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
         float size = baseSize * scale;
 
         //  X axis
