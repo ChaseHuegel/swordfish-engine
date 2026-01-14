@@ -32,7 +32,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly IRenderPipeline[] _renderPipelines;
     private readonly SynchronizationContext _synchronizationContext;
     
-    private readonly DoubleList<RenderInstance> _renderInstancesBuffer = new();
+    private readonly List<RenderInstance> _renderInstancesBuffer = [];
 
     private Matrix4x4 _cameraView;
     private Matrix4x4 _cameraProjection;
@@ -89,15 +89,10 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
     }
 
+    private DataStore? _store;
     public void Tick(float delta, DataStore store)
     {
-        lock (_renderInstancesBuffer)
-        {
-            store.Query<TransformComponent, ViewFrustumComponent>(QueryCamera);
-            
-            _renderInstancesBuffer.Clear();
-            store.Query<TransformComponent, MeshRendererComponent>(QueryRenderableEntities);
-        }
+        _store = store;
     }
 
     private void QueryCamera(float delta, DataStore store, int entity, ref TransformComponent transform, ref ViewFrustumComponent viewFrustum)
@@ -116,7 +111,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return;
         }
         
-        _renderInstancesBuffer.Write(new RenderInstance(entity, transform.ToMatrix4X4()));
+        _renderInstancesBuffer.Add(new RenderInstance(entity, transform.ToMatrix4X4()));
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -126,16 +121,22 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void OnWindowRender(double delta)
     {
-        Matrix4x4 view;
-        Matrix4x4 projection;
-        RenderInstance[] instances;
+        if (_store == null)
+        {
+            return;
+        }
+        
         lock (_renderInstancesBuffer)
         {
-            view = _cameraView;
-            projection = _cameraProjection;
-            _renderInstancesBuffer.Swap();
-            instances = _renderInstancesBuffer.Read();
+            _store.Query<TransformComponent, ViewFrustumComponent>(QueryCamera);
+            
+            _renderInstancesBuffer.Clear();
+            _store.Query<TransformComponent, MeshRendererComponent>(QueryRenderableEntities);
         }
+
+        Matrix4x4 view = _cameraView;
+        Matrix4x4 projection = _cameraProjection;
+        RenderInstance[] instances = _renderInstancesBuffer.ToArray();
         
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
         var drawCalls = 0;
