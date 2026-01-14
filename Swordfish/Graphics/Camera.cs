@@ -17,7 +17,7 @@ public readonly struct Camera(in ViewFrustumComponent viewFrustum, in TransformC
 
     public Matrix4x4 GetProjection(float aspectRatio)
     {
-        return Matrix4x4.CreatePerspectiveFieldOfView(ViewFrustum.Fov.Radians, aspectRatio, ViewFrustum.NearPlane, ViewFrustum.FarPlane);
+        return Matrix4x4.CreatePerspectiveFieldOfView(ViewFrustum.FOV.Radians, aspectRatio, ViewFrustum.NearPlane, ViewFrustum.FarPlane);
     }
 
     public Ray ScreenPointToRay(int x, int y, int screenWidth, int screenHeight)

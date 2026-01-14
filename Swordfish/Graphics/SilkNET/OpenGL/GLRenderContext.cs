@@ -8,6 +8,7 @@ using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 
 // ReSharper disable UnusedMember.Global
 
@@ -31,7 +32,8 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly GLContext _glContext;
     private readonly IRenderPipeline[] _renderPipelines;
     private readonly SynchronizationContext _synchronizationContext;
-    
+    private readonly RenderSettings _renderSettings;
+
     private readonly DoubleList<RenderInstance> _renderInstancesBuffer = new();
 
     private Matrix4x4 _cameraView;
@@ -44,13 +46,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         GLContext glContext,
         IRenderPipeline[] renderPipelines,
         IRenderStage[] renderers,
-        SynchronizationContext synchronizationContext
+        SynchronizationContext synchronizationContext,
+        RenderSettings renderSettings
     ) {
         _gl = gl;
         _windowContext = windowContext;
         _glContext = glContext;
         _renderPipelines = renderPipelines;
         _synchronizationContext = synchronizationContext;
+        _renderSettings = renderSettings;
 
         _aspectRatio = _windowContext.GetSize().GetRatio();
         
@@ -102,11 +106,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void QueryCamera(float delta, DataStore store, int entity, ref TransformComponent transform, ref ViewFrustumComponent viewFrustum)
     {
+        viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
+        viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
+        viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
+        
         var camera = new Camera(viewFrustum, transform);
         MainCamera.Set(camera);
         
         _cameraView = camera.GetView();
-        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(camera.ViewFrustum.Fov.Radians, _aspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(camera.ViewFrustum.FOV.Radians, _aspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
     }
 
     private void QueryRenderableEntities(float f, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)

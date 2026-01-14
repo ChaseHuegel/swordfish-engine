@@ -5,7 +5,7 @@ namespace Swordfish.Graphics;
 
 public struct ViewFrustumComponent : IDataComponent
 {
-    public FieldOfView Fov;
+    public FieldOfView FOV;
     public float NearPlane;
     public float FarPlane;
     
@@ -13,14 +13,14 @@ public struct ViewFrustumComponent : IDataComponent
     {
         NearPlane = nearPlane;
         FarPlane = farPlane;
-        Fov = new FieldOfView(fovDegrees);
+        FOV = new FieldOfView(fovDegrees);
     }
     
     public ViewFrustumComponent(float nearPlane, float farPlane, float fovRadians)
     {
         NearPlane = nearPlane;
         FarPlane = farPlane;
-        Fov = new FieldOfView(fovRadians);
+        FOV = new FieldOfView(fovRadians);
     }
 
     public struct FieldOfView

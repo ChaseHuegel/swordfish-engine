@@ -13,14 +13,9 @@ internal class LocalizedFormatter(
     private readonly ILocalization _localization = localization;
     private readonly SmartFormatter _smartFormatter = smartFormatter;
     
-    public string GetString(string key)
-    {
-        return _localization.GetString(key) ?? string.Empty;
-    }
-    
     public string GetString(string key, params object?[] args)
     {
-        string localizedText = _localization.GetString(key) ?? string.Empty;
+        string localizedText = _localization.GetString(key);
         return _smartFormatter.Format(localizedText, args);
     }
 }
