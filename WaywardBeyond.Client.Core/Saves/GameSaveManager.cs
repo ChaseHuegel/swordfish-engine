@@ -11,8 +11,6 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
-using WaywardBeyond.Client.Core.UI;
-using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -22,11 +20,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         private readonly GameSave _save;
         private readonly IECSContext _ecs;
-        
-        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs)
+        private readonly IRenderContext _renderContext;
+
+        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, IRenderContext renderContext)
         {
             _save = save;
             _ecs = ecs;
+            _renderContext = renderContext;
             WaywardBeyond.GameState.Set(GameState.Loading);
             physics.SetGravity(Vector3.Zero);
         }
@@ -62,10 +62,9 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             inventory.Add(new ItemStack("ice", count: 1000));
             inventory.Add(new ItemStack("rock", count: 1000));
 
-            if (_ecs.World.DataStore.Find<ViewFrustumComponent>(_ => true, out int cameraEntity))
-            {
-                _ecs.World.DataStore.AddOrUpdate(cameraEntity, new ChildComponent(player));
-            }
+            //  Child the camera to the player for a first person view
+            var cameraChildComponent = new ChildComponent(player);
+            _renderContext.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
 
             WaywardBeyond.GameState.Set(GameState.Playing);
         }
@@ -88,6 +87,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly GameSaveService _gameSaveService;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
+    private readonly IRenderContext _renderContext;
 
     private readonly Timer _autosaveTimer;
     
@@ -99,11 +99,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
         in IECSContext ecs,
-        in IPhysics physics
+        in IPhysics physics,
+        in IRenderContext renderContext
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
+        _renderContext = renderContext;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -140,7 +142,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             ActiveSave = save;
         }
         
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
         await _gameSaveService.GenerateSaveData(options);
         await Save();
     }
@@ -166,7 +168,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         save = new GameSave(save.Path, save.Name, level);
 
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
         return _gameSaveService.Load(save);
     }
     
