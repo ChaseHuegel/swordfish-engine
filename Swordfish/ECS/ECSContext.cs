@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
 using Swordfish.Graphics;
-using Swordfish.Library.Configuration;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
 using Swordfish.Settings;
