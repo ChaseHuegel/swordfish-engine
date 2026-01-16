@@ -31,8 +31,6 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public event EventHandler<EventArgs>? FixedUpdate;
 
-    public int Order => -100_001;
-
     public PhysicsSystem System { get; }
     
     private readonly bool _accumulateUpdates = false;   //  TODO make this a configurable option

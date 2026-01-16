@@ -4,8 +4,6 @@ namespace Swordfish.ECS;
 
 public class ChildSystem : EntitySystem<ChildComponent, TransformComponent>
 {
-    public override int Order => -100_000;
-    
     protected override void OnTick(float delta, DataStore store, int entity, ref ChildComponent child, ref TransformComponent transform)
     {
         if (!store.TryGet(child.Parent, out TransformComponent parentTransform))

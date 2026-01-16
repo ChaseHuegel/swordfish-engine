@@ -17,8 +17,6 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate, IEntitySystem
 {
-    public int Order => 100_002;
-
     public DataBinding<Camera> MainCamera { get; } = new();
     
     public DataBinding<int> DrawCalls { get; } = new();
