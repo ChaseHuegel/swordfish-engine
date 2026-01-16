@@ -2,8 +2,6 @@ namespace Swordfish.ECS;
 
 public interface IEntitySystem
 {
-    int Order { get; }
-    
     void Tick(float delta, DataStore store);
 }
 
@@ -11,8 +9,6 @@ public interface IEntitySystem
 public abstract class EntitySystem<T1> : IEntitySystem
     where T1 : struct, IDataComponent
 {
-    public virtual int Order => 0;
-
     public void Tick(float delta, DataStore store)
     {
         store.Query<T1>(delta, OnTick);
@@ -25,8 +21,6 @@ public abstract class EntitySystem<T1, T2> : IEntitySystem
     where T1 : struct, IDataComponent
     where T2 : struct, IDataComponent
 {
-    public virtual int Order => 0;
-
     public void Tick(float delta, DataStore store)
     {
         store.Query<T1, T2>(delta, OnTick);
