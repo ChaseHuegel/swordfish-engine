@@ -117,7 +117,6 @@ public class Injector : IDryIocInjector
 
         container.Register<PlayerControllerSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, PlayerControllerSystem>();
-        container.Register<IEntitySystem, FirstPersonCameraSystem>();
     }
     
     private static void RegisterDatabases(IContainer container)

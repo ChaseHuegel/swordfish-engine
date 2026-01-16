@@ -64,6 +64,18 @@ internal abstract class SettingsPage<TIdentifier>(
             value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
+            ui.NumberControl(
+                id: "Control_FOV",
+                text: _localization.GetString("ui.setting.fov")!,
+                _renderSettings.FOV,
+                constraints: new Int2(60, 120),
+                display: new Int2(60, 120),
+                steps: 12,
+                _audioService,
+                _volumeSettings,
+                OnFOVChanged
+            );
+            
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -161,6 +173,11 @@ internal abstract class SettingsPage<TIdentifier>(
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void OnFOVChanged(int newValue)
+    {
+        _renderSettings.FOV.Set(newValue);
     }
     
     private void OnLookSensitivityChanged(int newValue)

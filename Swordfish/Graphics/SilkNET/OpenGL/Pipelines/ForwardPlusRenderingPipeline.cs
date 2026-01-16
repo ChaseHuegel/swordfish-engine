@@ -68,7 +68,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly BufferObject<float> _screenVBO;
     private readonly VertexArrayObject<float> _screenVAO;
 
-    private readonly DoubleList<GPULight> _lights = new();
+    private readonly DoubleList<GPULight> _lightsBuffer = new();
     private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     
@@ -163,9 +163,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     public void Tick(float delta, DataStore store)
     {
-        lock (_lights)
+        lock (_lightsBuffer)
         {
-            _lights.Clear();
+            _lightsBuffer.Clear();
             store.Query<TransformComponent, LightComponent>(0f, LightQuery);
         }
     }
@@ -174,7 +174,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     {
         var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
         var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Size);
-        _lights.Write(new GPULight(posRadius, colorIntensity));
+        _lightsBuffer.Write(new GPULight(posRadius, colorIntensity));
     }
 
     private void OnWindowResized(Vector2 size)
@@ -204,21 +204,21 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PreRender(double delta, RenderScene renderScene)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
 
-        float near = projection.M34 / (projection.M33 - 1.0f);
-        float far = projection.M34 / (projection.M33 + 1.0f);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+        float near = renderScene.Projection.M34 / (renderScene.Projection.M33 - 1.0f);
+        float far = renderScene.Projection.M34 / (renderScene.Projection.M33 + 1.0f);
+        Matrix4x4.Invert(renderScene.Projection, out Matrix4x4 inverseProjection);
 
         // Depth pre-pass
         using (_preDepthFBO.Use())
         using (_depthShader.Use())
         {
-            _depthShader.SetUniform("view", view);
-            _depthShader.SetUniform("projection", projection);
+            _depthShader.SetUniform("view", renderScene.View);
+            _depthShader.SetUniform("projection", renderScene.Projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
@@ -226,7 +226,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, isDepthPass: true);
+            Draw(delta, renderScene, isDepthPass: true);
         }
         _glDebug.TryLogError();
 
@@ -250,8 +250,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         using (_depthFBO.Use())
         using (_depthShader.Use())
         {
-            _depthShader.SetUniform("view", view);
-            _depthShader.SetUniform("projection", projection);
+            _depthShader.SetUniform("view", renderScene.View);
+            _depthShader.SetUniform("projection", renderScene.Projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
@@ -259,7 +259,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, isDepthPass: false);
+            Draw(delta, renderScene, isDepthPass: false);
         }
         _glDebug.TryLogError();
 
@@ -270,10 +270,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         // Upload lights
         GPULight[] lights;
-        lock (_lights)
+        lock (_lightsBuffer)
         {
-            lights = _lights.Read();
-            _lights.Swap();
+            _lightsBuffer.Swap();
+            lights = _lightsBuffer.Read();
         }
         _lightsSSBO.UpdateData(lights);
         _glDebug.TryLogError();
@@ -327,7 +327,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection)
+    public override void PostRender(double delta, RenderScene renderScene)
     {
         _glDebug.TryLogError();
         

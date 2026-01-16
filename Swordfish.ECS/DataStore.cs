@@ -190,6 +190,7 @@ public class DataStore
             }
         }
     }
+
     public void Query<T1>(float delta, ForEach<T1> forEach) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
@@ -266,7 +267,7 @@ public class DataStore
             store1.SetAt(chunkIndex, localEntity, component1, true);
         }
     }
-
+    
     public bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;
@@ -274,7 +275,7 @@ public class DataStore
         {
             if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store))
             {
-                entity = default!;
+                entity = -1;
                 return false;
             }
 
@@ -301,7 +302,7 @@ public class DataStore
             }
         }
 
-        entity = default!;
+        entity = 0;
         return false;
     }
 

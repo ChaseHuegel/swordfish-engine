@@ -437,7 +437,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     private Orientation GetPlacementOrientation(TransformComponent transformComponent)
     {
-        Camera camera = _renderContext.Camera.Get();
+        var camera = _renderContext.MainCamera.Get();
         var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Orientation * transformComponent.Orientation);
         
         Orientation brickOrientation = SelectedOrientation.Get();
@@ -493,15 +493,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         out TransformComponent transformComponent,
         out Vector3 clickedPoint
     ) {
-        Camera camera = _renderContext.Camera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
 
         Vector3? reachAroundDir = null;
-        Ray ray = camera.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = cameraEntity.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         //  TODO #319 offset origin by the player's collider without hardcoded value or allow raycasting against a layer mask
         ray = new Ray(ray.Origin + new Vector3(0.26f) * ray.Vector, ray.Vector * 9.5f);
         if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out voxelComponent, out transformComponent))
         {
-            if (!reachAround || !TryReachAroundRaycasts(ray, camera, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
+            if (!reachAround || !TryReachAroundRaycasts(ray, cameraEntity, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
             {
                 entity = default;
                 voxel = default;
@@ -536,7 +536,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private bool TryReachAroundRaycasts(
         Ray centerRay,
-        Camera camera,
+        CameraEntity cameraEntity,
         ref Vector3? reachAroundDir,
         out VoxelComponent voxelComponent,
         out TransformComponent transformComponent,
@@ -544,12 +544,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     ) {
         const float reachAroundWidth = 0.5f;
         
-        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: cameraEntity.Transform.GetUp(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
         {
             return true;
         }
 
-        if (TryReachAroundRaycast(centerRay * 0.9f, direction: camera.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
+        if (TryReachAroundRaycast(centerRay * 0.9f, direction: cameraEntity.Transform.GetRight(), reachAroundWidth, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
         {
             return true;
         }

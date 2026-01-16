@@ -121,9 +121,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
         inputService.Scrolled += OnScroll;
         _physics.FixedUpdate += OnFixedUpdate;
-        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
-        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
-        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
+        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.MainCamera);
+        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.MainCamera);
+        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.MainCamera);
         
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         var astronautTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("astronaut.png"));
@@ -454,9 +454,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
-        Camera camera = _renderContext.Camera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
@@ -501,9 +501,9 @@ public class Demo : IEntryPoint, IAutoActivate
     private volatile float _scrollBuffer;
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
-        Camera camera = _renderContext.Camera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
@@ -535,8 +535,11 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateDonutDemo();
         CreatePhysicsTest();
 
-        _renderContext.Camera.Get().Transform.Position = new Vector3(0, 5, 15);
-        _renderContext.Camera.Get().Transform.Rotate(new Vector3(-30, 0, 0));
+        var camera = _renderContext.MainCamera.Get();
+        var position = new Vector3(0, 5, 15);
+        var orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -30 * MathS.DEGREES_TO_RADIANS);
+        var transform = new TransformComponent(position, orientation);
+        camera.Entity.AddOrUpdate(transform);
 
         foreach (string line in Benchmark.CollectOutput())
         {
