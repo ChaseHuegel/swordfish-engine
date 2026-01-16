@@ -97,10 +97,10 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     {
         lock (_renderInstancesBuffer)
         {
-            store.Query<TransformComponent, ViewFrustumComponent>(QueryCamera);
+            store.Query<TransformComponent, ViewFrustumComponent>(delta: 0f, QueryCamera);
             
             _renderInstancesBuffer.Clear();
-            store.Query<TransformComponent, MeshRendererComponent>(QueryRenderableEntities);
+            store.Query<TransformComponent, MeshRendererComponent>(delta: 0f, QueryRenderableEntities);
         }
     }
 
