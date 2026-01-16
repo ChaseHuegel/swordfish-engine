@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
@@ -9,16 +10,10 @@ using Swordfish.Library.IO;
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLLineRenderer(
-    in ILogger logger,
-    in GL gl,
-    in GLContext glContext,
-    in IFileParseService fileParseService,
-    in VirtualFileSystem vfs)
-    : IWorldSpaceRenderStage, ILineRenderer
+internal sealed class GLLineRenderer : IWorldSpaceRenderStage, ILineRenderer
 {
-    private ShaderProgram? _shaderProgram;
-    private VertexArrayObject<float>? _vao;
+    private readonly ShaderProgram? _shaderProgram;
+    private readonly VertexArrayObject<float>? _vao;
 
     //  ! There will likely be lock contention issues later.
     private readonly object _linesLock = new();
@@ -33,48 +28,47 @@ internal sealed class GLLineRenderer(
     private readonly List<uint> _noDepthLineVertexCounts = [];
     private readonly List<float> _noDepthLineVertexData = [];
 
-    private readonly ILogger _logger = logger;
-    private readonly GL _gl = gl;
-    private readonly GLContext _glContext = glContext;
-    private readonly IFileParseService _fileParseService = fileParseService;
-    private readonly VirtualFileSystem _vfs = vfs;
+    private readonly GL _gl;
 
-    public void Initialize(IRenderer renderer)
-    {
-        if (renderer is not GLRenderer)
+    public GLLineRenderer(
+        in ILogger logger,
+        in GL gl,
+        in GLContext glContext,
+        in IFileParseService fileParseService,
+        in VirtualFileSystem vfs
+    ) {
+        _gl = gl;
+        
+        if (!vfs.TryGetFile(AssetPaths.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))
         {
-            throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
-        }
-
-        if (!_vfs.TryGetFile(AssetPaths.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))
-        {
-            _logger.LogError("The shader source for OpenGL lines was not found. OpenGL lines will not be rendered.");
+            logger.LogError("The shader source for OpenGL lines was not found. OpenGL lines will not be rendered.");
             return;
         }
 
-        if (!_fileParseService.TryParse(linesShaderFile, out Shader shader))
+        if (!fileParseService.TryParse(linesShaderFile, out Shader shader))
         {
-            _logger.LogError("Failed to parse the OpenGL lines shader. OpenGL lines will not be rendered.");
+            logger.LogError("Failed to parse the OpenGL lines shader. OpenGL lines will not be rendered.");
             return;
         }
         
-        _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
+        _vao = glContext.CreateVertexArrayObject(Array.Empty<float>());
 
         _vao.Bind();
         _vao.VertexBufferObject.Bind();
         _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 7, 0);
         _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
 
-        _shaderProgram = shader.CreateProgram(_glContext);
+        _shaderProgram = shader.CreateProgram(glContext);
         _shaderProgram.BindAttributeLocation("in_position", 0);
         _shaderProgram.BindAttributeLocation("in_color", 1);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
+    public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    [SuppressMessage("ReSharper", "InconsistentlySynchronizedField")]
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_shaderProgram == null || _vao == null || isDepthPass)
         {
@@ -85,8 +79,8 @@ internal sealed class GLLineRenderer(
         _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
         
         using GLHandle.Scope _ = _shaderProgram.Use();
-        _shaderProgram.SetUniform("view", view);
-        _shaderProgram.SetUniform("projection", projection);
+        _shaderProgram.SetUniform("view", renderScene.View);
+        _shaderProgram.SetUniform("projection", renderScene.Projection);
         shaderActivationCallback(_shaderProgram);
 
         _vao.Bind();

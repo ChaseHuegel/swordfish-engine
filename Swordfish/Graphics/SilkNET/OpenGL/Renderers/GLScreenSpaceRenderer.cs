@@ -10,7 +10,7 @@ using Swordfish.Types;
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings) : IScreenSpaceRenderStage
+internal sealed class GLScreenSpaceRenderer : IScreenSpaceRenderStage
 {
     private readonly struct RectVertices()
     {
@@ -89,47 +89,34 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         }
     }
     
-    private readonly GL _gl = gl;
-    private readonly GLContext _glContext = glContext;
-    private readonly RenderSettings _renderSettings = renderSettings;
+    private readonly GL _gl;
+    private readonly RenderSettings _renderSettings;
     
-    private VertexArrayObject<float>? _vao;
-    private LockedList<GLRectRenderTarget>? _renderTargets;
+    private readonly VertexArrayObject<float>? _vao;
     private readonly Dictionary<GLRectRenderTarget, RectVertices> _instances = [];
 
-    public void Initialize(IRenderer renderer)
+    public GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in RenderSettings renderSettings)
     {
-        if (renderer is not GLRenderer glRenderContext)
-        {
-            throw new NotSupportedException($"{nameof(GLScreenSpaceRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
-        }
+        _gl = gl;
+        _renderSettings = renderSettings;
         
-        _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
-
+        _vao = glContext.CreateVertexArrayObject(Array.Empty<float>());
         _vao.Bind();
         _vao.VertexBufferObject.Bind();
         _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 10, 0);
         _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 10, 3);
         _vao.SetVertexAttribute(2, 3, VertexAttribPointerType.Float, 10, 7);
-        
-        //  TODO this is bad
-        _renderTargets = glRenderContext.RectRenderTargets;
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
+    public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
         if (isDepthPass)
         {
             return;
         }
-        
-        if (_renderTargets == null)
-        {
-            throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
-        }
 
         _instances.Clear();
-        _renderTargets.ForEach(ForEachRenderTarget);
+        renderScene.RectRenderTargets.ForEach(ForEachRenderTarget);
         return;
 
         void ForEachRenderTarget(GLRectRenderTarget renderTarget)
@@ -144,19 +131,14 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_vao == null || isDepthPass)
         {
             return 0;
         }
-        
-        if (_renderTargets == null)
-        {
-            throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
-        }
 
-        if (_renderTargets.Count == 0)
+        if (renderScene.RectRenderTargets.Count == 0)
         {
             return 0;
         }

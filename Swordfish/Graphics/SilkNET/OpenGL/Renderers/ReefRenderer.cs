@@ -9,35 +9,22 @@ using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
-using Swordfish.Types;
 using Swordfish.UI.Reef;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class ReefRenderer(
-    in GL gl,
-    in GLContext glContext,
-    in RenderSettings renderSettings,
-    in ReefContext reefContext,
-    in IFileParseService fileParseService,
-    in VirtualFileSystem vfs,
-    in ILogger logger) : IScreenSpaceRenderStage
+internal sealed class ReefRenderer : IScreenSpaceRenderStage
 {
-    private readonly GL _gl = gl;
-    private readonly GLContext _glContext = glContext;
-    private readonly RenderSettings _renderSettings = renderSettings;
-    private readonly ReefContext _reefContext = reefContext;
-    private readonly IFileParseService _fileParseService = fileParseService;
-    private readonly VirtualFileSystem _vfs = vfs;
-    private readonly ILogger _logger = logger;
+    private readonly GL _gl;
+    private readonly GLRenderContext _glRenderContext;
+    private readonly RenderSettings _renderSettings;
+    private readonly ReefContext _reefContext;
     private readonly Dictionary<string, Material> _typefaceMaterials = [];
 
     //  If either of these is null, the renderer is attempting to render without having initialized.
-    private GLRenderer _renderer = null!;
-    private ShaderProgram _defaultShader = null!;
-    
-    private VertexArrayObject<float>? _vao;
+    private readonly ShaderProgram? _defaultShader;
+    private readonly VertexArrayObject<float>? _vao;
     
     //  TODO improve and bring back batching UI.
     //       Instance batches were being created by material and font, however this was problematic
@@ -52,49 +39,57 @@ internal sealed class ReefRenderer(
     //       on more important issues. For the time, performance here isn't a particular concern.
     private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(/*new MaterialRenderCommandComparer()*/);
 
-    public void Initialize(IRenderer renderer)
-    {
-        if (renderer is not GLRenderer glRenderContext)
+    public ReefRenderer(
+        in GL gl,
+        in GLContext glContext,
+        in GLRenderContext glRenderContext,
+        in RenderSettings renderSettings,
+        in ReefContext reefContext,
+        in IFileParseService fileParseService,
+        in VirtualFileSystem vfs,
+        in ILogger logger
+    ) {
+        _gl = gl;
+        _glRenderContext = glRenderContext;
+        _renderSettings = renderSettings;
+        _reefContext = reefContext;
+
+        if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef.glsl"), out PathInfo defaultUIShaderFile))
         {
-            throw new NotSupportedException($"{nameof(ReefRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
-        }
-        
-        if (!_vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef.glsl"), out PathInfo defaultUIShaderFile))
-        {
-            _logger.LogError("The shader source for OpenGL Reef UI was not found. Reef UI will not be rendered with OpenGL.");
+            logger.LogError("The shader source for OpenGL Reef UI was not found. Reef UI will not be rendered with OpenGL.");
             return;
         }
 
-        if (!_fileParseService.TryParse(defaultUIShaderFile, out Shader shader))
+        if (!fileParseService.TryParse(defaultUIShaderFile, out Shader shader))
         {
-            _logger.LogError("Failed to parse the OpenGL Reef UI shader. Reef UI will not be rendered with OpenGL.");
+            logger.LogError("Failed to parse the OpenGL Reef UI shader. Reef UI will not be rendered with OpenGL.");
             return;
         }
         
-        if (!_vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef_msdf.glsl"), out PathInfo textShaderFile))
+        if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef_msdf.glsl"), out PathInfo textShaderFile))
         {
-            _logger.LogError("The shader source for OpenGL Reef UI MSDF text was not found. Reef UI will not be rendered with OpenGL.");
+            logger.LogError("The shader source for OpenGL Reef UI MSDF text was not found. Reef UI will not be rendered with OpenGL.");
             return;
         }
         
-        if (!_fileParseService.TryParse(textShaderFile, out Shader textShader))
+        if (!fileParseService.TryParse(textShaderFile, out Shader textShader))
         {
-            _logger.LogError("Failed to parse the OpenGL Reef UI MSDF text shader. Reef UI will not be rendered with OpenGL.");
+            logger.LogError("Failed to parse the OpenGL Reef UI MSDF text shader. Reef UI will not be rendered with OpenGL.");
             return;
         }
 
         foreach (ITypeface typeface in _reefContext.TextEngine.GetTypefaces())
         {
             AtlasInfo atlasInfo = typeface.GetAtlasInfo();
-            if (!_fileParseService.TryParse(atlasInfo.Path, out Texture atlas))
+            if (!fileParseService.TryParse(atlasInfo.Path, out Texture atlas))
             {
-                _logger.LogError("Failed to load the texture for typeface (\"{ID}\") atlas \"{Path}\". This typeface will not render correctly.", typeface.ID, atlasInfo.Path);
+                logger.LogError("Failed to load the texture for typeface (\"{ID}\") atlas \"{Path}\". This typeface will not render correctly.", typeface.ID, atlasInfo.Path);
                 continue;
             }
 
             if (_typefaceMaterials.ContainsKey(typeface.ID))
             {
-                _logger.LogWarning("Attempted to add a duplicate of typeface \"{ID}\".", typeface.ID);
+                logger.LogWarning("Attempted to add a duplicate of typeface \"{ID}\".", typeface.ID);
                 continue;
             }
 
@@ -102,9 +97,7 @@ internal sealed class ReefRenderer(
             _typefaceMaterials.Add(typeface.ID, material);
         }
 
-        _renderer = glRenderContext;
-        
-        _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
+        _vao = glContext.CreateVertexArrayObject(Array.Empty<float>());
         _vao.Bind();
         _vao.VertexBufferObject.Bind();
         _vao.SetVertexAttribute(0, 3, VertexAttribPointerType.Float, 14, 0);
@@ -114,14 +107,14 @@ internal sealed class ReefRenderer(
         _vao.VertexBufferObject.Unbind();
         _vao.Unbind();
 
-        _defaultShader = shader.CreateProgram(_glContext);
+        _defaultShader = shader.CreateProgram(glContext);
         _defaultShader.BindAttributeLocation("in_position", 0);
         _defaultShader.BindAttributeLocation("in_color", 1);
         _defaultShader.BindAttributeLocation("in_uv", 2);
         _defaultShader.BindAttributeLocation("in_clipRect", 3);
     }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
+    public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
         if (isDepthPass)
         {
@@ -175,7 +168,7 @@ internal sealed class ReefRenderer(
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         if (_vao == null || isDepthPass)
         {
@@ -220,7 +213,7 @@ internal sealed class ReefRenderer(
                 return 0;
             }
             
-            GLMaterial typefaceGLMaterial = _renderer.BindMaterial(typefaceMaterial);
+            GLMaterial typefaceGLMaterial = _glRenderContext.BindMaterial(typefaceMaterial);
             
             using GLMaterial.Scope _ = typefaceGLMaterial.Use();
             shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
@@ -229,7 +222,7 @@ internal sealed class ReefRenderer(
         }
         else if (command.RendererData != null)
         {
-            GLMaterial glMaterial = _renderer.BindMaterial(command.RendererData);
+            GLMaterial glMaterial = _glRenderContext.BindMaterial(command.RendererData);
             
             using GLMaterial.Scope _ = glMaterial.Use();
             shaderActivationCallback(glMaterial.ShaderProgram);

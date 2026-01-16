@@ -1,6 +1,5 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
-using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
@@ -57,7 +56,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _screenShader = screenShader.Value.CreateProgram(glContext);
     }
     
-    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
+    public override void PreRender(double delta, RenderScene renderScene)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
@@ -69,7 +68,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
+    public override void PostRender(double delta, RenderScene renderScene)
     {
         _gBuffer.Unbind();
         
@@ -80,7 +79,7 @@ internal sealed class DeferredRenderingPipeline<TRenderStage> : RenderPipeline<T
             _screenShader.SetUniform("gPosition", 0);
             _screenShader.SetUniform("gNormal", 1);
             _screenShader.SetUniform("gColor", 2);
-            Vector3 viewLightDirection = Vector3.Normalize(Vector3.TransformNormal(Vector3.Normalize(new Vector3(1, 1, 1f)), view));
+            Vector3 viewLightDirection = Vector3.Normalize(Vector3.TransformNormal(Vector3.Normalize(new Vector3(1, 1, 1f)), renderScene.View));
             _screenShader.SetUniform("viewLightDirection", viewLightDirection);
             _gBuffer.Activate();
             

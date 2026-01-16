@@ -46,6 +46,10 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IWindowContext, SilkWindowContext>(Reuse.Singleton);
         
         container.RegisterMany<GLRenderer>(Reuse.Singleton);
+        container.Register<GLRenderContext>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, GLRenderContext>();
+        container.RegisterMapping<IAutoActivate, GLRenderContext>();
+        container.RegisterMapping<IRenderContext, GLRenderContext>();
         
         container.Register<ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>(Reuse.Singleton);
         container.RegisterMapping<IRenderPipeline, ForwardPlusRenderingPipeline<IWorldSpaceRenderStage>>();

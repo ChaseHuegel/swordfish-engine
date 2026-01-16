@@ -1,7 +1,6 @@
 using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Settings;
 
@@ -16,31 +15,13 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
     private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
     
-    private LockedList<GLRenderTarget>? _renderTargets;
-
-    public void Initialize(IRenderer renderer)
+    public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
-        if (renderer is not GLRenderer glRenderContext)
-        {
-            throw new NotSupportedException($"{nameof(GLInstancedRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
-        }
-
-        //  TODO this is bad
-        _renderTargets = glRenderContext.RenderTargets;
-    }
-    
-    public void PreRender(double delta, Matrix4x4 _, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
-    {
-        if (_renderTargets == null)
-        {
-            throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
-        }
-
         _instances.Clear();
         _transparentInstances.Clear();
         _renderTargetEntities.Clear();
         
-        _renderTargets.ForEach(ForEachRenderTarget);
+        renderScene.RenderTargets.ForEach(ForEachRenderTarget);
         void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
             List<Matrix4x4>? matrices;
@@ -71,29 +52,24 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             _renderTargetEntities[renderTarget.Entity] = renderTarget;
         }
 
-        for (var i = 0; i < renderInstances.Length; i++)
+        for (var i = 0; i < renderScene.EntityModels.Length; i++)
         {
-            RenderInstance instance = renderInstances[i];
-            if (!_renderTargetEntities.TryGetValue(instance.Entity, out GLRenderTarget? renderTarget))
+            EntityModel entityModel = renderScene.EntityModels[i];
+            if (!_renderTargetEntities.TryGetValue(entityModel.Entity, out GLRenderTarget? renderTarget))
             {
                 return;
             }
             
             if (_instances.TryGetValue(renderTarget, out List<Matrix4x4>? matrices) || _transparentInstances.TryGetValue(renderTarget, out matrices))
             {
-                matrices.Add(instance.Matrix);
+                matrices.Add(entityModel.Matrix);
             }
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] _, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        if (_renderTargets == null)
-        {
-            throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
-        }
-
-        if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
+        if (renderScene.RenderTargets.Count == 0 || _renderSettings.HideMeshes)
         {
             return 0;
         }
@@ -103,12 +79,12 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
         var drawCalls = 0;
 
-        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+        drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _instances, sort: false);
 
         //  Exclude rendering transparent targets during a depth pass
         if (!isDepthPass)
         {
-            drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+            drawCalls += Draw(renderScene.View, renderScene.Projection, shaderActivationCallback, _transparentInstances, sort: true);
         }
 
         _gl.Disable(EnableCap.Blend);

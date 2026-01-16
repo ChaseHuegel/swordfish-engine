@@ -20,13 +20,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         private readonly GameSave _save;
         private readonly IECSContext _ecs;
-        private readonly IRenderer _renderer;
+        private readonly IRenderContext _renderContext;
 
-        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, IRenderer renderer)
+        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, IRenderContext renderContext)
         {
             _save = save;
             _ecs = ecs;
-            _renderer = renderer;
+            _renderContext = renderContext;
             WaywardBeyond.GameState.Set(GameState.Loading);
             physics.SetGravity(Vector3.Zero);
         }
@@ -64,7 +64,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
             //  Child the camera to the player for a first person view
             var cameraChildComponent = new ChildComponent(player);
-            _renderer.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
+            _renderContext.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
 
             WaywardBeyond.GameState.Set(GameState.Playing);
         }
@@ -87,7 +87,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly GameSaveService _gameSaveService;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
-    private readonly IRenderer _renderer;
+    private readonly IRenderContext _renderContext;
 
     private readonly Timer _autosaveTimer;
     
@@ -100,12 +100,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IShortcutService shortcutService,
         in IECSContext ecs,
         in IPhysics physics,
-        in IRenderer renderer
+        in IRenderContext renderContext
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
-        _renderer = renderer;
+        _renderContext = renderContext;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -142,7 +142,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             ActiveSave = save;
         }
         
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderer);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
         await _gameSaveService.GenerateSaveData(options);
         await Save();
     }
@@ -168,7 +168,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         save = new GameSave(save.Path, save.Name, level);
 
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderer);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
         return _gameSaveService.Load(save);
     }
     

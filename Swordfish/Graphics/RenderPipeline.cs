@@ -14,29 +14,29 @@ internal abstract class RenderPipeline<TRenderStage> : IRenderPipeline
         _renderStages = renderStages;
     }
     
-    public abstract void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances);
+    public abstract void PreRender(double delta, RenderScene renderScene);
 
-    public abstract void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances);
+    public abstract void PostRender(double delta, RenderScene renderScene);
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
+    public int Render(double delta, RenderScene renderScene)
     {
-        PreRender(delta, view, projection, renderInstances);
-        int drawCalls = Draw(delta, view, projection, renderInstances);
-        PostRender(delta, view, projection, renderInstances);
+        PreRender(delta, renderScene);
+        int drawCalls = Draw(delta, renderScene);
+        PostRender(delta, renderScene);
         return drawCalls;
     }
     
-    protected int Draw(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass = false)
+    protected int Draw(double delta, RenderScene renderScene, bool isDepthPass = false)
     {
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            _renderStages[i].PreRender(delta, view, projection, renderInstances, isDepthPass);
+            _renderStages[i].PreRender(delta, renderScene, isDepthPass);
         }
 
         var drawCalls = 0;
         for (var i = 0; i < _renderStages.Length; i++)
         {
-            drawCalls += _renderStages[i].Render(delta, view, projection, renderInstances, ShaderActivationCallback, isDepthPass);
+            drawCalls += _renderStages[i].Render(delta, renderScene, ShaderActivationCallback, isDepthPass);
         }
 
         return drawCalls;

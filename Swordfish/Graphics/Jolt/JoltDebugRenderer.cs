@@ -1,7 +1,6 @@
 using System.Numerics;
 using JoltPhysicsSharp;
 using Swordfish.Graphics.SilkNET.OpenGL;
-using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 
@@ -27,12 +26,8 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         DrawShapeWireframe = true,
         DrawVelocity = true,
     };
-    
-    public void Initialize(IRenderer renderer)
-    {
-    }
 
-    public void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, bool isDepthPass)
+    public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {
         if (isDepthPass)
         {
@@ -74,7 +69,7 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         _drawBuffer.Clear();
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, RenderScene renderScene, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
         return 0;   //  Do nothing, the line renderer is doing the real work
     }

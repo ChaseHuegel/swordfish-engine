@@ -3,7 +3,6 @@ using System.Numerics;
 using Silk.NET.OpenGL;
 using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
-using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
@@ -205,21 +204,21 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PreRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
+    public override void PreRender(double delta, RenderScene renderScene)
     {
         AntiAliasing antiAliasing = _renderSettings.AntiAliasing.Get();
         _gl.Set(EnableCap.Multisample, antiAliasing == AntiAliasing.MSAA);
 
-        float near = projection.M34 / (projection.M33 - 1.0f);
-        float far = projection.M34 / (projection.M33 + 1.0f);
-        Matrix4x4.Invert(projection, out Matrix4x4 inverseProjection);
+        float near = renderScene.Projection.M34 / (renderScene.Projection.M33 - 1.0f);
+        float far = renderScene.Projection.M34 / (renderScene.Projection.M33 + 1.0f);
+        Matrix4x4.Invert(renderScene.Projection, out Matrix4x4 inverseProjection);
 
         // Depth pre-pass
         using (_preDepthFBO.Use())
         using (_depthShader.Use())
         {
-            _depthShader.SetUniform("view", view);
-            _depthShader.SetUniform("projection", projection);
+            _depthShader.SetUniform("view", renderScene.View);
+            _depthShader.SetUniform("projection", renderScene.Projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
@@ -227,7 +226,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, renderInstances, isDepthPass: true);
+            Draw(delta, renderScene, isDepthPass: true);
         }
         _glDebug.TryLogError();
 
@@ -251,8 +250,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         using (_depthFBO.Use())
         using (_depthShader.Use())
         {
-            _depthShader.SetUniform("view", view);
-            _depthShader.SetUniform("projection", projection);
+            _depthShader.SetUniform("view", renderScene.View);
+            _depthShader.SetUniform("projection", renderScene.Projection);
             _depthShader.SetUniform("near", near);
             _depthShader.SetUniform("far", far);
             
@@ -260,7 +259,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
             _gl.Enable(GLEnum.DepthTest);
 
-            Draw(delta, view, projection, renderInstances, isDepthPass: false);
+            Draw(delta, renderScene, isDepthPass: false);
         }
         _glDebug.TryLogError();
 
@@ -328,7 +327,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _glDebug.TryLogError();
     }
 
-    public override void PostRender(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances)
+    public override void PostRender(double delta, RenderScene renderScene)
     {
         _glDebug.TryLogError();
         

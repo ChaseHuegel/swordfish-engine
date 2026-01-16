@@ -30,7 +30,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
     private readonly IWindowContext _windowContext;
     // private readonly IECSContext _ecsContext;
-    private readonly IRenderer _renderer;
+    private readonly IRenderContext _renderContext;
     private readonly IInputService _inputService;
     private readonly IShortcutService _shortcutService;
     // private readonly DebugSettings _debugSettings;
@@ -43,7 +43,7 @@ public class Editor : IEntryPoint, IAutoActivate
 
     public Editor(IWindowContext windowContext,
         // IECSContext ecsContext,
-        IRenderer renderer,
+        IRenderContext renderContext,
         IInputService inputService,
         ILineRenderer lineRenderer,
         IShortcutService shortcutService,
@@ -55,7 +55,7 @@ public class Editor : IEntryPoint, IAutoActivate
     {
         _windowContext = windowContext;
         // _ecsContext = ecsContext;
-        _renderer = renderer;
+        _renderContext = renderContext;
         _inputService = inputService;
         _shortcutService = shortcutService;
         // _debugSettings = debugSettings;
@@ -728,7 +728,7 @@ public class Editor : IEntryPoint, IAutoActivate
     
         float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
     
-        CameraEntity cameraEntity = _renderer.MainCamera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
         var transform = cameraEntity.Transform;
     
         if (_inputService.IsMouseHeld(MouseButton.Right))
