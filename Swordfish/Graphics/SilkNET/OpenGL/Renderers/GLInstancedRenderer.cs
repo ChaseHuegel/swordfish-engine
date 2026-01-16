@@ -12,8 +12,6 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     private readonly GL _gl = gl;
     private readonly RenderSettings _renderSettings = renderSettings;
 
-    private readonly SemaphoreSlim _renderSemaphore = new(1, 1);
-    
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
     private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
@@ -38,7 +36,6 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
             throw new InvalidOperationException($"{nameof(PreRender)} was called without initializing a valid render targets collection.");
         }
 
-        _renderSemaphore.Wait();
         _instances.Clear();
         _transparentInstances.Clear();
         _renderTargetEntities.Clear();
@@ -89,40 +86,33 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         }
     }
 
-    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] renderInstances, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
+    public int Render(double delta, Matrix4x4 view, Matrix4x4 projection, RenderInstance[] _, Action<ShaderProgram> shaderActivationCallback, bool isDepthPass)
     {
-        try
+        if (_renderTargets == null)
         {
-            if (_renderTargets == null)
-            {
-                throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
-            }
-
-            if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
-            {
-                return 0;
-            }
-
-            _gl.Enable(EnableCap.Blend);
-            _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-
-            var drawCalls = 0;
-
-            drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
-
-            //  Exclude rendering transparent targets during a depth pass
-            if (!isDepthPass)
-            {
-                drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
-            }
-
-            _gl.Disable(EnableCap.Blend);
-            return drawCalls;
+            throw new InvalidOperationException($"{nameof(Render)} was called without initializing a valid render targets collection.");
         }
-        finally
+
+        if (_renderTargets.Count == 0 || _renderSettings.HideMeshes)
         {
-            _renderSemaphore.Release();
+            return 0;
         }
+
+        _gl.Enable(EnableCap.Blend);
+        _gl.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+        var drawCalls = 0;
+
+        drawCalls += Draw(view, projection, shaderActivationCallback, _instances, sort: false);
+
+        //  Exclude rendering transparent targets during a depth pass
+        if (!isDepthPass)
+        {
+            drawCalls += Draw(view, projection, shaderActivationCallback, _transparentInstances, sort: true);
+        }
+
+        _gl.Disable(EnableCap.Blend);
+        return drawCalls;
     }
 
     private int Draw(Matrix4x4 view, Matrix4x4 projection, Action<ShaderProgram> shaderActivationCallback, Dictionary<GLRenderTarget, List<Matrix4x4>> instances, bool sort)
