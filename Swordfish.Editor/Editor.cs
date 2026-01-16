@@ -107,7 +107,7 @@ public class Editor : IEntryPoint, IAutoActivate
     {
         _windowSettings.Mode.Set(WindowMode.Maximized);
 
-        // _windowContext.Update += OnUpdate;
+        _windowContext.Update += OnUpdate;
 
         Shortcut exitShortcut = new(
             "Exit",
@@ -711,78 +711,81 @@ public class Editor : IEntryPoint, IAutoActivate
     //     }
     // }
 
-    // private float _cameraSpeedModifier = 1f;
-    // private void OnUpdate(double delta)
-    // {
-    //     const float mouseSensitivity = 0.05f;
-    //     const float cameraBaseSpeed = 10;
-    //
-    //     if (_inputService.IsKeyHeld(Key.Shift))
-    //     {
-    //         _cameraSpeedModifier += (float)delta;
-    //     }
-    //     else
-    //     {
-    //         _cameraSpeedModifier = 1f;
-    //     }
-    //
-    //     float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
-    //
-    //     Camera camera = _renderContext.Camera.Get();
-    //
-    //     if (_inputService.IsMouseHeld(MouseButton.Right))
-    //     {
-    //         _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
-    //         Vector2 cursorDelta = _inputService.CursorDelta;
-    //         camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
-    //         camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
-    //     }
-    //     else
-    //     {
-    //         _inputService.CursorOptions = CursorOptions.None;
-    //     }
-    //
-    //     Vector3 forward = camera.Transform.GetForward();
-    //     Vector3 right = camera.Transform.GetRight();
-    //
-    //     if (_inputService.IsKeyHeld(Key.W))
-    //     {
-    //         camera.Transform.Translate(-forward * cameraSpeed * (float)delta);
-    //     }
-    //
-    //     if (_inputService.IsKeyHeld(Key.S))
-    //     {
-    //         camera.Transform.Translate(forward * cameraSpeed * (float)delta);
-    //     }
-    //
-    //     if (_inputService.IsKeyHeld(Key.D))
-    //     {
-    //         camera.Transform.Translate(right * cameraSpeed * (float)delta);
-    //     }
-    //
-    //     if (_inputService.IsKeyHeld(Key.A))
-    //     {
-    //         camera.Transform.Translate(-right * cameraSpeed * (float)delta);
-    //     }
-    //
-    //     if (_inputService.IsKeyHeld(Key.E))
-    //     {
-    //         camera.Transform.Translate(new Vector3(0, cameraSpeed * (float)delta, 0));
-    //     }
-    //
-    //     if (_inputService.IsKeyHeld(Key.Q))
-    //     {
-    //         camera.Transform.Translate(new Vector3(0, -cameraSpeed * (float)delta, 0));
-    //     }
-    //
-    //     if (_inputService.IsKeyPressed(Key.UpArrow))
-    //     {
-    //         camera.Transform.Translate(new Vector3(0, 1, 0));
-    //     }
-    //
-    //     if (_inputService.IsKeyPressed(Key.DownArrow))
-    //     {
-    //         camera.Transform.Translate(new Vector3(0, -1, 0));
-    //     }
-    // }
+    private float _cameraSpeedModifier = 1f;
+    private void OnUpdate(double delta)
+    {
+        const float mouseSensitivity = 0.05f;
+        const float cameraBaseSpeed = 10;
+    
+        if (_inputService.IsKeyHeld(Key.Shift))
+        {
+            _cameraSpeedModifier += (float)delta;
+        }
+        else
+        {
+            _cameraSpeedModifier = 1f;
+        }
+    
+        float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
+    
+        Camera camera = _renderContext.MainCamera.Get();
+        var transform = camera.Transform;
+    
+        if (_inputService.IsMouseHeld(MouseButton.Right))
+        {
+            _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
+            Vector2 cursorDelta = _inputService.CursorDelta;
+            transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
+            transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
+        }
+        else
+        {
+            _inputService.CursorOptions = CursorOptions.None;
+        }
+    
+        Vector3 forward = transform.GetForward();
+        Vector3 right = transform.GetRight();
+    
+        if (_inputService.IsKeyHeld(Key.W))
+        {
+            transform.Position += -forward * cameraSpeed * (float)delta;
+        }
+    
+        if (_inputService.IsKeyHeld(Key.S))
+        {
+            transform.Position += forward * cameraSpeed * (float)delta;
+        }
+    
+        if (_inputService.IsKeyHeld(Key.D))
+        {
+            transform.Position += right * cameraSpeed * (float)delta;
+        }
+    
+        if (_inputService.IsKeyHeld(Key.A))
+        {
+            transform.Position += -right * cameraSpeed * (float)delta;
+        }
+    
+        if (_inputService.IsKeyHeld(Key.E))
+        {
+            transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+        }
+    
+        if (_inputService.IsKeyHeld(Key.Q))
+        {
+            transform.Position += new Vector3(0, -cameraSpeed * (float)delta, 0);
+        }
+    
+        if (_inputService.IsKeyPressed(Key.UpArrow))
+        {
+            transform.Position += new Vector3(0, 1, 0);
+        }
+    
+        if (_inputService.IsKeyPressed(Key.DownArrow))
+        {
+            transform.Position += new Vector3(0, -1, 0);
+        }
+        
+        camera.Entity.AddOrUpdate(transform);
+    }
 }
