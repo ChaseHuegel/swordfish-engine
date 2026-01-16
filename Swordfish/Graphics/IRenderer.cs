@@ -2,7 +2,7 @@ using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
 
-public interface IRenderContext
+public interface IRenderer
 {
     DataBinding<CameraEntity> MainCamera { get; }
 

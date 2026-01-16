@@ -15,7 +15,7 @@ using Swordfish.Settings;
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate, IEntitySystem
+internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate, IEntitySystem
 {
     public DataBinding<CameraEntity> MainCamera { get; } = new();
     
@@ -38,7 +38,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private Matrix4x4 _cameraProjection;
     private float _windowAspectRatio;
 
-    public GLRenderContext(
+    public GLRenderer(
         GL gl,
         IWindowContext windowContext,
         GLContext glContext,

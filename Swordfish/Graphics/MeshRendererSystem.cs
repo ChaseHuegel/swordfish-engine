@@ -2,9 +2,9 @@ using Swordfish.ECS;
 
 namespace Swordfish.Graphics;
 
-public class MeshRendererSystem(in IRenderContext renderContext) : EntitySystem<MeshRendererComponent, TransformComponent>
+public class MeshRendererSystem(in IRenderer renderer) : EntitySystem<MeshRendererComponent, TransformComponent>
 {
-    private readonly IRenderContext _renderContext = renderContext;
+    private readonly IRenderer _renderer = renderer;
 
     protected override void OnTick(float delta, DataStore store, int entity, ref MeshRendererComponent rendererComponent, ref TransformComponent transformComponent)
     {
@@ -21,7 +21,7 @@ public class MeshRendererSystem(in IRenderContext renderContext) : EntitySystem<
             return;
         }
         
-        _renderContext.Bind(meshRenderer, entity);
+        _renderer.Bind(meshRenderer, entity);
         rendererComponent.Bound = true;
     }
 }

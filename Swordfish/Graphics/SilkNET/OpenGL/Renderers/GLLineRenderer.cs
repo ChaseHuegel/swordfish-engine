@@ -39,11 +39,11 @@ internal sealed class GLLineRenderer(
     private readonly IFileParseService _fileParseService = fileParseService;
     private readonly VirtualFileSystem _vfs = vfs;
 
-    public void Initialize(IRenderContext renderContext)
+    public void Initialize(IRenderer renderer)
     {
-        if (renderContext is not GLRenderContext)
+        if (renderer is not GLRenderer)
         {
-            throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+            throw new NotSupportedException($"{nameof(GLLineRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
         }
 
         if (!_vfs.TryGetFile(AssetPaths.Shaders.At("lines.glsl"), out PathInfo linesShaderFile))

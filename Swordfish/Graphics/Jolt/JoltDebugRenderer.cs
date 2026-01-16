@@ -28,7 +28,7 @@ internal class JoltDebugRenderer(in DebugSettings debugSettings, in ILineRendere
         DrawVelocity = true,
     };
     
-    public void Initialize(IRenderContext renderContext)
+    public void Initialize(IRenderer renderer)
     {
     }
 

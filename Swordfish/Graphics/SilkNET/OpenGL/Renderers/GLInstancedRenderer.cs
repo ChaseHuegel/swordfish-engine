@@ -18,11 +18,11 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
     
     private LockedList<GLRenderTarget>? _renderTargets;
 
-    public void Initialize(IRenderContext renderContext)
+    public void Initialize(IRenderer renderer)
     {
-        if (renderContext is not GLRenderContext glRenderContext)
+        if (renderer is not GLRenderer glRenderContext)
         {
-            throw new NotSupportedException($"{nameof(GLInstancedRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+            throw new NotSupportedException($"{nameof(GLInstancedRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
         }
 
         //  TODO this is bad

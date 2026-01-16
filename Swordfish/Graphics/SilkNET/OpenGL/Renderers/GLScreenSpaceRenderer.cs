@@ -97,11 +97,11 @@ internal sealed class GLScreenSpaceRenderer(in GL gl, in GLContext glContext, in
     private LockedList<GLRectRenderTarget>? _renderTargets;
     private readonly Dictionary<GLRectRenderTarget, RectVertices> _instances = [];
 
-    public void Initialize(IRenderContext renderContext)
+    public void Initialize(IRenderer renderer)
     {
-        if (renderContext is not GLRenderContext glRenderContext)
+        if (renderer is not GLRenderer glRenderContext)
         {
-            throw new NotSupportedException($"{nameof(GLScreenSpaceRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+            throw new NotSupportedException($"{nameof(GLScreenSpaceRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
         }
         
         _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());

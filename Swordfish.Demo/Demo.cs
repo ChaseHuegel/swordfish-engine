@@ -67,7 +67,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private readonly ReefContext _reefContext;
     private readonly IECSContext _ecsContext;
-    private readonly IRenderContext _renderContext;
+    private readonly IRenderer _renderer;
     private readonly IWindowContext _windowContext;
     private readonly IFileParseService _fileParseService;
     private readonly IPhysics _physics;
@@ -75,12 +75,12 @@ public class Demo : IEntryPoint, IAutoActivate
     private readonly ILogger _logger;
     private readonly Material _swordfishMaterial;
 
-    public Demo(ReefContext reefContext, IECSContext ecsContext, IRenderContext renderContext, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger)
+    public Demo(ReefContext reefContext, IECSContext ecsContext, IRenderer renderer, IWindowContext windowContext, IFileParseService fileParseService, IPhysics physics, IInputService inputService, ILineRenderer lineRenderer, ILogger logger)
     {
         _reefContext = reefContext;
         _fileParseService = fileParseService;
         _ecsContext = ecsContext;
-        _renderContext = renderContext;
+        _renderer = renderer;
         _windowContext = windowContext;
         _physics = physics;
         _inputService = inputService;
@@ -121,9 +121,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
         inputService.Scrolled += OnScroll;
         _physics.FixedUpdate += OnFixedUpdate;
-        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.MainCamera);
-        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.MainCamera);
-        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.MainCamera);
+        _positionGizmo = new PositionGizmo(lineRenderer, _renderer.MainCamera);
+        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderer.MainCamera);
+        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderer.MainCamera);
         
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         var astronautTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("astronaut.png"));
@@ -454,7 +454,7 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
-        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        CameraEntity cameraEntity = _renderer.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
@@ -501,7 +501,7 @@ public class Demo : IEntryPoint, IAutoActivate
     private volatile float _scrollBuffer;
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
-        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        CameraEntity cameraEntity = _renderer.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
         Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
@@ -535,7 +535,7 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateDonutDemo();
         CreatePhysicsTest();
 
-        var camera = _renderContext.MainCamera.Get();
+        var camera = _renderer.MainCamera.Get();
         var position = new Vector3(0, 5, 15);
         var orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -30 * MathS.DEGREES_TO_RADIANS);
         var transform = new TransformComponent(position, orientation);

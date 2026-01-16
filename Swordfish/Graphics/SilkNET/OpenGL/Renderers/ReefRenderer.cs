@@ -34,7 +34,7 @@ internal sealed class ReefRenderer(
     private readonly Dictionary<string, Material> _typefaceMaterials = [];
 
     //  If either of these is null, the renderer is attempting to render without having initialized.
-    private GLRenderContext _renderContext = null!;
+    private GLRenderer _renderer = null!;
     private ShaderProgram _defaultShader = null!;
     
     private VertexArrayObject<float>? _vao;
@@ -52,11 +52,11 @@ internal sealed class ReefRenderer(
     //       on more important issues. For the time, performance here isn't a particular concern.
     private readonly Dictionary<RenderCommand<Material>, InstanceVertexData> _instances = new(/*new MaterialRenderCommandComparer()*/);
 
-    public void Initialize(IRenderContext renderContext)
+    public void Initialize(IRenderer renderer)
     {
-        if (renderContext is not GLRenderContext glRenderContext)
+        if (renderer is not GLRenderer glRenderContext)
         {
-            throw new NotSupportedException($"{nameof(ReefRenderer)} only supports an OpenGL {nameof(IRenderContext)}.");
+            throw new NotSupportedException($"{nameof(ReefRenderer)} only supports an OpenGL {nameof(IRenderer)}.");
         }
         
         if (!_vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef.glsl"), out PathInfo defaultUIShaderFile))
@@ -102,7 +102,7 @@ internal sealed class ReefRenderer(
             _typefaceMaterials.Add(typeface.ID, material);
         }
 
-        _renderContext = glRenderContext;
+        _renderer = glRenderContext;
         
         _vao = _glContext.CreateVertexArrayObject(Array.Empty<float>());
         _vao.Bind();
@@ -220,7 +220,7 @@ internal sealed class ReefRenderer(
                 return 0;
             }
             
-            GLMaterial typefaceGLMaterial = _renderContext.BindMaterial(typefaceMaterial);
+            GLMaterial typefaceGLMaterial = _renderer.BindMaterial(typefaceMaterial);
             
             using GLMaterial.Scope _ = typefaceGLMaterial.Use();
             shaderActivationCallback(typefaceGLMaterial.ShaderProgram);
@@ -229,7 +229,7 @@ internal sealed class ReefRenderer(
         }
         else if (command.RendererData != null)
         {
-            GLMaterial glMaterial = _renderContext.BindMaterial(command.RendererData);
+            GLMaterial glMaterial = _renderer.BindMaterial(command.RendererData);
             
             using GLMaterial.Scope _ = glMaterial.Use();
             shaderActivationCallback(glMaterial.ShaderProgram);

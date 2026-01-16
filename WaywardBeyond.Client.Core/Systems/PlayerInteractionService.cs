@@ -39,7 +39,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
-    private readonly IRenderContext _renderContext;
+    private readonly IRenderer _renderer;
     private readonly IWindowContext _windowContext;
     private readonly VoxelEntityBuilder _voxelEntityBuilder;
     private readonly IECSContext _ecsContext;
@@ -64,7 +64,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
-        in IRenderContext renderContext,
+        in IRenderer renderer,
         in IWindowContext windowContext,
         in VoxelEntityBuilder voxelEntityBuilder,
         in IECSContext ecsContext,
@@ -80,7 +80,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _inputService = inputService;
         _physics = physics;
         _lineRenderer = lineRenderer;
-        _renderContext = renderContext;
+        _renderer = renderer;
         _windowContext = windowContext;
         _voxelEntityBuilder = voxelEntityBuilder;
         _ecsContext = ecsContext;
@@ -437,7 +437,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     private Orientation GetPlacementOrientation(TransformComponent transformComponent)
     {
-        var camera = _renderContext.MainCamera.Get();
+        var camera = _renderer.MainCamera.Get();
         var lookAtOrientation = new Orientation(transformComponent.Orientation * camera.Transform.Orientation * transformComponent.Orientation);
         
         Orientation brickOrientation = SelectedOrientation.Get();
@@ -493,7 +493,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         out TransformComponent transformComponent,
         out Vector3 clickedPoint
     ) {
-        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        CameraEntity cameraEntity = _renderer.MainCamera.Get();
 
         Vector3? reachAroundDir = null;
         Ray ray = cameraEntity.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
