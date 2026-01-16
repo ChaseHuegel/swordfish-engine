@@ -4,7 +4,7 @@ using Swordfish.Physics;
 
 namespace Swordfish.Graphics;
 
-public readonly struct Camera(in Entity entity, in ViewFrustumComponent viewFrustum, in TransformComponent transform)
+public readonly struct CameraEntity(in Entity entity, in ViewFrustumComponent viewFrustum, in TransformComponent transform)
 {
     public readonly Entity Entity = entity;
     public readonly ViewFrustumComponent ViewFrustum = viewFrustum;

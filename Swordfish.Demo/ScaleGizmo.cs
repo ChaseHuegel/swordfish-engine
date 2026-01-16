@@ -10,9 +10,9 @@ namespace Swordfish.Demo;
 public sealed class ScaleGizmo : IDisposable
 {
     private readonly Line[] _lines;
-    private readonly DataBinding<Camera> _camera;
+    private readonly DataBinding<CameraEntity> _camera;
 
-    public ScaleGizmo(ILineRenderer lineRenderer, DataBinding<Camera> camera)
+    public ScaleGizmo(ILineRenderer lineRenderer, DataBinding<CameraEntity> camera)
     {
         _camera = camera;
 

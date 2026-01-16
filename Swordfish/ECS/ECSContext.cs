@@ -36,7 +36,8 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
         Entity camera = World.NewEntity();
         var viewFrustum = new ViewFrustumComponent(renderSettings.NearPlane, renderSettings.FarPlane, renderSettings.FOV);
         camera.AddOrUpdate(viewFrustum);
-        camera.AddOrUpdate(new TransformComponent());
+        camera.Add<CameraComponent>();
+        camera.Add<TransformComponent>();
         
         _logger.LogInformation("Initialized ECS.");
     }

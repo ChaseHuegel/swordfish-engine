@@ -454,9 +454,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
     private void OnFixedUpdate(object? sender, EventArgs args)
     {
-        Camera camera = _renderContext.MainCamera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)
@@ -501,9 +501,9 @@ public class Demo : IEntryPoint, IAutoActivate
     private volatile float _scrollBuffer;
     private void OnScroll(object? sender, ScrolledEventArgs e)
     {
-        Camera camera = _renderContext.MainCamera.Get();
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
         Vector2 cursorPos = _inputService.CursorPosition;
-        Ray ray = camera.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        Ray ray = cameraEntity.ScreenPointToRay((int)cursorPos.X, (int)cursorPos.Y, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         RaycastResult raycast = _physics.Raycast(ray * 1000);
 
         if (!raycast.Hit)

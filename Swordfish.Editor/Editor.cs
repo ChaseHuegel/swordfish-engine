@@ -728,8 +728,8 @@ public class Editor : IEntryPoint, IAutoActivate
     
         float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
     
-        Camera camera = _renderContext.MainCamera.Get();
-        var transform = camera.Transform;
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        var transform = cameraEntity.Transform;
     
         if (_inputService.IsMouseHeld(MouseButton.Right))
         {
@@ -786,6 +786,6 @@ public class Editor : IEntryPoint, IAutoActivate
             transform.Position += new Vector3(0, -1, 0);
         }
         
-        camera.Entity.AddOrUpdate(transform);
+        cameraEntity.Entity.AddOrUpdate(transform);
     }
 }
