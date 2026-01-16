@@ -22,7 +22,6 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
-    private readonly GL _gl;
     private readonly GLContext _glContext;
     private readonly IWindowContext _windowContext;
     private readonly SynchronizationContext _synchronizationContext;
@@ -35,13 +34,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private float _windowAspectRatio;
 
     public GLRenderContext(
-        in GL gl,
         in GLContext glContext,
         in IWindowContext windowContext,
         in SynchronizationContext synchronizationContext,
         in RenderSettings renderSettings
     ) {
-        _gl = gl;
         _glContext = glContext;
         _windowContext = windowContext;
         _synchronizationContext = synchronizationContext;
@@ -117,7 +114,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void QueryRenderableEntities(float delta, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
     {
-        if (!meshRendererComponent.Bound || meshRendererComponent.MeshRenderer == null)
+        if (meshRendererComponent.MeshRenderer == null)
         {
             return;
         }
