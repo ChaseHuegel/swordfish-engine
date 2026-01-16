@@ -36,7 +36,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private Matrix4x4 _cameraView;
     private Matrix4x4 _cameraProjection;
-    private float _aspectRatio;
+    private float _windowAspectRatio;
 
     public GLRenderContext(
         GL gl,
@@ -54,7 +54,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _synchronizationContext = synchronizationContext;
         _renderSettings = renderSettings;
 
-        _aspectRatio = _windowContext.GetSize().GetRatio();
+        _windowAspectRatio = _windowContext.GetSize().GetRatio();
         
         gl.Enable(EnableCap.DepthTest);
         gl.Enable(EnableCap.CullFace);
@@ -113,12 +113,12 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         MainCamera.Set(camera);
         
         _cameraView = camera.GetView();
-        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(camera.ViewFrustum.FOV.Radians, _aspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(camera.ViewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
     }
 
-    private void QueryRenderableEntities(float f, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
+    private void QueryRenderableEntities(float delta, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
     {
-        if (meshRendererComponent.MeshRenderer == null)
+        if (!meshRendererComponent.Bound || meshRendererComponent.MeshRenderer == null)
         {
             return;
         }
@@ -128,7 +128,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     private void OnWindowResized(Vector2 newSize)
     {
-        _aspectRatio = newSize.GetRatio();
+        _windowAspectRatio = newSize.GetRatio();
     }
 
     private void OnWindowRender(double delta)
