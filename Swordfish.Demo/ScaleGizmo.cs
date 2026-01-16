@@ -3,15 +3,16 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Demo;
 
 public sealed class ScaleGizmo : IDisposable
 {
     private readonly Line[] _lines;
-    private readonly Camera _camera;
+    private readonly DataBinding<Camera> _camera;
 
-    public ScaleGizmo(ILineRenderer lineRenderer, Camera camera)
+    public ScaleGizmo(ILineRenderer lineRenderer, DataBinding<Camera> camera)
     {
         _camera = camera;
 
@@ -38,7 +39,7 @@ public sealed class ScaleGizmo : IDisposable
         Vector3 right = transform.GetRight();
 
         const float baseSize = 0.85f;
-        float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
+        float scale = Vector3.Distance(pos, _camera.Get().Transform.Position) * 0.1f;
         float size = baseSize * scale;
         float handleSize = 0.35f * scale;
 

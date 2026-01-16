@@ -121,9 +121,9 @@ public class Demo : IEntryPoint, IAutoActivate
 
         inputService.Scrolled += OnScroll;
         _physics.FixedUpdate += OnFixedUpdate;
-        // _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.Camera.Get());
-        // _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.Camera.Get());
-        // _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.Camera.Get());
+        _positionGizmo = new PositionGizmo(lineRenderer, _renderContext.MainCamera);
+        _orientationGizmo = new OrientationGizmo(lineRenderer, _renderContext.MainCamera);
+        _scaleGizmo = new ScaleGizmo(lineRenderer, _renderContext.MainCamera);
         
         var shader = _fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         var astronautTexture = _fileParseService.Parse<Texture>(AssetPaths.Textures.At("astronaut.png"));
@@ -534,13 +534,12 @@ public class Demo : IEntryPoint, IAutoActivate
         // CreateShipTest();
         // CreateDonutDemo();
         CreatePhysicsTest();
-        
-        _ecsContext.World.DataStore.Query<ViewFrustumComponent, TransformComponent>(QueryCamera);
-        void QueryCamera(float delta, DataStore store, int entity, ref ViewFrustumComponent component1, ref TransformComponent component2)
-        {
-            component2.Position = new Vector3(0, 5, 15);
-            component2.Rotate(new Vector3(-30, 0, 0));
-        }
+
+        var camera = _renderContext.MainCamera.Get();
+        var position = new Vector3(0, 5, 15);
+        var orientation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, -30 * MathS.DEGREES_TO_RADIANS);
+        var transform = new TransformComponent(position, orientation);
+        camera.Entity.AddOrUpdate(transform);
 
         foreach (string line in Benchmark.CollectOutput())
         {

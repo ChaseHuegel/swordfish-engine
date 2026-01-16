@@ -109,8 +109,9 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
         viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
         viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
-        
-        var camera = new Camera(viewFrustum, transform);
+
+        var e = new Entity(entity, store);
+        var camera = new Camera(e, viewFrustum, transform);
         MainCamera.Set(camera);
         
         _cameraView = camera.GetView();

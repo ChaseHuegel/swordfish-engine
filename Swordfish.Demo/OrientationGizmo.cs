@@ -4,15 +4,16 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
 using Swordfish.Library.Extensions;
+using Swordfish.Library.Types;
 
 namespace Swordfish.Demo;
 
 public sealed class OrientationGizmo : IDisposable
 {
     private readonly Line[] _lines;
-    private readonly Camera _camera;
+    private readonly DataBinding<Camera> _camera;
 
-    public OrientationGizmo(ILineRenderer lineRenderer, Camera camera)
+    public OrientationGizmo(ILineRenderer lineRenderer, DataBinding<Camera> camera)
     {
         _camera = camera;
 
@@ -41,7 +42,7 @@ public sealed class OrientationGizmo : IDisposable
         const float baseSize = 1.25f;
         const int segmentsPerAxis = 30;
         const float segmentFactor = 1f / segmentsPerAxis;
-        float scale = Vector3.Distance(pos, _camera.Transform.Position) * 0.1f;
+        float scale = Vector3.Distance(pos, _camera.Get().Transform.Position) * 0.1f;
         float size = baseSize * scale;
 
         //  X axis
