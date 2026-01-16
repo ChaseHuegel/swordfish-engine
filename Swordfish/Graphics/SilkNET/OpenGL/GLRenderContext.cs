@@ -1,76 +1,78 @@
 using System.Collections.Concurrent;
-using System.Drawing;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Shoal.DependencyInjection;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
+using Swordfish.Graphics.SilkNET.OpenGL.Renderers;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
-
-// ReSharper disable UnusedMember.Global
+using Swordfish.Settings;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-// ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate
+internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate, IEntitySystem
 {
-    public DataBinding<Camera> Camera { get; set; } = new();
-
+    public DataBinding<CameraEntity> MainCamera { get; } = new();
+    
     public DataBinding<int> DrawCalls { get; } = new();
 
     internal readonly LockedList<GLRenderTarget> RenderTargets = new();
     internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
 
-    private readonly GL _gl;
-    private readonly IWindowContext _windowContext;
     private readonly GLContext _glContext;
-    private readonly IRenderPipeline[] _renderPipelines;
+    private readonly IWindowContext _windowContext;
     private readonly SynchronizationContext _synchronizationContext;
+    private readonly RenderSettings _renderSettings;
+
+    private readonly DoubleList<EntityModel> _renderInstancesBuffer = new();
+
+    private Matrix4x4 _cameraView;
+    private Matrix4x4 _cameraProjection;
+    private float _windowAspectRatio;
 
     public GLRenderContext(
-        GL gl,
-        IWindowContext windowContext,
-        GLContext glContext,
-        IRenderPipeline[] renderPipelines,
-        IRenderStage[] renderers,
-        SynchronizationContext synchronizationContext
+        in GLContext glContext,
+        in IWindowContext windowContext,
+        in SynchronizationContext synchronizationContext,
+        in RenderSettings renderSettings
     ) {
-        _gl = gl;
-        _windowContext = windowContext;
         _glContext = glContext;
-        _renderPipelines = renderPipelines;
+        _windowContext = windowContext;
         _synchronizationContext = synchronizationContext;
-
-        gl.Enable(EnableCap.DepthTest);
-        gl.Enable(EnableCap.CullFace);
-        gl.PolygonMode(TriangleFace.FrontAndBack, PolygonMode.Fill);
-
-        Camera.Set(new Camera(90, _windowContext.GetSize().GetRatio(), 0.1f, 1000f));
-        
-        for (var i = 0; i < renderers.Length; i++)
-        {
-            //  TODO there has to be a better way to do this without a circular dependency
-            renderers[i].Initialize(this);
-        }
-                
+        _renderSettings = renderSettings;
         _windowContext.Resized += OnWindowResized;
-        _windowContext.Render += OnWindowRender;
     }
     
     public void Dispose()
     {
         _windowContext.Resized -= OnWindowResized;
-        _windowContext.Render -= OnWindowRender;
     }
 
     public void Bind(Shader shader) => BindShader(shader);
     public void Bind(Texture texture) => BindTexture(texture);
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
-    public void Bind(MeshRenderer meshRenderer) => BindMeshRenderer(meshRenderer);
+    public void Bind(MeshRenderer meshRenderer, int entity) => BindMeshRenderer(meshRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
+    
+    public RenderScene GetSceneContext()
+    {
+        Matrix4x4 view;
+        Matrix4x4 projection;
+        EntityModel[] instances;
+        lock (_renderInstancesBuffer)
+        {
+            view = _cameraView;
+            projection = _cameraProjection;
+            _renderInstancesBuffer.Swap();
+            instances = _renderInstancesBuffer.Read();
+        }
+
+        return new RenderScene(view, projection, instances, RenderTargets, RectRenderTargets);
+    }
 
     private void OnHandleDisposed(object? sender, EventArgs _)
     {
@@ -80,24 +82,49 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
     }
 
-    private void OnWindowResized(Vector2 newSize)
+    public void Tick(float delta, DataStore store)
     {
-        Camera.Get().AspectRatio = newSize.GetRatio();
+        lock (_renderInstancesBuffer)
+        {
+            store.Query<CameraComponent, ViewFrustumComponent>(delta: 0f, QueryCamera);
+            
+            _renderInstancesBuffer.Clear();
+            store.Query<TransformComponent, MeshRendererComponent>(delta: 0f, QueryRenderableEntities);
+        }
     }
 
-    private void OnWindowRender(double delta)
+    private void QueryCamera(float delta, DataStore store, int entity, ref CameraComponent camera, ref ViewFrustumComponent viewFrustum)
     {
-        Camera camera = Camera.Get();
-        Matrix4x4 view = camera.GetView();
-        Matrix4x4 projection = camera.GetProjection();
-
-        _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-        var drawCalls = 0;
-        for (var i = 0; i < _renderPipelines.Length; i++)
+        if (!store.TryGet(entity, out TransformComponent transform))
         {
-            drawCalls += _renderPipelines[i].Render(delta, view, projection);
+            return;
         }
-        DrawCalls.Set(drawCalls);
+        
+        viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
+        viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
+        viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
+
+        var e = new Entity(entity, store);
+        var cameraEntity = new CameraEntity(e, viewFrustum, transform);
+        MainCamera.Set(cameraEntity);
+        
+        _cameraView = cameraEntity.GetView();
+        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+    }
+
+    private void QueryRenderableEntities(float delta, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
+    {
+        if (meshRendererComponent.MeshRenderer == null)
+        {
+            return;
+        }
+        
+        _renderInstancesBuffer.Write(new EntityModel(entity, transform.ToMatrix4X4()));
+    }
+
+    private void OnWindowResized(Vector2 newSize)
+    {
+        _windowAspectRatio = newSize.GetRatio();
     }
 
     private ShaderComponent BindShaderSource(ShaderSource shaderSource)
@@ -203,7 +230,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    private void BindMeshRenderer(MeshRenderer meshRenderer)
+    private void BindMeshRenderer(MeshRenderer meshRenderer, int entity)
     {
         if (_linkedHandles.TryGetValue(meshRenderer, out IHandle? _))
         {
@@ -220,7 +247,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         }
 
         GLRenderTarget renderTarget = _glContext.CreateGLRenderTarget(
-            meshRenderer.Transform,
+            entity,
             vao,
             mbo,
             glMaterials,

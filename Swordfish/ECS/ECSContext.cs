@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
+using Swordfish.Graphics;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Types;
+using Swordfish.Settings;
 
 namespace Swordfish.ECS;
 
@@ -14,9 +16,10 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
     private readonly ThreadWorker _threadWorker;
     private readonly ILogger _logger;
 
-    public ECSContext(IEntitySystem[] systems, ILogger logger)
+    public ECSContext(IEntitySystem[] systems, ILogger logger, RenderSettings renderSettings)
     {
         _logger = logger;
+
         _threadWorker = new ThreadWorker(Update, "ECS")
         {
             TargetTickRate = -1,
@@ -27,6 +30,13 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
         {
             World.AddSystem(system);
         }
+        
+        //  Ensure at least one Camera exists
+        Entity camera = World.NewEntity();
+        var viewFrustum = new ViewFrustumComponent(renderSettings.NearPlane, renderSettings.FarPlane, renderSettings.FOV);
+        camera.AddOrUpdate(viewFrustum);
+        camera.Add<CameraComponent>();
+        camera.Add<TransformComponent>();
         
         _logger.LogInformation("Initialized ECS.");
     }

@@ -716,7 +716,7 @@ public class Editor : IEntryPoint, IAutoActivate
     {
         const float mouseSensitivity = 0.05f;
         const float cameraBaseSpeed = 10;
-
+    
         if (_inputService.IsKeyHeld(Key.Shift))
         {
             _cameraSpeedModifier += (float)delta;
@@ -725,64 +725,67 @@ public class Editor : IEntryPoint, IAutoActivate
         {
             _cameraSpeedModifier = 1f;
         }
-
+    
         float cameraSpeed = cameraBaseSpeed * _cameraSpeedModifier;
-
-        Camera camera = _renderContext.Camera.Get();
-
+    
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        var transform = cameraEntity.Transform;
+    
         if (_inputService.IsMouseHeld(MouseButton.Right))
         {
             _inputService.CursorOptions = CursorOptions.Hidden | CursorOptions.Locked;
             Vector2 cursorDelta = _inputService.CursorDelta;
-            camera.Transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
-            camera.Transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
+            transform.Rotate(new Vector3(0, -cursorDelta.X, 0) * mouseSensitivity, false);
+            transform.Rotate(new Vector3(-cursorDelta.Y, 0, 0) * mouseSensitivity, true);
         }
         else
         {
             _inputService.CursorOptions = CursorOptions.None;
         }
-
-        Vector3 forward = camera.Transform.GetForward();
-        Vector3 right = camera.Transform.GetRight();
-
+    
+        Vector3 forward = transform.GetForward();
+        Vector3 right = transform.GetRight();
+    
         if (_inputService.IsKeyHeld(Key.W))
         {
-            camera.Transform.Position -= forward * cameraSpeed * (float)delta;
+            transform.Position += -forward * cameraSpeed * (float)delta;
         }
-
+    
         if (_inputService.IsKeyHeld(Key.S))
         {
-            camera.Transform.Position += forward * cameraSpeed * (float)delta;
+            transform.Position += forward * cameraSpeed * (float)delta;
         }
-
+    
         if (_inputService.IsKeyHeld(Key.D))
         {
-            camera.Transform.Position += right * cameraSpeed * (float)delta;
+            transform.Position += right * cameraSpeed * (float)delta;
         }
-
+    
         if (_inputService.IsKeyHeld(Key.A))
         {
-            camera.Transform.Position -= right * cameraSpeed * (float)delta;
+            transform.Position += -right * cameraSpeed * (float)delta;
         }
-
+    
         if (_inputService.IsKeyHeld(Key.E))
         {
-            camera.Transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
+            transform.Position += new Vector3(0, cameraSpeed * (float)delta, 0);
         }
-
+    
         if (_inputService.IsKeyHeld(Key.Q))
         {
-            camera.Transform.Position -= new Vector3(0, cameraSpeed * (float)delta, 0);
+            transform.Position += new Vector3(0, -cameraSpeed * (float)delta, 0);
         }
-
+    
         if (_inputService.IsKeyPressed(Key.UpArrow))
         {
-            camera.Transform.Position += new Vector3(0, 1, 0);
+            transform.Position += new Vector3(0, 1, 0);
         }
-
+    
         if (_inputService.IsKeyPressed(Key.DownArrow))
         {
-            camera.Transform.Position -= new Vector3(0, 1, 0);
+            transform.Position += new Vector3(0, -1, 0);
         }
+        
+        cameraEntity.Entity.AddOrUpdate(transform);
     }
 }

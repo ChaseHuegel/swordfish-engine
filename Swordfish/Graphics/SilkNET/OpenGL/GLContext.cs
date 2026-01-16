@@ -42,9 +42,9 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
     }
 
-    internal GLRenderTarget CreateGLRenderTarget(Transform transform, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
+    internal GLRenderTarget CreateGLRenderTarget(int entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
-        return _glThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(_gl, transform, vertexArrayObject, modelsBufferObject, materials, renderOptions));
+        return _glThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(_gl, entity, vertexArrayObject, modelsBufferObject, materials, renderOptions));
     }
     
     internal GLRectRenderTarget CreateGLRectRenderTarget(Rect2 rect, Vector4 color, GLMaterial[] materials)
