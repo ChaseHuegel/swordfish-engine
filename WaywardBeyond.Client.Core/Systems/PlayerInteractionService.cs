@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Reef;
 using Shoal.Modularity;
 using Swordfish.Audio;
@@ -35,7 +36,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     public readonly DataBinding<Orientation> SelectedOrientation = new();
     
     private static readonly Vector4 _gizmoColor = new(0.5f, 0.5f, 0.5f, 1f);
-    
+
+    private readonly ILogger<PlayerInteractionService> _logger;
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
@@ -61,6 +63,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
 
     public PlayerInteractionService(
+        in ILogger<PlayerInteractionService> logger,
         in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
@@ -77,6 +80,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IAssetDatabase<Mesh> meshDatabase,
         in PlayerControllerSystem playerControllerSystem
     ) {
+        _logger = logger;
         _inputService = inputService;
         _physics = physics;
         _lineRenderer = lineRenderer;
@@ -265,7 +269,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             
             //  If the selected shape is orientable for the brick, apply orientation.
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
-            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementOrientation(transformComponent, worldPos) : Orientation.Identity;
+            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
 
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
@@ -349,7 +353,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         Result<BrickInfo> placeableResult = TryGetPlaceableBrickInfo();
         bool holdingPlaceable = placeableResult.Success;
-        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent) 
+        if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint) 
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
             _activeGizmo.Visible = false;
@@ -363,7 +367,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
         
-        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementQuaternion(transformComponent, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
+        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementQuaternion(transformComponent, clickedPoint, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
 
         //  TODO clean this up
         if (_debugSettings.OverlayVisible)
@@ -431,12 +435,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
-    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent, Vector3 worldPos)
+    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent, Vector3 placePos, Vector3 brickPos)
     {
-        return transformComponent.Orientation * GetPlacementOrientation(transformComponent, worldPos).ToQuaternion();
+        return transformComponent.Orientation * GetPlacementOrientation(transformComponent, placePos, brickPos).ToQuaternion();
     }
     
-    private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 worldPos)
+    private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 worldPos, Vector3 brickPos)
     {
         var camera = _renderContext.MainCamera.Get();
         
@@ -477,7 +481,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         // Quaternion blockLocalRot = Quaternion.Normalize(gridWorldInverse * blockWorldRot);
         //
         // var lookAtQuaternion = Quaternion.CreateFromRotationMatrix(lookAtMatrix);
-        var lookAtOrientation = new Orientation(ComputeBlockLocalRotation(worldPos, camera.Transform.Position, camera.Transform.Orientation, transformComponent));
+        var lookAtOrientation = new Orientation(ComputeBlockLocalRotation(worldPos, brickPos, camera.Transform.Position, camera.Transform.Orientation, transformComponent));
         
         Orientation brickOrientation = SelectedOrientation.Get();
         brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
@@ -487,30 +491,25 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return brickOrientation;
     }
     
-    Quaternion ComputeBlockLocalRotation(
+    private Quaternion ComputeBlockLocalRotation(
         Vector3 blockWorldPos,
+        Vector3 brickPos,
         Vector3 cameraWorldPos,
         Quaternion cameraWorldRot,
         TransformComponent gridTransform)
     {
-        Vector3 forward = Vector3.Normalize(cameraWorldPos - blockWorldPos);
-        forward = SnapToNearestAxis(forward, gridTransform);
-
-        Vector3 cameraUp = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
-        cameraUp = SnapToNearestAxis(cameraUp, gridTransform);
-
-        Vector3 right = Vector3.Normalize(Vector3.Cross(cameraUp, forward));
-
-        if (right.LengthSquared() < 1e-6f)
-        {
-            right = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, forward));
-        }
-
-        Vector3 up = Vector3.Cross(forward, right);
+        Vector3 forward = Vector3.Normalize(brickPos - blockWorldPos);
+        Vector3 up = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
+        Vector3 right = Vector3.Transform(Vector3.UnitX, cameraWorldRot);
 
         forward = SnapToNearestAxis(forward, gridTransform);
         right = SnapToNearestAxis(right, gridTransform);
         up = SnapToNearestAxis(up, gridTransform);
+
+        if (_inputService.IsKeyHeld(Key.F1))
+        {
+            _logger.LogInformation("forward: {forward}, right: {right}, up: {up}", forward, right, up);
+        }
 
         Matrix4x4 rotMatrix = new Matrix4x4(
             right.X,    right.Y,    right.Z,    0,
@@ -524,7 +523,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return localRot;
     }
 
-    private Vector3 SnapToNearestAxis(Vector3 forward, TransformComponent transform)
+    private Vector3 SnapToNearestAxis(Vector3 vector, TransformComponent transform)
     {
         Vector3[] axes =
         [
@@ -536,11 +535,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             -transform.GetUp()
         ];
 
-        Vector3 result = forward;
+        Vector3 result = vector;
         var minDistance = float.MaxValue;
         foreach (Vector3 axis in axes)
         {
-            float distance = Vector3.DistanceSquared(forward, axis);
+            float distance = Vector3.DistanceSquared(vector, axis);
             if (distance >= minDistance)
             {
                 continue;
