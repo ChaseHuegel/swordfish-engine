@@ -499,8 +499,19 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         TransformComponent gridTransform)
     {
         Vector3 forward = Vector3.Normalize(brickPos - blockWorldPos);
-        Vector3 up = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
-        Vector3 right = Vector3.Transform(Vector3.UnitX, cameraWorldRot);
+        forward = SnapToNearestAxis(forward, gridTransform);
+
+        Vector3 cameraUp = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
+        cameraUp = SnapToNearestAxis(cameraUp, gridTransform);
+
+        Vector3 right = Vector3.Normalize(Vector3.Cross(cameraUp, forward));
+
+        if (right.LengthSquared() < 1e-6f)
+        {
+            right = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, forward));
+        }
+
+        Vector3 up = Vector3.Cross(forward, right);
 
         forward = SnapToNearestAxis(forward, gridTransform);
         right = SnapToNearestAxis(right, gridTransform);
