@@ -43,7 +43,9 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _windowContext = windowContext;
         _synchronizationContext = synchronizationContext;
         _renderSettings = renderSettings;
+        
         _windowContext.Resized += OnWindowResized;
+        _windowAspectRatio = windowContext.Resolution.GetRatio();
     }
     
     public void Dispose()
