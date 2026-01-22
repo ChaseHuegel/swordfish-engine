@@ -3,9 +3,13 @@ using System.Numerics;
 
 namespace WaywardBeyond.Client.Core.Voxels.Models;
 
+using PrecalculatedQuaternion = (byte Value, Quaternion Quaternion);
+
 public struct Orientation : IEquatable<Orientation>
 {
     public static readonly Orientation Identity = new(0,0,0);
+    
+    private static readonly PrecalculatedQuaternion[] _precalculatedQuaternions;
     
     /// <summary>
     ///     The number of 90° pitch rotations to apply, ranging 0 to 3.
@@ -36,6 +40,20 @@ public struct Orientation : IEquatable<Orientation>
     
     private byte _value;
     
+    static Orientation()
+    {
+        _precalculatedQuaternions = new PrecalculatedQuaternion[64];
+
+        for (var pitchRotations = 0; pitchRotations < 4; pitchRotations++)
+        for (var yawRotations = 0; yawRotations < 4; yawRotations++)
+        for (var rollRotations = 0; rollRotations < 4; rollRotations++)
+        {
+            var orientation = new Orientation(pitchRotations, yawRotations, rollRotations);
+            var precalculatedQuaternion = new PrecalculatedQuaternion(orientation.ToByte(), orientation.ToQuaternion());
+            _precalculatedQuaternions[pitchRotations + 4 * (yawRotations + 4 * rollRotations)] = precalculatedQuaternion;
+        }
+    }
+    
     /// <summary>
     ///     Creates an <see cref="Orientation"/> from a packed byte containing the number of 90° pitch, yaw, and roll rotations.
     /// </summary>
@@ -55,25 +73,28 @@ public struct Orientation : IEquatable<Orientation>
     /// <summary>
     ///     Creates an <see cref="Orientation"/> from a quaternion.
     /// </summary>
-    public Orientation(Quaternion quaternion)
+    public Orientation(Quaternion target)
     {
-        float sinRCosP = 2.0f * (quaternion.W * quaternion.X + quaternion.Y * quaternion.Z);
-        float cosRCosP = 1.0f - 2.0f * (quaternion.X * quaternion.X + quaternion.Y * quaternion.Y);
-        float pitch = MathF.Atan2(sinRCosP, cosRCosP);
-        pitch *= 180f / MathF.PI; 
+        PrecalculatedQuaternion bestMatch = _precalculatedQuaternions[0];
         
-        float sinP = 2.0f * (quaternion.W * quaternion.Y - quaternion.Z * quaternion.X);
-        float yaw = MathF.Abs(sinP) >= 1 ? MathF.CopySign(MathF.PI / 2, sinP) : MathF.Asin(sinP);
-        yaw *= 180f / MathF.PI;
-        
-        float sinYCosP = 2.0f * (quaternion.W * quaternion.Z + quaternion.X * quaternion.Y);
-        float cosYCosP = 1.0f - 2.0f * (quaternion.Y * quaternion.Y + quaternion.Z * quaternion.Z);
-        float roll = MathF.Atan2(sinYCosP, cosYCosP);
-        roll *= 180f / MathF.PI;
-        
-        PitchRotations = (int)Math.Round(pitch / 90, MidpointRounding.ToEven);
-        YawRotations = (int)Math.Round(yaw / 90, MidpointRounding.ToEven);
-        RollRotations = (int)Math.Round(roll / 90, MidpointRounding.ToEven);
+        float maxDot = -1f;
+        for (var i = 0; i < _precalculatedQuaternions.Length; i++)
+        {
+            PrecalculatedQuaternion precalculatedQuaternion = _precalculatedQuaternions[i];
+            
+            float dot = Quaternion.Dot(target, precalculatedQuaternion.Quaternion);
+            dot = Math.Abs(dot);
+
+            if (!(dot > maxDot))
+            {
+                continue;
+            }
+
+            maxDot = dot;
+            bestMatch = precalculatedQuaternion;
+        }
+
+        _value = bestMatch.Value;
     }
     
     /// <summary>
@@ -104,27 +125,17 @@ public struct Orientation : IEquatable<Orientation>
         return _value;
     }
     
-    public Matrix4x4 ToMatrix4x4()
-    {
-        float pitch = PitchRotations * MathF.PI / 2f;
-        float yaw = YawRotations * MathF.PI / 2f;
-        float roll = RollRotations * MathF.PI / 2f;
-
-        Matrix4x4 rotation =
-            Matrix4x4.CreateRotationX(pitch) *
-            Matrix4x4.CreateRotationY(yaw) *
-            Matrix4x4.CreateRotationZ(roll);
-
-        return rotation;
-    }
-    
     public Quaternion ToQuaternion()
     {
-        float pitch = PitchRotations * MathF.PI / 2f;
-        float yaw = YawRotations * MathF.PI / 2f;
-        float roll = RollRotations * MathF.PI / 2f;
+        float pitchRadians = PitchRotations * MathF.PI / 2f;
+        float yawRadians = YawRotations * MathF.PI / 2f;
+        float rollRadians = RollRotations * MathF.PI / 2f;
 
-        return Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+        var qPitch = Quaternion.CreateFromAxisAngle(Vector3.UnitX, pitchRadians);
+        var qYaw = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRadians);
+        var qRoll = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rollRadians);
+
+        return qRoll * qYaw * qPitch;
     }
     
     public Vector3 ToEulerAngles()
