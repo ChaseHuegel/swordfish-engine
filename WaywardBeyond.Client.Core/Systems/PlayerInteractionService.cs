@@ -60,7 +60,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private InteractionBlocker? _inputBlocker;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
-    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) _debugInfo;
+    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position, Vector3 Normal, float Alignment) _debugInfo;
 
     public PlayerInteractionService(
         in ILogger<PlayerInteractionService> logger,
@@ -356,6 +356,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out (int X, int Y, int Z) brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint) 
             || !holdingPlaceable && clickedVoxel.ID == 0)
         {
+            _debugInfo = default;
             _activeGizmo.Visible = false;
             _debugLines[0].Color = Vector4.Zero;
             _debugLines[1].Color = Vector4.Zero;
@@ -365,7 +366,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
         
-        _debugInfo = (VoxelComponent: voxelComponent, Voxel: clickedVoxel, Coordinate: brickPos, Position: worldPos);
+        _debugInfo.VoxelComponent = voxelComponent;
+        _debugInfo.Voxel = clickedVoxel;
+        _debugInfo.Coordinate = brickPos;
+        _debugInfo.Position = worldPos;
         
         Quaternion placeableOrientation = holdingPlaceable ? GetPlacementQuaternion(transformComponent, clickedPoint, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
 
@@ -435,53 +439,39 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
-    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent, Vector3 placePos, Vector3 brickPos)
+    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickWorldPos)
     {
-        return transformComponent.Orientation * GetPlacementOrientation(transformComponent, placePos, brickPos).ToQuaternion();
+        // A. Calculate the base alignment (The "Look At Camera" rotation)
+        // This returns the local rotation needed to align the block to grid/camera
+        Quaternion baseLocalRotation = ComputeBlockLocalRotation(
+            clickedPos, 
+            brickWorldPos, 
+            _renderContext.MainCamera.Get().Transform.Position, 
+            _renderContext.MainCamera.Get().Transform.Orientation, 
+            transformComponent.Orientation
+        );
+
+        // B. Get the User's manual offset (e.g., if they pressed 'R' to rotate the block)
+        // Assuming SelectedOrientation stores the user's manual rotation state
+        Orientation selectedOrientationStruct = SelectedOrientation.Get();
+        Quaternion userOffsetRotation = selectedOrientationStruct.ToQuaternion(); 
+        // ^ Assuming your Orientation struct has a ToQuaternion() method. 
+        // If not, use Quaternion.CreateFromYawPitchRoll(...)
+
+        // C. Combine them using Multiplication (Order Matters!)
+        // Usually: Apply the User's Offset first, THEN apply the alignment to the wall.
+        // OR: Align to wall first, then apply user rotation locally.
+        // Try: final = base * userOffset (Rotates the aligned block locally)
+        Quaternion finalLocalRotation = baseLocalRotation * userOffsetRotation;
+
+        // D. Apply the Grid's World Rotation
+        return transformComponent.Orientation * finalLocalRotation;
     }
     
-    private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 worldPos, Vector3 brickPos)
+    private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickWorldPos)
     {
-        var camera = _renderContext.MainCamera.Get();
-        
-        // Vector3 forward = Vector3.Normalize(camera.Transform.Position - worldPos);
-        //
-        // Vector3 up = camera.Transform.GetUp();
-        // Vector3 right = Vector3.Normalize(Vector3.Cross(up, forward));
-        // if (right.LengthSquared() < 1e-6f)
-        // {
-        //     right = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, forward));
-        // }
-        // up = Vector3.Cross(forward, right);
-        //
-        // var lookAtMatrix = new Matrix4x4
-        // {
-        //     M11 = right.X,
-        //     M12 = right.Y,
-        //     M13 = right.Z,
-        //     M14 = 0,
-        //
-        //     M21 = up.X,
-        //     M22 = up.Y,
-        //     M23 = up.Z,
-        //     M24 = 0,
-        //
-        //     M31 = forward.X,
-        //     M32 = forward.Y,
-        //     M33 = forward.Z,
-        //     M34 = 0,
-        //
-        //     M41 = 0,
-        //     M42 = 0,
-        //     M43 = 0,
-        //     M44 = 1,
-        // };
-        //
-        // Quaternion gridWorldInverse = Quaternion.Inverse(gridWorldRot);
-        // Quaternion blockLocalRot = Quaternion.Normalize(gridWorldInverse * blockWorldRot);
-        //
-        // var lookAtQuaternion = Quaternion.CreateFromRotationMatrix(lookAtMatrix);
-        var lookAtOrientation = new Orientation(ComputeBlockLocalRotation(worldPos, brickPos, camera.Transform.Position, camera.Transform.Orientation, transformComponent));
+        CameraEntity camera = _renderContext.MainCamera.Get();
+        var lookAtOrientation = new Orientation(ComputeBlockLocalRotation(clickedPos, brickWorldPos, camera.Transform.Position, camera.Transform.Orientation, transformComponent.Orientation));
         
         Orientation brickOrientation = SelectedOrientation.Get();
         brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
@@ -491,103 +481,160 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return brickOrientation;
     }
     
-    private Quaternion ComputeBlockLocalRotation(
-        Vector3 blockWorldPos,
-        Vector3 brickPos,
-        Vector3 cameraWorldPos,
-        Quaternion cameraWorldRot,
-        TransformComponent gridTransform)
+    public Quaternion ComputeBlockLocalRotation(
+        Vector3 clickedPos, 
+        Vector3 brickWorldPos, 
+        Vector3 cameraWorldPos, 
+        Quaternion cameraWorldRot, 
+        Quaternion gridWorldRot)
     {
-        Vector3 forward = Vector3.Normalize(brickPos - blockWorldPos);
-        forward = SnapToNearestAxis(forward, gridTransform);
+        // 1. Calculate the Placement Normal
+        Vector3 placementNormalWorld = Vector3.Normalize(cameraWorldPos - brickWorldPos);
 
-        Vector3 cameraUp = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
-        cameraUp = SnapToNearestAxis(cameraUp, gridTransform);
+        // 2. Get Camera vectors
+        Vector3 cameraUpWorld = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
+        Vector3 cameraFwdWorld = Vector3.Transform(-Vector3.UnitZ, cameraWorldRot); 
 
-        Vector3 right = Vector3.Normalize(Vector3.Cross(cameraUp, forward));
+        // 3. Transform everything into Grid Local Space
+        Quaternion inverseGridRot = Quaternion.Inverse(gridWorldRot);
+        
+        Vector3 localNormal = Vector3.Transform(placementNormalWorld, inverseGridRot);
+        Vector3 localCamUp = Vector3.Transform(cameraUpWorld, inverseGridRot);
+        Vector3 localCamFwd = Vector3.Transform(cameraFwdWorld, inverseGridRot);
 
-        if (right.LengthSquared() < 1e-6f)
+        // 4. Determine the Primary Axis based on the Normal
+        Vector3 snappedNormal = SnapToPrincipalAxis(localNormal);
+        _debugInfo.Normal = snappedNormal;
+        
+        // 4. Determine "Floor-ness" based on Camera/World alignment
+        // We compare the World Normal against the Camera's World Up.
+        // Dot Product near 1 or -1 means the surface is "vertical" in the player's view (Floor/Ceiling).
+        // Dot Product near 0 means the surface is "horizontal" in the player's view (Wall).
+        float alignment = Vector3.Dot(placementNormalWorld, cameraUpWorld);
+        alignment = Math.Abs(alignment);
+        _debugInfo.Alignment = alignment;
+        bool looksLikeFloorToCamera = alignment > 0.5f; // Threshold of 45 degrees
+
+        Vector3 targetForward, targetUp;
+
+        if (looksLikeFloorToCamera)
         {
-            right = Vector3.Normalize(Vector3.Cross(Vector3.UnitX, forward));
+            // === FLOOR/CEILING LOGIC ===
+            // "Furnace" style: Bottom aligns with surface, Front faces camera.
+            
+            // The Normal becomes the Block's UP vector (not Forward)
+            targetUp = snappedNormal;
+
+            // The Forward vector should be the axis closest to "-CameraForward" (looking at player)
+            // But it must be perpendicular to the new Up (the Normal)
+            // We project the camera vector onto the plane of the surface to find the best match
+            targetForward = SelectBestPerpendicularUp(targetUp, -localCamFwd, localCamUp);
+        }
+        else
+        {
+            // === WALL LOGIC ===
+            // "Log" style: Back aligns with surface.
+            
+            // The Normal becomes the Block's FORWARD vector (pointing out of wall)
+            targetForward = snappedNormal;
+
+            // The Up vector attempts to match Camera Up
+            targetUp = SelectBestPerpendicularUp(targetForward, localCamUp, localCamFwd);
         }
 
-        Vector3 up = Vector3.Cross(forward, right);
+        // 6. Calculate Right vector (Cross Product)
+        Vector3 targetRight = Vector3.Cross(targetUp, targetForward);
 
-        forward = SnapToNearestAxis(forward, gridTransform);
-        right = SnapToNearestAxis(right, gridTransform);
-        up = SnapToNearestAxis(up, gridTransform);
-
-        if (_inputService.IsKeyHeld(Key.F1))
-        {
-            _logger.LogInformation("forward: {forward}, right: {right}, up: {up}", forward, right, up);
-        }
-
-        Matrix4x4 rotMatrix = new Matrix4x4(
-            right.X,    right.Y,    right.Z,    0,
-            up.X,       up.Y,       up.Z,       0,
-            forward.X,  forward.Y,  forward.Z,  0,
-            0,          0,          0,          1
+        // 7. Construct Matrix
+        Matrix4x4 localRotMatrix = new Matrix4x4(
+            targetRight.X,   targetRight.Y,   targetRight.Z,   0,
+            targetUp.X,      targetUp.Y,      targetUp.Z,      0,
+            targetForward.X, targetForward.Y, targetForward.Z, 0,
+            0,               0,               0,               1
         );
 
-        Quaternion worldRot = Quaternion.CreateFromRotationMatrix(rotMatrix);
-        Quaternion localRot = Quaternion.Inverse(gridTransform.Orientation) * worldRot;
-        return localRot;
+        return Quaternion.CreateFromRotationMatrix(localRotMatrix);
     }
 
-    private Vector3 SnapToNearestAxis(Vector3 vector, TransformComponent transform)
+    // Snaps a vector to the nearest single Unit axis (1,0,0), (-1,0,0), (0,1,0)...
+    private Vector3 SnapToPrincipalAxis(Vector3 v)
     {
-        Vector3[] axes =
-        [
-            transform.GetForward(),
-            transform.GetRight(),
-            transform.GetUp(),
-            -transform.GetRight(),
-            -transform.GetForward(),
-            -transform.GetUp()
-        ];
+        float absX = Math.Abs(v.X);
+        float absY = Math.Abs(v.Y);
+        float absZ = Math.Abs(v.Z);
 
-        Vector3 result = vector;
-        var minDistance = float.MaxValue;
-        foreach (Vector3 axis in axes)
+        if (absX > absY && absX > absZ)
         {
-            float distance = Vector3.DistanceSquared(vector, axis);
-            if (distance >= minDistance)
+            return new Vector3(Math.Sign(v.X), 0, 0);
+        }
+
+        if (absY > absZ)
+        {
+            return new Vector3(0, Math.Sign(v.Y), 0);
+        }
+
+        return new Vector3(0, 0, Math.Sign(v.Z));
+    }
+
+    // Selects the axis perpendicular to 'forward' that best matches the 'reference'
+    private Vector3 SelectBestPerpendicularUp(Vector3 forward, Vector3 camUp, Vector3 camFwd)
+    {
+        // Generate the 4 possible cardinal axes
+        // We can do this by taking a helper vector (non-parallel) and crossing it.
+        // But since 'forward' is guaranteed to be a Unit Axis, we can bruteforce the 3 world axes.
+        
+        Vector3[] candidates = { Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ };
+        
+        Vector3 bestUp = Vector3.Zero;
+        float maxDot = -float.MaxValue;
+
+        // We decide which reference vector to use.
+        // Usually we want to match Camera Up (Screen Top).
+        // BUT, if Camera Up is parallel to the Block Forward (e.g. looking straight down at floor),
+        // Camera Up is useless for orientation. We switch to Camera Forward (View Direction).
+        Vector3 reference = camUp;
+        if (Math.Abs(Vector3.Dot(forward, reference)) > 0.95f) 
+        {
+            reference = camFwd; 
+            
+            // Edge case: If we are looking straight down (CamFwd = -Y) and placing on a wall (Forward = Z),
+            // Then CamFwd is perp to Forward, so it works.
+            // The only fail case is looking straight down and placing on the floor? 
+            // In that case, Forward=Y, CamFwd=-Y. Parallel again.
+            // In that specific case, we fallback to Camera Up (which would be Z or X).
+            if (Math.Abs(Vector3.Dot(forward, reference)) > 0.95f)
+            {
+                 // This is the "Looking straight down at the floor" case.
+                 // We want the top of the block to point North (World +Z) usually.
+                 // Let's force a reference of UnitZ.
+                 reference = Vector3.UnitZ;
+            }
+        }
+
+        foreach (var axis in candidates)
+        {
+            // 1. Must be perpendicular to Forward (Dot == 0)
+            // Since these are unit axes, exact 0 check is safe-ish, but let's use small epsilon or just logic
+            if (Math.Abs(Vector3.Dot(axis, forward)) > 0.01f)
             {
                 continue;
             }
-            
-            result = axis;
-            minDistance = distance;
-        }
-        
-        return result;
-    }
 
-
-    public static Quaternion LookAt(Vector3 sourcePoint, Vector3 destPoint)
-    {
-        Vector3 forwardVector = Vector3.Normalize(destPoint - sourcePoint);
-
-        float dot = Vector3.Dot(Vector3.UnitZ, forwardVector);
-
-        if (Math.Abs(dot - (-1.0f)) < 0.000001f)
-        {
-            return new Quaternion(Vector3.UnitY.X, Vector3.UnitY.Y, Vector3.UnitY.Z, 3.1415926535897932f);
-        }
-        if (Math.Abs(dot - (1.0f)) < 0.000001f)
-        {
-            return Quaternion.Identity;
+            // 2. Score based on alignment with reference
+            float dot = Vector3.Dot(axis, reference);
+            if (dot > maxDot)
+            {
+                maxDot = dot;
+                bestUp = axis;
+            }
         }
 
-        var rotAngle = (float)Math.Acos(dot);
-        Vector3 rotAxis = Vector3.Cross(Vector3.UnitY, forwardVector);
-        rotAxis = Vector3.Normalize(rotAxis);
-        return Quaternion.CreateFromAxisAngle(rotAxis, rotAngle);
+        return bestUp;
     }
 
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
-        (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position) debugInfo = _debugInfo;
+        var debugInfo = _debugInfo;
 
         Result<BrickInfo> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
         string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : "UNKNOWN";
@@ -595,6 +642,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position}")) {}
+        using (ui.Text($"Normal: {debugInfo.Normal}")) {}
+        using (ui.Text($"Alignment: {debugInfo.Alignment}")) {}
         
         return Result.FromSuccess();
     }
