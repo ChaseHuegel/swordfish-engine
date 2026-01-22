@@ -443,11 +443,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     {
         // A. Calculate the base alignment (The "Look At Camera" rotation)
         // This returns the local rotation needed to align the block to grid/camera
+        CameraEntity camera = _renderContext.MainCamera.Get();
         Quaternion baseLocalRotation = ComputeBlockLocalRotation(
             clickedPos, 
             brickWorldPos, 
-            _renderContext.MainCamera.Get().Transform.Position, 
-            _renderContext.MainCamera.Get().Transform.Orientation, 
+            camera.Transform.Position, 
+            camera.Transform.Orientation, 
             transformComponent.Orientation
         );
 
@@ -471,14 +472,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickWorldPos)
     {
         CameraEntity camera = _renderContext.MainCamera.Get();
-        var lookAtOrientation = new Orientation(ComputeBlockLocalRotation(clickedPos, brickWorldPos, camera.Transform.Position, camera.Transform.Orientation, transformComponent.Orientation));
+        Quaternion baseLocalRotation = ComputeBlockLocalRotation(
+            clickedPos, 
+            brickWorldPos, 
+            camera.Transform.Position, 
+            camera.Transform.Orientation, 
+            transformComponent.Orientation
+        );
         
-        Orientation brickOrientation = SelectedOrientation.Get();
-        brickOrientation.PitchRotations += lookAtOrientation.PitchRotations;
-        brickOrientation.RollRotations += lookAtOrientation.RollRotations;
-        brickOrientation.YawRotations += lookAtOrientation.YawRotations;
-        
-        return brickOrientation;
+        Orientation selectedOrientationStruct = SelectedOrientation.Get();
+        Quaternion userOffsetRotation = selectedOrientationStruct.ToQuaternion(); 
+        Quaternion finalLocalRotation = baseLocalRotation * userOffsetRotation;
+        return new Orientation(finalLocalRotation);
     }
     
     public Quaternion ComputeBlockLocalRotation(
