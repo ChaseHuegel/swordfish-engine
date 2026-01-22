@@ -60,7 +60,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private InteractionBlocker? _inputBlocker;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
-    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position, Vector3 Normal, float Alignment, float Alignment2) _debugInfo;
+    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position, Vector3 Normal, float AlignmentCamera, float AlignmentSurface) _debugInfo;
 
     public PlayerInteractionService(
         in ILogger<PlayerInteractionService> logger,
@@ -497,7 +497,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         Vector3 placementNormalWorld2 = Vector3.Normalize(clickedPos - brickWorldPos);
         float alignment2 = Vector3.Dot(placementNormalWorld2, cameraFwdWorld);
-        _debugInfo.Alignment2 = alignment2;
+        _debugInfo.AlignmentSurface = alignment2;
         if (alignment2 < 0.5f)
         {
             placementNormalWorld = -placementNormalWorld2;
@@ -521,7 +521,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         float alignment = Vector3.Dot(placementNormalWorld, cameraUpWorld);
         alignment = Math.Abs(alignment);
         
-        _debugInfo.Alignment = alignment;
+        _debugInfo.AlignmentCamera = alignment;
         bool looksLikeFloorToCamera = alignment > 0.5f; // Threshold of 45 degrees
 
         Vector3 targetForward, targetUp;
@@ -652,8 +652,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position}")) {}
         using (ui.Text($"Normal: {debugInfo.Normal}")) {}
-        using (ui.Text($"Alignment: {debugInfo.Alignment}")) {}
-        using (ui.Text($"Alignment (alt): {debugInfo.Alignment2}")) {}
+        using (ui.Text($"Align (C): {debugInfo.AlignmentCamera}")) {}
+        using (ui.Text($"Align (S): {debugInfo.AlignmentSurface}")) {}
         
         return Result.FromSuccess();
     }
