@@ -60,7 +60,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private InteractionBlocker? _inputBlocker;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
 
-    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position, Vector3 Normal, float Alignment) _debugInfo;
+    private (VoxelComponent VoxelComponent, Voxel Voxel, (int X, int Y, int Z) Coordinate, Vector3 Position, Vector3 Normal, float Alignment, float Alignment2) _debugInfo;
 
     public PlayerInteractionService(
         in ILogger<PlayerInteractionService> logger,
@@ -494,6 +494,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         // 2. Get Camera vectors
         Vector3 cameraUpWorld = Vector3.Transform(Vector3.UnitY, cameraWorldRot);
         Vector3 cameraFwdWorld = Vector3.Transform(-Vector3.UnitZ, cameraWorldRot); 
+        
+        Vector3 placementNormalWorld2 = Vector3.Normalize(clickedPos - brickWorldPos);
+        float alignment2 = Vector3.Dot(placementNormalWorld2, cameraFwdWorld);
+        _debugInfo.Alignment2 = alignment2;
+        if (alignment2 < 0.5f)
+        {
+            placementNormalWorld = -placementNormalWorld2;
+        }
 
         // 3. Transform everything into Grid Local Space
         Quaternion inverseGridRot = Quaternion.Inverse(gridWorldRot);
@@ -512,6 +520,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         // Dot Product near 0 means the surface is "horizontal" in the player's view (Wall).
         float alignment = Vector3.Dot(placementNormalWorld, cameraUpWorld);
         alignment = Math.Abs(alignment);
+        
         _debugInfo.Alignment = alignment;
         bool looksLikeFloorToCamera = alignment > 0.5f; // Threshold of 45 degrees
 
@@ -644,6 +653,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Position: {debugInfo.Position}")) {}
         using (ui.Text($"Normal: {debugInfo.Normal}")) {}
         using (ui.Text($"Alignment: {debugInfo.Alignment}")) {}
+        using (ui.Text($"Alignment (alt): {debugInfo.Alignment2}")) {}
         
         return Result.FromSuccess();
     }
