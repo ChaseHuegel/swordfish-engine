@@ -31,6 +31,7 @@
 
 "ui.hint.changeShape" = "R: Change shape"
 "ui.hint.changeOrientation" = "T: Change orientation"
+"ui.hint.snapBrick" = "Shift: Snap brick"
 "ui.hint.pickBrick" = "MMB: Pick brick"
 "ui.hint.breakBrick" = "LMB: Break brick"
 "ui.hint.placeBrick" = "RMB: Place brick"
