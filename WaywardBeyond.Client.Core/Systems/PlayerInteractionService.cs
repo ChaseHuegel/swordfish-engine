@@ -68,9 +68,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly DebugSettings _debugSettings;
     private readonly PlayerControllerSystem _playerControllerSystem;
 
-    private InteractionBlocker? _inputBlocker;
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
-
+    
+    private InteractionBlocker? _inputBlocker;
+    private bool _snapPlacement;
     private DebugInfo _debugInfo;
 
     public PlayerInteractionService(
@@ -88,7 +89,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in VolumeSettings volumeSettings,
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
-        in PlayerControllerSystem playerControllerSystem
+        in PlayerControllerSystem playerControllerSystem,
+        in IShortcutService shortcutService
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -131,6 +133,28 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugLines[2] = lineRenderer.CreateLine(Vector3.Zero, Vector3.Zero, Vector4.One);
         
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
+
+        var snapModeShortcut = new Shortcut
+        {
+            Name = "Snap Placement",
+            Category = "Interaction",
+            Modifiers = ShortcutModifiers.None,
+            Key = Key.Shift,
+            IsEnabled = WaywardBeyond.IsPlaying,
+            Action = OnSnapPlacementPressed,
+            Released = OnSnapPlacementReleased,
+        };
+        shortcutService.RegisterShortcut(snapModeShortcut);
+    }
+    
+    private void OnSnapPlacementPressed()
+    {
+        _snapPlacement = true;
+    }
+    
+    private void OnSnapPlacementReleased()
+    {
+        _snapPlacement = false;
     }
 
     public void Run()
@@ -484,23 +508,18 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Vector3 cameraUpWorld = Vector3.Transform(Vector3.UnitY, cameraOrientation);
         Vector3 cameraForwardWorld = Vector3.Transform(-Vector3.UnitZ, cameraOrientation); 
         
-        Vector3 clickedSurfaceNormal = Vector3.Normalize(clickedPos - brickPosWorld);
+        Vector3 clickedSurfaceNormal = Vector3.Normalize(brickPosWorld - clickedPos);
         float alignmentSurface = Vector3.Dot(clickedSurfaceNormal, cameraForwardWorld);
         _debugInfo.AlignmentSurface = alignmentSurface;
         
-        //  Prefer placement pointing toward the camera, but use the normal
-        //  of the clicked point to the brick if it is more parallel.
-        //  
-        //  This allows a surface normal to take precedence over orienting toward the camera
-        //  which is especially useful when trying to place bricks into corners and the user.
         Vector3 placementNormal;
-        if (alignmentSurface >= 0.5f)
-        {
-            placementNormal = brickToCameraNormal;
-        }
-        else
+        if (_snapPlacement)
         {
             placementNormal = clickedSurfaceNormal;
+        }
+        else 
+        {
+            placementNormal = brickToCameraNormal;
         }
 
         // Transform everything into the grid's local space
@@ -623,6 +642,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Align (Cam): {debugInfo.AlignmentCamera:N3}")) {}
         using (ui.Text($"Align (Sur): {debugInfo.AlignmentSurface:N3}")) {}
         using (ui.Text($"Align (Vert): {debugInfo.AlignmentFloor}")) {}
+        using (ui.Text($"Snap: {_snapPlacement}")) {}
         
         return Result.FromSuccess();
     }
