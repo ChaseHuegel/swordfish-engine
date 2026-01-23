@@ -44,6 +44,7 @@ internal class ControlHints(
                 using (ui.Text(_localization.GetString("ui.hint.changeOrientation")!)) {}
             }
             
+            using (ui.Text(_localization.GetString("ui.hint.snapBrick")!)) {}
             using (ui.Text(_localization.GetString("ui.hint.pickBrick")!)) {}
             using (ui.Text(_localization.GetString("ui.hint.breakBrick")!)) {}
             using (ui.Text(_localization.GetString("ui.hint.placeBrick")!)) {}

@@ -43,11 +43,6 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
         {
             Int3 result = offset;
         
-            for (var i = 0; i < orientation.RollRotations; i++)
-            {
-                result = new Int3(-result.Y, result.X, result.Z);
-            }
-
             for (var i = 0; i < orientation.PitchRotations; i++)
             {
                 result = new Int3(result.X, -result.Z, result.Y);
@@ -56,6 +51,11 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             for (var i = 0; i < orientation.YawRotations; i++)
             {
                 result = new Int3(result.Z, result.Y, -result.X);
+            }
+            
+            for (var i = 0; i < orientation.RollRotations; i++)
+            {
+                result = new Int3(-result.Y, result.X, result.Z);
             }
 
             return result;
