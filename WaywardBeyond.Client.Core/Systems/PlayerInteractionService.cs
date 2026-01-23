@@ -37,7 +37,8 @@ using DebugInfo = (
     Vector3 Position,
     Vector3 Normal,
     float AlignmentCamera,
-    float AlignmentSurface
+    float AlignmentSurface,
+    bool AlignmentFloor
 );
 
 internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
@@ -541,6 +542,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         _debugInfo.Normal = snappedNormal;
         _debugInfo.AlignmentCamera = absAlignment;
+        _debugInfo.AlignmentFloor = isPlacementOnFloor;
         return Quaternion.CreateFromRotationMatrix(matrix);
     }
 
@@ -617,9 +619,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position:N3}")) {}
-        using (ui.Text($"Normal: {debugInfo.Normal:N3}")) {}
+        using (ui.Text($"Normal: {debugInfo.Normal:N0}")) {}
         using (ui.Text($"Align (Cam): {debugInfo.AlignmentCamera:N3}")) {}
         using (ui.Text($"Align (Sur): {debugInfo.AlignmentSurface:N3}")) {}
+        using (ui.Text($"Align (Vert): {debugInfo.AlignmentFloor}")) {}
         
         return Result.FromSuccess();
     }
