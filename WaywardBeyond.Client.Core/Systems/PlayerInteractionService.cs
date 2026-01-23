@@ -716,7 +716,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         //  If offset is true, then this raycast is attempting to be adjacent to a voxel.
-        //  If the hit voxel isn't empty, then match back along the ray to try and find an empty voxel.
+        //  If the hit voxel isn't empty, then march back along the ray to try and find an empty voxel.
         for (var step = 0; offset && voxel.ID != 0 && step < 10; step++)
         {
             worldPos -= raycast.Normal * 0.25f;
