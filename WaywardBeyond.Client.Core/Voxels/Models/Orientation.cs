@@ -3,13 +3,12 @@ using System.Numerics;
 
 namespace WaywardBeyond.Client.Core.Voxels.Models;
 
-using PrecalculatedQuaternion = (byte Value, Quaternion Quaternion);
-
 public struct Orientation : IEquatable<Orientation>
 {
     public static readonly Orientation Identity = new(0,0,0);
     
-    private static readonly PrecalculatedQuaternion[] _precalculatedQuaternions;
+    private static readonly Quaternion[] _precalculatedQuaternions = new Quaternion[64];
+    private static readonly byte[] _lookupTable = new byte[36];
     
     /// <summary>
     ///     The number of 90° pitch rotations to apply, ranging 0 to 3.
@@ -42,15 +41,43 @@ public struct Orientation : IEquatable<Orientation>
     
     static Orientation()
     {
-        _precalculatedQuaternions = new PrecalculatedQuaternion[64];
-
+        //  Init everything to 255 so it is possible to
+        //  know which lookups have already been set
+        Array.Fill(_lookupTable, (byte)255);
+        
         for (var pitchRotations = 0; pitchRotations < 4; pitchRotations++)
         for (var yawRotations = 0; yawRotations < 4; yawRotations++)
         for (var rollRotations = 0; rollRotations < 4; rollRotations++)
         {
             var orientation = new Orientation(pitchRotations, yawRotations, rollRotations);
-            var precalculatedQuaternion = new PrecalculatedQuaternion(orientation.ToByte(), orientation.ToQuaternion());
-            _precalculatedQuaternions[pitchRotations + 4 * (yawRotations + 4 * rollRotations)] = precalculatedQuaternion;
+            
+            float pitchRadians = pitchRotations * MathF.PI / 2f;
+            float yawRadians = yawRotations * MathF.PI / 2f;
+            float rollRadians = rollRotations * MathF.PI / 2f;
+
+            var pitchQuaternion = Quaternion.CreateFromAxisAngle(Vector3.UnitX, pitchRadians);
+            var yawQuaternion = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRadians);
+            var rollQuaternion = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rollRadians);
+            Quaternion quaternion = rollQuaternion * yawQuaternion * pitchQuaternion;
+
+            _precalculatedQuaternions[orientation._value] = quaternion;
+
+            Vector3 forward = Vector3.Transform(Vector3.UnitZ, quaternion);
+            Vector3 up = Vector3.Transform(Vector3.UnitY, quaternion);
+
+            int forwardAxisIndex = GetAxisIndex(forward);
+            int upAxisIndex = GetAxisIndex(up);
+
+            int tableIndex = forwardAxisIndex * 6 + upAxisIndex;
+            
+            //  Don't overwrite any already calculated orientations so "simple"
+            //  orientations aren't overwritten by "complex" orientations
+            if (_lookupTable[tableIndex] != 255)
+            {
+                continue;
+            }
+
+            _lookupTable[tableIndex] = orientation._value;
         }
     }
     
@@ -59,7 +86,7 @@ public struct Orientation : IEquatable<Orientation>
     /// </summary>
     public Orientation(byte value)
     {
-        _value = value;
+        _value = (byte)(value & 0x3F);
     }
 
     /// <summary>
@@ -73,28 +100,24 @@ public struct Orientation : IEquatable<Orientation>
     /// <summary>
     ///     Creates an <see cref="Orientation"/> from a quaternion.
     /// </summary>
-    public Orientation(Quaternion target)
+    public Orientation(Quaternion quaternion)
     {
-        PrecalculatedQuaternion bestMatch = _precalculatedQuaternions[0];
-        
-        float maxDot = -1f;
-        for (var i = 0; i < _precalculatedQuaternions.Length; i++)
+        Vector3 forward = Vector3.Transform(Vector3.UnitZ, quaternion);
+        Vector3 up = Vector3.Transform(Vector3.UnitY, quaternion);
+
+        int forwardAxisIndex = GetAxisIndex(forward);
+        int upAxisIndex = GetAxisIndex(up);
+
+        int tableIndex = forwardAxisIndex * 6 + upAxisIndex;
+        byte cachedValue = _lookupTable[tableIndex];
+
+        //  If somehow this isn't a valid orientation, fallback to identity
+        if (cachedValue == 255)
         {
-            PrecalculatedQuaternion precalculatedQuaternion = _precalculatedQuaternions[i];
-            
-            float dot = Quaternion.Dot(target, precalculatedQuaternion.Quaternion);
-            dot = Math.Abs(dot);
-
-            if (!(dot > maxDot))
-            {
-                continue;
-            }
-
-            maxDot = dot;
-            bestMatch = precalculatedQuaternion;
+            cachedValue = 0;
         }
 
-        _value = bestMatch.Value;
+        _value = cachedValue;
     }
     
     /// <summary>
@@ -127,15 +150,7 @@ public struct Orientation : IEquatable<Orientation>
     
     public Quaternion ToQuaternion()
     {
-        float pitchRadians = PitchRotations * MathF.PI / 2f;
-        float yawRadians = YawRotations * MathF.PI / 2f;
-        float rollRadians = RollRotations * MathF.PI / 2f;
-
-        var qPitch = Quaternion.CreateFromAxisAngle(Vector3.UnitX, pitchRadians);
-        var qYaw = Quaternion.CreateFromAxisAngle(Vector3.UnitY, yawRadians);
-        var qRoll = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, rollRadians);
-
-        return qRoll * qYaw * qPitch;
+        return _precalculatedQuaternions[_value];
     }
     
     public Vector3 ToEulerAngles()
@@ -166,5 +181,28 @@ public struct Orientation : IEquatable<Orientation>
     public static bool operator !=(Orientation left, Orientation right)
     {
         return !(left == right);
+    }
+    
+    /// <summary>
+    ///     Indexes a vector ranging 0-5 based on nearest axis.
+    ///     Where 0: +X, 1: -X, 2: +Y, 3: -Y, 4: +Z, 5: -Z
+    /// </summary>
+    private static int GetAxisIndex(Vector3 vector)
+    {
+        float x = Math.Abs(vector.X);
+        float y = Math.Abs(vector.Y);
+        float z = Math.Abs(vector.Z);
+
+        if (x > y && x > z)
+        {
+            return vector.X > 0 ? 0 : 1;
+        }
+
+        if (y > z)
+        {
+            return vector.Y > 0 ? 2 : 3;
+        }
+
+        return vector.Z > 0 ? 4 : 5;
     }
 }
