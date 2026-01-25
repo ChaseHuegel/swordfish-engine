@@ -133,6 +133,22 @@ internal class Inventory : IUILayer
         var slotIsSelected = false;
         int rowCount = inventory.Contents.Length / SLOTS_PER_ROW;
         
+        bool leftHeld = ui.LeftHeld();
+        bool rightPressed = ui.RightPressed();
+        bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+        
+        //  Drop dragged items
+        bool isDragSlotEmpty = inventory.Contents[_draggingSlot].Count <= 0;
+        if (_dragging && (!leftHeld || isDragSlotEmpty))
+        {
+            _dragging = false;
+            
+            if (!isDragSlotEmpty)
+            {
+                inventory.Swap(_draggingSlot, _selectedSlot);
+            }
+        }
+        
         //  Inventory
         using (ui.Element())
         {
@@ -199,7 +215,31 @@ internal class Inventory : IUILayer
                                     ui.FontSize = 16;
                                 }
                             }
+                            
+                            //  Check interactions with this slot
+                            bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
+                            bool rightClicked = hovering && rightPressed;
+                            bool held = hovering && leftHeld;
+                            
+                            //  Process base slot interactions
+                            
+                            //  Right-clicking a slot while dragging an item drops 1 count
+                            if (_dragging && rightClicked)
+                            {
+                                Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
+                                if (!content.Success)
+                                {
+                                    continue;
+                                }
 
+                                if (!inventory.Add(inventorySlot, content))
+                                {
+                                    inventory.Add(content);
+                                    //  TODO if this fails, the item should be dropped so it isn't lost
+                                }
+                            }
+                            
+                            //  Continue if this slot is empty
                             if (itemStack.Count == 0 || itemStack.ID == null)
                             {
                                 continue;
@@ -233,40 +273,46 @@ internal class Inventory : IUILayer
                                 };
                             }
                             
-                            //  Interaction
-                            bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
-                            bool leftHeld = ui.LeftHeld();
-                            bool held = hovering && leftHeld;
-                            bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+                            //  Process populated slot interactions
 
-                            if (!shiftHeld)
+                            if (shiftHeld)
                             {
+                                //  Shift + click and shift + hold left click quick moves items
+                                if (clicked || held)
+                                {
+                                    Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                    if (!content.Success)
+                                    {
+                                        continue;
+                                    }
+
+                                    inventory.Add(content);
+                                }
+                            }
+                            else
+                            {
+                                //  Right-clicking a slot splits the stack
+                                if (!_dragging && rightClicked)
+                                {
+                                    Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
+                                    if (!content.Success)
+                                    {
+                                        continue;
+                                    }
+
+                                    if (!inventory.Add(content, onlyEmptySlots: true))
+                                    {
+                                        inventory.Add(content);
+                                        //  TODO if this fails, the item should be dropped so it isn't lost
+                                    }
+                                }
+
+                                //  Start dragging this slot
                                 if (!_dragging && held)
                                 {
                                     _dragging = true;
                                     _draggingSlot = inventorySlot;
                                 }
-                                
-                                if (_dragging && !leftHeld)
-                                {
-                                    _dragging = false;
-                                    
-                                    inventory.Swap(_draggingSlot, _selectedSlot);
-                                }
-                                
-                                continue;
-                            }
-                            
-                            //  Shift + click and shift + hold left click quick moves items
-                            if (clicked || held)
-                            {
-                                Result<ItemStack> content = inventory.Remove(inventorySlot);
-                                if (!content.Success)
-                                {
-                                    continue;
-                                }
-                                
-                                inventory.Add(content);
                             }
                         }
                     }

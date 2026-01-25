@@ -12,7 +12,7 @@ internal struct InventoryComponent(in int size) : IDataComponent
 
     private readonly Lock _lock = new();
 
-    public bool Add(ItemStack itemStack)
+    public bool Add(ItemStack itemStack, bool onlyEmptySlots = false)
     {
         using Lock.Scope _ = _lock.EnterScope();
 
@@ -39,6 +39,13 @@ internal struct InventoryComponent(in int size) : IDataComponent
                     continue;
                 }
 
+                if (onlyEmptySlots && startSlot == 0)
+                {
+                    //  If an empty slot is desired, then don't try to stack
+                    //  in the first iteration. Look for an empty slot.
+                    continue;
+                }
+
                 int available = slotItemStack.MaxSize - slotItemStack.Count;
                 int remainder = Math.Max(0, itemStack.Count - available);
 
@@ -56,7 +63,7 @@ internal struct InventoryComponent(in int size) : IDataComponent
 
             if (firstEmptySlot == -1)
             {
-                //  There is no slot to place the stack into.
+                //  There is no slot to place the remaining stack into.
                 return false;
             }
 
@@ -79,18 +86,30 @@ internal struct InventoryComponent(in int size) : IDataComponent
         return itemStack.Count <= 0;
     }
     
-    public bool Add(int slot, int amount)
+    public bool Add(int slot, ItemStack itemStack)
     {
         using Lock.Scope _ = _lock.EnterScope();
         
         ItemStack slotItemStack = Contents[slot];
-        if (string.IsNullOrEmpty(slotItemStack.ID))
+        bool isSlotEmpty = string.IsNullOrEmpty(slotItemStack.ID);
+        if (!isSlotEmpty && slotItemStack.ID != itemStack.ID)
         {
+            //  The item can't be stacked in the slot.
             return false;
         }
+
+        if (!isSlotEmpty && slotItemStack.MaxSize < slotItemStack.Count + itemStack.Count)
+        {
+            //  Not enough space to stack the item in the slot.
+            return false;
+        }
+
+        if (!isSlotEmpty)
+        {
+            itemStack.Count += slotItemStack.Count;
+        }
         
-        slotItemStack.Count += amount;
-        Contents[slot] = slotItemStack;
+        Contents[slot] = itemStack;
         return true;
     }
     
