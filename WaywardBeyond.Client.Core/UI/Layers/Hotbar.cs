@@ -60,7 +60,7 @@ internal class Hotbar : IUILayer
             var shortcut = new Shortcut
             {
                 Name = $"Slot {slotNumber}",
-                Category = "Interaction",
+                Category = "Inventory",
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
                 IsEnabled = IsInputAllowed,
