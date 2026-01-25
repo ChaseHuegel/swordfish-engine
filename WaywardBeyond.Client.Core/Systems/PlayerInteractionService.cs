@@ -253,7 +253,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
             if (brickInfoResult.Success)
             {
-                inventory.Add(new ItemStack(brickInfoResult.Value.ID));
+                inventory.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
             }
         }
     }

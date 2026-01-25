@@ -25,6 +25,7 @@ internal class Inventory : IUILayer
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
     private readonly PlayerInteractionService _playerInteractionService;
+    private readonly IInputService _inputService;
 
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
@@ -39,12 +40,14 @@ internal class Inventory : IUILayer
         in IAssetDatabase<Item> itemDatabase,
         in PlayerData playerData,
         in IECSContext ecsContext,
-        in PlayerInteractionService playerInteractionService
+        in PlayerInteractionService playerInteractionService,
+        in IInputService inputService
     ) {
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _playerInteractionService = playerInteractionService;
+        _inputService = inputService;
 
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
@@ -169,7 +172,8 @@ internal class Inventory : IUILayer
                                 Height = new Fixed(48),
                             };
 
-                            if (!slotIsSelected && ui.Hovering($"inventorySlot{inventorySlot}"))
+                            bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
+                            if (!slotIsSelected && hovering)
                             {
                                 _selectedSlot = inventorySlot;
                                 slotIsSelected = true;
@@ -216,6 +220,27 @@ internal class Inventory : IUILayer
                                     Width = new Fill(),
                                     Height = new Fill(),
                                 };
+                            }
+                            
+                            //  Interaction
+                            bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+                            if (!shiftHeld)
+                            {
+                                continue;
+                            }
+                            
+                            //  Shift + click and shift + hold left click quick moves items
+                            bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
+                            bool held = ui.Held($"inventorySlot{inventorySlot}");
+                            if (clicked || held)
+                            {
+                                Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                if (!content.Success)
+                                {
+                                    continue;
+                                }
+                                
+                                inventory.Add(content);
                             }
                         }
                     }

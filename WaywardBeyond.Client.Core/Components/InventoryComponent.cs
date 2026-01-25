@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -14,34 +15,68 @@ internal struct InventoryComponent(in int size) : IDataComponent
     public bool Add(ItemStack itemStack)
     {
         using Lock.Scope _ = _lock.EnterScope();
-        
-        int firstEmptySlot = -1;
-        for (var i = 0; i < Contents.Length; i++)
-        {
-            ItemStack slotItemStack = Contents[i];
 
-            if (firstEmptySlot == -1 && (slotItemStack.Count == 0 || string.IsNullOrEmpty(slotItemStack.ID)))
+        for (var startSlot = 0; startSlot < Contents.Length; startSlot++)
+        {
+            int firstEmptySlot = -1;
+            for (int i = startSlot; i < Contents.Length; i++)
             {
-                firstEmptySlot = i;
+                if (itemStack.Count <= 0)
+                {
+                    //  The stack has been consumed, or was empty to begin with.
+                    return true;
+                }
+
+                ItemStack slotItemStack = Contents[i];
+
+                if (firstEmptySlot == -1 && (slotItemStack.Count == 0 || string.IsNullOrEmpty(slotItemStack.ID)))
+                {
+                    firstEmptySlot = i;
+                }
+
+                if (slotItemStack.ID != itemStack.ID)
+                {
+                    continue;
+                }
+
+                int available = slotItemStack.MaxSize - slotItemStack.Count;
+                int remainder = Math.Max(0, itemStack.Count - available);
+
+                slotItemStack.Count += itemStack.Count - remainder;
+                itemStack.Count = remainder;
+
+                Contents[i] = slotItemStack;
             }
 
-            if (slotItemStack.ID != itemStack.ID)
+            if (itemStack.Count <= 0)
             {
-                continue;
+                //  The stack has been consumed, or was empty to begin with.
+                return true;
             }
 
-            slotItemStack.Count += itemStack.Count;
-            Contents[i] = slotItemStack;
-            return true;
+            if (firstEmptySlot == -1)
+            {
+                //  There is no slot to place the stack into.
+                return false;
+            }
+
+            //  Fill the first empty slot.
+            int overflowAmount = itemStack.Count - itemStack.MaxSize;
+            
+            itemStack.Count = Math.Min(itemStack.Count, itemStack.MaxSize);
+            Contents[firstEmptySlot] = itemStack;
+
+            if (overflowAmount <= 0)
+            {
+                //  The stack has been consumed.
+                return true;
+            }
+
+            //  There is remaining items to distribute
+            itemStack.Count = overflowAmount;
         }
 
-        if (firstEmptySlot == -1)
-        {
-            return false;
-        }
-
-        Contents[firstEmptySlot] = itemStack;
-        return true;
+        return itemStack.Count <= 0;
     }
     
     public bool Add(int slot, int amount)
@@ -95,7 +130,7 @@ internal struct InventoryComponent(in int size) : IDataComponent
         int remaining = slotItemStack.Count - amount;
         
         slotItemStack.Count = remaining;
-        Contents[slot] = slotItemStack;
+        Contents[slot] = remaining > 0 ? slotItemStack : ItemStack.Empty;
         
         int amountTaken = remaining >= 0 ? amount : amount + remaining;
         ItemStack takenStack = slotItemStack with { Count = amountTaken };

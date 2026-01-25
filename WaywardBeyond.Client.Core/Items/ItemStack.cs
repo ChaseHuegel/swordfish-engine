@@ -6,16 +6,15 @@ internal struct ItemStack
     
     public readonly string ID;
     public int Count;
+    public int MaxSize;
 
-    public ItemStack(string id)
-    {
-        ID = id;
-        Count = 1;
-    }
+    public ItemStack(string id, int maxSize) 
+        : this(id, count: 1, maxSize) {}
     
-    public ItemStack(string id, int count)
+    public ItemStack(string id, int count, int maxSize)
     {
         ID = id;
         Count = count;
+        MaxSize = maxSize;
     }
 }
