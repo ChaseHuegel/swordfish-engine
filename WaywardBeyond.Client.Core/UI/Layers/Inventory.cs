@@ -139,14 +139,19 @@ internal class Inventory : IUILayer
         bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
         float scroll = _inputService.GetMouseScroll();
         
-        //  Drop dragged items
+        Material? draggedSlotIcon = null;
+        string? draggedSlotText = null;
+        
         ItemStack dragItemStack = inventory.Contents[_draggingSlot];
         ItemStack selectedItemStack = _selectedSlot != -1 ? inventory.Contents[_selectedSlot] : ItemStack.Empty;
         bool isDragSlotEmpty = dragItemStack.Count <= 0;
+        
         if (_dragging && (!leftHeld || isDragSlotEmpty))
         {
+            //  Release dragging
             _dragging = false;
             
+            //  Drop dragged items
             if (!isDragSlotEmpty)
             {
                 //  Try to fill the selected stack from the dragged stack, if it is the same as the dragged item
@@ -286,7 +291,8 @@ internal class Inventory : IUILayer
                             Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
 
                             //  Stack size
-                            using (ui.Text(itemStack.Count.ToString()))
+                            var text = itemStack.Count.ToString();
+                            using (ui.Text(text))
                             {
                                 ui.FontSize = 16;
                                 ui.Constraints = new Constraints
@@ -309,6 +315,12 @@ internal class Inventory : IUILayer
                                     Width = new Fill(),
                                     Height = new Fill(),
                                 };
+                            }
+
+                            if (_dragging && _draggingSlot == inventorySlot)
+                            {
+                                draggedSlotIcon = icon;
+                                draggedSlotText = text;
                             }
                             
                             //  Process populated slot interactions
@@ -358,6 +370,51 @@ internal class Inventory : IUILayer
         if (!slotIsSelected)
         {
             _selectedSlot = -1;
+        }
+        
+        if (_dragging && draggedSlotText != null && draggedSlotIcon != null)
+        {
+            Vector2 cursorPosition = _inputService.CursorPosition;
+            
+            //  Slot
+            using (ui.Element())
+            {
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+                ui.Constraints = new Constraints
+                {
+                    X = new Fixed((int)cursorPosition.X),
+                    Y = new Fixed((int)cursorPosition.Y),
+                    Width = new Fixed(48),
+                    Height = new Fixed(48),
+                    Anchors = Anchors.Left | Anchors.Top,
+                };
+                
+                //  Stack size
+                using (ui.Text(draggedSlotText))
+                {
+                    ui.FontSize = 16;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Bottom | Anchors.Right,
+                        X = new Relative(1f),
+                        Y = new Relative(1f),
+                    };
+                }
+
+                //  Icon
+                using (ui.Image(draggedSlotIcon))
+                {
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                        X = new Relative(0.5f),
+                        Y = new Relative(0.5f),
+                        Width = new Fill(),
+                        Height = new Fill(),
+                    };
+                }
+            }
         }
         
         return Result.FromSuccess();
