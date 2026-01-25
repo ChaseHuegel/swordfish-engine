@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 using System.Globalization;
 using System.Numerics;
 using Reef;
@@ -136,6 +137,7 @@ internal class Inventory : IUILayer
         bool leftHeld = ui.LeftHeld();
         bool rightPressed = ui.RightPressed();
         bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+        float scroll = _inputService.GetMouseScroll();
         
         //  Drop dragged items
         ItemStack dragItemStack = inventory.Contents[_draggingSlot];
@@ -247,15 +249,31 @@ internal class Inventory : IUILayer
                             if (_dragging && rightClicked)
                             {
                                 Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
-                                if (!content.Success)
+                                if (content.Success)
                                 {
-                                    continue;
+                                    if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
+                                    {
+                                        inventory.Add(content);
+                                        //  TODO if this fails, the item should be dropped so it isn't lost
+                                    }
                                 }
-
-                                if (!inventory.Add(inventorySlot, content))
+                            }
+                            
+                            //  Scrolling while dragging an item will add/remove items by 1
+                            if (_dragging && hovering && scroll != 0f)
+                            {
+                                int sourceSlot = scroll > 0f ? _draggingSlot : inventorySlot;
+                                int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
+                                var amount = (int)Math.Abs(scroll);
+                                
+                                Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
+                                if (content.Success)
                                 {
-                                    inventory.Add(content);
-                                    //  TODO if this fails, the item should be dropped so it isn't lost
+                                    if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
+                                    {
+                                        inventory.Add(content);
+                                        //  TODO if this fails, the item should be dropped so it isn't lost
+                                    }
                                 }
                             }
                             
@@ -301,12 +319,10 @@ internal class Inventory : IUILayer
                                 if (clicked || held)
                                 {
                                     Result<ItemStack> content = inventory.Remove(inventorySlot);
-                                    if (!content.Success)
+                                    if (content.Success)
                                     {
-                                        continue;
+                                        inventory.Add(content);
                                     }
-
-                                    inventory.Add(content);
                                 }
                             }
                             else
@@ -315,15 +331,13 @@ internal class Inventory : IUILayer
                                 if (!_dragging && rightClicked)
                                 {
                                     Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
-                                    if (!content.Success)
+                                    if (content.Success)
                                     {
-                                        continue;
-                                    }
-
-                                    if (!inventory.Add(content, onlyEmptySlots: true))
-                                    {
-                                        inventory.Add(content);
-                                        //  TODO if this fails, the item should be dropped so it isn't lost
+                                        if (!inventory.Add(content, onlyEmptySlots: true))
+                                        {
+                                            inventory.Add(content);
+                                            //  TODO if this fails, the item should be dropped so it isn't lost
+                                        }
                                     }
                                 }
 
