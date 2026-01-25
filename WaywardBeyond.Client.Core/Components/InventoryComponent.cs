@@ -116,6 +116,11 @@ internal struct InventoryComponent(in int size) : IDataComponent
     {
         using Lock.Scope _ = _lock.EnterScope();
         
+        if (slot < 0 || slot >= Contents.Length)
+        {
+            return Result<ItemStack>.FromFailure("Slot is out of bounds");
+        }
+        
         ItemStack slotItemStack = Contents[slot];
         if (slotItemStack.Count <= 0 || string.IsNullOrEmpty(slotItemStack.ID))
         {
@@ -141,6 +146,11 @@ internal struct InventoryComponent(in int size) : IDataComponent
     public bool Swap(int slot1, int slot2)
     {
         using Lock.Scope _ = _lock.EnterScope();
+
+        if (slot1 < 0 || slot1 >= Contents.Length || slot2 < 0 || slot2 >= Contents.Length)
+        {
+            return false;
+        }
         
         Result<ItemStack> item1 = Remove(slot1);
         Result<ItemStack> item2 = Remove(slot2);

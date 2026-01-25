@@ -30,10 +30,14 @@ internal class Inventory : IUILayer
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
     private readonly Vector4 _selectedColor;
+    private readonly Vector4 _dragColor;
 
     private bool _open;
     private int _selectedSlot = -1;
     private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
+    
+    private bool _dragging;
+    private int _draggingSlot;
     
     public Inventory(
         in IShortcutService shortcutService,
@@ -52,6 +56,7 @@ internal class Inventory : IUILayer
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
         _selectedColor = Color.FromArgb(int.Parse("FF8AEBF1", NumberStyles.HexNumber)).ToVector4();
+        _dragColor = Color.FromArgb(int.Parse("FF3940A8", NumberStyles.HexNumber)).ToVector4();
         
         var toggleShortcut = new Shortcut
         {
@@ -165,11 +170,17 @@ internal class Inventory : IUILayer
                         {
                             ui.LayoutDirection = LayoutDirection.None;
                             ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
-                            ui.Color = _selectedSlot == inventorySlot ? _selectedColor : _slotColor;
                             ui.Constraints = new Constraints
                             {
                                 Width = new Fixed(48),
                                 Height = new Fixed(48),
+                            };
+
+                            ui.Color = inventorySlot switch
+                            {
+                                _ when inventorySlot == _draggingSlot && _dragging => _dragColor,
+                                _ when inventorySlot == _selectedSlot => _selectedColor,
+                                _ => _slotColor,
                             };
 
                             bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
@@ -223,15 +234,30 @@ internal class Inventory : IUILayer
                             }
                             
                             //  Interaction
+                            bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
+                            bool leftHeld = ui.LeftHeld();
+                            bool held = hovering && leftHeld;
                             bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
+
                             if (!shiftHeld)
                             {
+                                if (!_dragging && held)
+                                {
+                                    _dragging = true;
+                                    _draggingSlot = inventorySlot;
+                                }
+                                
+                                if (_dragging && !leftHeld)
+                                {
+                                    _dragging = false;
+                                    
+                                    inventory.Swap(_draggingSlot, _selectedSlot);
+                                }
+                                
                                 continue;
                             }
                             
                             //  Shift + click and shift + hold left click quick moves items
-                            bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
-                            bool held = ui.Held($"inventorySlot{inventorySlot}");
                             if (clicked || held)
                             {
                                 Result<ItemStack> content = inventory.Remove(inventorySlot);
