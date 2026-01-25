@@ -138,14 +138,34 @@ internal class Inventory : IUILayer
         bool shiftHeld = _inputService.IsKeyHeld(Key.Shift);
         
         //  Drop dragged items
-        bool isDragSlotEmpty = inventory.Contents[_draggingSlot].Count <= 0;
+        ItemStack dragItemStack = inventory.Contents[_draggingSlot];
+        ItemStack selectedItemStack = _selectedSlot != -1 ? inventory.Contents[_selectedSlot] : ItemStack.Empty;
+        bool isDragSlotEmpty = dragItemStack.Count <= 0;
         if (_dragging && (!leftHeld || isDragSlotEmpty))
         {
             _dragging = false;
             
             if (!isDragSlotEmpty)
             {
-                inventory.Swap(_draggingSlot, _selectedSlot);
+                //  Try to fill the selected stack from the dragged stack, if it is the same as the dragged item
+                if (dragItemStack.ID == selectedItemStack.ID)
+                {
+                    int available = selectedItemStack.MaxSize - selectedItemStack.Count;
+                    Result<ItemStack> content = inventory.Remove(_draggingSlot, available);
+                    if (content.Success)
+                    {
+                        if (!inventory.Add(_selectedSlot, content))
+                        {
+                            inventory.Add(content);
+                            //  TODO if this fails, the item should be dropped so it isn't lost
+                        }
+                    }
+                } 
+                //  Otherwise, swap the slots
+                else
+                {
+                    inventory.Swap(_draggingSlot, _selectedSlot);
+                }
             }
         }
         

@@ -150,6 +150,10 @@ internal struct InventoryComponent(in int size) : IDataComponent
         {
             amount = slotItemStack.Count;
         }
+        else
+        {
+            amount = Math.Min(amount, slotItemStack.Count);
+        }
         
         int remaining = slotItemStack.Count - amount;
         
