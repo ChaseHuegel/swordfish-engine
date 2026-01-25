@@ -333,7 +333,8 @@ internal class Inventory : IUILayer
                                     Result<ItemStack> content = inventory.Remove(inventorySlot);
                                     if (content.Success)
                                     {
-                                        inventory.Add(content);
+                                        int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
+                                        inventory.Add(content, startingSlot);
                                     }
                                 }
                             }

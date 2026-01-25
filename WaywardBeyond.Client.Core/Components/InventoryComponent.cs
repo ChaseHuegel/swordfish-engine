@@ -12,11 +12,11 @@ internal struct InventoryComponent(in int size) : IDataComponent
 
     private readonly Lock _lock = new();
 
-    public bool Add(ItemStack itemStack, bool onlyEmptySlots = false)
+    public bool Add(ItemStack itemStack, int startingSlot = 0, bool onlyEmptySlots = false)
     {
         using Lock.Scope _ = _lock.EnterScope();
 
-        for (var startSlot = 0; startSlot < Contents.Length; startSlot++)
+        for (int startSlot = startingSlot; startSlot < Contents.Length; startSlot++)
         {
             int firstEmptySlot = -1;
             for (int i = startSlot; i < Contents.Length; i++)
