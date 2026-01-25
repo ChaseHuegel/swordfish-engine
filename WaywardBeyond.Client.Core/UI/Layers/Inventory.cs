@@ -345,7 +345,7 @@ internal class Inventory : IUILayer
                                     Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
                                     if (content.Success)
                                     {
-                                        if (!inventory.Add(content, onlyEmptySlots: true))
+                                        if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
                                         {
                                             inventory.Add(content);
                                             //  TODO if this fails, the item should be dropped so it isn't lost
