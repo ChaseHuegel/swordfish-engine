@@ -181,12 +181,11 @@ internal class Inventory : IUILayer
         {
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Color = _backgroundColor;
-            ui.Spacing = 8;
             ui.Padding = new Padding(
-                left: 8,
-                top: 8,
-                right: 8,
-                bottom: 8
+                left: 4,
+                top: 4,
+                right: 4,
+                bottom: 4
             );
             ui.Constraints = new Constraints
             {
@@ -201,7 +200,6 @@ internal class Inventory : IUILayer
                 using (ui.Element())
                 {
                     ui.Color = Vector4.Zero;
-                    ui.Spacing = 8;
 
                     for (var slotIndex = 0; slotIndex < SLOTS_PER_ROW; slotIndex++)
                     {
@@ -212,153 +210,165 @@ internal class Inventory : IUILayer
                         using (ui.Element())
                         {
                             ui.LayoutDirection = LayoutDirection.None;
+                            ui.Color = _backgroundColor;
                             ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
                             ui.Constraints = new Constraints
                             {
-                                Width = new Fixed(48),
-                                Height = new Fixed(48),
+                                Width = new Fixed(56),
+                                Height = new Fixed(56),
                             };
-
-                            ui.Color = inventorySlot switch
-                            {
-                                _ when inventorySlot == _draggingSlot && _dragging => _dragColor,
-                                _ when inventorySlot == _selectedSlot => _selectedColor,
-                                _ => _slotColor,
-                            };
-
-                            bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
-                            if (!slotIsSelected && hovering)
-                            {
-                                _selectedSlot = inventorySlot;
-                                slotIsSelected = true;
-                            }
-                            
-                            //  Slot number (only display for the hotbar slots)
-                            if (inventorySlot < SLOTS_PER_ROW)
-                            {
-                                int slotNumber = slotIndex + 1;
-                                using (ui.Text(slotNumber.ToString()))
-                                {
-                                    ui.FontSize = 16;
-                                }
-                            }
                             
                             //  Check interactions with this slot
+                            bool hovering = ui.Hovering($"inventorySlot{inventorySlot}");
                             bool clicked = ui.Clicked($"inventorySlot{inventorySlot}");
                             bool rightClicked = hovering && rightPressed;
                             bool held = hovering && leftHeld;
-                            
-                            //  Process base slot interactions
-                            
-                            //  Right-clicking a slot while dragging an item drops 1 count
-                            if (_dragging && rightClicked)
+
+                            using (ui.Element())
                             {
-                                Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
-                                if (content.Success)
+                                ui.LayoutDirection = LayoutDirection.None;
+                                ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+                                ui.Constraints = new Constraints
                                 {
-                                    if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
-                                    {
-                                        inventory.Add(content);
-                                        //  TODO if this fails, the item should be dropped so it isn't lost
-                                    }
+                                    Width = new Fixed(48),
+                                    Height = new Fixed(48),
+                                };
+
+                                ui.Color = inventorySlot switch
+                                {
+                                    _ when inventorySlot == _draggingSlot && _dragging => _dragColor,
+                                    _ when inventorySlot == _selectedSlot => _selectedColor,
+                                    _ => _slotColor,
+                                };
+
+                                if (!slotIsSelected && hovering)
+                                {
+                                    _selectedSlot = inventorySlot;
+                                    slotIsSelected = true;
                                 }
-                            }
-                            
-                            //  Scrolling while dragging an item will add/remove items by 1
-                            if (_dragging && hovering && scroll != 0f)
-                            {
-                                int sourceSlot = scroll > 0f ? _draggingSlot : inventorySlot;
-                                int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
-                                var amount = (int)Math.Abs(scroll);
                                 
-                                Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
-                                if (content.Success)
+                                //  Slot number (only display for the hotbar slots)
+                                if (inventorySlot < SLOTS_PER_ROW)
                                 {
-                                    if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
+                                    int slotNumber = slotIndex + 1;
+                                    using (ui.Text(slotNumber.ToString()))
                                     {
-                                        inventory.Add(content);
-                                        //  TODO if this fails, the item should be dropped so it isn't lost
+                                        ui.FontSize = 16;
                                     }
                                 }
-                            }
-                            
-                            //  Continue if this slot is empty
-                            if (itemStack.Count == 0 || itemStack.ID == null)
-                            {
-                                continue;
-                            }
-
-                            Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
-
-                            //  Stack size
-                            var text = itemStack.Count.ToString();
-                            using (ui.Text(text))
-                            {
-                                ui.FontSize = 16;
-                                ui.Constraints = new Constraints
+                                
+                                //  Process base slot interactions
+                                
+                                //  Right-clicking a slot while dragging an item drops 1 count
+                                if (_dragging && rightClicked)
                                 {
-                                    Anchors = Anchors.Bottom | Anchors.Right,
-                                    X = new Relative(1f),
-                                    Y = new Relative(1f),
-                                };
-                            }
-
-                            //  Icon
-                            Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
-                            using (ui.Image(icon))
-                            {
-                                ui.Constraints = new Constraints
-                                {
-                                    Anchors = Anchors.Center,
-                                    X = new Relative(0.5f),
-                                    Y = new Relative(0.5f),
-                                    Width = new Fill(),
-                                    Height = new Fill(),
-                                };
-                            }
-
-                            if (_dragging && _draggingSlot == inventorySlot)
-                            {
-                                draggedSlotIcon = icon;
-                                draggedSlotText = text;
-                            }
-                            
-                            //  Process populated slot interactions
-
-                            if (shiftHeld)
-                            {
-                                //  Shift + click and shift + hold left click quick moves items
-                                if (clicked || held)
-                                {
-                                    Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                    Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
                                     if (content.Success)
                                     {
-                                        int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
-                                        inventory.Add(content, startingSlot);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                //  Right-clicking a slot splits the stack
-                                if (!_dragging && rightClicked)
-                                {
-                                    Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
-                                    if (content.Success)
-                                    {
-                                        if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
+                                        if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
                                         {
                                             inventory.Add(content);
                                             //  TODO if this fails, the item should be dropped so it isn't lost
                                         }
                                     }
                                 }
-
-                                //  Start dragging this slot
-                                if (!_dragging && held)
+                                
+                                //  Scrolling while dragging an item will add/remove items by 1
+                                if (_dragging && hovering && scroll != 0f)
                                 {
-                                    _dragging = true;
-                                    _draggingSlot = inventorySlot;
+                                    int sourceSlot = scroll > 0f ? _draggingSlot : inventorySlot;
+                                    int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
+                                    var amount = (int)Math.Abs(scroll);
+                                    
+                                    Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
+                                    if (content.Success)
+                                    {
+                                        if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
+                                        {
+                                            inventory.Add(content);
+                                            //  TODO if this fails, the item should be dropped so it isn't lost
+                                        }
+                                    }
+                                }
+                                
+                                //  Continue if this slot is empty
+                                if (itemStack.Count == 0 || itemStack.ID == null)
+                                {
+                                    continue;
+                                }
+
+                                Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
+
+                                //  Stack size
+                                var text = itemStack.Count.ToString();
+                                using (ui.Text(text))
+                                {
+                                    ui.FontSize = 16;
+                                    ui.Constraints = new Constraints
+                                    {
+                                        Anchors = Anchors.Bottom | Anchors.Right,
+                                        X = new Relative(1f),
+                                        Y = new Relative(1f),
+                                    };
+                                }
+
+                                //  Icon
+                                Material icon = itemResult.Success ? itemResult.Value.Icon : null!;
+                                using (ui.Image(icon))
+                                {
+                                    ui.Constraints = new Constraints
+                                    {
+                                        Anchors = Anchors.Center,
+                                        X = new Relative(0.5f),
+                                        Y = new Relative(0.5f),
+                                        Width = new Fill(),
+                                        Height = new Fill(),
+                                    };
+                                }
+
+                                if (_dragging && _draggingSlot == inventorySlot)
+                                {
+                                    draggedSlotIcon = icon;
+                                    draggedSlotText = text;
+                                }
+                                
+                                //  Process populated slot interactions
+
+                                if (shiftHeld)
+                                {
+                                    //  Shift + click and shift + hold left click quick moves items
+                                    if (clicked || held)
+                                    {
+                                        Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                        if (content.Success)
+                                        {
+                                            int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
+                                            inventory.Add(content, startingSlot);
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    //  Right-clicking a slot splits the stack
+                                    if (!_dragging && rightClicked)
+                                    {
+                                        Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
+                                        if (content.Success)
+                                        {
+                                            if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
+                                            {
+                                                inventory.Add(content);
+                                                //  TODO if this fails, the item should be dropped so it isn't lost
+                                            }
+                                        }
+                                    }
+
+                                    //  Start dragging this slot
+                                    if (!_dragging && held)
+                                    {
+                                        _dragging = true;
+                                        _draggingSlot = inventorySlot;
+                                    }
                                 }
                             }
                         }
