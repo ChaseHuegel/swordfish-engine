@@ -214,6 +214,12 @@ public sealed class UIBuilder<TRendererData>
     public bool Entered() => _controller.IsEntering(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be entered"));
     public bool Exited() => _controller.IsExiting(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be exited"));
 
+    public bool Focused() => _controller.IsFocused(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be focused"));
+    
+    public bool IsPressed(UIController.Input input) => _controller.IsPressed(input);
+    
+    public IReadOnlyCollection<UIController.Input> GetInputBuffer() => _controller.GetInputBuffer();
+    
     public bool LeftPressed() => _controller.IsLeftPressed();
     public bool LeftReleased() => _controller.IsLeftReleased();
     public bool LeftHeld() => _controller.IsLeftHeld();

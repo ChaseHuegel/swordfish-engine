@@ -23,6 +23,7 @@ public sealed class ReefContext : IDisposable
     private readonly IInputService _input;
     private readonly VirtualFileSystem _vfs;
     private readonly UIController _controller;
+    private readonly List<UIController.Input> _inputBuffer = [];
 
     public ReefContext(ILogger logger, IWindow window, IInputService input, VirtualFileSystem vfs)
     {
@@ -37,6 +38,7 @@ public sealed class ReefContext : IDisposable
 
         window.Resize += OnWindowResize;
         window.Update += OnWindowUpdate;
+        input.KeyPressed += OnKeyPressed;
     }
     
     public void Dispose()
@@ -53,25 +55,39 @@ public sealed class ReefContext : IDisposable
     private void OnWindowUpdate(double delta)
     {
         Vector2 cursorPos = _input.CursorPosition;
-        
+
         var mouseButtons = UIController.MouseButtons.None;
-        
+
         if (_input.IsMouseHeld(MouseButton.Left))
         {
             mouseButtons |= UIController.MouseButtons.Left;
         }
-        
+
         if (_input.IsMouseHeld(MouseButton.Right))
         {
             mouseButtons |= UIController.MouseButtons.Right;
         }
-        
+
         if (_input.IsMouseHeld(MouseButton.Middle))
         {
             mouseButtons |= UIController.MouseButtons.Middle;
         }
-        
+
         _controller.UpdateMouse((int)cursorPos.X, (int)cursorPos.Y, mouseButtons);
+        
+        lock (_inputBuffer)
+        {
+            _controller.UpdateInputBuffer(_inputBuffer);
+            _inputBuffer.Clear();
+        }
+    }
+
+    private void OnKeyPressed(object? sender, KeyEventArgs e)
+    {
+        lock (_inputBuffer)
+        {
+            _inputBuffer.Add((UIController.Input)e.Key);
+        }
     }
 
     private TextEngine CreateTextEngine()
