@@ -181,6 +181,9 @@ public sealed class UIBuilder<TRendererData>
         
         return OpenElement(element);
     }
+
+    public TextConstraints Measure(FontOptions fontOptions, string text) => _textEngine.Measure(fontOptions, text);
+    public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => _textEngine.Measure(fontOptions, text, start, length);
     
     public bool Clicked(string id)
     {
