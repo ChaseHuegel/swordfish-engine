@@ -42,6 +42,7 @@ internal sealed class SingleplayerPage(
     };
 
     private int _scrollY;
+    private string _saveName = localization.GetString("ui.field.defaultSaveName") ?? string.Empty;
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
@@ -71,9 +72,11 @@ internal sealed class SingleplayerPage(
                 }
             }
             
+            ui.TextBox(id: "TextBox_SaveName", text: ref _saveName, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            
             if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings))
             {
-                var options = new GameOptions(name: $"{_localization.GetString("ui.field.defaultSaveName")!}{saves.Length + 1}", seed: "wayward beyond");
+                var options = new GameOptions(_saveName, seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             
@@ -105,10 +108,11 @@ internal sealed class SingleplayerPage(
                 float scroll = _inputService.GetMouseScroll();
                 _scrollY = Math.Clamp(_scrollY + (int)scroll, -saves.Length, 0);
                 ui.ScrollY = _scrollY * 22;
-                
-                foreach (GameSave save in saves)
+
+                for (var i = 0; i < saves.Length; i++)
                 {
-                    if (ui.TextButton(id: $"Button_ContinueGame_{save.Name}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
+                    GameSave save = saves[i];
+                    if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
                     {
                         _gameSaveManager.ActiveSave = save;
                         Task.Run(_gameSaveManager.Load);
