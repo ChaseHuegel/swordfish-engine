@@ -39,6 +39,7 @@ public sealed class ReefContext : IDisposable
         window.Resize += OnWindowResize;
         window.Update += OnWindowUpdate;
         input.KeyPressed += OnKeyPressed;
+        input.CharInput += OnCharInput;
     }
     
     public void Dispose()
@@ -86,7 +87,18 @@ public sealed class ReefContext : IDisposable
     {
         lock (_inputBuffer)
         {
-            _inputBuffer.Add((UIController.Input)e.Key);
+            var key = (UIController.Key)e.Key;
+            var input = new UIController.Input(key);
+            _inputBuffer.Add(input);
+        }
+    }
+    
+    private void OnCharInput(object? sender, CharEventArgs e)
+    {
+        lock (_inputBuffer)
+        {
+            var input = new UIController.Input(e.Char);
+            _inputBuffer.Add(input);
         }
     }
 
