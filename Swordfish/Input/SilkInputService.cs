@@ -31,6 +31,7 @@ public class SilkInputService : IInputService
     public EventHandler<ClickedEventArgs>? Clicked { get; set; }
     public EventHandler<ClickedEventArgs>? DoubleClicked { get; set; }
     public EventHandler<ScrolledEventArgs>? Scrolled { get; set; }
+    public EventHandler<CharEventArgs>? CharInput { get; set; }
     public EventHandler<KeyEventArgs>? KeyPressed { get; set; }
     public EventHandler<KeyEventArgs>? KeyReleased { get; set; }
     public EventHandler<InputButtonEventArgs>? ButtonPressed { get; set; }
@@ -162,6 +163,7 @@ public class SilkInputService : IInputService
 
         foreach (IKeyboard keyboard in context.Keyboards)
         {
+            keyboard.KeyChar += OnKeyChar;
             keyboard.KeyDown += OnKeyDown;
             keyboard.KeyUp += OnKeyUp;
         }
@@ -264,6 +266,14 @@ public class SilkInputService : IInputService
         KeyReleased?.Invoke(
             new InputDevice(keyboard.Index, keyboard.Name),
             new KeyEventArgs(swordfishKey)
+        );
+    }
+
+    private void OnKeyChar(IKeyboard keyboard, char c)
+    {
+        CharInput?.Invoke(
+            new InputDevice(keyboard.Index, keyboard.Name),
+            new CharEventArgs(c)
         );
     }
 

@@ -16,6 +16,7 @@ public interface IInputService
     EventHandler<ClickedEventArgs> Clicked { get; set; }
     EventHandler<ClickedEventArgs> DoubleClicked { get; set; }
     EventHandler<ScrolledEventArgs> Scrolled { get; set; }
+    EventHandler<CharEventArgs> CharInput { get; set; }
     EventHandler<KeyEventArgs> KeyPressed { get; set; }
     EventHandler<KeyEventArgs> KeyReleased { get; set; }
     EventHandler<InputButtonEventArgs> ButtonPressed { get; set; }
