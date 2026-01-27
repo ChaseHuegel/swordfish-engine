@@ -56,37 +56,32 @@ internal static partial class Widgets
 
             if (focused)
             {
-                bool shiftHeld = inputService.IsKeyHeld(Key.Shift);
-
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
-                    switch (input)
+                    if (input == UIController.Key.Backspace && state.Text.Length > 0)
                     {
-                        case UIController.Input.Backspace when state.Text.Length > 0:
-                            state.Text.Remove(state.Text.Length - 1, 1);
-                            typing = true;
-                            break;
-                        
-                        case UIController.Input.Tab:
-                            state.Text.Append('\t');
-                            break;
-                        
-                        case UIController.Input.Space:
-                            state.Text.Append(' ');
-                            break;
-                        
-                        case >= UIController.Input.D0 and <= UIController.Input.Z:
-                        {
-                            char c = shiftHeld ? char.ToUpper((char)input) : char.ToLower((char)input);
-                            state.Text.Append(c);
-                            typing = true;
-                            break;
-                        }
+                        state.Text.Remove(state.Text.Length - 1, 1);
+                        typing = true;
+                    }
+                    else if (input == UIController.Key.Delete && state.CaretIndex < state.Text.Length - 1)
+                    {
+                        state.Text.Remove(state.CaretIndex + 1, 1);
+                        typing = true;
+                    }
+                    else if (input == UIController.Key.Tab)
+                    {
+                        state.Text.Append('\t');
+                        typing = true;
+                    }
+                    else if (input.Type == UIController.InputType.Char)
+                    {
+                        state.Text.Append(input.Char);
+                        typing = true;
                     }
                 }
             }
-
+            
             state.CaretIndex = state.Text.Length - 1;
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
