@@ -59,7 +59,12 @@ internal static partial class Widgets
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
-                    if (input == UIController.Key.Backspace && state.Text.Length > 0)
+                    if (input.Type == UIController.InputType.Char)
+                    {
+                        state.Text.Append(input.Char);
+                        typing = true;
+                    }
+                    else if (input == UIController.Key.Backspace && state.Text.Length > 0)
                     {
                         state.Text.Remove(state.Text.Length - 1, 1);
                         typing = true;
@@ -72,11 +77,6 @@ internal static partial class Widgets
                     else if (input == UIController.Key.Tab)
                     {
                         state.Text.Append('\t');
-                        typing = true;
-                    }
-                    else if (input.Type == UIController.InputType.Char)
-                    {
-                        state.Text.Append(input.Char);
                         typing = true;
                     }
                 }
