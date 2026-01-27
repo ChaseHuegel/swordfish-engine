@@ -123,7 +123,7 @@ internal static partial class Widgets
             
             if (typing)
             {
-                interactions |= Interactions.Click;
+                interactions |= Interactions.Input;
             }
             
             if (focused && inputService.IsKeyPressed(Key.Enter))

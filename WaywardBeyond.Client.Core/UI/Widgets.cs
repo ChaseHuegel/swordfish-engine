@@ -72,7 +72,7 @@ internal static partial class Widgets
     /// <returns>True if submitted; otherwise false.</returns>
     public static bool WithTextInputAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
     {
-        if ((interactions & Interactions.Click) == Interactions.Click)
+        if ((interactions & Interactions.Input) == Interactions.Input)
         {
             audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.MixInterface());
         }
@@ -95,6 +95,7 @@ internal static partial class Widgets
         Hover = 4,
         Enter = 8,
         Exit = 16,
-        Submit = 32,
+        Input = 32,
+        Submit = 64,
     }
 }
