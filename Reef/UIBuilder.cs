@@ -219,7 +219,7 @@ public sealed class UIBuilder<TRendererData>
 
     public bool Focused() => _controller.IsFocused(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be focused"));
     
-    public bool IsPressed(UIController.Input input) => _controller.IsPressed(input);
+    public bool IsPressed(UIController.Key key) => _controller.IsPressed(key);
     
     public IReadOnlyCollection<UIController.Input> GetInputBuffer() => _controller.GetInputBuffer();
     

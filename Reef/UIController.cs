@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Reef;
 
@@ -14,7 +15,44 @@ public sealed class UIController
         Middle = 4,
     }
     
-    public enum Input
+    [StructLayout(LayoutKind.Explicit)]
+    public readonly record struct Input
+    {
+        [FieldOffset(0)]
+        public readonly InputType Type;
+
+        [FieldOffset(4)]
+        public readonly char Char;
+        
+        [FieldOffset(4)]
+        public readonly Key Key;
+
+        public Input(char c)
+        {
+            Type = InputType.Char;
+            Char = c;
+        }
+        
+        public Input(Key key)
+        {
+            Type = InputType.Key;
+            Key = key;
+        }
+        
+        public static bool operator ==(Input input, Key key) => input.Type == InputType.Key && input.Key == key;
+        public static bool operator !=(Input input, Key key) => input.Type != InputType.Key || input.Key != key;
+        
+        public static bool operator ==(Input input, char c) => input.Type == InputType.Char && input.Char == c;
+        public static bool operator !=(Input input, char c) => input.Type != InputType.Char || input.Char != c;
+    }
+
+    public enum InputType
+    {
+        Key,
+        Char,
+    }
+    
+    public enum Key
     {
         Backspace = 8,
         Tab = 9,
@@ -202,11 +240,11 @@ public sealed class UIController
     
     internal bool IsFocused(string id) => _lastInteractedID == id;
     
-    internal bool IsPressed(Input input)
+    internal bool IsPressed(Key key)
     {
         lock (_inputBuffer)
         {
-            return _inputBuffer.Contains(input);
+            return _inputBuffer.Contains(new Input(key));
         }
     }
     
