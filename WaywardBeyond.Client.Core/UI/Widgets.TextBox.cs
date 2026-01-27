@@ -65,7 +65,7 @@ internal static partial class Widgets
                         state.CaretIndex += 1;
                         typing = true;
                     }
-                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length)
+                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && state.CaretIndex > 0)
                     {
                         state.Text.Remove(state.CaretIndex - 1, 1);
                         state.CaretIndex -= 1;
