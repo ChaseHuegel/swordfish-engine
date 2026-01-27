@@ -4,6 +4,7 @@ using System.Numerics;
 using System.Text;
 using Reef;
 using Reef.Constraints;
+using Reef.Text;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Library.IO;
@@ -39,10 +40,10 @@ internal static partial class Widgets
     {
         using (ui.Element(id))
         {
+            ui.LayoutDirection = LayoutDirection.None;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center | Anchors.Left,
             };
 
             bool clicked = ui.Clicked();
@@ -75,10 +76,31 @@ internal static partial class Widgets
                 }
             }
 
+            state.CaretIndex = state.Text.Length - 1;
             bool isPlaceholder = state.Text.Length == 0;
-            string text = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString(); 
-            using (ui.Text(text))
+            string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
+            
+            if (focused)
             {
+                TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex + 1);
+                
+                //  Render the caret
+                using (ui.Element())
+                {
+                    ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Right | Anchors.Left,
+                        X = new Fixed(caretConstraints.MinWidth + 2),
+                        Width = new Fixed(2),
+                        Height = new Fill(),
+                    };
+                }
+            }
+            
+            using (ui.Text(displayString))
+            {
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.FontOptions = fontOptions;
 
                 if (focused)
