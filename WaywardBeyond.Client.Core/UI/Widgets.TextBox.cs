@@ -90,6 +90,14 @@ internal static partial class Widgets
                     {
                         state.CaretIndex += 1;
                     }
+                    else if (input == UIController.Key.Home)
+                    {
+                        state.CaretIndex = 0;
+                    }
+                    else if (input == UIController.Key.End)
+                    {
+                        state.CaretIndex = state.Text.Length;
+                    }
                 }
             }
             
