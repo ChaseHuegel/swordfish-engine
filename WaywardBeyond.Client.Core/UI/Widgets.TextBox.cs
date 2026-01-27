@@ -61,34 +61,46 @@ internal static partial class Widgets
                 {
                     if (input.Type == UIController.InputType.Char)
                     {
-                        state.Text.Append(input.Char);
+                        state.Text.Insert(state.CaretIndex, input.Char);
+                        state.CaretIndex += 1;
                         typing = true;
                     }
-                    else if (input == UIController.Key.Backspace && state.Text.Length > 0)
+                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length)
                     {
-                        state.Text.Remove(state.Text.Length - 1, 1);
+                        state.Text.Remove(state.CaretIndex - 1, 1);
+                        state.CaretIndex -= 1;
                         typing = true;
                     }
-                    else if (input == UIController.Key.Delete && state.CaretIndex < state.Text.Length - 1)
+                    else if (input == UIController.Key.Delete && state.CaretIndex <= state.Text.Length - 1)
                     {
-                        state.Text.Remove(state.CaretIndex + 1, 1);
+                        state.Text.Remove(state.CaretIndex, 1);
                         typing = true;
                     }
                     else if (input == UIController.Key.Tab)
                     {
                         state.Text.Append('\t');
+                        state.CaretIndex += 1;
                         typing = true;
+                    }
+                    else if (input == UIController.Key.LeftArrow)
+                    {
+                        state.CaretIndex -= 1;
+                    }
+                    else if (input == UIController.Key.RightArrow)
+                    {
+                        state.CaretIndex += 1;
                     }
                 }
             }
             
-            state.CaretIndex = state.Text.Length - 1;
+            state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
+            
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
             
             if (focused)
             {
-                TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex + 1);
+                TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
                 
                 //  Render the caret
                 using (ui.Element())
@@ -96,7 +108,7 @@ internal static partial class Widgets
                     ui.Color = new Vector4(1f, 1f, 1f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Right | Anchors.Left,
+                        Anchors = Anchors.Right,
                         X = new Fixed(caretConstraints.MinWidth + 2),
                         Width = new Fixed(2),
                         Height = new Fill(),
