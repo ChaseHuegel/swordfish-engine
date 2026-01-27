@@ -42,7 +42,7 @@ internal sealed class SingleplayerPage(
     };
 
     private int _scrollY;
-    private string _saveName = localization.GetString("ui.field.defaultSaveName") ?? string.Empty;
+    private TextBoxState _saveNameTextBox = new(initialValue: localization.GetString("ui.field.defaultSaveName") ?? string.Empty, placeholder: "Enter name...");
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
@@ -72,11 +72,11 @@ internal sealed class SingleplayerPage(
                 }
             }
             
-            ui.TextBox(id: "TextBox_SaveName", text: ref _saveName, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
             
             if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings))
             {
-                var options = new GameOptions(_saveName, seed: "wayward beyond");
+                var options = new GameOptions(_saveNameTextBox.Text.ToString(), seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             

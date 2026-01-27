@@ -17,25 +17,25 @@ internal static partial class Widgets
     ///     Creates a text box that can be typed into.
     /// </summary>
     /// <returns>True if the text box was submitted; otherwise false.</returns>
-    public static bool TextButton<T>(this UIBuilder<T> ui, string id, ref string text, FontOptions fontOptions, IInputService inputService)
+    public static bool TextButton<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService)
     {
-        return TextBox(ui, id, ref text, fontOptions, inputService, out Interactions interactions) && (interactions & Interactions.Submit) == Interactions.Submit;
+        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && (interactions & Interactions.Submit) == Interactions.Submit;
     }
     
     /// <summary>
     ///     Creates a text box that can be typed into, with audio cues.
     /// </summary>
     /// <returns>True if the text box was submitted; otherwise false.</returns>
-    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref string text, FontOptions fontOptions, IInputService inputService, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, IAudioService audioService, VolumeSettings volumeSettings)
     {
-        return TextBox(ui, id, ref text, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(audioService, volumeSettings);
+        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(audioService, volumeSettings);
     }
 
     /// <summary>
     ///     Creates a text box that can be typed into.
     /// </summary>
     /// <returns>True if the text box is being interacted with; otherwise false.</returns>
-    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref string text, FontOptions fontOptions, IInputService inputService, out Interactions interactions)
+    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, out Interactions interactions)
     {
         using (ui.Element(id))
         {
@@ -43,7 +43,6 @@ internal static partial class Widgets
             {
                 Anchors = Anchors.Center,
                 X = new Relative(0.5f),
-                Width = new Fixed(100),
             };
 
             bool clicked = ui.Clicked();
@@ -56,30 +55,28 @@ internal static partial class Widgets
 
             if (focused)
             {
-                var modifiedText = new StringBuilder(text);
-
                 bool shiftHeld = inputService.IsKeyHeld(Key.Shift);
 
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
-                    if (input == UIController.Input.Backspace)
+                    if (input == UIController.Input.Backspace && state.Text.Length > 0)
                     {
-                        modifiedText.Remove(modifiedText.Length - 1, 1);
+                        state.Text.Remove(state.Text.Length - 1, 1);
                         typing = true;
                     }
 
                     if (input >= UIController.Input.D0 && input <= UIController.Input.Z)
                     {
                         char c = shiftHeld ? char.ToUpper((char)input) : char.ToLower((char)input);
-                        modifiedText.Append(c);
+                        state.Text.Append(c);
                         typing = true;
                     }
                 }
-                
-                text = modifiedText.ToString();
             }
 
+            bool isPlaceholder = state.Text.Length == 0;
+            string text = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString(); 
             using (ui.Text(text))
             {
                 ui.FontOptions = fontOptions;
@@ -91,6 +88,11 @@ internal static partial class Widgets
                 else
                 {
                     ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                }
+
+                if (isPlaceholder)
+                {
+                    ui.Color *= new Vector4(0.5f, 0.5f, 0.5f, 1f);
                 }
             }
 
