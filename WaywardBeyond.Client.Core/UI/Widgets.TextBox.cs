@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Text;
+using System.Text.RegularExpressions;
 using Reef;
 using Reef.Constraints;
 using Reef.Text;
@@ -14,6 +15,11 @@ namespace WaywardBeyond.Client.Core.UI;
 
 internal static partial class Widgets
 {
+    private static Regex _wordRegex = WordRegex();
+    
+    [GeneratedRegex("\\S+")]
+    private static partial Regex WordRegex();
+    
     /// <summary>
     ///     Creates a text box that can be typed into.
     /// </summary>
@@ -84,11 +90,70 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.LeftArrow)
                     {
-                        state.CaretIndex -= 1;
+                        if (inputService.IsKeyHeld(Key.Control))
+                        {
+                            var textStr = state.Text.ToString();
+
+                            Match? previousWord = null;
+                            MatchCollection matches = _wordRegex.Matches(textStr);
+                            foreach (Match match in matches)
+                            {
+                                if (match.Index >= state.CaretIndex)
+                                {
+                                    continue;
+                                }
+
+                                previousWord = match;
+                            }
+
+                            if (previousWord != null)
+                            {
+                                state.CaretIndex = previousWord.Index;
+                            }
+                            else
+                            {
+                                //  No word was found, go to the beginning.
+                                state.CaretIndex = 0;
+                            }
+                        }
+                        else
+                        {
+                            state.CaretIndex -= 1;
+                        }
                     }
                     else if (input == UIController.Key.RightArrow)
                     {
-                        state.CaretIndex += 1;
+                        if (inputService.IsKeyHeld(Key.Control))
+                        {
+                            var textStr = state.Text.ToString();
+
+                            Match? nextWord = null;
+                            MatchCollection matches = _wordRegex.Matches(textStr);
+                            foreach (Match match in matches)
+                            {
+                                if (match.Index <= state.CaretIndex)
+                                {
+                                    continue;
+                                }
+
+                                nextWord = match;
+                                break;
+                            }
+
+                            if (nextWord != null)
+                            {
+                                state.CaretIndex = nextWord.Index;
+                            }
+                            else
+                            {
+                                //  No word was found, go to the end.
+                                state.CaretIndex = state.Text.Length;
+                            }
+                        }
+                        else
+                        {
+                            state.CaretIndex += 1;
+                        }
                     }
                     else if (input == UIController.Key.Home)
                     {
