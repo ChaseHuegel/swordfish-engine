@@ -64,6 +64,7 @@ internal static partial class Widgets
             bool exited = ui.Exited();
             bool focused = ui.Focused();
             var typing = false;
+            var navigating = false;
 
             if (focused)
             {
@@ -121,6 +122,8 @@ internal static partial class Widgets
                         {
                             state.CaretIndex -= 1;
                         }
+
+                        navigating = true;
                     }
                     else if (input == UIController.Key.RightArrow)
                     {
@@ -134,27 +137,38 @@ internal static partial class Widgets
                         {
                             state.CaretIndex += 1;
                         }
+                        
+                        navigating = true;
                     }
                     else if (input == UIController.Key.Home)
                     {
                         state.CaretIndex = 0;
+                        navigating = true;
                     }
                     else if (input == UIController.Key.End)
                     {
                         state.CaretIndex = state.Text.Length;
+                        navigating = true;
+                    }
+                    else if (input == UIController.Key.Shift)
+                    {
+                        state.SelectionStartIndex = state.CaretIndex;
                     }
                 }
             }
             
             state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
+            if (navigating && !inputService.IsKeyHeld(Key.Shift))
+            {
+                state.SelectionStartIndex = state.CaretIndex;
+            }
             
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
             
+            TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
             if (focused)
             {
-                TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
-                
                 //  Render the caret
                 using (ui.Element())
                 {
@@ -186,6 +200,39 @@ internal static partial class Widgets
                 if (isPlaceholder)
                 {
                     ui.Color *= new Vector4(0.5f, 0.5f, 0.5f, 1f);
+                }
+            }
+            
+            //  Render text selection
+            if (state.SelectionStartIndex != state.CaretIndex)
+            {
+                var flipped = false;
+                int selectionStartIndex;
+                int selectionLength;
+                if (state.SelectionStartIndex < state.CaretIndex)
+                {
+                    selectionStartIndex = state.SelectionStartIndex;
+                    selectionLength = state.CaretIndex - state.SelectionStartIndex;
+                }
+                else
+                {
+                    selectionStartIndex = state.CaretIndex;
+                    selectionLength = state.SelectionStartIndex - state.CaretIndex;
+                    flipped = true;
+                }
+
+                TextConstraints selectionConstraints = ui.Measure(fontOptions, displayString, selectionStartIndex, selectionLength);
+                
+                using (ui.Element())
+                {
+                    ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Right,
+                        X = new Fixed(flipped ? caretConstraints.MinWidth + selectionConstraints.MinWidth : caretConstraints.MinWidth),
+                        Width = new Fixed(selectionConstraints.MinWidth),
+                        Height = new Fill(),
+                    };
                 }
             }
 
