@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Text;
 using System.Text.RegularExpressions;
 using Reef;
 using Reef.Constraints;
 using Reef.Text;
 using Reef.UI;
 using Swordfish.Audio;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Configuration;
 
@@ -15,9 +15,14 @@ namespace WaywardBeyond.Client.Core.UI;
 
 internal static partial class Widgets
 {
-    private static Regex _wordRegex = WordRegex();
+    private static readonly Regex _wordRegex = WordRegex();
     
-    [GeneratedRegex("\\S+")]
+    /// <summary>
+    ///     Searches for words, ignoring whitespace.
+    ///     Example: "Hello world!"
+    ///     Groups: "Hello", "world!"
+    /// </summary>
+    [GeneratedRegex(@"\S+")]
     private static partial Regex WordRegex();
     
     /// <summary>
@@ -79,7 +84,23 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.Delete && state.CaretIndex <= state.Text.Length - 1)
                     {
-                        state.Text.Remove(state.CaretIndex, 1);
+                        var countToDelete = 1;
+                        if (inputService.IsKeyHeld(Key.Control))
+                        {
+                            var textStr = state.Text.ToString();
+                            Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
+                            
+                            if (nextWord.Success)
+                            {
+                                countToDelete = nextWord.Index - state.CaretIndex;
+                            }
+                            else
+                            {
+                                countToDelete = state.Text.Length - state.CaretIndex;
+                            }
+                        }
+                        
+                        state.Text.Remove(state.CaretIndex, countToDelete);
                         typing = true;
                     }
                     else if (input == UIController.Key.Tab)
@@ -93,8 +114,8 @@ internal static partial class Widgets
                         if (inputService.IsKeyHeld(Key.Control))
                         {
                             var textStr = state.Text.ToString();
-                            Match? previousWord = FindPreviousWord(textStr, state.CaretIndex);
-                            state.CaretIndex = previousWord?.Index ?? 0;
+                            Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
+                            state.CaretIndex = previousWord.Success ? previousWord.Index : 0;
                         }
                         else
                         {
@@ -106,8 +127,8 @@ internal static partial class Widgets
                         if (inputService.IsKeyHeld(Key.Control))
                         {
                             var textStr = state.Text.ToString();
-                            Match? nextWord = FindNextWord(textStr, state.CaretIndex);
-                            state.CaretIndex = nextWord?.Index ?? state.Text.Length;
+                            Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
+                            state.CaretIndex = nextWord.Success ? nextWord.Index : state.Text.Length;
                         }
                         else
                         {
@@ -207,38 +228,5 @@ internal static partial class Widgets
 
             return interactions != Interactions.None;
         }
-    }
-
-    private static Match? FindNextWord(string textStr, int startIndex)
-    {
-        MatchCollection matches = _wordRegex.Matches(textStr);
-        foreach (Match match in matches)
-        {
-            if (match.Index <= startIndex)
-            {
-                continue;
-            }
-
-            return match;
-        }
-
-        return null;
-    }
-
-    private static Match? FindPreviousWord(string textStr, int startIndex)
-    {
-        Match? previousWord = null;
-        MatchCollection matches = _wordRegex.Matches(textStr);
-        foreach (Match match in matches)
-        {
-            if (match.Index >= startIndex)
-            {
-                continue;
-            }
-
-            previousWord = match;
-        }
-
-        return previousWord;
     }
 }
