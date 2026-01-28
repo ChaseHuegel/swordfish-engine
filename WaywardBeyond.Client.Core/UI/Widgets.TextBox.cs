@@ -93,28 +93,8 @@ internal static partial class Widgets
                         if (inputService.IsKeyHeld(Key.Control))
                         {
                             var textStr = state.Text.ToString();
-
-                            Match? previousWord = null;
-                            MatchCollection matches = _wordRegex.Matches(textStr);
-                            foreach (Match match in matches)
-                            {
-                                if (match.Index >= state.CaretIndex)
-                                {
-                                    continue;
-                                }
-
-                                previousWord = match;
-                            }
-
-                            if (previousWord != null)
-                            {
-                                state.CaretIndex = previousWord.Index;
-                            }
-                            else
-                            {
-                                //  No word was found, go to the beginning.
-                                state.CaretIndex = 0;
-                            }
+                            Match? previousWord = FindPreviousWord(textStr, state.CaretIndex);
+                            state.CaretIndex = previousWord?.Index ?? 0;
                         }
                         else
                         {
@@ -126,29 +106,8 @@ internal static partial class Widgets
                         if (inputService.IsKeyHeld(Key.Control))
                         {
                             var textStr = state.Text.ToString();
-
-                            Match? nextWord = null;
-                            MatchCollection matches = _wordRegex.Matches(textStr);
-                            foreach (Match match in matches)
-                            {
-                                if (match.Index <= state.CaretIndex)
-                                {
-                                    continue;
-                                }
-
-                                nextWord = match;
-                                break;
-                            }
-
-                            if (nextWord != null)
-                            {
-                                state.CaretIndex = nextWord.Index;
-                            }
-                            else
-                            {
-                                //  No word was found, go to the end.
-                                state.CaretIndex = state.Text.Length;
-                            }
+                            Match? nextWord = FindNextWord(textStr, state.CaretIndex);
+                            state.CaretIndex = nextWord?.Index ?? state.Text.Length;
                         }
                         else
                         {
@@ -248,5 +207,38 @@ internal static partial class Widgets
 
             return interactions != Interactions.None;
         }
+    }
+
+    private static Match? FindNextWord(string textStr, int startIndex)
+    {
+        MatchCollection matches = _wordRegex.Matches(textStr);
+        foreach (Match match in matches)
+        {
+            if (match.Index <= startIndex)
+            {
+                continue;
+            }
+
+            return match;
+        }
+
+        return null;
+    }
+
+    private static Match? FindPreviousWord(string textStr, int startIndex)
+    {
+        Match? previousWord = null;
+        MatchCollection matches = _wordRegex.Matches(textStr);
+        foreach (Match match in matches)
+        {
+            if (match.Index >= startIndex)
+            {
+                continue;
+            }
+
+            previousWord = match;
+        }
+
+        return previousWord;
     }
 }
