@@ -74,18 +74,34 @@ internal static partial class Widgets
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
+                    bool hasSelection = state.HasSelection();
+                    
                     if (input.Type == UIController.InputType.Char)
                     {
+                        if (hasSelection)
+                        {
+                            TextBoxState.Selection selection = state.CalculateSelection();
+                            state.Text.Remove(selection.StartIndex, selection.Length);
+                            state.CaretIndex = selection.StartIndex;
+                        }
+                        
                         state.Text.Insert(state.CaretIndex, input.Char);
                         state.CaretIndex += 1;
                         typing = true;
                     }
-                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && state.CaretIndex > 0)
+                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && (hasSelection || state.CaretIndex > 0))
                     {
                         int deleteStartIndex = state.CaretIndex - 1;
                         var countToDelete = 1;
-                        
-                        if (isCtrlHeld)
+
+                        if (hasSelection)
+                        {
+                            TextBoxState.Selection selection = state.CalculateSelection();
+                            deleteStartIndex = selection.StartIndex;
+                            countToDelete = selection.Length;
+                            state.CaretIndex = deleteStartIndex;
+                        }
+                        else if (isCtrlHeld)
                         {
                             var textStr = state.Text.ToString();
                             Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
@@ -100,16 +116,30 @@ internal static partial class Widgets
                                 deleteStartIndex = 0;
                                 countToDelete = state.CaretIndex + 1;
                             }
+                            
+                            state.CaretIndex -= countToDelete;
+                        }
+                        else
+                        {
+                            state.CaretIndex -= countToDelete;
                         }
                         
                         state.Text.Remove(deleteStartIndex, countToDelete);
-                        state.CaretIndex -= countToDelete;
                         typing = true;
                     }
-                    else if (input == UIController.Key.Delete && state.CaretIndex <= state.Text.Length - 1)
+                    else if (input == UIController.Key.Delete && (hasSelection || state.CaretIndex <= state.Text.Length - 1))
                     {
+                        int deleteStartIndex = state.CaretIndex;
                         var countToDelete = 1;
-                        if (isCtrlHeld)
+                        
+                        if (state.HasSelection())
+                        {
+                            TextBoxState.Selection selection = state.CalculateSelection();
+                            deleteStartIndex = selection.StartIndex;
+                            countToDelete = selection.Length;
+                            state.CaretIndex = deleteStartIndex;
+                        }
+                        else if (isCtrlHeld)
                         {
                             var textStr = state.Text.ToString();
                             Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
@@ -124,7 +154,7 @@ internal static partial class Widgets
                             }
                         }
                         
-                        state.Text.Remove(state.CaretIndex, countToDelete);
+                        state.Text.Remove(deleteStartIndex, countToDelete);
                         typing = true;
                     }
                     else if (input == UIController.Key.Tab)
@@ -223,32 +253,19 @@ internal static partial class Widgets
             }
             
             //  Render text selection
-            if (state.SelectionStartIndex != state.CaretIndex)
+            if (state.HasSelection())
             {
-                var flipped = false;
-                int selectionStartIndex;
-                int selectionLength;
-                if (state.SelectionStartIndex < state.CaretIndex)
-                {
-                    selectionStartIndex = state.SelectionStartIndex;
-                    selectionLength = state.CaretIndex - state.SelectionStartIndex;
-                }
-                else
-                {
-                    selectionStartIndex = state.CaretIndex;
-                    selectionLength = state.SelectionStartIndex - state.CaretIndex;
-                    flipped = true;
-                }
+                TextBoxState.Selection selection = state.CalculateSelection();
+                TextConstraints selectionConstraints = ui.Measure(fontOptions, displayString, selection.StartIndex, selection.Length);
+                int xOffset = selection.Forward ? caretConstraints.MinWidth : caretConstraints.MinWidth + selectionConstraints.MinWidth;
 
-                TextConstraints selectionConstraints = ui.Measure(fontOptions, displayString, selectionStartIndex, selectionLength);
-                
                 using (ui.Element())
                 {
                     ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Right,
-                        X = new Fixed(flipped ? caretConstraints.MinWidth + selectionConstraints.MinWidth : caretConstraints.MinWidth),
+                        X = new Fixed(xOffset),
                         Width = new Fixed(selectionConstraints.MinWidth),
                         Height = new Fill(),
                     };
