@@ -79,8 +79,28 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && state.CaretIndex > 0)
                     {
-                        state.Text.Remove(state.CaretIndex - 1, 1);
-                        state.CaretIndex -= 1;
+                        int deleteStartIndex = state.CaretIndex - 1;
+                        var countToDelete = 1;
+                        
+                        if (inputService.IsKeyHeld(Key.Control))
+                        {
+                            var textStr = state.Text.ToString();
+                            Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
+                            
+                            if (previousWord.Success)
+                            {
+                                deleteStartIndex = previousWord.Index;
+                                countToDelete = state.CaretIndex - previousWord.Index;
+                            }
+                            else
+                            {
+                                deleteStartIndex = 0;
+                                countToDelete = state.CaretIndex + 1;
+                            }
+                        }
+                        
+                        state.Text.Remove(deleteStartIndex, countToDelete);
+                        state.CaretIndex -= countToDelete;
                         typing = true;
                     }
                     else if (input == UIController.Key.Delete && state.CaretIndex <= state.Text.Length - 1)
