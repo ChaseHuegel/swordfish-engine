@@ -173,13 +173,9 @@ internal static partial class Widgets
                         state.CaretIndex = state.Text.Length;
                         navigating = true;
                     }
-                    else if (input == UIController.Key.Shift)
-                    {
-                        state.SelectionStartIndex = state.CaretIndex;
-                    }
                     
                     state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
-                    if ((navigating || typing) && !isShiftHeld)
+                    if (typing || (navigating && !isShiftHeld))
                     {
                         state.SelectionStartIndex = state.CaretIndex;
                     }
