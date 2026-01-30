@@ -158,7 +158,7 @@ internal static partial class Widgets
             }
             
             state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
-            if (navigating && !inputService.IsKeyHeld(Key.Shift))
+            if ((navigating || typing) && !inputService.IsKeyHeld(Key.Shift))
             {
                 state.SelectionStartIndex = state.CaretIndex;
             }
