@@ -69,6 +69,7 @@ internal static partial class Widgets
             if (focused)
             {
                 bool isCtrlHeld = inputService.IsKeyHeld(Key.Control);
+                bool isShiftHeld = inputService.IsKeyHeld(Key.Shift);
                 
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
@@ -176,13 +177,13 @@ internal static partial class Widgets
                     {
                         state.SelectionStartIndex = state.CaretIndex;
                     }
+                    
+                    state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
+                    if ((navigating || typing) && !isShiftHeld)
+                    {
+                        state.SelectionStartIndex = state.CaretIndex;
+                    }
                 }
-            }
-            
-            state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
-            if ((navigating || typing) && !inputService.IsKeyHeld(Key.Shift))
-            {
-                state.SelectionStartIndex = state.CaretIndex;
             }
             
             bool isPlaceholder = state.Text.Length == 0;
