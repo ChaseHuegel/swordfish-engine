@@ -135,11 +135,11 @@
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=15b5b1f1_002D457c_002D4ca6_002Db278_002D5615aedc07d3/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Static" AccessRightKinds="Private" Description="Static readonly fields (private)"&gt;&lt;ElementKinds&gt;&lt;Kind Name="READONLY_FIELD" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="_" Suffix="" Style="aaBb" /&gt;&lt;/Policy&gt;</s:String>
 	<s:String x:Key="/Default/CodeStyle/Naming/CSharpNaming/UserRules/=8b8504e3_002Df0be_002D4c14_002D9103_002Dc732f2bddc15/@EntryIndexedValue">&lt;Policy&gt;&lt;Descriptor Staticness="Any" AccessRightKinds="Any" Description="Enum members"&gt;&lt;ElementKinds&gt;&lt;Kind Name="ENUM_MEMBER" /&gt;&lt;/ElementKinds&gt;&lt;/Descriptor&gt;&lt;Policy Inspect="True" Prefix="" Suffix="" Style="AaBb" /&gt;&lt;/Policy&gt;</s:String>
 	<s:String x:Key="/Default/Environment/Hierarchy/Build/SolBuilderDuo/UseMsbuildSolutionBuilder/@EntryValue">No</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=3f90ccbf_002D8082_002D436a_002Db400_002D4c34a7d8c23f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;And&gt;&#xD;
-    &lt;Namespace&gt;WaywardBeyond.Client.Core.Tests&lt;/Namespace&gt;&#xD;
-    &lt;Project Location="E:\git\Swordfish\WaywardBeyond.Client.Core.Tests" Presentation="&amp;lt;WaywardBeyond.Client.Core.Tests&amp;gt;" /&gt;&#xD;
-  &lt;/And&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=3f90ccbf_002D8082_002D436a_002Db400_002D4c34a7d8c23f/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;
+  &lt;And&gt;
+    &lt;Namespace&gt;WaywardBeyond.Client.Core.Tests&lt;/Namespace&gt;
+    &lt;Project Location="E:\git\Swordfish\WaywardBeyond.Client.Core.Tests" Presentation="&amp;lt;WaywardBeyond.Client.Core.Tests&amp;gt;" /&gt;
+  &lt;/And&gt;
 &lt;/SessionState&gt;</s:String>
 	
 	

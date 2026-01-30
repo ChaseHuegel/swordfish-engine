@@ -65,6 +65,8 @@ internal static partial class Widgets
             bool focused = ui.Focused();
             var typing = false;
             var navigating = false;
+            var editing = false;
+            var selectionOverwritten = false;
 
             if (focused)
             {
@@ -76,7 +78,7 @@ internal static partial class Widgets
                 {
                     bool hasSelection = state.HasSelection();
                     
-                    if (input.Type == UIController.InputType.Char)
+                    if (input.Type == UIController.InputType.Char && !isCtrlHeld)
                     {
                         if (hasSelection)
                         {
@@ -203,9 +205,38 @@ internal static partial class Widgets
                         state.CaretIndex = state.Text.Length;
                         navigating = true;
                     }
-                    
+                    else if (input == UIController.Key.C && isCtrlHeld)
+                    {
+                        if (!hasSelection)
+                        {
+                            state.SelectionStartIndex = 0;
+                            state.CaretIndex = state.Text.Length;
+                        }
+                        
+                        TextBoxState.Selection selection = state.CalculateSelection();
+                        var textStr =  state.Text.ToString(selection.StartIndex, selection.Length);
+                        inputService.SetClipboard(textStr);
+                        selectionOverwritten = true;
+                    }
+                    else if (input == UIController.Key.V && isCtrlHeld)
+                    {
+                        if (hasSelection)
+                        {
+                            TextBoxState.Selection selection = state.CalculateSelection();
+                            state.Text.Remove(selection.StartIndex, selection.Length);
+                            state.CaretIndex = selection.StartIndex;
+                        }
+
+                        string clipboardContent = inputService.GetClipboard();
+                        state.Text.Insert(state.CaretIndex, clipboardContent);
+                        state.CaretIndex += clipboardContent.Length;
+                        editing = true;
+                    }
+
+                    editing = typing || editing;
                     state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
-                    if (typing || (navigating && !isShiftHeld))
+                    
+                    if (!selectionOverwritten && (editing || (navigating && !isShiftHeld)))
                     {
                         state.SelectionStartIndex = state.CaretIndex;
                     }
