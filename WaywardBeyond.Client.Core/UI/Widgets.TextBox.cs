@@ -68,6 +68,8 @@ internal static partial class Widgets
 
             if (focused)
             {
+                bool isCtrlHeld = inputService.IsKeyHeld(Key.Control);
+                
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
@@ -82,7 +84,7 @@ internal static partial class Widgets
                         int deleteStartIndex = state.CaretIndex - 1;
                         var countToDelete = 1;
                         
-                        if (inputService.IsKeyHeld(Key.Control))
+                        if (isCtrlHeld)
                         {
                             var textStr = state.Text.ToString();
                             Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
@@ -106,7 +108,7 @@ internal static partial class Widgets
                     else if (input == UIController.Key.Delete && state.CaretIndex <= state.Text.Length - 1)
                     {
                         var countToDelete = 1;
-                        if (inputService.IsKeyHeld(Key.Control))
+                        if (isCtrlHeld)
                         {
                             var textStr = state.Text.ToString();
                             Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
@@ -132,7 +134,7 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.LeftArrow)
                     {
-                        if (inputService.IsKeyHeld(Key.Control))
+                        if (isCtrlHeld)
                         {
                             var textStr = state.Text.ToString();
                             Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
