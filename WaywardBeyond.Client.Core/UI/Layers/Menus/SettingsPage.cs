@@ -47,7 +47,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 X = new Relative(0.5f),
                 Y = new Relative(0.3f),
                 Width = new Fixed(250),
-                Height = new Relative(0.5f),
+                Height = new Relative(1f),
             };
             
             using (ui.Text(_localization.GetString("ui.menu.display")!))
