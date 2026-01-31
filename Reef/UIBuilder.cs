@@ -282,6 +282,11 @@ public sealed class UIBuilder<TRendererData>
         if (element.Text != null)
         {
             int firstWordLength = element.Text.IndexOfAny(_whiteSpaceChars);
+            if (firstWordLength < 0)
+            {
+                firstWordLength = element.Text.Length;
+            }
+            
             TextConstraints firstWordConstraints = _textEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
 
             TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text);
