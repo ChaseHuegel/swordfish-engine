@@ -367,8 +367,10 @@ public sealed class UIBuilder<TRendererData>
                 parent.Constraints.MinHeight += element.Constraints.MinHeight;
                 break;
             case LayoutDirection.None:
-                width = parent.Rect.Size.X + element.Rect.Size.X;
-                height = parent.Rect.Size.Y + element.Rect.Size.Y;
+                width = Math.Max(parent.Rect.Size.X, element.Rect.Size.X);
+                height = Math.Max(parent.Rect.Size.Y, element.Rect.Size.Y);
+                parent.Constraints.MinWidth = Math.Max(element.Constraints.MinWidth, parent.Constraints.MinWidth);
+                parent.Constraints.MinHeight = Math.Max(element.Constraints.MinHeight, parent.Constraints.MinHeight);
                 break;
         }
 
