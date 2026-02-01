@@ -188,7 +188,7 @@ public class SilkInputService : IInputService
 
     public float GetMouseScroll()
     {
-        return _scrollRecord.LastInput.ElapsedMilliseconds < INPUT_BUFFER_MS ? _lastScroll : 0f;
+        return _scrollRecord.LastInput.ElapsedMilliseconds <= INPUT_BUFFER_MS ? _lastScroll : 0f;
     }
 
     public bool IsButtonHeld(InputButton button)
