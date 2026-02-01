@@ -56,6 +56,7 @@ internal static partial class Widgets
             {
                 Anchors = Anchors.Center | Anchors.Left,
             };
+            ui.Padding = new Padding(4, 0, 4, 0);
 
             bool clicked = ui.Clicked(out int clickedX, out int _);
             bool held = ui.Held();
@@ -281,7 +282,7 @@ internal static partial class Widgets
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Right,
-                        X = new Fixed(caretConstraints.MinWidth + 2),
+                        X = new Fixed(caretConstraints.MinWidth + 9),
                         Width = new Fixed(2),
                         Height = new Fill(),
                     };
