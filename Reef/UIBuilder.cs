@@ -209,6 +209,8 @@ public sealed class UIBuilder<TRendererData>
         return _controller.IsHovering(id);
     }
 
+    public IntVector2 GetRelativeCursorPosition() => _controller.GetRelativeCursorPosition(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to detect the cursor"));
+    
     public bool Clicked() => _controller.IsClicked(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"));
     public bool Released() => _controller.IsReleased(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be released"));
     public bool Held() => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"));
