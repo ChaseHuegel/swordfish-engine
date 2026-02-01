@@ -92,6 +92,7 @@ internal sealed class SingleplayerPage(
             {
                 ui.VerticalScroll = true;
                 ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Spacing = 8;
                 
                 ui.Constraints = new Constraints
                 {
