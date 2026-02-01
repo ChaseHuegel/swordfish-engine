@@ -191,10 +191,11 @@ public sealed class UIController
         }
     }
 
-    private readonly struct InteractionState(InputState<bool> hovering, InputState<bool> button)
+    private readonly struct InteractionState(InputState<bool> hovering, InputState<bool> button, InputState<Position> cursorPosition)
     {
         public readonly InputState<bool> Hovering = hovering;
         public readonly InputState<bool> Button = button;
+        public readonly InputState<Position> CursorPosition = cursorPosition;
     }
 
     private InputState<Position> _cursor;
@@ -230,6 +231,21 @@ public sealed class UIController
     internal bool IsRightReleased() => IsReleased(_rightMouse);
     internal bool IsRightHeld() => IsHeld(_rightMouse);
 
+    internal bool GetClickedState(string id, out int localX, out int localY)
+    {
+        bool clicked = _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsPressed(interactionState.Button);
+        if (!clicked)
+        {
+            localX = 0;
+            localY = 0;
+            return false;
+        }
+        
+        localX = interactionState.CursorPosition.Current.X;
+        localY = interactionState.CursorPosition.Current.Y;
+        return true;
+    }
+
     internal bool IsClicked(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsPressed(interactionState.Button);
     internal bool IsReleased(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsReleased(interactionState.Button);
     internal bool IsHeld(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsHeld(interactionState.Button);
@@ -262,6 +278,10 @@ public sealed class UIController
         bool hovered = rect.Contains(cursorPos.X, cursorPos.Y);
         bool interacting = hovered && IsPressed(_leftMouse);
 
+        int localCursorX = cursorPos.X - rect.Left;
+        int localCursorY = cursorPos.Y - rect.Top;
+        var localCursorPosition = new Position(localCursorX, localCursorY);
+
         if (interacting)
         {
             _lastInteractedID = id;
@@ -271,13 +291,15 @@ public sealed class UIController
         {
             var hoveredState = new InputState<bool>(previous: interactionState.Hovering.Current, current: hovered);
             var clickedState = new InputState<bool>(previous: interactionState.Button.Current, current: interacting);
-            _interactionStates[id] = new InteractionState(hoveredState, clickedState);
+            var cursorPositionState = new InputState<Position>(previous: interactionState.CursorPosition.Current, current: localCursorPosition);
+            _interactionStates[id] = new InteractionState(hoveredState, clickedState, cursorPositionState);
         }
         else
         {
             var hoveredState = new InputState<bool>(previous: false, current: hovered);
             var clickedState = new InputState<bool>(previous: false, current: interacting);
-            _interactionStates.Add(id, new InteractionState(hoveredState, clickedState));
+            var cursorPositionState = new InputState<Position>(previous: localCursorPosition, current: localCursorPosition);
+            _interactionStates.Add(id, new InteractionState(hoveredState, clickedState, cursorPositionState));
         }
     }
 

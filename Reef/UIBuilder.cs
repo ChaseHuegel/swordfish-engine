@@ -209,6 +209,8 @@ public sealed class UIBuilder<TRendererData>
         return _controller.IsHovering(id);
     }
 
+    public bool Clicked(out int localX, out int localY) => _controller.GetClickedState(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"), out localX, out localY);
+    
     public bool Clicked() => _controller.IsClicked(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be clicked"));
     public bool Released() => _controller.IsReleased(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be released"));
     public bool Held() => _controller.IsHeld(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be held"));
