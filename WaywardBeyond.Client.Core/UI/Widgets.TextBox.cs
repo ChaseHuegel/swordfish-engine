@@ -57,7 +57,7 @@ internal static partial class Widgets
                 Anchors = Anchors.Center | Anchors.Left,
             };
 
-            bool clicked = ui.Clicked();
+            bool clicked = ui.Clicked(out int clickedX, out int _);
             bool held = ui.Held();
             bool hovering = ui.Hovering();
             bool entered = ui.Entered();
@@ -68,13 +68,23 @@ internal static partial class Widgets
             var editing = false;
             var selectionOverwritten = false;
 
-            bool justFocused = focused && !state.Focused;
-            state.Focused = focused;
-
-            if (justFocused || clicked)
+            if (clicked)
             {
-                state.CaretIndex = state.Text.Length;
-                state.SelectionStartIndex = state.Text.Length;
+                var xOffset = 0;
+                for (var i = 0; i < state.Text.Length; i++)
+                {
+                    TextConstraints charConstraints = ui.Measure(fontOptions, state.Text[i].ToString(), 0, 1);
+                    
+                    int halfWidth = charConstraints.MinWidth / 2;
+                    if (clickedX > xOffset + halfWidth)
+                    {
+                        state.CaretIndex = i + 1;
+                        state.SelectionStartIndex = i + 1;
+                        selectionOverwritten = true;
+                    }
+                    
+                    xOffset += charConstraints.MinWidth;
+                }
             }
 
             if (focused)
