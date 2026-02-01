@@ -241,6 +241,12 @@ internal static partial class Widgets
                         state.CaretIndex += clipboardContent.Length;
                         editing = true;
                     }
+                    else if (input == UIController.Key.A && isCtrlHeld)
+                    {
+                        state.SelectionStartIndex = 0;
+                        state.CaretIndex = state.Text.Length;
+                        selectionOverwritten = true;
+                    }
 
                     editing = typing || editing;
                     state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
