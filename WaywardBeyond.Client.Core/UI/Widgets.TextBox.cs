@@ -68,6 +68,15 @@ internal static partial class Widgets
             var editing = false;
             var selectionOverwritten = false;
 
+            bool justFocused = focused && !state.Focused;
+            state.Focused = focused;
+
+            if (justFocused)
+            {
+                state.CaretIndex = state.Text.Length;
+                state.SelectionStartIndex = state.Text.Length;
+            }
+
             if (focused)
             {
                 bool isCtrlHeld = inputService.IsKeyHeld(Key.Control);
