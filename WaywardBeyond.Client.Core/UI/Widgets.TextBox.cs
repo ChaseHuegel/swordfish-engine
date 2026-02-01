@@ -58,33 +58,61 @@ internal static partial class Widgets
             };
             ui.Padding = new Padding(1, 0, 1, 0);
 
-            bool clicked = ui.Clicked(out int clickedX, out int _);
+            bool clicked = ui.Clicked();
             bool held = ui.Held();
             bool hovering = ui.Hovering();
             bool entered = ui.Entered();
             bool exited = ui.Exited();
             bool focused = ui.Focused();
+            
             var typing = false;
             var navigating = false;
             var editing = false;
             var selectionOverwritten = false;
 
-            if (clicked)
+            if (held)
             {
+                state.Selecting = true;
+            }
+            else if (state.Selecting && ui.LeftReleased())
+            {
+                state.Selecting = false;
+            }
+            
+            if (clicked || state.Selecting)
+            {
+                IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
+                selectionOverwritten = true;
+                
                 var xOffset = 0;
                 for (var i = 0; i < state.Text.Length; i++)
                 {
                     TextConstraints charConstraints = ui.Measure(fontOptions, state.Text[i].ToString(), 0, 1);
                     
                     int halfWidth = charConstraints.MinWidth / 2;
-                    if (clickedX > xOffset + halfWidth)
+                    if (relativeCursorPosition.X > xOffset - halfWidth)
                     {
-                        state.CaretIndex = i + 1;
-                        state.SelectionStartIndex = i + 1;
-                        selectionOverwritten = true;
+                        state.CaretIndex = i;
+                        
+                        if (!state.Selecting)
+                        {
+                            state.SelectionStartIndex = i;
+                        }
                     }
                     
                     xOffset += charConstraints.MinWidth;
+
+                    //  Allow selecting any character at the end
+                    if (relativeCursorPosition.X <= xOffset - halfWidth)
+                    {
+                        continue;
+                    }
+
+                    state.CaretIndex++;
+                    if (!state.Selecting)
+                    {
+                        state.SelectionStartIndex++;
+                    }
                 }
             }
 
