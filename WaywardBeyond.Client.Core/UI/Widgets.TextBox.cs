@@ -71,7 +71,7 @@ internal static partial class Widgets
             bool justFocused = focused && !state.Focused;
             state.Focused = focused;
 
-            if (justFocused)
+            if (justFocused || clicked)
             {
                 state.CaretIndex = state.Text.Length;
                 state.SelectionStartIndex = state.Text.Length;
