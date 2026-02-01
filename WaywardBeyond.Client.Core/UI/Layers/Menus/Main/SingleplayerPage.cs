@@ -108,7 +108,7 @@ internal sealed class SingleplayerPage(
                 
                 float scroll = _inputService.GetMouseScroll();
                 _scrollY = Math.Clamp(_scrollY + (int)scroll, -saves.Length, 0);
-                ui.ScrollY = _scrollY * 22;
+                ui.ScrollY = _scrollY * 30;
 
                 for (var i = 0; i < saves.Length; i++)
                 {
