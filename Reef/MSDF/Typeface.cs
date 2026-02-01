@@ -84,18 +84,18 @@ internal sealed class Typeface : ITypeface
 
                 //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 PlaneBounds planeBounds = glyph.planeBounds ?? PlaneBounds.Zero;
-                var left = (int)Math.Round((planeBounds.left + xOffset) * scale, MidpointRounding.AwayFromZero);
-                var top = (int)Math.Round((1f - planeBounds.top + yOffset) * scale, MidpointRounding.AwayFromZero);
-                var right = (int)Math.Round((planeBounds.right + xOffset) * scale, MidpointRounding.AwayFromZero);
-                var bottom = (int)Math.Round((1f - planeBounds.bottom + yOffset) * scale, MidpointRounding.AwayFromZero);
+                var left = (int)Math.Floor((planeBounds.left + xOffset) * scale);
+                var top = (int)Math.Floor((1f - planeBounds.top + yOffset) * scale);
+                var right = (int)Math.Ceiling((planeBounds.right + xOffset) * scale);
+                var bottom = (int)Math.Ceiling((1f - planeBounds.bottom + yOffset) * scale);
                 var bbox = new IntRect(left, top, right, bottom);
                 
                 //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 AtlasBounds atlasBounds = glyph.atlasBounds ?? AtlasBounds.Zero;
-                left = (int)Math.Round(atlasBounds.left, MidpointRounding.ToZero);
-                top = (int)Math.Round(_atlas.height - atlasBounds.top, MidpointRounding.ToZero);
-                right = (int)Math.Round(atlasBounds.right, MidpointRounding.ToZero);
-                bottom = (int)Math.Round(_atlas.height - atlasBounds.bottom, MidpointRounding.ToZero);
+                left = (int)Math.Floor(atlasBounds.left);
+                top = (int)Math.Floor(_atlas.height - atlasBounds.top);
+                right = (int)Math.Ceiling(atlasBounds.right);
+                bottom = (int)Math.Ceiling(_atlas.height - atlasBounds.bottom);
                 var uv = new IntRect(left, top, right, bottom);
 
                 glyphs.Add(new GlyphLayout(bbox, uv));
@@ -107,14 +107,19 @@ internal sealed class Typeface : ITypeface
             bboxHeight += _metrics.lineHeight;
         }
 
-        var width = (int)Math.Round(bboxWidth * scale, MidpointRounding.AwayFromZero);
-        var height = (int)Math.Round(bboxHeight * scale, MidpointRounding.AwayFromZero);
+        var width = (int)Math.Ceiling(bboxWidth * scale);
+        var height = (int)Math.Ceiling(bboxHeight * scale);
         var constraints = new TextConstraints(width, height, width, height);
         return new TextLayout(constraints, glyphs.ToArray());
     }
     
     public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth)
     {
+        if (length == 0)
+        {
+            return [];
+        }
+        
         var lines = new List<string>();
         var wordBuilder = new StringBuilder();
         var lineBuilder = new StringBuilder();
@@ -138,7 +143,7 @@ internal sealed class Typeface : ITypeface
             // If the word doesn't fit on the current line, commit the current line.
             if (currentLineWidth + wordWidth > maxWidth && lineBuilder.Length > 0)
             {
-                lines.Add(lineBuilder.ToString().TrimEnd());
+                lines.Add(lineBuilder.ToString());
                 lineBuilder.Clear();
                 currentLineWidth = 0;
             }
@@ -147,11 +152,17 @@ internal sealed class Typeface : ITypeface
             currentLineWidth += wordWidth;
             wordBuilder.Clear();
         }
+        
+        //  Flush any remaining word
+        if (wordBuilder.Length > 0)
+        {
+            lineBuilder.Append(wordBuilder);
+        }
 
         // Flush any remaining line
         if (lineBuilder.Length > 0)
         {
-            lines.Add(lineBuilder.ToString().TrimEnd());
+            lines.Add(lineBuilder.ToString());
         }
 
         return lines.ToArray();
