@@ -161,7 +161,7 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.Tab)
                     {
-                        state.Text.Append('\t');
+                        state.Text.Insert(state.CaretIndex, '\t');
                         state.CaretIndex += 1;
                         typing = true;
                     }
