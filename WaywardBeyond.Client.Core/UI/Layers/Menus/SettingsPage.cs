@@ -46,7 +46,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
                 Y = new Relative(0.3f),
-                Width = new Fixed(250),
+                Width = new Fixed(300),
                 Height = new Relative(1f),
             };
             

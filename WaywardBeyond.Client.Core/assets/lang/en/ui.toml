@@ -19,7 +19,7 @@
 "ui.setting.vsync" = "VSync"
 "ui.setting.fullscreen" = "Fullscreen"
 "ui.setting.msaa" = "Anti-aliasing"
-"ui.setting.fov" = "FOV"
+"ui.setting.fov" = "Field of view"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"
