@@ -42,7 +42,7 @@ internal sealed class SingleplayerPage(
     };
 
     private int _scrollY;
-    private TextBoxState _saveNameTextBox = new(initialValue: localization.GetString("ui.field.defaultSaveName") ?? string.Empty, placeholder: "Enter name...");
+    private TextBoxState _saveNameTextBox = new(initialValue: string.Empty, placeholder: localization.GetString("ui.field.saveName"));
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
