@@ -73,10 +73,11 @@ internal sealed class SingleplayerPage(
             }
             
             ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            var saveNameValue = _saveNameTextBox.Text.ToString();
             
-            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings))
+            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
             {
-                var options = new GameOptions(_saveNameTextBox.Text.ToString(), seed: "wayward beyond");
+                var options = new GameOptions(saveNameValue, seed: "wayward beyond");
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             
