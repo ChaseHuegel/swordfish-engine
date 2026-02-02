@@ -289,6 +289,10 @@ internal static partial class Widgets
                     }
                 }
             }
+            else
+            {
+                state.SelectionStartIndex = state.CaretIndex;
+            }
             
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
