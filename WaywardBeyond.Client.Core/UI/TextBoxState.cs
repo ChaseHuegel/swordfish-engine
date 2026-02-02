@@ -4,7 +4,6 @@ namespace WaywardBeyond.Client.Core.UI;
 
 internal struct TextBoxState(in string initialValue, in string? placeholder = null)
 {
-    public bool Dragging;
     public int CaretIndex;
     public int SelectionStartIndex;
     

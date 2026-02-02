@@ -69,17 +69,8 @@ internal static partial class Widgets
             var navigating = false;
             var editing = false;
             var selectionOverwritten = false;
-
-            if (held)
-            {
-                state.Dragging = true;
-            }
-            else if (state.Dragging && ui.LeftReleased())
-            {
-                state.Dragging = false;
-            }
             
-            if (clicked || state.Dragging)
+            if (clicked || held)
             {
                 IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
                 selectionOverwritten = true;
@@ -94,7 +85,7 @@ internal static partial class Widgets
                     {
                         state.CaretIndex = i;
                         
-                        if (!state.Dragging)
+                        if (!held)
                         {
                             state.SelectionStartIndex = i;
                         }
@@ -109,7 +100,7 @@ internal static partial class Widgets
                     }
 
                     state.CaretIndex++;
-                    if (!state.Dragging)
+                    if (!held)
                     {
                         state.SelectionStartIndex++;
                     }
