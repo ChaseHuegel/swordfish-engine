@@ -175,7 +175,7 @@ internal static partial class Widgets
                         int deleteStartIndex = state.CaretIndex;
                         var countToDelete = 1;
                         
-                        if (state.HasSelection())
+                        if (hasSelection)
                         {
                             TextBoxState.Selection selection = state.CalculateSelection();
                             deleteStartIndex = selection.StartIndex;
@@ -252,12 +252,30 @@ internal static partial class Widgets
                         {
                             state.SelectionStartIndex = 0;
                             state.CaretIndex = state.Text.Length;
+                            selectionOverwritten = true;
                         }
                         
                         TextBoxState.Selection selection = state.CalculateSelection();
                         var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
                         inputService.SetClipboard(textStr);
-                        selectionOverwritten = true;
+                    }
+                    else if (input == UIController.Key.X && isCtrlHeld)
+                    {
+                        if (!hasSelection)
+                        {
+                            state.SelectionStartIndex = 0;
+                            state.CaretIndex = state.Text.Length;
+                            selectionOverwritten = true;
+                        }
+                        
+                        TextBoxState.Selection selection = state.CalculateSelection();
+                        
+                        var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
+                        inputService.SetClipboard(textStr);
+                        
+                        state.Text.Remove(selection.StartIndex, selection.Length);
+                        state.CaretIndex = selection.StartIndex;
+                        editing = true;
                     }
                     else if (input == UIController.Key.V && isCtrlHeld)
                     {
