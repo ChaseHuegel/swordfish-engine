@@ -57,8 +57,8 @@ internal sealed class Typeface : ITypeface
         }
 
         float scale = fontOptions.Size / _metrics.emSize;
-        var minWidthPx = (int)Math.Round(widthEm * scale, MidpointRounding.AwayFromZero);
-        var minHeightPx = (int)Math.Round(_metrics.lineHeight * scale);
+        var minWidthPx = (int)Math.Floor(widthEm * scale);
+        var minHeightPx = (int)Math.Floor(_metrics.lineHeight * scale);
         return new TextConstraints(minWidthPx, minHeightPx, minWidthPx, minHeightPx);
     }
 
