@@ -51,12 +51,14 @@ internal static partial class Widgets
     {
         using (ui.Element(id))
         {
+            ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
             ui.LayoutDirection = LayoutDirection.None;
+            ui.Padding = new Padding(left: 1, top: 0, right: 1, bottom: 0);
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Left,
+                Width = new Relative(1.5f),
             };
-            ui.Padding = new Padding(1, 0, 1, 0);
 
             bool clicked = ui.Clicked();
             bool held = ui.Held();
@@ -253,7 +255,7 @@ internal static partial class Widgets
                         }
                         
                         TextBoxState.Selection selection = state.CalculateSelection();
-                        var textStr =  state.Text.ToString(selection.StartIndex, selection.Length);
+                        var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
                         inputService.SetClipboard(textStr);
                         selectionOverwritten = true;
                     }
