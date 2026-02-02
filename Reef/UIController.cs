@@ -212,6 +212,15 @@ public sealed class UIController
         _leftMouse = new InputState<bool>(previous: _leftMouse.Current, current: (downMouseButtons & MouseButtons.Left) == MouseButtons.Left);
         _rightMouse = new InputState<bool>(previous: _rightMouse.Current, current: (downMouseButtons & MouseButtons.Right) == MouseButtons.Right);
         _middleMouse = new InputState<bool>(previous: _middleMouse.Current, current: (downMouseButtons & MouseButtons.Middle) == MouseButtons.Middle);
+        
+        //  On click, unfocus any currently focused element.
+        //  This is intended to only unfocus if clicking outside any focusable element.
+        //  Rather than checking explicitly if something is under the cursor here,
+        //  state will be ensured later when element interaction states are updated.
+        if (IsLeftPressed())
+        {
+            _lastInteractedID = null;
+        }
     }
 
     public void UpdateInputBuffer(IEnumerable<Input> buffer)
@@ -219,7 +228,16 @@ public sealed class UIController
         lock (_inputBuffer)
         {
             _inputBuffer.Clear();
-            _inputBuffer.AddRange(buffer);
+            foreach (Input input in buffer)
+            {
+                _inputBuffer.Add(input);
+                
+                //  On esc, unfocus any currently focused element.
+                if (input == Key.Esc)
+                {
+                    _lastInteractedID = null;
+                }
+            }
         }
     }
     
