@@ -92,12 +92,10 @@ internal sealed class SingleplayerPage(
             {
                 ui.VerticalScroll = true;
                 ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Spacing = 8;
                 
                 ui.Constraints = new Constraints
                 {
                     Width = new Relative(1f),
-                    Height = new Fixed(150),
                 };
                 
                 ui.ClipConstraints = new Constraints
@@ -107,7 +105,7 @@ internal sealed class SingleplayerPage(
                 };
                 
                 float scroll = _inputService.GetMouseScroll();
-                _scrollY = Math.Clamp(_scrollY + (int)scroll, -saves.Length, 0);
+                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
                 ui.ScrollY = _scrollY * 30;
 
                 for (var i = 0; i < saves.Length; i++)
