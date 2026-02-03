@@ -118,6 +118,7 @@ public class SilkInputService : IInputService
     private volatile float _lastScroll;
 
     private readonly IMouse _mainMouse;
+    private readonly IKeyboard _mainKeyboard;
     private readonly ConcurrentDictionary<Key, InputRecord> _keyInputMap = new();
     private readonly ConcurrentDictionary<MouseButton, InputRecord> _mouseInputMap = new();
     private readonly InputRecord _scrollRecord = new();
@@ -161,6 +162,7 @@ public class SilkInputService : IInputService
             _mouseInputMap.TryAdd(mouseButton, new InputRecord());
         }
 
+        _mainKeyboard = context.Keyboards[0];
         foreach (IKeyboard keyboard in context.Keyboards)
         {
             keyboard.KeyChar += OnKeyChar;
@@ -241,6 +243,22 @@ public class SilkInputService : IInputService
     public void SetAxisDeadzone(InputAxis axis, float deadzone)
     {
         throw new NotImplementedException();
+    }
+
+    public string GetClipboard()
+    {
+        lock (_mainKeyboard)
+        {
+            return _mainKeyboard.ClipboardText ?? string.Empty;
+        }
+    }
+
+    public void SetClipboard(string content)
+    {
+        lock (_mainKeyboard)
+        {
+            _mainKeyboard.ClipboardText = content ?? string.Empty;
+        }
     }
 
     private void OnKeyDown(IKeyboard keyboard, Silk.NET.Input.Key key, int index)
