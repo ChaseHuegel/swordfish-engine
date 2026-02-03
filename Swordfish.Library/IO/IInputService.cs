@@ -42,4 +42,7 @@ public interface IInputService
     float GetAxis(InputAxis axis);
     float GetAxisDeadzone(InputAxis axis);
     void SetAxisDeadzone(InputAxis axis, float deadzone);
+
+    string GetClipboard();
+    void SetClipboard(string content);
 }
