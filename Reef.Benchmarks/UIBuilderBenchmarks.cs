@@ -32,7 +32,7 @@ public class UIBuilderBenchmarks
         _renderer = new PixelRenderer(1920, 1080, textEngine, fonts);
 
         TestUI.Populate(_builder, _awesomeFont, _texture);
-        _renderCommands = _builder.Build();
+        _renderCommands = _builder.Build(delta: 0f);
     }
 
     [GlobalSetup]
@@ -42,7 +42,7 @@ public class UIBuilderBenchmarks
     }
 
     [Benchmark]
-    public RenderCommand<PixelTexture>[] Build() => _builder.Build();
+    public RenderCommand<PixelTexture>[] Build() => _builder.Build(delta: 0f);
     
     [Benchmark]
     public void Populate() => TestUI.Populate(_builder, _awesomeFont, _texture);
@@ -54,14 +54,14 @@ public class UIBuilderBenchmarks
     public RenderCommand<PixelTexture>[] PopulateAndBuild()
     {
         TestUI.Populate(_builder, _awesomeFont, _texture);
-        return _builder.Build();
+        return _builder.Build(delta: 0f);
     }
     
     [Benchmark]
     public void PopulateBuildAndRender()
     {
         TestUI.Populate(_builder, _awesomeFont, _texture);
-        RenderCommand<PixelTexture>[] commands = _builder.Build();
+        RenderCommand<PixelTexture>[] commands = _builder.Build(delta: 0f);
         _renderer.Render(commands);
     }
 }
