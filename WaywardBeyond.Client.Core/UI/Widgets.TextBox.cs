@@ -316,7 +316,7 @@ internal static partial class Widgets
             string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
             
             TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
-            if (focused)
+            if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
             {
                 //  Render the caret
                 using (ui.Element())
