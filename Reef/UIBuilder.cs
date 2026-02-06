@@ -18,6 +18,10 @@ public sealed class UIBuilder<TRendererData>
         public int LeftOffset = 0;
         public int TopOffset = 0;
     }
+    
+    public double Delta { get; private set; }
+    
+    public double Time { get; private set; }
 
     public Vector4 Color
     {
@@ -233,8 +237,11 @@ public sealed class UIBuilder<TRendererData>
     public bool RightReleased() => _controller.IsRightReleased();
     public bool RightHeld() => _controller.IsRightHeld();
 
-    public RenderCommand<TRendererData>[] Build()
+    public RenderCommand<TRendererData>[] Build(double delta)
     {
+        Delta = delta;
+        Time += delta;
+        
         //  Force close all elements
         while (_hasOpenElement)
         {

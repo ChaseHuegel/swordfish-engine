@@ -63,19 +63,19 @@ public class UITests
         controller.UpdateMouse(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
         var sw2 = Stopwatch.StartNew();
-        ui.Build();
+        ui.Build(delta: 0f);
         sw1.Stop();
         sw2.Stop();
 
         //  Frame 2, clicked
         controller.UpdateMouse(763, 536, UIController.MouseButtons.Left);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
-        ui.Build();
+        ui.Build(delta: 0.1f);
         
         //  Frame 3, no input
         controller.UpdateMouse(763, 536, UIController.MouseButtons.None);
         RenderTestUI(ui, awesomeFont, swordfishTexture);
-        RenderCommand<PixelTexture>[] renderCommands = ui.Build();
+        RenderCommand<PixelTexture>[] renderCommands = ui.Build(delta: 0.1f);
         
         var renderer = new PixelRenderer(ui.Width, ui.Height, textEngine, fonts);
         renderer.Render(renderCommands);

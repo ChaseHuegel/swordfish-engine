@@ -121,7 +121,7 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
             return;
         }
         
-        RenderCommand<Material>[] commands = _reefContext.Builder.Build();
+        RenderCommand<Material>[] commands = _reefContext.Builder.Build(delta);
 
         _instances.Clear();
         for (var i = 0; i < commands.Length; i++)
