@@ -61,6 +61,105 @@ public class CommandLineArgs
         return _options.TryGetValue(key, out values);
     }
 
+    public bool TryGetValue(string key, out int value)
+    {
+        if (TryGetValue(key, out string? valueStr) && int.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out float value)
+    {
+        if (TryGetValue(key, out string? valueStr) && float.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out double value)
+    {
+        if (TryGetValue(key, out string? valueStr) && double.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out long value)
+    {
+        if (TryGetValue(key, out string? valueStr) && long.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out short value)
+    {
+        if (TryGetValue(key, out string? valueStr) && short.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out byte value)
+    {
+        if (TryGetValue(key, out string? valueStr) && byte.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out uint value)
+    {
+        if (TryGetValue(key, out string? valueStr) && uint.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out ulong value)
+    {
+        if (TryGetValue(key, out string? valueStr) && ulong.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+    
+    public bool TryGetValue(string key, out ushort value)
+    {
+        if (TryGetValue(key, out string? valueStr) && ushort.TryParse(valueStr, out value))
+        {
+            return true;
+        }
+        
+        value = 0;
+        return false;
+    }
+
     public override string ToString()
     {
         var builder = new StringBuilder();
