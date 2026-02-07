@@ -54,11 +54,11 @@ internal static partial class Widgets
             ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
             ui.LayoutDirection = LayoutDirection.None;
             ui.Padding = new Padding(left: 1, top: 0, right: 1, bottom: 0);
-            ui.Constraints = new Constraints
+            
+            if (state.Settings.Constraints != null)
             {
-                Anchors = Anchors.Center | Anchors.Left,
-                Width = new Relative(1.5f),
-            };
+                ui.Constraints = state.Settings.Constraints.Value;
+            }
 
             bool clicked = ui.Clicked();
             bool held = ui.Held();
@@ -301,6 +301,12 @@ internal static partial class Widgets
                         state.CaretIndex = state.Text.Length;
                         selectionOverwritten = true;
                     }
+                    
+                    if (state.Settings.MaxCharacters > 0 && state.Text.Length > state.Settings.MaxCharacters.Value)
+                    {
+                        int truncateStartIndex = state.Settings.MaxCharacters.Value;
+                        state.Text.Remove(truncateStartIndex, state.Text.Length - state.Settings.MaxCharacters.Value);
+                    }
 
                     editing = typing || editing;
                     state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
@@ -317,7 +323,7 @@ internal static partial class Widgets
             }
             
             bool isPlaceholder = state.Text.Length == 0;
-            string displayString = isPlaceholder ? state.PlaceholderText ?? " " : state.Text.ToString();
+            string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
             
             TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
             if (focused && (editing || navigating || ui.Time % 1f < 0.5f))

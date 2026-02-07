@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -13,23 +14,16 @@ using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
-internal sealed class SingleplayerPage(
-    in GameSaveManager gameSaveManager,
-    in GameSaveService gameSaveService,
-    in IInputService inputService,
-    in IAudioService audioService,
-    in VolumeSettings volumeSettings,
-    in ILocalization localization
-) : IMenuPage<MenuPage>
+internal sealed class SingleplayerPage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Singleplayer;
     
-    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    private readonly GameSaveService _gameSaveService = gameSaveService;
-    private readonly IInputService _inputService = inputService;
-    private readonly IAudioService _audioService = audioService;
-    private readonly VolumeSettings _volumeSettings = volumeSettings;
-    private readonly ILocalization _localization = localization;
+    private readonly GameSaveManager _gameSaveManager;
+    private readonly GameSaveService _gameSaveService;
+    private readonly IInputService _inputService;
+    private readonly IAudioService _audioService;
+    private readonly VolumeSettings _volumeSettings;
+    private readonly ILocalization _localization;
     
     private readonly FontOptions _buttonFontOptions = new()
     {
@@ -42,42 +36,94 @@ internal sealed class SingleplayerPage(
     };
 
     private int _scrollY;
-    private TextBoxState _saveNameTextBox = new(initialValue: string.Empty, placeholder: localization.GetString("ui.field.saveName"));
-    
+    private TextBoxState _saveNameTextBox;
+    private TextBoxState _seedTextBox;
+
+    public SingleplayerPage(in GameSaveManager gameSaveManager,
+        in GameSaveService gameSaveService,
+        in IInputService inputService,
+        in IAudioService audioService,
+        in VolumeSettings volumeSettings,
+        in ILocalization localization)
+    {
+        _gameSaveManager = gameSaveManager;
+        _gameSaveService = gameSaveService;
+        _inputService = inputService;
+        _audioService = audioService;
+        _volumeSettings = volumeSettings;
+        _localization = localization;
+
+        var saveNameTextBoxOptions = new TextBoxState.Options(
+            Placeholder: localization.GetString("ui.field.saveName"),
+            MaxCharacters: 20,
+            Constraints: new Constraints
+            {
+                Width = new Fixed(300),
+            }
+        );
+        _saveNameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
+        
+        var saveSeedTextBoxOptions = new TextBoxState.Options(
+            Placeholder: localization.GetString("ui.field.saveSeed"),
+            MaxCharacters: 20,
+            Constraints: new Constraints
+            {
+                Width = new Fixed(300),
+            }
+        );
+        
+        _seedTextBox = new TextBoxState(initialValue: string.Empty, saveSeedTextBoxOptions);
+    }
+
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         GameSave[] saves = _gameSaveService.GetSaves();
         
         using (ui.Element())
         {
+            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
-                Y = new Relative(0.4f),
+                Y = new Relative(0.35f),
             };
             
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center,
+                    Anchors = Anchors.Center | Anchors.Top,
                     X = new Relative(0.5f),
                 };
 
-                using (ui.Text(_localization.GetString("ui.menu.saves")!))
+                using (ui.Text(_localization.GetString("ui.menu.createSave")!))
                 {
                     ui.FontSize = 24;
                 }
             }
-            
-            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fixed(300),
+                    Height = new Fixed(80),
+                };
+                
+                ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+                ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            }
+
             var saveNameValue = _saveNameTextBox.Text.ToString();
-            
             if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
             {
-                var options = new GameOptions(saveNameValue, seed: "wayward beyond");
+                var seedValue = _seedTextBox.Text.ToString();
+                string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" :  seedValue;
+                var options = new GameOptions(saveNameValue, seed);
                 Task.Run(() => _gameSaveManager.NewGame(options));
             }
             
@@ -85,8 +131,14 @@ internal sealed class SingleplayerPage(
             {
                 ui.Constraints = new Constraints
                 {
-                    Height = new Fixed(20),
+                    Anchors = Anchors.Center | Anchors.Top,
+                    X = new Relative(0.5f),
                 };
+
+                using (ui.Text(_localization.GetString("ui.menu.saves")!))
+                {
+                    ui.FontSize = 24;
+                }
             }
 
             using (ui.Element())

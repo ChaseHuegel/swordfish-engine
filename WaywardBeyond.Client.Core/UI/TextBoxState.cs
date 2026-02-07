@@ -1,14 +1,16 @@
 using System.Text;
+using Reef.Constraints;
+using Reef.UI;
 
 namespace WaywardBeyond.Client.Core.UI;
 
-internal struct TextBoxState(in string initialValue, in string? placeholder = null)
+internal struct TextBoxState(in string initialValue, in TextBoxState.Options options = default)
 {
     public int CaretIndex;
     public int SelectionStartIndex;
     
     public readonly StringBuilder Text = new(initialValue);
-    public readonly string? PlaceholderText = placeholder;
+    public readonly Options Settings = options;
 
     /// <summary>
     ///     Determines whether any text is selected.
@@ -43,4 +45,6 @@ internal struct TextBoxState(in string initialValue, in string? placeholder = nu
     }
 
     public readonly record struct Selection(int StartIndex, int Length, bool Forward);
+
+    public record struct Options(string? Placeholder = null, int? MaxCharacters = 0, Constraints? Constraints = null);
 }
