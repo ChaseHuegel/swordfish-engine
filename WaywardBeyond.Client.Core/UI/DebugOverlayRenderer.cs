@@ -15,6 +15,7 @@ internal class DebugOverlayRenderer : IUILayer
     private readonly ILogger _logger;
     private readonly ReefContext _reefContext;
     private readonly DebugSettings _debugSettings;
+    private readonly Swordfish.Settings.DebugSettings _engineDebugSettings;
     private readonly IDebugOverlay[] _overlays;
     
     public DebugOverlayRenderer(
@@ -22,11 +23,13 @@ internal class DebugOverlayRenderer : IUILayer
         ReefContext reefContext,
         IShortcutService shortcutService,
         DebugSettings debugSettings,
+        Swordfish.Settings.DebugSettings engineDebugSettings,
         IDebugOverlay[] overlays
     ) {
         _logger = logger;
         _reefContext = reefContext;
         _debugSettings = debugSettings;
+        _engineDebugSettings = engineDebugSettings;
         _overlays = overlays;
 
         var shortcut = new Shortcut
@@ -86,6 +89,8 @@ internal class DebugOverlayRenderer : IUILayer
     
     private void OnToggleDebugOverlay()
     {
-        _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
+        bool visible = _debugSettings.OverlayVisible;
+        _debugSettings.OverlayVisible.Set(!visible);
+        _engineDebugSettings.UI.Set(!visible);
     }
 }
