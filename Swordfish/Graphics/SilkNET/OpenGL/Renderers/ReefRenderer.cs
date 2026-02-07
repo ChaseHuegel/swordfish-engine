@@ -20,6 +20,7 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
     private readonly GLRenderContext _glRenderContext;
     private readonly RenderSettings _renderSettings;
     private readonly ReefContext _reefContext;
+    private readonly DebugSettings _debugSettings;
     private readonly Dictionary<string, Material> _typefaceMaterials = [];
 
     //  If either of these is null, the renderer is attempting to render without having initialized.
@@ -47,12 +48,14 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         in ReefContext reefContext,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
+        in DebugSettings debugSettings,
         in ILogger logger
     ) {
         _gl = gl;
         _glRenderContext = glRenderContext;
         _renderSettings = renderSettings;
         _reefContext = reefContext;
+        _debugSettings = debugSettings;
 
         if (!vfs.TryGetFile(AssetPaths.Shaders.At("ui_reef.glsl"), out PathInfo defaultUIShaderFile))
         {
@@ -120,8 +123,9 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         {
             return;
         }
-        
+
         RenderCommand<Material>[] commands = _reefContext.Builder.Build(delta);
+        _reefContext.Builder.Debug = _debugSettings.UI.Get();
 
         _instances.Clear();
         for (var i = 0; i < commands.Length; i++)

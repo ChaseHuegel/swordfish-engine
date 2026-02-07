@@ -119,13 +119,28 @@ public sealed class UIBuilder<TRendererData>
         set => _currentElement.ID = value;
     }
 
+    public bool Debug
+    {
+        get => _currentElement.Debug;
+        set
+        {
+            if (!_hasOpenElement)
+            {
+                _globalDebug = value;
+            }
+            
+            _currentElement.Debug = value;
+        }
+    }
+
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
 
     private IntRect _viewPort;
     private readonly ITextEngine _textEngine;
     private readonly UIController _controller;
-    
+
+    private bool _globalDebug;
     private bool _hasOpenElement;
     private Element<TRendererData> _currentElement;
     private readonly Stack<Element<TRendererData>> _openElements = new();
@@ -513,12 +528,31 @@ public sealed class UIBuilder<TRendererData>
                     clipRect = element.Rect;
                 }
 
+                Vector4 color = element.Style.Color;
+                Vector4 backgroundColor = element.Style.BackgroundColor;
+                if (element.Debug || _globalDebug)
+                {
+                    Random? rand = null;
+
+                    if (element.Style.Color.W == 0d)
+                    {
+                        rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
+                        color = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
+                    }
+                    
+                    if (element.Style.BackgroundColor.W == 0d)
+                    {
+                        rand ??= new Random(element.ID?.GetHashCode() ?? element.Rect.GetHashCode());
+                        backgroundColor = new Vector4(rand.NextSingle(), rand.NextSingle(), rand.NextSingle(), 0.25f);
+                    }
+                }
+                
                 var command = new RenderCommand<TRendererData>
                 (
                     element.Rect,
                     clipRect,
-                    element.Style.Color,
-                    element.Style.BackgroundColor,
+                    color,
+                    backgroundColor,
                     element.Style.CornerRadius,
                     element.FontOptions,
                     element.Text,
@@ -548,6 +582,10 @@ public sealed class UIBuilder<TRendererData>
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
                     Element<TRendererData> child = element.Children[childIndex];
+                    
+                    //  Propagate the debug flag to children
+                    child.Debug |= element.Debug;
+                    
                     stack.Push(new ElementNode(child, element, childIndex)
                     {
                         LeftOffset = leftOffset,
