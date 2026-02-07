@@ -15,7 +15,7 @@
 "ui.menu.saves" = "Game Saves"
 "ui.button.newGame" = "+ Begin journey"
 "ui.field.saveName" = "Enter save name..."
-"ui.field.saveSeed" = "[Random]"
+"ui.field.saveSeed" = "[Random seed]"
 
 "ui.menu.display" = "Display"
 "ui.setting.vsync" = "VSync"
