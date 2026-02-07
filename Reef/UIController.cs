@@ -33,14 +33,14 @@ public sealed class UIController
             Char = c;
         }
         
-        public Input(Key key)
+        public Input(Key key, bool pressed)
         {
-            Type = InputType.Key;
+            Type = pressed ? InputType.KeyPress : InputType.KeyRelease;
             Key = key;
         }
         
-        public static bool operator ==(Input input, Key key) => input.Type == InputType.Key && input.Key == key;
-        public static bool operator !=(Input input, Key key) => input.Type != InputType.Key || input.Key != key;
+        public static bool operator ==(Input input, Key key) => input.Type <= InputType.KeyRelease && input.Key == key;
+        public static bool operator !=(Input input, Key key) => input.Type > InputType.KeyRelease || input.Key != key;
         
         public static bool operator ==(Input input, char c) => input.Type == InputType.Char && input.Char == c;
         public static bool operator !=(Input input, char c) => input.Type != InputType.Char || input.Char != c;
@@ -48,7 +48,8 @@ public sealed class UIController
 
     public enum InputType
     {
-        Key,
+        KeyPress,
+        KeyRelease,
         Char,
     }
     
@@ -273,7 +274,42 @@ public sealed class UIController
     {
         lock (_inputBuffer)
         {
-            return _inputBuffer.Contains(new Input(key));
+            for (int i = _inputBuffer.Count - 1; i >= 0; i--)
+            {
+                //  Find the last input of this key
+                Input input = _inputBuffer[i];
+                if (input != key)
+                {
+                    continue;
+                }
+                
+                return input.Type == InputType.KeyPress;
+            }
+
+            return false;
+        }
+    }
+    
+    internal bool IsReleased(Key key)
+    {
+        lock (_inputBuffer)
+        {
+            lock (_inputBuffer)
+            {
+                for (int i = _inputBuffer.Count - 1; i >= 0; i--)
+                {
+                    //  Find the last input of this key
+                    Input input = _inputBuffer[i];
+                    if (input != key)
+                    {
+                        continue;
+                    }
+                
+                    return input.Type == InputType.KeyRelease;
+                }
+
+                return false;
+            }
         }
     }
     
