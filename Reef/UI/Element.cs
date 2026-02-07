@@ -4,6 +4,7 @@ namespace Reef.UI;
 
 public struct Element<TRendererData>
 {
+    public bool Debug;
     public IntRect Rect;
     public Style Style;
     public Layout Layout;
