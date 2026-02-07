@@ -105,9 +105,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<AudioSourceDatabase>(Reuse.Singleton);
         
         var debugSettings = new DebugSettings();
-        debugSettings.Stats.Set(true);
-
-        container.RegisterInstance<DebugSettings>(debugSettings);
+        container.RegisterInstance(debugSettings);
         
         container.RegisterConfig<RenderSettings>(file: "render.toml");
         container.RegisterConfig<WindowSettings>(file: "window.toml");
