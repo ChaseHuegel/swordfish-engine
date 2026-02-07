@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
@@ -16,6 +18,8 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class SingleplayerPage : IMenuPage<MenuPage>
 {
+    private static readonly char[] _saveNameTrimChars = [' ', '\t', '.'];
+
     public MenuPage ID => MenuPage.Singleplayer;
     
     private readonly GameSaveManager _gameSaveManager;
@@ -56,6 +60,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         var saveNameTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.saveName"),
             MaxCharacters: 20,
+            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
             Constraints: new Constraints
             {
                 Width = new Fixed(300),
@@ -118,7 +123,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
                 ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
             }
 
-            var saveNameValue = _saveNameTextBox.Text.ToString();
+            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
             {
                 var seedValue = _seedTextBox.Text.ToString();

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
 using Reef;
@@ -121,6 +122,11 @@ internal static partial class Widgets
                     
                     if (input.Type == UIController.InputType.Char && !isCtrlHeld)
                     {
+                        if (state.Settings.DisallowedCharacters != null && state.Settings.DisallowedCharacters.Contains(input.Char))
+                        {
+                            continue;
+                        }
+                        
                         if (hasSelection)
                         {
                             TextBoxState.Selection selection = state.CalculateSelection();
@@ -283,6 +289,28 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.V && isCtrlHeld)
                     {
+                        string clipboardContent = inputService.GetClipboard();
+                        
+                        if (state.Settings.DisallowedCharacters != null)
+                        {
+                            var hasDisallowedCharacter = false;
+                            for (var i = 0; i < clipboardContent.Length; i++)
+                            {
+                                if (!state.Settings.DisallowedCharacters.Contains(clipboardContent[i]))
+                                {
+                                    continue;
+                                }
+                                
+                                hasDisallowedCharacter = true;
+                                break;
+                            }
+
+                            if (hasDisallowedCharacter)
+                            {
+                                continue;
+                            }
+                        }
+                        
                         if (hasSelection)
                         {
                             TextBoxState.Selection selection = state.CalculateSelection();
@@ -290,7 +318,6 @@ internal static partial class Widgets
                             state.CaretIndex = selection.StartIndex;
                         }
 
-                        string clipboardContent = inputService.GetClipboard();
                         state.Text.Insert(state.CaretIndex, clipboardContent);
                         state.CaretIndex += clipboardContent.Length;
                         editing = true;
