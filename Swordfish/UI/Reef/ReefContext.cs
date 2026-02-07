@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.MSDF;
 using Reef.Text;
+using Shoal.CommandLine;
 using Silk.NET.Maths;
 using Silk.NET.Windowing;
 using Swordfish.Graphics;
@@ -15,6 +16,11 @@ namespace Swordfish.UI.Reef;
 
 public sealed class ReefContext : IDisposable
 {
+    private const string INPUT_REPEAT_DELAY_SEC_ARG = "INPUT_REPEAT_DELAY_SEC";
+    private const string INPUT_REPEAT_INTERVAL_SEC_ARG = "INPUT_REPEAT_INTERVAL_SEC";
+    private const double DEFAULT_INPUT_REPEAT_DELAY_SEC = 0.6d;
+    private const double DEFAULT_INPUT_REPEAT_INTERVAL_SEC = 1d / 25;
+    
     public readonly UIBuilder<Material> Builder;
     public readonly ITextEngine TextEngine;
 
@@ -23,9 +29,13 @@ public sealed class ReefContext : IDisposable
     private readonly IInputService _input;
     private readonly VirtualFileSystem _vfs;
     private readonly UIController _controller;
+    private readonly double _inputRepeatDelaySec;
+    private readonly double _inputRepeatIntervalSec;
+    
     private readonly List<UIController.Input> _inputBuffer = [];
+    private readonly Dictionary<InputEvent, double> _heldInputs = []; // InputEvent, ProcessedRepeatTime
 
-    public ReefContext(ILogger logger, IWindow window, IInputService input, VirtualFileSystem vfs)
+    public ReefContext(ILogger logger, IWindow window, IInputService input, VirtualFileSystem vfs, CommandLineArgs commandLineArgs)
     {
         _logger = logger;
         _window = window;
@@ -33,12 +43,23 @@ public sealed class ReefContext : IDisposable
         _vfs = vfs;
         _controller = new UIController();
 
+        if (!commandLineArgs.TryGetValue(INPUT_REPEAT_DELAY_SEC_ARG, out _inputRepeatDelaySec))
+        {
+            _inputRepeatDelaySec = DEFAULT_INPUT_REPEAT_DELAY_SEC;
+        }
+        
+        if (!commandLineArgs.TryGetValue(INPUT_REPEAT_INTERVAL_SEC_ARG, out _inputRepeatIntervalSec))
+        {
+            _inputRepeatIntervalSec = DEFAULT_INPUT_REPEAT_INTERVAL_SEC;
+        }
+
         TextEngine = CreateTextEngine();        
         Builder = new UIBuilder<Material>(width: window.Size.X, height: window.Size.Y, TextEngine, _controller);
 
         window.Resize += OnWindowResize;
         window.Update += OnWindowUpdate;
         input.KeyPressed += OnKeyPressed;
+        input.KeyReleased += OnKeyReleased;
         input.CharInput += OnCharInput;
     }
     
@@ -78,6 +99,35 @@ public sealed class ReefContext : IDisposable
         
         lock (_inputBuffer)
         {
+            //  Process repeating inputs
+            double time = _window.Time;
+            foreach ((InputEvent inputEvent, double processedRepeatTime) in _heldInputs)
+            {
+                double timeHeld = time - inputEvent.Time;
+                if (timeHeld < _inputRepeatDelaySec)
+                {
+                    continue;
+                }
+
+                double repeatTime = timeHeld - _inputRepeatDelaySec - processedRepeatTime;
+                if (repeatTime < _inputRepeatIntervalSec)
+                {
+                    continue;
+                }
+
+                var repeatCount = (int)Math.Floor(repeatTime / _inputRepeatIntervalSec);
+
+                //  Update the amount of repeat time that's been processed
+                _heldInputs[inputEvent] = processedRepeatTime + repeatTime;
+                
+                //  Repeat the input
+                for (var i = 0; i < repeatCount; i++)
+                {
+                    _inputBuffer.Add(inputEvent.Input);
+                }
+            }
+            
+            //  Update the input buffer
             _controller.UpdateInputBuffer(_inputBuffer);
             _inputBuffer.Clear();
         }
@@ -88,8 +138,22 @@ public sealed class ReefContext : IDisposable
         lock (_inputBuffer)
         {
             var key = (UIController.Key)e.Key;
-            var input = new UIController.Input(key);
+            var input = new UIController.Input(key, pressed: true);
+            var inputEvent = new InputEvent(input, _window.Time);
             _inputBuffer.Add(input);
+            _heldInputs.TryAdd(inputEvent, 0d);
+        }
+    }
+    
+    private void OnKeyReleased(object? sender, KeyEventArgs e)
+    {
+        lock (_inputBuffer)
+        {
+            var key = (UIController.Key)e.Key;
+            var input = new UIController.Input(key, pressed: false);
+            var inputEvent = new InputEvent(input);
+            _inputBuffer.Add(input);
+            _heldInputs.Remove(inputEvent);
         }
     }
     
@@ -160,6 +224,27 @@ public sealed class ReefContext : IDisposable
         bool PathIsToml(PathInfo path)
         {
             return path.HasExtension(".toml");
+        }
+    }
+    
+    private readonly struct InputEvent(in UIController.Input input, in double time = 0d) : IEquatable<InputEvent>
+    {
+        public readonly double Time = time;
+        public readonly UIController.Input Input = input;
+
+        public bool Equals(InputEvent other)
+        {
+            return Input.Key == other.Input.Key;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return obj is InputEvent other && Equals(other);
+        }
+
+        public override int GetHashCode()
+        {
+            return Input.Key.GetHashCode();
         }
     }
 }

@@ -132,6 +132,10 @@ internal static partial class Widgets
                         state.CaretIndex += 1;
                         typing = true;
                     }
+                    else if (input.Type != UIController.InputType.KeyPress)
+                    {
+                        continue;
+                    }
                     else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && (hasSelection || state.CaretIndex > 0))
                     {
                         int deleteStartIndex = state.CaretIndex - 1;
