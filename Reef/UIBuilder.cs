@@ -340,8 +340,33 @@ public sealed class UIBuilder<TRendererData>
         //  Apply size constraints
         int maxWidth = _hasOpenElement && parent.Rect.Size.X != 0 ? parent.Rect.Size.X : Width;
         int maxHeight = _hasOpenElement && parent.Rect.Size.Y != 0 ? parent.Rect.Size.Y : Height;
-        int width = element.Constraints.Width?.Calculate(maxWidth) ?? element.Rect.Size.X;
-        int height = element.Constraints.Height?.Calculate(maxHeight) ?? element.Rect.Size.Y;
+        
+        if (_hasOpenElement)
+        {
+            maxWidth = Math.Max(0, maxWidth - parent.Style.Padding.Left - parent.Style.Padding.Right);
+            maxHeight = Math.Max(0, maxHeight - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
+        }
+        
+        int width;
+        if (element.Constraints.Width is Relative && _hasOpenElement)
+        {
+            width = element.Rect.Size.X; // Defer until the top-down pass
+        }
+        else
+        {
+            width = element.Constraints.Width?.Calculate(maxWidth) ?? element.Rect.Size.X;
+        }
+
+        int height;
+        if (element.Constraints.Height is Relative && _hasOpenElement)
+        {
+            height = element.Rect.Size.Y; // Defer until the top-down pass
+        }
+        else
+        {
+            height = element.Constraints.Height?.Calculate(maxHeight) ?? element.Rect.Size.Y;
+        }
+
         var size = new IntVector2(width, height);
         
         element.Rect = new IntRect(element.Rect.Position, size);
@@ -641,6 +666,28 @@ public sealed class UIBuilder<TRendererData>
                 ElementNode frame = stack.Pop();
                 Element<TRendererData> element = frame.Element;
         
+                //  Resolve relative constraints now that the parent's size is known
+                if (frame.Parent != null && element.Children != null)
+                {
+                    int availableWidth = element.Rect.Size.X - element.Style.Padding.Left - element.Style.Padding.Right;
+                    int availableHeight = element.Rect.Size.Y - element.Style.Padding.Top - element.Style.Padding.Bottom;
+                    
+                    for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                    {
+                        Element<TRendererData> child = element.Children[childIndex];
+
+                        int childWidth = child.Constraints.Width is Relative relWidth ? relWidth.Calculate(availableWidth) : child.Rect.Size.X;
+                        int childHeight = child.Constraints.Height is Relative relHeight ? relHeight.Calculate(availableHeight) : child.Rect.Size.Y;
+
+                        if (childWidth != child.Rect.Size.X || childHeight != child.Rect.Size.Y)
+                        {
+                            var size = new IntVector2(childWidth, childHeight);
+                            child.Rect = new IntRect(child.Rect.Position, size);
+                            element.Children[childIndex] = child;
+                        }
+                    }
+                }
+                
                 FillChildren(ref element);
                 ShrinkChildren(ref element);
                 WrapTextChildren(ref element);
