@@ -99,24 +99,21 @@ internal sealed class MainMenu : Menu<MenuPage>
             {
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
                     Width = new Fill(),
-                    Height = new Relative(0.075f),
                 };
-            }
-            
-            if (_titleMaterial != null)
-            {
-                using (ui.Image(_titleMaterial))
+                
+                if (_titleMaterial != null)
                 {
-                    ui.Constraints = new Constraints
+                    using (ui.Image(_titleMaterial))
                     {
-                        Anchors = Anchors.Center | Anchors.Top,
-                        X = new Relative(0.5f),
-                        Width = new Fixed(_titleMaterial.Textures[0].Width),
-                        Height = new Fixed(_titleMaterial.Textures[0].Height),
-                    };
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center | Anchors.Top,
+                            X = new Relative(0.5f),
+                            Width = new Fixed(_titleMaterial.Textures[0].Width),
+                            Height = new Fixed(_titleMaterial.Textures[0].Height),
+                        };
+                    }
                 }
             }
             

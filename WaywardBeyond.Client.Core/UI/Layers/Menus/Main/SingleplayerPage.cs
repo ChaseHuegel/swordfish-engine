@@ -83,60 +83,62 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         GameSave[] saves = _gameSaveService.GetSaves();
-        
-        using (ui.Element())
+        if (saves.Length > 0)
         {
-            ui.Constraints = new Constraints
+            using (ui.Element())
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
-            };
-            
-            using (ui.Text(_localization.GetString("ui.menu.saves")!))
-            {
-                ui.FontSize = 24;
-            }
-        }
-
-        using (ui.Element("saves"))
-        {
-            ui.VerticalScroll = true;
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
-            };
-            
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
-            
-            float scroll = _inputService.GetMouseScroll();
-            _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
-            ui.ScrollY = _scrollY * 30;
-
-            for (var i = 0; i < saves.Length; i++)
-            {
-                GameSave save = saves[i];
-                if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
+                ui.Constraints = new Constraints
                 {
-                    _gameSaveManager.ActiveSave = save;
-                    Task.Run(_gameSaveManager.Load);
+                    Anchors = Anchors.Center | Anchors.Top,
+                    X = new Relative(0.5f),
+                };
+
+                using (ui.Text(_localization.GetString("ui.menu.saves")!))
+                {
+                    ui.FontSize = 24;
                 }
             }
-        }
-        
-        using (ui.Element())
-        {
-            ui.Constraints = new Constraints
+
+            using (ui.Element("saves"))
             {
-                Width = new Fill(),
-                Height = new Fill(),
-            };
+                ui.VerticalScroll = true;
+                ui.LayoutDirection = LayoutDirection.Vertical;
+
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center | Anchors.Top,
+                    X = new Relative(0.5f),
+                };
+
+                ui.ClipConstraints = new Constraints
+                {
+                    Width = new Relative(1f),
+                    Height = new Relative(1f),
+                };
+
+                float scroll = _inputService.GetMouseScroll();
+                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
+                ui.ScrollY = _scrollY * 30;
+
+                for (var i = 0; i < saves.Length; i++)
+                {
+                    GameSave save = saves[i];
+                    if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
+                    {
+                        _gameSaveManager.ActiveSave = save;
+                        Task.Run(_gameSaveManager.Load);
+                    }
+                }
+            }
+            
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
+            }
         }
         
         using (ui.Element())
