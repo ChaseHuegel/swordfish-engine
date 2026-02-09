@@ -4,26 +4,12 @@ using Swordfish.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
 
-internal sealed class GLRectRenderTarget : Handle, IEquatable<GLRectRenderTarget>
+internal sealed class GLRectRenderTarget(in Rect2 rect, in Vector4 color, in GLMaterial[] materials)
+    : Handle, IEquatable<GLRectRenderTarget>
 {
-    public readonly Rect2 Rect;
-    public readonly Vector4 Color;
-    public readonly GLMaterial[] Materials;
-
-    public GLRectRenderTarget(Rect2 rect, Vector4 color, GLMaterial[] materials)
-    {
-        Rect = rect;
-        Color = color;
-        Materials = materials;
-
-        for (var i = 0; i < Materials.Length; i++)
-        {
-            ShaderProgram shaderProgram = Materials[i].ShaderProgram;
-            shaderProgram.BindAttributeLocation("in_position", 0);
-            shaderProgram.BindAttributeLocation("in_color", 1);
-            shaderProgram.BindAttributeLocation("in_uv", 2);
-        }
-    }
+    public readonly Rect2 Rect = rect;
+    public readonly Vector4 Color = color;
+    public readonly GLMaterial[] Materials = materials;
 
     protected override void OnDisposed()
     {
