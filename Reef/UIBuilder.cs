@@ -384,8 +384,8 @@ public sealed class UIBuilder<TRendererData>
 
         //  Apply padding
         Padding padding = element.Style.Padding;
-        width = element.Rect.Size.X + padding.Left - padding.Right;
-        height = element.Rect.Size.Y + padding.Top - padding.Bottom;
+        width = element.Constraints.Width is Fixed or Relative ? element.Rect.Size.X : element.Rect.Size.X + padding.Left + padding.Right;
+        height = element.Constraints.Height is Fixed or Relative ? element.Rect.Size.Y : element.Rect.Size.Y + padding.Top + padding.Bottom;
         
         //  Calculate spacing
         int childCount = element.Children?.Count ?? 0;
@@ -394,10 +394,10 @@ public sealed class UIBuilder<TRendererData>
         //  Apply spacing of children to the element
         switch (element.Layout.Direction)
         {
-            case LayoutDirection.Horizontal:
+            case LayoutDirection.Horizontal when element.Constraints.Width is not Fixed or Relative:
                 width += totalSpacing;
                 break;
-            case LayoutDirection.Vertical:
+            case LayoutDirection.Vertical when element.Constraints.Height is not Fixed or Relative:
                 height += totalSpacing;
                 break;
         }
