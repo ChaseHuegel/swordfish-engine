@@ -1,5 +1,6 @@
 using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
@@ -30,51 +31,39 @@ internal sealed class HomePage(
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        using (ui.Element())
+        if (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonFontOptions, _audioService, _volumeSettings))
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
+            menu.GoToPage(MenuPage.Singleplayer);
+        }
+
+        using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
+        {
+            ui.FontOptions = _buttonFontOptions;
+            ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center,
+                Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
-                Y = new Relative(0.5f),
             };
+        }
 
-            if (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                menu.GoToPage(MenuPage.Singleplayer);
-            }
-
-            using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
-            {
-                ui.FontOptions = _buttonFontOptions;
-                ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                };
-            }
-
-            if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                menu.GoToPage(MenuPage.Settings);
-            }
+        if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+        {
+            menu.GoToPage(MenuPage.Settings);
         }
         
         using (ui.Element())
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
-
-            if (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                _entry.Quit();
-            }
+        }
+        
+        if (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        {
+            _entry.Quit();
         }
         
         return Result.FromSuccess();

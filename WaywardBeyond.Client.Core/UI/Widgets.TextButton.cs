@@ -36,7 +36,7 @@ internal static partial class Widgets
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center,
+                Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
             };
 

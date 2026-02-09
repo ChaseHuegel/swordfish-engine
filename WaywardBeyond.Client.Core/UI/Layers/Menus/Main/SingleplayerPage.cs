@@ -86,94 +86,46 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         
         using (ui.Element())
         {
-            ui.Spacing = 8;
-            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Top,
                 X = new Relative(0.5f),
-                Y = new Relative(0.35f),
             };
             
-            using (ui.Element())
+            using (ui.Text(_localization.GetString("ui.menu.saves")!))
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
-                };
-
-                using (ui.Text(_localization.GetString("ui.menu.createSave")!))
-                {
-                    ui.FontSize = 24;
-                }
+                ui.FontSize = 24;
             }
+        }
 
-            using (ui.Element())
-            {
-                ui.Spacing = 8;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(300),
-                    Height = new Fixed(80),
-                };
-                
-                ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
-                ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
-            }
-
-            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
-            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
-            {
-                var seedValue = _seedTextBox.Text.ToString();
-                string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" :  seedValue;
-                var options = new GameOptions(saveNameValue, seed);
-                Task.Run(() => _gameSaveManager.NewGame(options));
-            }
+        using (ui.Element("saves"))
+        {
+            ui.VerticalScroll = true;
+            ui.LayoutDirection = LayoutDirection.Vertical;
             
-            using (ui.Element())
+            ui.Constraints = new Constraints
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
-                };
-
-                using (ui.Text(_localization.GetString("ui.menu.saves")!))
-                {
-                    ui.FontSize = 24;
-                }
-            }
-
-            using (ui.Element())
+                Anchors = Anchors.Center | Anchors.Top,
+                X = new Relative(0.5f),
+            };
+            
+            ui.ClipConstraints = new Constraints
             {
-                ui.VerticalScroll = true;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                
-                ui.Constraints = new Constraints
-                {
-                    Width = new Relative(1f),
-                };
-                
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Relative(1f),
-                    Height = new Relative(1f),
-                };
-                
-                float scroll = _inputService.GetMouseScroll();
-                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
-                ui.ScrollY = _scrollY * 30;
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
+            
+            float scroll = _inputService.GetMouseScroll();
+            _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
+            ui.ScrollY = _scrollY * 30;
 
-                for (var i = 0; i < saves.Length; i++)
+            for (var i = 0; i < saves.Length; i++)
+            {
+                GameSave save = saves[i];
+                if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
                 {
-                    GameSave save = saves[i];
-                    if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
-                    {
-                        _gameSaveManager.ActiveSave = save;
-                        Task.Run(_gameSaveManager.Load);
-                    }
+                    _gameSaveManager.ActiveSave = save;
+                    Task.Run(_gameSaveManager.Load);
                 }
             }
         }
@@ -182,11 +134,65 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
-
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Top,
+                X = new Relative(0.5f),
+            };
+            
+            using (ui.Text(_localization.GetString("ui.menu.createSave")!))
+            {
+                ui.FontSize = 24;
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Spacing = 8;
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Top,
+                X = new Relative(0.5f),
+            };
+            
+            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            
+            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
+            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
+            {
+                var seedValue = _seedTextBox.Text.ToString();
+                string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" :  seedValue;
+                var options = new GameOptions(saveNameValue, seed);
+                Task.Run(() => _gameSaveManager.NewGame(options));
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Top,
+                X = new Relative(0.5f),
+            };
+            
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService, _volumeSettings))
             {
                 menu.GoBack();
