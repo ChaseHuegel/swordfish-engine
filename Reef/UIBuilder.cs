@@ -338,8 +338,8 @@ public sealed class UIBuilder<TRendererData>
         }
         
         //  Apply size constraints
-        int maxWidth = _hasOpenElement ? parent.Rect.Size.X : Width;
-        int maxHeight = _hasOpenElement ? parent.Rect.Size.Y : Height;
+        int maxWidth = _hasOpenElement && parent.Rect.Size.X != 0 ? parent.Rect.Size.X : Width;
+        int maxHeight = _hasOpenElement && parent.Rect.Size.Y != 0 ? parent.Rect.Size.Y : Height;
         int width = element.Constraints.Width?.Calculate(maxWidth) ?? element.Rect.Size.X;
         int height = element.Constraints.Height?.Calculate(maxHeight) ?? element.Rect.Size.Y;
         var size = new IntVector2(width, height);
@@ -359,8 +359,8 @@ public sealed class UIBuilder<TRendererData>
 
         //  Apply padding
         Padding padding = element.Style.Padding;
-        width = element.Rect.Size.X + padding.Left + padding.Right;
-        height = element.Rect.Size.Y + padding.Top + padding.Bottom;
+        width = element.Rect.Size.X + padding.Left - padding.Right;
+        height = element.Rect.Size.Y + padding.Top - padding.Bottom;
         
         //  Calculate spacing
         int childCount = element.Children?.Count ?? 0;
@@ -510,22 +510,39 @@ public sealed class UIBuilder<TRendererData>
                 //  Clip children by their parent
                 if (frame.Parent != null)
                 {
-                    if (frame.Parent.Value.Viewport.ClipRect != null)
-                    {
-                        int clipX = frame.Parent.Value.Rect.Position.X + frame.Parent.Value.Style.Padding.Left;
-                        int clipY = frame.Parent.Value.Rect.Position.Y + frame.Parent.Value.Style.Padding.Top;
-                        var clipPosition = new IntVector2(clipX, clipY);
-                        clipRect = new IntRect(clipPosition, frame.Parent.Value.Viewport.ClipRect.Value.Size);
-                    }
-                    else
-                    {
-                        clipRect = frame.Parent.Value.Rect;
-                    }
+                    clipRect = frame.Parent.Value.Viewport.ClipRect ?? frame.Parent.Value.Rect;
                 }
                 //  Otherwise the element isn't clipped
                 else
                 {
                     clipRect = element.Rect;
+                }
+
+                //  If this element has its own clipping, calculate the final clip rect
+                if (element.Viewport.ClipConstraints != null)
+                {
+                    UI.Constraints clipConstraints = element.Viewport.ClipConstraints.Value;
+                    int clipWidth = clipConstraints.Width?.Calculate(element.Rect.Size.X) ?? element.Rect.Size.X;
+                    int clipHeight = clipConstraints.Height?.Calculate(element.Rect.Size.Y) ?? element.Rect.Size.Y;
+                    var clipSize = new IntVector2(clipWidth, clipHeight);
+        
+                    var explicitRect = new IntRect(element.Rect.Position, clipSize);
+
+                    //  Intersect with the parent's clip rect
+                    int clipX = Math.Max(explicitRect.Position.X, clipRect.Position.X);
+                    int clipY = Math.Max(explicitRect.Position.Y, clipRect.Position.Y);
+                    int right = Math.Min(explicitRect.Position.X + explicitRect.Size.X, clipRect.Position.X + clipRect.Size.X);
+                    int bottom = Math.Min(explicitRect.Position.Y + explicitRect.Size.Y, clipRect.Position.Y + clipRect.Size.Y);
+
+                    int width = Math.Max(0, right - clipX);
+                    int height = Math.Max(0, bottom - clipY);
+
+                    element.Viewport.ClipRect = new IntRect(new IntVector2(clipX, clipY), new IntVector2(width, height));
+                }
+                //  Otherwise inherit the parent's clip rect
+                else
+                {
+                    element.Viewport.ClipRect = clipRect;
                 }
 
                 Vector4 color = element.Style.Color;
@@ -627,7 +644,6 @@ public sealed class UIBuilder<TRendererData>
                 FillChildren(ref element);
                 ShrinkChildren(ref element);
                 WrapTextChildren(ref element);
-                ClipChildren(ref element);
         
                 // Save any changes made to the element
                 if (frame.Parent == null)
@@ -1102,28 +1118,6 @@ public sealed class UIBuilder<TRendererData>
                     break;
             }
         }
-    }
-    
-    private void ClipChildren(ref Element<TRendererData> parent)
-    {
-        //  Move on if this element isn't clipping children
-        if (parent.Viewport.ClipConstraints == null)
-        {
-            return;
-        }
-        
-        int availableWidth = parent.Rect.Size.X;
-        int availableHeight = parent.Rect.Size.Y;
-        
-        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
-        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
-        
-        UI.Constraints clipConstraints = parent.Viewport.ClipConstraints.Value;
-        int clipWidth = clipConstraints.Width?.Calculate(availableWidth) ?? parent.Rect.Size.X;
-        int clipHeight = clipConstraints.Height?.Calculate(availableHeight) ?? parent.Rect.Size.Y;
-        var clipSize = new IntVector2(clipWidth, clipHeight);
-        
-        parent.Viewport.ClipRect = new IntRect(parent.Rect.Position, clipSize);
     }
     
     public struct Scope(UIBuilder<TRendererData> ui) : IDisposable

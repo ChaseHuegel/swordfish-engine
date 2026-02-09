@@ -24,16 +24,16 @@ vec4 vertex()
 
 vec4 fragment()
 {
-    if (!contains(ClipRect, gl_FragCoord.x, gl_FragCoord.y))
+    if (!contains(ClipRect, gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5))
     {
-        discard;
+        return vec4(0);
     }
-
+    
     vec2 atlasSize = textureSize(texture0, 0);
     vec2 uv = vec2(TextureCoord.x / atlasSize.x, 1.0 - (TextureCoord.y / atlasSize.y));
 
-    vec4 sample = texture(texture0, uv);
-    float signedDistance = median(sample.r, sample.g, sample.b);
+    vec4 texSample = texture(texture0, uv);
+    float signedDistance = median(texSample.r, texSample.g, texSample.b);
     float screenPxDistance = screenPxRange(uv, atlasSize) * (signedDistance - 0.5);
     float alpha = clamp(screenPxDistance + 0.5, 0.0, 1.0);
 

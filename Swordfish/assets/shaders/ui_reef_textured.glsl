@@ -22,9 +22,9 @@ vec4 vertex()
 
 vec4 fragment()
 {
-    if (!contains(ClipRect, gl_FragCoord.x, gl_FragCoord.y))
+    if (!contains(ClipRect, gl_FragCoord.x - 0.5, gl_FragCoord.y - 0.5))
     {
-        discard;
+        return vec4(0);
     }
 
     return VertexColor * texture(texture0, TextureCoord.xy);

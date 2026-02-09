@@ -40,16 +40,6 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
             VertexArrayObject.SetVertexAttributeDivisor(4 + i, 1);
         }
 
-        for (var i = 0; i < Materials.Length; i++)
-        {
-            ShaderProgram shaderProgram = Materials[i].ShaderProgram;
-            shaderProgram.BindAttributeLocation("in_position", 0);
-            shaderProgram.BindAttributeLocation("in_color", 1);
-            shaderProgram.BindAttributeLocation("in_uv", 2);
-            shaderProgram.BindAttributeLocation("in_normal", 3);
-            shaderProgram.BindAttributeLocation("model", 4);
-        }
-
         gl.BindVertexArray(0);
     }
 
