@@ -1113,10 +1113,10 @@ public sealed class UIBuilder<TRendererData>
                 {
                     case LayoutDirection.Horizontal:
                         width = child.Rect.Size.X + (shrinkHorizontal ? widthToAdd : 0);
-                        height = shrinkVertical ? availableHeight : child.Rect.Size.Y;
+                        height = child.Rect.Size.Y + (shrinkVertical ? availableHeight : 0);
                         break;
                     case LayoutDirection.Vertical:
-                        width = shrinkHorizontal ? availableWidth : child.Rect.Size.X;
+                        width = child.Rect.Size.X + (shrinkHorizontal ? availableWidth : 0);
                         height = child.Rect.Size.Y + (shrinkVertical ? heightToAdd : 0);
                         break;
                     default:
