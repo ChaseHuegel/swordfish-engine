@@ -40,23 +40,17 @@ internal static partial class Widgets
 
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Constraints = new Constraints
             {
-                Width = new Fill(),
+                Width = new Relative(1f),
             };
-
+            
             using (ui.Text(text))
             {
                 ui.FontSize = 20;
                 ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Left,
-                    Y = new Relative(0.5f),
-                };
             }
-
+            
             using (ui.Element())
             {
                 ui.Constraints = new Constraints
@@ -65,7 +59,7 @@ internal static partial class Widgets
                     Height = new Fill(),
                 };
             }
-
+            
             using (ui.Element(id))
             {
                 bool clicked = ui.Clicked();
@@ -73,18 +67,11 @@ internal static partial class Widgets
                 bool hovering = ui.Hovering();
                 bool entered = ui.Entered();
                 bool exited = ui.Exited();
-
+            
                 using (ui.Text(isChecked ? checkedUnicode : uncheckedUnicode, fontID: "Font Awesome 6 Free Regular"))
                 {
-                    ui.FontSize = 30;
-
-                    //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
-                    ui.Padding = new Padding
-                    {
-                        Right = 4,
-                        Bottom = 12,
-                    };
-
+                    ui.FontSize = 20;
+            
                     if (clicked)
                     {
                         ui.Color = new Vector4(0f, 0f, 0f, 1f);
@@ -99,29 +86,29 @@ internal static partial class Widgets
                         ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
                     }
                 }
-
+            
                 interactions = Interactions.None;
-
+            
                 if (clicked)
                 {
                     interactions |= Interactions.Click;
                 }
-
+            
                 if (held)
                 {
                     interactions |= Interactions.Held;
                 }
-
+            
                 if (hovering)
                 {
                     interactions |= Interactions.Hover;
                 }
-
+            
                 if (entered)
                 {
                     interactions |= Interactions.Enter;
                 }
-
+            
                 if (exited)
                 {
                     interactions |= Interactions.Exit;

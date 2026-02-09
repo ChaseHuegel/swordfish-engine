@@ -21,6 +21,8 @@
 "ui.setting.vsync" = "VSync"
 "ui.setting.fullscreen" = "Fullscreen"
 "ui.setting.msaa" = "Anti-aliasing"
+
+"ui.menu.gameplay" = "Gameplay"
 "ui.setting.fov" = "Field of view"
 
 "ui.menu.controls" = "Controls"
