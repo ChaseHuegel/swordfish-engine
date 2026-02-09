@@ -111,10 +111,6 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         _vao.Unbind();
 
         _defaultShader = shader.CreateProgram(glContext);
-        _defaultShader.BindAttributeLocation("in_position", 0);
-        _defaultShader.BindAttributeLocation("in_color", 1);
-        _defaultShader.BindAttributeLocation("in_uv", 2);
-        _defaultShader.BindAttributeLocation("in_clipRect", 3);
     }
 
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
@@ -131,44 +127,37 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         for (var i = 0; i < commands.Length; i++)
         {
             RenderCommand<Material> command = commands[i];
-            
+
             if (!_instances.TryGetValue(command, out InstanceVertexData instance))
             {
-                instance = new InstanceVertexData(new Vertices(), null);
-                _instances.TryAdd(command, instance);
+                instance = new InstanceVertexData(new Vertices(), command.Text != null ? new Vertices() : null);
             }
 
             //  Build rect vertices
             //  Only use the foreground Color if this isn't text
             instance.Rect.AddVertexData(command.Rect, command.Text == null ? command.Color : command.BackgroundColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
             
-            if (command.Text == null)
+            if (command.Text != null)
             {
-                continue;
-            }
-            
-            //  Build text vertices
-            if (instance.Text == null)
-            {
-                instance = new InstanceVertexData(instance.Rect, new Vertices());
-                _instances[command] = instance;
-            }
-            
-            TextLayout textLayout = _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
-            
-            for (var n = 0; n < textLayout.Glyphs.Length; n++)
-            {
-                GlyphLayout glyph = textLayout.Glyphs[n];
+                //  Build text vertices
+                TextLayout textLayout = _reefContext.TextEngine.Layout(command.FontOptions, command.Text, command.Rect.Size.X);
+
+                for (var n = 0; n < textLayout.Glyphs.Length; n++)
+                {
+                    GlyphLayout glyph = textLayout.Glyphs[n];
                 
-                var bbox = new IntRect(
-                    command.Rect.Left + glyph.BBOX.Left,
-                    command.Rect.Top + glyph.BBOX.Top,
-                    command.Rect.Left + glyph.BBOX.Right,
-                    command.Rect.Top + glyph.BBOX.Bottom
-                );
+                    var bbox = new IntRect(
+                        command.Rect.Left + glyph.BBOX.Left,
+                        command.Rect.Top + glyph.BBOX.Top,
+                        command.Rect.Left + glyph.BBOX.Right,
+                        command.Rect.Top + glyph.BBOX.Bottom
+                    );
                 
-                instance.Text!.Value.AddVertexData(bbox, glyph.UV, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+                    instance.Text!.Value.AddVertexData(bbox, glyph.UV, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+                }
             }
+            
+            _instances[command] = instance;
         }
     }
 
@@ -235,8 +224,16 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
         }
         else
         {
+            if (_defaultShader == null)
+            {
+                return 0;
+            }
+            
             using GLHandle.Scope _ = _defaultShader.Use();
             shaderActivationCallback(_defaultShader);
+            var viewport = new int[4];
+            _gl.GetInteger(GLEnum.Viewport, viewport);
+            _defaultShader.SetUniform("screenSize", new Vector2(viewport[2], viewport[3]));
             
             DrawArrays(vao, vertices);
         }
@@ -273,10 +270,10 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
 
         public void AddVertexData(IntRect rect, IntRect uv, Vector4 color, IntRect clipRect, float width, float height)
         {
-            Offsets.Add(Count * 4);
+            Offsets.Add(Data.Count / 14);
             Counts.Add(4);
 
-            Data.Capacity += 36;
+            Data.Capacity += 56;
 
             //  Bottom left
             // X,Y,Z

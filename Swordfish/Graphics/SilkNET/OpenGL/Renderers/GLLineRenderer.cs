@@ -59,8 +59,6 @@ internal sealed class GLLineRenderer : IWorldSpaceRenderStage, ILineRenderer
         _vao.SetVertexAttribute(1, 4, VertexAttribPointerType.Float, 7, 3);
 
         _shaderProgram = shader.CreateProgram(glContext);
-        _shaderProgram.BindAttributeLocation("in_position", 0);
-        _shaderProgram.BindAttributeLocation("in_color", 1);
     }
 
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
