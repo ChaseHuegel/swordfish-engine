@@ -17,13 +17,13 @@ internal class VersionWatermark : IUILayer
     {
         using (ui.Text($"{WaywardBeyond.Version.Name}"))
         {
-            ui.FontSize = 20;
+            ui.FontSize = 16;
             ui.Color = new Vector4(0.5f);
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
+                Anchors = Anchors.Center | Anchors.Bottom,
                 X = new Relative(0.5f),
-                Y = new Relative(0.03f),
+                Y = new Relative(1f),
             };
         }
         
