@@ -362,7 +362,7 @@ internal static partial class Widgets
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Right,
-                        X = new Fixed(caretConstraints.MinWidth + 3),
+                        X = new Fixed(caretConstraints.MinWidth),
                         Width = new Fixed(2),
                         Height = new Fill(),
                     };
