@@ -4,7 +4,6 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
-using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 
@@ -14,12 +13,11 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
     where TIdentifier : notnull
 {
     private readonly Material? _titleMaterial;
-    
-    public TitleMenu(
+
+    protected TitleMenu(
         ILogger<Menu<TIdentifier>> logger,
         IAssetDatabase<Material> materialDatabase,
         ReefContext reefContext,
-        IShortcutService shortcutService,
         IMenuPage<TIdentifier>[] pages
     ) : base(logger, reefContext, pages)
     {
@@ -32,16 +30,6 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
         {
             logger.LogError(materialResult, "Failed to load the title material, it will not be able to render.");
         }
-        
-        Shortcut backShortcut = new(
-            "Go back",
-            "General",
-            ShortcutModifiers.None,
-            Key.Esc,
-            IsVisible,
-            () => GoBack()
-        );
-        shortcutService.RegisterShortcut(backShortcut);
     }
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)

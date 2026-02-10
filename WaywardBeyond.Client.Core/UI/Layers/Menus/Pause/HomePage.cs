@@ -1,5 +1,5 @@
-using System.Threading.Tasks;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
@@ -31,40 +31,28 @@ internal sealed class HomePage(
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        using (ui.Element())
+        if (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonFontOptions, _audioService, _volumeSettings))
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
-            };
+            WaywardBeyond.Unpause();
+        }
 
-            if (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                WaywardBeyond.Unpause();
-            }
-
-            if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                menu.GoToPage(PausePage.Settings);
-            }
+        if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+        {
+            menu.GoToPage(PausePage.Settings);
         }
         
         using (ui.Element())
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
-        
-            if (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                _gameSaveManager.SaveAndExit();
-            }
+        }
+
+        if (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        {
+            _gameSaveManager.SaveAndExit();
         }
         
         return Result.FromSuccess();

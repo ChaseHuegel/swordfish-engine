@@ -22,7 +22,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
         in IShortcutService shortcutService,
         in PlayerInteractionService playerInteractionService,
         in IMenuPage<PausePage>[] pages
-    ) : base(logger, materialDatabase, reefContext, shortcutService, pages)
+    ) : base(logger, materialDatabase, reefContext, pages)
     {
         _playerInteractionService = playerInteractionService;
         
@@ -35,6 +35,16 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
             action: OnPauseToggled
         );
         shortcutService.RegisterShortcut(pauseShortcut);
+        
+        Shortcut backShortcut = new(
+            name: "Go back",
+            category: "Pause",
+            ShortcutModifiers.None,
+            Key.Esc,
+            isEnabled: IsVisible,
+            action: () => GoBack()
+        );
+        shortcutService.RegisterShortcut(backShortcut);
     }
 
     public override bool IsVisible()

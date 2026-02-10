@@ -21,7 +21,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         ReefContext reefContext,
         IShortcutService shortcutService,
         IMenuPage<MenuPage>[] pages
-    ) : base(logger, materialDatabase, reefContext, shortcutService, pages)
+    ) : base(logger, materialDatabase, reefContext, pages)
     {
         Result<Material> materialResult = materialDatabase.Get("ui/menu/background");
         if (materialResult)
@@ -32,6 +32,16 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         {
             logger.LogError(materialResult, "Failed to load the background material, it will not be able to render.");
         }
+        
+        Shortcut backShortcut = new(
+            name: "Go back",
+            category: "General",
+            ShortcutModifiers.None,
+            Key.Esc,
+            isEnabled: IsVisible,
+            action: () => GoBack()
+        );
+        shortcutService.RegisterShortcut(backShortcut);
 
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
     }
