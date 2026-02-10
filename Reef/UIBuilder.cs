@@ -978,28 +978,32 @@ public sealed class UIBuilder<TRendererData>
     
     private void ShrinkChildren(ref Element<TRendererData> parent)
     {
-        int availableWidth = parent.Rect.Size.X;
-        int availableHeight = parent.Rect.Size.Y;
-        
-        availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
-        availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
+        int contentWidth = Math.Max(0, parent.Rect.Size.X - parent.Style.Padding.Left - parent.Style.Padding.Right);
+        int contentHeight = Math.Max(0, parent.Rect.Size.Y - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
+        var usedWidth = 0;
+        var usedHeight = 0;
 
         var numHorizontalShrinkChildren = 0;
         var numVerticalShrinkChildren = 0;
         
-        //  Calculate available space
+        //  Calculate used space and shrinkable children
         for (var i = 0; parent.Children != null && i < parent.Children.Count; i++)
         {
             Element<TRendererData> child = parent.Children[i];
 
-            //  Count children against available space
             switch (parent.Layout.Direction)
             {
                 case LayoutDirection.Horizontal:
-                    availableWidth -= child.Rect.Size.X;
+                    usedWidth += child.Rect.Size.X;
+                    usedHeight = Math.Max(usedHeight, child.Rect.Size.Y);
                     break;
                 case LayoutDirection.Vertical:
-                    availableHeight -= child.Rect.Size.Y;
+                    usedWidth = Math.Max(usedWidth, child.Rect.Size.X);
+                    usedHeight += child.Rect.Size.Y;
+                    break;
+                case LayoutDirection.None:
+                    usedWidth = Math.Max(usedWidth, child.Rect.Size.X);
+                    usedHeight = Math.Max(usedHeight, child.Rect.Size.Y);
                     break;
             }
 
@@ -1015,24 +1019,26 @@ public sealed class UIBuilder<TRendererData>
             }
         }
         
+        int childCount = parent.Children?.Count ?? 0;
+        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
+        
+        switch (parent.Layout.Direction)
+        {
+            case LayoutDirection.Horizontal:
+                usedWidth += totalSpacing;
+                break;
+            case LayoutDirection.Vertical:
+                usedHeight += totalSpacing;
+                break;
+        }
+
+        int availableWidth = contentWidth - usedWidth;
+        int availableHeight = contentHeight - usedHeight;
+
         //  Move on if no children have shrink constraints
         if (numHorizontalShrinkChildren == 0 && numVerticalShrinkChildren == 0)
         {
             return;
-        }
-
-        int childCount = parent.Children?.Count ?? 0;
-        int totalSpacing = childCount > 1 ? (childCount - 1) * parent.Layout.Spacing : 0;
-        
-        //  Count child spacing against available space based on layout direction
-        switch (parent.Layout.Direction)
-        {
-            case LayoutDirection.Horizontal:
-                availableWidth -= totalSpacing;
-                break;
-            case LayoutDirection.Vertical:
-                availableHeight -= totalSpacing;
-                break;
         }
         
         //  Continue distributing available space until none is left
