@@ -1,7 +1,6 @@
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
-using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
@@ -12,10 +11,9 @@ using WaywardBeyond.Client.Core.Systems;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
-internal sealed class PauseMenu : Menu<PausePage>
+internal sealed class PauseMenu : TitleMenu<PausePage>
 {
     private readonly PlayerInteractionService _playerInteractionService;
-    private readonly Material? _titleMaterial;
     
     public PauseMenu(
         in ILogger<Menu<PausePage>> logger,
@@ -24,19 +22,9 @@ internal sealed class PauseMenu : Menu<PausePage>
         in IShortcutService shortcutService,
         in PlayerInteractionService playerInteractionService,
         in IMenuPage<PausePage>[] pages
-    ) : base(logger, reefContext, pages)
+    ) : base(logger, materialDatabase, reefContext, shortcutService, pages)
     {
         _playerInteractionService = playerInteractionService;
-        
-        Result<Material> materialResult = materialDatabase.Get("ui/menu/title");
-        if (materialResult)
-        {
-            _titleMaterial = materialResult;
-        }
-        else
-        {
-            logger.LogError(materialResult, "Failed to load the title material, it will not be able to render.");
-        }
         
         Shortcut pauseShortcut = new(
             name: "Toggle paused",
@@ -47,16 +35,6 @@ internal sealed class PauseMenu : Menu<PausePage>
             action: OnPauseToggled
         );
         shortcutService.RegisterShortcut(pauseShortcut);
-        
-        Shortcut backShortcut = new(
-            name: "Go back",
-            category: "Pause",
-            ShortcutModifiers.None,
-            Key.Esc,
-            isEnabled: IsVisible,
-            action: () => GoBack()
-        );
-        shortcutService.RegisterShortcut(backShortcut);
     }
 
     public override bool IsVisible()
@@ -66,6 +44,7 @@ internal sealed class PauseMenu : Menu<PausePage>
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
+        //  Tint the screen
         using (ui.Element())
         {
             ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
@@ -74,21 +53,6 @@ internal sealed class PauseMenu : Menu<PausePage>
                 Width = new Relative(1f),
                 Height = new Relative(1f),
             };
-        }
-        
-        if (_titleMaterial != null)
-        {
-            using (ui.Image(_titleMaterial))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.1f),
-                    Width = new Fixed(_titleMaterial.Textures[0].Width),
-                    Height = new Fixed(_titleMaterial.Textures[0].Height),
-                };
-            }
         }
         
         return base.RenderUI(delta, ui);
