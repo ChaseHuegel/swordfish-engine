@@ -88,7 +88,7 @@ internal sealed class Typeface : ITypeface
                 var top = (int)Math.Floor((1f - planeBounds.top + yOffset) * scale);
                 var right = (int)Math.Ceiling((planeBounds.right + xOffset) * scale);
                 var bottom = (int)Math.Ceiling((1f - planeBounds.bottom + yOffset) * scale);
-                var bbox = new IntRect(left, top, right, bottom);
+                var bbox = new IntRect(left, top, right + 1, bottom + 1);
                 
                 //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 AtlasBounds atlasBounds = glyph.atlasBounds ?? AtlasBounds.Zero;
@@ -96,7 +96,7 @@ internal sealed class Typeface : ITypeface
                 top = (int)Math.Floor(_atlas.height - atlasBounds.top);
                 right = (int)Math.Ceiling(atlasBounds.right);
                 bottom = (int)Math.Ceiling(_atlas.height - atlasBounds.bottom);
-                var uv = new IntRect(left, top, right, bottom);
+                var uv = new IntRect(left, top, right + 1, bottom + 1);
 
                 glyphs.Add(new GlyphLayout(bbox, uv));
                 xOffset += glyph.advance;
