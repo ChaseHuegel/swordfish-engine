@@ -15,8 +15,8 @@ public readonly struct IntRect
         Size = size;
         Left = position.X;
         Top = position.Y;
-        Right = position.X + size.X - 1;
-        Bottom = position.Y + size.Y - 1;
+        Right = position.X + size.X;
+        Bottom = position.Y + size.Y;
     }
     
     public IntRect(int left, int top, IntVector2 size)
@@ -25,14 +25,14 @@ public readonly struct IntRect
         Size = size;
         Left = left;
         Top = top;
-        Right = left + size.X - 1;
-        Bottom = top + size.Y - 1;
+        Right = left + size.X;
+        Bottom = top + size.Y;
     }
     
     public IntRect(int left, int top, int right, int bottom)
     {
-        int width = right - left + 1;
-        int height = bottom - top + 1;
+        int width = right - left;
+        int height = bottom - top;
         
         Position = new IntVector2(left, top);
         Size = new IntVector2(width, height);
@@ -44,22 +44,22 @@ public readonly struct IntRect
     
     public bool Intersects(IntRect other)
     {
-        if (other.Left > Right)
+        if (other.Left >= Right)
         {
             return false;
         }
         
-        if (other.Right < Left)
+        if (other.Right <= Left)
         {
             return false;
         }
         
-        if (other.Top > Bottom)
+        if (other.Top >= Bottom)
         {
             return false;
         }
         
-        if (other.Bottom < Top)
+        if (other.Bottom <= Top)
         {
             return false;
         }
@@ -69,7 +69,7 @@ public readonly struct IntRect
     
     public bool Contains(int x, int y)
     {
-        if (x > Right)
+        if (x >= Right)
         {
             return false;
         }
@@ -79,7 +79,7 @@ public readonly struct IntRect
             return false;
         }
         
-        if (y > Bottom)
+        if (y >= Bottom)
         {
             return false;
         }
