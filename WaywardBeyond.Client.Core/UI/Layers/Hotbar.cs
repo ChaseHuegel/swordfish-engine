@@ -113,8 +113,7 @@ internal class Hotbar : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Y = new Fixed(-30),
             };
 
             for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
@@ -125,7 +124,7 @@ internal class Hotbar : IUILayer
                 using (ui.Element())
                 {
                     ui.LayoutDirection = LayoutDirection.None;
-                    ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+                    ui.Padding = new Padding(left: 2, top: 2, right: 2, bottom: 2);
                     ui.Color = activeSlot == slotIndex ? _selectedColor : _slotColor;
                     ui.Constraints = new Constraints
                     {
@@ -154,8 +153,6 @@ internal class Hotbar : IUILayer
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Bottom | Anchors.Right,
-                            X = new Relative(1f),
-                            Y = new Relative(1f),
                         };
                     }
                     
@@ -166,10 +163,8 @@ internal class Hotbar : IUILayer
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
-                            X = new Relative(0.5f),
-                            Y = new Relative(0.5f),
-                            Width = new Fill(),
-                            Height = new Fill(),
+                            Width = new Relative(1f),
+                            Height = new Relative(1f),
                         };
                     }
                 }

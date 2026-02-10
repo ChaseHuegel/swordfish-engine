@@ -22,8 +22,6 @@ internal class VersionWatermark : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(1f),
             };
         }
         

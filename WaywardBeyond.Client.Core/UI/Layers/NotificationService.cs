@@ -61,7 +61,6 @@ internal class NotificationService : IUILayer
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Top | Anchors.Left,
                 X = new Relative(0.01f),
                 Y = new Relative(0.03f),
             };
@@ -89,8 +88,7 @@ internal class NotificationService : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Fixed(ui.Height - 196),
+                Y = new Fixed(-196),
             };
             
             for (var i = 0; i < _notifications.Count; i++)

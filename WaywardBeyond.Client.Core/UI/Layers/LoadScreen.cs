@@ -67,6 +67,7 @@ internal sealed class LoadScreen(
             {
                 ui.Constraints = new Constraints
                 {
+                    Width = new Fill(),
                     Height = new Fill(),
                 };
             }
@@ -89,7 +90,6 @@ internal sealed class LoadScreen(
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center | Anchors.Bottom,
-                    X = new Relative(0.5f),
                 };
             }
             
@@ -99,7 +99,6 @@ internal sealed class LoadScreen(
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center | Anchors.Bottom,
-                    X = new Relative(0.5f),
                 };
             }
             
@@ -110,7 +109,6 @@ internal sealed class LoadScreen(
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center | Anchors.Bottom,
-                    X = new Relative(0.5f),
                 };
             }
             
@@ -118,6 +116,7 @@ internal sealed class LoadScreen(
             {
                 ui.Constraints = new Constraints
                 {
+                    Width = new Fill(),
                     Height = new Fill(),
                 };
             }
