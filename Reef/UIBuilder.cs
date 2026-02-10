@@ -463,12 +463,12 @@ public sealed class UIBuilder<TRendererData>
                 int availableHeight = Height;
                 if (frame.Parent != null)
                 {
-                    availableWidth = frame.Parent.Value.Rect.Size.X;
-                    availableHeight = frame.Parent.Value.Rect.Size.Y;
+                    availableWidth = frame.Parent.Value.Rect.Size.X - frame.Parent.Value.Style.Padding.Left - frame.Parent.Value.Style.Padding.Right;
+                    availableHeight = frame.Parent.Value.Rect.Size.Y - frame.Parent.Value.Style.Padding.Top - frame.Parent.Value.Style.Padding.Bottom;
                 }
                 
-                int x = element.Constraints.X?.Calculate(availableWidth) ?? element.Rect.Position.X;
-                int y = element.Constraints.Y?.Calculate(availableHeight) ?? element.Rect.Position.Y;
+                int x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
+                int y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
                 
                 //  Apply layout offsets
                 if (frame.Parent != null)
@@ -478,41 +478,31 @@ public sealed class UIBuilder<TRendererData>
                 }
             
                 //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+                //  This acts as a pivot shift for the element's rect based on its own size.
                 Anchors anchors = element.Constraints.Anchors;
-                int xAnchorOffset = element.Rect.Size.X;
-                int yAnchorOffset = element.Rect.Size.Y;
-
-                var rightInset = 0;
-                var bottomInset = 0;
-                if (frame.Parent != null)
-                {
-                    //  Padding is applied as an inset when not anchored to the left/top.
-                    //  Left/top padding are already accounted for the origin position,
-                    //  so they must be reverted when applied to any other anchor.
-                    rightInset = frame.Parent.Value.Style.Padding.Right + frame.Parent.Value.Style.Padding.Left;
-                    bottomInset = frame.Parent.Value.Style.Padding.Bottom + frame.Parent.Value.Style.Padding.Top;
-                }
             
+                //  Horizontal anchoring
                 if ((anchors & Anchors.Right) == Anchors.Right)
                 {
-                    x -= xAnchorOffset + rightInset;
+                    x -= element.Rect.Size.X;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
                 {
-                    x -= (xAnchorOffset + rightInset) >> 1;
+                    x -= element.Rect.Size.X / 2;
                 }
             
+                //  Vertical anchoring
                 if ((anchors & Anchors.Bottom) == Anchors.Bottom)
                 {
-                    y -= yAnchorOffset + bottomInset;
+                    y -= element.Rect.Size.Y;
                 }
                 else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
                 {
-                    y -= (yAnchorOffset + bottomInset) >> 1;
+                    y -= element.Rect.Size.Y / 2;
                 }
                 
-                var center = new IntVector2(x, y);
-                element.Rect = new IntRect(center, element.Rect.Size);
+                var position = new IntVector2(x, y);
+                element.Rect = new IntRect(position, element.Rect.Size);
                 
                 // Save any changes made to the element
                 if (frame.Parent == null)
@@ -543,7 +533,7 @@ public sealed class UIBuilder<TRendererData>
                     clipRect = element.Rect;
                 }
 
-                //  If this element has its own clipping, calculate the final clip rect
+                //  If this element has its own clipping, calculate an intersected clip rect
                 if (element.Viewport.ClipConstraints != null)
                 {
                     UI.Constraints clipConstraints = element.Viewport.ClipConstraints.Value;
@@ -563,6 +553,9 @@ public sealed class UIBuilder<TRendererData>
                     int height = Math.Max(0, bottom - clipY);
 
                     element.Viewport.ClipRect = new IntRect(new IntVector2(clipX, clipY), new IntVector2(width, height));
+                    
+                    //  Update the clip rect that will be used for rendering this element
+                    clipRect = element.Viewport.ClipRect.Value;
                 }
                 //  Otherwise inherit the parent's clip rect
                 else
