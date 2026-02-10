@@ -470,35 +470,41 @@ public sealed class UIBuilder<TRendererData>
                 int x = element.Constraints.X?.Calculate(availableWidth) ?? 0;
                 int y = element.Constraints.Y?.Calculate(availableHeight) ?? 0;
                 
+                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
+                Anchors anchors = element.Constraints.Anchors;
+                LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
+
+                //  Horizontal anchoring when not in a horizontal layout
+                if (parentLayoutDirection != LayoutDirection.Horizontal)
+                {
+                    if ((anchors & Anchors.Right) == Anchors.Right)
+                    {
+                        x += availableWidth - element.Rect.Size.X;
+                    }
+                    else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
+                    {
+                        x += (availableWidth - element.Rect.Size.X) / 2;
+                    }
+                }
+            
+                //  Vertical anchoring when not in a vertical layout
+                if (parentLayoutDirection != LayoutDirection.Vertical)
+                {
+                    if ((anchors & Anchors.Bottom) == Anchors.Bottom)
+                    {
+                        y += availableHeight - element.Rect.Size.Y;
+                    }
+                    else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
+                    {
+                        y += (availableHeight - element.Rect.Size.Y) / 2;
+                    }
+                }
+                
                 //  Apply layout offsets
                 if (frame.Parent != null)
                 {
                     x += frame.Parent.Value.Rect.Position.X + frame.LeftOffset;
                     y += frame.Parent.Value.Rect.Position.Y + frame.TopOffset;
-                }
-            
-                //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
-                //  This acts as a pivot shift for the element's rect based on its own size.
-                Anchors anchors = element.Constraints.Anchors;
-            
-                //  Horizontal anchoring
-                if ((anchors & Anchors.Right) == Anchors.Right)
-                {
-                    x -= element.Rect.Size.X;
-                }
-                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
-                {
-                    x -= element.Rect.Size.X / 2;
-                }
-            
-                //  Vertical anchoring
-                if ((anchors & Anchors.Bottom) == Anchors.Bottom)
-                {
-                    y -= element.Rect.Size.Y;
-                }
-                else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
-                {
-                    y -= element.Rect.Size.Y / 2;
                 }
                 
                 var position = new IntVector2(x, y);
