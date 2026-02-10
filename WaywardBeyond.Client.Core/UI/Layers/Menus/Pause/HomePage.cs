@@ -19,26 +19,42 @@ internal sealed class HomePage(
 {
     public PausePage ID => PausePage.Home;
 
-    private readonly IAudioService _audioService = audioService;
-    private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
+    
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        if (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            WaywardBeyond.Unpause();
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                WaywardBeyond.Unpause();
+            }
         }
 
-        if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            menu.GoToPage(PausePage.Settings);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(PausePage.Settings);
+            }
         }
         
         using (ui.Element())
@@ -50,9 +66,17 @@ internal sealed class HomePage(
             };
         }
 
-        if (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            _gameSaveManager.SaveAndExit();
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                _gameSaveManager.SaveAndExit();
+            }
         }
         
         return Result.FromSuccess();

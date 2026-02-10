@@ -29,10 +29,12 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly IAudioService _audioService = audioService;
     private readonly ILocalization _localization = localization;
     
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
 
     public abstract TIdentifier ID { get; }
 
@@ -240,14 +242,14 @@ internal abstract class SettingsPage<TIdentifier>(
             };
         }
         
-        using (ui.Element())
+        using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonOptions, out Widgets.Interactions interactions))
         {
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
             };
 
-            if (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonFontOptions, _audioService, _volumeSettings))
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 _settingsManager.ApplySettings();
                 menu.GoBack();

@@ -85,7 +85,15 @@ internal static partial class Widgets
         audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.MixInterface());
         return true;
     }
-
+    
+    /// <summary>
+    ///     Checks if interactions has the specified value.
+    /// </summary>
+    public static bool Has(this Interactions interactions, Interactions value)
+    {
+        return (interactions & value) == value;
+    }
+    
     [Flags]
     public enum Interactions
     {

@@ -9,83 +9,99 @@ namespace WaywardBeyond.Client.Core.UI;
 internal static partial class Widgets
 {
     /// <summary>
+    ///     Creates a text-only button, with audio cues.
+    /// </summary>
+    public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, ButtonOptions options)
+    {
+        using (ui.TextButton(id, text, options, out Interactions interactions))
+        {
+            return interactions.Has(Interactions.Click);
+        }
+    }
+    
+    /// <summary>
     ///     Creates a text-only button.
     /// </summary>
-    /// <returns>True if the button was clicked; otherwise false.</returns>
     public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions)
     {
-        return TextButton(ui, id, text, fontOptions, out Interactions interactions) && (interactions & Interactions.Click) == Interactions.Click;
+        using (ui.TextButton(id, text, fontOptions, out Interactions interactions))
+        {
+            return interactions.Has(Interactions.Click);
+        }
     }
-
+    
     /// <summary>
     ///     Creates a text-only button, with audio cues.
     /// </summary>
-    /// <returns>True if the button was clicked; otherwise false.</returns>
-    public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static UIBuilder<T>.Scope TextButton<T>(this UIBuilder<T> ui, string id, string text, ButtonOptions options, out Interactions interactions)
     {
-        return TextButton(ui, id, text, fontOptions, out Interactions interactions) && interactions.WithButtonAudio(audioService, volumeSettings);
+        UIBuilder<T>.Scope scope = TextButton(ui, id, text, options.FontOptions, out interactions); 
+        interactions.WithButtonAudio(options.AudioOptions.AudioService, options.AudioOptions.VolumeSettings);
+        return scope;
     }
-
+    
     /// <summary>
     ///     Creates a text-only button.
     /// </summary>
-    /// <returns>True if the button is being interacted with; otherwise false.</returns>
-    public static bool TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions, out Interactions interactions)
+    public static UIBuilder<T>.Scope TextButton<T>(this UIBuilder<T> ui, string id, string text, FontOptions fontOptions, out Interactions interactions)
     {
-        using (ui.Element(id))
+        UIBuilder<T>.Scope scope = ui.Element(id);
+        
+        bool clicked = ui.Clicked();
+        bool held = ui.Held();
+        bool hovering = ui.Hovering();
+        bool entered = ui.Entered();
+        bool exited = ui.Exited();
+
+        using (ui.Text(text))
         {
-            bool clicked = ui.Clicked();
-            bool held = ui.Held();
-            bool hovering = ui.Hovering();
-            bool entered = ui.Entered();
-            bool exited = ui.Exited();
-
-            using (ui.Text(text))
-            {
-                ui.FontOptions = fontOptions;
-
-                if (clicked)
-                {
-                    ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                }
-                else if (hovering)
-                {
-                    ui.Color = new Vector4(1f, 1f, 1f, 1f);
-                }
-                else
-                {
-                    ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
-                }
-            }
-
-            interactions = Interactions.None;
+            ui.FontOptions = fontOptions;
 
             if (clicked)
             {
-                interactions |= Interactions.Click;
+                ui.Color = new Vector4(0f, 0f, 0f, 1f);
             }
-
-            if (held)
+            else if (hovering)
             {
-                interactions |= Interactions.Held;
+                ui.Color = new Vector4(1f, 1f, 1f, 1f);
             }
-
-            if (hovering)
+            else
             {
-                interactions |= Interactions.Hover;
+                ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
             }
-
-            if (entered)
-            {
-                interactions |= Interactions.Enter;
-            }
-
-            if (exited)
-            {
-                interactions |= Interactions.Exit;
-            }
-
-            return interactions != Interactions.None;
         }
+
+        interactions = Interactions.None;
+
+        if (clicked)
+        {
+            interactions |= Interactions.Click;
+        }
+
+        if (held)
+        {
+            interactions |= Interactions.Held;
+        }
+
+        if (hovering)
+        {
+            interactions |= Interactions.Hover;
+        }
+
+        if (entered)
+        {
+            interactions |= Interactions.Enter;
+        }
+
+        if (exited)
+        {
+            interactions |= Interactions.Exit;
+        }
+
+        return scope;
     }
+
+    public readonly record struct AudioOptions(IAudioService AudioService, VolumeSettings VolumeSettings);
+
+    public readonly record struct ButtonOptions(FontOptions FontOptions, AudioOptions AudioOptions);
 }

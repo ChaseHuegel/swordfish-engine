@@ -28,16 +28,9 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
     private readonly ILocalization _localization;
-    
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
 
-    private readonly FontOptions _saveFontOptions = new()
-    {
-        Size = 20,
-    };
+    private readonly Widgets.ButtonOptions _menuButtonOptions;
+    private readonly Widgets.ButtonOptions _buttonOptions;
 
     private int _scrollY;
     private TextBoxState _saveNameTextBox;
@@ -56,6 +49,20 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         _audioService = audioService;
         _volumeSettings = volumeSettings;
         _localization = localization;
+        
+        _menuButtonOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                Size = 32,
+            },
+            new Widgets.AudioOptions(audioService, volumeSettings)
+        );
+        
+        _buttonOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                Size = 20,
+            },
+            new Widgets.AudioOptions(audioService, volumeSettings)
+        );
 
         var saveNameTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.saveName"),
@@ -121,10 +128,18 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
                 for (var i = 0; i < saves.Length; i++)
                 {
                     GameSave save = saves[i];
-                    if (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _saveFontOptions, _audioService, _volumeSettings))
+                    using (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
                     {
-                        _gameSaveManager.ActiveSave = save;
-                        Task.Run(_gameSaveManager.Load);
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                        };
+
+                        if (interactions.Has(Widgets.Interactions.Click))
+                        {
+                            _gameSaveManager.ActiveSave = save;
+                            Task.Run(_gameSaveManager.Load);
+                        }
                     }
                 }
             }
@@ -161,16 +176,24 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
-            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
             
             string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
-            if (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _saveFontOptions, _audioService, _volumeSettings) && !string.IsNullOrWhiteSpace(saveNameValue))
+            using (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _buttonOptions, out Widgets.Interactions interactions))
             {
-                var seedValue = _seedTextBox.Text.ToString();
-                string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" :  seedValue;
-                var options = new GameOptions(saveNameValue, seed);
-                Task.Run(() => _gameSaveManager.NewGame(options));
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (!string.IsNullOrWhiteSpace(saveNameValue) && interactions.Has(Widgets.Interactions.Click))
+                {
+                    var seedValue = _seedTextBox.Text.ToString();
+                    string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
+                    var options = new GameOptions(saveNameValue, seed);
+                    Task.Run(() => _gameSaveManager.NewGame(options));
+                }
             }
         }
         
@@ -190,9 +213,17 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService, _volumeSettings))
+            using (ui.TextButton(id: "Button_Back", text: "Back", _menuButtonOptions, out Widgets.Interactions interactions))
             {
-                menu.GoBack();
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoBack();
+                }
             }
         }
         

@@ -18,27 +18,35 @@ internal sealed class HomePage(
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
-
+    
     private readonly Entry _entry = entry;
-    private readonly IAudioService _audioService = audioService;
-    private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly ILocalization _localization = localization;
     
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
-
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
+    
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        if (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            menu.GoToPage(MenuPage.Singleplayer);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(MenuPage.Singleplayer);
+            }
         }
         
         using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
         {
-            ui.FontOptions = _buttonFontOptions;
+            ui.FontOptions = _buttonOptions.FontOptions;
             ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
             ui.Constraints = new Constraints
             {
@@ -46,9 +54,17 @@ internal sealed class HomePage(
             };
         }
         
-        if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            menu.GoToPage(MenuPage.Settings);
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(MenuPage.Settings);
+            }
         }
         
         using (ui.Element())
@@ -60,9 +76,17 @@ internal sealed class HomePage(
             };
         }
         
-        if (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            _entry.Quit();
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                _entry.Quit();
+            }
         }
         
         return Result.FromSuccess();
