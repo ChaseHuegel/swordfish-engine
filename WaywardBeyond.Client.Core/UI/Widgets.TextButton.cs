@@ -34,12 +34,6 @@ internal static partial class Widgets
     {
         using (ui.Element(id))
         {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
-            };
-
             bool clicked = ui.Clicked();
             bool held = ui.Held();
             bool hovering = ui.Hovering();

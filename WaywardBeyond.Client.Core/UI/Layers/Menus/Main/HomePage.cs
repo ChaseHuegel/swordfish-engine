@@ -35,18 +35,17 @@ internal sealed class HomePage(
         {
             menu.GoToPage(MenuPage.Singleplayer);
         }
-
+        
         using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
         {
             ui.FontOptions = _buttonFontOptions;
             ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
         }
-
+        
         if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
         {
             menu.GoToPage(MenuPage.Settings);

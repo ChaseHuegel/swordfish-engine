@@ -99,11 +99,6 @@ internal static partial class Widgets
             {
                 ui.FontSize = 20;
                 ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Left,
-                    Y = new Relative(0.5f),
-                };
             }
             
             using (ui.Element())
@@ -146,11 +141,6 @@ internal static partial class Widgets
                 using (ui.Text(value))
                 {
                     ui.FontSize = 20;
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center | Anchors.Left,
-                        Y = new Relative(0.5f),
-                    };
                 }
                 
                 using (ui.Element(id + "_Increase"))

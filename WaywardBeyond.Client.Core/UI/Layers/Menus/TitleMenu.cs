@@ -50,25 +50,16 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
                 Height = new Relative(1f),
             };
 
-            using (ui.Element())
+            if (_titleMaterial != null)
             {
-                ui.Constraints = new Constraints
+                using (ui.Image(_titleMaterial))
                 {
-                    Width = new Fill(),
-                };
-                
-                if (_titleMaterial != null)
-                {
-                    using (ui.Image(_titleMaterial))
+                    ui.Constraints = new Constraints
                     {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center | Anchors.Top,
-                            X = new Relative(0.5f),
-                            Width = new Fixed(_titleMaterial.Textures[0].Width),
-                            Height = new Fixed(_titleMaterial.Textures[0].Height),
-                        };
-                    }
+                        Anchors = Anchors.Center,
+                        Width = new Fixed(_titleMaterial.Textures[0].Width),
+                        Height = new Fixed(_titleMaterial.Textures[0].Height),
+                    };
                 }
             }
             

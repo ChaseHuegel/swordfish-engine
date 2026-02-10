@@ -42,8 +42,7 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
         
             using (ui.Text(_localization.GetString("ui.menu.controls")!))
@@ -57,8 +56,7 @@ internal abstract class SettingsPage<TIdentifier>(
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
             
@@ -88,8 +86,7 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
 
             using (ui.Text(_localization.GetString("ui.menu.gameplay")!))
@@ -103,8 +100,7 @@ internal abstract class SettingsPage<TIdentifier>(
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
             
@@ -134,8 +130,7 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
         
             using (ui.Text(_localization.GetString("ui.menu.volume")!))
@@ -149,8 +144,7 @@ internal abstract class SettingsPage<TIdentifier>(
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
             
@@ -209,8 +203,7 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
 
             using (ui.Text(_localization.GetString("ui.menu.display")!))
@@ -224,8 +217,7 @@ internal abstract class SettingsPage<TIdentifier>(
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
 
@@ -252,8 +244,7 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
 
             if (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonFontOptions, _audioService, _volumeSettings))

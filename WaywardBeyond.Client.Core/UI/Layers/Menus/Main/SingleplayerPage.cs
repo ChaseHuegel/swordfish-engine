@@ -89,8 +89,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
             {
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
+                    Anchors = Anchors.Center,
                 };
 
                 using (ui.Text(_localization.GetString("ui.menu.saves")!))
@@ -106,8 +105,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
 
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
+                    Anchors = Anchors.Center,
                 };
 
                 ui.ClipConstraints = new Constraints
@@ -145,8 +143,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
             
             using (ui.Text(_localization.GetString("ui.menu.createSave")!))
@@ -161,8 +158,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
             
             ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _saveFontOptions, _inputService, _audioService, _volumeSettings);
@@ -191,8 +187,7 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
             
             if (ui.TextButton(id: "Button_Back", text: "Back", _buttonFontOptions, _audioService, _volumeSettings))
