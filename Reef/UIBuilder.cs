@@ -718,6 +718,35 @@ public sealed class UIBuilder<TRendererData>
         availableWidth -= parent.Style.Padding.Left + parent.Style.Padding.Right;
         availableHeight -= parent.Style.Padding.Top + parent.Style.Padding.Bottom;
 
+        if (parent.Layout.Direction == LayoutDirection.None)
+        {
+            if (parent.Children == null)
+            {
+                return;
+            }
+            
+            for (var i = 0; i < parent.Children.Count; i++)
+            {
+                Element<TRendererData> child = parent.Children[i];
+                bool fillHorizontal = child.Constraints.Width is Fill;
+                bool fillVertical = child.Constraints.Height is Fill;
+
+                if (!fillHorizontal && !fillVertical)
+                {
+                    continue;
+                }
+
+                int width = fillHorizontal ? availableWidth : child.Rect.Size.X;
+                int height = fillVertical ? availableHeight : child.Rect.Size.Y;
+
+                var size = new IntVector2(width, height);
+                child.Rect = new IntRect(child.Rect.Position, size);
+                parent.Children[i] = child;
+            }
+            
+            return;
+        }
+
         var numHorizontalFillChildren = 0;
         var numVerticalFillChildren = 0;
         
