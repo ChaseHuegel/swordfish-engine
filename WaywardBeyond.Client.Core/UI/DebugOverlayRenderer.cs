@@ -32,20 +32,30 @@ internal class DebugOverlayRenderer : IUILayer
         _engineDebugSettings = engineDebugSettings;
         _overlays = overlays;
 
-        var shortcut = new Shortcut
+        var toggleShortcut = new Shortcut
         {
-            Name = "Toggle debug overlay",
+            Name = "Toggle debug",
             Category = "Developer",
             Key = Key.F3,
             IsEnabled = Shortcut.DefaultEnabled,
-            Action = OnToggleDebugOverlay,
+            Action = OnToggleDebug,
         };
-        shortcutService.RegisterShortcut(shortcut);
+        shortcutService.RegisterShortcut(toggleShortcut);
+        
+        var toggleUIDebugShortcut = new Shortcut
+        {
+            Name = "Toggle UI debug",
+            Category = "Developer/Debug",
+            Key = Key.F4,
+            IsEnabled = IsVisible,
+            Action = OnToggleUIDebug,
+        };
+        shortcutService.RegisterShortcut(toggleUIDebugShortcut);
     }
 
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing && _debugSettings.OverlayVisible;
+        return _debugSettings.OverlayVisible;
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)
@@ -69,6 +79,11 @@ internal class DebugOverlayRenderer : IUILayer
             for (var i = 0; i < _overlays.Length; i++)
             {
                 IDebugOverlay overlay = _overlays[i];
+                if (!overlay.IsVisible())
+                {
+                    continue;
+                }
+                
                 try
                 {
                     Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);
@@ -87,10 +102,14 @@ internal class DebugOverlayRenderer : IUILayer
         return Result.FromSuccess();
     }
     
-    private void OnToggleDebugOverlay()
+    private void OnToggleDebug()
     {
-        bool visible = _debugSettings.OverlayVisible;
-        _debugSettings.OverlayVisible.Set(!visible);
-        _engineDebugSettings.UI.Set(!visible);
+        _debugSettings.OverlayVisible.Set(!_debugSettings.OverlayVisible);
+        _engineDebugSettings.UI.Set(false);
+    }
+    
+    private void OnToggleUIDebug()
+    {
+        _engineDebugSettings.UI.Set(!_engineDebugSettings.UI);
     }
 }
