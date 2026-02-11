@@ -68,6 +68,7 @@ internal static partial class Widgets
             bool exited = ui.Exited();
             bool focused = ui.Focused();
             
+            var submitted = false;
             var typing = false;
             var navigating = false;
             var editing = false;
@@ -112,15 +113,12 @@ internal static partial class Widgets
 
             if (focused)
             {
-                bool isCtrlHeld = inputService.IsKeyHeld(Key.Control);
-                bool isShiftHeld = inputService.IsKeyHeld(Key.Shift);
-                
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
                     bool hasSelection = state.HasSelection();
                     
-                    if (input.Type == UIController.InputType.Char && !isCtrlHeld)
+                    if (input.Type == UIController.InputType.Char && !state.ControlModifier)
                     {
                         if (state.Settings.DisallowedCharacters != null && state.Settings.DisallowedCharacters.Contains(input.Char))
                         {
@@ -140,7 +138,17 @@ internal static partial class Widgets
                     }
                     else if (input.Type != UIController.InputType.KeyPress)
                     {
+                        state.ControlModifier = state.ControlModifier && input != UIController.Key.Control;
+                        state.ShiftModifier = state.ShiftModifier && input != UIController.Key.Shift;
                         continue;
+                    }
+                    else if (input == UIController.Key.Control)
+                    {
+                        state.ControlModifier = true;
+                    }
+                    else if (input == UIController.Key.Shift)
+                    {
+                        state.ShiftModifier = true;
                     }
                     else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && (hasSelection || state.CaretIndex > 0))
                     {
@@ -154,7 +162,7 @@ internal static partial class Widgets
                             countToDelete = selection.Length;
                             state.CaretIndex = deleteStartIndex;
                         }
-                        else if (isCtrlHeld)
+                        else if (state.ControlModifier)
                         {
                             var textStr = state.Text.ToString();
                             Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
@@ -192,7 +200,7 @@ internal static partial class Widgets
                             countToDelete = selection.Length;
                             state.CaretIndex = deleteStartIndex;
                         }
-                        else if (isCtrlHeld)
+                        else if (state.ControlModifier)
                         {
                             var textStr = state.Text.ToString();
                             Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
@@ -218,7 +226,7 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.LeftArrow)
                     {
-                        if (isCtrlHeld)
+                        if (state.ControlModifier)
                         {
                             var textStr = state.Text.ToString();
                             Match previousWord = _wordRegex.MatchPrevious(textStr, state.CaretIndex);
@@ -256,7 +264,7 @@ internal static partial class Widgets
                         state.CaretIndex = state.Text.Length;
                         navigating = true;
                     }
-                    else if (input == UIController.Key.C && isCtrlHeld)
+                    else if (input == UIController.Key.C && state.ControlModifier)
                     {
                         if (!hasSelection)
                         {
@@ -269,7 +277,7 @@ internal static partial class Widgets
                         var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
                         inputService.SetClipboard(textStr);
                     }
-                    else if (input == UIController.Key.X && isCtrlHeld)
+                    else if (input == UIController.Key.X && state.ControlModifier)
                     {
                         if (!hasSelection)
                         {
@@ -287,7 +295,7 @@ internal static partial class Widgets
                         state.CaretIndex = selection.StartIndex;
                         editing = true;
                     }
-                    else if (input == UIController.Key.V && isCtrlHeld)
+                    else if (input == UIController.Key.V && state.ControlModifier)
                     {
                         string clipboardContent = inputService.GetClipboard();
                         
@@ -322,11 +330,16 @@ internal static partial class Widgets
                         state.CaretIndex += clipboardContent.Length;
                         editing = true;
                     }
-                    else if (input == UIController.Key.A && isCtrlHeld)
+                    else if (input == UIController.Key.A && state.ControlModifier)
                     {
                         state.SelectionStartIndex = 0;
                         state.CaretIndex = state.Text.Length;
                         selectionOverwritten = true;
+                    }
+                    else if (input == UIController.Key.Enter)
+                    {
+                        submitted = true;
+                        ui.Unfocus();
                     }
                     
                     if (state.Settings.MaxCharacters > 0 && state.Text.Length > state.Settings.MaxCharacters.Value)
@@ -338,7 +351,7 @@ internal static partial class Widgets
                     editing = typing || editing;
                     state.CaretIndex = Math.Clamp(state.CaretIndex, 0, state.Text.Length);
                     
-                    if (!selectionOverwritten && (editing || (navigating && !isShiftHeld)))
+                    if (!selectionOverwritten && (editing || (navigating && !state.ShiftModifier)))
                     {
                         state.SelectionStartIndex = state.CaretIndex;
                     }
@@ -439,7 +452,7 @@ internal static partial class Widgets
                 interactions |= Interactions.Input;
             }
             
-            if (focused && inputService.IsKeyPressed(Key.Enter))
+            if (submitted)
             {
                 interactions |= Interactions.Submit;
             }

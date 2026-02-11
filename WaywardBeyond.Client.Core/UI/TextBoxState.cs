@@ -9,6 +9,8 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
 {
     public int CaretIndex;
     public int SelectionStartIndex;
+    public bool ShiftModifier;
+    public bool ControlModifier;
     
     public readonly StringBuilder Text = new(initialValue);
     public readonly Options Settings = options;
