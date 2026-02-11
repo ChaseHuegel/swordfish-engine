@@ -239,6 +239,7 @@ public sealed class UIBuilder<TRendererData>
     public bool Exited() => _controller.IsExiting(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be exited"));
 
     public bool Focused() => _controller.IsFocused(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to be focused"));
+    public void Unfocus() => _controller.Unfocus();
     
     public bool IsPressed(UIController.Key key) => _controller.IsPressed(key);
     
