@@ -9,11 +9,13 @@ namespace WaywardBeyond.Client.Core.UI;
 
 public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSContext ecs) : IDebugOverlay
 {
+    private const int SAMPLE_LENGTH = 60 * 2;
+    
     private readonly IWindowContext _windowContext = windowContext;
     private readonly IECSContext _ecs = ecs;
-    private readonly Sampler _fpsSampler = new(length: 15);
-    private readonly Sampler _updateSampler = new(length: 15);
-    private readonly Sampler _tickSampler = new(length: 15);
+    private readonly Sampler _fpsSampler = new(SAMPLE_LENGTH);
+    private readonly Sampler _updateSampler = new(SAMPLE_LENGTH);
+    private readonly Sampler _tickSampler = new(SAMPLE_LENGTH);
 
     public bool IsVisible() => true;
 
@@ -31,7 +33,7 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
         _tickSampler.Record(tps);
         Sample tpsSample = _tickSampler.GetSnapshot();
         
-        using (ui.Text($"FPS: M:{fpsSample.Median:F0} / A:{fpsSample.Average:F0} / L:{fpsSample.Lowest:F0} / H:{fpsSample.Highest:F0}"))
+        using (ui.Text($"FPS M:{fpsSample.Median:F0} / A:{fpsSample.Average:F0} / L:{fpsSample.Lowest:F0} / H:{fpsSample.Highest:F0}"))
         {
             if (fpsSample.Median < 30)
             {
@@ -42,26 +44,26 @@ public class PerformanceStatsOverlay(in IWindowContext windowContext, in IECSCon
                 ui.Color = new Vector4(1f, 1f, 0f, 1f);
             }
         }
-            
-        using (ui.Text($"UPS: {upsSample.Median:F0} / A:{upsSample.Average:F0} / L:{upsSample.Lowest:F0} / H:{upsSample.Highest:F0}"))
+        
+        using (ui.Text($"UPS M:{upsSample.Median:F0} / A:{upsSample.Average:F0} / L:{upsSample.Lowest:F0} / H:{upsSample.Highest:F0}"))
         {
             if (upsSample.Median < 30)
             {
                 ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
-            else if (upsSample.Median < 45)
+            else if (upsSample.Median < 60)
             {
                 ui.Color = new Vector4(1f, 1f, 0f, 1f);
             }
         }
-
-        using (ui.Text($"TPS: {tpsSample.Median:F0} / A:{tpsSample.Average:F0} / L:{tpsSample.Lowest:F0} / H:{tpsSample.Highest:F0}"))
+        
+        using (ui.Text($"TPS M:{tpsSample.Median:F0} / A:{tpsSample.Average:F0} / L:{tpsSample.Lowest:F0} / H:{tpsSample.Highest:F0}"))
         {
             if (tpsSample.Median < 30)
             {
                 ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
-            else if (tpsSample.Median < 45)
+            else if (tpsSample.Median < 60)
             {
                 ui.Color = new Vector4(1f, 1f, 0f, 1f);
             }
