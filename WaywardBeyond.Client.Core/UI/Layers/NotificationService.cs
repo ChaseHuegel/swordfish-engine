@@ -101,7 +101,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
                 };
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Bottom | Anchors.Center,
+                    Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,
                     X = new Fixed((int)cursorPosition.X),
                     Y = new Fixed((int)cursorPosition.Y),
                 };
