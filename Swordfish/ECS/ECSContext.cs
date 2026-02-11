@@ -22,7 +22,7 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 
         _threadWorker = new ThreadWorker(Update, "ECS")
         {
-            TargetTickRate = -1,
+            TargetTickRate = 512,
         };
 
         World = new World();
