@@ -100,8 +100,7 @@ internal class OrientationSelector : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Fixed(ui.Height - 132),
+                Y = new Fixed(-138),
                 Width = new Fixed(32),
                 Height = new Fixed(32),
             };
@@ -121,22 +120,22 @@ internal class OrientationSelector : IUILayer
         for (var i = 0; i < _orientations.Length; i++)
         {
             Orientation orientation = _orientations[i];
-            OrientationSelectorElement shapeSelectorElement = _orientationSelectorElements[orientation];
+            OrientationSelectorElement orientationSelectorElement = _orientationSelectorElements[orientation];
             
             //  Create the selectable rect
-            using (ui.Element())
+            using (ui.Element(orientationSelectorElement.ID))
             {
                 var vector = new Vector2(0f, elementOffset);
                 var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * i);
                 vector = Vector2.Transform(vector, rotation);
-                
-                ui.ID = shapeSelectorElement.ID;
+
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Color = new Vector4(0f, 0f, 0f, 0f);
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                    X = new Fixed((int)vector.X + ui.Width / 2),
-                    Y = new Fixed((int)vector.Y + ui.Height / 2),
+                    X = new Fixed((int)vector.X),
+                    Y = new Fixed((int)vector.Y),
                     Width = new Fixed(96),
                     Height = new Fixed(96),
                 };
@@ -156,8 +155,6 @@ internal class OrientationSelector : IUILayer
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
-                        X = new Relative(0.5f),
-                        Y = new Relative(0.5f),
                         Width = new Fixed(64),
                         Height = new Fixed(64),
                     };
@@ -165,7 +162,7 @@ internal class OrientationSelector : IUILayer
                     //  Draw the selection indicator
                     if (isSelected)
                     {
-                        using (ui.Image(shapeSelectorElement.SelectedImage))
+                        using (ui.Image(orientationSelectorElement.SelectedImage))
                         {
                             ui.Constraints = new Constraints
                             {
@@ -176,13 +173,11 @@ internal class OrientationSelector : IUILayer
                     }
 
                     //  Draw the shape
-                    using (ui.Image(shapeSelectorElement.BaseImage))
+                    using (ui.Image(orientationSelectorElement.BaseImage))
                     {
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
-                            X = new Relative(0.5f),
-                            Y = new Relative(0.5f),
                             Width = new Fixed(32),
                             Height = new Fixed(32),
                         };

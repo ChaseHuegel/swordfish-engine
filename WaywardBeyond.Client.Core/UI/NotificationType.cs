@@ -4,4 +4,5 @@ internal enum NotificationType
 {
     Toast,
     Action,
+    Interaction,
 }

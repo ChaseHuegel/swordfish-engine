@@ -190,8 +190,6 @@ internal class Inventory : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
             };
 
             for (var rowIndex = 0; rowIndex < rowCount; rowIndex++)
@@ -227,7 +225,7 @@ internal class Inventory : IUILayer
                             using (ui.Element())
                             {
                                 ui.LayoutDirection = LayoutDirection.None;
-                                ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
+                                ui.Padding = new Padding(left: 2, top: 2, right: 2, bottom: 2);
                                 ui.Constraints = new Constraints
                                 {
                                     Width = new Fixed(48),
@@ -307,8 +305,6 @@ internal class Inventory : IUILayer
                                     ui.Constraints = new Constraints
                                     {
                                         Anchors = Anchors.Bottom | Anchors.Right,
-                                        X = new Relative(1f),
-                                        Y = new Relative(1f),
                                     };
                                 }
 
@@ -319,8 +315,6 @@ internal class Inventory : IUILayer
                                     ui.Constraints = new Constraints
                                     {
                                         Anchors = Anchors.Center,
-                                        X = new Relative(0.5f),
-                                        Y = new Relative(0.5f),
                                         Width = new Fill(),
                                         Height = new Fill(),
                                     };
@@ -391,14 +385,13 @@ internal class Inventory : IUILayer
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Padding = new Padding(left: 4, top: 4, right: 4, bottom: 4);
                 ui.Constraints = new Constraints
                 {
+                    Anchors = Anchors.Center | Anchors.Local,
                     X = new Fixed((int)cursorPosition.X),
                     Y = new Fixed((int)cursorPosition.Y),
                     Width = new Fixed(48),
                     Height = new Fixed(48),
-                    Anchors = Anchors.Left | Anchors.Top,
                 };
                 
                 //  Stack size
@@ -408,8 +401,6 @@ internal class Inventory : IUILayer
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Bottom | Anchors.Right,
-                        X = new Relative(1f),
-                        Y = new Relative(1f),
                     };
                 }
 
@@ -419,8 +410,6 @@ internal class Inventory : IUILayer
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
-                        X = new Relative(0.5f),
-                        Y = new Relative(0.5f),
                         Width = new Fill(),
                         Height = new Fill(),
                     };

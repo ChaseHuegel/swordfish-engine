@@ -96,8 +96,7 @@ internal class ShapeSelector : IUILayer
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Fixed(ui.Height - 100),
+                Y = new Fixed(-100),
                 Width = new Fixed(32),
                 Height = new Fixed(32),
             };
@@ -119,19 +118,19 @@ internal class ShapeSelector : IUILayer
             ShapeSelectorElement shapeSelectorElement = _shapeSelectorElements[shape];
             
             //  Create the selectable rect
-            using (ui.Element())
+            using (ui.Element(shapeSelectorElement.ID))
             {
                 var vector = new Vector2(0f, elementOffset);
                 var rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, angleBetweenElements * (int)shape);
                 vector = Vector2.Transform(vector, rotation);
                 
-                ui.ID = shapeSelectorElement.ID;
+                ui.LayoutDirection = LayoutDirection.None;
                 ui.Color = new Vector4(0f, 0f, 0f, 0f);
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                    X = new Fixed((int)vector.X + ui.Width / 2),
-                    Y = new Fixed((int)vector.Y + ui.Height / 2),
+                    X = new Fixed((int)vector.X),
+                    Y = new Fixed((int)vector.Y),
                     Width = new Fixed(96),
                     Height = new Fixed(96),
                 };
@@ -151,8 +150,6 @@ internal class ShapeSelector : IUILayer
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
-                        X = new Relative(0.5f),
-                        Y = new Relative(0.5f),
                         Width = new Fixed(64),
                         Height = new Fixed(64),
                     };
@@ -176,8 +173,6 @@ internal class ShapeSelector : IUILayer
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
-                            X = new Relative(0.5f),
-                            Y = new Relative(0.5f),
                             Width = new Fixed(32),
                             Height = new Fixed(32),
                         };
@@ -189,13 +184,17 @@ internal class ShapeSelector : IUILayer
         //  Draw a label indicating the currently selected shape's name
         using (ui.Image(_labelImage))
         {
+            ui.LayoutDirection = LayoutDirection.None;
+            ui.Padding = new Padding
+            {
+                Left = 8,
+                Top = 2,
+                Right = 8,
+                Bottom = 2,
+            };
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
-                Width = new Fixed(64),
-                Height = new Fixed(24),
             };
 
             string shapeTranslationKey = GetShapeTranslationKey(_playerInteractionService.SelectedShape);
@@ -204,8 +203,6 @@ internal class ShapeSelector : IUILayer
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
                 };
             }
         }

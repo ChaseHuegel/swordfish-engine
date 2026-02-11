@@ -1,11 +1,12 @@
-using System.Numerics;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -13,50 +14,63 @@ internal sealed class HomePage(
     in Entry entry,
     in IAudioService audioService,
     in VolumeSettings volumeSettings,
-    in ILocalization localization
+    in ILocalization localization,
+    in GameSaveService gameSaveService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
-
-    private readonly Entry _entry = entry;
-    private readonly IAudioService _audioService = audioService;
-    private readonly VolumeSettings _volumeSettings = volumeSettings;
-    private readonly ILocalization _localization = localization;
     
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
-
+    private readonly Entry _entry = entry;
+    private readonly ILocalization _localization = localization;
+    private readonly GameSaveService _gameSaveService = gameSaveService;
+    
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
+    
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        using (ui.Element())
+        GameSave[] saves = _gameSaveService.GetSaves();
+        if (saves.Length > 0)
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
-            ui.Constraints = new Constraints
+            using (ui.TextButton(id: "Button_SelectSave", text: _localization.GetString("ui.button.selectSave")!, _buttonOptions, out Widgets.Interactions interactions))
             {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
-            };
-
-            if (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonFontOptions, _audioService, _volumeSettings))
-            {
-                menu.GoToPage(MenuPage.Singleplayer);
-            }
-
-            using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
-            {
-                ui.FontOptions = _buttonFontOptions;
-                ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
                 };
-            }
 
-            if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoToPage(MenuPage.SelectSave);
+                }
+            }
+        }
+
+        using (ui.TextButton(id: "Button_NewSave", text: _localization.GetString("ui.button.newSave")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(MenuPage.NewSave);
+            }
+        }
+        
+        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 menu.GoToPage(MenuPage.Settings);
             }
@@ -66,12 +80,19 @@ internal sealed class HomePage(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
-
-            if (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        }
+        
+        using (ui.TextButton(id: "Button_Quit", text: _localization.GetString("ui.button.quit")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 _entry.Quit();
             }

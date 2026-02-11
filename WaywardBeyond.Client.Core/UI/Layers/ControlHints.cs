@@ -30,8 +30,8 @@ internal class ControlHints(
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Bottom | Anchors.Right,
-                X = new Relative(0.99f),
-                Y = new Fixed(ui.Height - 100),
+                X = new Fixed(-20),
+                Y = new Fixed(-100),
             };
 
             if (_shapeSelector.Available)

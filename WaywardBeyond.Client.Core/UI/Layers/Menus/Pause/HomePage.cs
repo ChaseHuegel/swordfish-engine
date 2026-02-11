@@ -1,5 +1,5 @@
-using System.Threading.Tasks;
 using Reef;
+using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using Swordfish.Graphics;
@@ -19,34 +19,39 @@ internal sealed class HomePage(
 {
     public PausePage ID => PausePage.Home;
 
-    private readonly IAudioService _audioService = audioService;
-    private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
+    
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)
     {
-        using (ui.Element())
+        using (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonOptions, out Widgets.Interactions interactions))
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
             };
 
-            if (ui.TextButton(id: "Button_Continue", text: _localization.GetString("ui.button.continue")!, _buttonFontOptions, _audioService, _volumeSettings))
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 WaywardBeyond.Unpause();
             }
+        }
 
-            if (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonFontOptions, _audioService, _volumeSettings))
+        using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 menu.GoToPage(PausePage.Settings);
             }
@@ -56,12 +61,19 @@ internal sealed class HomePage(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
-        
-            if (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonFontOptions, _audioService, _volumeSettings))
+        }
+
+        using (ui.TextButton(id: "Button_SaveAndExit", text: _localization.GetString("ui.button.saveAndExit")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 _gameSaveManager.SaveAndExit();
             }

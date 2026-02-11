@@ -72,15 +72,12 @@ public class Injector : IDryIocInjector
         
         container.Register<IUILayer, CrosshairOverlay>(Reuse.Singleton);
         
-        container.Register<DebugOverlayRenderer>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
-        container.Register<IDebugOverlay, PerformanceStatsOverlay>();
-        
         container.Register<MainMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, MainMenu>();
         container.Register<IMenuPage<MenuPage>, UI.Layers.Menus.Main.HomePage>();
         container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
-        container.Register<IMenuPage<MenuPage>, SingleplayerPage>();
+        container.Register<IMenuPage<MenuPage>, SelectSavePage>();
+        container.Register<IMenuPage<MenuPage>, NewSavePage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();
@@ -107,6 +104,10 @@ public class Injector : IDryIocInjector
         
         container.Register<NotificationService>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, NotificationService>();
+        
+        container.Register<DebugOverlayRenderer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
+        container.Register<IDebugOverlay, PerformanceStatsOverlay>();
     }
     
     private static void RegisterInput(IContainer container)

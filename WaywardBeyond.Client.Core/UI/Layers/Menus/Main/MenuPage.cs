@@ -3,6 +3,7 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 internal enum MenuPage
 {
     Home,
-    Singleplayer,
+    SelectSave,
+    NewSave,
     Settings,
 }

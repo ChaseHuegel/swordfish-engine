@@ -11,9 +11,8 @@ using Swordfish.UI.Reef;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
-internal sealed class MainMenu : Menu<MenuPage>
+internal sealed class MainMenu : TitleMenu<MenuPage>
 {
-    private readonly Material? _titleMaterial;
     private readonly Material? _backgroundMaterial;
     
     public MainMenu(
@@ -22,19 +21,9 @@ internal sealed class MainMenu : Menu<MenuPage>
         ReefContext reefContext,
         IShortcutService shortcutService,
         IMenuPage<MenuPage>[] pages
-    ) : base(logger, reefContext, pages)
+    ) : base(logger, materialDatabase, reefContext, pages)
     {
-        Result<Material> materialResult = materialDatabase.Get("ui/menu/title");
-        if (materialResult)
-        {
-            _titleMaterial = materialResult;
-        }
-        else
-        {
-            logger.LogError(materialResult, "Failed to load the title material, it will not be able to render.");
-        }
-        
-        materialResult = materialDatabase.Get("ui/menu/background");
+        Result<Material> materialResult = materialDatabase.Get("ui/menu/background");
         if (materialResult)
         {
             _backgroundMaterial = materialResult;
@@ -45,12 +34,12 @@ internal sealed class MainMenu : Menu<MenuPage>
         }
         
         Shortcut backShortcut = new(
-            "Go back",
-            "General",
+            name: "Go back",
+            category: "General",
             ShortcutModifiers.None,
             Key.Esc,
-            IsVisible,
-            () => GoBack()
+            isEnabled: IsVisible,
+            action: () => GoBack()
         );
         shortcutService.RegisterShortcut(backShortcut);
 
@@ -64,36 +53,24 @@ internal sealed class MainMenu : Menu<MenuPage>
 
     public override Result RenderUI(double delta, UIBuilder<Material> ui)
     {
-        if (_backgroundMaterial != null)
+        if (_backgroundMaterial == null)
         {
-            using (ui.Image(_backgroundMaterial))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.5f),
-                    Width = new Fixed(_backgroundMaterial.Textures[0].Width),
-                    Height = new Fixed(_backgroundMaterial.Textures[0].Height),
-                };
-            }
+            return base.RenderUI(delta, ui);
         }
-        
-        if (_titleMaterial != null)
+
+        //  Render the background
+        using (ui.Image(_backgroundMaterial))
         {
-            using (ui.Image(_titleMaterial))
+            ui.Constraints = new Constraints
             {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Top,
-                    X = new Relative(0.5f),
-                    Y = new Relative(0.1f),
-                    Width = new Fixed(_titleMaterial.Textures[0].Width),
-                    Height = new Fixed(_titleMaterial.Textures[0].Height),
-                };
-            }
+                Anchors = Anchors.Center,
+                X = new Relative(0.5f),
+                Y = new Relative(0.5f),
+                Width = new Fixed(_backgroundMaterial.Textures[0].Width),
+                Height = new Fixed(_backgroundMaterial.Textures[0].Height),
+            };
         }
-        
+
         return base.RenderUI(delta, ui);
     }
     

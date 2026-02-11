@@ -628,7 +628,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         return bestUp;
     }
 
-    public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
+    bool IDebugOverlay.IsVisible() => WaywardBeyond.IsPlaying();
+    Result IDebugOverlay.RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
         DebugInfo debugInfo = _debugInfo;
 

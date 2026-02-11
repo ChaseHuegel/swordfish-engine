@@ -89,22 +89,16 @@ internal static partial class Widgets
         
         using (ui.Element())
         {
-            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Constraints = new Constraints
             {
-                Width = new Fill(),
+                Width = new Relative(1f),
             };
             
             using (ui.Text(text))
             {
                 ui.FontSize = 20;
                 ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Left,
-                    Y = new Relative(0.5f),
-                };
             }
             
             using (ui.Element())
@@ -115,77 +109,62 @@ internal static partial class Widgets
                     Height = new Fill(),
                 };
             }
-            
-            using (ui.Element(id + "_Decrease"))
+                        
+            using (ui.Element())
             {
-                bool clicked = ui.Clicked();
-                bool hovering = ui.Hovering();
-                
-                using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
+                ui.Spacing = 8;
+                using (ui.Element(id + "_Decrease"))
                 {
-                    ui.FontSize = 30;
+                    bool clicked = ui.Clicked();
+                    bool hovering = ui.Hovering();
                     
-                    //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
-                    ui.Padding = new Padding
+                    using (ui.Text(DECREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
-                        Right = 4,
-                        Bottom = 12,
-                    };
-                    
-                    if (clicked)
-                    {
-                        changeType = ChangeType.Decrease;
-                        ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                    }
-                    else if (hovering)
-                    {
-                        ui.Color = new Vector4(1f, 1f, 1f, 1f);
-                    }
-                    else
-                    {
-                        ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        ui.FontSize = 20;
+                        
+                        if (clicked)
+                        {
+                            changeType = ChangeType.Decrease;
+                            ui.Color = new Vector4(0f, 0f, 0f, 1f);
+                        }
+                        else if (hovering)
+                        {
+                            ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                        }
+                        else
+                        {
+                            ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        }
                     }
                 }
-            }
-            
-            using (ui.Text(value))
-            {
-                ui.FontSize = 20;
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center | Anchors.Left,
-                    Y = new Relative(0.5f),
-                };
-            }
-            
-            using (ui.Element(id + "_Increase"))
-            {
-                bool clicked = ui.Clicked();
-                bool hovering = ui.Hovering();
                 
-                using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
+                using (ui.Text(value))
                 {
-                    ui.FontSize = 30;
+                    ui.FontSize = 20;
+                }
+                
+                using (ui.Element(id + "_Increase"))
+                {
+                    bool clicked = ui.Clicked();
+                    bool hovering = ui.Hovering();
                     
-                    //  TODO swordfish#233 For some reason some FA glyphs are rendering outside of their bounds
-                    ui.Padding = new Padding
+                    using (ui.Text(INCREASE_UNICODE, fontID: "Font Awesome 6 Free Regular"))
                     {
-                        Right = 4,
-                        Bottom = 12,
-                    };
-                    
-                    if (clicked)
-                    {
-                        ui.Color = new Vector4(0f, 0f, 0f, 1f);
-                        changeType = ChangeType.Increase;
-                    }
-                    else if (hovering)
-                    {
-                        ui.Color = new Vector4(1f, 1f, 1f, 1f);
-                    }
-                    else
-                    {
-                        ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        ui.FontSize = 20;
+                        
+                        if (clicked)
+                        {
+                            ui.Color = new Vector4(0f, 0f, 0f, 1f);
+                            changeType = ChangeType.Increase;
+                        }
+                        else if (hovering)
+                        {
+                            ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                        }
+                        else
+                        {
+                            ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
+                        }
                     }
                 }
             }

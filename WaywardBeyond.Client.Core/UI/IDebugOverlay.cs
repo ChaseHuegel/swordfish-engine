@@ -6,5 +6,7 @@ namespace WaywardBeyond.Client.Core.UI;
 
 public interface IDebugOverlay
 {
+    bool IsVisible();
+    
     Result RenderDebugOverlay(double delta, UIBuilder<Material> ui);
 }

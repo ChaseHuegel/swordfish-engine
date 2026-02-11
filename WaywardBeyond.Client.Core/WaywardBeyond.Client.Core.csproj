@@ -32,6 +32,15 @@
       <Compile Update="UI\Widgets.NumberControl.cs">
         <DependentUpon>Widgets.cs</DependentUpon>
       </Compile>
+      <Compile Update="UI\Widgets.Checkbox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.TextButton.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.TextBox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
     </ItemGroup>
 
     <Target Name="PreBuild" BeforeTargets="PreBuildEvent">

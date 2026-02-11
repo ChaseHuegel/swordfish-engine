@@ -1,25 +1,34 @@
 "Language" = "en"
 
 [Translations]
+"ui.text.none" = "<none>"
+
+"ui.notification.saveNameEmpty" = "Name required"
+"ui.notification.saveNameTaken" = "Name taken"
+
 "ui.button.back" = "Back"
 
-"ui.button.singleplayer" = "Singleplayer"
-"ui.button.multiplayer" = "Multiplayer"
+"ui.button.selectSave" = "Continue"
+"ui.button.newSave" = "Create save"
 "ui.button.settings" = "Settings"
 "ui.button.quit" = "Quit game"
 
-"ui.button.continue" = "Continue game"
+"ui.button.continue" = "Continue"
 "ui.button.saveAndExit" = "Save & exit"
 
+"ui.menu.createSave" = "Create Save"
 "ui.menu.saves" = "Game Saves"
-"ui.button.newGame" = "+ New game"
-"ui.field.defaultSaveName" = "playtest"
+"ui.button.newGame" = "Begin journey"
+"ui.field.saveName" = "Enter save name..."
+"ui.field.saveSeed" = "[Random seed]"
 
 "ui.menu.display" = "Display"
 "ui.setting.vsync" = "VSync"
 "ui.setting.fullscreen" = "Fullscreen"
 "ui.setting.msaa" = "Anti-aliasing"
-"ui.setting.fov" = "FOV"
+
+"ui.menu.gameplay" = "Gameplay"
+"ui.setting.fov" = "Field of view"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"

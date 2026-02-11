@@ -29,10 +29,12 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly IAudioService _audioService = audioService;
     private readonly ILocalization _localization = localization;
     
-    private readonly FontOptions _buttonFontOptions = new()
-    {
-        Size = 32,
-    };
+    private readonly Widgets.ButtonOptions _buttonOptions = new(
+        new FontOptions {
+            Size = 32,
+        },
+        new Widgets.AudioOptions(audioService, volumeSettings)
+    );
 
     public abstract TIdentifier ID { get; }
 
@@ -40,54 +42,25 @@ internal abstract class SettingsPage<TIdentifier>(
     {
         using (ui.Element())
         {
-            ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Top,
-                X = new Relative(0.5f),
-                Y = new Relative(0.3f),
-                Width = new Fixed(250),
-                Height = new Relative(0.5f),
+                Anchors = Anchors.Center,
             };
-            
-            using (ui.Text(_localization.GetString("ui.menu.display")!))
-            {
-                ui.FontSize = 24;
-            }
-            
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
-            _renderSettings.VSync.Set(value);
-            
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
-            _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
-            
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
-            _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
-            
-            ui.NumberControl(
-                id: "Control_FOV",
-                text: _localization.GetString("ui.setting.fov")!,
-                _renderSettings.FOV,
-                constraints: new Int2(60, 120),
-                display: new Int2(60, 120),
-                steps: 12,
-                _audioService,
-                _volumeSettings,
-                OnFOVChanged
-            );
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Height = new Fixed(50),
-                };
-            }
-            
+        
             using (ui.Text(_localization.GetString("ui.menu.controls")!))
             {
                 ui.FontSize = 24;
             }
+        }
+        
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(300),
+            };
             
             ui.NumberControl(
                 id: "Control_LookSensitivity",
@@ -100,19 +73,82 @@ internal abstract class SettingsPage<TIdentifier>(
                 _volumeSettings,
                 OnLookSensitivityChanged
             );
-
-            using (ui.Element())
+        }
+                
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
             {
-                ui.Constraints = new Constraints
-                {
-                    Height = new Fixed(50),
-                };
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            using (ui.Text(_localization.GetString("ui.menu.gameplay")!))
+            {
+                ui.FontSize = 24;
             }
+        }
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(300),
+            };
             
+            ui.NumberControl(
+                id: "Control_FOV",
+                text: _localization.GetString("ui.setting.fov")!,
+                _renderSettings.FOV,
+                constraints: new Int2(60, 120),
+                display: new Int2(60, 120),
+                steps: 12,
+                _audioService,
+                _volumeSettings,
+                OnFOVChanged
+            );
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+        
             using (ui.Text(_localization.GetString("ui.menu.volume")!))
             {
                 ui.FontSize = 24;
             }
+        }
+        
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(300),
+            };
             
             ui.NumberControl(
                 id: "Control_Volume_Master",
@@ -125,7 +161,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 _volumeSettings,
                 OnMasterVolumeChanged
             );
-
+        
             ui.NumberControl(
                 id: "Control_Volume_Interface",
                 text: _localization.GetString("ui.setting.volume.interface")!,
@@ -137,7 +173,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 _volumeSettings,
                 OnInterfaceVolumeChanged
             );
-
+        
             ui.NumberControl(
                 id: "Control_Volume_Effects",
                 text: _localization.GetString("ui.setting.volume.effects")!,
@@ -149,7 +185,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 _volumeSettings,
                 OnEffectsVolumeChanged
             );
-            
+        
             void OnEffectsVolumeChanged(float newValue)
             {
                 _volumeSettings.Effects.Set(newValue);
@@ -160,12 +196,60 @@ internal abstract class SettingsPage<TIdentifier>(
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                X = new Relative(0.5f),
-                Y = new Relative(0.99f),
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
             };
 
-            if (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonFontOptions, _audioService, _volumeSettings))
+            using (ui.Text(_localization.GetString("ui.menu.display")!))
+            {
+                ui.FontSize = 24;
+            }
+        }
+
+        using (ui.Element())
+        {
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+                Width = new Fixed(300),
+            };
+
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
+            _renderSettings.VSync.Set(value);
+
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
+            _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
+
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
+            _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
+        }
+
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+
+            if (interactions.Has(Widgets.Interactions.Click))
             {
                 _settingsManager.ApplySettings();
                 menu.GoBack();

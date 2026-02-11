@@ -1,0 +1,53 @@
+using System.Collections.Generic;
+using System.Text;
+using Reef.Constraints;
+using Reef.UI;
+
+namespace WaywardBeyond.Client.Core.UI;
+
+internal struct TextBoxState(in string initialValue, in TextBoxState.Options options = default)
+{
+    public int CaretIndex;
+    public int SelectionStartIndex;
+    public bool ShiftModifier;
+    public bool ControlModifier;
+    
+    public readonly StringBuilder Text = new(initialValue);
+    public readonly Options Settings = options;
+
+    /// <summary>
+    ///     Determines whether any text is selected.
+    /// </summary>
+    public bool HasSelection()
+    {
+        return SelectionStartIndex != CaretIndex;
+    }
+    
+    /// <summary>
+    ///     Calculates the index, length, and direction of the selection.
+    /// </summary>
+    public Selection CalculateSelection()
+    {
+        bool forward;
+        int selectionStartIndex;
+        int selectionLength;
+        if (SelectionStartIndex < CaretIndex)
+        {
+            selectionStartIndex = SelectionStartIndex;
+            selectionLength = CaretIndex - SelectionStartIndex;
+            forward = true;
+        }
+        else
+        {
+            selectionStartIndex = CaretIndex;
+            selectionLength = SelectionStartIndex - CaretIndex;
+            forward = false;
+        }
+        
+        return new Selection(selectionStartIndex, selectionLength, forward);
+    }
+
+    public readonly record struct Selection(int StartIndex, int Length, bool Forward);
+
+    public record struct Options(string? Placeholder = null, int? MaxCharacters = 0, Constraints? Constraints = null, HashSet<char>? DisallowedCharacters = null);
+}
