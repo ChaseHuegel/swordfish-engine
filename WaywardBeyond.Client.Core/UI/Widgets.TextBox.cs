@@ -361,7 +361,6 @@ internal static partial class Widgets
                     ui.Color = new Vector4(1f, 1f, 1f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Right,
                         X = new Fixed(caretConstraints.MinWidth),
                         Width = new Fixed(2),
                         Height = new Fill(),
@@ -394,14 +393,13 @@ internal static partial class Widgets
             {
                 TextBoxState.Selection selection = state.CalculateSelection();
                 TextConstraints selectionConstraints = ui.Measure(fontOptions, displayString, selection.StartIndex, selection.Length);
-                int xOffset = selection.Forward ? caretConstraints.MinWidth : caretConstraints.MinWidth + selectionConstraints.MinWidth;
+                int xOffset = selection.Forward ? caretConstraints.MinWidth - selectionConstraints.MinWidth : caretConstraints.MinWidth;
 
                 using (ui.Element())
                 {
                     ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Right,
                         X = new Fixed(xOffset),
                         Width = new Fixed(selectionConstraints.MinWidth),
                         Height = new Fill(),
