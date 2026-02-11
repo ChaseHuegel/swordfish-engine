@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net.NetworkInformation;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
@@ -70,11 +72,6 @@ internal class DebugOverlayRenderer : IUILayer
                 Right = 20,
                 Bottom = 20,
             };
-            ui.Constraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
 
             for (var i = 0; i < _overlays.Length; i++)
             {
@@ -86,10 +83,16 @@ internal class DebugOverlayRenderer : IUILayer
                 
                 try
                 {
-                    Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);
-                    if (!result)
+                    using (ui.Element())
                     {
-                        _logger.LogError(result, "Failed to render debug overlay \"{overlay}\".", overlay.GetType());
+                        ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+                        ui.LayoutDirection = LayoutDirection.Vertical;
+                        
+                        Result result = overlay.RenderDebugOverlay(delta, _reefContext.Builder);
+                        if (!result)
+                        {
+                            _logger.LogError(result, "Failed to render debug overlay \"{overlay}\".", overlay.GetType());
+                        }
                     }
                 }
                 catch (Exception exception)
