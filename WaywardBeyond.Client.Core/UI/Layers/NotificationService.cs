@@ -91,14 +91,6 @@ internal class NotificationService(in IInputService inputService) : IUILayer
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = new Vector4(0f, 0f, 0f, 0.75f);
-                ui.Padding = new Padding
-                {
-                    Left = 4,
-                    Top = 4,
-                    Right = 4,
-                    Bottom = 4,
-                };
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,
@@ -153,6 +145,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
             alpha = 1f - (float)Math.Pow(alpha, 9f);
             
             ui.Color = new Vector4(1f, 1f, 1f, alpha);
+            ui.BackgroundColor = new Vector4(0f, 0f, 0f, 0.75f * alpha);
         }
     }
 
