@@ -6,23 +6,24 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
-using ToastNotification = (Notification Notification, DateTime CreatedAt);
+using NotificationState = (Notification Notification, DateTime CreatedAt);
 
-internal class NotificationService : IUILayer
+internal class NotificationService(in IInputService inputService) : IUILayer
 {
-    private const int MAX_LIFETIME_MS = 3_000;
+    private readonly IInputService _inputService = inputService;
     
-    private readonly ConcurrentQueue<ToastNotification> _pushedNotifications = [];
-    private readonly List<ToastNotification> _notifications = [];
+    private readonly ConcurrentQueue<NotificationState> _pushedStates = [];
+    private readonly List<NotificationState> _activeStates = [];
     
     public void Push(Notification notification)
     {
-        var toastNotification = new ToastNotification(notification, DateTime.Now);
-        _pushedNotifications.Enqueue(toastNotification);
+        var state = new NotificationState(notification, DateTime.Now);
+        _pushedStates.Enqueue(state);
     }
     
     public bool IsVisible()
@@ -35,24 +36,24 @@ internal class NotificationService : IUILayer
         DateTime now = DateTime.Now;
         
         //  Collect notifications that have been pushed
-        while (_pushedNotifications.TryDequeue(out ToastNotification pushedNotification))
+        while (_pushedStates.TryDequeue(out NotificationState pushedNotification))
         {
-            _notifications.Insert(0, pushedNotification);
+            _activeStates.Insert(0, pushedNotification);
         }
         
         //  Remove expired notifications
-        while (_notifications.Count > 0)
+        while (_activeStates.Count > 0)
         {
-            int lastIndex = _notifications.Count - 1;
-            ToastNotification toastNotification = _notifications[lastIndex];
+            int lastIndex = _activeStates.Count - 1;
+            NotificationState state = _activeStates[lastIndex];
             
-            TimeSpan elapsed = now - toastNotification.CreatedAt;
-            if (elapsed.TotalMilliseconds < MAX_LIFETIME_MS)
+            TimeSpan elapsed = now - state.CreatedAt;
+            if (elapsed.TotalMilliseconds < GetLifetime(state.Notification.Type))
             {
                 break;
             }
             
-            _notifications.RemoveAt(lastIndex);
+            _activeStates.RemoveAt(lastIndex);
         }
         
         //  Render toast notifications
@@ -65,18 +66,51 @@ internal class NotificationService : IUILayer
                 Y = new Relative(0.03f),
             };
             
-            for (var i = 0; i < _notifications.Count; i++)
+            for (var i = 0; i < _activeStates.Count; i++)
             {
-                ToastNotification toastNotification = _notifications[i];
-                if (toastNotification.Notification.Type != NotificationType.Toast)
+                NotificationState state = _activeStates[i];
+                if (state.Notification.Type != NotificationType.Toast)
                 {
                     continue;
                 }
                 
-                RenderNotification(ui, toastNotification, now);
+                RenderNotification(ui, state, now);
             }
         }
         
+        //  Render interaction notifications
+        for (var i = 0; i < _activeStates.Count; i++)
+        {
+            NotificationState state = _activeStates[i];
+            if (state.Notification.Type != NotificationType.Interaction)
+            {
+                continue;
+            }
+         
+            Vector2 cursorPosition = _inputService.CursorPosition;
+            using (ui.Element())
+            {
+                ui.LayoutDirection = LayoutDirection.None;
+                ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+                ui.Padding = new Padding
+                {
+                    Left = 4,
+                    Top = 4,
+                    Right = 4,
+                    Bottom = 4,
+                };
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Bottom | Anchors.Center,
+                    X = new Fixed((int)cursorPosition.X),
+                    Y = new Fixed((int)cursorPosition.Y),
+                };
+                
+                RenderNotification(ui, state, now);
+                break;  //  Only render the most recent notification
+            }
+        }
+
         if (!WaywardBeyond.IsPlaying())
         {
             return Result.FromSuccess();
@@ -91,15 +125,15 @@ internal class NotificationService : IUILayer
                 Y = new Fixed(-196),
             };
             
-            for (var i = 0; i < _notifications.Count; i++)
+            for (var i = 0; i < _activeStates.Count; i++)
             {
-                ToastNotification toastNotification = _notifications[i];
-                if (toastNotification.Notification.Type != NotificationType.Action)
+                NotificationState state = _activeStates[i];
+                if (state.Notification.Type != NotificationType.Action)
                 {
                     continue;
                 }
                 
-                RenderNotification(ui, toastNotification, now);
+                RenderNotification(ui, state, now);
                 break;  //  Only render the most recent notification
             }
         }
@@ -107,18 +141,27 @@ internal class NotificationService : IUILayer
         return Result.FromSuccess();
     }
 
-    private static void RenderNotification(UIBuilder<Material> ui, ToastNotification toastNotification, DateTime now)
+    private static void RenderNotification(UIBuilder<Material> ui, NotificationState state, DateTime now)
     {
-        using (ui.Text(toastNotification.Notification.Text))
+        using (ui.Text(state.Notification.Text))
         {
-            TimeSpan elapsed = now - toastNotification.CreatedAt;
+            TimeSpan elapsed = now - state.CreatedAt;
                     
-            float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, MAX_LIFETIME_MS, 0f, 1f);
+            float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, GetLifetime(state.Notification.Type), 0f, 1f);
             //  Falloff near the end of the notification's lifetime
             //      Graph: https://www.desmos.com/calculator/udfsvtcbgn
             alpha = 1f - (float)Math.Pow(alpha, 9f);
-                    
+            
             ui.Color = new Vector4(1f, 1f, 1f, alpha);
         }
+    }
+
+    private static int GetLifetime(NotificationType type)
+    {
+        return type switch
+        {
+            NotificationType.Interaction => 1500,
+            _ => 3000,
+        };
     }
 }

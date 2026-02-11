@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -19,10 +20,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     public MenuPage ID => MenuPage.NewSave;
     
     private readonly GameSaveManager _gameSaveManager;
+    private readonly GameSaveService _gameSaveService;
     private readonly IInputService _inputService;
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
     private readonly ILocalization _localization;
+    private readonly NotificationService _notificationService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -32,17 +35,21 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
     public NewSavePage(
         in GameSaveManager gameSaveManager,
+        in GameSaveService gameSaveService,
         in IInputService inputService,
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
-        in ILocalization localization
+        in ILocalization localization,
+        in NotificationService notificationService
     ) {
         _gameSaveManager = gameSaveManager;
+        _gameSaveService = gameSaveService;
         _inputService = inputService;
         _audioService = audioService;
         _volumeSettings = volumeSettings;
         _localization = localization;
-        
+        _notificationService = notificationService;
+
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 32,
@@ -114,13 +121,24 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 {
                     Anchors = Anchors.Center,
                 };
-
-                if (!string.IsNullOrWhiteSpace(saveNameValue) && interactions.Has(Widgets.Interactions.Click))
+                
+                if (interactions.Has(Widgets.Interactions.Click))
                 {
-                    var seedValue = _seedTextBox.Text.ToString();
-                    string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
-                    var options = new GameOptions(saveNameValue, seed);
-                    Task.Run(() => _gameSaveManager.NewGame(options));
+                    if (string.IsNullOrWhiteSpace(saveNameValue))
+                    {
+                        _notificationService.Push(new Notification("Invalid name", NotificationType.Interaction));
+                    }
+                    else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
+                    {
+                        _notificationService.Push(new Notification("Name not available", NotificationType.Interaction));
+                    }
+                    else
+                    {
+                        var seedValue = _seedTextBox.Text.ToString();
+                        string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
+                        var options = new GameOptions(saveNameValue, seed);
+                        Task.Run(() => _gameSaveManager.NewGame(options));
+                    }
                 }
             }
         }
