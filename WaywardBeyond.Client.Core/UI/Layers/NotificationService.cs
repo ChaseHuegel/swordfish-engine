@@ -91,7 +91,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
             using (ui.Element())
             {
                 ui.LayoutDirection = LayoutDirection.None;
-                ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+                ui.Color = new Vector4(0f, 0f, 0f, 0.75f);
                 ui.Padding = new Padding
                 {
                     Left = 4,
