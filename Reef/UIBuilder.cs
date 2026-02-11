@@ -474,17 +474,21 @@ public sealed class UIBuilder<TRendererData>
                 //  Apply anchoring. Top Left is default, so only need to apply Center/Right/Bottom.
                 Anchors anchors = element.Constraints.Anchors;
                 LayoutDirection parentLayoutDirection = frame.Parent?.Layout.Direction ?? LayoutDirection.None;
+                
+                bool anchorLocal = (anchors & Anchors.Local) == Anchors.Local;
+                int layoutOffsetX = anchorLocal ? 0 : availableWidth;
+                int layoutOffsetY = anchorLocal ? 0 : availableHeight;
 
                 //  Horizontal anchoring when not in a horizontal layout
                 if (parentLayoutDirection != LayoutDirection.Horizontal)
                 {
                     if ((anchors & Anchors.Right) == Anchors.Right)
                     {
-                        x += availableWidth - element.Rect.Size.X;
+                        x += layoutOffsetX - element.Rect.Size.X;
                     }
                     else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Left) != Anchors.Left)
                     {
-                        x += (availableWidth - element.Rect.Size.X) / 2;
+                        x += (layoutOffsetX - element.Rect.Size.X) / 2;
                     }
                 }
             
@@ -493,11 +497,11 @@ public sealed class UIBuilder<TRendererData>
                 {
                     if ((anchors & Anchors.Bottom) == Anchors.Bottom)
                     {
-                        y += availableHeight - element.Rect.Size.Y;
+                        y += layoutOffsetY - element.Rect.Size.Y;
                     }
                     else if ((anchors & Anchors.Center) == Anchors.Center && (anchors & Anchors.Top) != Anchors.Top)
                     {
-                        y += (availableHeight - element.Rect.Size.Y) / 2;
+                        y += (layoutOffsetY - element.Rect.Size.Y) / 2;
                     }
                 }
                 
