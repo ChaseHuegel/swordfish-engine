@@ -269,6 +269,7 @@ public sealed class UIController
     internal bool IsExiting(string id) => _interactionStates.TryGetValue(id, out InteractionState interactionState) && IsReleased(interactionState.Hovering);
     
     internal bool IsFocused(string id) => _lastInteractedID == id;
+    internal void Unfocus() => _lastInteractedID = null;
     
     internal bool IsPressed(Key key)
     {
