@@ -10,4 +10,5 @@ public enum Anchors
     Bottom = 4,
     Right = 8,
     Center = 16,
+    Local = 32,
 }
