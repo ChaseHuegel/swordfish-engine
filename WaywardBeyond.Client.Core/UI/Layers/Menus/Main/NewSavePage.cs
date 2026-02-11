@@ -126,11 +126,13 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 {
                     if (string.IsNullOrWhiteSpace(saveNameValue))
                     {
-                        _notificationService.Push(new Notification("Invalid name", NotificationType.Interaction));
+                        var notification = new Notification(_localization.GetString("ui.notification.saveNameEmpty")!, NotificationType.Interaction);
+                        _notificationService.Push(notification);
                     }
                     else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
                     {
-                        _notificationService.Push(new Notification("Name not available", NotificationType.Interaction));
+                        var notification = new Notification(_localization.GetString("ui.notification.saveNameTaken")!, NotificationType.Interaction);
+                        _notificationService.Push(notification);
                     }
                     else
                     {

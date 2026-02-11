@@ -3,6 +3,9 @@
 [Translations]
 "ui.text.none" = "<none>"
 
+"ui.notification.saveNameEmpty" = "Name required"
+"ui.notification.saveNameTaken" = "Name taken"
+
 "ui.button.back" = "Back"
 
 "ui.button.selectSave" = "Continue"
