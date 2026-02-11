@@ -74,7 +74,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
                     continue;
                 }
                 
-                RenderNotification(ui, state, now);
+                RenderNotification(ui, state, now, hasBackground: false);
             }
         }
         
@@ -98,7 +98,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
                     Y = new Fixed((int)cursorPosition.Y),
                 };
                 
-                RenderNotification(ui, state, now);
+                RenderNotification(ui, state, now, hasBackground: true);
                 break;  //  Only render the most recent notification
             }
         }
@@ -125,7 +125,7 @@ internal class NotificationService(in IInputService inputService) : IUILayer
                     continue;
                 }
                 
-                RenderNotification(ui, state, now);
+                RenderNotification(ui, state, now, hasBackground: false);
                 break;  //  Only render the most recent notification
             }
         }
@@ -133,19 +133,29 @@ internal class NotificationService(in IInputService inputService) : IUILayer
         return Result.FromSuccess();
     }
 
-    private static void RenderNotification(UIBuilder<Material> ui, NotificationState state, DateTime now)
+    private static void RenderNotification(UIBuilder<Material> ui, NotificationState state, DateTime now, bool hasBackground)
     {
         using (ui.Text(state.Notification.Text))
         {
             TimeSpan elapsed = now - state.CreatedAt;
-                    
-            float alpha = MathS.RangeToRange((float)elapsed.TotalMilliseconds, 0, GetLifetime(state.Notification.Type), 0f, 1f);
+            float alpha = MathS.RangeToRange(
+                input: (float)elapsed.TotalMilliseconds,
+                low: 0,
+                high: GetLifetime(state.Notification.Type),
+                newLow: 0f,
+                newHigh: 1f
+            );
+            
             //  Falloff near the end of the notification's lifetime
             //      Graph: https://www.desmos.com/calculator/udfsvtcbgn
             alpha = 1f - (float)Math.Pow(alpha, 9f);
-            
+
             ui.Color = new Vector4(1f, 1f, 1f, alpha);
-            ui.BackgroundColor = new Vector4(0f, 0f, 0f, 0.75f * alpha);
+
+            if (hasBackground)
+            {
+                ui.BackgroundColor = new Vector4(0f, 0f, 0f, 0.75f * alpha);
+            }
         }
     }
 
