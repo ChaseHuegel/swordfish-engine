@@ -1,4 +1,3 @@
-using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -7,6 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -14,13 +14,15 @@ internal sealed class HomePage(
     in Entry entry,
     in IAudioService audioService,
     in VolumeSettings volumeSettings,
-    in ILocalization localization
+    in ILocalization localization,
+    in GameSaveService gameSaveService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
     
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
+    private readonly GameSaveService _gameSaveService = gameSaveService;
     
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
@@ -31,7 +33,24 @@ internal sealed class HomePage(
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        using (ui.TextButton(id: "Button_Singleplayer", text: _localization.GetString("ui.button.singleplayer")!, _buttonOptions, out Widgets.Interactions interactions))
+        GameSave[] saves = _gameSaveService.GetSaves();
+        if (saves.Length > 0)
+        {
+            using (ui.TextButton(id: "Button_SelectSave", text: _localization.GetString("ui.button.selectSave")!, _buttonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoToPage(MenuPage.SelectSave);
+                }
+            }
+        }
+
+        using (ui.TextButton(id: "Button_NewSave", text: _localization.GetString("ui.button.newSave")!, _buttonOptions, out Widgets.Interactions interactions))
         {
             ui.Constraints = new Constraints
             {
@@ -40,18 +59,8 @@ internal sealed class HomePage(
             
             if (interactions.Has(Widgets.Interactions.Click))
             {
-                menu.GoToPage(MenuPage.Singleplayer);
+                menu.GoToPage(MenuPage.NewSave);
             }
-        }
-        
-        using (ui.Text(_localization.GetString("ui.button.multiplayer")!))
-        {
-            ui.FontOptions = _buttonOptions.FontOptions;
-            ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
         }
         
         using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))

@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -16,14 +12,13 @@ using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
-internal sealed class SingleplayerPage : IMenuPage<MenuPage>
+internal sealed class NewSavePage : IMenuPage<MenuPage>
 {
     private static readonly char[] _saveNameTrimChars = [' ', '\t', '.'];
 
-    public MenuPage ID => MenuPage.Singleplayer;
+    public MenuPage ID => MenuPage.NewSave;
     
     private readonly GameSaveManager _gameSaveManager;
-    private readonly GameSaveService _gameSaveService;
     private readonly IInputService _inputService;
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
@@ -32,19 +27,17 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
 
-    private int _scrollY;
     private TextBoxState _saveNameTextBox;
     private TextBoxState _seedTextBox;
 
-    public SingleplayerPage(in GameSaveManager gameSaveManager,
-        in GameSaveService gameSaveService,
+    public NewSavePage(
+        in GameSaveManager gameSaveManager,
         in IInputService inputService,
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
-        in ILocalization localization)
-    {
+        in ILocalization localization
+    ) {
         _gameSaveManager = gameSaveManager;
-        _gameSaveService = gameSaveService;
         _inputService = inputService;
         _audioService = audioService;
         _volumeSettings = volumeSettings;
@@ -89,71 +82,6 @@ internal sealed class SingleplayerPage : IMenuPage<MenuPage>
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        GameSave[] saves = _gameSaveService.GetSaves();
-        if (saves.Length > 0)
-        {
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                using (ui.Text(_localization.GetString("ui.menu.saves")!))
-                {
-                    ui.FontSize = 24;
-                }
-            }
-
-            using (ui.Element("saves"))
-            {
-                ui.VerticalScroll = true;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                ui.ClipConstraints = new Constraints
-                {
-                    Width = new Relative(1f),
-                    Height = new Relative(1f),
-                };
-
-                float scroll = _inputService.GetMouseScroll();
-                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
-                ui.ScrollY = _scrollY * 30;
-
-                for (var i = 0; i < saves.Length; i++)
-                {
-                    GameSave save = saves[i];
-                    using (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
-                    {
-                        ui.Constraints = new Constraints
-                        {
-                            Anchors = Anchors.Center,
-                        };
-
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            _gameSaveManager.ActiveSave = save;
-                            Task.Run(_gameSaveManager.Load);
-                        }
-                    }
-                }
-            }
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                    Height = new Fill(),
-                };
-            }
-        }
-        
         using (ui.Element())
         {
             ui.Constraints = new Constraints
