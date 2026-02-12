@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "ship_core"
+ID      = "core"
 Shape   = "block"
 Tags    = [
     "metal",
@@ -7,4 +7,4 @@ Tags    = [
     "convertable_truss",
 ]
 [Bricks.Textures]
-Default = ["ship_core"]
+Default = ["core"]

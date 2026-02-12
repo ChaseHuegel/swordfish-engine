@@ -1,0 +1,21 @@
+[[Bricks]]
+ID      = "control_buttons"
+Shape   = "block"
+Tags    = [
+    "metal",
+    "buildable",
+    "orientable",
+    "convertable_truss",
+]
+[Bricks.Textures]
+Top     = ["panel.0"]
+Bottom  = ["panel.0"]
+Back    = ["panel.0"]
+Left    = ["panel.0"]
+Right   = ["panel.0"]
+Front   = [
+    "control_buttons.0",
+    "control_buttons.1",
+    "control_buttons.2",
+    "control_buttons.3",
+]

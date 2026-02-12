@@ -1,0 +1,4 @@
+Shader   = "textured"
+Textures = [
+    "block/control_panel.0.png",
+]

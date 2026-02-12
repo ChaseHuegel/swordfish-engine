@@ -1,0 +1,9 @@
+[[Bricks]]
+ID          = "porthole"
+Shape       = "any"
+Transparent = true
+Tags        = [
+    "metal",
+]
+[Bricks.Textures]
+Default = ["porthole"]

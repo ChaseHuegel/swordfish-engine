@@ -1,0 +1,9 @@
+[[Bricks]]
+ID          = "vent"
+Shape       = "any"
+Transparent = false
+Tags        = [
+    "metal",
+]
+[Bricks.Textures]
+Default = ["vent"]

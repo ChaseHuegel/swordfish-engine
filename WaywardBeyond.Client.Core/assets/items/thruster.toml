@@ -1,7 +1,7 @@
 [[Items]]
 ID       = "thruster"
 Name     = "item.base.thruster"
-Icon     = "block/vent.png"
+Icon     = "items/thruster.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"

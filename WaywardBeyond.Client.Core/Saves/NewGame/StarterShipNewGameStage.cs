@@ -53,7 +53,7 @@ internal sealed class StarterShipNewGameStage(
         _progress = 0f;
         
         var shipVoxelObject = new VoxelObject(chunkSize: 16);
-        shipVoxelObject.Set(0, 0, 0, _brickDatabase.Get("ship_core").Value.ToVoxel());
+        shipVoxelObject.Set(0, 0, 0, _brickDatabase.Get("core").Value.ToVoxel());
         _voxelEntityBuilder.Create(Guid.NewGuid(), shipVoxelObject, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         _progress = 1f;

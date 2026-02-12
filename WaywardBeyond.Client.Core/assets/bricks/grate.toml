@@ -1,0 +1,9 @@
+[[Bricks]]
+ID          = "grate"
+Shape       = "any"
+Transparent = true
+Tags        = [
+    "metal",
+]
+[Bricks.Textures]
+Default = ["grate"]

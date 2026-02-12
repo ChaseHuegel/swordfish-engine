@@ -1,14 +1,14 @@
 [[Items]]
-ID       = "rock"
-Name     = "item.base.rock"
-Icon     = "block/rock.png"
-MaxStack = 100
+ID         = "porthole"
+Name       = "item.base.porthole"
+Icon       = "block/porthole.png"
+MaxStack   = 100
 [Items.Placeable]
-Type     = "brick"
-ID       = "rock"
+Type       = "brick"
+ID         = "porthole"
 [Items.ViewModel]
 Mesh       = "cube.obj"
-Material   = "bricks/rock"
+Material   = "bricks/porthole"
 Position.X = 0.4
 Position.Y = -0.4
 Position.Z = -0.5
@@ -20,4 +20,4 @@ Scale.Y    = 0.25
 Scale.Z    = 0.25
 [Items.WorldModel]
 Mesh       = "cube.obj"
-Material   = "bricks/rock"
+Material   = "bricks/porthole"

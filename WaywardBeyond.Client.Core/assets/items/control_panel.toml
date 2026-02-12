@@ -1,14 +1,14 @@
 [[Items]]
-ID       = "rock"
-Name     = "item.base.rock"
-Icon     = "block/rock.png"
+ID       = "control_panel"
+Name     = "item.base.control_panel"
+Icon     = "block/control_panel.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "rock"
+ID       = "control_panel"
 [Items.ViewModel]
 Mesh       = "cube.obj"
-Material   = "bricks/rock"
+Material   = "bricks/control_panel"
 Position.X = 0.4
 Position.Y = -0.4
 Position.Z = -0.5
@@ -20,4 +20,4 @@ Scale.Y    = 0.25
 Scale.Z    = 0.25
 [Items.WorldModel]
 Mesh       = "cube.obj"
-Material   = "bricks/rock"
+Material   = "bricks/control_panel"
