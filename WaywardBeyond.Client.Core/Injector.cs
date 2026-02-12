@@ -1,4 +1,5 @@
-﻿using DryIoc;
+﻿using System;
+using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
@@ -17,6 +18,7 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -39,6 +41,7 @@ public class Injector : IDryIocInjector
         RegisterParsers(container);
         RegisterEntitySystems(container);
         RegisterVoxels(container);
+        RegisterWebhooks(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -55,7 +58,16 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAutoActivate, Entry>();
     }
 
-    private void RegisterConfiguration(IContainer container)
+    private static void RegisterWebhooks(IContainer container)
+    {
+        var feedbackSourceUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/ed8b4d594789c4567e352148e006dbc1/raw/3af9fc43b7a7c656284707e168fbc3d482780873/wb-feedback-webhook.txt");
+        var webhooks = new Webhooks(feedbackSourceUri);
+        container.RegisterInstance(webhooks);
+        
+        container.Register<FeedbackWebhook>();
+    }
+
+    private static void RegisterConfiguration(IContainer container)
     {
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
@@ -149,7 +161,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ThrusterSystem>();
     }
     
-    private void RegisterVoxels(IContainer container)
+    private static void RegisterVoxels(IContainer container)
     {
         //  TODO this was thrown together for testing and needs cleaned up
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);
