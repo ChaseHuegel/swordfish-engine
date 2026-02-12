@@ -4,6 +4,8 @@ using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
@@ -23,6 +25,7 @@ internal abstract class FeedbackPage<TIdentifier> : IMenuPage<TIdentifier> where
     private readonly VolumeSettings _volumeSettings;
     private readonly ILocalization _localization;
     private readonly FeedbackWebhook _feedbackWebhook;
+    private readonly IRenderer _renderer;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -38,7 +41,8 @@ internal abstract class FeedbackPage<TIdentifier> : IMenuPage<TIdentifier> where
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
         in ILocalization localization,
-        in FeedbackWebhook feedbackWebhook
+        in FeedbackWebhook feedbackWebhook,
+        in IRenderer renderer
     ) {
         _logger = logger;
         _inputService = inputService;
@@ -46,6 +50,7 @@ internal abstract class FeedbackPage<TIdentifier> : IMenuPage<TIdentifier> where
         _volumeSettings = volumeSettings;
         _localization = localization;
         _feedbackWebhook = feedbackWebhook;
+        _renderer = renderer;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -126,10 +131,16 @@ internal abstract class FeedbackPage<TIdentifier> : IMenuPage<TIdentifier> where
                     async Task SubmitAsync()
                     {
                         await using var logStream = File.Open(path: "logs/latest.log", FileMode.Open, FileAccess.Read, FileShare.Read);
-                        var log = new NamedStream(Name: "latest.log", Value: logStream);
-
-                        await using var screenshotStream = File.Open(path: "logs/latest.log", FileMode.Open, FileAccess.Read, FileShare.Read);
-                        var screenshot = new NamedStream(Name: "screenshot.png", Value: screenshotStream);
+                        var log = new NamedStream(Name: "latest.log", logStream);
+                        
+                        Texture screenshotTexture = _renderer.Screenshot();
+                        
+                        await using var screenshotStream = new MemoryStream();
+                        using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
+                        await image.SaveAsPngAsync(screenshotStream);
+                        screenshotStream.Position = 0;
+                        
+                        var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
                         
                         Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
                         if (!result.Success)

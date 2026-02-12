@@ -13,7 +13,7 @@ internal class FeedbackWebhook(in WebhookService webhookService)
     
     public async Task<Result> SendAsync(string? description, string? contact, NamedStream log, NamedStream screenshot)
     {
-        Result<byte[]> compressResult = Zip.Compress(log, screenshot);
+        Result<byte[]> compressResult = Zip.Compress(log);
         if (!compressResult.Success)
         {
             return new Result(success: false, $"Failed to compress feedback attachments. {compressResult.Message}", compressResult.Exception);
@@ -21,9 +21,13 @@ internal class FeedbackWebhook(in WebhookService webhookService)
         
         using var form = new MultipartFormDataContent();
         
-        var content = new ByteArrayContent(compressResult.Value);
-        content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
-        form.Add(content, name: "feedback-content", fileName: "feedback-content.zip");
+        var logAttachment = new ByteArrayContent(compressResult.Value);
+        logAttachment.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
+        form.Add(logAttachment, name: "log", fileName: "log.zip");
+
+        var screenshotAttachment = new StreamContent(screenshot.Value);
+        screenshotAttachment.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
+        form.Add(screenshotAttachment, name: "screenshot", screenshot.Name);
         
         if (!string.IsNullOrWhiteSpace(contact))
         {
