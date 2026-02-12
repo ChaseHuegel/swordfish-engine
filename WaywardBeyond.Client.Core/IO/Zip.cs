@@ -12,13 +12,14 @@ internal static class Zip
         try
         {
             using var memoryStream = new MemoryStream();
-            using var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create);
-
-            foreach (NamedStream stream in streams)
+            using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true))
             {
-                ZipArchiveEntry entry = archive.CreateEntry(stream.Name);
-                using var entryStream = entry.Open();
-                stream.Value.CopyTo(entryStream);
+                foreach (NamedStream stream in streams)
+                {
+                    ZipArchiveEntry entry = archive.CreateEntry(stream.Name);
+                    using var entryStream = entry.Open();
+                    stream.Value.CopyTo(entryStream);
+                }
             }
 
             return Result<byte[]>.FromSuccess(memoryStream.ToArray());
