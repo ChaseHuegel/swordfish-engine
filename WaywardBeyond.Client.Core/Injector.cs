@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
+using WaywardBeyond.Client.Core.Shortcuts;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -39,6 +40,7 @@ public class Injector : IDryIocInjector
         RegisterParsers(container);
         RegisterEntitySystems(container);
         RegisterVoxels(container);
+        RegisterShortcuts(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -55,7 +57,13 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAutoActivate, Entry>();
     }
 
-    private void RegisterConfiguration(IContainer container)
+    private void RegisterShortcuts(IContainer container)
+    {
+        container.Register<IAutoActivate, ShortcutRegistrar>();
+        container.Register<ShortcutRegistration, ScreenshotShortcut>();
+    }
+
+    private static void RegisterConfiguration(IContainer container)
     {
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
