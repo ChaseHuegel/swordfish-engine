@@ -1,6 +1,7 @@
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Swordfish.Library.Extensions;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.IO;
 
@@ -10,7 +11,7 @@ internal class FeedbackWebhook(in WebhookService webhookService)
 {
     private readonly WebhookService _webhookService = webhookService;
     
-    public async Task<Result> SendAsync(string? message, string? email, NamedStream log, NamedStream screenshot)
+    public async Task<Result> SendAsync(string? description, string? contact, NamedStream log, NamedStream screenshot)
     {
         Result<byte[]> compressResult = Zip.Compress(log, screenshot);
         if (!compressResult.Success)
@@ -24,16 +25,19 @@ internal class FeedbackWebhook(in WebhookService webhookService)
         content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
         form.Add(content, name: "feedback-content", fileName: "feedback-content.zip");
         
-        if (email != null)
+        if (!string.IsNullOrWhiteSpace(contact))
         {
-            form.Add(new StringContent(email), name: "email");
+            form.Add(new StringContent(contact), name: "username");
         }
 
-        if (message != null)
+        if (!string.IsNullOrWhiteSpace(description))
         {
-            form.Add(new StringContent(message), name: "message");
+            form.Add(new StringContent(description), name: "content");
         }
 
+        string title = !string.IsNullOrWhiteSpace(description) ? description.Truncate(count: 20) : $"Error Submission {DateTime.UtcNow}";
+        form.Add(new StringContent(title), name: "thread_name");
+        
         Result<Uri> feedbackUriResult = await _webhookService.ResolveFeedbackUriAsync();
         if (!feedbackUriResult.Success)
         {

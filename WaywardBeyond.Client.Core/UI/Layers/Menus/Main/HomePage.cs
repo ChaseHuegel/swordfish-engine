@@ -76,6 +76,19 @@ internal sealed class HomePage(
             }
         }
         
+        using (ui.TextButton(id: "Button_Feedback", text: _localization.GetString("ui.button.feedback")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(MenuPage.Feedback);
+            }
+        }
+        
         using (ui.Element())
         {
             ui.Constraints = new Constraints

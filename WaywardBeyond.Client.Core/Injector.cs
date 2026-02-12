@@ -60,10 +60,11 @@ public class Injector : IDryIocInjector
 
     private static void RegisterWebhooks(IContainer container)
     {
-        var feedbackSourceUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/ed8b4d594789c4567e352148e006dbc1/raw/3af9fc43b7a7c656284707e168fbc3d482780873/wb-feedback-webhook.txt");
+        var feedbackSourceUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/ed8b4d594789c4567e352148e006dbc1/raw/wb-feedback-webhook.txt");
         var webhooks = new Webhooks(feedbackSourceUri);
         container.RegisterInstance(webhooks);
         
+        container.Register<WebhookService>();
         container.Register<FeedbackWebhook>();
     }
 
@@ -90,6 +91,7 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
         container.Register<IMenuPage<MenuPage>, SelectSavePage>();
         container.Register<IMenuPage<MenuPage>, NewSavePage>();
+        container.Register<IMenuPage<MenuPage>, MainMenuFeedbackPage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();
