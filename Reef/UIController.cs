@@ -204,6 +204,7 @@ public sealed class UIController
     private InputState<bool> _rightMouse;
     private InputState<bool> _middleMouse;
     private string? _lastInteractedID;
+    private bool _interactionConsumed;
     private readonly List<Input> _inputBuffer = [];
     private readonly Dictionary<string, InteractionState> _interactionStates = [];
     
@@ -322,11 +323,23 @@ public sealed class UIController
         }
     }
     
+    internal void EndUpdate()
+    {
+        _interactionConsumed = false;
+    }
+    
     internal void UpdateInteraction(string id, IntRect rect)
     {
         Position cursorPos = _cursor.Current;
-        bool hovered = rect.Contains(cursorPos.X, cursorPos.Y);
-        bool interacting = hovered && IsPressed(_leftMouse);
+        
+        bool hovering = !_interactionConsumed && rect.Contains(cursorPos.X, cursorPos.Y);
+        bool clicked = hovering && IsPressed(_leftMouse);
+        bool interacting = clicked || _lastInteractedID == id && IsHeld(_leftMouse);
+
+        if (hovering || clicked)
+        {
+            _interactionConsumed = true;
+        }
 
         int localCursorX = cursorPos.X - rect.Left;
         int localCursorY = cursorPos.Y - rect.Top;
@@ -334,22 +347,20 @@ public sealed class UIController
 
         if (_interactionStates.TryGetValue(id, out InteractionState interactionState))
         {
-            interacting = interacting || (interactionState.Button.Current && IsHeld(_leftMouse));
-            
-            var hoveredState = new InputState<bool>(previous: interactionState.Hovering.Current, current: hovered);
+            var hoveredState = new InputState<bool>(previous: interactionState.Hovering.Current, current: hovering);
             var clickedState = new InputState<bool>(previous: interactionState.Button.Current, current: interacting);
             var cursorPositionState = new InputState<Position>(previous: interactionState.CursorPosition.Current, current: localCursorPosition);
             _interactionStates[id] = new InteractionState(hoveredState, clickedState, cursorPositionState);
         }
         else
         {
-            var hoveredState = new InputState<bool>(previous: false, current: hovered);
+            var hoveredState = new InputState<bool>(previous: false, current: hovering);
             var clickedState = new InputState<bool>(previous: false, current: interacting);
             var cursorPositionState = new InputState<Position>(previous: localCursorPosition, current: localCursorPosition);
             _interactionStates.Add(id, new InteractionState(hoveredState, clickedState, cursorPositionState));
         }
         
-        if (interacting)
+        if (clicked)
         {
             _lastInteractedID = id;
         }
