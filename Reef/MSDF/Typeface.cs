@@ -140,12 +140,41 @@ internal sealed class Typeface : ITypeface
             TextConstraints wordMeasurement = Measure(fontOptions, word, start: 0, word.Length);
             float wordWidth = wordMeasurement.PreferredWidth;
 
-            // If the word doesn't fit on the current line, commit the current line.
-            if (currentLineWidth + wordWidth > maxWidth && lineBuilder.Length > 0)
+            // If the word doesn't fit on the current line
+            if (currentLineWidth + wordWidth > maxWidth)
             {
-                lines.Add(lineBuilder.ToString());
-                lineBuilder.Clear();
-                currentLineWidth = 0;
+                // Commit the current line
+                if (lineBuilder.Length > 0)
+                {
+                    //  Don't write empty lines
+                    if (!IsNullOrWhiteSpace(lineBuilder))
+                    {
+                        lines.Add(lineBuilder.ToString());
+                    }
+
+                    lineBuilder.Clear();
+                    currentLineWidth = 0;
+                }
+                
+                // If the word still doesn't fit on the line, split the word until it does
+                while (Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth > maxWidth && wordBuilder.Length > 1)
+                {
+                    var splitIndex = 1;
+                    while (splitIndex < wordBuilder.Length && Measure(fontOptions, wordBuilder.ToString(), 0, splitIndex + 1).PreferredWidth <= maxWidth)
+                    {
+                        splitIndex++;
+                    }
+                    
+                    //  Don't write empty words
+                    if (!IsNullOrWhiteSpace(wordBuilder))
+                    {
+                        lines.Add(wordBuilder.ToString(0, splitIndex));
+                    }
+                    
+                    wordBuilder.Remove(0, splitIndex);
+                }
+                
+                wordWidth = Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth;
             }
 
             lineBuilder.Append(wordBuilder);
@@ -166,5 +195,18 @@ internal sealed class Typeface : ITypeface
         }
 
         return lines.ToArray();
+    }
+
+    private static bool IsNullOrWhiteSpace(StringBuilder stringBuilder)
+    {
+        for (var i = 0; i < stringBuilder.Length; i++)
+        {
+            if (!char.IsWhiteSpace(stringBuilder[i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 }
