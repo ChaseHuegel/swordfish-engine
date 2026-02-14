@@ -1165,9 +1165,7 @@ public sealed class UIBuilder<TRendererData>
                         height = child.Rect.Size.Y + (shrinkVertical ? heightToAdd : 0);
                         break;
                     default:
-                        width = child.Rect.Size.X + (shrinkHorizontal ? widthToAdd : 0);
-                        height = child.Rect.Size.Y + (shrinkVertical ? heightToAdd : 0);
-                        break;
+                        continue;
                 }
 
                 //  Update the child
