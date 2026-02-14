@@ -18,28 +18,27 @@ internal class FeedbackWebhook(in WebhookService webhookService)
         {
             return new Result(success: false, $"Failed to compress feedback attachments. {compressResult.Message}", compressResult.Exception);
         }
+
+        var guid = Guid.NewGuid();
         
         using var form = new MultipartFormDataContent();
         
         var logAttachment = new ByteArrayContent(compressResult.Value);
         logAttachment.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/zip");
-        form.Add(logAttachment, name: "log", fileName: "log.zip");
+        form.Add(logAttachment, name: "log", fileName: $"{log.Name}_{guid}.zip");
 
         var screenshotAttachment = new StreamContent(screenshot.Value);
         screenshotAttachment.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("image/png");
-        form.Add(screenshotAttachment, name: "screenshot", screenshot.Name);
+        form.Add(screenshotAttachment, name: "screenshot", fileName: $"{screenshot.Name}_{guid}.png");
         
         if (!string.IsNullOrWhiteSpace(contact))
         {
             form.Add(new StringContent(contact), name: "username");
         }
 
-        if (!string.IsNullOrWhiteSpace(description))
-        {
-            form.Add(new StringContent(description), name: "content");
-        }
+        form.Add(new StringContent($"{guid}\n\n{description}"), name: "content");
 
-        string title = !string.IsNullOrWhiteSpace(description) ? description.Truncate(count: 20) : $"Error Submission {DateTime.UtcNow}";
+        string title = !string.IsNullOrWhiteSpace(description) ? description.Truncate(count: 20) : "Quick Submission";
         form.Add(new StringContent(title), name: "thread_name");
         
         Result<Uri> feedbackUriResult = await _webhookService.ResolveFeedbackUriAsync();

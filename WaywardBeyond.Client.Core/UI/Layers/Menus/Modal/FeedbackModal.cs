@@ -9,6 +9,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Audio;
 using Swordfish.Graphics;
+using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -29,6 +30,7 @@ internal class FeedbackModal : IMenuPage<Modal>
     private readonly ILocalization _localization;
     private readonly FeedbackWebhook _feedbackWebhook;
     private readonly IRenderer _renderer;
+    private readonly LogListener _logListener;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -45,7 +47,8 @@ internal class FeedbackModal : IMenuPage<Modal>
         in VolumeSettings volumeSettings,
         in ILocalization localization,
         in FeedbackWebhook feedbackWebhook,
-        in IRenderer renderer
+        in IRenderer renderer,
+        in LogListener logListener
     ) {
         _logger = logger;
         _inputService = inputService;
@@ -54,6 +57,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         _localization = localization;
         _feedbackWebhook = feedbackWebhook;
         _renderer = renderer;
+        _logListener = logListener;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -153,19 +157,33 @@ internal class FeedbackModal : IMenuPage<Modal>
                         
                         async Task SubmitAsync()
                         {
-                            var logPath = new PathInfo("logs/latest.log");
-                            await using Stream logStream = logPath.Open();
-                            var log = new NamedStream(Name: "latest.log", logStream);
+                            //  Collect log info
+                            LogEventArgs[] logHistory = _logListener.GetHistory();
                             
+                            //  Create the log stream
+                            await using var logStream = new MemoryStream();
+                            await using var logStreamWriter = new StreamWriter(logStream);
+                            foreach (LogEventArgs logEntry in logHistory)
+                            {
+                                await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                            }
+                            await logStreamWriter.FlushAsync();
+                            logStream.Position = 0;
+                            
+                            //  Collect a screenshot
                             Texture screenshotTexture = _renderer.Screenshot();
                             
+                            //  Create the screenshot stream
                             await using var screenshotStream = new MemoryStream();
                             using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
                             await image.SaveAsPngAsync(screenshotStream);
                             screenshotStream.Position = 0;
+
+                            //  Name the streams
+                            await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
+                            await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
                             
-                            var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
-                            
+                            //  Send the feedback form
                             Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
                             if (result.Success)
                             {
