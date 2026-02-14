@@ -1,5 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Reef;
+using Reef.UI;
+using Swordfish.Graphics;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Systems;
 
@@ -53,5 +57,19 @@ internal sealed class ModalMenu : Menu<Modal>
         }
 
         return active;
+    }
+    
+    public override Result RenderUI(double delta, UIBuilder<Material> ui)
+    {
+        using (ui.Element(id: "Blocker_Modal"))
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Relative(1f),
+                Height = new Relative(1f),
+            };
+            
+            return base.RenderUI(delta, ui);
+        }
     }
 }

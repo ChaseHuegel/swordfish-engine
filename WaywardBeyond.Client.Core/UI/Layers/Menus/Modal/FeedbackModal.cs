@@ -102,10 +102,17 @@ internal class FeedbackModal : IMenuPage<Modal>
             //  Fullscreen tint
             ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
             ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Padding = new Padding
+            {
+                Left = 20,
+                Top = 20,
+                Right = 20,
+                Bottom = 20,
+            };
             ui.Constraints = new Constraints
             {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
+                Width = new Fill(),
+                Height = new Fill(),
             };
             
             using (ui.Element())
