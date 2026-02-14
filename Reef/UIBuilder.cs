@@ -272,6 +272,17 @@ public sealed class UIBuilder<TRendererData>
         //  Create render commands out of all elements,
         //  performing a top-down positioning pass in the process.
         List<RenderCommand<TRendererData>> commands = PositionAndRenderElements(stack);
+        
+        //  Process interactions in reverse render order to ensure top-most elements consume input first.
+        for (int i = commands.Count - 1; i >= 0; i--)
+        {
+            RenderCommand<TRendererData> command = commands[i];
+            if (command.ID != null)
+            {
+                _controller.UpdateInteraction(command.ID, command.Rect);
+            }
+        }
+        _controller.EndUpdate();
 
         //  Reset state
         _hasOpenElement = false;
@@ -595,6 +606,7 @@ public sealed class UIBuilder<TRendererData>
                 
                 var command = new RenderCommand<TRendererData>
                 (
+                    element.ID,
                     element.Rect,
                     clipRect,
                     color,
@@ -606,12 +618,6 @@ public sealed class UIBuilder<TRendererData>
                 );
                 commands.Add(command);
                 
-                //  Update input
-                if (element.ID != null)
-                {
-                    _controller.UpdateInteraction(element.ID, element.Rect);
-                }
-        
                 // Push any children to be processed
                 if (element.Children == null)
                 {

@@ -4,6 +4,7 @@ using Reef.UI;
 namespace Reef;
 
 public readonly struct RenderCommand<TRendererData>(
+    string? id,
     IntRect rect,
     IntRect clipRect,
     Vector4 color,
@@ -13,6 +14,7 @@ public readonly struct RenderCommand<TRendererData>(
     string? text,
     TRendererData? rendererData)
 {
+    public readonly string? ID = id;
     public readonly IntRect Rect = rect;
     public readonly IntRect ClipRect = clipRect;
     public readonly Vector4 Color = color;
