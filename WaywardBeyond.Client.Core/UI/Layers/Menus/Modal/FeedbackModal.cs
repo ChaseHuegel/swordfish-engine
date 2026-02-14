@@ -153,7 +153,8 @@ internal class FeedbackModal : IMenuPage<Modal>
                         
                         async Task SubmitAsync()
                         {
-                            await using FileStream logStream = File.Open(path: "logs/latest.log", FileMode.Open, FileAccess.Read, FileShare.Read);
+                            var logPath = new PathInfo("logs/latest.log");
+                            await using Stream logStream = logPath.Open();
                             var log = new NamedStream(Name: "latest.log", logStream);
                             
                             Texture screenshotTexture = _renderer.Screenshot();
@@ -166,7 +167,11 @@ internal class FeedbackModal : IMenuPage<Modal>
                             var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
                             
                             Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
-                            if (!result.Success)
+                            if (result.Success)
+                            {
+                                _logger.LogInformation("Feedback submitted successfully.");
+                            }
+                            else
                             {
                                 _logger.LogError(result.Exception, result.Message);
                             }
