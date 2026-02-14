@@ -24,6 +24,7 @@ using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Processing;
@@ -99,12 +100,16 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
         container.Register<IMenuPage<MenuPage>, SelectSavePage>();
         container.Register<IMenuPage<MenuPage>, NewSavePage>();
-        container.Register<IMenuPage<MenuPage>, MainMenuFeedbackPage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();
         container.Register<IMenuPage<PausePage>, UI.Layers.Menus.Pause.HomePage>();
         container.Register<IMenuPage<PausePage>, PauseMenuSettingsPage>();
+        
+        container.Register<ModalMenu>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ModalMenu>();
+        container.Register<IMenuPage<Modal>, EmptyModal>();
+        container.Register<IMenuPage<Modal>, FeedbackModal>();
         
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);

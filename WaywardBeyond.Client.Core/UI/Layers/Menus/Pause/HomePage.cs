@@ -7,6 +7,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
@@ -14,14 +15,16 @@ internal sealed class HomePage(
     in IAudioService audioService,
     in VolumeSettings volumeSettings,
     in ILocalization localization,
-    in GameSaveManager gameSaveManager
+    in GameSaveManager gameSaveManager,
+    in ModalMenu modalMenu
 ) : IMenuPage<PausePage>
 {
     public PausePage ID => PausePage.Home;
 
     private readonly ILocalization _localization = localization;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
-    
+    private readonly ModalMenu _modalMenu = modalMenu;
+
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
@@ -54,6 +57,19 @@ internal sealed class HomePage(
             if (interactions.Has(Widgets.Interactions.Click))
             {
                 menu.GoToPage(PausePage.Settings);
+            }
+        }
+        
+        using (ui.TextButton(id: "Button_Feedback", text: _localization.GetString("ui.button.feedback")!, _buttonOptions, out Widgets.Interactions interactions))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactions.Has(Widgets.Interactions.Click))
+            {
+                _modalMenu.GoToPage(FeedbackModal.Modal);
             }
         }
         

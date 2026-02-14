@@ -6,5 +6,4 @@ internal enum MenuPage
     SelectSave,
     NewSave,
     Settings,
-    Feedback,
 }

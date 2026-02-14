@@ -7,6 +7,7 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -15,7 +16,8 @@ internal sealed class HomePage(
     in IAudioService audioService,
     in VolumeSettings volumeSettings,
     in ILocalization localization,
-    in GameSaveService gameSaveService
+    in GameSaveService gameSaveService,
+    in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Home;
@@ -23,7 +25,8 @@ internal sealed class HomePage(
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveService _gameSaveService = gameSaveService;
-    
+    private readonly ModalMenu _modalMenu = modalMenu;
+
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
@@ -85,7 +88,7 @@ internal sealed class HomePage(
             
             if (interactions.Has(Widgets.Interactions.Click))
             {
-                menu.GoToPage(MenuPage.Feedback);
+                _modalMenu.GoToPage(FeedbackModal.Modal);
             }
         }
         
