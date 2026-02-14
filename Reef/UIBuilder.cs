@@ -314,6 +314,33 @@ public sealed class UIBuilder<TRendererData>
     {
         Element<TRendererData> element = _currentElement;
         
+        //  Calculate non-wrapped text constraints
+        if (element.Text != null)
+        {
+            int firstWordLength = element.Text.IndexOfAny(_whiteSpaceChars);
+            if (firstWordLength < 0)
+            {
+                firstWordLength = element.Text.Length;
+            }
+            
+            TextConstraints firstWordConstraints = _textEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
+
+            TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text);
+            TextConstraints fullTextConstraints = textLayout.Constraints;
+
+            var textConstraints = new UI.Constraints
+            {
+                Anchors = element.Constraints.Anchors,
+                X = element.Constraints.X,
+                Y = element.Constraints.Y,
+                Width = element.Constraints.Width ?? new Fixed(fullTextConstraints.PreferredWidth),
+                Height = element.Constraints.Height ?? new Fixed(fullTextConstraints.PreferredHeight),
+                MinWidth = firstWordConstraints.MinWidth,
+                MinHeight = firstWordConstraints.MinHeight,
+            };
+            element.Constraints = textConstraints;
+        }
+
         //  Attempt to get the parent, if any, off the stack
         Element<TRendererData> parent = default;
         _hasOpenElement = _openElements.Count > 0;
@@ -332,32 +359,6 @@ public sealed class UIBuilder<TRendererData>
             maxHeight = Math.Max(0, maxHeight - parent.Style.Padding.Top - parent.Style.Padding.Bottom);
         }
         
-        //  Calculate non-wrapped text constraints
-        if (element.Text != null)
-        {
-            int firstWordLength = element.Text.IndexOfAny(_whiteSpaceChars);
-            if (firstWordLength < 0)
-            {
-                firstWordLength = element.Text.Length;
-            }
-            
-            TextConstraints firstWordConstraints = _textEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
-
-            TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text, element.Constraints.Width?.Calculate(maxWidth)  ?? maxWidth);
-
-            var textConstraints = new UI.Constraints
-            {
-                Anchors = element.Constraints.Anchors,
-                X = element.Constraints.X,
-                Y = element.Constraints.Y,
-                Width = new Fixed(textLayout.Constraints.PreferredWidth),
-                Height = new Fixed(textLayout.Constraints.PreferredHeight),
-                MinWidth = firstWordConstraints.MinWidth,
-                MinHeight = firstWordConstraints.MinHeight,
-            };
-            element.Constraints = textConstraints;
-        }
-
         int width;
         if (element.Constraints.Width is Relative && _hasOpenElement)
         {
@@ -379,6 +380,7 @@ public sealed class UIBuilder<TRendererData>
         }
 
         var size = new IntVector2(width, height);
+        
         element.Rect = new IntRect(element.Rect.Position, size);
         
         //  Set min width and height if they are unassigned
