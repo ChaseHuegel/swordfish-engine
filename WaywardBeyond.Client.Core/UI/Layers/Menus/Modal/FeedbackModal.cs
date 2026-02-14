@@ -75,7 +75,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         
         var contactTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.contact"),
-            MaxCharacters: 1000,
+            MaxCharacters: 50,
             Constraints: new Constraints
             {
                 Width = new Fixed(300),
@@ -85,7 +85,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         
         var descriptionTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.description"),
-            MaxCharacters: 60,
+            MaxCharacters: 1000,
             Constraints: new Constraints
             {
                 Width = new Fixed(300),
