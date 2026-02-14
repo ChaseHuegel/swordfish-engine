@@ -701,7 +701,46 @@ public sealed class UIBuilder<TRendererData>
                 FillChildren(ref element);
                 ShrinkChildren(ref element);
                 WrapTextChildren(ref element);
-        
+
+                bool isWidthFixed = element.Constraints.Width is Fixed or Relative;
+                bool isHeightFixed = element.Constraints.Height is Fixed or Relative;
+                bool canResizeWidth = !isWidthFixed && element.Layout.Direction != LayoutDirection.Vertical; 
+                bool canResizeHeight = !isHeightFixed && element.Layout.Direction != LayoutDirection.Horizontal; 
+                if (element.Children != null && (canResizeWidth || canResizeHeight))
+                {
+                    int width = element.Rect.Size.X;
+                    int height = element.Rect.Size.Y;
+                    
+                    for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
+                    {
+                        Element<TRendererData> child = element.Children[childIndex];
+
+                        switch (element.Layout.Direction)
+                        {
+                            case LayoutDirection.Horizontal when canResizeWidth:
+                                height = Math.Max(height, child.Rect.Size.Y);
+                                break;
+                            case LayoutDirection.Vertical when canResizeHeight:
+                                width = Math.Max(width, child.Rect.Size.X);
+                                break;
+                            case LayoutDirection.None:
+                                if (canResizeWidth)
+                                {
+                                    width = Math.Max(width, child.Rect.Size.X);
+                                }
+                                
+                                if (canResizeHeight)
+                                {
+                                    height = Math.Max(height, child.Rect.Size.Y);
+                                }
+                                break;
+                        }
+                    }
+                    
+                    var parentSize = new IntVector2(width, height);
+                    element.Rect = new IntRect(element.Rect.Position, parentSize);
+                }
+
                 // Save any changes made to the element
                 if (frame.Parent == null)
                 {
@@ -712,12 +751,12 @@ public sealed class UIBuilder<TRendererData>
                     frame.Parent.Value.Children[frame.ChildIndex] = element;
                 }
         
-                // Push any children to be processed
                 if (element.Children == null)
                 {
                     continue;
                 }
 
+                // Push any children to be processed
                 for (var childIndex = 0; childIndex < element.Children.Count; childIndex++)
                 {
                     Element<TRendererData> child = element.Children[childIndex];
@@ -980,7 +1019,7 @@ public sealed class UIBuilder<TRendererData>
             
             TextLayout textLayout = _textEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
             
-            var size = new IntVector2(child.Rect.Size.X, textLayout.Constraints.MinHeight);
+            var size = new IntVector2(textLayout.Constraints.MinWidth, textLayout.Constraints.PreferredHeight);
             child.Rect = new IntRect(child.Rect.Position, size);
             
             parent.Children[i] = child;
