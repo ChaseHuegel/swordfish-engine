@@ -383,11 +383,6 @@ internal static partial class Widgets
             
             using (ui.Text(displayString))
             {
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fill(),
-                };
-
                 ui.FontOptions = fontOptions;
 
                 if (focused)
