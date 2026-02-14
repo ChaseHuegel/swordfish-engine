@@ -43,20 +43,26 @@ internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate
 
     public Texture Screenshot()
     {
-        (byte[] Pixels, int Width, int Height) screenshot = _synchronizationContext.WaitForResult(ScreenshotCallback);
-        unsafe (byte[] Pixels, int Width, int Height) ScreenshotCallback()
+        (byte[] Pixels, int Width, int Height, DateTime Time) screenshot = _synchronizationContext.WaitForResult(ScreenshotCallback);
+        unsafe (byte[] Pixels, int Width, int Height, DateTime Time) ScreenshotCallback()
         {
             Vector2 size = _windowContext.GetSize();
             var width = (uint)size.X;
             var height = (uint)size.Y;
-            
+            DateTime time = DateTime.Now;
+         
             var pixels = new byte[width * height * 3];
             fixed (byte* p = pixels)
             {
+                _gl.GetInteger(GetPName.PackAlignment, out int previousPackAlignment);
+                _gl.PixelStore(PixelStoreParameter.PackAlignment, 1);
+
                 _gl.ReadPixels(0, 0, width, height, PixelFormat.Rgb, PixelType.UnsignedByte, p);
+                
+                _gl.PixelStore(PixelStoreParameter.PackAlignment, previousPackAlignment);
             }
 
-            return (pixels, (int)width, (int)height);
+            return (pixels, (int)width, (int)height, time);
         }
         
         //  Intentionally not performing this post-processing in the synchronization context 
@@ -73,7 +79,7 @@ internal sealed class GLRenderer : IRenderer, IDisposable, IAutoActivate
             );
         }
         
-        return new Texture(name: $"Screenshot_{DateTime.Now:yy-MM-dd_HHmmss}", flippedPixels, screenshot.Width, screenshot.Height, mipmaps: false);
+        return new Texture(name: $"{screenshot.Time:yy-MM-dd_HH.mm.ss}", flippedPixels, screenshot.Width, screenshot.Height, mipmaps: false);
     }
 
     private void OnWindowRender(double delta)
