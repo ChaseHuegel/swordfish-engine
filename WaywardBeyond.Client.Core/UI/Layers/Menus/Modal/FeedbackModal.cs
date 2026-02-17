@@ -78,6 +78,7 @@ internal class FeedbackModal : IMenuPage<Modal>
             MaxCharacters: 50,
             Constraints: new Constraints
             {
+                Anchors = Anchors.Center,
                 Width = new Fixed(300),
             }
         );
@@ -88,7 +89,8 @@ internal class FeedbackModal : IMenuPage<Modal>
             MaxCharacters: 1000,
             Constraints: new Constraints
             {
-                Width = new Fixed(300),
+                Width = new Fixed(600),
+                Height = new Fixed(300),
             }
         );
         
