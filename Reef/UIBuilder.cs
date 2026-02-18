@@ -137,7 +137,7 @@ public sealed class UIBuilder<TRendererData>
     public int Height => _viewPort.Size.Y;
 
     private IntRect _viewPort;
-    private readonly ITextEngine _textEngine;
+    public readonly ITextEngine TextEngine;
     private readonly UIController _controller;
 
     private bool _globalDebug;
@@ -150,7 +150,7 @@ public sealed class UIBuilder<TRendererData>
 
     public UIBuilder(int width, int height, ITextEngine textEngine, UIController controller)
     {
-        _textEngine = textEngine;
+        TextEngine = textEngine;
         _controller = controller;
         _viewPort = new IntRect(left: 0, top: 0, size: new IntVector2(width, height));
     }
@@ -200,9 +200,6 @@ public sealed class UIBuilder<TRendererData>
         
         return OpenElement(element);
     }
-
-    public TextConstraints Measure(FontOptions fontOptions, string text) => _textEngine.Measure(fontOptions, text);
-    public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length) => _textEngine.Measure(fontOptions, text, start, length);
     
     public bool Clicked(string id)
     {
@@ -323,9 +320,9 @@ public sealed class UIBuilder<TRendererData>
                 firstWordLength = element.Text.Length;
             }
             
-            TextConstraints firstWordConstraints = _textEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
+            TextConstraints firstWordConstraints = TextEngine.Measure(element.FontOptions, element.Text, start: 0, firstWordLength);
 
-            TextLayout textLayout = _textEngine.Layout(element.FontOptions, element.Text);
+            TextLayout textLayout = TextEngine.Layout(element.FontOptions, element.Text);
             TextConstraints fullTextConstraints = textLayout.Constraints;
 
             var textConstraints = new UI.Constraints
@@ -1017,7 +1014,7 @@ public sealed class UIBuilder<TRendererData>
                 continue;
             }
             
-            TextLayout textLayout = _textEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
+            TextLayout textLayout = TextEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
             
             var size = new IntVector2(textLayout.Constraints.MinWidth, textLayout.Constraints.PreferredHeight);
             child.Rect = new IntRect(child.Rect.Position, size);
