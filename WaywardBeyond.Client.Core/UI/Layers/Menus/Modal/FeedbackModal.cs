@@ -85,6 +85,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         _contactTextBox = new TextBoxState(initialValue: string.Empty, options: contactTextBoxOptions);
         
         var descriptionTextBoxOptions = new TextBoxState.Options(
+            SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
             Placeholder: localization.GetString("ui.field.description"),
             MaxCharacters: 1000,
             Constraints: new Constraints

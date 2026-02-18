@@ -339,8 +339,24 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.Enter)
                     {
-                        submitted = true;
-                        ui.Unfocus();
+                        if (state.Settings.SubmitBehavior == TextBoxState.SubmitBehavior.Submit)
+                        {
+                            submitted = true;
+                            ui.Unfocus();
+                        }
+                        else
+                        {
+                            if (hasSelection)
+                            {
+                                TextBoxState.Selection selection = state.CalculateSelection();
+                                state.Text.Remove(selection.StartIndex, selection.Length);
+                                state.CaretIndex = selection.StartIndex;
+                            }
+                        
+                            state.Text.Insert(state.CaretIndex, '\n');
+                            state.CaretIndex += 1;
+                            typing = true;
+                        }
                     }
                     
                     if (state.Settings.MaxCharacters > 0 && state.Text.Length > state.Settings.MaxCharacters.Value)
