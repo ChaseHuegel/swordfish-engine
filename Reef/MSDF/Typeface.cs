@@ -200,6 +200,12 @@ internal sealed class Typeface : ITypeface
         {
             lines.Add(lineBuilder.ToString());
         }
+        
+        // If the text ends with a newline, tail with null line to represent it
+        if (length > 0 && text[start + length - 1] == '\n')
+        {
+            lines.Add("\0");
+        }
 
         return lines.ToArray();
     }
