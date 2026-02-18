@@ -30,7 +30,7 @@ public sealed class TextEngine : ITextEngine
             GenerateMSDF(msdfAtlasGen.Path, fontInfo, out AtlasOutput output);
 
             GlyphAtlas atlas = GlyphAtlasParser.Parse(output.JsonPath);
-            var typeface = new Typeface(fontInfo.ID, atlas, output.ImagePath);
+            var typeface = new Typeface(fontInfo.ID, atlas, output.ImagePath, fontInfo.TabSize);
             
             _typefaces.Add(fontInfo.ID, typeface);
         }

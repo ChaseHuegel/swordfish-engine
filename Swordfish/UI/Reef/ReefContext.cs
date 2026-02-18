@@ -194,7 +194,10 @@ public sealed class ReefContext : IDisposable
 
             int minUnicode = int.Parse(config.MinUnicode, NumberStyles.HexNumber);
             int maxUnicode = int.Parse(config.MaxUnicode, NumberStyles.HexNumber);
-            fontInfo = new FontInfo(id: name, path: path, minUnicode: minUnicode, maxUnicode: maxUnicode);
+            
+            int tabSize = config.TabSize > 0 ? config.TabSize : 4;
+            
+            fontInfo = new FontInfo(id: name, path, minUnicode, maxUnicode, tabSize);
 
             if (config.IsDefault)
             {
