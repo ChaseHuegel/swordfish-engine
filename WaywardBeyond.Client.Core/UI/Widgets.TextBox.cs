@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
+using DryIoc.ImTools;
 using Reef;
 using Reef.Constraints;
 using Reef.Text;
@@ -83,7 +84,7 @@ internal static partial class Widgets
                 var xOffset = 0;
                 for (var i = 0; i < state.Text.Length; i++)
                 {
-                    TextConstraints charConstraints = ui.Measure(fontOptions, state.Text[i].ToString(), 0, 1);
+                    TextConstraints charConstraints = ui.TextEngine.Measure(fontOptions, state.Text[i].ToString(), 0, 1);
                     
                     int halfWidth = charConstraints.MinWidth / 2;
                     if (relativeCursorPosition.X > xOffset - halfWidth)
@@ -382,18 +383,22 @@ internal static partial class Widgets
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
             
-            TextConstraints caretConstraints = ui.Measure(fontOptions, displayString, 0, state.CaretIndex);
+            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1);
             if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
             {
+                GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
+                
                 //  Render the caret
                 using (ui.Element())
                 {
                     ui.Color = new Vector4(1f, 1f, 1f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        X = new Fixed(caretConstraints.MinWidth),
+                        Anchors = Anchors.Bottom | Anchors.Left | Anchors.Local,
+                        X = new Fixed(caretGlyph.BBOX.Right),
+                        Y = new Fixed(caretGlyph.BBOX.Bottom),
                         Width = new Fixed(2),
-                        Height = new Fill(),
+                        Height = new Fixed(fontOptions.Size),
                     };
                 }
             }
@@ -421,8 +426,8 @@ internal static partial class Widgets
             if (state.HasSelection())
             {
                 TextBoxState.Selection selection = state.CalculateSelection();
-                TextConstraints selectionConstraints = ui.Measure(fontOptions, displayString, selection.StartIndex, selection.Length);
-                int xOffset = selection.Forward ? caretConstraints.MinWidth - selectionConstraints.MinWidth : caretConstraints.MinWidth;
+                TextConstraints selectionConstraints = ui.TextEngine.Measure(fontOptions, displayString, selection.StartIndex, selection.Length);
+                int xOffset = selection.Forward ? caretLayout.Constraints.MinWidth - selectionConstraints.MinWidth : caretLayout.Constraints.MinWidth;
 
                 using (ui.Element())
                 {
