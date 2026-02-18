@@ -15,17 +15,19 @@ internal sealed class Typeface : ITypeface
     private readonly string _atlasPath;
     private readonly Atlas _atlas;
     private readonly Metrics _metrics;
+    private readonly int _tabSize;
     private readonly Dictionary<int, Glyph> _glyphs = [];
     private readonly Glyph _unknownGlyph;
-    
+
     public string ID { get; }
 
-    public Typeface(string id, GlyphAtlas glyphAtlas, string atlasPath)
+    public Typeface(string id, GlyphAtlas glyphAtlas, string atlasPath, int tabSize)
     {
         ID = id;
         _atlasPath = atlasPath;
         _atlas = glyphAtlas.atlas;
         _metrics = glyphAtlas.metrics;
+        _tabSize = tabSize;
         
         for (var i = 0; i < glyphAtlas.glyphs.Length; i++)
         {
@@ -53,7 +55,9 @@ internal sealed class Typeface : ITypeface
         {
             char c = text[i];
             Glyph glyph = _glyphs.GetValueOrDefault(c, _unknownGlyph);
-            widthEm += glyph.advance;
+            
+            //  Tabs can represent multiple advances
+            widthEm += c != '\t' ? glyph.advance : glyph.advance * _tabSize;
         }
 
         float scale = fontOptions.Size / _metrics.emSize;
@@ -86,9 +90,28 @@ internal sealed class Typeface : ITypeface
                 PlaneBounds planeBounds = glyph.planeBounds ?? PlaneBounds.Zero;
                 var left = (int)Math.Floor((planeBounds.left + xOffset) * scale);
                 var top = (int)Math.Floor((1f - planeBounds.top + yOffset) * scale);
-                var right = (int)Math.Ceiling((planeBounds.right + xOffset) * scale);
                 var bottom = (int)Math.Ceiling((1f - planeBounds.bottom + yOffset) * scale);
-                var bbox = new IntRect(left, top, right + 1, bottom + 1);
+                
+                int right;
+                switch (line[n])
+                {
+                    //  Spaces should be sized to match one advance
+                    case ' ':
+                        right = left + (int)Math.Ceiling(glyph.advance * scale);
+                        xOffset += glyph.advance;
+                        break;
+                    //  Tabs should be sized to match a number of advances equal to the tab size
+                    case '\t':
+                        right = left + (int)Math.Ceiling(glyph.advance * scale * _tabSize);
+                        xOffset += glyph.advance * _tabSize;
+                        break;
+                    default:
+                        right = (int)Math.Ceiling((planeBounds.right + xOffset) * scale);
+                        xOffset += glyph.advance;
+                        break;
+                }
+                
+                var bbox = new IntRect(left, top, right, bottom);
                 
                 //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 AtlasBounds atlasBounds = glyph.atlasBounds ?? AtlasBounds.Zero;
@@ -96,10 +119,9 @@ internal sealed class Typeface : ITypeface
                 top = (int)Math.Floor(_atlas.height - atlasBounds.top);
                 right = (int)Math.Ceiling(atlasBounds.right);
                 bottom = (int)Math.Ceiling(_atlas.height - atlasBounds.bottom);
-                var uv = new IntRect(left, top, right + 1, bottom + 1);
+                var uv = new IntRect(left, top, right, bottom);
 
                 glyphs.Add(new GlyphLayout(bbox, uv));
-                xOffset += glyph.advance;
             }
 
             yOffset += _metrics.lineHeight;
@@ -110,7 +132,8 @@ internal sealed class Typeface : ITypeface
         var width = (int)Math.Ceiling(bboxWidth * scale);
         var height = (int)Math.Ceiling(bboxHeight * scale);
         var constraints = new TextConstraints(width, height, width, height);
-        return new TextLayout(constraints, glyphs.ToArray());
+        var lineHeight = (int)Math.Ceiling(_metrics.lineHeight * scale);
+        return new TextLayout(constraints, glyphs.ToArray(), lines, lineHeight);
     }
     
     public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth)

@@ -24,5 +24,7 @@ namespace Swordfish.UI
         public required string Name;
 
         public required PathInfo Source;
+
+        public required int TabSize;
     }
 }
