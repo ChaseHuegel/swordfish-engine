@@ -59,6 +59,7 @@ internal static partial class Widgets
             if (state.Settings.Constraints != null)
             {
                 ui.Constraints = state.Settings.Constraints.Value;
+                ui.ClipConstraints = state.Settings.Constraints.Value;
             }
 
             bool clicked = ui.Clicked();
