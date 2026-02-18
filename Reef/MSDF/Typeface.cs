@@ -130,8 +130,11 @@ internal sealed class Typeface : ITypeface
             char c = text[i];
             wordBuilder.Append(c);
 
-            //  Search for the end of a word, or else the end of the text
-            if (c != ' ' && i < start + length - 1)
+            bool isNewline = c == '\n';
+            bool isWhitespace = char.IsWhiteSpace(c);
+
+            //  Search for the end of a word (space or newline), or else the end of the text
+            if (!isWhitespace &&!isNewline && i < start + length - 1)
             {
                 continue;
             }
@@ -140,18 +143,22 @@ internal sealed class Typeface : ITypeface
             TextConstraints wordMeasurement = Measure(fontOptions, word, start: 0, word.Length);
             float wordWidth = wordMeasurement.PreferredWidth;
 
-            // If the word doesn't fit on the current line
-            if (currentLineWidth + wordWidth > maxWidth)
+            bool overWidth = currentLineWidth + wordWidth > maxWidth;
+
+            //  If a newline was encountered, commit the current word
+            if (isNewline)
+            {
+                lineBuilder.Append(wordBuilder);
+                wordBuilder.Clear();
+            }
+
+            // If the word doesn't fit on the current line or there is a newline
+            if (overWidth || isNewline)
             {
                 // Commit the current line
                 if (lineBuilder.Length > 0)
                 {
-                    //  Don't write empty lines
-                    if (!IsNullOrWhiteSpace(lineBuilder))
-                    {
-                        lines.Add(lineBuilder.ToString());
-                    }
-
+                    lines.Add(lineBuilder.ToString());
                     lineBuilder.Clear();
                     currentLineWidth = 0;
                 }
@@ -173,7 +180,7 @@ internal sealed class Typeface : ITypeface
                     
                     wordBuilder.Remove(0, splitIndex);
                 }
-                
+
                 wordWidth = Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth;
             }
 
