@@ -152,6 +152,11 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
                         command.Rect.Left + glyph.BBOX.Right,
                         command.Rect.Top + glyph.BBOX.Bottom
                     );
+                    
+                    if (!command.ClipRect.Intersects(bbox))
+                    {
+                        continue;
+                    }
                 
                     instance.Text!.Value.AddVertexData(bbox, glyph.UV, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
                 }
