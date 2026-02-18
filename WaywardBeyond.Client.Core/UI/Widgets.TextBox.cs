@@ -396,9 +396,9 @@ internal static partial class Widgets
                     {
                         Anchors = Anchors.Bottom | Anchors.Left | Anchors.Local,
                         X = new Fixed(caretGlyph.BBOX.Right),
-                        Y = new Fixed(caretGlyph.BBOX.Bottom),
+                        Y = new Fixed(caretLayout.Constraints.PreferredHeight),
                         Width = new Fixed(2),
-                        Height = new Fixed(fontOptions.Size),
+                        Height = new Fixed(caretLayout.LineHeight),
                     };
                 }
             }
