@@ -384,10 +384,10 @@ internal static partial class Widgets
             string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
             
             TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1);
+            GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
+            
             if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
             {
-                GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
-                
                 //  Render the caret
                 using (ui.Element())
                 {
@@ -426,18 +426,35 @@ internal static partial class Widgets
             if (state.HasSelection())
             {
                 TextBoxState.Selection selection = state.CalculateSelection();
-                TextConstraints selectionConstraints = ui.TextEngine.Measure(fontOptions, displayString, selection.StartIndex, selection.Length);
-                int xOffset = selection.Forward ? caretLayout.Constraints.MinWidth - selectionConstraints.MinWidth : caretLayout.Constraints.MinWidth;
+                TextLayout selectionLayout = ui.TextEngine.Layout(fontOptions, displayString, selection.StartIndex, selection.Length);
+                int x = caretLayout.Glyphs[selection.StartIndex].BBOX.Left;
 
-                using (ui.Element())
+                var glyphOffset = 0;
+                for (var i = 0; i < selectionLayout.Lines.Length; i++)
                 {
-                    ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
-                    ui.Constraints = new Constraints
+                    int stride = selectionLayout.Lines[i].Length;
+                    
+                    var width = 0;
+                    for (int n = glyphOffset; n < glyphOffset + stride; n++)
                     {
-                        X = new Fixed(xOffset),
-                        Width = new Fixed(selectionConstraints.MinWidth),
-                        Height = new Fill(),
-                    };
+                        width = selectionLayout.Glyphs[n].BBOX.Right;
+                    }
+
+                    //  Render the current line
+                    using (ui.Element())
+                    {
+                        ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+                        ui.Constraints = new Constraints
+                        {
+                            X = new Fixed(x),
+                            Y = new Fixed(i * selectionLayout.LineHeight),
+                            Width = new Fixed(width),
+                            Height = new Fixed(selectionLayout.LineHeight),
+                        };
+                    }
+                    
+                    glyphOffset += stride;
+                    x = 0;
                 }
             }
 
