@@ -132,6 +132,12 @@ public sealed class UIBuilder<TRendererData>
             _currentElement.Debug = value;
         }
     }
+    
+    public bool Passthrough
+    {
+        get => _currentElement.Passthrough;
+        set => _currentElement.Passthrough = value;
+    }
 
     public int Width => _viewPort.Size.X;
     public int Height => _viewPort.Size.Y;
@@ -250,7 +256,10 @@ public sealed class UIBuilder<TRendererData>
     public bool RightReleased() => _controller.IsRightReleased();
     public bool RightHeld() => _controller.IsRightHeld();
 
-    public RenderCommand<TRendererData>[] Build(double delta)
+    public TextLayout GetTextLayout(string id) => _controller.GetTextLayout(id);
+    public TextLayout GetTextLayout() => _controller.GetTextLayout(_currentElement.ID ?? throw new InvalidOperationException("Elements must have an ID to get a previous text layout."));
+    
+    public List<RenderCommand<TRendererData>> Build(double delta)
     {
         Delta = delta;
         Time += delta;
@@ -274,7 +283,7 @@ public sealed class UIBuilder<TRendererData>
         for (int i = commands.Count - 1; i >= 0; i--)
         {
             RenderCommand<TRendererData> command = commands[i];
-            if (command.ID != null)
+            if (command.ID != null && !command.Passthrough)
             {
                 _controller.UpdateInteraction(command.ID, command.Rect);
             }
@@ -286,7 +295,7 @@ public sealed class UIBuilder<TRendererData>
         _currentElement = default;
         _openElements.Clear();
         _closedRootElements.Clear();
-        return commands.ToArray();
+        return commands;
     }
 
     private Scope OpenElement(Element<TRendererData> element)
@@ -611,6 +620,7 @@ public sealed class UIBuilder<TRendererData>
                     element.Style.CornerRadius,
                     element.FontOptions,
                     element.Text,
+                    element.Passthrough,
                     element.TextureData
                 );
                 commands.Add(command);
@@ -1011,10 +1021,20 @@ public sealed class UIBuilder<TRendererData>
             Element<TRendererData> child = parent.Children[i];
             if (child.Text == null)
             {
+                if (child.ID != null)
+                {
+                    _controller.UpdateTextLayout(child.ID, layout: default);
+                }
+                
                 continue;
             }
             
             TextLayout textLayout = TextEngine.Layout(child.FontOptions, child.Text, child.Rect.Size.X);
+            
+            if (child.ID != null)
+            {
+                _controller.UpdateTextLayout(child.ID, textLayout);
+            }
             
             var size = new IntVector2(textLayout.Constraints.MinWidth, textLayout.Constraints.PreferredHeight);
             child.Rect = new IntRect(child.Rect.Position, size);

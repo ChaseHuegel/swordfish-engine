@@ -30,7 +30,7 @@ public sealed class PixelRenderer
         return _renderTexture.GetPixels();
     }
     
-    public void Render(RenderCommand<PixelTexture>[] renderCommands)
+    public void Render(List<RenderCommand<PixelTexture>> renderCommands)
     {
         for (var y = 0; y < _height; y++)
         for (var x = 0; x < _width; x++)

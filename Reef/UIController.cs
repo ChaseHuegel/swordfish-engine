@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Reef.Text;
 
 namespace Reef;
 
@@ -207,6 +208,7 @@ public sealed class UIController
     private bool _interactionConsumed;
     private readonly List<Input> _inputBuffer = [];
     private readonly Dictionary<string, InteractionState> _interactionStates = [];
+    private readonly Dictionary<string, TextLayout> _textLayoutCache = [];
     
     public void UpdateMouse(int x, int y, MouseButtons downMouseButtons)
     {
@@ -364,6 +366,16 @@ public sealed class UIController
         {
             _lastInteractedID = id;
         }
+    }
+
+    internal void UpdateTextLayout(string id, TextLayout layout)
+    {
+        _textLayoutCache[id] = layout;
+    }
+
+    internal TextLayout GetTextLayout(string id)
+    {
+        return _textLayoutCache.GetValueOrDefault(id);
     }
 
     private bool IsPressed(InputState<bool> state)

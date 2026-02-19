@@ -12,8 +12,9 @@ public readonly struct RenderCommand<TRendererData>(
     CornerRadius cornerRadius,
     FontOptions fontOptions,
     string? text,
-    TRendererData? rendererData)
-{
+    bool passthrough,
+    TRendererData? rendererData
+) {
     public readonly string? ID = id;
     public readonly IntRect Rect = rect;
     public readonly IntRect ClipRect = clipRect;
@@ -23,4 +24,6 @@ public readonly struct RenderCommand<TRendererData>(
     public readonly FontOptions FontOptions = fontOptions;
     public readonly string? Text = text;
     public readonly TRendererData? RendererData = rendererData;
+    
+    internal readonly bool Passthrough = passthrough;
 }
