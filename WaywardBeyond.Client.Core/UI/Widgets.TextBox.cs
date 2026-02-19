@@ -83,34 +83,43 @@ internal static partial class Widgets
                 IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
                 selectionOverwritten = true;
                 
-                var xOffset = 0;
-                for (var i = 0; i < state.Text.Length; i++)
+                for (var i = 0; i < previousTextLayout.Glyphs.Length; i++)
                 {
-                    TextConstraints charConstraints = ui.TextEngine.Measure(fontOptions, state.Text[i].ToString(), 0, 1);
+                    GlyphLayout glyph = previousTextLayout.Glyphs[i];
+                    int halfWidth = (glyph.BBOX.Right - glyph.BBOX.Left) / 2;
                     
-                    int halfWidth = charConstraints.MinWidth / 2;
-                    if (relativeCursorPosition.X > xOffset - halfWidth)
+                    // Check if cursor is within the vertical bounds of this line
+                    if (relativeCursorPosition.Y < glyph.BBOX.Top || relativeCursorPosition.Y > glyph.BBOX.Bottom)
+                    {
+                        continue;
+                    }
+                    
+                    if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
                     {
                         state.CaretIndex = i;
-                        
                         if (!held)
                         {
                             state.SelectionStartIndex = i;
                         }
                     }
                     
-                    xOffset += charConstraints.MinWidth;
-
-                    //  Allow selecting any character at the end
-                    if (relativeCursorPosition.X <= xOffset - halfWidth)
+                    if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
                     {
-                        continue;
+                        state.CaretIndex = i + 1;
+                        if (!held)
+                        {
+                            state.SelectionStartIndex = i + 1;
+                        }
                     }
-
-                    state.CaretIndex++;
+                }
+                
+                // Handle clicking past the end of the text
+                if (relativeCursorPosition.Y > previousTextLayout.Constraints.PreferredHeight)
+                {
+                    state.CaretIndex = state.Text.Length;
                     if (!held)
                     {
-                        state.SelectionStartIndex++;
+                        state.SelectionStartIndex = state.CaretIndex;
                     }
                 }
             }
