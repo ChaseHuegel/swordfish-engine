@@ -15,4 +15,5 @@ public struct Element<TRendererData>
     public TRendererData? TextureData;
     public string? ID;
     public Viewport Viewport;
+    public bool Passthrough;
 }
