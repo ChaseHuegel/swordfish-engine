@@ -75,6 +75,8 @@ internal static partial class Widgets
             var navigating = false;
             var editing = false;
             var selectionOverwritten = false;
+
+            TextLayout previousTextLayout = ui.GetTextLayout(id + "_Text");
             
             if (clicked || held)
             {
@@ -383,7 +385,7 @@ internal static partial class Widgets
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
             
-            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1);
+            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, previousTextLayout.Constraints.PreferredWidth);
             GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
             
             if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
@@ -405,6 +407,8 @@ internal static partial class Widgets
             
             using (ui.Text(displayString))
             {
+                ui.ID = id + "_Text";
+                ui.Passthrough = true;
                 ui.FontOptions = fontOptions;
 
                 if (focused)
@@ -426,7 +430,7 @@ internal static partial class Widgets
             if (state.HasSelection())
             {
                 TextBoxState.Selection selection = state.CalculateSelection();
-                TextLayout selectionLayout = ui.TextEngine.Layout(fontOptions, displayString, selection.StartIndex, selection.Length);
+                TextLayout selectionLayout = ui.TextEngine.Layout(fontOptions, displayString, selection.StartIndex, selection.Length, previousTextLayout.Constraints.PreferredWidth);
                 int x = caretLayout.Glyphs[selection.StartIndex].BBOX.Left;
 
                 var glyphOffset = 0;
