@@ -11,6 +11,7 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
     public int SelectionStartIndex;
     public bool ShiftModifier;
     public bool ControlModifier;
+    public double LastInputTime;
     
     public readonly StringBuilder Text = new(initialValue);
     public readonly Options Settings = options;

@@ -491,6 +491,11 @@ internal static partial class Widgets
                         state.SelectionStartIndex = state.CaretIndex;
                     }
                 }
+                
+                if (editing || navigating)
+                {
+                    state.LastInputTime = ui.Time;
+                }
             }
             else
             {
@@ -502,10 +507,10 @@ internal static partial class Widgets
             
             TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
             GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
-            
-            if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
+
+            //  Render the caret if in focus and this isn't a blink frame
+            if (focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
             {
-                //  Render the caret
                 using (ui.Element())
                 {
                     ui.Color = new Vector4(1f, 1f, 1f, 1f);
@@ -519,7 +524,7 @@ internal static partial class Widgets
                     };
                 }
             }
-            
+
             using (ui.Text(displayString))
             {
                 ui.ID = id + "_Text";
