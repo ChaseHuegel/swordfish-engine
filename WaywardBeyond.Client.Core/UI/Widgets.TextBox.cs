@@ -520,6 +520,7 @@ internal static partial class Widgets
             
             TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? textContent : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
             GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
+            int lineStride = caretLayout.Constraints.PreferredHeight / caretLayout.Lines.Length;
 
             //  Render the caret if in focus and this isn't a blink frame
             if (focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
@@ -531,9 +532,9 @@ internal static partial class Widgets
                     {
                         Anchors = Anchors.Bottom | Anchors.Left | Anchors.Local,
                         X = new Fixed(caretGlyph.BBOX.Right),
-                        Y = new Fixed(caretLayout.Constraints.PreferredHeight),
+                        Y = new Fixed(caretLayout.Constraints.PreferredHeight - 2),
                         Width = new Fixed(2),
-                        Height = new Fixed(caretLayout.LineHeight),
+                        Height = new Fixed(lineStride),
                     };
                 }
             }
@@ -601,9 +602,9 @@ internal static partial class Widgets
                             ui.Constraints = new Constraints
                             {
                                 X = new Fixed(x),
-                                Y = new Fixed(i * textLayout.LineHeight),
+                                Y = new Fixed(i * lineStride),
                                 Width = new Fixed(width),
-                                Height = new Fixed(textLayout.LineHeight),
+                                Height = new Fixed(lineStride),
                             };
                         }
                     }
