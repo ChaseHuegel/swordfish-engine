@@ -6,6 +6,12 @@
 "ui.notification.saveNameEmpty" = "Name required"
 "ui.notification.saveNameTaken" = "Name taken"
 
+"ui.menu.feedback" = "Feedback"
+"ui.button.feedback" = "Send feedback"
+"ui.field.feedback.description" = "(optional) Enter details..."
+"ui.field.feedback.contact" = "(optional) Contact"
+
+"ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
 
 "ui.button.selectSave" = "Continue"
