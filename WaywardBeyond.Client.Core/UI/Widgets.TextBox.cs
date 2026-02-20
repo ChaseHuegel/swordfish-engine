@@ -300,6 +300,46 @@ internal static partial class Widgets
                         
                         navigating = true;
                     }
+                    else if (input == UIController.Key.UpArrow)
+                    {
+                        if (state.CaretIndex <= 0)
+                        {
+                            continue;
+                        }
+                        
+                        var lineIndex = 0;
+                        var lineStartIndex = 0;
+                        for (var i = 0; i < previousTextLayout.Lines.Length; i++)
+                        {
+                            int lineLength = previousTextLayout.Lines[i].Length;
+                            
+                            if (state.CaretIndex >= lineStartIndex && state.CaretIndex <= lineStartIndex + lineLength)
+                            {
+                                lineIndex = i;
+                                break;
+                            }
+                            
+                            lineStartIndex += lineLength;
+                        }
+                        
+                        if (lineIndex <= 0)
+                        {
+                            continue;
+                        }
+                        
+                        GlyphLayout currentGlyph = previousTextLayout.Glyphs[state.CaretIndex - 1];
+                        int targetX = currentGlyph.BBOX.Right;
+                        
+                        int prevLineStart = lineStartIndex - previousTextLayout.Lines[lineIndex - 1].Length;
+                        int prevLineEnd = lineStartIndex;
+                        
+                        state.CaretIndex = FindClosestCaretIndexInLine(previousTextLayout, prevLineStart, prevLineEnd, targetX);
+                        navigating = true;
+                    }
+                    else if (input == UIController.Key.DownArrow)
+                    {
+                        navigating = true;
+                    }
                     else if (input == UIController.Key.Home)
                     {
                         state.CaretIndex = 0;
@@ -555,5 +595,23 @@ internal static partial class Widgets
 
             return interactions != Interactions.None;
         }
+    }
+
+    private static int FindClosestCaretIndexInLine(TextLayout layout, int lineStart, int lineEnd, int targetX)
+    {
+        int bestIndex = lineStart;
+        var minDistance = int.MaxValue;
+
+        for (int i = lineStart; i <= lineEnd; i++)
+        {
+            int x = i == lineStart ? 0 : layout.Glyphs[i - 1].BBOX.Right;
+            int dist = Math.Abs(x - targetX);
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                bestIndex = i;
+            }
+        }
+        return bestIndex;
     }
 }
