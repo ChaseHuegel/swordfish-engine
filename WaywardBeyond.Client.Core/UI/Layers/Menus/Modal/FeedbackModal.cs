@@ -39,7 +39,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
     private TextBoxState _contactTextBox;
     private TextBoxState _descriptionTextBox;
-    private double _lastSubmissionTime;
+    private double _lastSubmissionTime = double.MinValue;
 
     public Modal ID => Modal;
 
