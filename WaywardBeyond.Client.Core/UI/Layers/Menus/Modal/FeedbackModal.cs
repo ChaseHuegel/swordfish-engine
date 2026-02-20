@@ -168,6 +168,7 @@ internal class FeedbackModal : IMenuPage<Modal>
                     
                     if (interactions.Has(Widgets.Interactions.Click))
                     {
+                        //  TODO add a cooldown between submissions
                         var contact = _contactTextBox.Text.ToString();
                         var description = _descriptionTextBox.Text.ToString();
                         Task.Run(SubmitAsync);
