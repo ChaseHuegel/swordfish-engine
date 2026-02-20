@@ -168,13 +168,6 @@ internal sealed class Typeface : ITypeface
 
             bool overWidth = currentLineWidth + wordWidth > maxWidth;
 
-            //  If a newline was encountered, commit the current word
-            if (isNewline)
-            {
-                lineBuilder.Append(wordBuilder);
-                wordBuilder.Clear();
-            }
-
             // If the word doesn't fit on the current line or there is a newline
             if (overWidth || isNewline)
             {
@@ -208,7 +201,20 @@ internal sealed class Typeface : ITypeface
             }
 
             lineBuilder.Append(wordBuilder);
-            currentLineWidth += wordWidth;
+            
+            if (isNewline)
+            {
+                //  If a newline was encountered, commit the up to the newline
+                var line = lineBuilder.ToString(0, lineBuilder.Length - 1);
+                lines.Add(line);
+                lineBuilder.Clear();
+                currentLineWidth = 0;
+            }
+            else
+            {
+                currentLineWidth += wordWidth;
+            }
+            
             wordBuilder.Clear();
         }
         
