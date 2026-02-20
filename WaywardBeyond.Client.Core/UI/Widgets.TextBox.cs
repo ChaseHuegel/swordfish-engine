@@ -76,7 +76,7 @@ internal static partial class Widgets
             var editing = false;
             var selectionOverwritten = false;
 
-            TextLayout previousTextLayout = ui.GetTextLayout(id + "_Text");
+            TextLayout textLayout = ui.GetTextLayout(id + "_Text");
             
             if (clicked || held)
             {
@@ -88,20 +88,20 @@ internal static partial class Widgets
                 {
                     state.CaretIndex = 0;
                 }
-                else if (relativeCursorPosition.Y > previousTextLayout.Constraints.PreferredHeight)
+                else if (relativeCursorPosition.Y > textLayout.Constraints.PreferredHeight)
                 {
                     state.CaretIndex = state.Text.Length;
                 }
                 
                 var glyphIndex = 0;
-                for (var lineIndex = 0; lineIndex < previousTextLayout.Lines.Length; lineIndex++)
+                for (var lineIndex = 0; lineIndex < textLayout.Lines.Length; lineIndex++)
                 {
-                    int lineTop = lineIndex * previousTextLayout.LineHeight;
+                    int lineTop = lineIndex * textLayout.LineHeight;
                     
                     // Check if cursor is within the vertical bounds of this line
-                    if (relativeCursorPosition.Y < lineTop || relativeCursorPosition.Y > lineTop + previousTextLayout.LineHeight)
+                    if (relativeCursorPosition.Y < lineTop || relativeCursorPosition.Y > lineTop + textLayout.LineHeight)
                     {
-                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
+                        glyphIndex += textLayout.Lines[lineIndex].Length;
                         continue;
                     }
                     
@@ -109,26 +109,26 @@ internal static partial class Widgets
                     if (relativeCursorPosition.X < 0)
                     {
                         state.CaretIndex = glyphIndex;
-                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
+                        glyphIndex += textLayout.Lines[lineIndex].Length;
                         continue;
                     }
                     
                     // Check if the cursor is outside the right bound of this line
-                    int lineEndIndex = glyphIndex + previousTextLayout.Lines[lineIndex].Length;
-                    GlyphLayout lastGlyphInLine = previousTextLayout.Glyphs[lineEndIndex - 1];
+                    int lineEndIndex = glyphIndex + textLayout.Lines[lineIndex].Length;
+                    GlyphLayout lastGlyphInLine = textLayout.Glyphs[lineEndIndex - 1];
                     if (relativeCursorPosition.X > lastGlyphInLine.BBOX.Right)
                     {
                         //  If the glyph is a newline, the caret should be placed on it.
                         //  Otherwise, the caret doesn't visually appear on the line the click happened.
                         state.CaretIndex = state.Text[lineEndIndex - 1] == '\n' ? lineEndIndex - 1 : lineEndIndex;
-                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
+                        glyphIndex += textLayout.Lines[lineIndex].Length;
                         continue;
                     }
 
                     //  Check if the cursor is within the horizontal bounds of any glyphs on this line
-                    for (var i = 0; i < previousTextLayout.Lines[lineIndex].Length; i++)
+                    for (var i = 0; i < textLayout.Lines[lineIndex].Length; i++)
                     {
-                        GlyphLayout glyph = previousTextLayout.Glyphs[glyphIndex];
+                        GlyphLayout glyph = textLayout.Glyphs[glyphIndex];
                         
                         //  The hit area for a glyph is offset by half width,
                         //  so clicking between characters feels more natural.
@@ -287,7 +287,7 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.RightArrow)
                     {
-                        if (inputService.IsKeyHeld(Key.Control))
+                        if (state.ControlModifier)
                         {
                             var textStr = state.Text.ToString();
                             Match nextWord = _wordRegex.MatchNext(textStr, state.CaretIndex);
@@ -307,19 +307,19 @@ internal static partial class Widgets
                             continue;
                         }
                         
-                        var lineIndex = 0;
+                        int lineIndex = textLayout.Lines.Length - 1;
                         var lineStartIndex = 0;
-                        for (var i = 0; i < previousTextLayout.Lines.Length; i++)
+                        var currentIndex = 0;
+                        for (var i = 0; i < textLayout.Lines.Length; i++)
                         {
-                            int lineLength = previousTextLayout.Lines[i].Length;
-                            
-                            if (state.CaretIndex >= lineStartIndex && state.CaretIndex < lineStartIndex + lineLength)
+                            int lineLength = textLayout.Lines[i].Length;
+                            if (state.CaretIndex < currentIndex + lineLength || (state.CaretIndex == currentIndex + lineLength && state.CaretIndex == state.Text.Length))
                             {
                                 lineIndex = i;
+                                lineStartIndex = currentIndex;
                                 break;
                             }
-                            
-                            lineStartIndex += lineLength;
+                            currentIndex += lineLength;
                         }
                         
                         if (lineIndex <= 0)
@@ -327,17 +327,50 @@ internal static partial class Widgets
                             continue;
                         }
                         
-                        GlyphLayout currentGlyph = previousTextLayout.Glyphs[state.CaretIndex - 1];
-                        int targetX = currentGlyph.BBOX.Right;
+                        var visualOffsetX = 0;
+                        if (state.CaretIndex > lineStartIndex)
+                        {
+                            visualOffsetX = textLayout.Glyphs[state.CaretIndex - 1].BBOX.Right;
+                        }
                         
-                        int prevLineStart = lineStartIndex - previousTextLayout.Lines[lineIndex - 1].Length;
+                        int prevLineStart = lineStartIndex - textLayout.Lines[lineIndex - 1].Length;
                         int prevLineEnd = lineStartIndex;
                         
-                        state.CaretIndex = FindClosestCaretIndexInLine(previousTextLayout, prevLineStart, prevLineEnd, targetX);
+                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, prevLineStart, prevLineEnd, visualOffsetX);
                         navigating = true;
                     }
                     else if (input == UIController.Key.DownArrow)
                     {
+                        int lineIndex = textLayout.Lines.Length - 1;
+                        var lineStartIndex = 0;
+                        var currentIndex = 0;
+                        for (var i = 0; i < textLayout.Lines.Length; i++)
+                        {
+                            int lineLength = textLayout.Lines[i].Length;
+                            if (state.CaretIndex < currentIndex + lineLength || (state.CaretIndex == currentIndex + lineLength && state.CaretIndex == state.Text.Length))
+                            {
+                                lineIndex = i;
+                                lineStartIndex = currentIndex;
+                                break;
+                            }
+                            currentIndex += lineLength;
+                        }
+
+                        if (lineIndex >= textLayout.Lines.Length - 1)
+                        {
+                            continue;
+                        }
+                        
+                        var visualOffsetX = 0;
+                        if (state.CaretIndex > lineStartIndex)
+                        {
+                            visualOffsetX = textLayout.Glyphs[state.CaretIndex - 1].BBOX.Right;
+                        }
+
+                        int nextLineStart = lineStartIndex + textLayout.Lines[lineIndex].Length;
+                        int nextLineEnd = nextLineStart + textLayout.Lines[lineIndex + 1].Length;
+
+                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, nextLineStart, nextLineEnd, visualOffsetX);
                         navigating = true;
                     }
                     else if (input == UIController.Key.Home)
@@ -467,7 +500,7 @@ internal static partial class Widgets
             bool isPlaceholder = state.Text.Length == 0;
             string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
             
-            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, previousTextLayout.Constraints.PreferredWidth);
+            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
             GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
             
             if (focused && (editing || navigating || ui.Time % 1f < 0.5f))
@@ -517,9 +550,9 @@ internal static partial class Widgets
                 int selectionEnd = selection.StartIndex + selection.Length;
 
                 var glyphIndex = 0;
-                for (var i = 0; i < previousTextLayout.Lines.Length; i++)
+                for (var i = 0; i < textLayout.Lines.Length; i++)
                 {
-                    string line = previousTextLayout.Lines[i];
+                    string line = textLayout.Lines[i];
                     if (string.IsNullOrEmpty(line))
                     {
                         continue;
@@ -532,8 +565,8 @@ internal static partial class Widgets
 
                     if (lineSelectionStart < lineSelectionEnd)
                     {
-                        GlyphLayout startGlyph = previousTextLayout.Glyphs[lineSelectionStart];
-                        GlyphLayout endGlyph = previousTextLayout.Glyphs[lineSelectionEnd - 1];
+                        GlyphLayout startGlyph = textLayout.Glyphs[lineSelectionStart];
+                        GlyphLayout endGlyph = textLayout.Glyphs[lineSelectionEnd - 1];
 
                         int x = startGlyph.BBOX.Left;
                         int width = endGlyph.BBOX.Right - x;
@@ -545,9 +578,9 @@ internal static partial class Widgets
                             ui.Constraints = new Constraints
                             {
                                 X = new Fixed(x),
-                                Y = new Fixed(i * previousTextLayout.LineHeight),
+                                Y = new Fixed(i * textLayout.LineHeight),
                                 Width = new Fixed(width),
-                                Height = new Fixed(previousTextLayout.LineHeight),
+                                Height = new Fixed(textLayout.LineHeight),
                             };
                         }
                     }
@@ -596,7 +629,7 @@ internal static partial class Widgets
             return interactions != Interactions.None;
         }
     }
-
+    
     private static int FindClosestCaretIndexInLine(TextLayout layout, int lineStart, int lineEnd, int targetX)
     {
         int bestIndex = lineStart;
@@ -606,12 +639,15 @@ internal static partial class Widgets
         {
             int x = i == lineStart ? 0 : layout.Glyphs[i - 1].BBOX.Right;
             int dist = Math.Abs(x - targetX);
-            if (dist < minDistance)
+            if (dist >= minDistance)
             {
-                minDistance = dist;
-                bestIndex = i;
+                continue;
             }
+            
+            minDistance = dist;
+            bestIndex = i;
         }
+        
         return bestIndex;
     }
 }
