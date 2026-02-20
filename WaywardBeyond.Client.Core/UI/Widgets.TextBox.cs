@@ -83,6 +83,16 @@ internal static partial class Widgets
                 IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
                 selectionOverwritten = true;
                 
+                // Check if the cursor is outside the text bounds vertically
+                if (relativeCursorPosition.Y < 0)
+                {
+                    state.CaretIndex = 0;
+                }
+                else if (relativeCursorPosition.Y > previousTextLayout.Constraints.PreferredHeight)
+                {
+                    state.CaretIndex = state.Text.Length;
+                }
+                
                 var glyphIndex = 0;
                 for (var lineIndex = 0; lineIndex < previousTextLayout.Lines.Length; lineIndex++)
                 {
@@ -94,8 +104,28 @@ internal static partial class Widgets
                         glyphIndex += previousTextLayout.Lines[lineIndex].Length;
                         continue;
                     }
+                    
+                    // Check if the cursor is outside the left bound of this line
+                    if (relativeCursorPosition.X < 0)
+                    {
+                        state.CaretIndex = glyphIndex;
+                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
+                        continue;
+                    }
+                    
+                    // Check if the cursor is outside the right bound of this line
+                    int lineEndIndex = glyphIndex + previousTextLayout.Lines[lineIndex].Length;
+                    GlyphLayout lastGlyphInLine = previousTextLayout.Glyphs[lineEndIndex - 1];
+                    if (relativeCursorPosition.X > lastGlyphInLine.BBOX.Right)
+                    {
+                        //  If the glyph is a newline, the caret should be placed on it.
+                        //  Otherwise, the caret doesn't visually appear on the line the click happened.
+                        state.CaretIndex = state.Text[lineEndIndex - 1] == '\n' ? lineEndIndex - 1 : lineEndIndex;
+                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
+                        continue;
+                    }
 
-                    //  Check if the cursor is within the horizontal bounds of a glyph on this line
+                    //  Check if the cursor is within the horizontal bounds of any glyphs on this line
                     for (var i = 0; i < previousTextLayout.Lines[lineIndex].Length; i++)
                     {
                         GlyphLayout glyph = previousTextLayout.Glyphs[glyphIndex];
@@ -107,10 +137,6 @@ internal static partial class Widgets
                         if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
                         {
                             state.CaretIndex = glyphIndex;
-                            if (!held)
-                            {
-                                state.SelectionStartIndex = state.CaretIndex;
-                            }
                         }
 
                         if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
@@ -119,24 +145,15 @@ internal static partial class Widgets
                             //  Otherwise, the caret doesn't visually appear on the line the click happened.
                             bool isNewLine = state.Text[glyphIndex] == '\n';
                             state.CaretIndex = isNewLine ? glyphIndex : glyphIndex + 1;
-                            if (!held)
-                            {
-                                state.SelectionStartIndex = state.CaretIndex;
-                            }
                         }
 
                         glyphIndex++;
                     }
                 }
                 
-                // Handle clicking past the end of the text
-                if (relativeCursorPosition.Y > previousTextLayout.Constraints.PreferredHeight)
+                if (!held)
                 {
-                    state.CaretIndex = state.Text.Length;
-                    if (!held)
-                    {
-                        state.SelectionStartIndex = state.CaretIndex;
-                    }
+                    state.SelectionStartIndex = state.CaretIndex;
                 }
             }
 
