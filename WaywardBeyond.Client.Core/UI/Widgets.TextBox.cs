@@ -105,16 +105,17 @@ internal static partial class Widgets
                             state.CaretIndex = glyphIndex;
                             if (!held)
                             {
-                                state.SelectionStartIndex = glyphIndex;
+                                state.SelectionStartIndex = state.CaretIndex;
                             }
                         }
 
                         if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
                         {
-                            state.CaretIndex = glyphIndex + 1;
+                            bool isNewLine = state.Text[glyphIndex] == '\n';
+                            state.CaretIndex = isNewLine ? glyphIndex : glyphIndex + 1;
                             if (!held)
                             {
-                                state.SelectionStartIndex = glyphIndex + 1;
+                                state.SelectionStartIndex = state.CaretIndex;
                             }
                         }
 
