@@ -173,7 +173,7 @@ internal class FeedbackModal : IMenuPage<Modal>
                     if (interactions.Has(Widgets.Interactions.Click))
                     {
                         double timeSinceLastSubmission = ui.Time - _lastSubmissionTime;
-                        bool canSubmit = timeSinceLastSubmission > 30;
+                        bool canSubmit = timeSinceLastSubmission > 15;
                         if (!canSubmit)
                         {
                             var notification = new Notification(_localization.GetString("ui.notification.tooSoon")!, NotificationType.Interaction);
