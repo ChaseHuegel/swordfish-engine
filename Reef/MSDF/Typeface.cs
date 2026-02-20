@@ -205,7 +205,7 @@ internal sealed class Typeface : ITypeface
             if (isNewline)
             {
                 //  If a newline was encountered, commit the up to the newline
-                var line = lineBuilder.ToString(0, lineBuilder.Length - 1);
+                var line = lineBuilder.ToString(0, lineBuilder.Length);
                 lines.Add(line);
                 lineBuilder.Clear();
                 currentLineWidth = 0;
