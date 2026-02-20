@@ -439,35 +439,47 @@ internal static partial class Widgets
             if (state.HasSelection())
             {
                 TextBoxState.Selection selection = state.CalculateSelection();
-                TextLayout selectionLayout = ui.TextEngine.Layout(fontOptions, displayString, selection.StartIndex, selection.Length, previousTextLayout.Constraints.PreferredWidth);
-                int x = caretLayout.Glyphs[selection.StartIndex].BBOX.Left;
 
-                var glyphOffset = 0;
-                for (var i = 0; i < selectionLayout.Lines.Length; i++)
+                int selectionStart = selection.StartIndex;
+                int selectionEnd = selection.StartIndex + selection.Length;
+
+                var glyphIndex = 0;
+                for (var i = 0; i < previousTextLayout.Lines.Length; i++)
                 {
-                    int stride = selectionLayout.Lines[i].Length;
-                    
-                    var width = 0;
-                    for (int n = glyphOffset; n < glyphOffset + stride; n++)
+                    string line = previousTextLayout.Lines[i];
+                    if (string.IsNullOrEmpty(line))
                     {
-                        width = selectionLayout.Glyphs[n].BBOX.Right;
+                        continue;
                     }
 
-                    //  Render the current line
-                    using (ui.Element())
+                    int lineEndGlyphIndex = glyphIndex + line.Length;
+
+                    int lineSelectionStart = Math.Max(selectionStart, glyphIndex);
+                    int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
+
+                    if (lineSelectionStart < lineSelectionEnd)
                     {
-                        ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
-                        ui.Constraints = new Constraints
+                        GlyphLayout startGlyph = previousTextLayout.Glyphs[lineSelectionStart];
+                        GlyphLayout endGlyph = previousTextLayout.Glyphs[lineSelectionEnd - 1];
+
+                        int x = startGlyph.BBOX.Left;
+                        int width = endGlyph.BBOX.Right - x;
+
+                        //  Render the current line
+                        using (ui.Element())
                         {
-                            X = new Fixed(x),
-                            Y = new Fixed(i * selectionLayout.LineHeight),
-                            Width = new Fixed(width),
-                            Height = new Fixed(selectionLayout.LineHeight),
-                        };
+                            ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
+                            ui.Constraints = new Constraints
+                            {
+                                X = new Fixed(x),
+                                Y = new Fixed(i * previousTextLayout.LineHeight),
+                                Width = new Fixed(width),
+                                Height = new Fixed(previousTextLayout.LineHeight),
+                            };
+                        }
                     }
-                    
-                    glyphOffset += stride;
-                    x = 0;
+
+                    glyphIndex = lineEndGlyphIndex;
                 }
             }
 
