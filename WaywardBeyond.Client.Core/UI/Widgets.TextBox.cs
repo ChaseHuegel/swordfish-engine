@@ -95,9 +95,13 @@ internal static partial class Widgets
                         continue;
                     }
 
+                    //  Check if the cursor is within the horizontal bounds of a glyph on this line
                     for (var i = 0; i < previousTextLayout.Lines[lineIndex].Length; i++)
                     {
                         GlyphLayout glyph = previousTextLayout.Glyphs[glyphIndex];
+                        
+                        //  The hit area for a glyph is offset by half width,
+                        //  so clicking between characters feels more natural.
                         int halfWidth = glyph.BBOX.Size.X / 2;
 
                         if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
@@ -111,6 +115,8 @@ internal static partial class Widgets
 
                         if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
                         {
+                            //  If the glyph is a newline, the caret should be placed on it.
+                            //  Otherwise, the caret doesn't visually appear on the line the click happened.
                             bool isNewLine = state.Text[glyphIndex] == '\n';
                             state.CaretIndex = isNewLine ? glyphIndex : glyphIndex + 1;
                             if (!held)
