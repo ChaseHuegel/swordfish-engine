@@ -34,6 +34,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
+    private readonly FontOptions _fieldFontOptions;
 
     private TextBoxState _contactTextBox;
     private TextBoxState _descriptionTextBox;
@@ -68,19 +69,24 @@ internal class FeedbackModal : IMenuPage<Modal>
         
         _buttonOptions = new Widgets.ButtonOptions(
             new FontOptions {
-                Size = 20,
+                Size = 24,
             },
             new Widgets.AudioOptions(audioService, volumeSettings)
         );
         
+        _fieldFontOptions = new FontOptions
+        {
+            Size = 20,
+        };
+        
         var contactTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.feedback.contact"),
-            MaxCharacters: 254,
+            MaxCharacters: 30,
             DisallowedCharacters: ['\t'],
             Constraints: new Constraints
             {
                 Anchors = Anchors.Center,
-                Width = new Fixed(500),
+                Width = new Fixed(400),
             }
         );
         _contactTextBox = new TextBoxState(initialValue: string.Empty, options: contactTextBoxOptions);
@@ -92,7 +98,7 @@ internal class FeedbackModal : IMenuPage<Modal>
             Constraints: new Constraints
             {
                 Width = new Fixed(600),
-                Height = new Fixed(400),
+                Height = new Fixed(350),
             }
         );
         
@@ -104,7 +110,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         using (ui.Element())
         {
             //  Fullscreen tint
-            ui.Color = new Vector4(0f, 0f, 0f, 0.5f);
+            ui.Color = new Vector4(0f, 0f, 0f, 0.95f);
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Padding = new Padding
             {
@@ -150,8 +156,8 @@ internal class FeedbackModal : IMenuPage<Modal>
                     Anchors = Anchors.Center,
                 };
                 
-                ui.TextBox(id: "TextBox_Message", state: ref _descriptionTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
-                ui.TextBox(id: "TextBox_Contact", state: ref _contactTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
+                ui.TextBox(id: "TextBox_Message", state: ref _descriptionTextBox, _fieldFontOptions, _inputService, _audioService, _volumeSettings);
+                ui.TextBox(id: "TextBox_Contact", state: ref _contactTextBox, _fieldFontOptions, _inputService, _audioService, _volumeSettings);
                 
                 using (ui.TextButton(id: "Button_Submit", text: _localization.GetString("ui.button.submit")!, _buttonOptions, out Widgets.Interactions interactions))
                 {
