@@ -86,10 +86,10 @@ internal static partial class Widgets
                 for (var i = 0; i < previousTextLayout.Glyphs.Length; i++)
                 {
                     GlyphLayout glyph = previousTextLayout.Glyphs[i];
-                    int halfWidth = (glyph.BBOX.Right - glyph.BBOX.Left) / 2;
+                    int halfWidth = glyph.BBOX.Size.X / 2;
                     
                     // Check if cursor is within the vertical bounds of this line
-                    if (relativeCursorPosition.Y < glyph.BBOX.Top || relativeCursorPosition.Y > glyph.BBOX.Bottom)
+                    if (relativeCursorPosition.Y < glyph.BBOX.Top || relativeCursorPosition.Y > glyph.BBOX.Top + previousTextLayout.LineHeight)
                     {
                         continue;
                     }
