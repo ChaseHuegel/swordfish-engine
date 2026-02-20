@@ -55,7 +55,7 @@ internal static partial class Widgets
         {
             ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
             ui.LayoutDirection = LayoutDirection.None;
-            ui.Padding = new Padding(left: 1, top: 0, right: 1, bottom: 0);
+            ui.Padding = new Padding(left: 0, top: 0, right: 0, bottom: 0);
             
             if (state.Settings.Constraints != null)
             {
@@ -274,6 +274,11 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.Tab)
                     {
+                        if (state.Settings.DisallowedCharacters != null && state.Settings.DisallowedCharacters.Contains('\t'))
+                        {
+                            continue;
+                        }
+                        
                         state.Text.Insert(state.CaretIndex, '\t');
                         state.CaretIndex += 1;
                         typing = true;
@@ -511,9 +516,9 @@ internal static partial class Widgets
             }
             
             bool isPlaceholder = state.Text.Length == 0;
-            string displayString = isPlaceholder ? state.Settings.Placeholder ?? " " : state.Text.ToString();
+            var textContent = state.Text.ToString();
             
-            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? displayString : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
+            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? textContent : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
             GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
 
             //  Render the caret if in focus and this isn't a blink frame
@@ -533,7 +538,17 @@ internal static partial class Widgets
                 }
             }
 
-            using (ui.Text(displayString))
+            if (isPlaceholder)
+            {
+                using (ui.Text(state.Settings.Placeholder ?? ""))
+                {
+                    ui.Passthrough = true;
+                    ui.FontOptions = fontOptions;
+                    ui.Color = focused ? new Vector4(0.5f, 0.5f, 0.5f, 1f) : new Vector4(0.325f, 0.325f, 0.325f, 1f);
+                }
+            }
+
+            using (ui.Text(textContent))
             {
                 ui.ID = id + "_Text";
                 ui.Passthrough = true;
@@ -546,11 +561,6 @@ internal static partial class Widgets
                 else
                 {
                     ui.Color = new Vector4(0.65f, 0.65f, 0.65f, 1f);
-                }
-
-                if (isPlaceholder)
-                {
-                    ui.Color *= new Vector4(0.5f, 0.5f, 0.5f, 1f);
                 }
             }
             

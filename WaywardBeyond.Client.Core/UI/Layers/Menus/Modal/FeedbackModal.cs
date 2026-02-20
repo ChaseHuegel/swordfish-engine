@@ -75,11 +75,12 @@ internal class FeedbackModal : IMenuPage<Modal>
         
         var contactTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.feedback.contact"),
-            MaxCharacters: 50,
+            MaxCharacters: 40,
+            DisallowedCharacters: ['\t'],
             Constraints: new Constraints
             {
                 Anchors = Anchors.Center,
-                Width = new Fixed(300),
+                Width = new Fixed(400),
             }
         );
         _contactTextBox = new TextBoxState(initialValue: string.Empty, options: contactTextBoxOptions);
