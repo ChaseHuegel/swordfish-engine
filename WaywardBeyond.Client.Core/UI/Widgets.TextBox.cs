@@ -83,33 +83,42 @@ internal static partial class Widgets
                 IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
                 selectionOverwritten = true;
                 
-                for (var i = 0; i < previousTextLayout.Glyphs.Length; i++)
+                var glyphIndex = 0;
+                for (var lineIndex = 0; lineIndex < previousTextLayout.Lines.Length; lineIndex++)
                 {
-                    GlyphLayout glyph = previousTextLayout.Glyphs[i];
-                    int halfWidth = glyph.BBOX.Size.X / 2;
+                    int lineTop = lineIndex * previousTextLayout.LineHeight;
                     
                     // Check if cursor is within the vertical bounds of this line
-                    if (relativeCursorPosition.Y < glyph.BBOX.Top || relativeCursorPosition.Y > glyph.BBOX.Top + previousTextLayout.LineHeight)
+                    if (relativeCursorPosition.Y < lineTop || relativeCursorPosition.Y > lineTop + previousTextLayout.LineHeight)
                     {
+                        glyphIndex += previousTextLayout.Lines[lineIndex].Length;
                         continue;
                     }
-                    
-                    if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
+
+                    for (var i = 0; i < previousTextLayout.Lines[lineIndex].Length; i++)
                     {
-                        state.CaretIndex = i;
-                        if (!held)
+                        GlyphLayout glyph = previousTextLayout.Glyphs[glyphIndex];
+                        int halfWidth = glyph.BBOX.Size.X / 2;
+
+                        if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
                         {
-                            state.SelectionStartIndex = i;
+                            state.CaretIndex = glyphIndex;
+                            if (!held)
+                            {
+                                state.SelectionStartIndex = glyphIndex;
+                            }
                         }
-                    }
-                    
-                    if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
-                    {
-                        state.CaretIndex = i + 1;
-                        if (!held)
+
+                        if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
                         {
-                            state.SelectionStartIndex = i + 1;
+                            state.CaretIndex = glyphIndex + 1;
+                            if (!held)
+                            {
+                                state.SelectionStartIndex = glyphIndex + 1;
+                            }
                         }
+
+                        glyphIndex++;
                     }
                 }
                 
