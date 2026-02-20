@@ -9,3 +9,6 @@
 "notification.save.saved" = "Saved \"{0}\"."
 "notification.save.saving.failed" = "Save failed, some information may be lost."
 
+"ui.notification.saveNameEmpty" = "Name required"
+"ui.notification.saveNameTaken" = "Name taken"
+"ui.notification.tooSoon" = "Please wait a few moments"

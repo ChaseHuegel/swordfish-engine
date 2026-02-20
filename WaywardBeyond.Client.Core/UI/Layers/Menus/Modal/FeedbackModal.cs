@@ -31,6 +31,7 @@ internal class FeedbackModal : IMenuPage<Modal>
     private readonly FeedbackWebhook _feedbackWebhook;
     private readonly IRenderer _renderer;
     private readonly LogListener _logListener;
+    private readonly NotificationService _notificationService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -38,6 +39,7 @@ internal class FeedbackModal : IMenuPage<Modal>
 
     private TextBoxState _contactTextBox;
     private TextBoxState _descriptionTextBox;
+    private double _lastSubmissionTime;
 
     public Modal ID => Modal;
 
@@ -49,7 +51,8 @@ internal class FeedbackModal : IMenuPage<Modal>
         in ILocalization localization,
         in FeedbackWebhook feedbackWebhook,
         in IRenderer renderer,
-        in LogListener logListener
+        in LogListener logListener,
+        in NotificationService notificationService
     ) {
         _logger = logger;
         _inputService = inputService;
@@ -59,6 +62,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         _feedbackWebhook = feedbackWebhook;
         _renderer = renderer;
         _logListener = logListener;
+        _notificationService = notificationService;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -168,48 +172,62 @@ internal class FeedbackModal : IMenuPage<Modal>
                     
                     if (interactions.Has(Widgets.Interactions.Click))
                     {
-                        //  TODO add a cooldown between submissions
-                        var contact = _contactTextBox.Text.ToString();
-                        var description = _descriptionTextBox.Text.ToString();
-                        Task.Run(SubmitAsync);
-                        
-                        async Task SubmitAsync()
+                        double timeSinceLastSubmission = ui.Time - _lastSubmissionTime;
+                        bool canSubmit = timeSinceLastSubmission > 30;
+                        if (!canSubmit)
                         {
-                            //  Collect log info
-                            LogEventArgs[] logHistory = _logListener.GetHistory();
-                            
-                            //  Create the log stream
-                            await using var logStream = new MemoryStream();
-                            await using var logStreamWriter = new StreamWriter(logStream);
-                            foreach (LogEventArgs logEntry in logHistory)
-                            {
-                                await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
-                            }
-                            await logStreamWriter.FlushAsync();
-                            logStream.Position = 0;
-                            
-                            //  Collect a screenshot
-                            Texture screenshotTexture = _renderer.Screenshot();
-                            
-                            //  Create the screenshot stream
-                            await using var screenshotStream = new MemoryStream();
-                            using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
-                            await image.SaveAsPngAsync(screenshotStream);
-                            screenshotStream.Position = 0;
+                            var notification = new Notification(_localization.GetString("ui.notification.tooSoon")!, NotificationType.Interaction);
+                            _notificationService.Push(notification);
+                        }
+                        else
+                        {
+                            _lastSubmissionTime = ui.Time;
+                            var contact = _contactTextBox.Text.ToString();
+                            var description = _descriptionTextBox.Text.ToString();
+                            Task.Run(SubmitAsync);
 
-                            //  Name the streams
-                            await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
-                            await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
-                            
-                            //  Send the feedback form
-                            Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
-                            if (result.Success)
+                            async Task SubmitAsync()
                             {
-                                _logger.LogInformation("Feedback submitted successfully.");
-                            }
-                            else
-                            {
-                                _logger.LogError(result.Exception, result.Message);
+                                //  Collect log info
+                                LogEventArgs[] logHistory = _logListener.GetHistory();
+
+                                //  Create the log stream
+                                await using var logStream = new MemoryStream();
+                                await using var logStreamWriter = new StreamWriter(logStream);
+                                foreach (LogEventArgs logEntry in logHistory)
+                                {
+                                    await logStreamWriter.WriteLineAsync(
+                                        $"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                                }
+
+                                await logStreamWriter.FlushAsync();
+                                logStream.Position = 0;
+
+                                //  Collect a screenshot
+                                Texture screenshotTexture = _renderer.Screenshot();
+
+                                //  Create the screenshot stream
+                                await using var screenshotStream = new MemoryStream();
+                                using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels,
+                                    screenshotTexture.Width, screenshotTexture.Height);
+                                await image.SaveAsPngAsync(screenshotStream);
+                                screenshotStream.Position = 0;
+
+                                //  Name the streams
+                                await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
+                                await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png",
+                                    screenshotStream);
+
+                                //  Send the feedback form
+                                Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
+                                if (result.Success)
+                                {
+                                    _logger.LogInformation("Feedback submitted successfully.");
+                                }
+                                else
+                                {
+                                    _logger.LogError(result.Exception, result.Message);
+                                }
                             }
                         }
                     }

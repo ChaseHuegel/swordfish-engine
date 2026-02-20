@@ -3,9 +3,6 @@
 [Translations]
 "ui.text.none" = "<none>"
 
-"ui.notification.saveNameEmpty" = "Name required"
-"ui.notification.saveNameTaken" = "Name taken"
-
 "ui.menu.feedback" = "Feedback"
 "ui.button.feedback" = "Send feedback"
 "ui.field.feedback.description" = "Enter details (max 500 characters)..."
