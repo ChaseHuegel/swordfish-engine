@@ -221,7 +221,7 @@ internal static partial class Widgets
                             else
                             {
                                 deleteStartIndex = 0;
-                                countToDelete = state.CaretIndex + 1;
+                                countToDelete = state.CaretIndex;
                             }
                             
                             state.CaretIndex -= countToDelete;
