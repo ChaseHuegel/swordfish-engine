@@ -184,10 +184,15 @@ internal class FeedbackModal : IMenuPage<Modal>
                             _lastSubmissionTime = ui.Time;
                             var contact = _contactTextBox.Text.ToString();
                             var description = _descriptionTextBox.Text.ToString();
+                            menu.GoBack();
                             Task.Run(SubmitAsync);
 
                             async Task SubmitAsync()
                             {
+                                //  ! HACK !
+                                //  ! Brief delay to allow time for the menu to have closed
+                                await Task.Delay(100);
+                                
                                 //  Collect log info
                                 LogEventArgs[] logHistory = _logListener.GetHistory();
 
