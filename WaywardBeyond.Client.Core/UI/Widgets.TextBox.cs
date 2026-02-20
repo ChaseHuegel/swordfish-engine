@@ -313,7 +313,7 @@ internal static partial class Widgets
                         {
                             int lineLength = previousTextLayout.Lines[i].Length;
                             
-                            if (state.CaretIndex >= lineStartIndex && state.CaretIndex <= lineStartIndex + lineLength)
+                            if (state.CaretIndex >= lineStartIndex && state.CaretIndex < lineStartIndex + lineLength)
                             {
                                 lineIndex = i;
                                 break;
