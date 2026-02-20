@@ -8,8 +8,8 @@
 
 "ui.menu.feedback" = "Feedback"
 "ui.button.feedback" = "Send feedback"
-"ui.field.feedback.description" = "(optional) Enter details..."
-"ui.field.feedback.contact" = "(optional) Contact"
+"ui.field.feedback.description" = "Enter details (max 500 characters)..."
+"ui.field.feedback.contact" = "Contact (optional)"
 
 "ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
