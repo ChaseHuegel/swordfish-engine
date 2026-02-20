@@ -113,6 +113,13 @@ internal static partial class Widgets
                         continue;
                     }
                     
+                    //  If the line is empty, place the caret at the start of it and continue
+                    if (textLayout.Lines[lineIndex].Length == 0)
+                    {
+                        state.CaretIndex = glyphIndex;
+                        continue;
+                    }
+                    
                     // Check if the cursor is outside the right bound of this line
                     int lineEndIndex = glyphIndex + textLayout.Lines[lineIndex].Length;
                     GlyphLayout lastGlyphInLine = textLayout.Glyphs[lineEndIndex - 1];
@@ -120,7 +127,8 @@ internal static partial class Widgets
                     {
                         //  If the glyph is a newline, the caret should be placed on it.
                         //  Otherwise, the caret doesn't visually appear on the line the click happened.
-                        state.CaretIndex = state.Text[lineEndIndex - 1] == '\n' ? lineEndIndex - 1 : lineEndIndex;
+                        bool isNewline = lineEndIndex > 0 && lineEndIndex <= state.Text.Length && state.Text[lineEndIndex - 1] == '\n';
+                        state.CaretIndex = isNewline ? lineEndIndex - 1 : lineEndIndex;
                         glyphIndex += textLayout.Lines[lineIndex].Length;
                         continue;
                     }
@@ -143,7 +151,7 @@ internal static partial class Widgets
                         {
                             //  If the glyph is a newline, the caret should be placed on it.
                             //  Otherwise, the caret doesn't visually appear on the line the click happened.
-                            bool isNewLine = state.Text[glyphIndex] == '\n';
+                            bool isNewLine = glyphIndex < state.Text.Length && state.Text[glyphIndex] == '\n';
                             state.CaretIndex = isNewLine ? glyphIndex : glyphIndex + 1;
                         }
 
