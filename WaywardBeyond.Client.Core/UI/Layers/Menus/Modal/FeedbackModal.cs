@@ -87,7 +87,7 @@ internal class FeedbackModal : IMenuPage<Modal>
         var descriptionTextBoxOptions = new TextBoxState.Options(
             SubmitBehavior: TextBoxState.SubmitBehavior.NewLine,
             Placeholder: localization.GetString("ui.field.description"),
-            MaxCharacters: 1000,
+            MaxCharacters: 500,
             Constraints: new Constraints
             {
                 Width = new Fixed(600),
