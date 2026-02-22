@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -201,8 +202,7 @@ internal class FeedbackModal : IMenuPage<Modal>
                                 await using var logStreamWriter = new StreamWriter(logStream);
                                 foreach (LogEventArgs logEntry in logHistory)
                                 {
-                                    await logStreamWriter.WriteLineAsync(
-                                        $"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
+                                    await logStreamWriter.WriteLineAsync($"{logEntry.LogLevel}: {logEntry.CategoryName}\n      {logEntry.Log}");
                                 }
 
                                 await logStreamWriter.FlushAsync();
@@ -213,25 +213,27 @@ internal class FeedbackModal : IMenuPage<Modal>
 
                                 //  Create the screenshot stream
                                 await using var screenshotStream = new MemoryStream();
-                                using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels,
-                                    screenshotTexture.Width, screenshotTexture.Height);
+                                using Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height);
                                 await image.SaveAsPngAsync(screenshotStream);
                                 screenshotStream.Position = 0;
 
                                 //  Name the streams
                                 await using var log = new NamedStream(Name: $"{screenshotTexture.Name}.log", logStream);
-                                await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png",
-                                    screenshotStream);
+                                await using var screenshot = new NamedStream(Name: $"{screenshotTexture.Name}.png", screenshotStream);
 
                                 //  Send the feedback form
-                                Result result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
+                                Result<Guid> result = await _feedbackWebhook.SendAsync(description, contact, log, screenshot);
                                 if (result.Success)
                                 {
-                                    _logger.LogInformation("Feedback submitted successfully.");
+                                    _logger.LogInformation($"Feedback submitted ({result.Value}).");
+                                    var notification = new Notification("Feedback submitted. Thank you, spacer!");
+                                    _notificationService.Push(notification);
                                 }
                                 else
                                 {
                                     _logger.LogError(result.Exception, result.Message);
+                                    var notification = new Notification("Feedback submission failed, please try again.");
+                                    _notificationService.Push(notification);
                                 }
                             }
                         }

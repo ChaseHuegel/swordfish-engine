@@ -11,12 +11,12 @@ internal class FeedbackWebhook(in WebhookService webhookService)
 {
     private readonly WebhookService _webhookService = webhookService;
     
-    public async Task<Result> SendAsync(string? description, string? contact, NamedStream log, NamedStream screenshot)
+    public async Task<Result<Guid>> SendAsync(string? description, string? contact, NamedStream log, NamedStream screenshot)
     {
         Result<byte[]> compressResult = Zip.Compress(log);
         if (!compressResult.Success)
         {
-            return new Result(success: false, $"Failed to compress feedback attachments. {compressResult.Message}", compressResult.Exception);
+            return new Result<Guid>(success: false, value: Guid.Empty, $"Failed to compress feedback attachments. {compressResult.Message}", compressResult.Exception);
         }
 
         var guid = Guid.NewGuid();
@@ -44,7 +44,7 @@ internal class FeedbackWebhook(in WebhookService webhookService)
         Result<Uri> feedbackUriResult = await _webhookService.ResolveFeedbackUriAsync();
         if (!feedbackUriResult.Success)
         {
-            return new Result(success: false, $"Failed to resolve feedback URI. {feedbackUriResult.Message}", feedbackUriResult.Exception);
+            return new Result<Guid>(success: false, value: guid, $"Failed to resolve feedback URI. {feedbackUriResult.Message}", feedbackUriResult.Exception);
         }
         
         try
@@ -53,14 +53,14 @@ internal class FeedbackWebhook(in WebhookService webhookService)
             HttpResponseMessage response = await httpClient.PostAsync(feedbackUriResult.Value, form);
             if (!response.IsSuccessStatusCode)
             {
-                return Result.FromFailure($"Failed to send feedback. Received status code: {response.StatusCode}");
+                return Result<Guid>.FromFailure($"Failed to send feedback. Received status code: {response.StatusCode}");
             }
         }
         catch (Exception ex)
         { 
-            return new Result(success: false, "Failed to send feedback.", ex);
+            return new Result<Guid>(success: false, value: guid, "Failed to send feedback.", ex);
         }
         
-        return Result.FromSuccess();
+        return Result<Guid>.FromSuccess(guid);
     }
 }
