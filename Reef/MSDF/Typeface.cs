@@ -168,10 +168,18 @@ internal sealed class Typeface : ITypeface
 
             bool overWidth = currentLineWidth + wordWidth > maxWidth;
 
-            // If the word doesn't fit on the current line or there is a newline
+            //  Commit the word if it fits on the current line
+            if (!overWidth)
+            {
+                lineBuilder.Append(wordBuilder);
+                wordBuilder.Clear();
+            }
+            
+            //  If the word doesn't fit on the current line or there is a newline,
+            //  split the word into lines as necessary.
             if (overWidth || isNewline)
             {
-                // Commit the current line
+                //  Commit the current line
                 if (lineBuilder.Length > 0)
                 {
                     lines.Add(lineBuilder.ToString());
@@ -179,7 +187,7 @@ internal sealed class Typeface : ITypeface
                     currentLineWidth = 0;
                 }
                 
-                // If the word still doesn't fit on the line, split the word until it does
+                //  While the word doesn't fit on the line, split it until it does
                 while (Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth > maxWidth && wordBuilder.Length > 1)
                 {
                     var splitIndex = 1;
@@ -198,13 +206,15 @@ internal sealed class Typeface : ITypeface
                 }
 
                 wordWidth = Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth;
+                
+                //  Flush any remaining word
+                lineBuilder.Append(wordBuilder);
+                wordBuilder.Clear();
             }
-
-            lineBuilder.Append(wordBuilder);
             
-            if (isNewline)
+            if (isNewline && lineBuilder.Length > 0)
             {
-                //  If a newline was encountered, commit the up to the newline
+                //  If a non-empty newline was encountered, commit the up to the newline
                 var line = lineBuilder.ToString(0, lineBuilder.Length);
                 lines.Add(line);
                 lineBuilder.Clear();
@@ -214,8 +224,6 @@ internal sealed class Typeface : ITypeface
             {
                 currentLineWidth += wordWidth;
             }
-            
-            wordBuilder.Clear();
         }
         
         //  Flush any remaining word
