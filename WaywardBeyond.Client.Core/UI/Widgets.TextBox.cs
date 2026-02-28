@@ -518,9 +518,8 @@ internal static partial class Widgets
             bool isPlaceholder = state.Text.Length == 0;
             var textContent = state.Text.ToString();
             
-            TextLayout caretLayout = ui.TextEngine.Layout(fontOptions, state.CaretIndex > 0 ? textContent : "\0", 0, state.CaretIndex > 0 ? state.CaretIndex : 1, textLayout.Constraints.PreferredWidth);
-            GlyphLayout caretGlyph = caretLayout.Glyphs.Length > 0 ? caretLayout.Glyphs[^1] : default;
-            int lineStride = caretLayout.Constraints.PreferredHeight / caretLayout.Lines.Length;
+            GlyphLayout caretGlyph = textLayout.Glyphs.Length > 0 && state.CaretIndex >= 0 && state.CaretIndex < textLayout.Glyphs.Length ? textLayout.Glyphs[state.CaretIndex] : default;
+            int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
 
             //  Render the caret if in focus and this isn't a blink frame
             if (focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
@@ -530,9 +529,8 @@ internal static partial class Widgets
                     ui.Color = new Vector4(1f, 1f, 1f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Bottom | Anchors.Left | Anchors.Local,
                         X = new Fixed(caretGlyph.BBOX.Right),
-                        Y = new Fixed(caretLayout.Constraints.PreferredHeight - 2),
+                        Y = new Fixed(caretGlyph.BBOX.Top),
                         Width = new Fixed(2),
                         Height = new Fixed(lineStride),
                     };
