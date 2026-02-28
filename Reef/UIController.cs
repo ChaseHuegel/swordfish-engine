@@ -375,7 +375,12 @@ public sealed class UIController
 
     internal TextLayout GetTextLayout(string id)
     {
-        return _textLayoutCache.GetValueOrDefault(id);
+        if (_textLayoutCache.TryGetValue(id, out TextLayout value))
+        {
+            return value;
+        }
+        
+        return TextLayout.Empty;
     }
 
     private bool IsPressed(InputState<bool> state)
