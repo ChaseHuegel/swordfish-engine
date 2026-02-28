@@ -2,6 +2,8 @@ namespace Reef.Text;
 
 public readonly struct TextLayout(TextConstraints constraints, GlyphLayout[] glyphs, string[] lines, int lineHeight)
 {
+    public static readonly TextLayout Empty = new(default, [], [], 0);
+    
     public readonly TextConstraints Constraints = constraints;
     public readonly GlyphLayout[] Glyphs = glyphs;
     public readonly string[] Lines = lines;
