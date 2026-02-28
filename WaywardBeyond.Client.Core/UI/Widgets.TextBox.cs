@@ -170,7 +170,7 @@ internal static partial class Widgets
                 IReadOnlyCollection<UIController.Input> inputBuffer = ui.GetInputBuffer();
                 foreach (UIController.Input input in inputBuffer)
                 {
-                    bool hasSelection = state.HasSelection();
+                    bool currentlyHasSelection = state.HasSelection();
                     
                     if (input.Type == UIController.InputType.Char && !state.ControlModifier)
                     {
@@ -179,11 +179,11 @@ internal static partial class Widgets
                             continue;
                         }
                         
-                        if (hasSelection)
+                        if (currentlyHasSelection)
                         {
-                            TextBoxState.Selection selection = state.CalculateSelection();
-                            state.Text.Remove(selection.StartIndex, selection.Length);
-                            state.CaretIndex = selection.StartIndex;
+                            TextBoxState.Selection currentSelection = state.CalculateSelection();
+                            state.Text.Remove(currentSelection.StartIndex, currentSelection.Length);
+                            state.CaretIndex = currentSelection.StartIndex;
                         }
                         
                         state.Text.Insert(state.CaretIndex, input.Char);
@@ -204,16 +204,16 @@ internal static partial class Widgets
                     {
                         state.ShiftModifier = true;
                     }
-                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && (hasSelection || state.CaretIndex > 0))
+                    else if (input == UIController.Key.Backspace && state.CaretIndex <= state.Text.Length && (currentlyHasSelection || state.CaretIndex > 0))
                     {
                         int deleteStartIndex = state.CaretIndex - 1;
                         var countToDelete = 1;
 
-                        if (hasSelection)
+                        if (currentlyHasSelection)
                         {
-                            TextBoxState.Selection selection = state.CalculateSelection();
-                            deleteStartIndex = selection.StartIndex;
-                            countToDelete = selection.Length;
+                            TextBoxState.Selection currentSelection = state.CalculateSelection();
+                            deleteStartIndex = currentSelection.StartIndex;
+                            countToDelete = currentSelection.Length;
                             state.CaretIndex = deleteStartIndex;
                         }
                         else if (state.ControlModifier)
@@ -242,16 +242,16 @@ internal static partial class Widgets
                         state.Text.Remove(deleteStartIndex, countToDelete);
                         typing = true;
                     }
-                    else if (input == UIController.Key.Delete && (hasSelection || state.CaretIndex <= state.Text.Length - 1))
+                    else if (input == UIController.Key.Delete && (currentlyHasSelection || state.CaretIndex <= state.Text.Length - 1))
                     {
                         int deleteStartIndex = state.CaretIndex;
                         var countToDelete = 1;
                         
-                        if (hasSelection)
+                        if (currentlyHasSelection)
                         {
-                            TextBoxState.Selection selection = state.CalculateSelection();
-                            deleteStartIndex = selection.StartIndex;
-                            countToDelete = selection.Length;
+                            TextBoxState.Selection currentSelection = state.CalculateSelection();
+                            deleteStartIndex = currentSelection.StartIndex;
+                            countToDelete = currentSelection.Length;
                             state.CaretIndex = deleteStartIndex;
                         }
                         else if (state.ControlModifier)
@@ -398,33 +398,33 @@ internal static partial class Widgets
                     }
                     else if (input == UIController.Key.C && state.ControlModifier)
                     {
-                        if (!hasSelection)
+                        if (!currentlyHasSelection)
                         {
                             state.SelectionStartIndex = 0;
                             state.CaretIndex = state.Text.Length;
                             selectionOverwritten = true;
                         }
                         
-                        TextBoxState.Selection selection = state.CalculateSelection();
-                        var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
+                        TextBoxState.Selection currentSelection = state.CalculateSelection();
+                        var textStr = state.Text.ToString(currentSelection.StartIndex, currentSelection.Length);
                         inputService.SetClipboard(textStr);
                     }
                     else if (input == UIController.Key.X && state.ControlModifier)
                     {
-                        if (!hasSelection)
+                        if (!currentlyHasSelection)
                         {
                             state.SelectionStartIndex = 0;
                             state.CaretIndex = state.Text.Length;
                             selectionOverwritten = true;
                         }
                         
-                        TextBoxState.Selection selection = state.CalculateSelection();
+                        TextBoxState.Selection currentSelection = state.CalculateSelection();
                         
-                        var textStr = state.Text.ToString(selection.StartIndex, selection.Length);
+                        var textStr = state.Text.ToString(currentSelection.StartIndex, currentSelection.Length);
                         inputService.SetClipboard(textStr);
                         
-                        state.Text.Remove(selection.StartIndex, selection.Length);
-                        state.CaretIndex = selection.StartIndex;
+                        state.Text.Remove(currentSelection.StartIndex, currentSelection.Length);
+                        state.CaretIndex = currentSelection.StartIndex;
                         editing = true;
                     }
                     else if (input == UIController.Key.V && state.ControlModifier)
@@ -451,11 +451,11 @@ internal static partial class Widgets
                             }
                         }
                         
-                        if (hasSelection)
+                        if (currentlyHasSelection)
                         {
-                            TextBoxState.Selection selection = state.CalculateSelection();
-                            state.Text.Remove(selection.StartIndex, selection.Length);
-                            state.CaretIndex = selection.StartIndex;
+                            TextBoxState.Selection currentSelection = state.CalculateSelection();
+                            state.Text.Remove(currentSelection.StartIndex, currentSelection.Length);
+                            state.CaretIndex = currentSelection.StartIndex;
                         }
 
                         state.Text.Insert(state.CaretIndex, clipboardContent);
@@ -477,11 +477,11 @@ internal static partial class Widgets
                         }
                         else
                         {
-                            if (hasSelection)
+                            if (currentlyHasSelection)
                             {
-                                TextBoxState.Selection selection = state.CalculateSelection();
-                                state.Text.Remove(selection.StartIndex, selection.Length);
-                                state.CaretIndex = selection.StartIndex;
+                                TextBoxState.Selection currentSelection = state.CalculateSelection();
+                                state.Text.Remove(currentSelection.StartIndex, currentSelection.Length);
+                                state.CaretIndex = currentSelection.StartIndex;
                             }
                         
                             state.Text.Insert(state.CaretIndex, '\n');
@@ -518,25 +518,6 @@ internal static partial class Widgets
             bool isPlaceholder = state.Text.Length == 0;
             var textContent = state.Text.ToString();
             
-            GlyphLayout caretGlyph = textLayout.Glyphs.Length > 0 && state.CaretIndex >= 0 && state.CaretIndex < textLayout.Glyphs.Length ? textLayout.Glyphs[state.CaretIndex] : default;
-            int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
-
-            //  Render the caret if in focus and this isn't a blink frame
-            if (focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
-            {
-                using (ui.Element())
-                {
-                    ui.Color = new Vector4(1f, 1f, 1f, 1f);
-                    ui.Constraints = new Constraints
-                    {
-                        X = new Fixed(caretGlyph.BBOX.Right),
-                        Y = new Fixed(caretGlyph.BBOX.Top),
-                        Width = new Fixed(2),
-                        Height = new Fixed(lineStride),
-                    };
-                }
-            }
-
             if (isPlaceholder)
             {
                 using (ui.Text(state.Settings.Placeholder ?? ""))
@@ -563,52 +544,87 @@ internal static partial class Widgets
                 }
             }
             
-            //  Render text selection
-            if (state.HasSelection())
+            //  Render the caret and any text selection
+            TextBoxState.Selection selection = state.CalculateSelection();
+
+            bool hasSelection = state.HasSelection();
+            int selectionStart = selection.StartIndex;
+            int selectionEnd = selection.StartIndex + selection.Length;
+            int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
+
+            var previousLineEndGlyphIndex = 0;
+            for (var i = 0; i < textLayout.Lines.Length; i++)
             {
-                TextBoxState.Selection selection = state.CalculateSelection();
-
-                int selectionStart = selection.StartIndex;
-                int selectionEnd = selection.StartIndex + selection.Length;
-
-                var glyphIndex = 0;
-                for (var i = 0; i < textLayout.Lines.Length; i++)
+                string line = textLayout.Lines[i];
+                if (string.IsNullOrEmpty(line))
                 {
-                    string line = textLayout.Lines[i];
-                    if (string.IsNullOrEmpty(line))
-                    {
-                        continue;
-                    }
-
-                    int lineEndGlyphIndex = glyphIndex + line.Length;
-
-                    int lineSelectionStart = Math.Max(selectionStart, glyphIndex);
-                    int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
-
-                    if (lineSelectionStart < lineSelectionEnd)
-                    {
-                        GlyphLayout startGlyph = textLayout.Glyphs[lineSelectionStart];
-                        GlyphLayout endGlyph = textLayout.Glyphs[lineSelectionEnd - 1];
-
-                        int x = startGlyph.BBOX.Left;
-                        int width = endGlyph.BBOX.Right - x;
-
-                        //  Render the current line
-                        using (ui.Element())
-                        {
-                            ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.5f);
-                            ui.Constraints = new Constraints
-                            {
-                                X = new Fixed(x),
-                                Y = new Fixed(i * lineStride),
-                                Width = new Fixed(width),
-                                Height = new Fixed(lineStride),
-                            };
-                        }
-                    }
-
-                    glyphIndex = lineEndGlyphIndex;
+                    continue;
                 }
+
+                int lineEndGlyphIndex = previousLineEndGlyphIndex + line.Length;
+
+                int lineSelectionStart = Math.Max(selectionStart, previousLineEndGlyphIndex);
+                int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
+
+                //  Render the caret if in focus and this isn't a blink frame
+                if (!hasSelection && lineSelectionStart == lineSelectionEnd && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
+                {
+                    int x;
+                    if (lineSelectionStart < 0)
+                    {
+                        GlyphLayout glyph = textLayout.Glyphs[0];
+                        x = glyph.BBOX.Left;
+                    }
+                    else if (lineSelectionStart >= textLayout.Glyphs.Length)
+                    {
+                        GlyphLayout glyph = textLayout.Glyphs[textLayout.Glyphs.Length - 1];
+                        x = glyph.BBOX.Right;
+                    }
+                    else
+                    {
+                        GlyphLayout glyph = textLayout.Glyphs[selectionStart];
+                        x = glyph.BBOX.Left;
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Color = new Vector4(1f, 1f, 1f, 1f);
+                        ui.Constraints = new Constraints
+                        {
+                            X = new Fixed(x + 1),
+                            Y = new Fixed(i * lineStride),
+                            Width = new Fixed(1),
+                            Height = new Fixed(lineStride),
+                        };
+                    }
+                }
+                
+                //  Render any selection over this line
+                if (lineSelectionStart < lineSelectionEnd && hasSelection)
+                {
+                    int startGlyphIndex = Math.Min(lineSelectionStart, textLayout.Glyphs.Length - 1);
+                    int endGlyphIndex = Math.Max(lineSelectionEnd - 1, startGlyphIndex);
+                    GlyphLayout startGlyph = textLayout.Glyphs[startGlyphIndex];
+                    GlyphLayout endGlyph = textLayout.Glyphs[endGlyphIndex];
+
+                    int x = startGlyph.BBOX.Left;
+                    int width = endGlyph.BBOX.Right - x;
+
+                    //  Render the current line
+                    using (ui.Element())
+                    {
+                        ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                        ui.Constraints = new Constraints
+                        {
+                            X = new Fixed(x),
+                            Y = new Fixed(i * lineStride),
+                            Width = new Fixed(width),
+                            Height = new Fixed(lineStride),
+                        };
+                    }
+                }
+                
+                previousLineEndGlyphIndex = lineEndGlyphIndex;
             }
 
             interactions = Interactions.None;
