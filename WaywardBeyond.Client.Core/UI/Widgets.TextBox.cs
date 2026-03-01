@@ -566,8 +566,10 @@ internal static partial class Widgets
                 int lineSelectionStart = Math.Max(selectionStart, previousLineEndGlyphIndex);
                 int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
 
+                bool isCaretOnLine = state.CaretIndex >= previousLineEndGlyphIndex && state.CaretIndex <= lineEndGlyphIndex;
+
                 //  Render the caret if in focus and this isn't a blink frame
-                if (!hasSelection && lineSelectionStart == lineSelectionEnd && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
+                if (!hasSelection && isCaretOnLine && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
                 {
                     int x;
                     if (lineSelectionStart < 0)
