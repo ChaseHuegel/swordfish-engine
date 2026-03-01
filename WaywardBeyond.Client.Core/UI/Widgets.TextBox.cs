@@ -533,6 +533,11 @@ internal static partial class Widgets
                 ui.ID = id + "_Text";
                 ui.Passthrough = true;
                 ui.FontOptions = fontOptions;
+                ui.Constraints = new Constraints
+                {
+                    Width = new Fill(),
+                    Height = new Fill(),
+                };
 
                 if (focused)
                 {
