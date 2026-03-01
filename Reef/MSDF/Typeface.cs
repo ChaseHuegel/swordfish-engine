@@ -151,10 +151,15 @@ internal sealed class Typeface : ITypeface
         for (int i = start; i < start + length; i++)
         {
             char c = text[i];
-            wordBuilder.Append(c);
-
+            
             bool isNewline = c == '\n';
-            bool isWhitespace = char.IsWhiteSpace(c);
+            bool isReturn = c == '\r';
+            bool isWhitespace = c == ' ' || c == '\t';
+            
+            if (!isNewline && !isReturn)
+            {
+                wordBuilder.Append(c);
+            }
 
             //  Search for the end of a word (space or newline), or else the end of the text
             if (!isWhitespace &&!isNewline && i < start + length - 1)
@@ -168,13 +173,6 @@ internal sealed class Typeface : ITypeface
 
             bool overWidth = currentLineWidth + wordWidth > maxWidth;
 
-            //  Commit the word if it fits on the current line
-            if (!overWidth)
-            {
-                lineBuilder.Append(wordBuilder);
-                wordBuilder.Clear();
-            }
-            
             //  If the word doesn't fit on the current line or there is a newline,
             //  split the word into lines as necessary.
             if (overWidth || isNewline)
@@ -184,7 +182,6 @@ internal sealed class Typeface : ITypeface
                 {
                     lines.Add(lineBuilder.ToString());
                     lineBuilder.Clear();
-                    currentLineWidth = 0;
                 }
                 
                 //  While the word doesn't fit on the line, split it until it does
@@ -205,24 +202,26 @@ internal sealed class Typeface : ITypeface
                     wordBuilder.Remove(0, splitIndex);
                 }
 
-                wordWidth = Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth;
-                
                 //  Flush any remaining word
                 lineBuilder.Append(wordBuilder);
                 wordBuilder.Clear();
-            }
-            
-            if (isNewline && lineBuilder.Length > 0)
-            {
-                //  If a non-empty newline was encountered, commit the up to the newline
-                var line = lineBuilder.ToString(0, lineBuilder.Length);
-                lines.Add(line);
-                lineBuilder.Clear();
-                currentLineWidth = 0;
+                
+                if (isNewline)
+                {
+                    lines.Add(lineBuilder.ToString());
+                    lineBuilder.Clear();
+                    currentLineWidth = 0;
+                }
+                else
+                {
+                    currentLineWidth = Measure(fontOptions, lineBuilder.ToString(), 0, lineBuilder.Length).PreferredWidth;
+                }
             }
             else
             {
                 currentLineWidth += wordWidth;
+                lineBuilder.Append(wordBuilder);
+                wordBuilder.Clear();
             }
         }
         
@@ -238,10 +237,10 @@ internal sealed class Typeface : ITypeface
             lines.Add(lineBuilder.ToString());
         }
         
-        // If the text ends with a newline, tail with null line to represent it
+        // If the text ends with a newline, tail with an empty line to represent it
         if (length > 0 && text[start + length - 1] == '\n')
         {
-            lines.Add("\0");
+            lines.Add(string.Empty);
         }
 
         return lines.ToArray();
