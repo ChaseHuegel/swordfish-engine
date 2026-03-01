@@ -177,8 +177,8 @@ internal sealed class Typeface : ITypeface
             //  split the word into lines as necessary.
             if (overWidth || isNewline)
             {
-                //  Commit the current line
-                if (lineBuilder.Length > 0)
+                //  Commit the current line if this isn't a linebreak
+                if (lineBuilder.Length > 0 && !isNewline)
                 {
                     lines.Add(lineBuilder.ToString());
                     lineBuilder.Clear();
