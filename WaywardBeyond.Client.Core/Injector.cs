@@ -1,4 +1,5 @@
-﻿using DryIoc;
+﻿using System;
+using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
@@ -17,11 +18,13 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Processing;
@@ -40,6 +43,7 @@ public class Injector : IDryIocInjector
         RegisterParsers(container);
         RegisterEntitySystems(container);
         RegisterVoxels(container);
+        RegisterWebhooks(container);
         RegisterShortcuts(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
@@ -61,6 +65,16 @@ public class Injector : IDryIocInjector
     {
         container.Register<IAutoActivate, ShortcutRegistrar>();
         container.Register<ShortcutRegistration, ScreenshotShortcut>();
+    }
+
+    private static void RegisterWebhooks(IContainer container)
+    {
+        var feedbackSourceUri = new Uri("https://gist.githubusercontent.com/ChaseHuegel/ed8b4d594789c4567e352148e006dbc1/raw/wb-feedback-webhook.txt");
+        var webhooks = new Webhooks(feedbackSourceUri);
+        container.RegisterInstance(webhooks);
+        
+        container.Register<WebhookService>();
+        container.Register<FeedbackWebhook>();
     }
 
     private static void RegisterConfiguration(IContainer container)
@@ -91,6 +105,11 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, PauseMenu>();
         container.Register<IMenuPage<PausePage>, UI.Layers.Menus.Pause.HomePage>();
         container.Register<IMenuPage<PausePage>, PauseMenuSettingsPage>();
+        
+        container.Register<ModalMenu>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ModalMenu>();
+        container.Register<IMenuPage<Modal>, EmptyModal>();
+        container.Register<IMenuPage<Modal>, FeedbackModal>();
         
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
@@ -157,7 +176,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ThrusterSystem>();
     }
     
-    private void RegisterVoxels(IContainer container)
+    private static void RegisterVoxels(IContainer container)
     {
         //  TODO this was thrown together for testing and needs cleaned up
         container.RegisterDelegate<Shader>(context => context.Resolve<IFileParseService>().Parse<Shader>(AssetPaths.Shaders.At("lightedArray.glsl")), Reuse.Singleton);

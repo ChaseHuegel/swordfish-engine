@@ -36,12 +36,25 @@ internal abstract class Menu<TIdentifier> : IUILayer
     }
 
     public abstract bool IsVisible();
-
+    
     public TIdentifier GetCurrentPage()
     {
         lock (_pageLock)
         {
             return _currentPage;
+        }
+    }
+
+    public Result<TIdentifier> GetPreviousPage()
+    {
+        lock (_pageLock)
+        {
+            if (_pageHistory.TryPeek(out TIdentifier? page))
+            {
+                return Result<TIdentifier>.FromSuccess(page);
+            }
+            
+            return Result<TIdentifier>.FromFailure("There is no page in the history.");
         }
     }
 

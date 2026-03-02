@@ -25,7 +25,7 @@ public abstract class ShortcutRegistration
             Key = Key,
             IsEnabled = IsEnabled,
             Action = Action,
-            Released = Released
+            Released = Released,
         };
     }
 }

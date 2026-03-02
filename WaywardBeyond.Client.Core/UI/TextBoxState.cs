@@ -11,6 +11,7 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
     public int SelectionStartIndex;
     public bool ShiftModifier;
     public bool ControlModifier;
+    public double LastInputTime;
     
     public readonly StringBuilder Text = new(initialValue);
     public readonly Options Settings = options;
@@ -47,7 +48,25 @@ internal struct TextBoxState(in string initialValue, in TextBoxState.Options opt
         return new Selection(selectionStartIndex, selectionLength, forward);
     }
 
-    public readonly record struct Selection(int StartIndex, int Length, bool Forward);
+    public readonly record struct Selection
+    (
+        int StartIndex,
+        int Length,
+        bool Forward
+    );
 
-    public record struct Options(string? Placeholder = null, int? MaxCharacters = 0, Constraints? Constraints = null, HashSet<char>? DisallowedCharacters = null);
+    public record struct Options
+    (
+        string? Placeholder = null,
+        int? MaxCharacters = 0,
+        Constraints? Constraints = null,
+        HashSet<char>? DisallowedCharacters = null,
+        SubmitBehavior SubmitBehavior = SubmitBehavior.Submit
+    );
+    
+    public enum SubmitBehavior
+    {
+        Submit,
+        NewLine,
+    }
 }
