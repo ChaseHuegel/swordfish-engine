@@ -55,18 +55,5 @@ internal class ScreenshotShortcut(in IRenderer renderer, in NotificationService 
         await fileStream.DisposeAsync();
 
         _notificationService.Push(new Notification($"Saved screenshot \"{path}\""));
-        Texture screenshotTexture = _renderer.Screenshot();
-
-        var fileName = $"{screenshotTexture.Name}.png";
-        
-        Directory.CreateDirectory("screenshots/");
-        
-        using (var screenshotStream = File.Create($"screenshots/{fileName}"))
-        using (Image<Rgb24> image = Image.LoadPixelData<Rgb24>(screenshotTexture.Pixels, screenshotTexture.Width, screenshotTexture.Height))
-        {
-            image.SaveAsPng(screenshotStream);
-        }
-
-        _notificationService.Push(new Notification($"Saved screenshot \"{fileName}\""));
     }
 }
