@@ -557,39 +557,50 @@ internal static partial class Widgets
             int selectionEnd = selection.StartIndex + selection.Length;
             int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
 
-            var previousLineEndGlyphIndex = 0;
+            int selectionGlyphIndex = selectionStart;
+            int previousLineEndGlyphIndex = -1;
             for (var i = 0; i < textLayout.Lines.Length; i++)
             {
                 string line = textLayout.Lines[i];
-                if (string.IsNullOrEmpty(line))
+
+                if (selectionStart > previousLineEndGlyphIndex + line.Length + 1)
                 {
-                    continue;
+                    selectionGlyphIndex--;
                 }
 
-                int lineEndGlyphIndex = previousLineEndGlyphIndex + line.Length;
+                int lineEndGlyphIndex = previousLineEndGlyphIndex + line.Length + 1;
 
                 int lineSelectionStart = Math.Max(selectionStart, previousLineEndGlyphIndex);
                 int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
 
-                bool isCaretOnLine = state.CaretIndex >= previousLineEndGlyphIndex && state.CaretIndex <= lineEndGlyphIndex;
+                bool isCaretOnLine = selectionStart > previousLineEndGlyphIndex && selectionStart <= lineEndGlyphIndex;
 
                 //  Render the caret if in focus and this isn't a blink frame
                 if (!hasSelection && isCaretOnLine && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
                 {
                     int x;
-                    if (lineSelectionStart < 0)
+                    //  Caret should be to the left when at the end of the text
+                    if (selectionGlyphIndex >= textLayout.Glyphs.Length)
                     {
-                        GlyphLayout glyph = textLayout.Glyphs[0];
-                        x = glyph.BBOX.Left;
+                        if (line.Length == 0)
+                        {
+                            x = 0;
+                        }
+                        else
+                        {
+                            GlyphLayout glyph = textLayout.Glyphs[^1];
+                            x = glyph.BBOX.Right;
+                        }
                     }
-                    else if (lineSelectionStart >= textLayout.Glyphs.Length)
+                    //  Caret should be to the right when at the end of a line
+                    else if (selectionStart == lineEndGlyphIndex)
                     {
-                        GlyphLayout glyph = textLayout.Glyphs[textLayout.Glyphs.Length - 1];
+                        GlyphLayout glyph = textLayout.Glyphs[selectionGlyphIndex - 1];
                         x = glyph.BBOX.Right;
                     }
                     else
                     {
-                        GlyphLayout glyph = textLayout.Glyphs[selectionStart];
+                        GlyphLayout glyph = textLayout.Glyphs[selectionGlyphIndex];
                         x = glyph.BBOX.Left;
                     }
 
