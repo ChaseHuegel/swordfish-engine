@@ -83,79 +83,73 @@ internal static partial class Widgets
                 IntVector2 relativeCursorPosition = ui.GetRelativeCursorPosition();
                 selectionOverwritten = true;
                 
-                // Check if the cursor is outside the text bounds vertically
+                //  Check if the cursor is outside the text bounds vertically
                 if (relativeCursorPosition.Y < 0)
                 {
                     state.CaretIndex = 0;
                 }
-                else if (relativeCursorPosition.Y > textLayout.Constraints.PreferredHeight)
+                else if (relativeCursorPosition.Y > textLayout.Constraints.PreferredHeight && textLayout.Lines.Length > 0)
                 {
                     state.CaretIndex = state.Text.Length;
                 }
-                
-                var glyphIndex = 0;
-                for (var lineIndex = 0; lineIndex < textLayout.Lines.Length; lineIndex++)
+                else
                 {
-                    int lineTop = lineIndex * textLayout.LineHeight;
-                    
-                    // Check if cursor is within the vertical bounds of this line
-                    if (relativeCursorPosition.Y < lineTop || relativeCursorPosition.Y > lineTop + textLayout.LineHeight)
-                    {
-                        glyphIndex += textLayout.Lines[lineIndex].Length;
-                        continue;
-                    }
-                    
-                    // Check if the cursor is outside the left bound of this line
-                    if (relativeCursorPosition.X < 0)
-                    {
-                        state.CaretIndex = glyphIndex;
-                        glyphIndex += textLayout.Lines[lineIndex].Length;
-                        continue;
-                    }
-                    
-                    //  If the line is empty, place the caret at the start of it and continue
-                    if (textLayout.Lines[lineIndex].Length == 0)
-                    {
-                        state.CaretIndex = glyphIndex;
-                        continue;
-                    }
-                    
-                    // Check if the cursor is outside the right bound of this line
-                    int lineEndIndex = glyphIndex + textLayout.Lines[lineIndex].Length;
-                    GlyphLayout lastGlyphInLine = textLayout.Glyphs[lineEndIndex - 1];
-                    if (relativeCursorPosition.X > lastGlyphInLine.BBOX.Right)
-                    {
-                        //  If the glyph is a newline, the caret should be placed on it.
-                        //  Otherwise, the caret doesn't visually appear on the line the click happened.
-                        bool isNewline = lineEndIndex > 0 && lineEndIndex <= state.Text.Length && state.Text[lineEndIndex - 1] == '\n';
-                        state.CaretIndex = isNewline ? lineEndIndex - 1 : lineEndIndex;
-                        glyphIndex += textLayout.Lines[lineIndex].Length;
-                        continue;
-                    }
+                    var textIndex = 0;
+                    var glyphIndex = 0;
+                    var caretPlaced = false;
 
-                    //  Check if the cursor is within the horizontal bounds of any glyphs on this line
-                    for (var i = 0; i < textLayout.Lines[lineIndex].Length; i++)
+                    for (var lineIndex = 0; lineIndex < textLayout.Lines.Length; lineIndex++)
                     {
-                        GlyphLayout glyph = textLayout.Glyphs[glyphIndex];
+                        string line = textLayout.Lines[lineIndex];
+                        int lineTop = lineIndex * textLayout.LineHeight;
                         
-                        //  The hit area for a glyph is offset by half width,
-                        //  so clicking between characters feels more natural.
-                        int halfWidth = glyph.BBOX.Size.X / 2;
-
-                        if (relativeCursorPosition.X > glyph.BBOX.Left - halfWidth)
+                        //  Check if cursor is within the vertical bounds of this line
+                        if (!caretPlaced && relativeCursorPosition.Y >= lineTop && relativeCursorPosition.Y <= lineTop + textLayout.LineHeight)
                         {
-                            state.CaretIndex = glyphIndex;
+                            //  If the line is empty, place the caret at the start of it.
+                            if (line.Length == 0)
+                            {
+                                state.CaretIndex = textIndex;
+                                caretPlaced = true;
+                            }
+                            else
+                            {
+                                //  Find the closest character boundary
+                                for (var i = 0; i < line.Length; i++)
+                                {
+                                    GlyphLayout glyph = textLayout.Glyphs[glyphIndex + i];
+                                    int midPoint = glyph.BBOX.Left + glyph.BBOX.Size.X / 2;
+
+                                    if (relativeCursorPosition.X < midPoint)
+                                    {
+                                        state.CaretIndex = textIndex + i;
+                                        caretPlaced = true;
+                                        break;
+                                    }
+                                }
+                                
+                                //  If not placed yet, it's at the end of the line
+                                if (!caretPlaced)
+                                {
+                                    state.CaretIndex = textIndex + line.Length;
+                                    caretPlaced = true;
+                                }
+                            }
+                        }
+                        
+                        if (caretPlaced)
+                        {
+                            break;
                         }
 
-                        if (relativeCursorPosition.X > glyph.BBOX.Right - halfWidth)
-                        {
-                            //  If the glyph is a newline, the caret should be placed on it.
-                            //  Otherwise, the caret doesn't visually appear on the line the click happened.
-                            bool isNewLine = glyphIndex < state.Text.Length && state.Text[glyphIndex] == '\n';
-                            state.CaretIndex = isNewLine ? glyphIndex : glyphIndex + 1;
-                        }
+                        bool isHardBreak = textIndex + line.Length < state.Text.Length && state.Text[textIndex + line.Length] == '\n';
+                        textIndex += line.Length + (isHardBreak ? 1 : 0);
+                        glyphIndex += line.Length;
+                    }
 
-                        glyphIndex++;
+                    if (!caretPlaced)
+                    {
+                        state.CaretIndex = state.Text.Length;
                     }
                 }
                 
@@ -313,77 +307,78 @@ internal static partial class Widgets
                         
                         navigating = true;
                     }
-                    else if (input == UIController.Key.UpArrow)
+                    else if (input == UIController.Key.UpArrow || input == UIController.Key.DownArrow)
                     {
-                        if (state.CaretIndex <= 0)
+                        if (input == UIController.Key.UpArrow && state.CaretIndex <= 0 || input == UIController.Key.DownArrow && state.CaretIndex >= state.Text.Length)
                         {
                             continue;
                         }
                         
-                        int lineIndex = textLayout.Lines.Length - 1;
-                        var lineStartIndex = 0;
-                        var currentIndex = 0;
+                        //  Get info about the current line
+                        int currentLineIndex = -1;
+                        var currentLineTextStart = 0;
+                        var currentLineGlyphStart = 0;
+                        var textIndex = 0;
+                        var glyphIndex = 0;
+
                         for (var i = 0; i < textLayout.Lines.Length; i++)
                         {
-                            int lineLength = textLayout.Lines[i].Length;
-                            if (state.CaretIndex < currentIndex + lineLength || (state.CaretIndex == currentIndex + lineLength && state.CaretIndex == state.Text.Length))
+                            string line = textLayout.Lines[i];
+
+                            bool isHardBreak = textIndex + line.Length < state.Text.Length && state.Text[textIndex + line.Length] == '\n';
+                            int effectiveLineTextEnd = textIndex + line.Length + (isHardBreak ? 1 : 0);
+
+                            if (state.CaretIndex >= textIndex && state.CaretIndex < effectiveLineTextEnd || i == textLayout.Lines.Length - 1 && state.CaretIndex == effectiveLineTextEnd)
                             {
-                                lineIndex = i;
-                                lineStartIndex = currentIndex;
+                                currentLineIndex = i;
+                                currentLineTextStart = textIndex;
+                                currentLineGlyphStart = glyphIndex;
                                 break;
                             }
-                            currentIndex += lineLength;
+
+                            textIndex = effectiveLineTextEnd;
+                            glyphIndex += line.Length;
                         }
-                        
-                        if (lineIndex <= 0)
+
+                        if (currentLineIndex == -1)
                         {
                             continue;
                         }
-                        
-                        var visualOffsetX = 0;
-                        if (state.CaretIndex > lineStartIndex)
-                        {
-                            visualOffsetX = textLayout.Glyphs[state.CaretIndex - 1].BBOX.Right;
-                        }
-                        
-                        int prevLineStart = lineStartIndex - textLayout.Lines[lineIndex - 1].Length;
-                        int prevLineEnd = lineStartIndex;
-                        
-                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, prevLineStart, prevLineEnd, visualOffsetX);
-                        navigating = true;
-                    }
-                    else if (input == UIController.Key.DownArrow)
-                    {
-                        int lineIndex = textLayout.Lines.Length - 1;
-                        var lineStartIndex = 0;
-                        var currentIndex = 0;
-                        for (var i = 0; i < textLayout.Lines.Length; i++)
-                        {
-                            int lineLength = textLayout.Lines[i].Length;
-                            if (state.CaretIndex < currentIndex + lineLength || (state.CaretIndex == currentIndex + lineLength && state.CaretIndex == state.Text.Length))
-                            {
-                                lineIndex = i;
-                                lineStartIndex = currentIndex;
-                                break;
-                            }
-                            currentIndex += lineLength;
-                        }
 
-                        if (lineIndex >= textLayout.Lines.Length - 1)
+                        //  Calculate visual X offset
+                        var visualOffsetX = 0;
+                        int caretIndexOnLine = state.CaretIndex - currentLineTextStart;
+                        int glyphsOnCurrentLine = textLayout.Lines[currentLineIndex].Length;
+                        if (caretIndexOnLine > 0 && glyphsOnCurrentLine > 0)
+                        {
+                            int caretGlyphIndex = currentLineGlyphStart + Math.Min(caretIndexOnLine, glyphsOnCurrentLine) - 1;
+                            visualOffsetX = textLayout.Glyphs[caretGlyphIndex].BBOX.Right;
+                        }
+                        
+                        //  Find target line
+                        int targetLineIndex = input == UIController.Key.UpArrow ? currentLineIndex - 1 : currentLineIndex + 1;
+                        if (targetLineIndex < 0 || targetLineIndex >= textLayout.Lines.Length)
                         {
                             continue;
                         }
-                        
-                        var visualOffsetX = 0;
-                        if (state.CaretIndex > lineStartIndex)
+
+                        //  Get target line info by re-calculating indices
+                        textIndex = 0;
+                        glyphIndex = 0;
+                        for (var i = 0; i < targetLineIndex; i++)
                         {
-                            visualOffsetX = textLayout.Glyphs[state.CaretIndex - 1].BBOX.Right;
+                            string line = textLayout.Lines[i];
+                            bool isHardBreak = textIndex + line.Length < state.Text.Length && state.Text[textIndex + line.Length] == '\n';
+                            
+                            textIndex += line.Length + (isHardBreak ? 1 : 0);
+                            glyphIndex += line.Length;
                         }
-
-                        int nextLineStart = lineStartIndex + textLayout.Lines[lineIndex].Length;
-                        int nextLineEnd = nextLineStart + textLayout.Lines[lineIndex + 1].Length;
-
-                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, nextLineStart, nextLineEnd, visualOffsetX);
+                        
+                        int targetLineTextStart = textIndex;
+                        int targetLineGlyphStart = glyphIndex;
+                        int targetLineLength = textLayout.Lines[targetLineIndex].Length;
+                        
+                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, targetLineTextStart, targetLineGlyphStart, targetLineLength, visualOffsetX);
                         navigating = true;
                     }
                     else if (input == UIController.Key.Home)
@@ -557,7 +552,7 @@ internal static partial class Widgets
             int selectionEnd = selection.StartIndex + selection.Length;
             int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
 
-            var textIndex = 0;
+            var layoutTextIndex = 0;
             var layoutGlyphIndex = 0;
             for (var i = 0; i < textLayout.Lines.Length; i++)
             {
@@ -565,20 +560,21 @@ internal static partial class Widgets
                 int lineGlyphStart = layoutGlyphIndex;
                 int lineGlyphEnd = layoutGlyphIndex + line.Length;
                 
-                int lineTextStart = textIndex;
-                int lineTextEnd = textIndex + line.Length;
+                int lineTextStart = layoutTextIndex;
+                int lineTextEnd = layoutTextIndex + line.Length;
                 
-                // A "hard break" is a newline character, versus a "soft break" from word wrapping.
+                //  "hard break" is a newline vs a "soft break" from wrapping.
                 bool isHardBreak = lineTextEnd < state.Text.Length && state.Text[lineTextEnd] == '\n';
                 int effectiveLineTextEnd = isHardBreak ? lineTextEnd + 1 : lineTextEnd;
 
-                // isCaretOnLine needs to handle the caret being at the very end of the text on the last line
-                bool isCaretOnLine = selectionStart >= lineTextStart && selectionStart < effectiveLineTextEnd || (i == textLayout.Lines.Length - 1 && selectionStart == effectiveLineTextEnd);
+                bool isCaretOnLine = selectionStart >= lineTextStart && selectionStart < effectiveLineTextEnd ||
+                                     (i == textLayout.Lines.Length - 1 && selectionStart == effectiveLineTextEnd);
 
                 //  Render the caret if in focus and this isn't a blink frame
                 if (!hasSelection && isCaretOnLine && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
                 {
                     int x;
+                    
                     //  Caret is at the end of the line content, or on the newline character
                     if (selectionStart >= lineTextEnd)
                     {
@@ -644,7 +640,7 @@ internal static partial class Widgets
                     }
                 }
                 
-                textIndex = effectiveLineTextEnd;
+                layoutTextIndex = effectiveLineTextEnd;
                 layoutGlyphIndex = lineGlyphEnd;
             }
 
@@ -689,22 +685,27 @@ internal static partial class Widgets
         }
     }
     
-    private static int FindClosestCaretIndexInLine(TextLayout layout, int lineStart, int lineEnd, int targetX)
+    private static int FindClosestCaretIndexInLine(TextLayout layout, int lineTextStart, int lineGlyphStart, int lineLength, int targetX)
     {
-        int bestIndex = lineStart;
-        var minDistance = int.MaxValue;
-
-        for (int i = lineStart; i <= lineEnd; i++)
+        if (lineLength == 0)
         {
-            int x = i == lineStart ? 0 : layout.Glyphs[i - 1].BBOX.Right;
+            return lineTextStart;
+        }
+
+        // Default to start of the line
+        int bestIndex = lineTextStart;
+        int minDistance = Math.Abs(layout.Glyphs[lineGlyphStart].BBOX.Left - targetX);
+
+        for (var i = 0; i < lineLength; i++)
+        {
+            int x = layout.Glyphs[lineGlyphStart + i].BBOX.Right;
             int dist = Math.Abs(x - targetX);
-            if (dist >= minDistance)
-            {
-                continue;
-            }
             
-            minDistance = dist;
-            bestIndex = i;
+            if (dist < minDistance)
+            {
+                minDistance = dist;
+                bestIndex = lineTextStart + i + 1;
+            }
         }
         
         return bestIndex;
