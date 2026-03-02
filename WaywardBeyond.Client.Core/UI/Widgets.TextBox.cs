@@ -357,28 +357,40 @@ internal static partial class Widgets
                         
                         //  Find target line
                         int targetLineIndex = input == UIController.Key.UpArrow ? currentLineIndex - 1 : currentLineIndex + 1;
-                        if (targetLineIndex < 0 || targetLineIndex >= textLayout.Lines.Length)
+                        
+                        //  If already on the first line and navigating up,
+                        //  jump to the first character.
+                        if (targetLineIndex < 0)
                         {
-                            continue;
+                            state.CaretIndex = 0;
                         }
-
-                        //  Get target line info by re-calculating indices
-                        textIndex = 0;
-                        glyphIndex = 0;
-                        for (var i = 0; i < targetLineIndex; i++)
+                        //  If already on the last line and navigating down,
+                        //  jump to the last character.
+                        else if (targetLineIndex >= textLayout.Lines.Length)
                         {
-                            string line = textLayout.Lines[i];
-                            bool isHardBreak = textIndex + line.Length < state.Text.Length && state.Text[textIndex + line.Length] == '\n';
+                            state.CaretIndex = state.Text.Length;
+                        }
+                        else
+                        {
+                            //  Get target line info by re-calculating indices
+                            textIndex = 0;
+                            glyphIndex = 0;
+                            for (var i = 0; i < targetLineIndex; i++)
+                            {
+                                string line = textLayout.Lines[i];
+                                bool isHardBreak = textIndex + line.Length < state.Text.Length && state.Text[textIndex + line.Length] == '\n';
                             
-                            textIndex += line.Length + (isHardBreak ? 1 : 0);
-                            glyphIndex += line.Length;
+                                textIndex += line.Length + (isHardBreak ? 1 : 0);
+                                glyphIndex += line.Length;
+                            }
+                        
+                            int targetLineTextStart = textIndex;
+                            int targetLineGlyphStart = glyphIndex;
+                            int targetLineLength = textLayout.Lines[targetLineIndex].Length;
+                            
+                            state.CaretIndex = FindClosestCaretIndexInLine(textLayout, targetLineTextStart, targetLineGlyphStart, targetLineLength, visualOffsetX);
                         }
                         
-                        int targetLineTextStart = textIndex;
-                        int targetLineGlyphStart = glyphIndex;
-                        int targetLineLength = textLayout.Lines[targetLineIndex].Length;
-                        
-                        state.CaretIndex = FindClosestCaretIndexInLine(textLayout, targetLineTextStart, targetLineGlyphStart, targetLineLength, visualOffsetX);
                         navigating = true;
                     }
                     else if (input == UIController.Key.Home)
