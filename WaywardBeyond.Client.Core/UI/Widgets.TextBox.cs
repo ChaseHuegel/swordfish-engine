@@ -557,30 +557,30 @@ internal static partial class Widgets
             int selectionEnd = selection.StartIndex + selection.Length;
             int lineStride = textLayout.Constraints.PreferredHeight / Math.Max(textLayout.Lines.Length, 1);
 
-            int selectionGlyphIndex = selectionStart;
-            int previousLineEndGlyphIndex = -1;
+            var textIndex = 0;
+            var layoutGlyphIndex = 0;
             for (var i = 0; i < textLayout.Lines.Length; i++)
             {
                 string line = textLayout.Lines[i];
+                int lineGlyphStart = layoutGlyphIndex;
+                int lineGlyphEnd = layoutGlyphIndex + line.Length;
+                
+                int lineTextStart = textIndex;
+                int lineTextEnd = textIndex + line.Length;
+                
+                // A "hard break" is a newline character, versus a "soft break" from word wrapping.
+                bool isHardBreak = lineTextEnd < state.Text.Length && state.Text[lineTextEnd] == '\n';
+                int effectiveLineTextEnd = isHardBreak ? lineTextEnd + 1 : lineTextEnd;
 
-                if (selectionStart > previousLineEndGlyphIndex + line.Length + 1)
-                {
-                    selectionGlyphIndex--;
-                }
-
-                int lineEndGlyphIndex = previousLineEndGlyphIndex + line.Length + 1;
-
-                int lineSelectionStart = Math.Max(selectionStart, previousLineEndGlyphIndex);
-                int lineSelectionEnd = Math.Min(selectionEnd, lineEndGlyphIndex);
-
-                bool isCaretOnLine = selectionStart > previousLineEndGlyphIndex && selectionStart <= lineEndGlyphIndex;
+                // isCaretOnLine needs to handle the caret being at the very end of the text on the last line
+                bool isCaretOnLine = selectionStart >= lineTextStart && selectionStart < effectiveLineTextEnd || (i == textLayout.Lines.Length - 1 && selectionStart == effectiveLineTextEnd);
 
                 //  Render the caret if in focus and this isn't a blink frame
                 if (!hasSelection && isCaretOnLine && focused && (ui.Time % 1f < 0.5f || ui.Time - state.LastInputTime < 0.5f))
                 {
                     int x;
-                    //  Caret should be to the left when at the end of the text
-                    if (selectionGlyphIndex >= textLayout.Glyphs.Length)
+                    //  Caret is at the end of the line content, or on the newline character
+                    if (selectionStart >= lineTextEnd)
                     {
                         if (line.Length == 0)
                         {
@@ -588,19 +588,14 @@ internal static partial class Widgets
                         }
                         else
                         {
-                            GlyphLayout glyph = textLayout.Glyphs[^1];
+                            GlyphLayout glyph = textLayout.Glyphs[lineGlyphEnd - 1];
                             x = glyph.BBOX.Right;
                         }
                     }
-                    //  Caret should be to the right when at the end of a line
-                    else if (selectionStart == lineEndGlyphIndex)
-                    {
-                        GlyphLayout glyph = textLayout.Glyphs[selectionGlyphIndex - 1];
-                        x = glyph.BBOX.Right;
-                    }
                     else
                     {
-                        GlyphLayout glyph = textLayout.Glyphs[selectionGlyphIndex];
+                        int caretGlyphIndexOnLine = selectionStart - lineTextStart;
+                        GlyphLayout glyph = textLayout.Glyphs[lineGlyphStart + caretGlyphIndexOnLine];
                         x = glyph.BBOX.Left;
                     }
 
@@ -618,31 +613,39 @@ internal static partial class Widgets
                 }
                 
                 //  Render any selection over this line
-                if (lineSelectionStart < lineSelectionEnd && hasSelection)
+                if (hasSelection)
                 {
-                    int startGlyphIndex = Math.Min(lineSelectionStart, textLayout.Glyphs.Length - 1);
-                    int endGlyphIndex = Math.Max(lineSelectionEnd - 1, startGlyphIndex);
-                    GlyphLayout startGlyph = textLayout.Glyphs[startGlyphIndex];
-                    GlyphLayout endGlyph = textLayout.Glyphs[endGlyphIndex];
+                    int selStartOnLine = Math.Max(selectionStart, lineTextStart);
+                    int selEndOnLine = Math.Min(selectionEnd, lineTextEnd);
 
-                    int x = startGlyph.BBOX.Left;
-                    int width = endGlyph.BBOX.Right - x;
-
-                    //  Render the current line
-                    using (ui.Element())
+                    if (selStartOnLine < selEndOnLine)
                     {
-                        ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
-                        ui.Constraints = new Constraints
+                        int startGlyphIndexOnLine = selStartOnLine - lineTextStart;
+                        int endGlyphIndexOnLine = selEndOnLine - lineTextStart;
+
+                        GlyphLayout startGlyph = textLayout.Glyphs[lineGlyphStart + startGlyphIndexOnLine];
+                        GlyphLayout endGlyph = textLayout.Glyphs[lineGlyphStart + endGlyphIndexOnLine - 1];
+
+                        int x = startGlyph.BBOX.Left;
+                        int width = endGlyph.BBOX.Right - x;
+
+                        //  Render the current line
+                        using (ui.Element())
                         {
-                            X = new Fixed(x),
-                            Y = new Fixed(i * lineStride),
-                            Width = new Fixed(width),
-                            Height = new Fixed(lineStride),
-                        };
+                            ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                            ui.Constraints = new Constraints
+                            {
+                                X = new Fixed(x),
+                                Y = new Fixed(i * lineStride),
+                                Width = new Fixed(width),
+                                Height = new Fixed(lineStride),
+                            };
+                        }
                     }
                 }
                 
-                previousLineEndGlyphIndex = lineEndGlyphIndex;
+                textIndex = effectiveLineTextEnd;
+                layoutGlyphIndex = lineGlyphEnd;
             }
 
             interactions = Interactions.None;
