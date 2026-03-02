@@ -2,4 +2,4 @@ using System;
 
 namespace WaywardBeyond.Client.Core.Services;
 
-internal record struct Webhooks(Uri FeedbackSourceUri);
+internal record struct Webhooks(Uri FeedbackSourceUri, Uri DiscordUri, Uri SteamUri);
