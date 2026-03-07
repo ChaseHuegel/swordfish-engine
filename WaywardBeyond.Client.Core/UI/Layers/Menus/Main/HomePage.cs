@@ -27,6 +27,8 @@ internal sealed class HomePage(
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly ModalMenu _modalMenu = modalMenu;
 
+    private bool _hasShownNotice;
+
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
@@ -36,6 +38,12 @@ internal sealed class HomePage(
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        if (!_hasShownNotice)
+        {
+            _hasShownNotice = true;
+            _modalMenu.GoToPage(PlaytestNoticeModal.Modal);
+        }
+        
         GameSave[] saves = _gameSaveService.GetSaves();
         if (saves.Length > 0)
         {

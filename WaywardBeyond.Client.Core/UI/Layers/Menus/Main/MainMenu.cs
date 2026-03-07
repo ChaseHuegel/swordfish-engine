@@ -1,5 +1,3 @@
-using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Reef;
@@ -19,10 +17,10 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
-    private readonly WebhookService _webhookService;
+    private readonly ExternalAppService _externalAppService;
     private readonly Material? _backgroundMaterial;
     private readonly Widgets.ButtonOptions _buttonOptions;
-    
+
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
         IAssetDatabase<Material> materialDatabase,
@@ -30,11 +28,11 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         IShortcutService shortcutService,
         IAudioService audioService,
         VolumeSettings volumeSettings,
-        WebhookService webhookService,
+        ExternalAppService externalAppService,
         IMenuPage<MenuPage>[] pages
     ) : base(logger, materialDatabase, reefContext, pages)
     {
-        _webhookService = webhookService;
+        _externalAppService = externalAppService;
         
         Result<Material> materialResult = materialDatabase.Get("ui/menu/background");
         if (materialResult)
@@ -106,7 +104,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 
                 if (interactions.Has(Widgets.Interactions.Click))
                 {
-                    Task.Run(TryOpenDiscordAsync);
+                    Task.Run(_externalAppService.TryOpenDiscordAsync);
                 }
             }
         
@@ -116,7 +114,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 
                 if (interactions.Has(Widgets.Interactions.Click))
                 {
-                    Task.Run(TryOpenSteamAsync);
+                    Task.Run(_externalAppService.TryOpenSteamAsync);
                 }
             }
         }
@@ -132,41 +130,5 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         }
         
         GoToPage(MenuPage.Home);
-    }
-    
-    private async Task TryOpenDiscordAsync()
-    {
-        Result<Uri> uri = await _webhookService.ResolveDiscordUriAsync();
-        if (!uri.Success)
-        {
-            return;
-        }
-                    
-        var processStartInfo = new ProcessStartInfo
-        {
-            FileName = uri.Value.ToString(),
-            UseShellExecute = true,
-            Verb = "open",
-        };
-                    
-        Process.Start(processStartInfo);
-    }
-    
-    private async Task TryOpenSteamAsync()
-    {
-        Result<Uri> uri = await _webhookService.ResolveSteamUriAsync();
-        if (!uri.Success)
-        {
-            return;
-        }
-                    
-        var processStartInfo = new ProcessStartInfo
-        {
-            FileName = uri.Value.ToString(),
-            UseShellExecute = true,
-            Verb = "open",
-        };
-                    
-        Process.Start(processStartInfo);
     }
 }

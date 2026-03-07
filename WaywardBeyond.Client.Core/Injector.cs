@@ -50,6 +50,8 @@ public class Injector : IDryIocInjector
         
         container.Register<LocalizedFormatter>(Reuse.Singleton);
         
+        container.Register<ExternalAppService>(Reuse.Singleton);
+        
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
@@ -112,6 +114,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, ModalMenu>();
         container.Register<IMenuPage<Modal>, EmptyModal>();
         container.Register<IMenuPage<Modal>, FeedbackModal>();
+        container.Register<IMenuPage<Modal>, PlaytestNoticeModal>();
         
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
