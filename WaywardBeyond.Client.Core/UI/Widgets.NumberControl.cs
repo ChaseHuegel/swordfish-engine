@@ -33,20 +33,17 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
+                Interactions.Click.WithButtonIncreaseAudio(audioService, volumeSettings);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
+                Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
                 break;
         }
 
         value = Math.Clamp(value, constraints.Min, constraints.Max);
         onValueChanged?.Invoke(value);
 
-        if (changeType != ChangeType.None)
-        {
-            Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
-        }
-        
         return value;
     }
     
@@ -66,20 +63,17 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
+                Interactions.Click.WithButtonIncreaseAudio(audioService, volumeSettings);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
+                Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
                 break;
         }
 
         value = Math.Clamp(value, constraints.Min, constraints.Max);
         onValueChanged?.Invoke(value);
 
-        if (changeType != ChangeType.None)
-        {
-            Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
-        }
-        
         return value;
     }
     
