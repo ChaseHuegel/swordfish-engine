@@ -27,6 +27,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     private readonly SynchronizationContext _synchronizationContext;
     private readonly RenderSettings _renderSettings;
 
+    private readonly object _sceneLock = new();
     private readonly DoubleList<EntityModel> _renderInstancesBuffer = new();
 
     private Matrix4x4 _cameraView;
@@ -64,14 +65,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     {
         Matrix4x4 view;
         Matrix4x4 projection;
-        EntityModel[] instances;
-        lock (_renderInstancesBuffer)
+        lock (_sceneLock)
         {
             view = _cameraView;
             projection = _cameraProjection;
             _renderInstancesBuffer.Swap();
-            instances = _renderInstancesBuffer.Read();
         }
+        
+        EntityModel[] instances = _renderInstancesBuffer.Read();
 
         return new RenderScene(view, projection, instances, RenderTargets, RectRenderTargets);
     }
@@ -86,7 +87,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     public void Tick(float delta, DataStore store)
     {
-        lock (_renderInstancesBuffer)
+        lock (_sceneLock)
         {
             store.Query<CameraComponent, ViewFrustumComponent>(delta: 0f, QueryCamera);
             
@@ -101,17 +102,21 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             return;
         }
-        
+
         viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
         viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
         viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
 
         var e = new Entity(entity, store);
         var cameraEntity = new CameraEntity(e, viewFrustum, transform);
-        MainCamera.Set(cameraEntity);
         
-        _cameraView = cameraEntity.GetView();
-        _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+        lock (_sceneLock)
+        {
+            _cameraView = cameraEntity.GetView();
+            _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+        }
+        
+        MainCamera.Set(cameraEntity);
     }
 
     private void QueryRenderableEntities(float delta, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
