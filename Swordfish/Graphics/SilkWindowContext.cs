@@ -84,10 +84,8 @@ public class SilkWindowContext : IWindowContext
         
         windowSettings.Borderless.Changed += OnBorderlessChanged;
         windowSettings.AllowResize.Changed += OnAllowResizeChanged;
-        ApplyBorderSettings(windowSettings.Borderless, windowSettings.AllowResize);
-
         windowSettings.Mode.Changed += OnModeChanged;
-        ApplyMode(windowSettings.Mode);
+        ApplyWindowStyle(windowSettings.Mode, windowSettings.Borderless, windowSettings.AllowResize);
 
         ShortcutService.RegisterShortcut(new Shortcut(
                 "Toggle Fullscreen",
@@ -215,17 +213,23 @@ public class SilkWindowContext : IWindowContext
     
     private void OnBorderlessChanged(object? sender, DataChangedEventArgs<bool> e)
     {
-        ApplyBorderSettings(borderless: e.NewValue, WindowSettings.AllowResize);
+        WindowMode mode = WindowSettings.Mode.Get();
+        bool allowResize = WindowSettings.AllowResize.Get();
+        ApplyWindowStyle(mode, borderless: e.NewValue, allowResize);
     }
     
     private void OnAllowResizeChanged(object? sender, DataChangedEventArgs<bool> e)
     {
-        ApplyBorderSettings(WindowSettings.Borderless, allowResize: e.NewValue);
+        WindowMode mode = WindowSettings.Mode.Get();
+        bool borderless = WindowSettings.Borderless.Get();
+        ApplyWindowStyle(mode, borderless, allowResize: e.NewValue);
     }
     
     private void OnModeChanged(object? sender, DataChangedEventArgs<WindowMode> e)
     {
-        ApplyMode(e.NewValue);
+        bool borderless = WindowSettings.Borderless.Get();
+        bool allowResize = WindowSettings.AllowResize.Get();
+        ApplyWindowStyle(mode: e.NewValue, borderless, allowResize);
     }
     
     private void ApplyVSync(bool vsync)
@@ -279,36 +283,34 @@ public class SilkWindowContext : IWindowContext
         WindowSettings.Save();
     }
     
-    private void ApplyBorderSettings(bool borderless, bool allowResize) 
-    {
-        if (borderless)
-        {
-            Window.WindowBorder = WindowBorder.Hidden;
-        }
-        else if (allowResize)
-        {
-            Window.WindowBorder = WindowBorder.Resizable;
-        }
-        else
-        {
-            Window.WindowBorder = WindowBorder.Fixed;
-        }
-        
-        WindowSettings.Save();
-    }
-
-    private void ApplyMode(WindowMode mode)
+    private void ApplyWindowStyle(WindowMode mode, bool borderless, bool allowResize) 
     {
         //  Borderless fullscreen must be handled specially
-        if (mode == WindowMode.Fullscreen && WindowSettings.Borderless && Window.Monitor != null)
+        if (mode == WindowMode.Fullscreen && borderless && Window.Monitor != null)
         {
+            Window.WindowState = WindowState.Normal;
             Window.WindowState = WindowState.Maximized;
+            Window.WindowBorder = WindowBorder.Hidden;
             Window.Position = Window.Monitor.Bounds.Origin;
             Window.Size = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
-            Window.WindowBorder = WindowBorder.Hidden;
         }
         else
         {
+            Window.WindowState = WindowState.Normal;
+            
+            if (borderless)
+            {
+                Window.WindowBorder = WindowBorder.Hidden;
+            }
+            else if (allowResize)
+            {
+                Window.WindowBorder = WindowBorder.Resizable;
+            }
+            else
+            {
+                Window.WindowBorder = WindowBorder.Fixed;
+            }
+            
             Window.WindowState = mode switch
             {
                 WindowMode.Windowed => WindowState.Normal,
