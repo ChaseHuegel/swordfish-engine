@@ -179,6 +179,11 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
 
     private void OnWindowResized(Vector2 size)
     {
+        if (size.X <= 0 && size.Y <= 0)
+        {
+            return;
+        }
+        
         _screenWidth = (uint)size.X;
         _screenHeight = (uint)size.Y;
         _screenHalfWidth = _screenWidth / 2;
