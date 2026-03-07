@@ -32,6 +32,7 @@
 "ui.menu.display" = "Display"
 "ui.setting.vsync" = "VSync"
 "ui.setting.fullscreen" = "Fullscreen"
+"ui.setting.borderless" = "Borderless"
 "ui.setting.msaa" = "Anti-aliasing"
 
 "ui.menu.gameplay" = "Gameplay"

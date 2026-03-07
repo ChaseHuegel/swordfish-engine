@@ -229,6 +229,9 @@ internal abstract class SettingsPage<TIdentifier>(
             value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
 
+            value = ui.Checkbox(id: "Checkbox_Borderless", text: _localization.GetString("ui.setting.borderless")!, isChecked: _windowSettings.Borderless, _audioService, _volumeSettings);
+            _windowSettings.Borderless.Set(value);
+
             value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
         }
