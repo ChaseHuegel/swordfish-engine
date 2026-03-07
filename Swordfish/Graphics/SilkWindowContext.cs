@@ -299,13 +299,24 @@ public class SilkWindowContext : IWindowContext
 
     private void ApplyMode(WindowMode mode)
     {
-        Window.WindowState = mode switch
+        //  Borderless fullscreen must be handled specially
+        if (mode == WindowMode.Fullscreen && WindowSettings.Borderless && Window.Monitor != null)
         {
-            WindowMode.Windowed => WindowState.Normal,
-            WindowMode.Maximized => WindowState.Maximized,
-            WindowMode.Fullscreen => WindowState.Fullscreen,
-            _ => WindowState.Normal,
-        };
+            Window.WindowState = WindowState.Maximized;
+            Window.Position = Window.Monitor.Bounds.Origin;
+            Window.Size = Window.Monitor.VideoMode.Resolution ?? Window.Monitor.Bounds.Size;
+            Window.WindowBorder = WindowBorder.Hidden;
+        }
+        else
+        {
+            Window.WindowState = mode switch
+            {
+                WindowMode.Windowed => WindowState.Normal,
+                WindowMode.Maximized => WindowState.Maximized,
+                WindowMode.Fullscreen => WindowState.Fullscreen,
+                _ => WindowState.Normal,
+            };
+        }
 
         WindowSettings.Save();
     }
