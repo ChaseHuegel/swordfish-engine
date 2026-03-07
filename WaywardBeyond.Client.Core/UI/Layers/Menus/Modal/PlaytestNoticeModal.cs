@@ -55,6 +55,11 @@ internal class PlaytestNoticeModal(
                 Right = 20,
                 Bottom = 20,
             };
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
             
             using (ui.Element())
             {
@@ -83,7 +88,7 @@ internal class PlaytestNoticeModal(
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
-                    Width = new Relative(0.35f),
+                    Width = new Fixed(500),
                     Height = new Fixed(300),
                 };
                 ui.ClipConstraints = new Constraints
