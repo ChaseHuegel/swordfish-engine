@@ -33,7 +33,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public PhysicsSystem System { get; }
     
-    private readonly bool _accumulateUpdates = false;   //  TODO make this a configurable option
+    private readonly bool _accumulateUpdates = true;   //  TODO make this a configurable option
     private readonly BodyInterface _bodyInterface;
     private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
     private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
