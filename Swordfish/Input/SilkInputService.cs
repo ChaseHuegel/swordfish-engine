@@ -50,22 +50,10 @@ public class SilkInputService : IInputService
             {
                 if (_cursorMovementStopwatch.ElapsedMilliseconds >= 2)
                 {
-                    _cursorDelta = Vector2.Zero;
                     return Vector2.Zero;
                 }
                 
-                //  Clear the delta after it has been read.
-                //  The delta is accumulated over time in Update.
-                //  
-                //  This is necessary to not miss changes between
-                //  queries of the delta when accessing from a thread
-                //  that is not synchronized with the window's update.
-                //  
-                //  This isn't ideal because multiple readers
-                //  will not see the same value. Need a better solution eventually.
-                Vector2 delta = _cursorDelta;
-                _cursorDelta = Vector2.Zero;
-                return delta;
+                return _cursorDelta;
             }
         }
     }
@@ -341,7 +329,7 @@ public class SilkInputService : IInputService
         lock (_cursorLock)
         {
             Vector2 newMousePosition = _mainMouse.Position;
-            _cursorDelta += newMousePosition - _cursorPosition;
+            _cursorDelta = newMousePosition - _cursorPosition;
             _cursorPosition = newMousePosition;
         
             if (_cursorDelta != Vector2.Zero)
