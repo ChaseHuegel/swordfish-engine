@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -18,6 +20,10 @@ internal sealed class PlayerControllerSystem
 
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
+    
+    private readonly Lock _cursorDeltaQueueLock = new();
+    private readonly Queue<Vector2> _cursorDeltaQueue = [];
+    private readonly List<Vector2> _cursorDeltaBuffer = [];
 
     private bool _inputEnabled;
     private bool _windowUnfocused;
@@ -31,10 +37,11 @@ internal sealed class PlayerControllerSystem
         _inputService = inputService;
         _controlSettings = controlSettings;
 
+        windowContext.Update += OnWindowUpdate;
         windowContext.Focused += OnWindowFocused;
         windowContext.Unfocused += OnWindowUnfocused;
     }
-    
+
     public void SetInputEnabled(bool enabled)
     {
         if (_inputEnabled == enabled)
@@ -54,8 +61,30 @@ internal sealed class PlayerControllerSystem
         }
     }
 
+    private void OnWindowUpdate(double delta)
+    {
+        lock (_cursorDeltaQueueLock)
+        {
+            if (!WaywardBeyond.IsPlaying())
+            {
+                _cursorDeltaQueue.Clear();
+                return;
+            }
+            
+            _cursorDeltaQueue.Enqueue(_inputService.CursorDelta);
+        }
+    }
+
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref PhysicsComponent physics)
     {
+        lock (_cursorDeltaQueueLock)
+        {
+            while (_cursorDeltaQueue.TryDequeue(out Vector2 cursorDelta))
+            {
+                _cursorDeltaBuffer.Add(cursorDelta);
+            }
+        }
+        
         if (!store.TryGet(entity, out TransformComponent transform))
         {
             return;
@@ -77,15 +106,21 @@ internal sealed class PlayerControllerSystem
         {
             return;
         }
-        
+
         if (!_inputService.IsKeyHeld(Key.Alt))
         {
-            Vector2 cursorDelta = _inputService.CursorDelta;
             float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-            Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
-            Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+            
+            //  Process all cursor deltas that have been recorded between ticks
+            for (var i = 0; i < _cursorDeltaBuffer.Count; i++)
+            {
+                var cursorDelta = _cursorDeltaBuffer[i];
+                Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+                Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+            }
+            _cursorDeltaBuffer.Clear();
         }
-        
+
         Vector3 forward = transform.GetForward();
         Vector3 right = transform.GetRight();
         Vector3 up = transform.GetUp();
