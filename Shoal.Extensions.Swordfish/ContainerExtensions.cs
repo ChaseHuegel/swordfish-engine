@@ -19,7 +19,7 @@ public static class ContainerExtensions
     
     /// <summary>
     ///     Registers a config file modeled by type <typeparamref name="T"/>,
-    ///     which will be loaded from `assets/config/` or else initialized from defaults.
+    ///     which will be loaded from `config/` or else initialized from defaults.
     /// </summary>
     public static void RegisterConfig<T>(this IContainer container, string file) 
         where T : Config<T>, new()
@@ -31,7 +31,13 @@ public static class ContainerExtensions
     private static T LoadOrCreateConfig<T>(IResolverContext context, string file) 
         where T : Config<T>, new()
     {
-        PathInfo path = new PathInfo("assets/config/").At(file);
+        var configPath = new PathInfo("config/");
+        
+        var vfs = context.Resolve<VirtualFileSystem>();
+        PathInfo[] files = vfs.GetFiles(configPath, SearchOption.AllDirectories);
+        
+        //  Attempt to resolve the config from VFS else resolve it at the root
+        PathInfo path = files.Length > 0 ? files[0] : configPath.At(file);
         
         var fileParseService = context.Resolve<IFileParseService>();
         if (!fileParseService.TryParse<T>(path, out T result))
