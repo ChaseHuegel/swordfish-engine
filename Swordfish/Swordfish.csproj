@@ -19,13 +19,6 @@
     <Authors>Chase Huegel</Authors>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <OutputPath>$(SolutionDir)/WaywardBeyond.Client.Launcher/bin/$(Configuration)/net9.0/modules/swordfish</OutputPath>
-    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
-  </PropertyGroup>
-
   <ItemGroup>
     <Using Include="Silk.NET" />
   </ItemGroup>
