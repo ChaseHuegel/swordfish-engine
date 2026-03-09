@@ -1,0 +1,46 @@
+<Project>
+
+    <Target Name="AllowDuplicatesOnPublish" BeforeTargets="BeforeResolveReferences">
+        <PropertyGroup>
+            <!-- !! HACK !! manifest files will fail the publish if building multiple modules -->
+            <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+        </PropertyGroup>
+    </Target>
+
+    <Target Name="IncludeModulesOnBuild" AfterTargets="Build" Condition="'$(_IsPublishing)' != 'true'">
+        <MSBUild Projects="$(MSBuildProjectFullPath)" Targets="PublishModules" Properties="ModuleTargetDir=$(OutputPath)" />
+    </Target>
+
+    <Target Name="IncludeModulesOnPublish" AfterTargets="Publish">
+        <MSBUild Projects="$(MSBuildProjectFullPath)" Targets="PublishModules" Properties="ModuleTargetDir=$(PublishDir)" />
+    </Target>
+
+    <Target Name="PublishModules">
+        <ItemGroup>
+            <ModuleProjectReferences Include="@(ProjectReference->HasMetadata('ModulePath'))" />
+        </ItemGroup>
+
+        <PropertyGroup>
+            <AbsoluteModuleTargetDir>$([System.IO.Path]::GetFullPath('$(ModuleTargetDir)'))</AbsoluteModuleTargetDir>
+            <ModulesRoot>$(AbsoluteModuleTargetDir)modules/</ModulesRoot>
+        </PropertyGroup>
+
+        <!-- Publish module projects to the modules folder -->
+        <MSBuild Projects="@(ModuleProjectReferences)" Targets="Publish" Properties="
+            PublishDir=$(AbsoluteModuleTargetDir)modules/%(ModuleProjectReferences.ModulePath)/;
+            SelfContained=false;
+            RuntimeIdentifier="
+        />
+
+        <!-- Cleanup any runtimes that got published with the modules -->
+        <ItemGroup>
+            <Runtimes Include="$([System.IO.Directory]::GetDirectories('$(ModulesRoot)', 'runtimes', System.IO.SearchOption.AllDirectories))" Condition="Exists('$(ModulesRoot)')" />
+        </ItemGroup>
+        <RemoveDir Directories="@(Runtimes)" />
+
+        <!-- Cleanup any asset and manifest files in the root dir, these are already contained in the individual modules -->
+        <Delete Files="$(ModuleTargetDir)manifest.toml" Condition="Exists('$(ModuleTargetDir)manifest.toml')" />
+        <RemoveDir Directories="$(ModuleTargetDir)assets/" Condition="Exists('$(ModuleTargetDir)assets/')" />
+    </Target>
+
+</Project>

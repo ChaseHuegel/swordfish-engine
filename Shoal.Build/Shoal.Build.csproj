@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <PackageId>Shoal.Build</PackageId>
+    <Description>Provides build and publish logic for Shoal projects.</Description>
+    <Version>1.0.0</Version>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="build\**" Pack="true" PackagePath="build\" />
+  </ItemGroup>
+
+</Project>
