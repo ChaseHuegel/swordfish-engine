@@ -21,6 +21,9 @@ Reef is a 0-dependency, renderer-agnostic IMGUI library that supports dynamic an
 ## Shoal
 Shoal is a modular, and mod-friendly, application host that powers Swordfish. This provides Dependency Injection, containerization, C# scripting, and a standardized module system which implicitly provides modding support to applications. Applications are built from one or more modules themselves, and so are effectively "mods" of Shoal themselves.
 
+## Shoal.Build
+This is a package that provides msbuild logic for building and publishing Shoal projects, allowing them to pull in projects and packages as modules in their build outputs. This helps to centralize and simplify the process of getting modules bundled into apps.
+
 ## Swordfish
 This is the Shoal module for the engine itself. This implements all engine-specific and visual functionality such as rendering, ECS systems, input, physics, and UI.
 
