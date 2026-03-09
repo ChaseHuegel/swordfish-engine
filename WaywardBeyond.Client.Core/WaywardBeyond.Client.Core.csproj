@@ -2,12 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <OutputPath>$(SolutionDir)/WaywardBeyond.Client.Launcher/bin/$(Configuration)/net9.0/modules/waywardbeyond.client</OutputPath>
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
-        <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
-        <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
         <Version>0.1.0-alpha</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
