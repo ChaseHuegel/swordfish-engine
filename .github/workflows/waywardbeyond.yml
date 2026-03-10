@@ -21,11 +21,11 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore -c Release
     - name: Publish
-      run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o ".output"
+      run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 --no-build -o artifact
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
         name: Build artifact
-        path: .output
+        path: artifact
