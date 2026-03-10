@@ -12,6 +12,12 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+    - name: Download NSDC
+      run: curl https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
+    - name: Setup NSDC
+      run: unzip nsdc.zip .
+    - name: Setup Environment
+      run: echo "$PWD" >> $GITHUB_PATH
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
