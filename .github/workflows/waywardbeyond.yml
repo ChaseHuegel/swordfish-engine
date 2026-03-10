@@ -11,7 +11,7 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 8.0.x
+        dotnet-version: 9.0.x
     - name: Download NSDC
       run: curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
     - name: Setup NSDC
