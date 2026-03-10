@@ -18,12 +18,8 @@ jobs:
       run: unzip nsdc.zip
     - name: Setup Environment
       run: echo "$PWD" >> $GITHUB_PATH
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore -c Release
     - name: Publish
-      run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 --no-build -o artifact
+      run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o artifact
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
