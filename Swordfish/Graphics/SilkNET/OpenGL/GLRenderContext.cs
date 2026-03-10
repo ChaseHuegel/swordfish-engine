@@ -15,23 +15,19 @@ namespace Swordfish.Graphics.SilkNET.OpenGL;
 internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActivate, IEntitySystem
 {
     public DataBinding<CameraEntity> MainCamera { get; } = new();
-    
     public DataBinding<int> DrawCalls { get; } = new();
 
-    internal readonly LockedList<GLRenderTarget> RenderTargets = new();
-    internal readonly LockedList<GLRectRenderTarget> RectRenderTargets = new();
+    private readonly LockedList<GLRenderTarget> _renderTargets = [];
+    private readonly LockedList<GLRectRenderTarget> _rectRenderTargets = [];
     private readonly ConcurrentDictionary<IHandle, IHandle> _linkedHandles = new();
+    private readonly List<EntityModel> _renderableEntities = [];
 
     private readonly GLContext _glContext;
     private readonly IWindowContext _windowContext;
     private readonly SynchronizationContext _synchronizationContext;
     private readonly RenderSettings _renderSettings;
 
-    private readonly object _sceneLock = new();
-    private readonly DoubleList<EntityModel> _renderInstancesBuffer = new();
-
-    private Matrix4x4 _cameraView;
-    private Matrix4x4 _cameraProjection;
+    private SceneData _sceneData = SceneData.Empty;
     private float _windowAspectRatio;
 
     public GLRenderContext(
@@ -44,11 +40,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         _windowContext = windowContext;
         _synchronizationContext = synchronizationContext;
         _renderSettings = renderSettings;
-        
+
         _windowContext.Resized += OnWindowResized;
         _windowAspectRatio = windowContext.Resolution.GetRatio();
     }
-    
+
     public void Dispose()
     {
         _windowContext.Resized -= OnWindowResized;
@@ -60,21 +56,11 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Material material) => BindMaterial(material);
     public void Bind(MeshRenderer meshRenderer, int entity) => BindMeshRenderer(meshRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
-    
+
     public RenderScene GetSceneContext()
     {
-        Matrix4x4 view;
-        Matrix4x4 projection;
-        lock (_sceneLock)
-        {
-            view = _cameraView;
-            projection = _cameraProjection;
-            _renderInstancesBuffer.Swap();
-        }
-        
-        EntityModel[] instances = _renderInstancesBuffer.Read();
-
-        return new RenderScene(view, projection, instances, RenderTargets, RectRenderTargets);
+        SceneData scene = Volatile.Read(ref _sceneData);
+        return new RenderScene(scene.View, scene.Projection, scene.Instances, _renderTargets, _rectRenderTargets);
     }
 
     private void OnHandleDisposed(object? sender, EventArgs _)
@@ -87,46 +73,47 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
 
     public void Tick(float delta, DataStore store)
     {
-        lock (_sceneLock)
-        {
-            store.Query<CameraComponent, ViewFrustumComponent>(delta: 0f, QueryCamera);
-            
-            _renderInstancesBuffer.Clear();
-            store.Query<TransformComponent, MeshRendererComponent>(delta: 0f, QueryRenderableEntities);
-        }
-    }
+        //  Since the data is only written in here, it's safe to read
+        Matrix4x4 cameraView = _sceneData.View;
+        Matrix4x4 cameraProjection = _sceneData.Projection;
 
-    private void QueryCamera(float delta, DataStore store, int entity, ref CameraComponent camera, ref ViewFrustumComponent viewFrustum)
-    {
-        if (!store.TryGet(entity, out TransformComponent transform))
+        //  Collect the camera's state
+        store.Query<CameraComponent, ViewFrustumComponent>(0f, QueryCamera);
+        void QueryCamera(float d, DataStore s, int entity, ref CameraComponent camera, ref ViewFrustumComponent viewFrustum)
         {
-            return;
+            if (!s.TryGet(entity, out TransformComponent transform))
+            {
+                return;
+            }
+
+            viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
+            viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
+            viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
+
+            var e = new Entity(entity, s);
+            var cameraEntity = new CameraEntity(e, viewFrustum, transform);
+
+            cameraView = cameraEntity.GetView();
+            cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
+
+            MainCamera.Set(cameraEntity);
         }
 
-        viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
-        viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
-        viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
-
-        var e = new Entity(entity, store);
-        var cameraEntity = new CameraEntity(e, viewFrustum, transform);
-        
-        lock (_sceneLock)
+        //  Collect all renderable entities
+        store.Query<TransformComponent, MeshRendererComponent>(0f, QueryRenderableEntities);
+        void QueryRenderableEntities(float d, DataStore s, int e, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
         {
-            _cameraView = cameraEntity.GetView();
-            _cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
-        }
-        
-        MainCamera.Set(cameraEntity);
-    }
+            if (meshRendererComponent.MeshRenderer == null)
+            {
+                return;
+            }
 
-    private void QueryRenderableEntities(float delta, DataStore store, int entity, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
-    {
-        if (meshRendererComponent.MeshRenderer == null)
-        {
-            return;
+            _renderableEntities.Add(new EntityModel(e, transform.ToMatrix4X4(), meshRendererComponent.MeshRenderer));
         }
-        
-        _renderInstancesBuffer.Write(new EntityModel(entity, transform.ToMatrix4X4()));
+
+        //  Write the scene data then reset for the next Tick
+        Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray()));
+        _renderableEntities.Clear();
     }
 
     private void OnWindowResized(Vector2 newSize)
@@ -146,7 +133,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             shaderSource.Disposed += OnHandleDisposed;
         }
-        
+
         return Unsafe.As<ShaderComponent>(handle);
     }
 
@@ -163,7 +150,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             shader.Disposed += OnHandleDisposed;
         }
-        
+
         return Unsafe.As<ShaderProgram>(handle);
     }
 
@@ -179,7 +166,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             GenerateMipmaps = texture.Mipmaps,
         };
-        
+
         if (texture is TextureArray textureArray)
         {
             handle = _glContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, format, @params);
@@ -193,7 +180,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             texture.Disposed += OnHandleDisposed;
         }
-        
+
         return Unsafe.As<IGLTexture>(handle);
     }
 
@@ -233,7 +220,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             material.Disposed += OnHandleDisposed;
         }
-        
+
         return Unsafe.As<GLMaterial>(handle);
     }
 
@@ -266,17 +253,17 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return;
         }
 
-        RenderTargets.Add(renderTarget);
+        _renderTargets.Add(renderTarget);
         meshRenderer.Disposed += OnMeshRendererDisposed;
         return;
 
         void OnMeshRendererDisposed(object? sender, EventArgs e)
         {
-            RenderTargets.Remove(renderTarget);
+            _renderTargets.Remove(renderTarget);
             OnHandleDisposed(sender, e);
         }
     }
-    
+
     private void BindRectRenderer(RectRenderer rectRenderer)
     {
         if (_linkedHandles.TryGetValue(rectRenderer, out IHandle? _))
@@ -301,13 +288,13 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
             return;
         }
 
-        RectRenderTargets.Add(renderTarget);
+        _rectRenderTargets.Add(renderTarget);
         rectRenderer.Disposed += OnRectRendererDisposed;
         return;
 
         void OnRectRendererDisposed(object? sender, EventArgs e)
         {
-            RectRenderTargets.Remove(renderTarget);
+            _rectRenderTargets.Remove(renderTarget);
             OnHandleDisposed(sender, e);
         }
     }
@@ -324,7 +311,16 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             vao.Disposed += OnHandleDisposed;
         }
-        
+
         return Unsafe.As<BufferObject<Matrix4x4>>(handle);
+    }
+    
+    private sealed class SceneData(in Matrix4x4 view, in Matrix4x4 projection, in EntityModel[] instances)
+    {
+        public static readonly SceneData Empty = new(Matrix4x4.Identity, Matrix4x4.Identity, []);
+
+        public readonly Matrix4x4 View = view;
+        public readonly Matrix4x4 Projection = projection;
+        public readonly EntityModel[] Instances = instances;
     }
 }
