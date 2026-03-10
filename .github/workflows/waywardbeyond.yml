@@ -23,5 +23,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: Wayward Beyond ${{ github.ref_name }}
+        name: Wayward Beyond ${{ github.ref_name }} win-x64
         path: artifact
