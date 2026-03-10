@@ -1,6 +1,6 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Threading;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -21,8 +21,7 @@ internal sealed class PlayerControllerSystem
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
     
-    private readonly Lock _cursorDeltaQueueLock = new();
-    private readonly Queue<Vector2> _cursorDeltaQueue = [];
+    private readonly ConcurrentQueue<Vector2> _cursorDeltaQueue = new();
     private readonly List<Vector2> _cursorDeltaBuffer = [];
 
     private bool _inputEnabled;
@@ -63,26 +62,20 @@ internal sealed class PlayerControllerSystem
 
     private void OnWindowUpdate(double delta)
     {
-        lock (_cursorDeltaQueueLock)
+        if (!WaywardBeyond.IsPlaying())
         {
-            if (!WaywardBeyond.IsPlaying())
-            {
-                _cursorDeltaQueue.Clear();
-                return;
-            }
-            
-            _cursorDeltaQueue.Enqueue(_inputService.CursorDelta);
+            _cursorDeltaQueue.Clear();
+            return;
         }
+
+        _cursorDeltaQueue.Enqueue(_inputService.CursorDelta);
     }
 
     protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref PhysicsComponent physics)
     {
-        lock (_cursorDeltaQueueLock)
+        while (_cursorDeltaQueue.TryDequeue(out Vector2 cursorDelta))
         {
-            while (_cursorDeltaQueue.TryDequeue(out Vector2 cursorDelta))
-            {
-                _cursorDeltaBuffer.Add(cursorDelta);
-            }
+            _cursorDeltaBuffer.Add(cursorDelta);
         }
         
         if (!store.TryGet(entity, out TransformComponent transform))
