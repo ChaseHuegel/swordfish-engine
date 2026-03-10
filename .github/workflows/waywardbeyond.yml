@@ -4,7 +4,38 @@ on:
     tags:
       - '*'
 jobs:
-  build:
+  generate-msdf:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Generate MSDF Atlases
+      shell: pwsh
+      run: |
+        $workspaceRoot = $env:GITHUB_WORKSPACE
+        $msdfGenExe = Join-Path $workspaceRoot "Reef/Manifest/msdf-atlas-gen.exe"
+        $fontFiles = Get-ChildItem -Path $workspaceRoot -Recurse -Include *.otf, *.ttf
+        foreach ($fontFile in $fontFiles) {
+            $relativeFontPath = $fontFile.FullName.Substring($workspaceRoot.Length + 1)
+            $relativeFontDir = Split-Path -Path $relativeFontPath -Parent
+        
+            $outputDir = Join-Path (Join-Path $workspaceRoot "artifact") $relativeFontDir
+            New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
+        
+            $outputBaseName = $fontFile.BaseName
+            $imageDestination = Join-Path $outputDir "$($outputBaseName).png"
+            $jsonDestination = Join-Path $outputDir "$($outputBaseName).json"
+        
+            Write-Host "Generating MSDF for $($fontFile.FullName) -> $jsonDestination"
+            & $msdfGenExe -font "$($fontFile.FullName)" -imageout "$imageDestination" -json "$jsonDestination" -chars "[0x0000, 0xffff]"
+        }
+    - name: Upload Generated Atlases
+      uses: actions/upload-artifact@v4
+      with:
+        name: generated-atlases
+        path: artifact/
+
+  build-artifact:
+    needs: generate-msdf
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -12,12 +43,15 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 9.0.x
-    - name: Download NSDC
-      run: curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
-    - name: Setup NSDC
-      run: unzip nsdc.zip
-    - name: Setup Environment
-      run: echo "$PWD" >> $GITHUB_PATH
+    - name: Download MSDF Atlases
+      uses: actions/download-artifact@v4
+      with:
+        name: generated-atlases
+    - name: Setup nsdc
+      run: |
+        curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
+        unzip nsdc.zip
+        echo "$PWD" >> $GITHUB_PATH
     - name: Publish
       run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r win-x64 -o artifact
     - name: Upload build artifacts
