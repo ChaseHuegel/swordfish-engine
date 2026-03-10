@@ -39,8 +39,11 @@
       </Compile>
     </ItemGroup>
 
-    <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
         <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output" />
+        <ItemGroup>
+            <Compile Include="CodeGen/Output/**/*.cs" />
+        </ItemGroup>
     </Target>
 
 </Project>
