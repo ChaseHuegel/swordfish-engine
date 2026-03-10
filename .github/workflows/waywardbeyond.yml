@@ -22,7 +22,7 @@ jobs:
             New-Item -ItemType Directory -Force -Path $outputDir | Out-Null
         
             $outputBaseName = $fontFile.BaseName
-            $imageDestination = Join-Path $outputDir "$($outputBaseName).png"
+            $imageDestination = Join-Path $outputDir "$($outputBaseName).bmp"
             $jsonDestination = Join-Path $outputDir "$($outputBaseName).json"
         
             Write-Host "Generating MSDF for $($fontFile.FullName) -> $jsonDestination"
