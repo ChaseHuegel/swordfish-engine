@@ -24,8 +24,9 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
         renderScene.RenderTargets.ForEach(ForEachRenderTarget);
         void ForEachRenderTarget(GLRenderTarget renderTarget)
         {
+            _renderTargetEntities[renderTarget.Entity] = renderTarget;
+            
             List<Matrix4x4>? matrices;
-
             if (renderTarget.Materials.Any(material => material.Transparent))
             {
                 //  Exclude anything with transparency from depth passes
@@ -48,8 +49,6 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
                     _instances.TryAdd(renderTarget, matrices);
                 }
             }
-
-            _renderTargetEntities[renderTarget.Entity] = renderTarget;
         }
 
         for (var i = 0; i < renderScene.EntityModels.Length; i++)

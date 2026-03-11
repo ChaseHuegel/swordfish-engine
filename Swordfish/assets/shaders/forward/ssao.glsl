@@ -40,7 +40,6 @@ vec2 GetNoise()
 float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
 {
     float g = 1.32471795724474602596; // plastic constant
-    vec2 ng = 1.0 / vec2(g, g * g);
     float vl = length(verPos);
 
     vec2 textureDimensions = textureSize(uDepthTex, 0);
@@ -54,7 +53,7 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
             fract(noise.y + float(i) / g) * radius / vl
         );
 
-        vec2 nxy = xy + ns.y * vec2(sin(ns.x), cos(ns.x)) * aspectCorrection;
+        vec2 nxy = xy + ns.y * vec2(cos(ns.x), sin(ns.x)) * aspectCorrection;
         
         float sampleDepth = texture(uDepthTex, nxy).r;
         if (sampleDepth >= 1.0)
@@ -66,6 +65,11 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
         vec3 tv = samPos - verPos;
 
         acc += vec2(max(0.0, dot(tv, n)) / (dot(tv, tv) + 0.1), 1.0);
+    }
+
+    if (acc.y < 1.0)
+    {
+        return 1.0;
     }
 
     return pow(clamp(1.0 - SIGMA * 2.0 * acc.x / acc.y, 0.0, 1.0), SAO_K);

@@ -118,13 +118,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
         
-        _preDepthTex = new TexImage2D(_gl, name: "prepass_depth", pixels: null, _screenHalfWidth, _screenHalfHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
+        _preDepthTex = new TexImage2D(_gl, name: "prepass_depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
         _preDepthFBO = new FramebufferObject(_gl, name: "prepass_depth", _preDepthTex, FramebufferAttachment.DepthAttachment);
         
         _depthTex = new TexImage2D(_gl, name: "depth", pixels: null, _screenWidth, _screenHeight, TextureFormat.Depth24f, TextureParams.ClampNearest);
         _depthFBO = new FramebufferObject(_gl, name: "depth", _depthTex, FramebufferAttachment.DepthAttachment);
         
-        _ssaoTex = new TexImage2D(_gl, name: "ssao", pixels: null, _screenHalfWidth, _screenHalfHeight, TextureFormat.R32f, TextureParams.ClampLinear);
+        _ssaoTex = new TexImage2D(_gl, name: "ssao", pixels: null, _screenWidth, _screenHeight, TextureFormat.R32f, TextureParams.ClampLinear);
         _ssaoFBO = new FramebufferObject(_gl, name: "ssao", _ssaoTex, FramebufferAttachment.ColorAttachment0);
         
         _blurTex = new TexImage2D(_gl, name: "blur", pixels: null, _screenWidth, _screenHeight, TextureFormat.Rgb16f, TextureParams.ClampLinear);
@@ -194,9 +194,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _numTiles = _numTilesX * _numTilesY;
         _emptyTileCounts = new uint[_numTiles];
 
-        _preDepthFBO.Resize(_screenHalfWidth, _screenHalfHeight);
+        _preDepthFBO.Resize(_screenWidth, _screenHeight);
         _depthFBO.Resize(_screenWidth, _screenHeight);
-        _ssaoFBO.Resize(_screenHalfWidth, _screenHalfHeight);
+        _ssaoFBO.Resize(_screenWidth, _screenHeight);
         _blurFBO.Resize(_screenWidth, _screenHeight);
         _screenFBO.Resize(_screenWidth, _screenHeight);
         _glDebug.TryLogError();
@@ -219,6 +219,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         Matrix4x4.Invert(renderScene.Projection, out Matrix4x4 inverseProjection);
 
         // Depth pre-pass
+        _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
         using (_preDepthFBO.Use())
         using (_depthShader.Use())
         {
@@ -242,6 +243,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         {
             _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
             _ssaoShader.SetUniform("uInvProj", inverseProjection);
+            _ssaoShader.SetUniform("uRadius", 0.1f);
+            _ssaoShader.SetUniform("SIGMA", 0.5f);
+            _ssaoShader.SetUniform("SAO_K", 1.5f);
             
             _gl.Clear(ClearBufferMask.ColorBufferBit);
 
@@ -251,7 +255,30 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         }
         _glDebug.TryLogError();
 
+        // SSAO blur pass
+        using (_blurShader.Use())
+        using (_ssaoFBO.Use())
+        using (_ssaoTex.Activate(TextureUnit.Texture0))
+        {
+            _blurShader.SetUniform("texture0", 0);
+
+            var horizontal = true;
+            for (var i = 0; i < 4; i++)
+            {
+                int horizontalInt = horizontal ? 0 : 1;
+                horizontal = !horizontal;
+
+                _blurShader.SetUniform("uHorizontal", horizontalInt);
+
+                _screenVAO.Bind();
+                _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+                _screenVAO.Unbind();
+            }
+        }
+        _glDebug.TryLogError();
+
         // Depth full pass
+        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
         using (_depthFBO.Use())
         using (_depthShader.Use())
         {
