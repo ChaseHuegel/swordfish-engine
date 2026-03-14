@@ -131,9 +131,15 @@ public sealed class AppEngine : IDisposable
                 new LogFileOptions
                 {
                     Path = "latest.log",
-                    MaxFileSize = 10_000_000,
                 },
             ];
+            
+            //  Clear the latest log file
+            string latestLogFile = Path.Combine(options.RootPath, options.BasePath, "latest.log");
+            if (File.Exists(latestLogFile))
+            {
+                File.Delete(latestLogFile);
+            }
         });
     }
 
