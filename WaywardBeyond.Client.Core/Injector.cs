@@ -89,6 +89,7 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<ControlSettings>(file: "control.toml");
         container.RegisterConfig<VolumeSettings>(file: "volume.toml");
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
+        container.RegisterConfig<UISettings>(file: "ui.toml");
     }
 
     private static void RegisterUI(IContainer container)

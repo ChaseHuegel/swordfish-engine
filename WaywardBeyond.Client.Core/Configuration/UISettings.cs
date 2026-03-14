@@ -6,8 +6,8 @@ using Tomlet.Attributes;
 namespace WaywardBeyond.Client.Core.Configuration;
 
 [SuppressMessage("ReSharper", "AutoPropertyCanBeMadeGetOnly.Local")]
-public sealed class DebugSettings : Config<DebugSettings>
+public sealed class UISettings : Config<UISettings>
 {
     [TomlNonSerialized]
-    public DataBinding<bool> OverlayVisible { get; private set; } = new();
+    public DataBinding<bool> Visible { get; private set; } = new(true);
 }
