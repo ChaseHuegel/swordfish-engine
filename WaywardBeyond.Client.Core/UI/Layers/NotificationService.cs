@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
+using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -13,19 +14,25 @@ namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using NotificationState = (Notification Notification, DateTime CreatedAt);
 
-internal class NotificationService(in IInputService inputService) : IUILayer
+internal class NotificationService(in ILogger<NotificationService> logger, in IInputService inputService) : IUILayer
 {
+    private readonly ILogger<NotificationService> _logger = logger;
     private readonly IInputService _inputService = inputService;
     
     private readonly ConcurrentQueue<NotificationState> _pushedStates = [];
     private readonly List<NotificationState> _activeStates = [];
-    
+
     public void Push(Notification notification)
     {
         var state = new NotificationState(notification, DateTime.Now);
         _pushedStates.Enqueue(state);
+
+        if (notification.Type != NotificationType.Action)
+        {
+            _logger.LogInformation("[Notification] {type}: {text}", notification.Type, notification.Text);
+        }
     }
-    
+
     public bool IsVisible()
     {
         return true;
