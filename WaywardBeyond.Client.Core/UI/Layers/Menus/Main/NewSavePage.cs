@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -25,7 +26,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly IAudioService _audioService;
     private readonly VolumeSettings _volumeSettings;
     private readonly ILocalization _localization;
-    private readonly NotificationService _notificationService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -39,8 +39,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in IInputService inputService,
         in IAudioService audioService,
         in VolumeSettings volumeSettings,
-        in ILocalization localization,
-        in NotificationService notificationService
+        in ILocalization localization
     ) {
         _gameSaveManager = gameSaveManager;
         _gameSaveService = gameSaveService;
@@ -48,7 +47,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _audioService = audioService;
         _volumeSettings = volumeSettings;
         _localization = localization;
-        _notificationService = notificationService;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -112,9 +110,28 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
             };
             
             ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
+
+            var validSaveName = true;
+            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
+            if (string.IsNullOrWhiteSpace(saveNameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.required")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validSaveName = false;
+            }
+            else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validSaveName = false;
+            }
+
             ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
             
-            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
             using (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _buttonOptions, out Widgets.Interactions interactions))
             {
                 ui.Constraints = new Constraints
@@ -122,25 +139,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     Anchors = Anchors.Center,
                 };
                 
-                if (interactions.Has(Widgets.Interactions.Click))
+                if (validSaveName && interactions.Has(Widgets.Interactions.Click))
                 {
-                    if (string.IsNullOrWhiteSpace(saveNameValue))
-                    {
-                        var notification = new Notification(_localization.GetString("ui.notification.nameEmpty")!, NotificationType.Interaction);
-                        _notificationService.Push(notification);
-                    }
-                    else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
-                    {
-                        var notification = new Notification(_localization.GetString("ui.notification.nameTaken")!, NotificationType.Interaction);
-                        _notificationService.Push(notification);
-                    }
-                    else
-                    {
-                        var seedValue = _seedTextBox.Text.ToString();
-                        string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
-                        var options = new GameOptions(saveNameValue, seed);
-                        Task.Run(() => _gameSaveManager.NewGame(options));
-                    }
+                    var seedValue = _seedTextBox.Text.ToString();
+                    string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
+                    var options = new GameOptions(saveNameValue, seed);
+                    Task.Run(() => _gameSaveManager.NewGame(options));
                 }
             }
         }
