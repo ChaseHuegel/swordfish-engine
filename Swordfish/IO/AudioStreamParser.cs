@@ -3,7 +3,7 @@ using Swordfish.Library.IO;
 
 namespace Swordfish.IO
 {
-    internal class AudioStreamParser : IFileParser<AudioSource>
+    internal class AudioStreamParser : IFileParser<AudioStream>
     {
         public string[] SupportedExtensions { get; } =
         [
@@ -11,10 +11,10 @@ namespace Swordfish.IO
         ];
 
         object IFileParser.Parse(PathInfo file) => Parse(file);
-        public AudioSource Parse(PathInfo file)
+        public AudioStream Parse(PathInfo file)
         {
             Stream stream = file.Open();
-            return new AudioSource(stream);
+            return new AudioStream(stream);
         }
     }
 }
