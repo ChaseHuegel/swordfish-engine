@@ -52,6 +52,9 @@ public class Injector : IDryIocInjector
         
         container.Register<ExternalAppService>(Reuse.Singleton);
         
+        container.Register<MusicService>(Reuse.Singleton);
+        container.RegisterMapping<IEntryPoint, MusicService>();
+        
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
