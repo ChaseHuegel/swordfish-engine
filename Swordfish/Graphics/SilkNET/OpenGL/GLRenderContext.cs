@@ -171,6 +171,15 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         {
             handle = _glContext.CreateTexImage3D(textureArray.Name, textureArray.Pixels, (uint)textureArray.Width, (uint)textureArray.Height, (uint)textureArray.Depth, format, @params);
         }
+        else if (texture is TextureCubemap textureCubemap)
+        {
+            var pixels = new byte[6][];
+            for (var i = 0; i < textureCubemap.Textures.Length; i++)
+            {
+                pixels[i] = textureCubemap.Textures[i].Pixels;
+            }
+            handle = _glContext.CreateTexCubemap(textureCubemap.Name, pixels, (uint)textureCubemap.Width, (uint)textureCubemap.Height, format, @params);
+        }
         else
         {
             handle = _glContext.CreateTexImage2D(texture.Name, texture.Pixels, (uint)texture.Width, (uint)texture.Height, format, @params);

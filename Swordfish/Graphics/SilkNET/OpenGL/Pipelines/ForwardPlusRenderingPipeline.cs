@@ -4,9 +4,12 @@ using Silk.NET.OpenGL;
 using Swordfish.Diagnostics.SilkNET.OpenGL;
 using Swordfish.ECS;
 using Swordfish.Graphics.SilkNET.OpenGL.Util;
+using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Extensions;
+using Swordfish.Library.IO;
+using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 
@@ -23,11 +26,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private readonly GL _gl;
     private readonly GLDebug _glDebug;
     private readonly RenderSettings _renderSettings;
-    
+    private readonly GLContext _glContext;
+
     private readonly ShaderProgram _depthShader;
     private readonly ShaderProgram _computeShader;
     private readonly ShaderProgram _ssaoShader;
     private readonly ShaderProgram _skyboxShader;
+    private readonly ShaderProgram _cubemapShader;
     private readonly ShaderProgram _blurShader;
     private readonly ShaderProgram _bloomShader;
     
@@ -67,9 +72,12 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     
     private readonly BufferObject<float> _screenVBO;
     private readonly VertexArrayObject<float> _screenVAO;
+    
+    private readonly BufferObject<float> _skyboxVBO;
+    private readonly VertexArrayObject<float> _skyboxVAO;
+    private TexCubemap? _skyboxTex;
 
     private readonly DoubleList<GPULight> _lightsBuffer = new();
-    private readonly Vector3 _ambientLight = Color.FromArgb(20, 21, 37).ToVector3();
     private readonly DrawBufferMode[] _drawBuffers = [DrawBufferMode.ColorAttachment0, DrawBufferMode.ColorAttachment1];
     
     private readonly float[] _screenQuadVertices =
@@ -79,6 +87,51 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
         1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
         1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    ];
+    
+    private readonly float[] _skyboxVertices =
+    [
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+ 
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+ 
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+ 
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+ 
+        -1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f, -1.0f,
+        1.0f,  1.0f,  1.0f,
+        1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+ 
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f, -1.0f,
+        1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+        1.0f, -1.0f,  1.0f,
     ];
     
     public ForwardPlusRenderingPipeline(
@@ -93,11 +146,13 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl = gl;
         _glDebug = glDebug;
         _renderSettings = renderSettings;
-        
+        _glContext = glContext;
+
         Shader depthShader = GetShaderOrDie(shaderDatabase, name: "forward/depth");
         Shader computeShader = GetShaderOrDie(shaderDatabase, name:  "forward/cull_lights");
         Shader ssaoShader = GetShaderOrDie(shaderDatabase, name: "forward/ssao");
         Shader skyboxShader = GetShaderOrDie(shaderDatabase, name: "skybox");
+        Shader cubemapShader = GetShaderOrDie(shaderDatabase, name: "cubemap");
         Shader blurShader = GetShaderOrDie(shaderDatabase, name: "blur_gaussian");
         Shader bloomShader = GetShaderOrDie(shaderDatabase, name: "bloom");
         
@@ -105,6 +160,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _computeShader = computeShader.CreateProgram(glContext);
         _ssaoShader = ssaoShader.CreateProgram(glContext);
         _skyboxShader = skyboxShader.CreateProgram(glContext);
+        _cubemapShader = cubemapShader.CreateProgram(glContext);
         _blurShader = blurShader.CreateProgram(glContext);
         _bloomShader = bloomShader.CreateProgram(glContext);
         
@@ -138,6 +194,10 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _screenVAO.SetVertexAttributePointer(index: 0, count: 3, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 0);
         _screenVAO.SetVertexAttributePointer(index: 1, count: 2, type: VertexAttribPointerType.Float, stride: 5 * sizeof(float), offset: 3 * sizeof(float));
         
+        _skyboxVBO = new BufferObject<float>(_gl, _skyboxVertices, BufferTargetARB.ArrayBuffer);
+        _skyboxVAO = new VertexArrayObject<float>(_gl, _skyboxVBO);
+        _skyboxVAO.SetVertexAttributePointer(index: 0, count: 3, type: VertexAttribPointerType.Float, stride: 3 * sizeof(float), offset: 0);
+        
         _lightsSSBO = new BufferObject<GPULight>(_gl, size: MAX_LIGHTS, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 0);
         _tileIndicesSSBO = new BufferObject<uint>(_gl, size: _numTiles * MAX_LIGHTS_PER_TILE, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 1);
         _tileCountsSSBO = new BufferObject<uint>(_gl, size: _numTiles, BufferTargetARB.ShaderStorageBuffer, BufferUsageARB.DynamicDraw, index: 2);
@@ -147,7 +207,14 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _depthStencilRBO = new RenderbufferObject(_gl, name: "render_DS", _screenWidth, _screenHeight, FramebufferAttachment.DepthStencilAttachment, InternalFormat.Depth24Stencil8, samples: 4);
         _renderFBO = new FramebufferObject(_gl, name: "render", _screenWidth, _screenHeight, _drawBuffers, renderBuffers: [_colorRBO, _bloomRBO, _depthStencilRBO]);
         
+        TextureCubemap? skybox = renderSettings.Skybox.Get();
+        if (skybox != null)
+        {
+            ApplySkybox(skybox);
+        }
+        
         windowContext.Resized += OnWindowResized;
+        renderSettings.Skybox.Changed += OnSkyboxChanged;
     }
 
     private static Shader GetShaderOrDie(IAssetDatabase<Shader> shaderDatabase, string name)
@@ -339,20 +406,51 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _gl.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
         
         //  Skybox pass
-        using (_skyboxShader.Use())
+        if (_skyboxTex != null)
         {
-            _skyboxShader.SetUniform("uRGB", _ambientLight);
+            _gl.DepthFunc(DepthFunction.Lequal);
+            using (_cubemapShader.Use())
+            using (_skyboxTex.Activate(TextureUnit.Texture0))
+            {
+                Matrix4x4 skyboxView = renderScene.View;
+                skyboxView.Translation = Vector3.Zero;
+                
+                _cubemapShader.SetUniform("cubemap", 0);
+                _cubemapShader.SetUniform("view", skyboxView);
+                _cubemapShader.SetUniform("projection", renderScene.Projection);
 
-            _gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
-            _gl.DepthMask(false);
-            
-            _screenVAO.Bind();
-            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-            _screenVAO.Unbind();
-            
-            _gl.DepthMask(true);
+                _gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
+                _gl.DepthMask(false);
+                
+                _skyboxVAO.Bind();
+                _gl.DrawArrays(PrimitiveType.Triangles, 0, 36);
+                _skyboxVAO.Unbind();
+                
+                _gl.DepthMask(true);
+            }
+            _gl.DepthFunc(DepthFunction.Less);
+            _glDebug.TryLogError();
         }
-        _glDebug.TryLogError();
+        else
+        {
+            using (_skyboxShader.Use())
+            {
+                Matrix4x4 skyboxView = renderScene.View;
+                skyboxView.Translation = Vector3.Zero;
+                
+                _skyboxShader.SetUniform("uRGB", _renderSettings.AmbientLight.Get());
+    
+                _gl.DrawBuffer(DrawBufferMode.ColorAttachment0);
+                _gl.DepthMask(false);
+                
+                _screenVAO.Bind();
+                _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+                _screenVAO.Unbind();
+                
+                _gl.DepthMask(true);
+            }
+            _glDebug.TryLogError();
+        }
         
         //  Reset draw buffers
         _gl.DrawBuffers(_drawBuffers);
@@ -434,7 +532,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         shader.SetUniform("uScreenSize", (int)_screenWidth, (int)_screenHeight);
         shader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
         shader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
-        shader.SetUniform("uAmbientLight", _ambientLight);
+        shader.SetUniform("uAmbientLight", _renderSettings.AmbientLight.Get());
         
         _ssaoTex.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
@@ -444,5 +542,28 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         
         _depthTex.Activate(TextureUnit.Texture7);
         shader.SetUniform("uDepth", 7);
+    }
+    
+    private void OnSkyboxChanged(object? sender, DataChangedEventArgs<TextureCubemap?> e)
+    {
+        TexCubemap? currentSkyboxTex = _skyboxTex;
+        currentSkyboxTex?.Dispose();
+        if (e.NewValue == null)
+        {
+            _skyboxTex = null;
+            return;
+        }
+        
+        ApplySkybox(e.NewValue);
+    }
+    
+    private void ApplySkybox(TextureCubemap skybox)
+    {
+        var pixels = new byte[6][];
+        for (var i = 0; i < skybox.Textures.Length; i++)
+        {
+            pixels[i] = skybox.Textures[i].Pixels;
+        }
+        _skyboxTex = _glContext.CreateTexCubemap(skybox.Name, pixels, (uint)skybox.Width, (uint)skybox.Height, TextureFormat.Rgba, TextureParams.ClampNearest);
     }
 }
