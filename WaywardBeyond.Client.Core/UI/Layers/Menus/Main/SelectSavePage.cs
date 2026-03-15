@@ -134,7 +134,7 @@ internal sealed class SelectSavePage(
                 Anchors = Anchors.Center,
             };
             
-            using (ui.TextButton(id: "Button_Back", text: "Back", _menuButtonOptions, out Widgets.Interactions interactions))
+            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
             {
                 ui.Constraints = new Constraints
                 {
