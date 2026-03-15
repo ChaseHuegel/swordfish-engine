@@ -37,6 +37,25 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         }
     }
 
+    public unsafe TexCubemap CreateTexCubemap(string name, byte[][] pixels, uint width, uint height, TextureFormat format, TextureParams @params)
+    {
+        if (pixels.Length != 6)
+        {
+            throw new ArgumentException("Cubemaps require 6 textures.", nameof(pixels));
+        }
+
+        fixed (byte* p0 = pixels[0])
+        fixed (byte* p1 = pixels[1])
+        fixed (byte* p2 = pixels[2])
+        fixed (byte* p3 = pixels[3])
+        fixed (byte* p4 = pixels[4])
+        fixed (byte* p5 = pixels[5])
+        {
+            byte*[] pixelPtrs = [p0, p1, p2, p3, p4, p5];
+            return _glThread.WaitForResult(TextureCubemapArgs.Factory, new TextureCubemapArgs(_gl, name, pixelPtrs, width, height, format, @params));
+        }
+    }
+
     public GLMaterial CreateGLMaterial(ShaderProgram shaderProgram, IGLTexture[] textures, bool transparent)
     {
         return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
@@ -74,5 +93,18 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         where TData : unmanaged
     {
         return _glThread.WaitForResult(BufferObjectArgs<TData>.Factory, new BufferObjectArgs<TData>(_gl, data, bufferType, usage));
+    }
+
+    private readonly unsafe record struct TextureCubemapArgs(
+        GL GL,
+        string Name,
+        byte*[] Pixels,
+        uint Width,
+        uint Height,
+        TextureFormat Format,
+        TextureParams Params)
+    {
+        public static readonly Func<TextureCubemapArgs, TexCubemap> Factory = args =>
+            new(args.GL, args.Name, args.Pixels, args.Width, args.Height, args.Format, args.Params);
     }
 }
