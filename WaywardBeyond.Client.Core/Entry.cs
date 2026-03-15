@@ -1,7 +1,11 @@
+using System.Drawing;
 using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
+using Swordfish.IO;
+using Swordfish.Library.Extensions;
+using Swordfish.Library.IO;
 using Swordfish.Settings;
 
 namespace WaywardBeyond.Client.Core;
@@ -14,7 +18,9 @@ internal sealed class Entry : IAutoActivate
     public Entry(
         in ILogger<Entry> logger,
         in IWindowContext windowContext,
-        in WindowSettings windowSettings
+        in WindowSettings windowSettings,
+        in RenderSettings renderSettings,
+        in IFileParseService fileParseService
     ) {
         _windowContext = windowContext;
 
@@ -34,6 +40,10 @@ internal sealed class Entry : IAutoActivate
             machineInformation.Gpus[0].AvailableVideoMemoryHRF,
             machineInformation.Gpus[0].DriverVersion
         );
+
+        var skybox = fileParseService.Parse<TextureCubemap>(AssetPaths.Textures.At(@"skyboxes\stars01\"));
+        renderSettings.Skybox.Set(skybox);
+        renderSettings.AmbientLight.Set(Color.FromArgb(20, 21, 37).ToVector3());
     }
 
     internal void Quit()
