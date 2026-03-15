@@ -6,15 +6,15 @@ using Swordfish.Library.IO;
 namespace Swordfish.IO;
 
 /// <summary>
-///     Provides access to <see cref="AudioSource"/>s from virtual resources.
+///     Provides access to <see cref="AudioStream"/>s from virtual resources.
 /// </summary>
-internal sealed class AudioSourceDatabase : SimpleVirtualAssetDatabase<AudioSource>, IAutoActivate
+internal sealed class AudioStreamDatabase : SimpleVirtualAssetDatabase<AudioStream>, IAutoActivate
 {
-    public AudioSourceDatabase(
-        in ILogger<AudioSourceDatabase> logger,
+    public AudioStreamDatabase(
+        in ILogger<AudioStreamDatabase> logger,
         in IFileParseService fileParseService,
-        in VirtualFileSystem vfs)
-        : base(logger, fileParseService, vfs)
+        in VirtualFileSystem vfs
+    ) : base(logger, fileParseService, vfs)
     {
         Load();
     }

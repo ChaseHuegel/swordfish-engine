@@ -268,6 +268,34 @@ public class DataStore
         }
     }
     
+    public void Query<T1, T2>(int entity, float delta, ForEach<T1, T2> forEach)
+        where T1 : struct, IDataComponent
+        where T2 : struct, IDataComponent
+    {
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(typeof(T1), out ChunkedStore? store) ||
+                !_stores.TryGetValue(typeof(T2), out ChunkedStore? storeB))
+            {
+                return;
+            }
+
+            var store1 = (ChunkedStore<T1>)store;
+            var store2 = (ChunkedStore<T2>)storeB;
+            (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+
+            if (!store1.TryGetAt(chunkIndex, localEntity, out T1 component1) ||
+                !store2.TryGetAt(chunkIndex, localEntity, out T2 component2))
+            {
+                return;
+            }
+
+            forEach(delta, this, entity, ref component1, ref component2);
+            store1.SetAt(chunkIndex, localEntity, component1, true);
+            store2.SetAt(chunkIndex, localEntity, component2, true);
+        }
+    }
+    
     public bool Find<T1>(Predicate<T1> predicate, out int entity) where T1 : struct, IDataComponent
     {
         Span<Chunk<T1>> chunks;

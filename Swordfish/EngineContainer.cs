@@ -88,7 +88,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.Register<IShortcutService, ShortcutService>(Reuse.Singleton);
         
         container.Register<AudioEngine, MiniAudioEngine>(Reuse.Singleton);
-        container.Register<IAudioService, AudioService>(Reuse.Singleton);
+        container.Register<IEntitySystem, AudioSystem>(Reuse.Singleton);
         
         container.RegisterMany<GlslParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterMany<TextureParser>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
@@ -102,7 +102,7 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<ShaderDatabase>(Reuse.Singleton);
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
         container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
-        container.RegisterMany<AudioSourceDatabase>(Reuse.Singleton);
+        container.RegisterMany<AudioStreamDatabase>(Reuse.Singleton);
         
         var debugSettings = new DebugSettings();
         container.RegisterInstance(debugSettings);
