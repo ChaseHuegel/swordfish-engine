@@ -4,6 +4,7 @@ using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Audio;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -22,10 +23,10 @@ internal static partial class Widgets
     ///     Creates a text-only checkbox, with audio cues.
     /// </summary>
     /// <returns>True if the box is currently checked; otherwise false.</returns>
-    public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, SoundEffectService soundEffectService)
     {
         bool value = Checkbox(ui, id, text, isChecked, out Interactions interactions);
-        interactions.WithButtonToggleAudio(audioService, volumeSettings);
+        interactions.WithButtonToggleAudio(soundEffectService);
         return value;
     }
 

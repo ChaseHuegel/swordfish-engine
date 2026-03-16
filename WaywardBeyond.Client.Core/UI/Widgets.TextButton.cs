@@ -2,7 +2,7 @@ using System.Numerics;
 using Reef;
 using Reef.UI;
 using Swordfish.Audio;
-using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -36,7 +36,7 @@ internal static partial class Widgets
     public static UIBuilder<T>.Scope TextButton<T>(this UIBuilder<T> ui, string id, string text, ButtonOptions options, out Interactions interactions)
     {
         UIBuilder<T>.Scope scope = TextButton(ui, id, text, options.FontOptions, out interactions); 
-        interactions.WithButtonAudio(options.AudioOptions.AudioService, options.AudioOptions.VolumeSettings);
+        interactions.WithButtonAudio(options.AudioOptions.SoundEffectService);
         return scope;
     }
     
@@ -101,7 +101,7 @@ internal static partial class Widgets
         return scope;
     }
 
-    public readonly record struct AudioOptions(IAudioService AudioService, VolumeSettings VolumeSettings);
+    public readonly record struct AudioOptions(SoundEffectService SoundEffectService);
 
     public readonly record struct ButtonOptions(FontOptions FontOptions, AudioOptions AudioOptions);
 }

@@ -8,13 +8,11 @@ using Reef.Constraints;
 using Reef.UI;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.IO;
 using WaywardBeyond.Client.Core.Services;
 
@@ -26,8 +24,7 @@ internal class FeedbackModal : IMenuPage<Modal>
     
     private readonly ILogger<FeedbackModal> _logger;
     private readonly IInputService _inputService;
-    private readonly IAudioService _audioService;
-    private readonly VolumeSettings _volumeSettings;
+    private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly FeedbackWebhook _feedbackWebhook;
     private readonly IRenderer _renderer;
@@ -47,8 +44,7 @@ internal class FeedbackModal : IMenuPage<Modal>
     public FeedbackModal(
         in ILogger<FeedbackModal> logger,
         in IInputService inputService,
-        in IAudioService audioService,
-        in VolumeSettings volumeSettings,
+        in SoundEffectService soundEffectService,
         in ILocalization localization,
         in FeedbackWebhook feedbackWebhook,
         in IRenderer renderer,
@@ -57,8 +53,7 @@ internal class FeedbackModal : IMenuPage<Modal>
     ) {
         _logger = logger;
         _inputService = inputService;
-        _audioService = audioService;
-        _volumeSettings = volumeSettings;
+        _soundEffectService = soundEffectService;
         _localization = localization;
         _feedbackWebhook = feedbackWebhook;
         _renderer = renderer;
@@ -69,14 +64,14 @@ internal class FeedbackModal : IMenuPage<Modal>
             new FontOptions {
                 Size = 32,
             },
-            new Widgets.AudioOptions(audioService, volumeSettings)
+            new Widgets.AudioOptions(soundEffectService)
         );
         
         _buttonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 24,
             },
-            new Widgets.AudioOptions(audioService, volumeSettings)
+            new Widgets.AudioOptions(soundEffectService)
         );
         
         _fieldFontOptions = new FontOptions
@@ -161,8 +156,8 @@ internal class FeedbackModal : IMenuPage<Modal>
                     Anchors = Anchors.Center,
                 };
                 
-                ui.TextBox(id: "TextBox_Message", state: ref _descriptionTextBox, _fieldFontOptions, _inputService, _audioService, _volumeSettings);
-                ui.TextBox(id: "TextBox_Contact", state: ref _contactTextBox, _fieldFontOptions, _inputService, _audioService, _volumeSettings);
+                ui.TextBox(id: "TextBox_Message", state: ref _descriptionTextBox, _fieldFontOptions, _inputService, _soundEffectService);
+                ui.TextBox(id: "TextBox_Contact", state: ref _contactTextBox, _fieldFontOptions, _inputService, _soundEffectService);
                 
                 using (ui.TextButton(id: "Button_Submit", text: _localization.GetString("ui.button.submit")!, _buttonOptions, out Widgets.Interactions interactions))
                 {

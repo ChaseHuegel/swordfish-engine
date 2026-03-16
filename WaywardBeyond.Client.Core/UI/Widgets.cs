@@ -1,23 +1,25 @@
 using System;
 using Swordfish.Audio;
-using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;
 
 internal static partial class Widgets
 {
+    private const string InterfaceAudioChannel = "interface";
+    
     /// <summary>
     ///     Plays standard button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool WithButtonAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.MixInterface());
+        soundEffectService.Play(id: "sounds/menu sounds_exit click 1.wav", InterfaceAudioChannel);
         return true;
     }
     
@@ -25,14 +27,14 @@ internal static partial class Widgets
     ///     Plays toggle button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonToggleAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool WithButtonToggleAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.MixInterface());
+        soundEffectService.Play(id: "sounds/misc effects_click 1.wav", InterfaceAudioChannel);
         return true;
     }
     
@@ -40,14 +42,14 @@ internal static partial class Widgets
     ///     Plays increase button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonIncreaseAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool WithButtonIncreaseAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 2.wav", volumeSettings.MixInterface());
+        soundEffectService.Play(id: "sounds/misc effects_tap 2.wav", InterfaceAudioChannel);
         return true;
     }
     
@@ -55,14 +57,14 @@ internal static partial class Widgets
     ///     Plays decrease button audio for interactions.
     /// </summary>
     /// <returns>True if clicked; otherwise false.</returns>
-    public static bool WithButtonDecreaseAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool WithButtonDecreaseAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Click) != Interactions.Click)
         {
             return false;
         }
         
-        audioService.Play("sounds/misc effects_tap 1.wav", volumeSettings.MixInterface());
+        soundEffectService.Play(id: "sounds/misc effects_tap 1.wav", InterfaceAudioChannel);
         return true;
     }
     
@@ -70,11 +72,11 @@ internal static partial class Widgets
     ///     Plays standard text audio for interactions.
     /// </summary>
     /// <returns>True if submitted; otherwise false.</returns>
-    public static bool WithTextInputAudio(this Interactions interactions, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool WithTextInputAudio(this Interactions interactions, SoundEffectService soundEffectService)
     {
         if ((interactions & Interactions.Input) == Interactions.Input)
         {
-            audioService.Play("sounds/misc effects_click 1.wav", volumeSettings.MixInterface());
+            soundEffectService.Play(id: "sounds/misc effects_click 1.wav", InterfaceAudioChannel);
         }
         
         if ((interactions & Interactions.Submit) != Interactions.Submit)
@@ -82,7 +84,7 @@ internal static partial class Widgets
             return false;
         }
         
-        audioService.Play("sounds/menu sounds_exit click 1.wav", volumeSettings.MixInterface());
+        soundEffectService.Play(id: "sounds/menu sounds_exit click 1.wav", InterfaceAudioChannel);
         return true;
     }
     

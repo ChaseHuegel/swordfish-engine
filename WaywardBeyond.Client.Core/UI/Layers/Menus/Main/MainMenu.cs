@@ -3,14 +3,12 @@ using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
@@ -26,8 +24,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         IAssetDatabase<Material> materialDatabase,
         ReefContext reefContext,
         IShortcutService shortcutService,
-        IAudioService audioService,
-        VolumeSettings volumeSettings,
+        SoundEffectService soundEffectService,
         ExternalAppService externalAppService,
         IMenuPage<MenuPage>[] pages
     ) : base(logger, materialDatabase, reefContext, pages)
@@ -49,7 +46,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
                 ID = "Font Awesome 6 Free Brands",
                 Size = 32,
             },
-            new Widgets.AudioOptions(audioService, volumeSettings)
+            new Widgets.AudioOptions(soundEffectService)
         );
         
         Shortcut backShortcut = new(

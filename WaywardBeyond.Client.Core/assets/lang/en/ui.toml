@@ -45,6 +45,7 @@
 "ui.setting.volume.master" = "Master"
 "ui.setting.volume.interface" = "Interface"
 "ui.setting.volume.effects" = "Effects"
+"ui.setting.volume.music" = "Music"
 
 "ui.hint.changeShape" = "R: Change shape"
 "ui.hint.changeOrientation" = "T: Change orientation"

@@ -22,6 +22,7 @@ using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Player;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels;
@@ -63,10 +64,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly Dictionary<Mesh, MeshGizmo> _meshGizmos = [];
     private MeshGizmo _activeGizmo;
     private readonly Line[] _debugLines;
-    private readonly IAudioService _audioService;
-    private readonly VolumeSettings _volumeSettings;
     private readonly DebugSettings _debugSettings;
     private readonly PlayerControllerSystem _playerControllerSystem;
+    private readonly SoundEffectService _soundEffectServce;
 
     private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
     
@@ -85,12 +85,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
-        in IAudioService audioService,
-        in VolumeSettings volumeSettings,
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
         in PlayerControllerSystem playerControllerSystem,
-        in IShortcutService shortcutService
+        in IShortcutService shortcutService,
+        in SoundEffectService soundEffectServce
     ) {
         _inputService = inputService;
         _physics = physics;
@@ -102,10 +101,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
-        _audioService = audioService;
-        _volumeSettings = volumeSettings;
         _debugSettings = debugSettings;
         _playerControllerSystem = playerControllerSystem;
+        _soundEffectServce = soundEffectServce;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -239,13 +237,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
         
+        _soundEffectServce.PlayRemoveMetal();
+        
         voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
-        _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
-        
-        var soundIndex = Random.Shared.Next(1, 4);
-        _audioService.Play($"sounds/metal_remove.{soundIndex}.wav", _volumeSettings.MixEffects());
-        
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        
+        _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         return;
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
@@ -304,12 +301,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
             Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
 
+            _soundEffectServce.PlayPlaceMetal();
+            
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
-            _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
             
-            int soundIndex = Random.Shared.Next(1, 4);
-            _audioService.Play($"sounds/metal_place.{soundIndex}.wav", _volumeSettings.MixEffects());
+            _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
     }
     
