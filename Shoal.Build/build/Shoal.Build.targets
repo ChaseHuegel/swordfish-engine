@@ -1,5 +1,9 @@
 <Project>
 
+    <Target Name="GitLFSPull" BeforeTargets="Build">
+        <Exec Command="git lfs pull" />
+    </Target>
+
     <Target Name="AllowDuplicatesOnPublish" BeforeTargets="BeforeResolveReferences">
         <PropertyGroup>
             <!-- !! HACK !! manifest files will fail the publish if building multiple modules -->
