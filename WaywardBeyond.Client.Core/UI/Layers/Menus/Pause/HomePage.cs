@@ -1,19 +1,17 @@
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
 internal sealed class HomePage(
-    in IAudioService audioService,
-    in VolumeSettings volumeSettings,
+    in SoundEffectService soundEffectService,
     in ILocalization localization,
     in GameSaveManager gameSaveManager,
     in ModalMenu modalMenu
@@ -29,7 +27,7 @@ internal sealed class HomePage(
         new FontOptions {
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<PausePage> menu)

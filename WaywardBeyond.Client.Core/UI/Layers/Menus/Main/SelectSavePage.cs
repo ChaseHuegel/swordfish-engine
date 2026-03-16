@@ -4,13 +4,12 @@ using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -18,8 +17,7 @@ internal sealed class SelectSavePage(
     in GameSaveManager gameSaveManager,
     in GameSaveService gameSaveService,
     in IInputService inputService,
-    in IAudioService audioService,
-    in VolumeSettings volumeSettings,
+    in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : IMenuPage<MenuPage>
 {
@@ -35,7 +33,7 @@ internal sealed class SelectSavePage(
         {
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
 
     private readonly Widgets.ButtonOptions _buttonOptions = new(
@@ -43,7 +41,7 @@ internal sealed class SelectSavePage(
         {
             Size = 20,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
     
     private int _scrollY;

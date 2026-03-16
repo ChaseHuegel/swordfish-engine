@@ -1,17 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Text.RegularExpressions;
-using DryIoc.ImTools;
 using Reef;
 using Reef.Constraints;
 using Reef.Text;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
-using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -40,9 +37,9 @@ internal static partial class Widgets
     ///     Creates a text box that can be typed into, with audio cues.
     /// </summary>
     /// <returns>True if the text box was submitted; otherwise false.</returns>
-    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, IAudioService audioService, VolumeSettings volumeSettings)
+    public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, SoundEffectService soundEffectService)
     {
-        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(audioService, volumeSettings);
+        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(soundEffectService);
     }
 
     /// <summary>

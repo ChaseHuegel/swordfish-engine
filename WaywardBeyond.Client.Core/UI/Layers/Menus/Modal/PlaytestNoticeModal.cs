@@ -3,18 +3,15 @@ using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 internal class PlaytestNoticeModal(
-    in IAudioService audioService,
-    in VolumeSettings volumeSettings,
+    in SoundEffectService soundEffectService,
     in ILocalization localization,
     in ExternalAppService externalAppService
 ) : IMenuPage<Modal>
@@ -28,7 +25,7 @@ internal class PlaytestNoticeModal(
         new FontOptions {
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
     
     private readonly Widgets.ButtonOptions _iconButtonOptions = new(
@@ -36,7 +33,7 @@ internal class PlaytestNoticeModal(
             ID = "Font Awesome 6 Free Brands",
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
 
     public Modal ID => Modal;

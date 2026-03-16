@@ -17,6 +17,11 @@ internal static class WaywardBeyond
     {
         return GameState == Core.GameState.Playing;
     }
+    
+    public static bool IsInGame()
+    {
+        return GameState == Core.GameState.Playing || GameState == Core.GameState.Paused;
+    }
 
     public static bool Pause()
     {

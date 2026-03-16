@@ -4,13 +4,12 @@ using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -23,8 +22,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly GameSaveManager _gameSaveManager;
     private readonly GameSaveService _gameSaveService;
     private readonly IInputService _inputService;
-    private readonly IAudioService _audioService;
-    private readonly VolumeSettings _volumeSettings;
+    private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
@@ -37,29 +35,27 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in GameSaveManager gameSaveManager,
         in GameSaveService gameSaveService,
         in IInputService inputService,
-        in IAudioService audioService,
-        in VolumeSettings volumeSettings,
+        in SoundEffectService soundEffectService,
         in ILocalization localization
     ) {
         _gameSaveManager = gameSaveManager;
         _gameSaveService = gameSaveService;
         _inputService = inputService;
-        _audioService = audioService;
-        _volumeSettings = volumeSettings;
+        _soundEffectService = soundEffectService;
         _localization = localization;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 32,
             },
-            new Widgets.AudioOptions(audioService, volumeSettings)
+            new Widgets.AudioOptions(soundEffectService)
         );
         
         _buttonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 20,
             },
-            new Widgets.AudioOptions(audioService, volumeSettings)
+            new Widgets.AudioOptions(soundEffectService)
         );
 
         var saveNameTextBoxOptions = new TextBoxState.Options(
@@ -109,7 +105,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
 
             var validSaveName = true;
             string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
@@ -130,7 +126,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 validSaveName = false;
             }
 
-            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _audioService, _volumeSettings);
+            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
             
             using (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _buttonOptions, out Widgets.Interactions interactions))
             {

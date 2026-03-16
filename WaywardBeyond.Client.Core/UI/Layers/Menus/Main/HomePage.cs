@@ -7,13 +7,14 @@ using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class HomePage(
     in Entry entry,
-    in IAudioService audioService,
+    in SoundEffectService soundEffectService,
     in VolumeSettings volumeSettings,
     in ILocalization localization,
     in GameSaveService gameSaveService,
@@ -33,7 +34,7 @@ internal sealed class HomePage(
         new FontOptions {
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)

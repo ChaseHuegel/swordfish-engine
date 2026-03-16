@@ -4,11 +4,10 @@ using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;
 
@@ -21,7 +20,7 @@ internal static partial class Widgets
     ///     Creates a text-only number control with increment and decrement buttons.
     /// </summary>
     /// <returns>The new value after any changes.</returns>
-    public static int NumberControl(this UIBuilder<Material> ui, string id, string text, int value, Int2 constraints, Int2 display, int steps, IAudioService audioService, VolumeSettings volumeSettings, Action<int>? onValueChanged = null)
+    public static int NumberControl(this UIBuilder<Material> ui, string id, string text, int value, Int2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, Action<int>? onValueChanged = null)
     {
         int stepAmount = constraints.Length / steps;
         
@@ -33,11 +32,11 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
-                Interactions.Click.WithButtonIncreaseAudio(audioService, volumeSettings);
+                Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
-                Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
+                Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
                 break;
         }
 
@@ -51,7 +50,7 @@ internal static partial class Widgets
     ///     Creates a text-only number control with increment and decrement buttons.
     /// </summary>
     /// <returns>The new value after any changes.</returns>
-    public static float NumberControl(this UIBuilder<Material> ui, string id, string text, float value, Float2 constraints, Int2 display, int steps, IAudioService audioService, VolumeSettings volumeSettings, Action<float>? onValueChanged = null)
+    public static float NumberControl(this UIBuilder<Material> ui, string id, string text, float value, Float2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, Action<float>? onValueChanged = null)
     {
         float stepAmount = constraints.Length / steps;
         
@@ -63,11 +62,11 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
-                Interactions.Click.WithButtonIncreaseAudio(audioService, volumeSettings);
+                Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
-                Interactions.Click.WithButtonDecreaseAudio(audioService, volumeSettings);
+                Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
                 break;
         }
 

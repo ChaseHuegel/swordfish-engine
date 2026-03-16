@@ -1,3 +1,4 @@
+using System;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -8,6 +9,7 @@ using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus;
 
@@ -17,7 +19,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
-    in IAudioService audioService,
+    in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
@@ -26,14 +28,14 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
-    private readonly IAudioService _audioService = audioService;
+    private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
     
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
         },
-        new Widgets.AudioOptions(audioService, volumeSettings)
+        new Widgets.AudioOptions(soundEffectService)
     );
 
     public abstract TIdentifier ID { get; }
@@ -69,8 +71,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 constraints: new Int2(1, 10),
                 display: new Int2(1, 10),
                 steps: 9,
-                _audioService,
-                _volumeSettings,
+                _soundEffectService,
                 OnLookSensitivityChanged
             );
         }
@@ -113,8 +114,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 constraints: new Int2(60, 120),
                 display: new Int2(60, 120),
                 steps: 12,
-                _audioService,
-                _volumeSettings,
+                _soundEffectService,
                 OnFOVChanged
             );
         }
@@ -157,8 +157,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
                 steps: 10,
-                _audioService,
-                _volumeSettings,
+                _soundEffectService,
                 OnMasterVolumeChanged
             );
         
@@ -169,8 +168,7 @@ internal abstract class SettingsPage<TIdentifier>(
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
                 steps: 10,
-                _audioService,
-                _volumeSettings,
+                _soundEffectService,
                 OnInterfaceVolumeChanged
             );
         
@@ -181,14 +179,29 @@ internal abstract class SettingsPage<TIdentifier>(
                 constraints: new Float2(0f, 1f),
                 display: new Int2(0, 10),
                 steps: 10,
-                _audioService,
-                _volumeSettings,
+                _soundEffectService,
                 OnEffectsVolumeChanged
             );
         
             void OnEffectsVolumeChanged(float newValue)
             {
                 _volumeSettings.Effects.Set(newValue);
+            }
+            
+            ui.NumberControl(
+                id: "Control_Volume_Music",
+                text: _localization.GetString("ui.setting.volume.music")!,
+                _volumeSettings.Music,
+                constraints: new Float2(0f, 1f),
+                display: new Int2(0, 10),
+                steps: 10,
+                _soundEffectService,
+                OnMusicVolumeChanged
+            );
+        
+            void OnMusicVolumeChanged(float newValue)
+            {
+                _volumeSettings.Music.Set(newValue);
             }
         }
         
@@ -223,16 +236,16 @@ internal abstract class SettingsPage<TIdentifier>(
                 Width = new Fixed(300),
             };
 
-            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _audioService, _volumeSettings);
+            bool value = ui.Checkbox(id: "Checkbox_VSync", text: _localization.GetString("ui.setting.vsync")!, isChecked: _renderSettings.VSync, _soundEffectService);
             _renderSettings.VSync.Set(value);
 
-            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _audioService, _volumeSettings);
+            value = ui.Checkbox(id: "Checkbox_Fullscreen", text: _localization.GetString("ui.setting.fullscreen")!, isChecked: _windowSettings.Mode == WindowMode.Fullscreen, _soundEffectService);
             _windowSettings.Mode.Set(value ? WindowMode.Fullscreen : WindowMode.Maximized);
 
-            value = ui.Checkbox(id: "Checkbox_Borderless", text: _localization.GetString("ui.setting.borderless")!, isChecked: _windowSettings.Borderless, _audioService, _volumeSettings);
+            value = ui.Checkbox(id: "Checkbox_Borderless", text: _localization.GetString("ui.setting.borderless")!, isChecked: _windowSettings.Borderless, _soundEffectService);
             _windowSettings.Borderless.Set(value);
 
-            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _audioService, _volumeSettings);
+            value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
         }
 

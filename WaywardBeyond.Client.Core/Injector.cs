@@ -52,8 +52,11 @@ public class Injector : IDryIocInjector
         
         container.Register<ExternalAppService>(Reuse.Singleton);
         
-        container.Register<MusicService>(Reuse.Singleton);
-        container.RegisterMapping<IEntryPoint, MusicService>();
+        container.Register<SoundEffectService>(Reuse.Singleton);
+        
+        container.Register<MusicSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, MusicSystem>();
+        container.RegisterMapping<IDebugOverlay, MusicSystem>();
         
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
@@ -183,6 +186,9 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
+        
+        container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, AudioChannelSystem>();
     }
     
     private static void RegisterVoxels(IContainer container)
