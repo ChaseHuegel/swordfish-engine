@@ -82,7 +82,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _iconOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 ID = "Font Awesome 6 Free Solid",
-                Size = 32,
+                Size = 48,
             },
             new Widgets.AudioOptions(soundEffectService)
         );
@@ -116,47 +116,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         
         using (ui.Element())
         {
-            ui.Spacing = 8;
+            ui.Spacing = 20;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
             };
             
-            ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
-
-            var validName = true;
-            string nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
-            if (string.IsNullOrWhiteSpace(nameValue))
-            {
-                using (ui.Text(_localization.GetString("ui.notification.name.required")!))
-                {
-                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
-                }
-                validName = false;
-            }
-            else if (_characterSaveService.GetSaves().Any(save => save.Character.Name == nameValue))
-            {
-                using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
-                {
-                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
-                }
-                validName = false;
-            }
-            
-            using (ui.Element())
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-            
-                using (ui.Text(_localization.GetString("ui.menu.appearance")!))
-                {
-                    ui.FontSize = 24;
-                }
-            }
-
             if (_characterMaterials.Count > 0)
             {
                 using (ui.Element())
@@ -183,8 +149,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     {
                         ui.Constraints = new Constraints
                         {
-                            Width = new Fixed(196),
-                            Height = new Fixed(196),
+                            Width = new Fixed(256),
+                            Height = new Fixed(256),
                         };
                     }
                     
@@ -201,6 +167,27 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                         }
                     }
                 }
+            }
+            
+            ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+
+            var validName = true;
+            string nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
+            if (string.IsNullOrWhiteSpace(nameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.required")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validName = false;
+            }
+            else if (_characterSaveService.GetSaves().Any(save => save.Character.Name == nameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validName = false;
             }
 
             using (ui.TextButton(id: "Button_CreateCharacter", text: _localization.GetString("ui.button.createCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
