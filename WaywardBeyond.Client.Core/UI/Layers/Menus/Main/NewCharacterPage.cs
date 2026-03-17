@@ -123,6 +123,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 {
                     var character = new Character(WaywardBeyond.Version, Guid.NewGuid().ToString(), _LastPlayedMs: 0, _AgeMs: 0, nameValue);
                     Task.Run(() => _characterSaveService.CreateSave(character));
+                    menu.GoBack();
                 }
             }
         }

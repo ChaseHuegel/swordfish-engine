@@ -60,7 +60,7 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             Character character = save.Character;
             byte[] bytes = character.Serialize();
             using var stream = new MemoryStream(bytes);
-            Directory.CreateDirectory(save.Path);
+            Directory.CreateDirectory(save.Path.GetDirectory());
             save.Path.Write(stream);
 
             _notificationService.Push(_localizedFormatter.GetString("notification.character.saved", save.Character.Name));
