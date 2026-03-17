@@ -17,6 +17,7 @@
 
 "ui.button.selectSave" = "Continue"
 "ui.button.newSave" = "Create save"
+"ui.button.newCharacter" = "Create character"
 "ui.button.settings" = "Settings"
 "ui.button.quit" = "Quit game"
 
@@ -26,8 +27,13 @@
 "ui.menu.createSave" = "Create Save"
 "ui.menu.saves" = "Game Saves"
 "ui.button.newGame" = "Begin journey"
-"ui.field.saveName" = "Enter save name..."
+"ui.field.saveName" = "Enter name..."
 "ui.field.saveSeed" = "[Random seed]"
+
+"ui.menu.createCharacter" = "Create Character"
+"ui.menu.characters" = "Characters"
+"ui.button.createCharacter" = "Create"
+"ui.field.characterName" = "Enter name..."
 
 "ui.menu.display" = "Display"
 "ui.setting.vsync" = "VSync"

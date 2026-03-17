@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -13,14 +14,13 @@ using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
-internal sealed class NewSavePage : IMenuPage<MenuPage>
+internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 {
-    private static readonly char[] _saveNameTrimChars = [' ', '\t', '.', '\n', '\r'];
+    private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
-    public MenuPage ID => MenuPage.NewSave;
+    public MenuPage ID => MenuPage.NewCharacter;
     
-    private readonly GameSaveManager _gameSaveManager;
-    private readonly GameSaveService _gameSaveService;
+    private readonly CharacterSaveService _characterSaveService;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
@@ -28,18 +28,15 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
 
-    private TextBoxState _saveNameTextBox;
-    private TextBoxState _seedTextBox;
+    private TextBoxState _nameTextBox;
 
-    public NewSavePage(
-        in GameSaveManager gameSaveManager,
-        in GameSaveService gameSaveService,
+    public NewCharacterPage(
+        in CharacterSaveService characterSaveService,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization
     ) {
-        _gameSaveManager = gameSaveManager;
-        _gameSaveService = gameSaveService;
+        _characterSaveService = characterSaveService;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
@@ -59,7 +56,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         );
 
         var saveNameTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.saveName"),
+            Placeholder: localization.GetString("ui.field.characterName"),
             MaxCharacters: 20,
             DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
             Constraints: new Constraints
@@ -67,18 +64,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Width = new Fixed(300),
             }
         );
-        _saveNameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
-        
-        var saveSeedTextBoxOptions = new TextBoxState.Options(
-            Placeholder: localization.GetString("ui.field.saveSeed"),
-            MaxCharacters: 20,
-            Constraints: new Constraints
-            {
-                Width = new Fixed(300),
-            }
-        );
-        
-        _seedTextBox = new TextBoxState(initialValue: string.Empty, saveSeedTextBoxOptions);
+        _nameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
     }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
@@ -90,7 +76,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            using (ui.Text(_localization.GetString("ui.menu.createSave")!))
+            using (ui.Text(_localization.GetString("ui.menu.createCharacter")!))
             {
                 ui.FontSize = 24;
             }
@@ -105,42 +91,38 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+            ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
 
-            var validSaveName = true;
-            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
-            if (string.IsNullOrWhiteSpace(saveNameValue))
+            var validName = true;
+            string nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
+            if (string.IsNullOrWhiteSpace(nameValue))
             {
                 using (ui.Text(_localization.GetString("ui.notification.name.required")!))
                 {
                     ui.Color = new Vector4(1f, 0f, 0f, 1f);
                 }
-                validSaveName = false;
+                validName = false;
             }
-            else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
+            else if (_characterSaveService.GetSaves().Any(save => save.Character.Name == nameValue))
             {
                 using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
                 {
                     ui.Color = new Vector4(1f, 0f, 0f, 1f);
                 }
-                validSaveName = false;
+                validName = false;
             }
 
-            ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
-            
-            using (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _buttonOptions, out Widgets.Interactions interactions))
+            using (ui.TextButton(id: "Button_CreateCharacter", text: _localization.GetString("ui.button.createCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
             {
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,
                 };
                 
-                if (validSaveName && interactions.Has(Widgets.Interactions.Click))
+                if (validName && interactions.Has(Widgets.Interactions.Click))
                 {
-                    var seedValue = _seedTextBox.Text.ToString();
-                    string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
-                    var options = new GameOptions(saveNameValue, seed);
-                    Task.Run(() => _gameSaveManager.NewGame(options));
+                    var character = new Character(WaywardBeyond.Version, Guid.NewGuid().ToString(), _LastPlayedMs: 0, _AgeMs: 0, nameValue);
+                    Task.Run(() => _characterSaveService.CreateSave(character));
                 }
             }
         }
