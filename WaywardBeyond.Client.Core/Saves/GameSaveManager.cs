@@ -252,8 +252,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         public void Dispose()
         {
-            Result<CharacterSave> characterSave = _characterSaveManager.Load();
-            if (!characterSave.Success)
+            CharacterSave? characterSave = _characterSaveManager.ActiveSave;
+            if (characterSave == null)
             {
                 _gameSaveManager.SaveAndExit();
                 return;

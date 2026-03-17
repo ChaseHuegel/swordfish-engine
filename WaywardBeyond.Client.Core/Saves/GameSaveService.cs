@@ -20,8 +20,9 @@ internal sealed class GameSaveService(
     in IECSContext ecs,
     in ISerializer<VoxelEntityModel> voxelEntitySerializer,
     in NotificationService notificationService,
-    in ILoadStage<GameOptions>[] createStages,
-    in ILoadStage<GameSave>[] loadStages
+    in ILoadStage<GameOptions>[] newSaveStages,
+    in ILoadStage<GameSave>[] loadSaveStages,
+    in ILoadStage[] loadStages
 ) {
     private const string SAVES_FOLDER = "saves/";
     private const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
@@ -31,8 +32,9 @@ internal sealed class GameSaveService(
     private readonly IECSContext _ecs = ecs;
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
     private readonly NotificationService _notificationService = notificationService;
-    private readonly ILoadStage<GameOptions>[] _createStages = createStages;
-    private readonly ILoadStage<GameSave>[] _loadStages = loadStages;
+    private readonly ILoadStage<GameOptions>[] _newSaveStages = newSaveStages;
+    private readonly ILoadStage<GameSave>[] _loadSaveStages = loadSaveStages;
+    private readonly ILoadStage[] _loadStages = loadStages;
 
     private readonly PathInfo _savesDirectory = new(SAVES_FOLDER);
     
@@ -93,9 +95,16 @@ internal sealed class GameSaveService(
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.loading", options.Name));
         
-        for (var i = 0; i < _createStages.Length; i++)
+        for (var i = 0; i < _loadStages.Length; i++)
         {
-            ILoadStage<GameOptions> stage = _createStages[i];
+            ILoadStage stage = _loadStages[i];
+            _currentStage = stage;
+            await stage.Load();
+        }
+        
+        for (var i = 0; i < _newSaveStages.Length; i++)
+        {
+            ILoadStage<GameOptions> stage = _newSaveStages[i];
             _currentStage = stage;
             await stage.Load(options);
         }
@@ -110,7 +119,14 @@ internal sealed class GameSaveService(
         
         for (var i = 0; i < _loadStages.Length; i++)
         {
-            ILoadStage<GameSave> stage = _loadStages[i];
+            ILoadStage stage = _loadStages[i];
+            _currentStage = stage;
+            await stage.Load();
+        }
+        
+        for (var i = 0; i < _loadSaveStages.Length; i++)
+        {
+            ILoadStage<GameSave> stage = _loadSaveStages[i];
             _currentStage = stage;
             await stage.Load(save);
         }
