@@ -1,5 +1,5 @@
 Shader   = "ui_reef_textured"
 Transparent = true
 Textures = [
-    "alien_f.png",
+    "characters/f_alien_standing.png",
 ]
