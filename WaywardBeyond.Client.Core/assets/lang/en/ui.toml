@@ -31,6 +31,7 @@
 "ui.field.saveSeed" = "[Random seed]"
 
 "ui.menu.createCharacter" = "Create Character"
+"ui.menu.appearance" = "Appearance"
 "ui.menu.characters" = "Characters"
 "ui.button.createCharacter" = "Create"
 "ui.field.characterName" = "Enter name..."

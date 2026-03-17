@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -6,6 +8,8 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.IO;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -27,19 +31,39 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
+    private readonly Widgets.ButtonOptions _iconOptions;
 
+    private readonly List<Material> _characterMaterials;
+
+    private int _characterMaterialIndex;
     private TextBoxState _nameTextBox;
 
     public NewCharacterPage(
         in CharacterSaveService characterSaveService,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
-        in ILocalization localization
+        in ILocalization localization,
+        in IAssetDatabase<Material> materialDatabase,
+        in VirtualFileSystem vfs
     ) {
         _characterSaveService = characterSaveService;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
+        
+        PathInfo characterMaterialsPath = AssetPaths.Materials.At("characters/");
+        IEnumerable<string> characterMaterialIds = vfs.GetFiles(characterMaterialsPath, SearchOption.TopDirectoryOnly)
+            .Select(pathInfo => $"characters/{pathInfo.GetFileNameWithoutExtension()}");
+
+        _characterMaterials = [];
+        foreach (string id in characterMaterialIds)
+        {
+            Result<Material> materialResult = materialDatabase.Get(id);
+            if (materialResult)
+            {
+                _characterMaterials.Add(materialResult);
+            }
+        }
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -51,6 +75,14 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _buttonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 20,
+            },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+        
+        _iconOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                ID = "Font Awesome 6 Free Solid",
+                Size = 32,
             },
             new Widgets.AudioOptions(soundEffectService)
         );
@@ -110,6 +142,65 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     ui.Color = new Vector4(1f, 0f, 0f, 1f);
                 }
                 validName = false;
+            }
+            
+            using (ui.Element())
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+            
+                using (ui.Text(_localization.GetString("ui.menu.appearance")!))
+                {
+                    ui.FontSize = 24;
+                }
+            }
+
+            if (_characterMaterials.Count > 0)
+            {
+                using (ui.Element())
+                {
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+                    
+                    using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
+                    {
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                        };
+                        
+                        if (interactions.Has(Widgets.Interactions.Click))
+                        {
+                            _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterMaterials.Count - 1);
+                        }
+                    }
+                    
+                    using (ui.Image(_characterMaterials[_characterMaterialIndex]))
+                    {
+                        ui.Constraints = new Constraints
+                        {
+                            Width = new Fixed(196),
+                            Height = new Fixed(196),
+                        };
+                    }
+                    
+                    using (ui.TextButton(id: "Button_NextCharacter", text: "\uf0da", _iconOptions, out Widgets.Interactions interactions))
+                    {
+                        ui.Constraints = new Constraints
+                        {
+                            Anchors = Anchors.Center,
+                        };
+
+                        if (interactions.Has(Widgets.Interactions.Click))
+                        {
+                            _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterMaterials.Count - 1);
+                        }
+                    }
+                }
             }
 
             using (ui.TextButton(id: "Button_CreateCharacter", text: _localization.GetString("ui.button.createCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
