@@ -116,7 +116,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         
         using (ui.Element())
         {
-            ui.Spacing = 20;
+            ui.Spacing = 8;
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints
             {
@@ -127,6 +127,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             {
                 using (ui.Element())
                 {
+                    ui.Padding = new Padding(left: 0, top: 20, right: 0, bottom: 20);
                     ui.Constraints = new Constraints
                     {
                         Anchors = Anchors.Center,
