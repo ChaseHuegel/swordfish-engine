@@ -8,73 +8,16 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Types.Shapes;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
 internal sealed class GameSaveManager : IAutoActivate, IDisposable
 {
-    private readonly struct GameLoadContext : IDisposable
-    {
-        private readonly GameSave _save;
-        private readonly IECSContext _ecs;
-        private readonly IRenderContext _renderContext;
-
-        public GameLoadContext(GameSave save, IPhysics physics, IECSContext ecs, IRenderContext renderContext)
-        {
-            _save = save;
-            _ecs = ecs;
-            _renderContext = renderContext;
-            WaywardBeyond.GameState.Set(GameState.Loading);
-            physics.SetGravity(Vector3.Zero);
-        }
-        
-        public void Dispose()
-        {
-            Entity player = _ecs.World.NewEntity();
-            var inventory = new InventoryComponent(size: 45);
-            player.Add<PlayerComponent>();
-            player.Add<EquipmentComponent>();
-            player.AddOrUpdate(new IdentifierComponent("Player", "player"));
-            player.AddOrUpdate(new TransformComponent(new Vector3(_save.Level.SpawnX, _save.Level.SpawnY, _save.Level.SpawnZ), Quaternion.Identity));
-            player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
-            
-            var playerCapsule = new Shape(new Box3(new Vector3(0.25f, 1.7f, 0.25f)));
-            var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, -0.75f, 0f)], [Quaternion.Identity]);
-            player.AddOrUpdate(new ColliderComponent(playerCollider));
-            
-            player.AddOrUpdate(inventory);
-            inventory.Add(new ItemStack("laser", count: 1, maxSize: 1));
-            inventory.Add(new ItemStack("panel", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("thruster", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("display_control", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("caution_panel", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("glass", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("display_monitor", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("storage", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("truss", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("small_light", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("light", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("display_console", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("ice", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("rock", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("control_buttons", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("grate", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("core", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("porthole", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("vent", count: 100, maxSize: 100));
-            inventory.Add(new ItemStack("control_panel", count: 100, maxSize: 100));
-
-            //  Child the camera to the player for a first person view
-            var cameraChildComponent = new ChildComponent(player);
-            _renderContext.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
-
-            WaywardBeyond.GameState.Set(GameState.Playing);
-        }
-    }
-    
     public GameSave? ActiveSave
     {
         get
@@ -93,6 +36,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
     private readonly IRenderContext _renderContext;
+    private readonly CharacterSaveManager _characterSaveManager;
 
     private readonly Timer _autosaveTimer;
     
@@ -105,12 +49,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IShortcutService shortcutService,
         in IECSContext ecs,
         in IPhysics physics,
-        in IRenderContext renderContext
+        in IRenderContext renderContext,
+        in CharacterSaveManager characterSaveManager
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
         _renderContext = renderContext;
+        _characterSaveManager = characterSaveManager;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -147,7 +93,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             ActiveSave = save;
         }
         
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext, _characterSaveManager, this);
         await _gameSaveService.GenerateSaveData(options);
         await Save();
     }
@@ -163,17 +109,18 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             }
             
             save = ActiveSave.Value;
+            
+            long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            Level level = save.Level with
+            {
+                LastPlayedMs = nowUtcMs,
+            };
+        
+            save = new GameSave(save.Path, save.Name, level);
+            ActiveSave = save;
         }
-        
-        long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Level level = save.Level with
-        {
-            LastPlayedMs = nowUtcMs,
-        };
-        
-        save = new GameSave(save.Path, save.Name, level);
 
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext);
+        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext, _characterSaveManager, this);
         return _gameSaveService.Load(save);
     }
     
@@ -202,6 +149,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         save = new GameSave(save.Path, save.Name, level);
         
         _gameSaveService.Save(save);
+        _characterSaveManager.Save();
         return Task.CompletedTask;
     }
     
@@ -232,12 +180,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     public void SaveAndExit()
     {
-        if (WaywardBeyond.GameState < GameState.Playing)
+        if (WaywardBeyond.GameState >= GameState.Playing)
         {
-            return;
+            Save();
         }
 
-        Save();
         ActiveSave = null;
         
         //  TODO should create a new ECS world instead of trying to cleanup state
@@ -276,5 +223,81 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         }
         
         WaywardBeyond.GameState.Set(GameState.MainMenu);
+    }
+    
+    private readonly struct GameLoadContext : IDisposable
+    {
+        private readonly GameSave _save;
+        private readonly IECSContext _ecs;
+        private readonly IRenderContext _renderContext;
+        private readonly CharacterSaveManager _characterSaveManager;
+        private readonly GameSaveManager _gameSaveManager;
+
+        public GameLoadContext(
+            GameSave save,
+            IPhysics physics,
+            IECSContext ecs,
+            IRenderContext renderContext,
+            CharacterSaveManager characterSaveManager,
+            GameSaveManager gameSaveManager
+        ) {
+            _save = save;
+            _ecs = ecs;
+            _renderContext = renderContext;
+            _characterSaveManager = characterSaveManager;
+            _gameSaveManager = gameSaveManager;
+            WaywardBeyond.GameState.Set(GameState.Loading);
+            physics.SetGravity(Vector3.Zero);
+        }
+        
+        public void Dispose()
+        {
+            Result<CharacterSave> characterSave = _characterSaveManager.Load();
+            if (!characterSave.Success)
+            {
+                _gameSaveManager.SaveAndExit();
+                return;
+            }
+            
+            Entity player = _ecs.World.NewEntity();
+            var inventory = new InventoryComponent(size: 45);
+            player.Add<PlayerComponent>();
+            player.Add<EquipmentComponent>();
+            player.AddOrUpdate(new IdentifierComponent(characterSave.Value.Character.Name, "player"));
+            player.AddOrUpdate(new TransformComponent(new Vector3(_save.Level.SpawnX, _save.Level.SpawnY, _save.Level.SpawnZ), Quaternion.Identity));
+            player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
+            
+            var playerCapsule = new Shape(new Box3(new Vector3(0.25f, 1.7f, 0.25f)));
+            var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, -0.75f, 0f)], [Quaternion.Identity]);
+            player.AddOrUpdate(new ColliderComponent(playerCollider));
+            
+            player.AddOrUpdate(inventory);
+            inventory.Add(new ItemStack("laser", count: 1, maxSize: 1));
+            inventory.Add(new ItemStack("panel", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("thruster", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("display_control", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("caution_panel", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("glass", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("display_monitor", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("storage", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("truss", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("small_light", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("light", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("display_console", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("ice", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("rock", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("control_buttons", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("grate", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("core", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("porthole", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("vent", count: 100, maxSize: 100));
+            inventory.Add(new ItemStack("control_panel", count: 100, maxSize: 100));
+
+            //  Child the camera to the player for a first person view
+            var cameraChildComponent = new ChildComponent(player);
+            _renderContext.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
+
+            WaywardBeyond.GameState.Set(GameState.Playing);
+        }
     }
 }

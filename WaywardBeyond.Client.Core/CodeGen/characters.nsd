@@ -1,6 +1,12 @@
 ﻿#version 1.0;
 #namespace WaywardBeyond.Client.Core.Characters;
 
+enum GameMode
+{
+    Adventure;
+    Creative;
+}
+
 message CharacterEntityData
 {
     string Guid = 0;
@@ -13,4 +19,6 @@ message CharacterEntityData
     float OrientationY = 5;
     float OrientationZ = 6;
     float OrientationW = 7;
+    
+    GameMode GameMode = 8;
 }

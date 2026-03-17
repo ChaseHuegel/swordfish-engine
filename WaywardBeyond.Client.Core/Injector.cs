@@ -58,6 +58,9 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
         
+        container.Register<CharacterSaveService>(Reuse.Singleton);
+        container.Register<CharacterSaveManager>(Reuse.Singleton);
+        
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();

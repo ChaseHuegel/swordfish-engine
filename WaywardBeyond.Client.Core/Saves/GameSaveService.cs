@@ -24,7 +24,7 @@ internal sealed class GameSaveService(
     in ILoadStage<GameSave>[] loadStages
 ) {
     private const string SAVES_FOLDER = "saves/";
-    private const string GRIDS_FOLDER = "voxelEntities/";
+    private const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
     
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
@@ -148,7 +148,7 @@ internal sealed class GameSaveService(
                 byte[] data = _voxelEntitySerializer.Serialize(model);
                 using var dataStream = new MemoryStream(data);
                 
-                PathInfo saveDirectory = save.Path.At(GRIDS_FOLDER);
+                PathInfo saveDirectory = save.Path.At(VOXEL_ENTITIES_SUBFOLDER);
                 Directory.CreateDirectory(saveDirectory);
                 
                 PathInfo savePath = saveDirectory.At($"{guidComponent.Guid}.dat");
