@@ -1,0 +1,16 @@
+﻿#version 1.0;
+#namespace WaywardBeyond.Client.Core.Characters;
+
+message CharacterEntityData
+{
+    string Guid = 0;
+    
+    double X = 1;
+    double Y = 2;
+    double Z = 3;
+    
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+}
