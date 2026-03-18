@@ -39,7 +39,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private int _characterMaterialIndex;
     private TextBoxState _nameTextBox;
 
-    private int _spacerPoints = 20;
+    private int _spacerPoints = 18;
     private int _strength = 1;
     private int _precision = 1;
     private int _awareness = 1;
