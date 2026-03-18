@@ -16,13 +16,16 @@ internal static partial class Widgets
     private const string INCREASE_UNICODE = "\uf0fe";
     private const string DECREASE_UNICODE = "\uf146";
     
+    public delegate void ValueChanged<in T>(T oldValue, T newValue, T change);
+    
     /// <summary>
     ///     Creates a text-only number control with increment and decrement buttons.
     /// </summary>
     /// <returns>The new value after any changes.</returns>
-    public static int NumberControl(this UIBuilder<Material> ui, string id, string text, int value, Int2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, Action<int>? onValueChanged = null)
+    public static int NumberControl(this UIBuilder<Material> ui, string id, string text, int value, Int2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, ValueChanged<int>? onValueChanged = null)
     {
         int stepAmount = constraints.Length / steps;
+        int oldValue = value;
         
         var valueToDisplay = (int)Math.Round(MathS.RangeToRange(value, constraints.Min, constraints.Max, display.Min, display.Max));
         ChangeType changeType = NumberControl(ui, id, text, valueToDisplay.ToString(CultureInfo.CurrentCulture));
@@ -32,16 +35,34 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
-                Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
-                Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
                 break;
         }
 
-        value = Math.Clamp(value, constraints.Min, constraints.Max);
-        onValueChanged?.Invoke(value);
+        if (changeType != ChangeType.None)
+        {
+            value = Math.Clamp(value, constraints.Min, constraints.Max);
+            int change = value - oldValue;
+
+            if (change == 0)
+            {
+                return value;
+            }
+            
+            switch (changeType)
+            {
+                case ChangeType.Increase:
+                    Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
+                    break;
+                case ChangeType.Decrease:
+                    Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
+                    break;
+            }
+            
+            onValueChanged?.Invoke(oldValue, value, change);
+        }
 
         return value;
     }
@@ -50,9 +71,10 @@ internal static partial class Widgets
     ///     Creates a text-only number control with increment and decrement buttons.
     /// </summary>
     /// <returns>The new value after any changes.</returns>
-    public static float NumberControl(this UIBuilder<Material> ui, string id, string text, float value, Float2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, Action<float>? onValueChanged = null)
+    public static float NumberControl(this UIBuilder<Material> ui, string id, string text, float value, Float2 constraints, Int2 display, int steps, SoundEffectService soundEffectService, ValueChanged<float>? onValueChanged = null)
     {
         float stepAmount = constraints.Length / steps;
+        float oldValue = value;
         
         var valueToDisplay = (int)Math.Round(MathS.RangeToRange(value, constraints.Min, constraints.Max, display.Min, display.Max));
         ChangeType changeType = NumberControl(ui, id, text, valueToDisplay.ToString(CultureInfo.CurrentCulture));
@@ -62,16 +84,34 @@ internal static partial class Widgets
                 break;
             case ChangeType.Increase:
                 value += stepAmount;
-                Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
                 break;
             case ChangeType.Decrease:
                 value -= stepAmount;
-                Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
                 break;
         }
 
-        value = Math.Clamp(value, constraints.Min, constraints.Max);
-        onValueChanged?.Invoke(value);
+        if (changeType != ChangeType.None)
+        {
+            value = Math.Clamp(value, constraints.Min, constraints.Max);
+            float change = value - oldValue;
+
+            if (change == 0)
+            {
+                return value;
+            }
+            
+            switch (changeType)
+            {
+                case ChangeType.Increase:
+                    Interactions.Click.WithButtonIncreaseAudio(soundEffectService);
+                    break;
+                case ChangeType.Decrease:
+                    Interactions.Click.WithButtonDecreaseAudio(soundEffectService);
+                    break;
+            }
+            
+            onValueChanged?.Invoke(oldValue, value, change);
+        }
 
         return value;
     }

@@ -355,70 +355,70 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     OnResolveChanged
                 );
 
-                void OnStrengthChanged(int newValue)
+                void OnStrengthChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _strength = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
 
-                void OnPrecisionChanged(int newValue)
+                void OnPrecisionChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _precision = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
 
-                void OnAwarenessChanged(int newValue)
+                void OnAwarenessChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _awareness = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
 
-                void OnCharismaChanged(int newValue)
+                void OnCharismaChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _charisma = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
 
-                void OnEducationChanged(int newValue)
+                void OnEducationChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _education = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
 
-                void OnResolveChanged(int newValue)
+                void OnResolveChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints - 1 < 0)
+                    if (_spacerPoints + change < 0)
                     {
                         return;
                     }
 
                     _resolve = newValue;
-                    _spacerPoints -= 1;
+                    _spacerPoints -= change;
                 }
             }
         }

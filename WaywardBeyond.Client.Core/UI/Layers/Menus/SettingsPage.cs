@@ -182,11 +182,6 @@ internal abstract class SettingsPage<TIdentifier>(
                 _soundEffectService,
                 OnEffectsVolumeChanged
             );
-        
-            void OnEffectsVolumeChanged(float newValue)
-            {
-                _volumeSettings.Effects.Set(newValue);
-            }
             
             ui.NumberControl(
                 id: "Control_Volume_Music",
@@ -198,11 +193,6 @@ internal abstract class SettingsPage<TIdentifier>(
                 _soundEffectService,
                 OnMusicVolumeChanged
             );
-        
-            void OnMusicVolumeChanged(float newValue)
-            {
-                _volumeSettings.Music.Set(newValue);
-            }
         }
         
         using (ui.Element())
@@ -275,23 +265,33 @@ internal abstract class SettingsPage<TIdentifier>(
         return Result.FromSuccess();
     }
     
-    private void OnFOVChanged(int newValue)
+    private void OnFOVChanged(int oldValue, int newValue, int change)
     {
         _renderSettings.FOV.Set(newValue);
     }
     
-    private void OnLookSensitivityChanged(int newValue)
+    private void OnLookSensitivityChanged(int oldValue, int newValue, int change)
     {
         _controlSettings.LookSensitivity.Set(newValue);
     }
 
-    private void OnMasterVolumeChanged(float newValue)
+    private void OnMasterVolumeChanged(float oldValue, float newValue, float change)
     {
         _volumeSettings.Master.Set(newValue);
     }
 
-    private void OnInterfaceVolumeChanged(float newValue)
+    private void OnInterfaceVolumeChanged(float oldValue, float newValue, float change)
     {
         _volumeSettings.Interface.Set(newValue);
+    }
+    
+    private void OnEffectsVolumeChanged(float oldValue, float newValue, float change)
+    {
+        _volumeSettings.Effects.Set(newValue);
+    }
+    
+    private void OnMusicVolumeChanged(float oldValue, float newValue, float change)
+    {
+        _volumeSettings.Music.Set(newValue);
     }
 }
