@@ -21,6 +21,8 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 {
+    private const int DEFAULT_SPACER_POINTS = 18;
+    
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
     public MenuPage ID => MenuPage.NewCharacter;
@@ -39,7 +41,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private int _characterMaterialIndex;
     private TextBoxState _nameTextBox;
 
-    private int _spacerPoints = 18;
+    private int _spacerPoints = DEFAULT_SPACER_POINTS;
     private int _strength = 1;
     private int _precision = 1;
     private int _awareness = 1;
@@ -432,8 +434,31 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             
             if (validName && interactions.Has(Widgets.Interactions.Click))
             {
-                var character = new Character(WaywardBeyond.Version, Guid.NewGuid().ToString(), _LastPlayedMs: 0, _AgeMs: 0, nameValue);
+                var character = new Character(
+                    WaywardBeyond.Version,
+                    Guid.NewGuid().ToString(),
+                    _LastPlayedMs: 0,
+                    _AgeMs: 0,
+                    nameValue,
+                    _strength,
+                    _precision,
+                    _awareness,
+                    _charisma,
+                    _education,
+                    _resolve
+                );
                 Task.Run(() => _characterSaveService.CreateSave(character));
+
+                _characterMaterialIndex = 0;
+                _nameTextBox.Text.Clear();
+                _spacerPoints = DEFAULT_SPACER_POINTS;
+                _strength = 1;
+                _precision = 1;
+                _awareness = 1;
+                _charisma = 1;
+                _education = 1;
+                _resolve = 1;
+                
                 menu.GoBack();
             }
         }
