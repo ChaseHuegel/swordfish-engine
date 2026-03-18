@@ -126,7 +126,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         }
 
         var validName = true;
-        var nameValue = string.Empty;
+        string nameValue;
         
         using (ui.Element())
         {
@@ -448,18 +448,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _resolve
                 );
                 Task.Run(() => _characterSaveService.CreateSave(character));
-
-                _characterMaterialIndex = 0;
-                _nameTextBox.Text.Clear();
-                _spacerPoints = DEFAULT_SPACER_POINTS;
-                _strength = 1;
-                _precision = 1;
-                _awareness = 1;
-                _charisma = 1;
-                _education = 1;
-                _resolve = 1;
                 
                 menu.GoBack();
+                ResetState();
             }
         }
         
@@ -494,5 +485,18 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void ResetState()
+    {
+        _characterMaterialIndex = 0;
+        _nameTextBox.Text.Clear();
+        _spacerPoints = DEFAULT_SPACER_POINTS;
+        _strength = 1;
+        _precision = 1;
+        _awareness = 1;
+        _charisma = 1;
+        _education = 1;
+        _resolve = 1;
     }
 }

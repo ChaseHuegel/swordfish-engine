@@ -141,6 +141,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
                     var options = new GameOptions(saveNameValue, seed);
                     Task.Run(() => _gameSaveManager.NewGame(options));
+                    ResetState();
                 }
             }
         }
@@ -176,5 +177,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void ResetState()
+    {
+        _saveNameTextBox.Text.Clear();
+        _seedTextBox.Text.Clear();
     }
 }
