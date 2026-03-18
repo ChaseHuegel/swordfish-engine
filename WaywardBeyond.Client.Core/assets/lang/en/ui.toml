@@ -53,6 +53,16 @@
 "ui.setting.volume.effects" = "Effects"
 "ui.setting.volume.music" = "Music"
 
+"ui.field.spacer" = "S.P.A.C.E.R"
+"ui.field.spacer.description" = "Your S.P.A.C.E.R rating is an official assessment of key attributes in becoming a space colonist."
+"ui.field.spacer.points" = "Points remaining"
+"ui.field.strength" = "Strength"
+"ui.field.precision" = "Precision"
+"ui.field.awareness" = "Awareness"
+"ui.field.charisma" = "Charisma"
+"ui.field.education" = "Education"
+"ui.field.resolve" = "Resolve"
+
 "ui.hint.changeShape" = "R: Change shape"
 "ui.hint.changeOrientation" = "T: Change orientation"
 "ui.hint.snapBrick" = "Shift: Snap brick"
