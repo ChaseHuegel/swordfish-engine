@@ -39,4 +39,6 @@ message Character
     int Charisma = 8;
     int Education = 9;
     int Resolve = 10;
+    
+    int Body = 11;
 }

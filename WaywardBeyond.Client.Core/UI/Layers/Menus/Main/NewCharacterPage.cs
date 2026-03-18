@@ -445,7 +445,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _awareness,
                     _charisma,
                     _education,
-                    _resolve
+                    _resolve,
+                    _Body: _characterMaterialIndex
                 );
                 Task.Run(() => _characterSaveService.CreateSave(character));
                 
