@@ -293,9 +293,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Strength",
                     text: _localization.GetString("ui.field.strength")!,
                     _strength,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnStrengthChanged
                 );
@@ -304,9 +304,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Precision",
                     text: _localization.GetString("ui.field.precision")!,
                     _precision,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnPrecisionChanged
                 );
@@ -315,9 +315,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Awareness",
                     text: _localization.GetString("ui.field.awareness")!,
                     _awareness,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnAwarenessChanged
                 );
@@ -326,9 +326,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Charisma",
                     text: _localization.GetString("ui.field.charisma")!,
                     _charisma,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnCharismaChanged
                 );
@@ -337,9 +337,9 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Education",
                     text: _localization.GetString("ui.field.education")!,
                     _education,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnEducationChanged
                 );
@@ -348,16 +348,16 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     id: "Control_Resolve",
                     text: _localization.GetString("ui.field.resolve")!,
                     _resolve,
-                    constraints: new Int2(1, 10),
-                    display: new Int2(1, 10),
-                    steps: 9,
+                    constraints: new Int2(1, 8),
+                    display: new Int2(1, 8),
+                    steps: 7,
                     _soundEffectService,
                     OnResolveChanged
                 );
 
                 void OnStrengthChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
@@ -368,7 +368,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 void OnPrecisionChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
@@ -379,7 +379,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 void OnAwarenessChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
@@ -390,7 +390,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 void OnCharismaChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
@@ -401,7 +401,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 void OnEducationChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
@@ -412,7 +412,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 void OnResolveChanged(int oldValue, int newValue, int change)
                 {
-                    if (_spacerPoints + change < 0)
+                    if (change > 0 && _spacerPoints - change < 0)
                     {
                         return;
                     }
