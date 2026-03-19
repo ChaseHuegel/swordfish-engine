@@ -3,6 +3,20 @@
 [Translations]
 "ui.text.none" = "<none>"
 
+"ui.label.timePlayed" = "Time played"
+"ui.label.lastPlayed" = "Last played"
+
+"ui.word.hours" = "hours"
+"ui.word.minutes" = "minutes"
+"ui.word.seconds" = "seconds"
+
+"ui.label.spacer.s" = "S"
+"ui.label.spacer.p" = "P"
+"ui.label.spacer.a" = "A"
+"ui.label.spacer.c" = "C"
+"ui.label.spacer.e" = "E"
+"ui.label.spacer.r" = "R"
+
 "ui.menu.feedback" = "Feedback"
 "ui.button.feedback" = "Send feedback"
 "ui.field.feedback.description" = "Enter details (max 500 characters)..."

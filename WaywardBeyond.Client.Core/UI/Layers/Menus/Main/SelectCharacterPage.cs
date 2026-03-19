@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Text;
 using System.Threading.Tasks;
 using Reef;
 using Reef.Constraints;
@@ -74,14 +75,164 @@ internal sealed class SelectCharacterPage(
             if (_characterSaveManager.ActiveSave != null)
             {
                 Character activeCharacter = _characterSaveManager.ActiveSave.Value.Character;
+                
                 Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(activeCharacter);
                 using (ui.Image(appearanceMaterial))
                 {
                     ui.Constraints = new Constraints
                     {
+                        Anchors = Anchors.Center,
                         Width = new Fixed(196),
                         Height = new Fixed(196),
                     };
+                }
+                
+                using (ui.Element())
+                {
+                    ui.LayoutDirection = LayoutDirection.Vertical;
+                    ui.Spacing = 4;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.s")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+                        
+                        using (ui.Text(activeCharacter.Strength.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.p")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+
+                        using (ui.Text(activeCharacter.Precision.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.a")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+
+                        using (ui.Text(activeCharacter.Awareness.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.c")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+
+                        using (ui.Text(activeCharacter.Charisma.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.e")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+
+                        using (ui.Text(activeCharacter.Education.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
+
+                    using (ui.Element())
+                    {
+                        ui.Spacing = 8;
+                        using (ui.Text(_localization.GetString("ui.label.spacer.r")!))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+                        }
+
+                        using (ui.Text(activeCharacter.Resolve.ToString()))
+                        {
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
+
+                            ui.FontSize = 20;
+                            ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                        }
+                    }
                 }
             }
 
@@ -89,10 +240,14 @@ internal sealed class SelectCharacterPage(
             {
                 ui.VerticalScroll = true;
                 ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Padding = new Padding
+                {
+                    Left = 32,
+                };
 
                 ui.Constraints = new Constraints
                 {
-                    Width = new Fixed(280),
+                    Width = new Fixed(300),
                     Height = new Fixed(196),
                 };
 
@@ -128,7 +283,7 @@ internal sealed class SelectCharacterPage(
                         {
                             ui.Constraints = new Constraints
                             {
-                                Anchors = Anchors.Center,
+                                Anchors = Anchors.Center | Anchors.Left,
                             };
 
                             if (_characterSaveManager.ActiveSave != null &&
@@ -143,6 +298,95 @@ internal sealed class SelectCharacterPage(
                                 Task.Run(_characterSaveManager.Load);
                             }
                         }
+                    }
+                }
+            }
+        }
+        
+        if (_characterSaveManager.ActiveSave != null)
+        {
+            Character activeCharacter = _characterSaveManager.ActiveSave.Value.Character;
+            
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                ui.Padding = new Padding(16);
+                ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+                
+                using (ui.Element())
+                {
+                    ui.Spacing = 8;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+                    
+                    using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
+                    using (ui.Text(DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToString("g")))
+                    {
+                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                    }
+                }
+
+                TimeSpan age = TimeSpan.FromMilliseconds(activeCharacter.AgeMs);
+                string timePlayedStr;
+                if ((int)age.TotalSeconds > 0)
+                {
+                    var timePlayedBuilder = new StringBuilder();
+                    if (age.TotalHours >= 1)
+                    {
+                        timePlayedBuilder.Append((int)age.TotalHours);
+                        timePlayedBuilder.Append(' ');
+                        timePlayedBuilder.Append(_localization.GetString("ui.word.hours")!);
+                    }
+
+                    if (age.Minutes >= 1)
+                    {
+                        if (timePlayedBuilder.Length > 0)
+                        {
+                            timePlayedBuilder.Append(", ");
+                        }
+                        
+                        timePlayedBuilder.Append(age.Minutes);
+                        timePlayedBuilder.Append(' ');
+                        timePlayedBuilder.Append(_localization.GetString("ui.word.minutes")!);
+                    }
+
+                    if (age.Seconds >= 1)
+                    {
+                        if (timePlayedBuilder.Length > 0)
+                        {
+                            timePlayedBuilder.Append(", ");
+                        }
+                        
+                        timePlayedBuilder.Append(age.Seconds);
+                        timePlayedBuilder.Append(' ');
+                        timePlayedBuilder.Append(_localization.GetString("ui.word.seconds")!);
+                    }
+
+                    timePlayedStr = timePlayedBuilder.ToString();
+                }
+                else
+                {
+                    timePlayedStr = _localization.GetString("ui.text.none")!;
+                }
+
+                using (ui.Element())
+                {
+                    ui.Spacing = 8;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+                    
+                    using (ui.Text(_localization.GetString("ui.label.timePlayed")!)) { }
+                    using (ui.Text(timePlayedStr))
+                    {
+                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }
                 }
             }
