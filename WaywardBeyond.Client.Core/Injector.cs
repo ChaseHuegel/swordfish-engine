@@ -55,6 +55,8 @@ public class Injector : IDryIocInjector
         
         container.Register<SoundEffectService>(Reuse.Singleton);
         
+        container.Register<CharacterAssetService>(Reuse.Singleton);
+        
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();

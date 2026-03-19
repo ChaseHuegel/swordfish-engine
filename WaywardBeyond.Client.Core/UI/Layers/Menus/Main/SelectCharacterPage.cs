@@ -18,7 +18,8 @@ internal sealed class SelectCharacterPage(
     in CharacterSaveService characterSaveService,
     in IInputService inputService,
     in SoundEffectService soundEffectService,
-    in ILocalization localization
+    in ILocalization localization,
+    in CharacterAssetService characterAssetService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectCharacter;
@@ -27,6 +28,7 @@ internal sealed class SelectCharacterPage(
     private readonly CharacterSaveService _characterSaveService = characterSaveService;
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
+    private readonly CharacterAssetService _characterAssetService = characterAssetService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -50,6 +52,7 @@ internal sealed class SelectCharacterPage(
     {
         using (ui.Element())
         {
+            ui.Padding = new Padding(8);
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
@@ -61,66 +64,90 @@ internal sealed class SelectCharacterPage(
             }
         }
 
-        using (ui.Element("characters"))
+        using (ui.Element())
         {
-            ui.VerticalScroll = true;
-            ui.LayoutDirection = LayoutDirection.Vertical;
-
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
             };
-
-            ui.ClipConstraints = new Constraints
-            {
-                Width = new Relative(1f),
-                Height = new Relative(1f),
-            };
             
-            CharacterSave[] saves = _characterSaveService.GetSaves();
-            if (saves.Length == 0)
+            if (_characterSaveManager.ActiveSave != null)
             {
-                using (ui.Text(_localization.GetString("ui.text.none")!))
+                Character activeCharacter = _characterSaveManager.ActiveSave.Value.Character;
+                Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(activeCharacter);
+                using (ui.Image(appearanceMaterial))
                 {
-                    ui.FontOptions = _buttonOptions.FontOptions;
-                    ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
                     ui.Constraints = new Constraints
                     {
-                        Anchors = Anchors.Center,
+                        Width = new Fixed(196),
+                        Height = new Fixed(196),
                     };
                 }
             }
-            else
+
+            using (ui.Element("characters"))
             {
-                float scroll = _inputService.GetMouseScroll();
-                _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
-                ui.ScrollY = _scrollY * 30;
-                
-                for (var i = 0; i < saves.Length; i++)
+                ui.VerticalScroll = true;
+                ui.LayoutDirection = LayoutDirection.Vertical;
+
+                ui.Constraints = new Constraints
                 {
-                    CharacterSave save = saves[i];
-                    using (ui.TextButton(id: $"Button_SelectCharacter_{i}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                    Width = new Fixed(280),
+                    Height = new Fixed(196),
+                };
+
+                ui.ClipConstraints = new Constraints
+                {
+                    Width = new Relative(1f),
+                    Height = new Relative(1f),
+                };
+
+                CharacterSave[] saves = _characterSaveService.GetSaves();
+                if (saves.Length == 0)
+                {
+                    using (ui.Text(_localization.GetString("ui.text.none")!))
                     {
+                        ui.FontOptions = _buttonOptions.FontOptions;
+                        ui.Color = new Vector4(0.325f, 0.325f, 0.325f, 1f);
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
                         };
+                    }
+                }
+                else
+                {
+                    float scroll = _inputService.GetMouseScroll();
+                    _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
+                    ui.ScrollY = _scrollY * 30;
 
-                        if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Path == save.Path)
+                    for (var i = 0; i < saves.Length; i++)
+                    {
+                        CharacterSave save = saves[i];
+                        using (ui.TextButton(id: $"Button_SelectCharacter_{i}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
                         {
-                            ui.Color = new Vector4(0.5f);
-                        }
+                            ui.Constraints = new Constraints
+                            {
+                                Anchors = Anchors.Center,
+                            };
 
-                        if (interactions.Has(Widgets.Interactions.Click))
-                        {
-                            _characterSaveManager.ActiveSave = save;
-                            Task.Run(_characterSaveManager.Load);
+                            if (_characterSaveManager.ActiveSave != null &&
+                                _characterSaveManager.ActiveSave.Value.Path == save.Path)
+                            {
+                                ui.Color = new Vector4(0.5f);
+                            }
+
+                            if (interactions.Has(Widgets.Interactions.Click))
+                            {
+                                _characterSaveManager.ActiveSave = save;
+                                Task.Run(_characterSaveManager.Load);
+                            }
                         }
                     }
                 }
             }
         }
-        
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints

@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -8,8 +6,6 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.IO;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -31,12 +27,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
+    private readonly CharacterAssetService _characterAssetService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
     private readonly Widgets.ButtonOptions _iconOptions;
-
-    private readonly List<Material> _characterMaterials;
 
     private int _characterMaterialIndex;
     private TextBoxState _nameTextBox;
@@ -54,27 +49,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
-        in IAssetDatabase<Material> materialDatabase,
-        in VirtualFileSystem vfs
+        in CharacterAssetService characterAssetService
     ) {
         _characterSaveService = characterSaveService;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
-        
-        PathInfo characterMaterialsPath = AssetPaths.Materials.At("characters/");
-        IEnumerable<string> characterMaterialIds = vfs.GetFiles(characterMaterialsPath, SearchOption.TopDirectoryOnly)
-            .Select(pathInfo => $"characters/{pathInfo.GetFileNameWithoutExtension()}");
-
-        _characterMaterials = [];
-        foreach (string id in characterMaterialIds)
-        {
-            Result<Material> materialResult = materialDatabase.Get(id);
-            if (materialResult)
-            {
-                _characterMaterials.Add(materialResult);
-            }
-        }
+        _characterAssetService = characterAssetService;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -146,7 +127,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     Anchors = Anchors.Center,
                 };
                 
-                if (_characterMaterials.Count > 0)
+                if (_characterAssetService.GetAppearancesCount() > 0)
                 {
                     using (ui.Element())
                     {
@@ -165,11 +146,12 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterMaterials.Count - 1);
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterAssetService.GetAppearancesCount() - 1);
                             }
                         }
 
-                        using (ui.Image(_characterMaterials[_characterMaterialIndex]))
+                        Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterMaterialIndex);
+                        using (ui.Image(appearanceMaterial))
                         {
                             ui.Constraints = new Constraints
                             {
@@ -188,7 +170,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterMaterials.Count - 1);
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterAssetService.GetAppearancesCount() - 1);
                             }
                         }
                     }
