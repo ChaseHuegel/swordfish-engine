@@ -40,7 +40,7 @@ internal abstract class TitleMenu<TIdentifier> : Menu<TIdentifier>
             ui.Padding = new Padding
             {
                 Left = 20,
-                Top = 20,
+                Top = 64,
                 Right = 20,
                 Bottom = 20,
             };
