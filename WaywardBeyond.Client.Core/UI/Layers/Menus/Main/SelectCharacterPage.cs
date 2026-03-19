@@ -294,7 +294,6 @@ internal sealed class SelectCharacterPage(
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
                                 _characterSaveManager.ActiveSave = save;
-                                Task.Run(_characterSaveManager.Load);
                             }
                         }
                     }
