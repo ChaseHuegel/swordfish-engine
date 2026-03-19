@@ -106,11 +106,15 @@ internal sealed class SelectCharacterPage(
                             Anchors = Anchors.Center,
                         };
 
+                        if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Path == save.Path)
+                        {
+                            ui.Color = new Vector4(0.5f);
+                        }
+
                         if (interactions.Has(Widgets.Interactions.Click))
                         {
                             _characterSaveManager.ActiveSave = save;
                             Task.Run(_characterSaveManager.Load);
-                            menu.GoBack();
                         }
                     }
                 }
