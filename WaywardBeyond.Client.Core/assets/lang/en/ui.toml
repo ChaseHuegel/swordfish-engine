@@ -33,6 +33,7 @@
 "ui.menu.createCharacter" = "Create Character"
 "ui.menu.characters" = "Characters"
 "ui.button.createCharacter" = "Create"
+"ui.button.selectCharacter" = "Select character"
 "ui.field.characterName" = "Enter name..."
 
 "ui.menu.display" = "Display"

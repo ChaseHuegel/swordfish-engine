@@ -15,6 +15,7 @@ internal sealed class HomePage(
     in SoundEffectService soundEffectService,
     in ILocalization localization,
     in GameSaveService gameSaveService,
+    in CharacterSaveService characterSaveService,
     in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
@@ -23,6 +24,7 @@ internal sealed class HomePage(
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveService _gameSaveService = gameSaveService;
+    private readonly CharacterSaveService _characterSaveService = characterSaveService;
     private readonly ModalMenu _modalMenu = modalMenu;
 
     private bool _hasShownNotice;
@@ -72,6 +74,23 @@ internal sealed class HomePage(
             }
         }
         
+        CharacterSave[] characters = _characterSaveService.GetSaves();
+        if (characters.Length > 0)
+        {
+            using (ui.TextButton(id: "Button_SelectCharacter", text: _localization.GetString("ui.button.selectCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoToPage(MenuPage.SelectCharacter);
+                }
+            }
+        }
+
         using (ui.TextButton(id: "Button_NewCharacter", text: _localization.GetString("ui.button.newCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
         {
             ui.Constraints = new Constraints

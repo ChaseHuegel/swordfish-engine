@@ -93,7 +93,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _iconOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 ID = "Font Awesome 6 Free Solid",
-                Size = 48,
+                Size = 32,
             },
             new Widgets.AudioOptions(soundEffectService)
         );
@@ -143,7 +143,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 ui.LayoutDirection = LayoutDirection.Vertical;
                 ui.Constraints = new Constraints
                 {
-                    Anchors = Anchors.Center | Anchors.Top,
+                    Anchors = Anchors.Center,
                 };
                 
                 if (_characterMaterials.Count > 0)
@@ -156,8 +156,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                             Anchors = Anchors.Center,
                         };
 
-                        using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions,
-                                   out Widgets.Interactions interactions))
+                        using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
                         {
                             ui.Constraints = new Constraints
                             {
@@ -166,8 +165,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0,
-                                    _characterMaterials.Count - 1);
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterMaterials.Count - 1);
                             }
                         }
 
@@ -175,8 +173,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                         {
                             ui.Constraints = new Constraints
                             {
-                                Width = new Fixed(256),
-                                Height = new Fixed(256),
+                                Width = new Fixed(196),
+                                Height = new Fixed(196),
                             };
                         }
 
@@ -190,15 +188,13 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0,
-                                    _characterMaterials.Count - 1);
+                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterMaterials.Count - 1);
                             }
                         }
                     }
                 }
 
-                ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions,
-                    _inputService, _soundEffectService);
+                ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
 
                 nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
                 if (string.IsNullOrWhiteSpace(nameValue))
