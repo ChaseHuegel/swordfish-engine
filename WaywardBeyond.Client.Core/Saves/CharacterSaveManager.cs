@@ -1,10 +1,11 @@
 using System;
+using System.Linq;
 using System.Threading;
 using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
-internal sealed class CharacterSaveManager(in CharacterSaveService characterSaveService) 
+internal sealed class CharacterSaveManager
 {
     public CharacterSave? ActiveSave
     {
@@ -20,11 +21,23 @@ internal sealed class CharacterSaveManager(in CharacterSaveService characterSave
         }
     }
     
-    private readonly CharacterSaveService _characterSaveService = characterSaveService;
+    private readonly CharacterSaveService _characterSaveService;
 
     private readonly Lock _activeSaveLock = new();
     private CharacterSave? _activeSave;
-    
+
+    public CharacterSaveManager(in CharacterSaveService characterSaveService)
+    {
+        _characterSaveService = characterSaveService;
+
+        CharacterSave mostRecentSave = characterSaveService.GetSaves()
+            .OrderByDescending(save => save.Character.LastPlayedMs)
+            .FirstOrDefault();
+        
+        //  Default to the most recent character save, if there is one
+        ActiveSave = mostRecentSave.Path.Exists() ? mostRecentSave : null;
+    }
+
     public Result<CharacterSave> Load()
     {
         lock (_activeSaveLock)

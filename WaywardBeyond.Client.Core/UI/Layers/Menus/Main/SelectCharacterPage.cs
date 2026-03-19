@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -276,18 +277,16 @@ internal sealed class SelectCharacterPage(
                     _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
                     ui.ScrollY = _scrollY * 30;
 
-                    for (var i = 0; i < saves.Length; i++)
+                    foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
                     {
-                        CharacterSave save = saves[i];
-                        using (ui.TextButton(id: $"Button_SelectCharacter_{i}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                        using (ui.TextButton(id: $"Button_SelectCharacter_{save.Character.Guid}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
                         {
                             ui.Constraints = new Constraints
                             {
                                 Anchors = Anchors.Center | Anchors.Left,
                             };
 
-                            if (_characterSaveManager.ActiveSave != null &&
-                                _characterSaveManager.ActiveSave.Value.Path == save.Path)
+                            if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Path == save.Path)
                             {
                                 ui.Color = new Vector4(0.5f);
                             }
