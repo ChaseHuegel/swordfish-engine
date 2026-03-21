@@ -288,7 +288,7 @@ internal sealed class SelectCharacterPage(
                                 Anchors = Anchors.Center | Anchors.Left,
                             };
 
-                            if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Path == save.Path)
+                            if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Character.Guid == save.Character.Guid)
                             {
                                 ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
                             }

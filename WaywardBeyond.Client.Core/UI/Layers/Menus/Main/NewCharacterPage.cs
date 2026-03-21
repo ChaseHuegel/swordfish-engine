@@ -24,6 +24,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     public MenuPage ID => MenuPage.NewCharacter;
     
     private readonly CharacterSaveService _characterSaveService;
+    private readonly CharacterSaveManager _characterSaveManager;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
@@ -46,12 +47,14 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     public NewCharacterPage(
         in CharacterSaveService characterSaveService,
+        in CharacterSaveManager characterSaveManager,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in CharacterAssetService characterAssetService
     ) {
         _characterSaveService = characterSaveService;
+        _characterSaveManager = characterSaveManager;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
@@ -426,7 +429,16 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _resolve,
                     _Body: _characterMaterialIndex
                 );
-                Task.Run(() => _characterSaveService.CreateSave(character));
+                
+                Task.Run(() =>
+                    {
+                        Result<CharacterSave> save = _characterSaveService.CreateSave(character);
+                        if (save.Success)
+                        {
+                            _characterSaveManager.ActiveSave = save.Value;
+                        }
+                    }
+                );
 
                 menu.GoToPage(MenuPage.SelectCharacter);
                 ResetState();
