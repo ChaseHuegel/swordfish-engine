@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
+using WaywardBeyond.Client.Core.Characters;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -19,18 +20,21 @@ internal sealed class GameSaveService(
     in LocalizedFormatter localizedFormatter,
     in IECSContext ecs,
     in ISerializer<VoxelEntityModel> voxelEntitySerializer,
+    in ISerializer<CharacterEntityModel> characterEntitySerializer,
     in NotificationService notificationService,
     in ILoadStage<GameOptions>[] newSaveStages,
     in ILoadStage<GameSave>[] loadSaveStages,
     in ILoadStage[] loadStages
 ) {
     private const string SAVES_FOLDER = "saves/";
-    private const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
+    internal const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
+    internal const string CHARACTER_ENTITIES_SUBFOLDER = "characterEntities/";
     
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly IECSContext _ecs = ecs;
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
+    private readonly ISerializer<CharacterEntityModel> _characterEntitySerializer = characterEntitySerializer;
     private readonly NotificationService _notificationService = notificationService;
     private readonly ILoadStage<GameOptions>[] _newSaveStages = newSaveStages;
     private readonly ILoadStage<GameSave>[] _loadSaveStages = loadSaveStages;
@@ -99,9 +103,9 @@ internal sealed class GameSaveService(
             await stage.Load();
         }
         
+        //  (re)generate world data if it doesn't exist
         if (!save.Path.At(VOXEL_ENTITIES_SUBFOLDER).DirectoryExists())
         {
-            //  (re)generate world data if it doesn't exist
             var gameOptions = new GameOptions(save.Name, save.Level.Seed.ToString());
             for (var i = 0; i < _newSaveStages.Length; i++)
             {
@@ -159,7 +163,41 @@ internal sealed class GameSaveService(
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\".", entity);
+                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\" ({guid}).", entity, guidComponent.Guid);
+                anyErrors = true;
+            }
+        }
+        
+        //  Save character entities
+        _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, ForEachCharacterEntity);
+        void ForEachCharacterEntity(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
+        {
+            if (!store.TryGet(entity, out GuidComponent guidComponent))
+            {
+                return;
+            }
+            
+            if (!store.TryGet(entity, out GameModeComponent gameModeComponent))
+            {
+                return;
+            }
+            
+            try
+            {
+                var model = new CharacterEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, gameModeComponent.GameMode);
+                
+                byte[] data = _characterEntitySerializer.Serialize(model);
+                using var dataStream = new MemoryStream(data);
+                
+                PathInfo saveDirectory = save.Path.At(CHARACTER_ENTITIES_SUBFOLDER);
+                Directory.CreateDirectory(saveDirectory);
+                
+                PathInfo savePath = saveDirectory.At($"{guidComponent.Guid}.dat");
+                savePath.Write(dataStream);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "There was an error saving character entity \"{entity}\" ({guid}).", entity, guidComponent.Guid);
                 anyErrors = true;
             }
         }

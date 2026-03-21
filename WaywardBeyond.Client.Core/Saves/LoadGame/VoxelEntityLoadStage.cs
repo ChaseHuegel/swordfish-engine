@@ -20,8 +20,6 @@ internal sealed class VoxelEntityLoadStage(
     in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) : ILoadStage<GameSave>
 {
-    private const string VOXEL_ENTITIES_FOLDER = "voxelEntities/";
-    
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
     private readonly VoxelEntityBuilder _voxelEntityBuilder = voxelEntityBuilder;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
@@ -55,7 +53,7 @@ internal sealed class VoxelEntityLoadStage(
     public Task Load(GameSave save)
     {
         _progress = 0f;
-        PathInfo[] voxelEntityFiles = save.Path.At(VOXEL_ENTITIES_FOLDER).GetFiles();
+        PathInfo[] voxelEntityFiles = save.Path.At(GameSaveService.VOXEL_ENTITIES_SUBFOLDER).GetFiles();
         
         var processedFiles = 0;
         foreach (PathInfo voxelEntityFile in voxelEntityFiles.OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer()))

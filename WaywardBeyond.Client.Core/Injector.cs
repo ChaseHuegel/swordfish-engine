@@ -63,6 +63,8 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterSaveService>(Reuse.Singleton);
         container.Register<CharacterSaveManager>(Reuse.Singleton);
+
+        container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
@@ -70,6 +72,7 @@ public class Injector : IDryIocInjector
         container.Register<ILoadStage<GameOptions>, StarterShipNewGameStage>();
         container.Register<ILoadStage<GameOptions>, WorldGenNewGameStage>();
         container.Register<ILoadStage<GameSave>, VoxelEntityLoadStage>();
+        container.Register<ILoadStage<GameSave>, CharacterEntityLoadStage>();
         container.Register<ILoadStage, CharacterLoadStage>();
         
         container.Register<Entry>(Reuse.Singleton);

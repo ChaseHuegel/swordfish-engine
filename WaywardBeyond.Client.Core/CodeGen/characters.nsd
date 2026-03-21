@@ -20,5 +20,9 @@ message CharacterEntityData
     float OrientationZ = 6;
     float OrientationW = 7;
     
-    GameMode GameMode = 8;
+    float ScaleX = 8;
+    float ScaleY = 9;
+    float ScaleZ = 10;
+    
+    GameMode GameMode = 11;
 }
