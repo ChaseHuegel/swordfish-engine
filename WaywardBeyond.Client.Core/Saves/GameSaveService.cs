@@ -68,7 +68,7 @@ internal sealed class GameSaveService(
         return saves;
     }
     
-    public async Task<GameSave> CreateSave(GameOptions options)
+    public void CreateSave(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
         
@@ -83,17 +83,9 @@ internal sealed class GameSaveService(
         var level = new Level(WaywardBeyond.Version, seed, nowUtcMs, _AgeMs: 0, _SpawnX: 0, _SpawnY: 1, _SpawnZ: 5);
         var save = new GameSave(saveDirectory, options.Name, level);
         
-        for (var i = 0; i < _newSaveStages.Length; i++)
-        {
-            ILoadStage<GameOptions> stage = _newSaveStages[i];
-            _currentStage = stage;
-            await stage.Load(options);
-        }
-        
         Save(save);
         
         _notificationService.Push(_localizedFormatter.GetString("notification.save.created", options.Name));
-        return save;
     }
 
     public async Task Load(GameSave save)
@@ -107,6 +99,18 @@ internal sealed class GameSaveService(
             await stage.Load();
         }
         
+        if (!save.Path.At(VOXEL_ENTITIES_SUBFOLDER).DirectoryExists())
+        {
+            //  (re)generate world data if it doesn't exist
+            var gameOptions = new GameOptions(save.Name, save.Level.Seed.ToString());
+            for (var i = 0; i < _newSaveStages.Length; i++)
+            {
+                ILoadStage<GameOptions> stage = _newSaveStages[i];
+                _currentStage = stage;
+                await stage.Load(gameOptions);
+            }
+        }
+
         for (var i = 0; i < _loadSaveStages.Length; i++)
         {
             ILoadStage<GameSave> stage = _loadSaveStages[i];

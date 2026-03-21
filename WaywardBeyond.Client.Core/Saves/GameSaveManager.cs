@@ -78,12 +78,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         _autosaveTimer.Dispose();
     }
-
-    public async Task GenerateNewSave(GameOptions options)
-    {
-        await _gameSaveService.CreateSave(options);
-        CleanupEcs();
-    }
     
     public Task Load()
     {
