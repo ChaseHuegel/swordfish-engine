@@ -22,11 +22,14 @@ internal sealed class WorldGenerator
 
     public WorldGenerator(in string seed, in VoxelEntityBuilder voxelEntityBuilder, in IAssetDatabase<BrickInfo> brickDatabase)
     {
-        byte[] seedBytes = Encoding.UTF8.GetBytes(seed);
-        byte[] seedHash = SHA1.HashData(seedBytes);
-        var seedValue = BitConverter.ToInt32(seedHash);
-        _randomizer = new Randomizer(seedValue);
+        if (!int.TryParse(seed, out int seedValue))
+        {
+            byte[] seedBytes = Encoding.UTF8.GetBytes(seed);
+            byte[] seedHash = SHA1.HashData(seedBytes);
+            seedValue = BitConverter.ToInt32(seedHash);
+        }
 
+        _randomizer = new Randomizer(seedValue);
         _asteroidGenerator = new AsteroidGenerator(seedValue, voxelEntityBuilder, brickDatabase);
     }
     

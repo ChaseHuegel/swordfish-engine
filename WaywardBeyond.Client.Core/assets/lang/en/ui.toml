@@ -3,6 +3,20 @@
 [Translations]
 "ui.text.none" = "<none>"
 
+"ui.label.timePlayed" = "Time played"
+"ui.label.lastPlayed" = "Last played"
+
+"ui.word.hours" = "hours"
+"ui.word.minutes" = "minutes"
+"ui.word.seconds" = "seconds"
+
+"ui.label.spacer.s" = "S"
+"ui.label.spacer.p" = "P"
+"ui.label.spacer.a" = "A"
+"ui.label.spacer.c" = "C"
+"ui.label.spacer.e" = "E"
+"ui.label.spacer.r" = "R"
+
 "ui.menu.feedback" = "Feedback"
 "ui.button.feedback" = "Send feedback"
 "ui.field.feedback.description" = "Enter details (max 500 characters)..."
@@ -25,9 +39,19 @@
 
 "ui.menu.createSave" = "Create Save"
 "ui.menu.saves" = "Game Saves"
-"ui.button.newGame" = "Begin journey"
-"ui.field.saveName" = "Enter save name..."
+"ui.button.newGame" = "Create"
+"ui.field.saveName" = "Enter name..."
 "ui.field.saveSeed" = "[Random seed]"
+
+"ui.button.loadSave" = "Embark"
+
+"ui.button.selectCharacter" = "Select character"
+"ui.button.newCharacter" = "Create character"
+
+"ui.menu.createCharacter" = "Create Character"
+"ui.menu.characters" = "Characters"
+"ui.button.createCharacter" = "Create"
+"ui.field.characterName" = "Enter name..."
 
 "ui.menu.display" = "Display"
 "ui.setting.vsync" = "VSync"
@@ -46,6 +70,16 @@
 "ui.setting.volume.interface" = "Interface"
 "ui.setting.volume.effects" = "Effects"
 "ui.setting.volume.music" = "Music"
+
+"ui.field.spacer" = "S.P.A.C.E.R"
+"ui.field.spacer.description" = "Your S.P.A.C.E.R rating is an official assessment of key attributes in becoming a space colonist."
+"ui.field.spacer.points" = "Points remaining"
+"ui.field.strength" = "Strength"
+"ui.field.precision" = "Precision"
+"ui.field.awareness" = "Awareness"
+"ui.field.charisma" = "Charisma"
+"ui.field.education" = "Education"
+"ui.field.resolve" = "Resolve"
 
 "ui.hint.changeShape" = "R: Change shape"
 "ui.hint.changeOrientation" = "T: Change orientation"

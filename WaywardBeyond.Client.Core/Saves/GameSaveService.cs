@@ -20,19 +20,21 @@ internal sealed class GameSaveService(
     in IECSContext ecs,
     in ISerializer<VoxelEntityModel> voxelEntitySerializer,
     in NotificationService notificationService,
-    in ILoadStage<GameOptions>[] createStages,
-    in ILoadStage<GameSave>[] loadStages
+    in ILoadStage<GameOptions>[] newSaveStages,
+    in ILoadStage<GameSave>[] loadSaveStages,
+    in ILoadStage[] loadStages
 ) {
     private const string SAVES_FOLDER = "saves/";
-    private const string GRIDS_FOLDER = "voxelEntities/";
+    private const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
     
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly IECSContext _ecs = ecs;
     private readonly ISerializer<VoxelEntityModel> _voxelEntitySerializer = voxelEntitySerializer;
     private readonly NotificationService _notificationService = notificationService;
-    private readonly ILoadStage<GameOptions>[] _createStages = createStages;
-    private readonly ILoadStage<GameSave>[] _loadStages = loadStages;
+    private readonly ILoadStage<GameOptions>[] _newSaveStages = newSaveStages;
+    private readonly ILoadStage<GameSave>[] _loadSaveStages = loadSaveStages;
+    private readonly ILoadStage[] _loadStages = loadStages;
 
     private readonly PathInfo _savesDirectory = new(SAVES_FOLDER);
     
@@ -66,7 +68,7 @@ internal sealed class GameSaveService(
         return saves;
     }
     
-    public GameSave CreateSave(GameOptions options)
+    public void CreateSave(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
         
@@ -84,24 +86,6 @@ internal sealed class GameSaveService(
         Save(save);
         
         _notificationService.Push(_localizedFormatter.GetString("notification.save.created", options.Name));
-        return save;
-    }
-    
-    //  TODO #325 loading a save should implicitly generate any missing data
-    [Obsolete("This will be unified with Load in the future.")]
-    public async Task GenerateSaveData(GameOptions options)
-    {
-        _notificationService.Push(_localizedFormatter.GetString("notification.save.loading", options.Name));
-        
-        for (var i = 0; i < _createStages.Length; i++)
-        {
-            ILoadStage<GameOptions> stage = _createStages[i];
-            _currentStage = stage;
-            await stage.Load(options);
-        }
-
-        _currentStage = null;
-        _notificationService.Push(_localizedFormatter.GetString("notification.save.loaded", options.Name));
     }
 
     public async Task Load(GameSave save)
@@ -110,7 +94,26 @@ internal sealed class GameSaveService(
         
         for (var i = 0; i < _loadStages.Length; i++)
         {
-            ILoadStage<GameSave> stage = _loadStages[i];
+            ILoadStage stage = _loadStages[i];
+            _currentStage = stage;
+            await stage.Load();
+        }
+        
+        if (!save.Path.At(VOXEL_ENTITIES_SUBFOLDER).DirectoryExists())
+        {
+            //  (re)generate world data if it doesn't exist
+            var gameOptions = new GameOptions(save.Name, save.Level.Seed.ToString());
+            for (var i = 0; i < _newSaveStages.Length; i++)
+            {
+                ILoadStage<GameOptions> stage = _newSaveStages[i];
+                _currentStage = stage;
+                await stage.Load(gameOptions);
+            }
+        }
+
+        for (var i = 0; i < _loadSaveStages.Length; i++)
+        {
+            ILoadStage<GameSave> stage = _loadSaveStages[i];
             _currentStage = stage;
             await stage.Load(save);
         }
@@ -148,7 +151,7 @@ internal sealed class GameSaveService(
                 byte[] data = _voxelEntitySerializer.Serialize(model);
                 using var dataStream = new MemoryStream(data);
                 
-                PathInfo saveDirectory = save.Path.At(GRIDS_FOLDER);
+                PathInfo saveDirectory = save.Path.At(VOXEL_ENTITIES_SUBFOLDER);
                 Directory.CreateDirectory(saveDirectory);
                 
                 PathInfo savePath = saveDirectory.At($"{guidComponent.Guid}.dat");

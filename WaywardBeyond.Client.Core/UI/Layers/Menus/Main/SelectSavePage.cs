@@ -18,7 +18,8 @@ internal sealed class SelectSavePage(
     in GameSaveService gameSaveService,
     in IInputService inputService,
     in SoundEffectService soundEffectService,
-    in ILocalization localization
+    in ILocalization localization,
+    in CharacterSaveService characterSaveService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectSave;
@@ -27,6 +28,7 @@ internal sealed class SelectSavePage(
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
+    private readonly CharacterSaveService _characterSaveService = characterSaveService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -109,7 +111,8 @@ internal sealed class SelectSavePage(
                         if (interactions.Has(Widgets.Interactions.Click))
                         {
                             _gameSaveManager.ActiveSave = save;
-                            Task.Run(_gameSaveManager.Load);
+                            CharacterSave[] characters = _characterSaveService.GetSaves();
+                            menu.GoToPage(characters.Length == 0 ? MenuPage.NewCharacter : MenuPage.Characters);
                         }
                     }
                 }

@@ -7,11 +7,10 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 
-namespace WaywardBeyond.Client.Core.Services;
+namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
 {

@@ -15,11 +15,10 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class NewSavePage : IMenuPage<MenuPage>
 {
-    private static readonly char[] _saveNameTrimChars = [' ', '\t', '.'];
+    private static readonly char[] _saveNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
     public MenuPage ID => MenuPage.NewSave;
     
-    private readonly GameSaveManager _gameSaveManager;
     private readonly GameSaveService _gameSaveService;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
@@ -32,13 +31,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private TextBoxState _seedTextBox;
 
     public NewSavePage(
-        in GameSaveManager gameSaveManager,
         in GameSaveService gameSaveService,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization
     ) {
-        _gameSaveManager = gameSaveManager;
         _gameSaveService = gameSaveService;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
@@ -140,7 +137,9 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                     var seedValue = _seedTextBox.Text.ToString();
                     string seed = string.IsNullOrWhiteSpace(seedValue) ? "wayward beyond" : seedValue;
                     var options = new GameOptions(saveNameValue, seed);
-                    Task.Run(() => _gameSaveManager.NewGame(options));
+                    Task.Run(() => _gameSaveService.CreateSave(options));
+                    menu.GoToPage(MenuPage.SelectSave);
+                    ResetState();
                 }
             }
         }
@@ -176,5 +175,11 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         }
         
         return Result.FromSuccess();
+    }
+    
+    private void ResetState()
+    {
+        _saveNameTextBox.Text.Clear();
+        _seedTextBox.Text.Clear();
     }
 }

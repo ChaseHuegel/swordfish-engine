@@ -9,6 +9,11 @@
 "notification.save.saved" = "Saved \"{0}\"."
 "notification.save.saving.failed" = "Save failed, some information may be lost."
 
+"notification.character.created" = "Created character \"{0}\"."
+"notification.character.saved" = "Saved character \"{0}\"."
+"notification.character.create.failed" = "Character creation failed."
+"notification.character.saving.failed" = "Character save failed, some information may be lost."
+
 "ui.notification.name.required" = "Name is required"
 "ui.notification.name.taken" = "Name is already taken"
 "ui.notification.tooSoon" = "Please wait a few moments"

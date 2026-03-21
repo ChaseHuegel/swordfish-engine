@@ -5,5 +5,8 @@ internal enum MenuPage
     Home,
     SelectSave,
     NewSave,
+    Characters,
+    SelectCharacter,
+    NewCharacter,
     Settings,
 }

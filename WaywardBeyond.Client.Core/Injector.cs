@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
+using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
@@ -54,9 +55,14 @@ public class Injector : IDryIocInjector
         
         container.Register<SoundEffectService>(Reuse.Singleton);
         
+        container.Register<CharacterAssetService>(Reuse.Singleton);
+        
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
+        
+        container.Register<CharacterSaveService>(Reuse.Singleton);
+        container.Register<CharacterSaveManager>(Reuse.Singleton);
         
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
@@ -64,6 +70,7 @@ public class Injector : IDryIocInjector
         container.Register<ILoadStage<GameOptions>, StarterShipNewGameStage>();
         container.Register<ILoadStage<GameOptions>, WorldGenNewGameStage>();
         container.Register<ILoadStage<GameSave>, VoxelEntityLoadStage>();
+        container.Register<ILoadStage, CharacterLoadStage>();
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
@@ -111,6 +118,9 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, MainMenuSettingsPage>();
         container.Register<IMenuPage<MenuPage>, SelectSavePage>();
         container.Register<IMenuPage<MenuPage>, NewSavePage>();
+        container.Register<IMenuPage<MenuPage>, CharactersPage>();
+        container.Register<IMenuPage<MenuPage>, SelectCharacterPage>();
+        container.Register<IMenuPage<MenuPage>, NewCharacterPage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();

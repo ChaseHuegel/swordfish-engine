@@ -21,3 +21,24 @@ message Level
     int SpawnY = 5;
     int SpawnZ = 6;
 }
+
+message Character
+{
+    Version Version = 0;
+    
+    string Guid = 1;
+    
+    long LastPlayedMs = 2;
+    long AgeMs        = 3;
+    
+    string Name = 4;
+    
+    int Strength = 5;
+    int Precision = 6;
+    int Awareness = 7;
+    int Charisma = 8;
+    int Education = 9;
+    int Resolve = 10;
+    
+    int Body = 11;
+}
