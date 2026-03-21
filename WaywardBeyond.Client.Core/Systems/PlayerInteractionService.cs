@@ -6,7 +6,6 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
 using Shoal.Modularity;
-using Swordfish.Audio;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Graphics.SilkNET.OpenGL;
@@ -22,6 +21,7 @@ using WaywardBeyond.Client.Core.Debug;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Player;
+using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -247,6 +247,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
+            if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent) && gameModeComponent.GameMode == GameMode.Creative)
+            {
+                //  If the player is in creative mode, don't give any resources
+                return;
+            }
+            
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
             if (brickInfoResult.Success)
             {
@@ -263,8 +269,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
 
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
-        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player,
-            ref InventoryComponent inventory)
+        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
         {
             Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory);
             if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
@@ -286,10 +291,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             {
                 return;
             }
-
-            if (!inventory.Remove(mainHand.Slot, 1))
+            
+            if (!store.TryGet(playerEntity, out GameModeComponent gameModeComponent) || gameModeComponent.GameMode != GameMode.Creative)
             {
-                return;
+                //  If the player isn't in creative mode, attempt to remove the resource
+                if (!inventory.Remove(mainHand.Slot, 1))
+                {
+                    return;
+                }
             }
 
             BrickInfo brickInfo = brickInfoResult.Value;
