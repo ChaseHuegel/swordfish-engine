@@ -2,19 +2,24 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
+using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI.Layers;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
-internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormatter, in NotificationService notificationService )
+internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormatter, in NotificationService notificationService, in IECSContext ecs)
 {
     private const string CHARACTERS_FOLDER = "characters/";
 
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly NotificationService _notificationService = notificationService;
+    private readonly IECSContext _ecs = ecs;
 
     private readonly PathInfo _charactersDirectory = new(CHARACTERS_FOLDER);
     
@@ -60,6 +65,35 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
         try
         {
             Character character = save.Character;
+            
+            //  Update the character's inventory
+            _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, ForEachCharacterEntity);
+            void ForEachCharacterEntity(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
+            {
+                if (!store.TryGet(entity, out GuidComponent guidComponent))
+                {
+                    return;
+                }
+            
+                if (!store.TryGet(entity, out InventoryComponent inventoryComponent))
+                {
+                    return;
+                }
+
+                if (guidComponent.Guid.ToString() != character.Guid)
+                {
+                    return;
+                }
+
+                character.Inventory = new ItemData[inventoryComponent.Contents.Length];
+                for (var i = 0; i < inventoryComponent.Contents.Length; i++)
+                {
+                    ItemStack itemStack = inventoryComponent.Contents[i];
+                    character.Inventory[i] = new ItemData(itemStack.ID, itemStack.Count, itemStack.MaxSize);
+                } 
+            }
+            
+            //  Save the character
             byte[] bytes = character.Serialize();
             using var stream = new MemoryStream(bytes);
             Directory.CreateDirectory(save.Path.GetDirectory());
