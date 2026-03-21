@@ -21,7 +21,8 @@ internal sealed class SelectCharacterPage(
     in IInputService inputService,
     in SoundEffectService soundEffectService,
     in ILocalization localization,
-    in CharacterAssetService characterAssetService
+    in CharacterAssetService characterAssetService,
+    in GameSaveManager gameSaveManager
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectCharacter;
@@ -31,6 +32,7 @@ internal sealed class SelectCharacterPage(
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
+    private readonly GameSaveManager _gameSaveManager = gameSaveManager;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -288,7 +290,7 @@ internal sealed class SelectCharacterPage(
 
                             if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Path == save.Path)
                             {
-                                ui.Color = new Vector4(0.5f);
+                                ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
                             }
 
                             if (interactions.Has(Widgets.Interactions.Click))
@@ -386,6 +388,19 @@ internal sealed class SelectCharacterPage(
                     {
                         ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }
+                }
+            }
+            
+            using (ui.TextButton(id: "Button_LoadSave", text: _localization.GetString("ui.button.loadSave")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+            
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    Task.Run(_gameSaveManager.Load);
                 }
             }
         }

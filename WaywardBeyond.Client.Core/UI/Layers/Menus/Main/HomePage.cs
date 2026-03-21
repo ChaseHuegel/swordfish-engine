@@ -74,36 +74,6 @@ internal sealed class HomePage(
             }
         }
         
-        CharacterSave[] characters = _characterSaveService.GetSaves();
-        if (characters.Length > 0)
-        {
-            using (ui.TextButton(id: "Button_SelectCharacter", text: _localization.GetString("ui.button.selectCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
-            {
-                ui.Constraints = new Constraints
-                {
-                    Anchors = Anchors.Center,
-                };
-
-                if (interactions.Has(Widgets.Interactions.Click))
-                {
-                    menu.GoToPage(MenuPage.SelectCharacter);
-                }
-            }
-        }
-
-        using (ui.TextButton(id: "Button_NewCharacter", text: _localization.GetString("ui.button.newCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-            };
-            
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                menu.GoToPage(MenuPage.NewCharacter);
-            }
-        }
-        
         using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
         {
             ui.Constraints = new Constraints

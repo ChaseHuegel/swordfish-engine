@@ -427,8 +427,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _Body: _characterMaterialIndex
                 );
                 Task.Run(() => _characterSaveService.CreateSave(character));
-                
-                menu.GoBack();
+
+                menu.GoToPage(MenuPage.SelectCharacter);
                 ResetState();
             }
         }

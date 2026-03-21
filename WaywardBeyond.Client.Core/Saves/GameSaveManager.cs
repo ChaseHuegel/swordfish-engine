@@ -79,23 +79,10 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _autosaveTimer.Dispose();
     }
 
-    public async Task NewGame(GameOptions options)
+    public async Task GenerateNewSave(GameOptions options)
     {
-        GameSave save;
-        lock (_activeSaveLock)
-        {
-            if (ActiveSave != null)
-            {
-                return;
-            }
-            
-            save = _gameSaveService.CreateSave(options);
-            ActiveSave = save;
-        }
-        
-        using var gameLoadContext = new GameLoadContext(save, _physics, _ecs, _renderContext, _characterSaveManager, this);
-        await _gameSaveService.GenerateSaveData(options);
-        await Save();
+        await _gameSaveService.CreateSave(options);
+        CleanupEcs();
     }
     
     public Task Load()
@@ -186,9 +173,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         }
 
         ActiveSave = null;
-        
+        CleanupEcs();
+        WaywardBeyond.GameState.Set(GameState.MainMenu);
+    }
+
+    private void CleanupEcs()
+    {
         //  TODO should create a new ECS world instead of trying to cleanup state
-        
         _ecs.World.DataStore.Query<IdentifierComponent>(0f, CleanupGameEntitiesQuery);
         void CleanupGameEntitiesQuery(float delta, DataStore store, int entity, ref IdentifierComponent identifier)
         {
@@ -221,8 +212,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             
             store.Free(entity);
         }
-        
-        WaywardBeyond.GameState.Set(GameState.MainMenu);
     }
     
     private readonly struct GameLoadContext : IDisposable
