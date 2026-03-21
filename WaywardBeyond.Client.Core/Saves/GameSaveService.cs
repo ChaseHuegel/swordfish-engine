@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
-using WaywardBeyond.Client.Core.Characters;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -84,7 +83,7 @@ internal sealed class GameSaveService(
         var seed = BitConverter.ToInt32(seedHash);
 
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var level = new Level(WaywardBeyond.Version, seed, nowUtcMs, _AgeMs: 0, _SpawnX: 0, _SpawnY: 1, _SpawnZ: 5);
+        var level = new Level(WaywardBeyond.Version, seed, nowUtcMs, _AgeMs: 0, _SpawnX: 0, _SpawnY: 1, _SpawnZ: 5, GameMode.Creative);
         var save = new GameSave(saveDirectory, options.Name, level);
         
         Save(save);

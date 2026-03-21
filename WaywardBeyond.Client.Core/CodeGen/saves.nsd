@@ -1,6 +1,12 @@
 ﻿#version 1.0;
 #namespace WaywardBeyond.Client.Core.Saves;
 
+enum GameMode
+{
+    Creative;
+    Adventure;
+}
+
 message Version
 {
     uint DataVersion   = 0;
@@ -20,6 +26,8 @@ message Level
     int SpawnX = 4;
     int SpawnY = 5;
     int SpawnZ = 6;
+
+    GameMode DefaultGameMode = 7;
 }
 
 message Character
@@ -41,4 +49,24 @@ message Character
     int Resolve = 10;
     
     int Body = 11;
+}
+
+message CharacterEntityData
+{
+    string Guid = 0;
+    
+    double X = 1;
+    double Y = 2;
+    double Z = 3;
+    
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    
+    float ScaleX = 8;
+    float ScaleY = 9;
+    float ScaleZ = 10;
+    
+    GameMode GameMode = 11;
 }

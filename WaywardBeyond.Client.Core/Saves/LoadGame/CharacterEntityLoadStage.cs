@@ -8,7 +8,6 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Characters;
 using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
@@ -86,7 +85,7 @@ internal sealed class CharacterEntityLoadStage(
             //  No entity found, create a new one
             var spawnPosition = new Vector3(save.Level.SpawnX, save.Level.SpawnY, save.Level.SpawnZ);
             Guid guid = Guid.Parse(characterSave.Character.Guid);
-            characterEntityModel = new CharacterEntityModel(guid, spawnPosition, Quaternion.Identity, GameMode.Creative);
+            characterEntityModel = new CharacterEntityModel(guid, spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
         }
 
         _playerCharacterEntityBuilder.Create(characterSave.Character, characterEntityModel.Value);

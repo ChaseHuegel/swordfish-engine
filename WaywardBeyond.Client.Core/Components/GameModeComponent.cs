@@ -1,5 +1,5 @@
 using Swordfish.ECS;
-using WaywardBeyond.Client.Core.Characters;
+using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Components;
 
