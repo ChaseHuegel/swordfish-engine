@@ -80,8 +80,6 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
                 Width = new Fixed(_backgroundMaterial.Textures[0].Width),
                 Height = new Fixed(_backgroundMaterial.Textures[0].Height),
             };
