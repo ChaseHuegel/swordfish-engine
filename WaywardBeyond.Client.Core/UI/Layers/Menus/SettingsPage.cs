@@ -118,6 +118,10 @@ internal abstract class SettingsPage<TIdentifier>(
                 OnFOVChanged
             );
             
+            
+            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
+            _gameplaySettings.ControlHints.Set(controlHints);
+            
             bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
             _gameplaySettings.Autosave.Set(autosave);
 
