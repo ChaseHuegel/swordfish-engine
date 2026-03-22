@@ -107,17 +107,6 @@ internal abstract class SettingsPage<TIdentifier>(
                 Width = new Fixed(300),
             };
             
-            ui.NumberControl(
-                id: "Control_FOV",
-                text: _localization.GetString("ui.setting.fov")!,
-                _renderSettings.FOV,
-                constraints: new Int2(60, 120),
-                display: new Int2(60, 120),
-                steps: 12,
-                _soundEffectService,
-                OnFOVChanged
-            );
-            
             bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
             _gameplaySettings.ControlHints.Set(controlHints);
             
@@ -140,6 +129,17 @@ internal abstract class SettingsPage<TIdentifier>(
                     OnAutosaveIntervalChanged
                 );
             }
+            
+            ui.NumberControl(
+                id: "Control_FOV",
+                text: _localization.GetString("ui.setting.fov")!,
+                _renderSettings.FOV,
+                constraints: new Int2(60, 120),
+                display: new Int2(60, 120),
+                steps: 12,
+                _soundEffectService,
+                OnFOVChanged
+            );
         }
         
         using (ui.Element())
