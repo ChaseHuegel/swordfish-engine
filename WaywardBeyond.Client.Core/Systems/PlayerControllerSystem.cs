@@ -80,6 +80,7 @@ internal sealed class PlayerControllerSystem
         
         if (!store.TryGet(entity, out TransformComponent transform))
         {
+            _cursorDeltaBuffer.Clear();
             return;
         }
         
@@ -97,6 +98,7 @@ internal sealed class PlayerControllerSystem
 
         if (!_inputEnabled || _windowUnfocused)
         {
+            _cursorDeltaBuffer.Clear();
             return;
         }
 
