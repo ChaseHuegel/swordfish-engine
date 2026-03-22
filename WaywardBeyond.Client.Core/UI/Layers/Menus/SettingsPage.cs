@@ -1,8 +1,6 @@
-using System;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
@@ -120,8 +118,22 @@ internal abstract class SettingsPage<TIdentifier>(
                 OnFOVChanged
             );
             
-            bool value = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
-            _gameplaySettings.Autosave.Set(value);
+            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
+            _gameplaySettings.Autosave.Set(autosave);
+
+            if (autosave)
+            {
+                ui.NumberControl(
+                    id: "Control_AutosaveMinutes",
+                    text: _localization.GetString("ui.setting.autosave.interval.minutes")!,
+                    _gameplaySettings.AutosaveIntervalMs,
+                    constraints: new Int2(1000 * 60, 1000 * 60 * 60), //  1 minute to 1 hour
+                    display: new Int2(1, 60),
+                    steps: 59,
+                    _soundEffectService,
+                    OnAutosaveIntervalChanged
+                );
+            }
         }
         
         using (ui.Element())
@@ -298,5 +310,10 @@ internal abstract class SettingsPage<TIdentifier>(
     private void OnMusicVolumeChanged(float oldValue, float newValue, float change)
     {
         _volumeSettings.Music.Set(newValue);
+    }
+    
+    private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
+    {
+        _gameplaySettings.AutosaveIntervalMs.Set(newValue);
     }
 }
