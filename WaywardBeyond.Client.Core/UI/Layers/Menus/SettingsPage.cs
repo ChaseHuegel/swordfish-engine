@@ -178,8 +178,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.master")!,
                 _volumeSettings.Master,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnMasterVolumeChanged
             );
@@ -189,8 +189,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.interface")!,
                 _volumeSettings.Interface,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnInterfaceVolumeChanged
             );
@@ -200,8 +200,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.effects")!,
                 _volumeSettings.Effects,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnEffectsVolumeChanged
             );
@@ -211,8 +211,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.music")!,
                 _volumeSettings.Music,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnMusicVolumeChanged
             );
