@@ -49,6 +49,15 @@ message Character
     int Resolve = 10;
     
     int Body = 11;
+    
+    ItemData[]? Inventory = 20;
+}
+
+message ItemData
+{
+    string ID = 0;
+    int Count = 1;
+    int MaxSize = 2;
 }
 
 message CharacterEntityData

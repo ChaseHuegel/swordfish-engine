@@ -427,7 +427,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _charisma,
                     _education,
                     _resolve,
-                    _Body: _characterMaterialIndex
+                    _Body: _characterMaterialIndex,
+                     _Inventory: null
                 );
                 
                 Task.Run(() =>
