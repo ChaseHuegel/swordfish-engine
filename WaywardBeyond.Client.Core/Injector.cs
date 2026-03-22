@@ -19,6 +19,7 @@ using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
+using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
 using WaywardBeyond.Client.Core.Systems;
@@ -27,7 +28,9 @@ using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
+using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core;
@@ -184,6 +187,9 @@ public class Injector : IDryIocInjector
         
         container.Register<LocalizedTagsDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<LocalizedTags>, LocalizedTagsDatabase>();
+        
+        container.Register<BlueprintDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
     }
     
     private static void RegisterParsers(IContainer container)
@@ -193,6 +199,7 @@ public class Injector : IDryIocInjector
         container.RegisterTomlParser<LocalizedTagsDefinition>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
+        container.RegisterMany<VoxelEntityModelParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)
@@ -200,6 +207,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
+        container.Register<IEntitySystem, MainMenuAnimationSystem>();
         
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();

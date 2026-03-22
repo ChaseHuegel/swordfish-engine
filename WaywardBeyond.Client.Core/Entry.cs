@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Numerics;
 using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -6,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Physics;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
@@ -24,7 +26,8 @@ internal sealed class Entry : IAutoActivate
         in RenderSettings renderSettings,
         in IFileParseService fileParseService,
         in IShortcutService shortcutService,
-        in ModalMenu modalMenu
+        in ModalMenu modalMenu,
+        in IPhysics physics
     ) {
         _windowContext = windowContext;
         _modalMenu = modalMenu;
@@ -59,6 +62,8 @@ internal sealed class Entry : IAutoActivate
             action: OpenFeedbackForm
         );
         shortcutService.RegisterShortcut(feedbackShortcut);
+   
+        physics.SetGravity(Vector3.Zero);
     }
 
     internal void Quit()
