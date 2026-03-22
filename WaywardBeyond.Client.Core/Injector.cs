@@ -27,7 +27,9 @@ using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
+using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Core;
@@ -183,6 +185,9 @@ public class Injector : IDryIocInjector
         
         container.Register<LocalizedTagsDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<LocalizedTags>, LocalizedTagsDatabase>();
+        
+        container.Register<BlueprintDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
     }
     
     private static void RegisterParsers(IContainer container)
