@@ -118,9 +118,11 @@ internal abstract class SettingsPage<TIdentifier>(
                 OnFOVChanged
             );
             
-            
             bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
             _gameplaySettings.ControlHints.Set(controlHints);
+            
+            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplaySettings.Crosshair, _soundEffectService);
+            _gameplaySettings.Crosshair.Set(crosshair);
             
             bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
             _gameplaySettings.Autosave.Set(autosave);

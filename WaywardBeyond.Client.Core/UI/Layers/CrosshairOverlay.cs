@@ -5,15 +5,19 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class CrosshairOverlay : IUILayer
 {
+    private readonly GameplaySettings _gameplaySettings;
     private readonly Material? _crosshairMaterial;
     
-    public CrosshairOverlay(ILogger<CrosshairOverlay> logger, IAssetDatabase<Material> materialDatabase)
+    public CrosshairOverlay(ILogger<CrosshairOverlay> logger, IAssetDatabase<Material> materialDatabase, GameplaySettings gameplaySettings)
     {
+        _gameplaySettings = gameplaySettings;
+        
         Result<Material> materialResult = materialDatabase.Get("ui/crosshair");
         if (!materialResult)
         {
@@ -26,7 +30,7 @@ internal class CrosshairOverlay : IUILayer
     
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing;
+        return WaywardBeyond.GameState == GameState.Playing && _gameplaySettings.Crosshair.Get();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)

@@ -64,6 +64,7 @@
 "ui.setting.autosave" = "Autosave"
 "ui.setting.autosave.interval.minutes" = "  Minutes"
 "ui.setting.controlHints" = "Control hints"
+"ui.setting.crosshair" = "Crosshair"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"
