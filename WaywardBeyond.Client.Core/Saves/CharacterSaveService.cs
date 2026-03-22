@@ -49,7 +49,7 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
         PathInfo characterSavePath = _charactersDirectory.At($"{character.Guid}.dat");
         var characterSave = new CharacterSave(characterSavePath, character);
 
-        Result saveResult = Save(characterSave);
+        Result<CharacterSave> saveResult = Save(characterSave);
         if (!saveResult)
         {
             _notificationService.Push(_localizedFormatter.GetString("notification.character.create.failed", character.Name));
@@ -57,10 +57,10 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
         }
         
         _notificationService.Push(_localizedFormatter.GetString("notification.character.created", character.Name));
-        return Result<CharacterSave>.FromSuccess(characterSave);
+        return Result<CharacterSave>.FromSuccess(saveResult.Value);
     }
 
-    public Result Save(CharacterSave save)
+    public Result<CharacterSave> Save(CharacterSave save)
     {
         try
         {
@@ -100,12 +100,12 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             save.Path.Write(stream);
 
             _notificationService.Push(_localizedFormatter.GetString("notification.character.saved", save.Character.Name));
-            return Result.FromSuccess();
+            return Result<CharacterSave>.FromSuccess(new CharacterSave(save.Path, character));
         }
         catch (Exception ex)
         {
             _notificationService.Push(_localizedFormatter.GetString("notification.character.saving.failed", save.Character.Name));
-            return new Result(success: false, $"Unexpected error saving character \"{save.Character.Name}\".", ex);
+            return new Result<CharacterSave>(success: false, default, $"Unexpected error saving character \"{save.Character.Name}\".", ex);
         }
     }
 }
