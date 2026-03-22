@@ -9,6 +9,4 @@ public sealed class GameplaySettings : Config<GameplaySettings>
     public DataBinding<int> AutosaveIntervalMs { get; private set; } = new(1000 * 60 * 5);  //  Default to 5 minutes
     public DataBinding<bool> ControlHints { get; private set; } = new(true);
     public DataBinding<bool> Crosshair { get; private set; } = new(true);
-    public DataBinding<bool> RememberShape { get; private set; } = new(true);
-    public DataBinding<bool> RememberOrientation { get; private set; } = new(true);
 }

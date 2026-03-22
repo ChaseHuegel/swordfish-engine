@@ -64,6 +64,12 @@ internal abstract class SettingsPage<TIdentifier>(
                 Width = new Fixed(300),
             };
             
+            bool rememberShape = ui.Checkbox(id: "Checkbox_RememberShape", text: _localization.GetString("ui.setting.rememberShape")!, isChecked: _controlSettings.RememberShape, _soundEffectService);
+            _controlSettings.RememberShape.Set(rememberShape);
+            
+            bool rememberOrientation = ui.Checkbox(id: "Checkbox_RememberOrientation", text: _localization.GetString("ui.setting.rememberOrientation")!, isChecked: _controlSettings.RememberOrientation, _soundEffectService);
+            _controlSettings.RememberOrientation.Set(rememberOrientation);
+            
             ui.NumberControl(
                 id: "Control_LookSensitivity",
                 text: _localization.GetString("ui.setting.mouseSensitivity")!,
@@ -106,12 +112,6 @@ internal abstract class SettingsPage<TIdentifier>(
                 Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
-            
-            bool rememberShape = ui.Checkbox(id: "Checkbox_RememberShape", text: _localization.GetString("ui.setting.rememberShape")!, isChecked: _gameplaySettings.RememberShape, _soundEffectService);
-            _gameplaySettings.RememberShape.Set(rememberShape);
-            
-            bool rememberOrientation = ui.Checkbox(id: "Checkbox_RememberOrientation", text: _localization.GetString("ui.setting.rememberOrientation")!, isChecked: _gameplaySettings.RememberOrientation, _soundEffectService);
-            _gameplaySettings.RememberOrientation.Set(rememberOrientation);
             
             bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
             _gameplaySettings.ControlHints.Set(controlHints);

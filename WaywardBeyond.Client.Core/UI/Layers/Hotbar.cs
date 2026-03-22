@@ -30,7 +30,7 @@ internal class Hotbar : IUILayer
     private readonly IECSContext _ecsContext;
     private readonly PlayerInteractionService _playerInteractionService;
     private readonly NotificationService _notificationService;
-    private readonly GameplaySettings _gameplaySettings;
+    private readonly ControlSettings _controlSettings;
 
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
@@ -46,14 +46,14 @@ internal class Hotbar : IUILayer
         in IECSContext ecsContext,
         in PlayerInteractionService playerInteractionService,
         in NotificationService notificationService,
-        in GameplaySettings gameplaySettings
+        in ControlSettings controlSettings
     ) {
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _playerInteractionService = playerInteractionService;
         _notificationService = notificationService;
-        _gameplaySettings = gameplaySettings;
+        _controlSettings = controlSettings;
 
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
@@ -205,12 +205,12 @@ internal class Hotbar : IUILayer
     {
         _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
 
-        if (!_gameplaySettings.RememberShape.Get())
+        if (!_controlSettings.RememberShape.Get())
         {
             _playerInteractionService.SelectedShape.Set(BrickShape.Block);
         }
         
-        if (!_gameplaySettings.RememberOrientation.Get())
+        if (!_controlSettings.RememberOrientation.Get())
         {
             _playerInteractionService.SelectedOrientation.Set(Orientation.Identity);
         }
