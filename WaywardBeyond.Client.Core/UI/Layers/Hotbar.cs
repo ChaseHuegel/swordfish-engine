@@ -11,10 +11,13 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
@@ -27,6 +30,7 @@ internal class Hotbar : IUILayer
     private readonly IECSContext _ecsContext;
     private readonly PlayerInteractionService _playerInteractionService;
     private readonly NotificationService _notificationService;
+    private readonly GameplaySettings _gameplaySettings;
 
     private readonly Vector4 _backgroundColor;
     private readonly Vector4 _slotColor;
@@ -41,13 +45,15 @@ internal class Hotbar : IUILayer
         in PlayerData playerData,
         in IECSContext ecsContext,
         in PlayerInteractionService playerInteractionService,
-        in NotificationService notificationService
+        in NotificationService notificationService,
+        in GameplaySettings gameplaySettings
     ) {
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
         _playerInteractionService = playerInteractionService;
         _notificationService = notificationService;
+        _gameplaySettings = gameplaySettings;
 
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
         _slotColor = Color.FromArgb(int.Parse("FF3978A8", NumberStyles.HexNumber)).ToVector4();
@@ -64,7 +70,7 @@ internal class Hotbar : IUILayer
                 Modifiers = ShortcutModifiers.None,
                 Key = Key.D1 + slotIndex,
                 IsEnabled = IsInputAllowed,
-                Action = () => _playerData.SetActiveSlot(_ecsContext.World.DataStore, slotIndex),
+                Action = () => SetActiveSlot(slotIndex),
             };
             
             shortcutService.RegisterShortcut(shortcut);
@@ -192,6 +198,21 @@ internal class Hotbar : IUILayer
         activeSlot -= (int)scrollDelta;
         activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
         
+        SetActiveSlot(activeSlot);
+    }
+
+    private void SetActiveSlot(int activeSlot)
+    {
         _playerData.SetActiveSlot(_ecsContext.World.DataStore, activeSlot);
+
+        if (!_gameplaySettings.RememberShape.Get())
+        {
+            _playerInteractionService.SelectedShape.Set(BrickShape.Block);
+        }
+        
+        if (!_gameplaySettings.RememberOrientation.Get())
+        {
+            _playerInteractionService.SelectedOrientation.Set(Orientation.Identity);
+        }
     }
 }

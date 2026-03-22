@@ -65,6 +65,8 @@
 "ui.setting.autosave.interval.minutes" = "  Minutes"
 "ui.setting.controlHints" = "Control hints"
 "ui.setting.crosshair" = "Crosshair"
+"ui.setting.rememberShape" = "Remember shape"
+"ui.setting.rememberOrientation" = "Remember orientation"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"
