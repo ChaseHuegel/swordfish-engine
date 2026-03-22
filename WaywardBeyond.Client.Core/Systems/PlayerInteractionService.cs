@@ -308,7 +308,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             
             //  If the selected shape is orientable for the brick, apply orientation.
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
-            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
+            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementLocalOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
 
             _soundEffectServce.PlayPlaceMetal();
             
@@ -410,7 +410,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugInfo.Coordinate = brickPos;
         _debugInfo.Position = worldPos;
         
-        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementQuaternion(transformComponent, clickedPoint, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
+        Quaternion placeableOrientation = holdingPlaceable ? GetPlacementWorldQuaternion(transformComponent, clickedPoint, worldPos) : transformComponent.Orientation * new Orientation(clickedVoxel.Orientation).ToQuaternion();
 
         //  TODO clean this up
         if (_debugSettings.OverlayVisible)
@@ -478,7 +478,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
-    private Quaternion GetPlacementQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
+    private Quaternion GetPlacementWorldQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
+    {
+        return transformComponent.Orientation * GetPlacementLocalQuaternion(transformComponent, clickedPos, brickPosWorld);
+    }
+    
+    
+    private Quaternion GetPlacementLocalQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
     {
         CameraEntity camera = _renderContext.MainCamera.Get();
         Quaternion baseQuaternion = GetPlacementLocalQuaternion(
@@ -493,12 +499,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         var offsetQuaternion = selectedOrientation.ToQuaternion(); 
         Quaternion quaternion = baseQuaternion * offsetQuaternion;
         
-        return transformComponent.Orientation * quaternion;
+        return quaternion;
     }
     
-    private Orientation GetPlacementOrientation(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
+    private Orientation GetPlacementLocalOrientation(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
     {
-        Quaternion quaternion = GetPlacementQuaternion(transformComponent, clickedPos, brickPosWorld);
+        Quaternion quaternion = GetPlacementLocalQuaternion(transformComponent, clickedPos, brickPosWorld);
         return new Orientation(quaternion);
     }
     
