@@ -266,6 +266,17 @@ internal abstract class SettingsPage<TIdentifier>(
 
             value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
+            
+            ui.NumberControl(
+                id: "Control_RenderDistance",
+                text: _localization.GetString("ui.setting.renderDistance")!,
+                _renderSettings.FarPlane,
+                constraints: new Float2(500, 5_000),
+                display: new Int2(1, 10),
+                steps: 9,
+                _soundEffectService,
+                OnRenderDistanceChanged
+            );
         }
 
         using (ui.Element())
@@ -293,7 +304,7 @@ internal abstract class SettingsPage<TIdentifier>(
         
         return Result.FromSuccess();
     }
-    
+
     private void OnFOVChanged(int oldValue, int newValue, int change)
     {
         _renderSettings.FOV.Set(newValue);
@@ -327,5 +338,10 @@ internal abstract class SettingsPage<TIdentifier>(
     private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
     {
         _gameplaySettings.AutosaveIntervalMs.Set(newValue);
+    }
+    
+    private void OnRenderDistanceChanged(float oldValue, float newValue, float change)
+    {
+        _renderSettings.FarPlane.Set(newValue);
     }
 }

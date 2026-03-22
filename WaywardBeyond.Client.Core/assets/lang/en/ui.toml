@@ -67,6 +67,7 @@
 "ui.setting.crosshair" = "Crosshair"
 "ui.setting.rememberShape" = "Remember shape"
 "ui.setting.rememberOrientation" = "Remember orientation"
+"ui.setting.renderDistance" = "Render distance"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"
