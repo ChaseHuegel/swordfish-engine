@@ -9,6 +9,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -32,6 +33,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
     private readonly CharacterSaveManager _characterSaveManager;
+    private readonly GameplaySettings _gameplaySettings;
 
     private readonly Timer _autosaveTimer;
     
@@ -44,12 +46,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IShortcutService shortcutService,
         in IECSContext ecs,
         in IPhysics physics,
-        in CharacterSaveManager characterSaveManager
+        in CharacterSaveManager characterSaveManager,
+        in GameplaySettings gameplaySettings
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
         _physics = physics;
         _characterSaveManager = characterSaveManager;
+        _gameplaySettings = gameplaySettings;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -129,6 +133,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     private void OnWindowClosed()
     {
+        if (!_gameplaySettings.Autosave.Get())
+        {
+            return;
+        }
+        
         Save();
     }
 
@@ -139,12 +148,22 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     private void OnAutosave(object? state)
     {
+        if (!_gameplaySettings.Autosave.Get())
+        {
+            return;
+        }
+        
         Save();
     }
     
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
         if (e.NewValue != GameState.Paused)
+        {
+            return;
+        }
+        
+        if (!_gameplaySettings.Autosave.Get())
         {
             return;
         }

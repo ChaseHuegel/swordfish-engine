@@ -19,6 +19,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
+    in GameplaySettings gameplaySettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
@@ -28,9 +29,10 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
+    private readonly GameplaySettings _gameplaySettings = gameplaySettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
-    
+
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
@@ -117,6 +119,9 @@ internal abstract class SettingsPage<TIdentifier>(
                 _soundEffectService,
                 OnFOVChanged
             );
+            
+            bool value = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
+            _gameplaySettings.Autosave.Set(value);
         }
         
         using (ui.Element())

@@ -12,6 +12,7 @@ internal sealed class SettingsManager : IAutoActivate
     private readonly RenderSettings _renderSettings;
     private readonly AudioSettings _audioSettings;
     private readonly VolumeSettings _volumeSettings;
+    private readonly GameplaySettings _gameplaySettings;
     
     public SettingsManager(
         in IWindowContext windowContext,
@@ -19,13 +20,15 @@ internal sealed class SettingsManager : IAutoActivate
         in WindowSettings windowSettings,
         in RenderSettings renderSettings,
         in AudioSettings audioSettings,
-        in VolumeSettings volumeSettings
+        in VolumeSettings volumeSettings,
+        GameplaySettings gameplaySettings
     ) {
         _controlSettings = controlSettings;
         _windowSettings = windowSettings;
         _renderSettings = renderSettings;
         _audioSettings = audioSettings;
         _volumeSettings = volumeSettings;
+        _gameplaySettings = gameplaySettings;
 
         windowContext.Closed += OnWindowClosed;
         ApplySettings();
@@ -38,6 +41,7 @@ internal sealed class SettingsManager : IAutoActivate
         _controlSettings.Save();
         _audioSettings.Save();
         _volumeSettings.Save();
+        _gameplaySettings.Save();
     }
 
     private void OnWindowClosed()
