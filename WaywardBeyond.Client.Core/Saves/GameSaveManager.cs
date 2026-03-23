@@ -1,5 +1,4 @@
 using System;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoal.DependencyInjection;
@@ -7,7 +6,6 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 
 namespace WaywardBeyond.Client.Core.Saves;
@@ -30,7 +28,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     private readonly GameSaveService _gameSaveService;
     private readonly IECSContext _ecs;
-    private readonly IPhysics _physics;
     private readonly CharacterSaveManager _characterSaveManager;
 
     private readonly Timer _autosaveTimer;
@@ -43,12 +40,10 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
         in IECSContext ecs,
-        in IPhysics physics,
         in CharacterSaveManager characterSaveManager
     ) {
         _gameSaveService = gameSaveService;
         _ecs = ecs;
-        _physics = physics;
         _characterSaveManager = characterSaveManager;
 
         Shortcut saveShortcut = new(
@@ -94,7 +89,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             ActiveSave = save;
         }
 
-        using var gameLoadContext = new GameLoadContext(_physics, _characterSaveManager, gameSaveManager: this);
+        using var gameLoadContext = new GameLoadContext(_characterSaveManager, gameSaveManager: this);
         return _gameSaveService.Load(save);
     }
     
@@ -207,14 +202,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         private readonly GameSaveManager _gameSaveManager;
 
         public GameLoadContext(
-            IPhysics physics,
             CharacterSaveManager characterSaveManager,
             GameSaveManager gameSaveManager
         ) {
             _characterSaveManager = characterSaveManager;
             _gameSaveManager = gameSaveManager;
             WaywardBeyond.GameState.Set(GameState.Loading);
-            physics.SetGravity(Vector3.Zero);
         }
         
         public void Dispose()

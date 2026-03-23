@@ -19,6 +19,7 @@ using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
 using WaywardBeyond.Client.Core.Saves.NewGame;
+using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
 using WaywardBeyond.Client.Core.Systems;
@@ -197,6 +198,7 @@ public class Injector : IDryIocInjector
         container.RegisterTomlParser<LocalizedTagsDefinition>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
+        container.RegisterMany<VoxelEntityModelParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)

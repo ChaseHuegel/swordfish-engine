@@ -1,4 +1,5 @@
 using System.Drawing;
+using System.Numerics;
 using HardwareInformation;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -6,6 +7,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Physics;
 using Swordfish.Settings;
 
 namespace WaywardBeyond.Client.Core;
@@ -20,7 +22,8 @@ internal sealed class Entry : IAutoActivate
         in IWindowContext windowContext,
         in WindowSettings windowSettings,
         in RenderSettings renderSettings,
-        in IFileParseService fileParseService
+        in IFileParseService fileParseService,
+        in IPhysics physics
     ) {
         _windowContext = windowContext;
 
@@ -44,6 +47,8 @@ internal sealed class Entry : IAutoActivate
         var skybox = fileParseService.Parse<TextureCubemap>(AssetPaths.Textures.At(@"skyboxes\stars01\"));
         renderSettings.Skybox.Set(skybox);
         renderSettings.AmbientLight.Set(Color.FromArgb(20, 21, 37).ToVector3());
+   
+        physics.SetGravity(Vector3.Zero);
     }
 
     internal void Quit()

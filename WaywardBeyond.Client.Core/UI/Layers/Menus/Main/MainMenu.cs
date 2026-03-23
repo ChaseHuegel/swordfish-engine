@@ -1,8 +1,10 @@
+using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
@@ -10,27 +12,35 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Client.Core.Voxels;
+using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
     private readonly ExternalAppService _externalAppService;
+    private readonly IRenderContext _renderContext;
     private readonly Material? _backgroundMaterial;
     private readonly Widgets.ButtonOptions _buttonOptions;
 
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
         IAssetDatabase<Material> materialDatabase,
+        BlueprintDatabase blueprintDatabase,
         ReefContext reefContext,
         IShortcutService shortcutService,
         SoundEffectService soundEffectService,
         ExternalAppService externalAppService,
-        IMenuPage<MenuPage>[] pages
+        VoxelEntityBuilder voxelEntityBuilder,
+        IMenuPage<MenuPage>[] pages,
+        IRenderContext renderContext
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _externalAppService = externalAppService;
-        
+        _renderContext = renderContext;
+
         Result<Material> materialResult = materialDatabase.Get("ui/menu/background");
         if (materialResult)
         {
@@ -39,6 +49,17 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         else
         {
             logger.LogError(materialResult, "Failed to load the background material, it will not be able to render.");
+        }
+
+        Result<VoxelEntityModel> blueprintResult = blueprintDatabase.Get("builtin/mainMenu");
+        if (blueprintResult)
+        {
+            VoxelEntityModel voxelEntityModel = blueprintResult.Value;
+            voxelEntityBuilder.Create(voxelEntityModel.Guid, voxelEntityModel.VoxelObject, new Vector3(0f, 0f, -50f), Quaternion.Identity, Vector3.One);
+        }
+        else
+        {
+            logger.LogError(materialResult, "Failed to load the background blueprint, it will not be displayed.");
         }
         
         _buttonOptions = new Widgets.ButtonOptions(
@@ -73,19 +94,21 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         {
             return base.RenderUI(delta, ui);
         }
+        
+        _renderContext.MainCamera.Get().Entity.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
 
         //  Render the background
-        using (ui.Image(_backgroundMaterial))
-        {
-            ui.Constraints = new Constraints
-            {
-                Anchors = Anchors.Center,
-                X = new Relative(0.5f),
-                Y = new Relative(0.5f),
-                Width = new Fixed(_backgroundMaterial.Textures[0].Width),
-                Height = new Fixed(_backgroundMaterial.Textures[0].Height),
-            };
-        }
+        // using (ui.Image(_backgroundMaterial))
+        // {
+        //     ui.Constraints = new Constraints
+        //     {
+        //         Anchors = Anchors.Center,
+        //         X = new Relative(0.5f),
+        //         Y = new Relative(0.5f),
+        //         Width = new Fixed(_backgroundMaterial.Textures[0].Width),
+        //         Height = new Fixed(_backgroundMaterial.Textures[0].Height),
+        //     };
+        // }
 
         using (ui.Element())
         {
