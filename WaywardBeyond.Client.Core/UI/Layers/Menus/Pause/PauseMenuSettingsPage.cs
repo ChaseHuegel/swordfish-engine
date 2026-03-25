@@ -11,6 +11,7 @@ internal sealed class PauseMenuSettingsPage(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
+    in GameplaySettings gameplaySettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : SettingsPage<PausePage>(
@@ -19,6 +20,7 @@ internal sealed class PauseMenuSettingsPage(
     in windowSettings,
     in renderSettings,
     in volumeSettings,
+    in gameplaySettings,
     in soundEffectService,
     in localization
 ) {

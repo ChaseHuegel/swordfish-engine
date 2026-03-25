@@ -4,22 +4,25 @@ using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
 internal class ControlHints(
     in OrientationSelector orientationSelector,
     in ShapeSelector shapeSelector,
-    in ILocalization localization
+    in ILocalization localization,
+    in GameplaySettings gameplaySettings
 ) : IUILayer
 {
     private readonly OrientationSelector _orientationSelector = orientationSelector;
     private readonly ShapeSelector _shapeSelector = shapeSelector;
     private readonly ILocalization _localization = localization;
+    private readonly GameplaySettings _gameplaySettings = gameplaySettings;
 
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing;
+        return WaywardBeyond.GameState == GameState.Playing && _gameplaySettings.ControlHints.Get();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)

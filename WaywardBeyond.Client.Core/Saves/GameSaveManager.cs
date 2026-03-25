@@ -9,6 +9,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -29,11 +30,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     }
     
     private readonly GameSaveService _gameSaveService;
+    private readonly IWindowContext _windowContext;
     private readonly IECSContext _ecs;
     private readonly IPhysics _physics;
     private readonly CharacterSaveManager _characterSaveManager;
+    private readonly GameplaySettings _gameplaySettings;
 
-    private readonly Timer _autosaveTimer;
+    private readonly Lock _autosaveTimerLock = new();
+    private Timer _autosaveTimer;
     
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
@@ -44,12 +48,15 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IShortcutService shortcutService,
         in IECSContext ecs,
         in IPhysics physics,
-        in CharacterSaveManager characterSaveManager
+        in CharacterSaveManager characterSaveManager,
+        in GameplaySettings gameplaySettings
     ) {
         _gameSaveService = gameSaveService;
+        _windowContext = windowContext;
         _ecs = ecs;
         _physics = physics;
         _characterSaveManager = characterSaveManager;
+        _gameplaySettings = gameplaySettings;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -61,14 +68,23 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         );
         shortcutService.RegisterShortcut(saveShortcut);
         
-        //  Automatically save on an interval, on close, and when pausing.
-        _autosaveTimer = new Timer(OnAutosave, state: null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
+        //  Setup autosave on an interval, on close, and when pausing.
         windowContext.Closed += OnWindowClosed;
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
+        
+        using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
+        int autosaveIntervalMs = gameplaySettings.AutosaveIntervalMs.Get();
+        _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
+        gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
     }
 
     public void Dispose()
     {
+        _windowContext.Closed -= OnWindowClosed;
+        WaywardBeyond.GameState.Changed -= OnGameStateChanged;
+        _gameplaySettings.AutosaveIntervalMs.Changed -= OnAutosaveIntervalChanged;
+
+        using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
     }
     
@@ -127,31 +143,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         return Task.CompletedTask;
     }
     
-    private void OnWindowClosed()
-    {
-        Save();
-    }
-
-    private void OnQuicksave()
-    {
-        Task.Run(Save);
-    }
-    
-    private void OnAutosave(object? state)
-    {
-        Save();
-    }
-    
-    private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
-    {
-        if (e.NewValue != GameState.Paused)
-        {
-            return;
-        }
-        
-        Save();
-    }
-    
     public void SaveAndExit()
     {
         if (WaywardBeyond.GameState >= GameState.Playing)
@@ -162,6 +153,58 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         ActiveSave = null;
         CleanupEcs();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
+    }
+    
+    private void OnWindowClosed()
+    {
+        if (!_gameplaySettings.Autosave.Get())
+        {
+            return;
+        }
+        
+        Save();
+    }
+
+    private void OnQuicksave()
+    {
+        Task.Run(Save);
+    }
+    
+    private void OnAutosave(object? state)
+    {
+        if (!_gameplaySettings.Autosave.Get())
+        {
+            return;
+        }
+        
+        Save();
+    }
+    
+    private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
+    {
+        if (e.NewValue != GameState.Paused)
+        {
+            return;
+        }
+        
+        if (!_gameplaySettings.Autosave.Get())
+        {
+            return;
+        }
+        
+        Save();
+    }
+    
+    private void OnAutosaveIntervalChanged(object? sender, DataChangedEventArgs<int> e)
+    {
+        UpdateAutosaveTimer(e.NewValue);
+    }
+    
+    private void UpdateAutosaveTimer(int intervalMs)
+    {
+        using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
+        _autosaveTimer.Dispose();
+        _autosaveTimer = new Timer(OnAutosave, state: null, intervalMs, intervalMs);
     }
 
     private void CleanupEcs()

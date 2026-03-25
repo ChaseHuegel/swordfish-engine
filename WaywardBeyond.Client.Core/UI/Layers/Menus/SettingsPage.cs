@@ -1,8 +1,6 @@
-using System;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
@@ -19,6 +17,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
+    in GameplaySettings gameplaySettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
@@ -28,9 +27,10 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
+    private readonly GameplaySettings _gameplaySettings = gameplaySettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
-    
+
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
             Size = 32,
@@ -63,6 +63,12 @@ internal abstract class SettingsPage<TIdentifier>(
                 Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
+            
+            bool rememberShape = ui.Checkbox(id: "Checkbox_RememberShape", text: _localization.GetString("ui.setting.rememberShape")!, isChecked: _controlSettings.RememberShape, _soundEffectService);
+            _controlSettings.RememberShape.Set(rememberShape);
+            
+            bool rememberOrientation = ui.Checkbox(id: "Checkbox_RememberOrientation", text: _localization.GetString("ui.setting.rememberOrientation")!, isChecked: _controlSettings.RememberOrientation, _soundEffectService);
+            _controlSettings.RememberOrientation.Set(rememberOrientation);
             
             ui.NumberControl(
                 id: "Control_LookSensitivity",
@@ -106,6 +112,29 @@ internal abstract class SettingsPage<TIdentifier>(
                 Anchors = Anchors.Center,
                 Width = new Fixed(300),
             };
+            
+            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
+            _gameplaySettings.ControlHints.Set(controlHints);
+            
+            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplaySettings.Crosshair, _soundEffectService);
+            _gameplaySettings.Crosshair.Set(crosshair);
+            
+            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
+            _gameplaySettings.Autosave.Set(autosave);
+
+            if (autosave)
+            {
+                ui.NumberControl(
+                    id: "Control_AutosaveMinutes",
+                    text: _localization.GetString("ui.setting.autosave.interval.minutes")!,
+                    _gameplaySettings.AutosaveIntervalMs,
+                    constraints: new Int2(1000 * 60, 1000 * 60 * 60), //  1 minute to 1 hour
+                    display: new Int2(1, 60),
+                    steps: 59,
+                    _soundEffectService,
+                    OnAutosaveIntervalChanged
+                );
+            }
             
             ui.NumberControl(
                 id: "Control_FOV",
@@ -155,8 +184,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.master")!,
                 _volumeSettings.Master,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnMasterVolumeChanged
             );
@@ -166,8 +195,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.interface")!,
                 _volumeSettings.Interface,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnInterfaceVolumeChanged
             );
@@ -177,8 +206,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.effects")!,
                 _volumeSettings.Effects,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnEffectsVolumeChanged
             );
@@ -188,8 +217,8 @@ internal abstract class SettingsPage<TIdentifier>(
                 text: _localization.GetString("ui.setting.volume.music")!,
                 _volumeSettings.Music,
                 constraints: new Float2(0f, 1f),
-                display: new Int2(0, 10),
-                steps: 10,
+                display: new Int2(0, 100),
+                steps: 20,
                 _soundEffectService,
                 OnMusicVolumeChanged
             );
@@ -237,6 +266,17 @@ internal abstract class SettingsPage<TIdentifier>(
 
             value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
+            
+            ui.NumberControl(
+                id: "Control_RenderDistance",
+                text: _localization.GetString("ui.setting.renderDistance")!,
+                _renderSettings.FarPlane,
+                constraints: new Float2(500, 5_000),
+                display: new Int2(1, 10),
+                steps: 9,
+                _soundEffectService,
+                OnRenderDistanceChanged
+            );
         }
 
         using (ui.Element())
@@ -264,7 +304,7 @@ internal abstract class SettingsPage<TIdentifier>(
         
         return Result.FromSuccess();
     }
-    
+
     private void OnFOVChanged(int oldValue, int newValue, int change)
     {
         _renderSettings.FOV.Set(newValue);
@@ -293,5 +333,15 @@ internal abstract class SettingsPage<TIdentifier>(
     private void OnMusicVolumeChanged(float oldValue, float newValue, float change)
     {
         _volumeSettings.Music.Set(newValue);
+    }
+    
+    private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
+    {
+        _gameplaySettings.AutosaveIntervalMs.Set(newValue);
+    }
+    
+    private void OnRenderDistanceChanged(float oldValue, float newValue, float change)
+    {
+        _renderSettings.FarPlane.Set(newValue);
     }
 }

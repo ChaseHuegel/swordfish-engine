@@ -61,6 +61,13 @@
 
 "ui.menu.gameplay" = "Gameplay"
 "ui.setting.fov" = "Field of view"
+"ui.setting.autosave" = "Autosave"
+"ui.setting.autosave.interval.minutes" = "  Minutes"
+"ui.setting.controlHints" = "Control hints"
+"ui.setting.crosshair" = "Crosshair"
+"ui.setting.rememberShape" = "Remember shape"
+"ui.setting.rememberOrientation" = "Remember orientation"
+"ui.setting.renderDistance" = "Render distance"
 
 "ui.menu.controls" = "Controls"
 "ui.setting.mouseSensitivity" = "Sensitivity"
