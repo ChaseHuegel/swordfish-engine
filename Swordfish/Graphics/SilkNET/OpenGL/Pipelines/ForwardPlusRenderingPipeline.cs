@@ -285,64 +285,68 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         float far = renderScene.Projection.M34 / (renderScene.Projection.M33 + 1.0f);
         Matrix4x4.Invert(renderScene.Projection, out Matrix4x4 inverseProjection);
 
-        // Depth pre-pass
-        _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
-        using (_preDepthFBO.Use())
-        using (_depthShader.Use())
+        if (_renderSettings.SAO.Get())
         {
-            _depthShader.SetUniform("view", renderScene.View);
-            _depthShader.SetUniform("projection", renderScene.Projection);
-            _depthShader.SetUniform("near", near);
-            _depthShader.SetUniform("far", far);
-            
-            _gl.DepthMask(true);
-            _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
-            _gl.Enable(GLEnum.DepthTest);
-
-            Draw(delta, renderScene, isDepthPass: true);
-        }
-        _glDebug.TryLogError();
-
-        // SSAO pass
-        using (_ssaoFBO.Use())
-        using (_ssaoShader.Use())
-        using (_preDepthTex.Activate(TextureUnit.Texture0))
-        {
-            _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
-            _ssaoShader.SetUniform("uInvProj", inverseProjection);
-            _ssaoShader.SetUniform("uRadius", 0.1f);
-            _ssaoShader.SetUniform("SIGMA", 0.5f);
-            _ssaoShader.SetUniform("SAO_K", 1.5f);
-            
-            _gl.Clear(ClearBufferMask.ColorBufferBit);
-
-            _screenVAO.Bind();
-            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-            _screenVAO.Unbind();
-        }
-        _glDebug.TryLogError();
-
-        // SSAO blur pass
-        using (_blurShader.Use())
-        using (_ssaoFBO.Use())
-        using (_ssaoTex.Activate(TextureUnit.Texture0))
-        {
-            _blurShader.SetUniform("texture0", 0);
-
-            var horizontal = true;
-            for (var i = 0; i < 4; i++)
+            // Depth pre-pass
+            _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
+            using (_preDepthFBO.Use())
+            using (_depthShader.Use())
             {
-                int horizontalInt = horizontal ? 0 : 1;
-                horizontal = !horizontal;
+                _depthShader.SetUniform("view", renderScene.View);
+                _depthShader.SetUniform("projection", renderScene.Projection);
+                _depthShader.SetUniform("near", near);
+                _depthShader.SetUniform("far", far);
+            
+                _gl.DepthMask(true);
+                _gl.Clear((uint)ClearBufferMask.DepthBufferBit);
+                _gl.Enable(GLEnum.DepthTest);
 
-                _blurShader.SetUniform("uHorizontal", horizontalInt);
+                Draw(delta, renderScene, isDepthPass: true);
+            }
+            _glDebug.TryLogError();
+            
+            // SSAO pass
+            using (_ssaoFBO.Use())
+            using (_ssaoShader.Use())
+            using (_preDepthTex.Activate(TextureUnit.Texture0))
+            {
+                _gl.Uniform1(_gl.GetUniformLocation(_ssaoShader.Handle, "uDepthTex"), 0);
+                _ssaoShader.SetUniform("uInvProj", inverseProjection);
+                _ssaoShader.SetUniform("uRadius", 0.1f);
+                _ssaoShader.SetUniform("SIGMA", 0.5f);
+                _ssaoShader.SetUniform("SAO_K", 1.5f);
+
+                _gl.Clear(ClearBufferMask.ColorBufferBit);
 
                 _screenVAO.Bind();
                 _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
                 _screenVAO.Unbind();
             }
+
+            _glDebug.TryLogError();
+
+            // SSAO blur pass
+            using (_blurShader.Use())
+            using (_ssaoFBO.Use())
+            using (_ssaoTex.Activate(TextureUnit.Texture0))
+            {
+                _blurShader.SetUniform("texture0", 0);
+
+                var horizontal = true;
+                for (var i = 0; i < 4; i++)
+                {
+                    int horizontalInt = horizontal ? 0 : 1;
+                    horizontal = !horizontal;
+
+                    _blurShader.SetUniform("uHorizontal", horizontalInt);
+
+                    _screenVAO.Bind();
+                    _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+                    _screenVAO.Unbind();
+                }
+            }
+            _glDebug.TryLogError();
         }
-        _glDebug.TryLogError();
 
         // Depth full pass
         _gl.Viewport(0, 0, _screenWidth, _screenHeight);
@@ -460,83 +464,90 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     public override void PostRender(double delta, RenderScene renderScene)
     {
         _glDebug.TryLogError();
-        
+
         //  Blit the render buffer to the back buffer to display it
         _renderFBO.Blit(ReadBufferMode.ColorAttachment0, DrawBufferMode.Back, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
         _glDebug.TryLogError();
-        
-        //  Bloom pre-pass
-        //  Blit the bloom renderbuffer to the blur texture
-        _renderFBO.Blit(_blurFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
-        _glDebug.TryLogError();
-        
-        //  Blur the bloom texture
-        //  TODO Blur should be done with separate textures for
-        //       the horizontal and vertical blurs. This creates artifacts,
-        //       but they aren't too noticeable. since this is just for bloom.
-        //       Using a single texture and single pass is a bit more performant.
-        //       Whether one or two textures is used could be driven by quality settings.
-        using (_blurShader.Use())
-        using (_blurFBO.Use())
-        using (_blurTex.Activate(TextureUnit.Texture0))
+
+        if (_renderSettings.Bloom.Get())
         {
-            _blurShader.SetUniform("texture0", 0);
-            
-            var horizontal = true;
-            for (var i = 0; i <= 10; i++)
+            //  Bloom pre-pass
+            //  Blit the bloom renderbuffer to the blur texture
+            _renderFBO.Blit(_blurFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            _glDebug.TryLogError();
+
+            //  Blur the bloom texture
+            //  TODO Blur should be done with separate textures for
+            //       the horizontal and vertical blurs. This creates artifacts,
+            //       but they aren't too noticeable. since this is just for bloom.
+            //       Using a single texture and single pass is a bit more performant.
+            //       Whether one or two textures is used could be driven by quality settings.
+            using (_blurShader.Use())
+            using (_blurFBO.Use())
+            using (_blurTex.Activate(TextureUnit.Texture0))
             {
-                int horizontalInt = horizontal ? 0 : 1;
-                horizontal = !horizontal;
-                
-                _blurShader.SetUniform("uHorizontal", horizontalInt);
-                
+                _blurShader.SetUniform("texture0", 0);
+
+                var horizontal = true;
+                for (var i = 0; i <= 10; i++)
+                {
+                    int horizontalInt = horizontal ? 0 : 1;
+                    horizontal = !horizontal;
+
+                    _blurShader.SetUniform("uHorizontal", horizontalInt);
+
+                    _screenVAO.Bind();
+                    _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
+                    _screenVAO.Unbind();
+                }
+            }
+
+            _glDebug.TryLogError();
+
+            //  Blit the bloom renderbuffer to the screen texture
+            _renderFBO.Blit(_screenFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            _glDebug.TryLogError();
+            
+            //  Return to the back buffer
+            _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+            _gl.Viewport(0, 0, _screenWidth, _screenHeight);
+            
+            //  Render the bloom overlay
+            using (_bloomShader.Use())
+            using (_blurTex.Activate(TextureUnit.Texture0))
+            using (_screenTex.Activate(TextureUnit.Texture1))
+            {
+                _bloomShader.SetUniform("texture0", 0);
+                _bloomShader.SetUniform("texture1", 1);
+
+                _gl.DepthMask(false);
+                _gl.Enable(EnableCap.Blend);
+                _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+
                 _screenVAO.Bind();
                 _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
                 _screenVAO.Unbind();
+
+                _gl.Disable(EnableCap.Blend);
+                _gl.DepthMask(true);
             }
+
+            _glDebug.TryLogError();
         }
-        _glDebug.TryLogError();
-        
-        //  Blit the bloom renderbuffer to the screen texture
-        _renderFBO.Blit(_screenFBO, ReadBufferMode.ColorAttachment1, DrawBufferMode.ColorAttachment0, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
-        _glDebug.TryLogError();
-        
-        //  Return to the back buffer
-        _gl.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-        _gl.Viewport(0, 0, _screenWidth, _screenHeight);
-
-        //  Render the bloom overlay
-        using (_bloomShader.Use())
-        using (_blurTex.Activate(TextureUnit.Texture0))
-        using (_screenTex.Activate(TextureUnit.Texture1))
-        {
-            _bloomShader.SetUniform("texture0", 0);
-            _bloomShader.SetUniform("texture1", 1);
-
-            _gl.DepthMask(false);
-            _gl.Enable(EnableCap.Blend);
-            _gl.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-
-            _screenVAO.Bind();
-            _gl.DrawArrays(PrimitiveType.TriangleStrip, 0, 4);
-            _screenVAO.Unbind();
-
-            _gl.Disable(EnableCap.Blend);
-            _gl.DepthMask(true);
-        }
-        _glDebug.TryLogError();
     }
-    
+
     protected override void ShaderActivationCallback(ShaderProgram shader)
     {
         shader.SetUniform("uScreenSize", (int)_screenWidth, (int)_screenHeight);
         shader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
         shader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
         shader.SetUniform("uAmbientLight", _renderSettings.AmbientLight.Get());
-        
+
+        shader.SetUniform("uEnableAO", _renderSettings.SAO.Get() ? 1f : 0f);
+
         _ssaoTex.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
-        
+
         _preDepthTex.Activate(TextureUnit.Texture6);
         shader.SetUniform("uPreDepth", 6);
         

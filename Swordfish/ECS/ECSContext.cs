@@ -15,15 +15,19 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 
     private readonly ThreadWorker _threadWorker;
     private readonly ILogger _logger;
+    private readonly ECSSettings _ecsSettings;
 
-    public ECSContext(IEntitySystem[] systems, ILogger logger, RenderSettings renderSettings)
+    public ECSContext(IEntitySystem[] systems, ILogger logger, RenderSettings renderSettings, ECSSettings ecsSettings)
     {
         _logger = logger;
+        _ecsSettings = ecsSettings;
 
         _threadWorker = new ThreadWorker(Update, "ECS")
         {
-            TargetTickRate = 512,
+            TargetTickRate = ecsSettings.TargetTPS,
         };
+
+        ecsSettings.TargetTPS.Changed += OnTPSChanged;
 
         World = new World();
         foreach (IEntitySystem system in systems)
@@ -49,6 +53,7 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
 
     public void Dispose()
     {
+        _ecsSettings.TargetTPS.Changed -= OnTPSChanged;
         _threadWorker.Stop();
         _logger.LogInformation("Stopped ECS thread.");
     }
@@ -57,5 +62,10 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
     {
         Delta.Set(delta);
         World.Tick(delta);
+    }
+    
+    private void OnTPSChanged(object? sender, DataChangedEventArgs<int> e)
+    {
+        _threadWorker.TargetTickRate = e.NewValue;
     }
 }
