@@ -23,6 +23,7 @@ using Swordfish.Library.Serialization.Toml;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI.Reef;
+using PhysicsSettings = Swordfish.Settings.PhysicsSettings;
 
 namespace Swordfish;
 
@@ -110,6 +111,8 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterConfig<RenderSettings>(file: "render.toml");
         container.RegisterConfig<WindowSettings>(file: "window.toml");
         container.RegisterConfig<AudioSettings>(file: "audio.toml");
+        container.RegisterConfig<ECSSettings>(file: "ecs.toml");
+        container.RegisterConfig<PhysicsSettings>(file: "physics.toml");
         
         container.RegisterDataBinding<AntiAliasing>();
         container.RegisterDataBinding<WindowMode>();
