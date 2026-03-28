@@ -67,6 +67,11 @@ internal abstract class Menu<TIdentifier> : IUILayer
                 return Result.FromFailure($"Page \"{page.ToString()}\" not found.");
             }
 
+            if (_currentPage.Equals(page))
+            {
+                return Result.FromSuccess();
+            }
+
             _pageHistory.Push(_currentPage);
             _currentPage = page;
             return Result.FromSuccess();

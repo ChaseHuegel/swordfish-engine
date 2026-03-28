@@ -101,3 +101,4 @@
 "ui.hint.quit" = "Esc: Pause"
 "ui.hint.quicksave" = "F5: Quicksave"
 "ui.hint.inventory" = "Tab: Inventory"
+"ui.hint.feedback" = "F8: Send feedback"

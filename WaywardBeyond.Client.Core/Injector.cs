@@ -131,12 +131,6 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<PausePage>, UI.Layers.Menus.Pause.HomePage>();
         container.Register<IMenuPage<PausePage>, PauseMenuSettingsPage>();
         
-        container.Register<ModalMenu>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, ModalMenu>();
-        container.Register<IMenuPage<Modal>, EmptyModal>();
-        container.Register<IMenuPage<Modal>, FeedbackModal>();
-        container.Register<IMenuPage<Modal>, PlaytestNoticeModal>();
-        
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
         
@@ -161,6 +155,12 @@ public class Injector : IDryIocInjector
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
+        
+        container.Register<ModalMenu>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ModalMenu>();
+        container.Register<IMenuPage<Modal>, EmptyModal>();
+        container.Register<IMenuPage<Modal>, FeedbackModal>();
+        container.Register<IMenuPage<Modal>, PlaytestNoticeModal>();
     }
     
     private static void RegisterInput(IContainer container)
