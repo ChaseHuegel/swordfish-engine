@@ -267,6 +267,12 @@ internal abstract class SettingsPage<TIdentifier>(
             value = ui.Checkbox(id: "Checkbox_MSAA", text: _localization.GetString("ui.setting.msaa")!, isChecked: _renderSettings.AntiAliasing == AntiAliasing.MSAA, _soundEffectService);
             _renderSettings.AntiAliasing.Set(value ? AntiAliasing.MSAA : AntiAliasing.None);
             
+            value = ui.Checkbox(id: "Checkbox_SAO", text: _localization.GetString("ui.setting.sao")!, isChecked: _renderSettings.SAO, _soundEffectService);
+            _renderSettings.SAO.Set(value);
+            
+            value = ui.Checkbox(id: "Checkbox_Bloom", text: _localization.GetString("ui.setting.bloom")!, isChecked: _renderSettings.Bloom, _soundEffectService);
+            _renderSettings.Bloom.Set(value);
+            
             ui.NumberControl(
                 id: "Control_RenderDistance",
                 text: _localization.GetString("ui.setting.renderDistance")!,
