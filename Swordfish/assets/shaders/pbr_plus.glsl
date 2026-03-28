@@ -40,6 +40,8 @@ uniform vec3 uAmbientLight = vec3(0.05);
 uniform float uMetallic = 0.5;
 uniform float uRoughness = 0.5;
 
+uniform float uEnableAO;
+
 uniform sampler2D uAO;
 uniform sampler2D uPreDepth;
 uniform sampler2D uDepth;
@@ -142,6 +144,11 @@ vec4 shade(vec3 albedo)
 
 vec4 ao(vec4 albedo)
 {
+    if (uEnableAO < 1.0)
+    {
+        return vec4(1.0);
+    }
+
     vec2 screenUV = (gl_FragCoord.xy + 0.5) / uScreenSize;
 
     float fragDepth = texture(uDepth, screenUV).r;

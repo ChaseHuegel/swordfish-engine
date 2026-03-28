@@ -8,6 +8,7 @@ using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
 using JoltShape = JoltPhysicsSharp.Shape;
 using Shape = Swordfish.Library.Types.Shapes.Shape;
 using ShapeType = Swordfish.Library.Types.Shapes.ShapeType;
+using PhysicsSettings = Swordfish.Settings.PhysicsSettings;
 
 namespace Swordfish.Physics.Jolt;
 
@@ -33,7 +34,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
     public PhysicsSystem System { get; }
     
-    private readonly bool _accumulateUpdates = true;   //  TODO make this a configurable option
+    private readonly PhysicsSettings _physicsSettings;
     private readonly BodyInterface _bodyInterface;
     private readonly BroadPhaseLayerFilter _broadPhaseFilter = new SimpleBroadPhaseLayerFilter();
     private readonly ObjectLayerFilter _objectLayerFilter = new SimpleObjectLayerFilter();
@@ -51,8 +52,10 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         NumBodyMutexes = 0,
     };
 
-    public JoltPhysicsSystem(ILogger logger)
+    public JoltPhysicsSystem(ILogger logger, PhysicsSettings physicsSettings)
     {
+        _physicsSettings = physicsSettings;
+        
         if (!Foundation.Init(doublePrecision: false))
         {
             logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
@@ -121,7 +124,7 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         const float physicsDelta = FIXED_TIMESTEP * TIMESCALE;  //  TODO allow modifying TIMESCALE
         int steps = Math.Max(1, (int)(1f * TIMESCALE));
-        if (_accumulateUpdates)
+        if (_physicsSettings.AccumulateUpdates.Get())
         {
             while (_accumulator >= physicsDelta)
             {
