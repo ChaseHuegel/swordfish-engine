@@ -326,7 +326,7 @@ internal sealed class SelectCharacterPage(
                     };
                     
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
-                    using (ui.Text(DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToString("g")))
+                    using (ui.Text(DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToLocalTime().ToString("g")))
                     {
                         ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }
