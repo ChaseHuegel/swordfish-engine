@@ -28,7 +28,7 @@ internal sealed class PlayerViewModelSystem(
         if (!_viewModelEntity.HasValue)
         {
             _viewModelEntity = new Entity(store.Alloc(), store);
-            _viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel"));
+            _viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel", tag: "game"));
             _viewModelEntity.Value.AddOrUpdate(new TransformComponent());
         }
         
