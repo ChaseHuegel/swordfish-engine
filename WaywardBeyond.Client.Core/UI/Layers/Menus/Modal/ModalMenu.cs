@@ -11,19 +11,19 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 internal sealed class ModalMenu : Menu<Modal>
 {
-    private readonly PlayerInteractionService _playerInteractionService;
+    private readonly InteractionState _interactionState;
 
-    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
+    private InteractionState.InteractionBlocker? _interactionBlocker;
     
     public ModalMenu(
         in ILogger<Menu<Modal>> logger,
         in ReefContext reefContext,
         in IShortcutService shortcutService,
-        in PlayerInteractionService playerInteractionService,
+        in InteractionState interactionState,
         in IMenuPage<Modal>[] pages
     ) : base(logger, reefContext, pages)
     {
-        _playerInteractionService = playerInteractionService;
+        _interactionState = interactionState;
         
         Shortcut closeShortcut = new(
             name: "Close modal",
@@ -47,7 +47,7 @@ internal sealed class ModalMenu : Menu<Modal>
         {
             if (active && _interactionBlocker == null)
             {
-                _interactionBlocker = _playerInteractionService.BlockInteraction();
+                _interactionBlocker = _interactionState.BlockInteraction();
             }
             else if (!active && _interactionBlocker != null)
             {

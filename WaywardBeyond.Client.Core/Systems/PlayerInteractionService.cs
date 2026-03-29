@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -44,12 +43,10 @@ using DebugInfo = (
 
 internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 {
-    public readonly DataBinding<BrickShape> SelectedShape = new(BrickShape.Block);
-    public readonly DataBinding<Orientation> SelectedOrientation = new();
-    
     private static readonly Vector4 _gizmoColor = new(0.5f, 0.5f, 0.5f, 1f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
 
+    private readonly InteractionState _interactionState;
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly ILineRenderer _lineRenderer;
@@ -67,14 +64,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly DebugSettings _debugSettings;
     private readonly PlayerControllerSystem _playerControllerSystem;
     private readonly SoundEffectService _soundEffectServce;
-
-    private readonly HashSet<InteractionBlocker> _interactionBlockers = [];
     
-    private InteractionBlocker? _inputBlocker;
-    private bool _snapPlacement;
     private DebugInfo _debugInfo;
 
     public PlayerInteractionService(
+        in InteractionState interactionState,
         in IInputService inputService,
         in IPhysics physics,
         in ILineRenderer lineRenderer,
@@ -91,6 +85,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IShortcutService shortcutService,
         in SoundEffectService soundEffectServce
     ) {
+        _interactionState = interactionState;
         _inputService = inputService;
         _physics = physics;
         _lineRenderer = lineRenderer;
@@ -147,12 +142,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     
     private void OnSnapPlacementPressed()
     {
-        _snapPlacement = true;
+        _interactionState.SnapPlacement.Set(true);
     }
     
     private void OnSnapPlacementReleased()
     {
-        _snapPlacement = false;
+        _interactionState.SnapPlacement.Set(false);
     }
 
     public void Run()
@@ -161,52 +156,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _inputService.Clicked += OnClicked;
     }
     
-    public InteractionBlocker BlockInteraction()
-    {
-        return new InteractionBlocker(this, _playerControllerSystem);
-    }
-
-    public bool TryBlockInteractionExclusive([NotNullWhen(true)] out InteractionBlocker? interactionBlocker)
-    {
-        lock (_interactionBlockers)
-        {
-            if (_interactionBlockers.Count != 0)
-            {
-                interactionBlocker = null;
-                return false;
-            }
-
-            interactionBlocker = BlockInteraction();
-            return true;
-        }
-    }
-    
-    public bool IsInteractionBlocked()
-    {
-        lock (_interactionBlockers)
-        {
-            return _interactionBlockers.Count != 0;
-        }
-    }
-    
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)
     {
-        SetInteractionEnabled(e.NewValue == GameState.Playing);
-    }
-    
-    private void SetInteractionEnabled(bool enabled) 
-    {
-        lock (_interactionBlockers)
-        {
-            InteractionBlocker? blocker = _inputBlocker;
-            blocker?.Dispose();
-            _inputBlocker = enabled ? null : BlockInteraction();
-        }
+        _interactionState.SetInteractionEnabled(e.NewValue == GameState.Playing);
     }
 
     private void OnClicked(object? sender, ClickedEventArgs e)
     {
-        if (WaywardBeyond.GameState != GameState.Playing || IsInteractionBlocked())
+        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
             return;
         }
@@ -304,7 +261,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             BrickInfo brickInfo = brickInfoResult.Value;
             
             //  If this brick is shapeable, use the selected shape.
-            BrickShape shape = brickInfo.Shapeable ? SelectedShape.Get() : brickInfo.Shape;
+            BrickShape shape = brickInfo.Shapeable ? _interactionState.SelectedShape.Get() : brickInfo.Shape;
             
             //  If the selected shape is orientable for the brick, apply orientation.
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
@@ -328,7 +285,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         //  Clone the target brick's shape
         ShapeLight shapeLight = clickedVoxel.ShapeLight;
-        SelectedShape.Set(shapeLight.Shape);
+        _interactionState.SelectedShape.Set(shapeLight.Shape);
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -439,7 +396,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         if (holdingPlaceable)
         {
             placeableBrickInfo = placeableResult.Value;
-            placeableShape = placeableBrickInfo.Shapeable ? SelectedShape.Get() : placeableBrickInfo.Shape;
+            placeableShape = placeableBrickInfo.Shapeable ? _interactionState.SelectedShape.Get() : placeableBrickInfo.Shape;
         }
         else
         {
@@ -495,7 +452,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             transformComponent.Orientation
         );
 
-        Orientation selectedOrientation = SelectedOrientation.Get();
+        Orientation selectedOrientation = _interactionState.SelectedOrientation.Get();
         var offsetQuaternion = selectedOrientation.ToQuaternion(); 
         Quaternion quaternion = baseQuaternion * offsetQuaternion;
         
@@ -523,16 +480,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         Vector3 clickedSurfaceNormal = Vector3.Normalize(brickPosWorld - clickedPos);
         float alignmentSurface = Vector3.Dot(clickedSurfaceNormal, cameraForwardWorld);
         _debugInfo.AlignmentSurface = alignmentSurface;
-        
-        Vector3 placementNormal;
-        if (_snapPlacement)
-        {
-            placementNormal = clickedSurfaceNormal;
-        }
-        else 
-        {
-            placementNormal = brickToCameraNormal;
-        }
+
+        var placementNormal = _interactionState.SnapPlacement ? clickedSurfaceNormal : brickToCameraNormal;
 
         // Transform everything into the grid's local space
         Quaternion inverseGridRot = Quaternion.Inverse(gridOrientation);
@@ -655,7 +604,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         using (ui.Text($"Align (Cam): {debugInfo.AlignmentCamera:N3}")) {}
         using (ui.Text($"Align (Sur): {debugInfo.AlignmentSurface:N3}")) {}
         using (ui.Text($"Align (Vert): {debugInfo.AlignmentFloor}")) {}
-        using (ui.Text($"Snap: {_snapPlacement}")) {}
+        using (ui.Text($"Snap: {_interactionState.SnapPlacement.Get()}")) {}
         
         return Result.FromSuccess();
     }
@@ -869,31 +818,5 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         }
         
         return Result<BrickInfo>.FromSuccess(brickInfoResult.Value);
-    }
-    
-    public sealed class InteractionBlocker : IDisposable
-    {
-        private readonly PlayerInteractionService _playerInteractionService;
-        private readonly PlayerControllerSystem _playerControllerSystem;
-
-        internal InteractionBlocker(in PlayerInteractionService playerInteractionService, in PlayerControllerSystem playerControllerSystem)
-        {
-            _playerInteractionService = playerInteractionService;
-            _playerControllerSystem = playerControllerSystem;
-            lock (playerInteractionService._interactionBlockers)
-            {
-                playerInteractionService._interactionBlockers.Add(this);
-                playerControllerSystem.SetInputEnabled(false);
-            }
-        }
-
-        public void Dispose()
-        {
-            lock (_playerInteractionService._interactionBlockers)
-            {
-                _playerInteractionService._interactionBlockers.Remove(this);
-                _playerControllerSystem.SetInputEnabled(!_playerInteractionService.IsInteractionBlocked());
-            }
-        }
     }
 }

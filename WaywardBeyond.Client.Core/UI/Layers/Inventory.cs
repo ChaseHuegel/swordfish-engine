@@ -25,7 +25,7 @@ internal class Inventory : IUILayer
     private readonly IAssetDatabase<Item> _itemDatabase;
     private readonly PlayerData _playerData;
     private readonly IECSContext _ecsContext;
-    private readonly PlayerInteractionService _playerInteractionService;
+    private readonly InteractionState _interactionState;
     private readonly IInputService _inputService;
 
     private readonly Vector4 _backgroundColor;
@@ -35,7 +35,7 @@ internal class Inventory : IUILayer
 
     private bool _open;
     private int _selectedSlot = -1;
-    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
+    private InteractionState.InteractionBlocker? _interactionBlocker;
     
     private bool _dragging;
     private int _draggingSlot;
@@ -45,13 +45,13 @@ internal class Inventory : IUILayer
         in IAssetDatabase<Item> itemDatabase,
         in PlayerData playerData,
         in IECSContext ecsContext,
-        in PlayerInteractionService playerInteractionService,
+        in InteractionState interactionState,
         in IInputService inputService
     ) {
         _itemDatabase = itemDatabase;
         _playerData = playerData;
         _ecsContext = ecsContext;
-        _playerInteractionService = playerInteractionService;
+        _interactionState = interactionState;
         _inputService = inputService;
 
         _backgroundColor = Color.FromArgb(int.Parse("FF4F546B", NumberStyles.HexNumber)).ToVector4();
@@ -430,7 +430,7 @@ internal class Inventory : IUILayer
             return;
         }
         
-        if (!_playerInteractionService.TryBlockInteractionExclusive(out _interactionBlocker))
+        if (!_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }

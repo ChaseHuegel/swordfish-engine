@@ -60,6 +60,8 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterAssetService>(Reuse.Singleton);
         
+        container.Register<NotificationService>(Reuse.Singleton);
+        
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
@@ -119,6 +121,20 @@ public class Injector : IDryIocInjector
         
         container.Register<IUILayer, CrosshairOverlay>(Reuse.Singleton);
         
+        container.Register<ShapeSelector>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ShapeSelector>();
+        container.RegisterMapping<IActionIndicator, ShapeSelector>();
+
+        container.Register<OrientationSelector>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, OrientationSelector>();
+        container.RegisterMapping<IActionIndicator, OrientationSelector>();
+
+        container.Register<Hotbar>(Reuse.Singleton);
+        container.Register<Actions>(Reuse.Singleton);
+        
+        container.Register<HUD>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, HUD>();
+
         container.Register<MainMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, MainMenu>();
         container.Register<IMenuPage<MenuPage>, UI.Layers.Menus.Main.HomePage>();
@@ -137,23 +153,17 @@ public class Injector : IDryIocInjector
         container.Register<IUILayer, LoadScreen>(Reuse.Singleton);
         container.Register<IUILayer, VersionWatermark>(Reuse.Singleton);
         
-        container.Register<Hotbar>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, Hotbar>();
-        
         container.Register<Inventory>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, Inventory>();
-        
-        container.Register<ShapeSelector>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, ShapeSelector>();
-        
-        container.Register<OrientationSelector>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, OrientationSelector>();
         
         container.Register<ControlHints>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ControlHints>();
         
-        container.Register<NotificationService>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, NotificationService>();
+        container.Register<ToastNotificationLayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ToastNotificationLayer>();
+                
+        container.Register<InteractionNotificationLayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, InteractionNotificationLayer>();
         
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
@@ -168,6 +178,8 @@ public class Injector : IDryIocInjector
     
     private static void RegisterInput(IContainer container)
     {
+        container.Register<InteractionState>(Reuse.Singleton);
+        
         container.Register<PlayerInteractionService>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
@@ -208,6 +220,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, ThrusterSystem>();
         container.Register<IEntitySystem, MainMenuAnimationSystem>();
+        container.Register<IEntitySystem, ActiveSlotNotificationSystem>();
         
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();

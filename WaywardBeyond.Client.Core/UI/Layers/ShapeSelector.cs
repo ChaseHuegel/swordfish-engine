@@ -18,11 +18,11 @@ namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using ShapeSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
-internal class ShapeSelector : IUILayer
+internal class ShapeSelector : IUILayer, IActionIndicator
 {
     public bool Available => IsMainHandShapeable();
 
-    private readonly PlayerInteractionService _playerInteractionService;
+    private readonly InteractionState _interactionState;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
@@ -33,19 +33,19 @@ internal class ShapeSelector : IUILayer
     private readonly Dictionary<BrickShape, ShapeSelectorElement> _shapeSelectorElements;
     
     private bool _changingShape;
-    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
+    private InteractionState.InteractionBlocker? _interactionBlocker;
     
     public ShapeSelector(
+        InteractionState interactionState,
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
-        PlayerInteractionService playerInteractionService,
         PlayerData playerData,
         BrickDatabase brickDatabase,
         IECSContext ecsContext,
         in ILocalization localization
     ) {
-        _playerInteractionService = playerInteractionService;
+        _interactionState = interactionState;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _ecsContext = ecsContext;
@@ -79,35 +79,35 @@ internal class ShapeSelector : IUILayer
         shortcutService.RegisterShortcut(shortcut);
     }
     
-    public bool IsVisible()
+    bool IUILayer.IsVisible()
     {
-        //  Don't draw anything if the player isn't holding a shapeable item.
-        return WaywardBeyond.GameState == GameState.Playing && IsMainHandShapeable();
+        return _changingShape;
+    }
+    
+    bool IActionIndicator.IsVisible()
+    {
+        return IsMainHandShapeable();
     }
 
-    public Result RenderUI(double delta, UIBuilder<Material> ui)
+    public Result RenderIndicator(double delta, UIBuilder<Material> ui)
     {
-        BrickShape selectedShape = _playerInteractionService.SelectedShape.Get();
+        BrickShape shape = _interactionState.SelectedShape.Get();
+        ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[shape];
         
-        //  Draw the currently selected shape
-        ShapeSelectorElement selectedShapeElement = _shapeSelectorElements[selectedShape];
         using (ui.Image(selectedShapeElement.BaseImage))
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                Y = new Fixed(-100),
+                Anchors = Anchors.Center,
                 Width = new Fixed(32),
                 Height = new Fixed(32),
             };
         }
-        
-        //  Only display the selector if changing shapes
-        if (!_changingShape)
-        {
-            return Result.FromSuccess();
-        }
-        
+        return Result.FromSuccess();
+    }
+
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
+    {
         const float elementOffset = 96;
         const float angleBetweenElements = 360f / (BrickShape.Custom - BrickShape.Block) * MathS.DEGREES_TO_RADIANS;
 
@@ -135,10 +135,10 @@ internal class ShapeSelector : IUILayer
                     Height = new Fixed(96),
                 };
                 
-                bool isSelected = _playerInteractionService.SelectedShape.Get() == shape;
+                bool isSelected = _interactionState.SelectedShape.Get() == shape;
                 if (!updatedSelection && ui.Hovering())
                 {
-                    _playerInteractionService.SelectedShape.Set(shape);
+                    _interactionState.SelectedShape.Set(shape);
                     updatedSelection = true;
                     isSelected = true;
                 }
@@ -197,7 +197,7 @@ internal class ShapeSelector : IUILayer
                 Anchors = Anchors.Center,
             };
 
-            string shapeTranslationKey = GetShapeTranslationKey(_playerInteractionService.SelectedShape);
+            string shapeTranslationKey = GetShapeTranslationKey(_interactionState.SelectedShape);
             using (ui.Text(_localization.GetString(shapeTranslationKey)!))
             {
                 ui.Constraints = new Constraints
@@ -212,7 +212,7 @@ internal class ShapeSelector : IUILayer
     
     private void OnChangeShapePressed()
     {
-        if (!IsMainHandShapeable() || !_playerInteractionService.TryBlockInteractionExclusive(out _interactionBlocker))
+        if (!IsMainHandShapeable() || !_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }

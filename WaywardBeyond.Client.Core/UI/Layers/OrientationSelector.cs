@@ -18,11 +18,11 @@ namespace WaywardBeyond.Client.Core.UI.Layers;
 
 using OrientationSelectorElement = (string ID, Material BaseImage, Material SelectedImage);
 
-internal class OrientationSelector : IUILayer
+internal class OrientationSelector : IUILayer, IActionIndicator
 {
     public bool Available => IsMainHandOrientable();
     
-    private readonly PlayerInteractionService _playerInteractionService;
+    private readonly InteractionState _interactionState;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
@@ -37,18 +37,18 @@ internal class OrientationSelector : IUILayer
     private readonly Orientation[] _orientations;
     
     private bool _changingOrientation;
-    private PlayerInteractionService.InteractionBlocker? _interactionBlocker;
+    private InteractionState.InteractionBlocker? _interactionBlocker;
     
     public OrientationSelector(
         IShortcutService shortcutService,
         IAssetDatabase<Texture> textureDatabase,
         IAssetDatabase<Shader> shaderDatabase,
-        PlayerInteractionService playerInteractionService,
+        InteractionState interactionState,
         PlayerData playerData,
         BrickDatabase brickDatabase,
         IECSContext ecsContext
     ) {
-        _playerInteractionService = playerInteractionService;
+        _interactionState = interactionState;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _ecsContext = ecsContext;
@@ -85,33 +85,37 @@ internal class OrientationSelector : IUILayer
         shortcutService.RegisterShortcut(shortcut);
     }
     
-    public bool IsVisible()
+    
+    bool IUILayer.IsVisible()
     {
-        //  Don't draw anything if the player isn't holding a shapeable item.
-        return WaywardBeyond.GameState == GameState.Playing && IsMainHandOrientable();
+        return _changingOrientation;
+    }
+    
+    bool IActionIndicator.IsVisible()
+    {
+        return IsMainHandOrientable();
     }
 
-    public Result RenderUI(double delta, UIBuilder<Material> ui)
+    public Result RenderIndicator(double delta, UIBuilder<Material> ui)
     {
-        //  Draw the currently selected orientation
-        OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[_playerInteractionService.SelectedOrientation.Get()];
+        Orientation orientation = _interactionState.SelectedOrientation.Get();
+        OrientationSelectorElement selectedShapeElement = _orientationSelectorElements[orientation];
+        
         using (ui.Image(selectedShapeElement.BaseImage))
         {
             ui.Constraints = new Constraints
             {
-                Anchors = Anchors.Center | Anchors.Bottom,
-                Y = new Fixed(-138),
+                Anchors = Anchors.Center,
                 Width = new Fixed(32),
                 Height = new Fixed(32),
             };
         }
-        
-        //  Only display the selector if changing shapes
-        if (!_changingOrientation)
-        {
-            return Result.FromSuccess();
-        }
-        
+
+        return Result.FromSuccess();
+    }
+
+    public Result RenderUI(double delta, UIBuilder<Material> ui)
+    {
         const float elementOffset = 72;
         float angleBetweenElements = 360f / _orientations.Length * MathS.DEGREES_TO_RADIANS;
 
@@ -140,10 +144,10 @@ internal class OrientationSelector : IUILayer
                     Height = new Fixed(96),
                 };
                 
-                bool isSelected = _playerInteractionService.SelectedOrientation.Get().Equals(orientation);
+                bool isSelected = _interactionState.SelectedOrientation.Get().Equals(orientation);
                 if (!updatedSelection && ui.Hovering())
                 {
-                    _playerInteractionService.SelectedOrientation.Set(orientation);
+                    _interactionState.SelectedOrientation.Set(orientation);
                     updatedSelection = true;
                     isSelected = true;
                 }
@@ -191,7 +195,7 @@ internal class OrientationSelector : IUILayer
     
     private void OnChangeOrientationPressed()
     {
-        if (!IsMainHandOrientable() || !_playerInteractionService.TryBlockInteractionExclusive(out _interactionBlocker))
+        if (!IsMainHandOrientable() || !_interactionState.TryBlockInteractionExclusive(out _interactionBlocker))
         {
             return;
         }
@@ -232,7 +236,7 @@ internal class OrientationSelector : IUILayer
         }
 
         BrickInfo brickInfo = brickInfoResult.Value;
-        BrickShape brickShape = _playerInteractionService.SelectedShape.Get();
+        BrickShape brickShape = _interactionState.SelectedShape.Get();
         return brickInfo.IsOrientable(brickShape);
     }
 }

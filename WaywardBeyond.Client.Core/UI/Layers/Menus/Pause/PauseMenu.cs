@@ -13,18 +13,18 @@ namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Pause;
 
 internal sealed class PauseMenu : TitleMenu<PausePage>
 {
-    private readonly PlayerInteractionService _playerInteractionService;
+    private readonly InteractionState _interactionState;
     
     public PauseMenu(
         in ILogger<Menu<PausePage>> logger,
         in IAssetDatabase<Material> materialDatabase,
         in ReefContext reefContext,
         in IShortcutService shortcutService,
-        in PlayerInteractionService playerInteractionService,
+        in InteractionState interactionState,
         in IMenuPage<PausePage>[] pages
     ) : base(logger, materialDatabase, reefContext, pages)
     {
-        _playerInteractionService = playerInteractionService;
+        _interactionState = interactionState;
         
         Shortcut pauseShortcut = new(
             name: "Toggle paused",
@@ -76,7 +76,7 @@ internal sealed class PauseMenu : TitleMenu<PausePage>
             //       Need to introduce a concept of "windows" which are closeable
             //       This `when` condition is here to not pause when pressing ESC to close the inventory,
             //       however pausing is also blocked by Shape and Orientation selectors but really shouldn't be.
-            case GameState.Playing when IsVisible() || !_playerInteractionService.IsInteractionBlocked():
+            case GameState.Playing when IsVisible() || !_interactionState.IsInteractionBlocked():
                 WaywardBeyond.Pause();
                 return;
             case GameState.Paused when GetCurrentPage() == PausePage.Home:
