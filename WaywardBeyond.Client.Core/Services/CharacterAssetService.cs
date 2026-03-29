@@ -18,6 +18,7 @@ internal sealed class CharacterAssetService
     {
         PathInfo characterMaterialsPath = AssetPaths.Materials.At("characters/");
         IEnumerable<string> characterMaterialIds = vfs.GetFiles(characterMaterialsPath, SearchOption.TopDirectoryOnly)
+            .OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer())
             .Select(pathInfo => $"characters/{pathInfo.GetFileNameWithoutExtension()}");
 
         _characterMaterials = [];
