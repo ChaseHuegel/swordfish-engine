@@ -1,3 +1,4 @@
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
 using Swordfish.Graphics;
@@ -40,7 +41,7 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
         var viewFrustum = new ViewFrustumComponent(renderSettings.NearPlane, renderSettings.FarPlane, renderSettings.FOV);
         camera.AddOrUpdate(viewFrustum);
         camera.Add<CameraComponent>();
-        camera.Add<TransformComponent>();
+        camera.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
         
         _logger.LogInformation("Initialized ECS.");
     }
