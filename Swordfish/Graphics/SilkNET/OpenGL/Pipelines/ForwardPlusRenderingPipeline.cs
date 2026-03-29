@@ -470,7 +470,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         _renderFBO.Blit(ReadBufferMode.ColorAttachment0, DrawBufferMode.Back, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
         _glDebug.TryLogError();
 
-        if (_renderSettings.Bloom.Get())
+        if (_renderSettings.Bloom.Enabled.Get())
         {
             //  Bloom pre-pass
             //  Blit the bloom renderbuffer to the blur texture
@@ -490,7 +490,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 _blurShader.SetUniform("texture0", 0);
 
                 var horizontal = true;
-                for (var i = 0; i <= 10; i++)
+                for (var i = 0; i <= _renderSettings.Bloom.Passes.Get(); i++)
                 {
                     int horizontalInt = horizontal ? 0 : 1;
                     horizontal = !horizontal;
