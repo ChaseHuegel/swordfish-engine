@@ -18,6 +18,7 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
     private readonly NotificationService _notificationService;
     
     private readonly Randomizer _randomizer;
+    private readonly string[] _titleTracks;
     private readonly string[] _backgroundTracks;
     
     private int? _entity;
@@ -33,6 +34,11 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
         
         _randomizer = new Randomizer();
 
+        PathInfo titleMusicPath = AssetPaths.Audio.At("music/title/");
+        _titleTracks = vfs.GetFiles(titleMusicPath, SearchOption.TopDirectoryOnly)
+            .Select(pathInfo => $"music/title/{pathInfo.GetFileName()}")
+            .ToArray();
+        
         PathInfo backgroundMusicPath = AssetPaths.Audio.At("music/background/");
         _backgroundTracks = vfs.GetFiles(backgroundMusicPath, SearchOption.TopDirectoryOnly)
             .Select(pathInfo => $"music/background/{pathInfo.GetFileName()}")
@@ -89,7 +95,7 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
         //  Timer has elapsed, remove it then start the next track
         _nextTrackTimer = null;
 
-        audioSource.ID = _randomizer.Select(_backgroundTracks);
+        audioSource.ID = WaywardBeyond.GameState == GameState.MainMenu ? _randomizer.Select(_titleTracks) : _randomizer.Select(_backgroundTracks);
         audioPlayer.State = PlayerState.Play;
         _notificationService.Push(new Notification($"Track: {Path.GetFileNameWithoutExtension(audioSource.ID)}"));
     }
