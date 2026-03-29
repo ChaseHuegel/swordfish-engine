@@ -270,8 +270,8 @@ internal abstract class SettingsPage<TIdentifier>(
             value = ui.Checkbox(id: "Checkbox_SAO", text: _localization.GetString("ui.setting.sao")!, isChecked: _renderSettings.SAO.Enabled, _soundEffectService);
             _renderSettings.SAO.Enabled.Set(value);
             
-            value = ui.Checkbox(id: "Checkbox_Bloom", text: _localization.GetString("ui.setting.bloom")!, isChecked: _renderSettings.Bloom, _soundEffectService);
-            _renderSettings.Bloom.Set(value);
+            value = ui.Checkbox(id: "Checkbox_Bloom", text: _localization.GetString("ui.setting.bloom")!, isChecked: _renderSettings.Bloom.Enabled, _soundEffectService);
+            _renderSettings.Bloom.Enabled.Set(value);
             
             ui.NumberControl(
                 id: "Control_RenderDistance",
