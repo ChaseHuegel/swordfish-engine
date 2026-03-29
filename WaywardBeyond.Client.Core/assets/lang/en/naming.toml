@@ -1,0 +1,4 @@
+"Language" = "en"
+
+[Translations]
+"formats.name.0" = "{Title} {First} {Nickname} {Last} {Subtitle}"

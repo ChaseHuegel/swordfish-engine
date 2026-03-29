@@ -1,0 +1,49 @@
+"Language" = "en"
+
+[Tags]
+"names.title.0" = [
+    "Captain",
+    "Privateer",
+    "Commander",
+    "Chief",
+    "Star Marshal",
+    "Colonel",
+    "Dr.",
+    "Doc",
+]
+"names.first.0" = [
+    "John",
+    "Jack",
+    "Frank",
+    "Gary",
+    "Dom",
+    "Mason",
+    "Edward",
+    "Arthur",
+    "Robert",
+]
+"names.last.0" = [
+    "Ripley",
+    "Bishop",
+    "Hicks",
+    "Jones",
+    "Shaw",
+    "Burke",
+    "Jude",
+    "Faris",
+    "Rico",
+]
+"names.subtitle.0" = [
+    "Sr.",
+    "Jr.",
+    "II",
+    "III",
+]
+"names.nickname.0" = [
+    "Cypher",
+    "Nova",
+    "Vector",
+    "Jonnie",
+    "Ghost",
+    "Doc",
+]
