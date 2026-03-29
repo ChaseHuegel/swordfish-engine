@@ -12,6 +12,7 @@ uniform mat4 uInvProj;
 uniform float uRadius = 0.1;
 uniform float SIGMA = 0.5;
 uniform float SAO_K = 1.0;
+uniform int uSampleCount = 16;
 
 #ifdef FRAGMENT
 
@@ -46,10 +47,10 @@ float SAO(vec2 xy, vec3 verPos, vec3 n, vec2 noise, float radius)
     vec2 aspectCorrection = vec2(1.0, textureDimensions.x / textureDimensions.y);
     
     vec2 acc = vec2(0.0);
-    for (int i = 0; i < 16; i++)
+    for (int i = 0; i < uSampleCount; i++)
     {
         vec2 ns = vec2(
-            6.2831853 * ((noise.x + float(i)) / 16.0),
+            6.2831853 * ((noise.x + float(i)) / float(uSampleCount)),
             fract(noise.y + float(i) / g) * radius / vl
         );
 

@@ -285,7 +285,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         float far = renderScene.Projection.M34 / (renderScene.Projection.M33 + 1.0f);
         Matrix4x4.Invert(renderScene.Projection, out Matrix4x4 inverseProjection);
 
-        if (_renderSettings.SAO.Get())
+        if (_renderSettings.SAO.Enabled.Get())
         {
             // Depth pre-pass
             _gl.Viewport(0, 0, _screenHalfWidth, _screenHalfHeight);
@@ -315,6 +315,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
                 _ssaoShader.SetUniform("uRadius", 0.1f);
                 _ssaoShader.SetUniform("SIGMA", 0.5f);
                 _ssaoShader.SetUniform("SAO_K", 1.5f);
+                _ssaoShader.SetUniform("uSampleCount", _renderSettings.SAO.Samples.Get());
 
                 _gl.Clear(ClearBufferMask.ColorBufferBit);
 
@@ -542,7 +543,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         shader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
         shader.SetUniform("uAmbientLight", _renderSettings.AmbientLight.Get());
 
-        shader.SetUniform("uEnableAO", _renderSettings.SAO.Get() ? 1f : 0f);
+        shader.SetUniform("uEnableAO", _renderSettings.SAO.Enabled.Get() ? 1f : 0f);
 
         _ssaoTex.Activate(TextureUnit.Texture5);
         shader.SetUniform("uAO", 5);
