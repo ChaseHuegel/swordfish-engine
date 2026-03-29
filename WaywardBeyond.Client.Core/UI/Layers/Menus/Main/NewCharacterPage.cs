@@ -33,6 +33,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
     private readonly Widgets.ButtonOptions _iconOptions;
+    private readonly Widgets.ButtonOptions _smallIconOptions;
     private readonly Randomizer _randomizer = new();
 
     private int _characterMaterialIndex;
@@ -79,6 +80,14 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             new FontOptions {
                 ID = "Font Awesome 6 Free Solid",
                 Size = 32,
+            },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+        
+        _smallIconOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                ID = "Font Awesome 6 Free Solid",
+                Size = 20,
             },
             new Widgets.AudioOptions(soundEffectService)
         );
@@ -265,6 +274,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                 using (ui.Element())
                 {
+                    ui.Spacing = 8;
                     ui.Constraints = new Constraints
                     {
                         Width = new Relative(1f),
@@ -286,12 +296,43 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                         ui.FontSize = 20;
                     }
                     
-                    using (ui.Element())
+                    using (ui.TextButton(id: "Button_RandomPoints", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
                     {
-                        ui.Constraints = new Constraints
+                        if (interactions.Has(Widgets.Interactions.Click))
                         {
-                            Width = new Fixed(24),
-                        };
+                            //  If there are no points available, randomize all attributes.
+                            //  Otherwise, whatever points remain will be randomly distributed.
+                            if (_spacerPoints == 0)
+                            {
+                                ResetAttributes();
+                            }
+                            
+                            while (_spacerPoints > 0)
+                            {
+                                int attributeIndex = _randomizer.NextInt(0, 6);
+                                switch (attributeIndex)
+                                {
+                                    case 0:
+                                        OnStrengthChanged(_strength, _strength + 1, change: 1);
+                                        break;
+                                    case 1:
+                                        OnPrecisionChanged(_precision, _precision + 1, change: 1);
+                                        break;
+                                    case 2:
+                                        OnAwarenessChanged(_awareness, _awareness + 1, change: 1);
+                                        break;
+                                    case 3:
+                                        OnCharismaChanged(_charisma, _charisma + 1, change: 1);
+                                        break;
+                                    case 4:
+                                        OnEducationChanged(_education, _education + 1, change: 1);
+                                        break;
+                                    case 5:
+                                        OnResolveChanged(_resolve, _resolve + 1, change: 1);
+                                        break;
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -506,6 +547,11 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     {
         _characterMaterialIndex = 0;
         _nameTextBox.Text.Clear();
+        ResetAttributes();
+    }
+
+    private void ResetAttributes()
+    {
         _spacerPoints = DEFAULT_SPACER_POINTS;
         _strength = 1;
         _precision = 1;
