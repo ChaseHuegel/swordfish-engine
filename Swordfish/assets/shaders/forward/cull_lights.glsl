@@ -25,8 +25,7 @@ uniform ivec2 uScreenSize;
 uniform ivec2 uTileSize;
 uniform int uNumLights;
 uniform int uMaxLightsPerTile;
-uniform float uMaxLightViewDistance;
-uniform mat4 uInvProj;
+uniform mat4 uProj;
 
 layout(binding = 0) uniform sampler2D uDepthTex;
 
@@ -44,7 +43,7 @@ vec3 PixelToView(vec2 pixel, float depth)
 {
     vec2 ndc = (pixel / vec2(uScreenSize)) * 2.0 - 1.0;
     vec4 clip = vec4(ndc, depth * 2.0 - 1.0, 1.0);
-    vec4 view = uInvProj * clip;
+    vec4 view = uProj * clip;
     view /= view.w;
     return view.xyz;
 }
@@ -111,7 +110,7 @@ void compute()
         vec3 closest = clamp(lPos, tileMin, tileMax);
         float dist2 = dot(closest - lPos, closest - lPos);
     
-        if (dist2 <= uMaxLightViewDistance * uMaxLightViewDistance) 
+        if (dist2 > radius * radius)
         {
             if (count < uint(uMaxLightsPerTile) && (base + count) < indices.length())
             {
