@@ -28,13 +28,13 @@ internal sealed class PlayerViewModelSystem(
         if (!_viewModelEntity.HasValue)
         {
             _viewModelEntity = new Entity(store.Alloc(), store);
-            _viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel", tag: "game"));
+            _viewModelEntity.Value.AddOrUpdate(new IdentifierComponent("PlayerViewModel"));
             _viewModelEntity.Value.AddOrUpdate(new TransformComponent());
         }
         
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, entity, inventory);
         ModelDefinition viewModel;
-        if (mainHandResult.Success)
+        if (mainHandResult.Success && WaywardBeyond.IsPlaying())
         {
             viewModel = mainHandResult.Value.Item.ViewModel ?? default;
         }
