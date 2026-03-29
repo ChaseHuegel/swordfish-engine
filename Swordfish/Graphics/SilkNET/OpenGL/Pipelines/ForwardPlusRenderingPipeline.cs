@@ -21,7 +21,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
     private const int TILE_WIDTH = 16;
     private const int TILE_HEIGHT = 16;
     private const int MAX_LIGHTS = 1024;
-    private const int MAX_LIGHTS_PER_TILE = 1024;
+    private const int MAX_LIGHTS_PER_TILE = 256;
     
     private readonly GL _gl;
     private readonly GLDebug _glDebug;
@@ -393,8 +393,7 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _computeShader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
             _computeShader.SetUniform("uNumLights", lights.Length);
             _computeShader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
-            _computeShader.SetUniform("uMaxLightViewDistance", 1000f);
-            _computeShader.SetUniform("uInvProj", inverseProjection);
+            _computeShader.SetUniform("uProj", renderScene.Projection);
             
             var groupsX = (uint)_numTilesX;
             var groupsY = (uint)_numTilesY;
