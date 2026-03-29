@@ -13,8 +13,8 @@ internal partial class NameGenerator(
     in LocalizedFormatter localizedFormatter,
     in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) {
-    private const float TITLE_CHANCE = 0.1f;
-    private const float FIRST_NAME_CHANCE = 1.0f;
+    private const float TITLE_CHANCE = 0.2f;
+    private const float FIRST_NAME_CHANCE = 0.7f;
     private const float LAST_NAME_CHANCE = 1.0f;
     private const float SUBTITLE_CHANCE = 0.1f;
     private const float NICKNAME_CHANCE = 0.1f;
