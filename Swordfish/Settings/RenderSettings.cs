@@ -16,9 +16,9 @@ public sealed class RenderSettings : Config<RenderSettings>
     public DataBinding<int> FOV { get; private set; } = new(90);
     public DataBinding<float> NearPlane { get; private set; } = new(0.1f);
     public DataBinding<float> FarPlane { get; private set; } = new(1000f);
-    public DataBinding<bool> SAO { get; private set; } = new(true);
     public DataBinding<bool> Bloom { get; private set; } = new(true);
     
+    public SAOSettings SAO { get; } = new();
     
     [TomlNonSerialized]
     public DataBinding<bool> Wireframe { get; private set; } = new();
