@@ -6,7 +6,7 @@ namespace Swordfish.ECS;
 public struct TransformComponent : IDataComponent
 {
     public Vector3 Position;
-    public Quaternion Orientation;
+    public Quaternion Orientation = Quaternion.Identity;
     public Vector3 Scale = Vector3.One;
 
     public TransformComponent(Vector3 position)
