@@ -102,7 +102,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         var saveNameTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.characterName"),
             MaxCharacters: 20,
-            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
+            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '<', '>', '|'],
             Constraints: new Constraints
             {
                 Width = new Fixed(300),
