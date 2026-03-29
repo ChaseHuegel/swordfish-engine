@@ -33,6 +33,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
     private readonly Widgets.ButtonOptions _iconOptions;
+    private readonly Randomizer _randomizer = new();
 
     private int _characterMaterialIndex;
     private TextBoxState _nameTextBox;
@@ -134,13 +135,15 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 {
                     using (ui.Element())
                     {
+                        ui.LayoutDirection = LayoutDirection.Vertical;
+                        ui.Spacing = 20;
                         ui.Padding = new Padding(left: 0, top: 20, right: 0, bottom: 20);
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
                         };
-
-                        using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
+                        
+                        using (ui.TextButton(id: "Button_RandomCharacter", text: "\uf074", _iconOptions, out Widgets.Interactions interactions))
                         {
                             ui.Constraints = new Constraints
                             {
@@ -149,31 +152,51 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                             if (interactions.Has(Widgets.Interactions.Click))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterAssetService.GetAppearancesCount() - 1);
+                                _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
                             }
                         }
 
-                        Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterMaterialIndex);
-                        using (ui.Image(appearanceMaterial))
-                        {
-                            ui.Constraints = new Constraints
-                            {
-                                Width = new Fixed(196),
-                                Height = new Fixed(196),
-                            };
-                        }
-
-                        using (ui.TextButton(id: "Button_NextCharacter", text: "\uf0da", _iconOptions,
-                                   out Widgets.Interactions interactions))
+                        using (ui.Element())
                         {
                             ui.Constraints = new Constraints
                             {
                                 Anchors = Anchors.Center,
                             };
-
-                            if (interactions.Has(Widgets.Interactions.Click))
+                            
+                            using (ui.TextButton(id: "Button_PreviousCharacter", text: "\uf0d9", _iconOptions, out Widgets.Interactions interactions))
                             {
-                                _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterAssetService.GetAppearancesCount() - 1);
+                                ui.Constraints = new Constraints
+                                {
+                                    Anchors = Anchors.Center,
+                                };
+
+                                if (interactions.Has(Widgets.Interactions.Click))
+                                {
+                                    _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex - 1, 0, _characterAssetService.GetAppearancesCount() - 1);
+                                }
+                            }
+
+                            Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterMaterialIndex);
+                            using (ui.Image(appearanceMaterial))
+                            {
+                                ui.Constraints = new Constraints
+                                {
+                                    Width = new Fixed(196),
+                                    Height = new Fixed(196),
+                                };
+                            }
+
+                            using (ui.TextButton(id: "Button_NextCharacter", text: "\uf0da", _iconOptions, out Widgets.Interactions interactions))
+                            {
+                                ui.Constraints = new Constraints
+                                {
+                                    Anchors = Anchors.Center,
+                                };
+
+                                if (interactions.Has(Widgets.Interactions.Click))
+                                {
+                                    _characterMaterialIndex = MathS.WrapInt(_characterMaterialIndex + 1, 0, _characterAssetService.GetAppearancesCount() - 1);
+                                }
                             }
                         }
                     }
