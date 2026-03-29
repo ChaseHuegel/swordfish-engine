@@ -18,7 +18,7 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
     private readonly ILogger _logger;
     private readonly ECSSettings _ecsSettings;
 
-    public ECSContext(IEntitySystem[] systems, ILogger logger, RenderSettings renderSettings, ECSSettings ecsSettings)
+    public ECSContext(IEntitySystem[] systems, ILogger logger, RenderSettings renderSettings, ECSSettings ecsSettings, IRenderContext renderContext)
     {
         _logger = logger;
         _ecsSettings = ecsSettings;
@@ -38,10 +38,15 @@ public sealed class ECSContext : IECSContext, IDisposable, IEntryPoint
         
         //  Ensure at least one Camera exists
         Entity camera = World.NewEntity();
+        var transform = new TransformComponent(Vector3.Zero, Quaternion.Identity);
         var viewFrustum = new ViewFrustumComponent(renderSettings.NearPlane, renderSettings.FarPlane, renderSettings.FOV);
         camera.AddOrUpdate(viewFrustum);
         camera.Add<CameraComponent>();
-        camera.AddOrUpdate(new TransformComponent(Vector3.Zero, Quaternion.Identity));
+        camera.AddOrUpdate(transform);
+        
+        //  Assign the camera to the render context as the main camera
+        var cameraEntity = new CameraEntity(camera, viewFrustum, transform);
+        renderContext.MainCamera.Set(cameraEntity);
         
         _logger.LogInformation("Initialized ECS.");
     }
