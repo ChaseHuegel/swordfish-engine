@@ -62,8 +62,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private MeshGizmo _activeGizmo;
     private readonly Line[] _debugLines;
     private readonly DebugSettings _debugSettings;
-    private readonly PlayerControllerSystem _playerControllerSystem;
-    private readonly SoundEffectService _soundEffectServce;
+    private readonly SoundEffectService _soundEffectService;
     
     private DebugInfo _debugInfo;
 
@@ -81,9 +80,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in ItemDatabase itemDatabase,
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
-        in PlayerControllerSystem playerControllerSystem,
         in IShortcutService shortcutService,
-        in SoundEffectService soundEffectServce
+        in SoundEffectService soundEffectService
     ) {
         _interactionState = interactionState;
         _inputService = inputService;
@@ -97,8 +95,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
         _debugSettings = debugSettings;
-        _playerControllerSystem = playerControllerSystem;
-        _soundEffectServce = soundEffectServce;
+        _soundEffectService = soundEffectService;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -194,7 +191,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
         
-        _soundEffectServce.PlayRemoveMetal();
+        _soundEffectService.PlayRemoveMetal();
         
         voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
@@ -267,7 +264,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
             Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementLocalOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
 
-            _soundEffectServce.PlayPlaceMetal();
+            _soundEffectService.PlayPlaceMetal();
             
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
@@ -344,6 +341,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     {
         if (WaywardBeyond.GameState < GameState.Playing)
         {
+            _activeGizmo.Visible = false;
+            _debugLines[0].Color = Vector4.Zero;
+            _debugLines[1].Color = Vector4.Zero;
+            _debugLines[2].Color = Vector4.Zero;
             return;
         }
         
