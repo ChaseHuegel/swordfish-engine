@@ -128,7 +128,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Level level = save.Level with
         {
-            AgeMs = nowUtcMs - save.Level.LastPlayedMs,
+            AgeMs = save.Level.AgeMs + nowUtcMs - save.Level.LastPlayedMs,
+            LastPlayedMs = nowUtcMs,
         };
         
         save = new GameSave(save.Path, save.Name, level);
