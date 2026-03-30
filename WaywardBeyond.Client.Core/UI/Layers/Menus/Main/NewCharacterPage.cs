@@ -113,8 +113,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        bool randomAll = false;
         using (ui.Element())
         {
+            ui.Spacing = 8;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
@@ -123,6 +125,15 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             using (ui.Text(_localization.GetString("ui.menu.createCharacter")!))
             {
                 ui.FontSize = 24;
+            }
+            
+            using (ui.TextButton(id: "Button_RandomAll", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+            {
+                ui.Padding = new Padding(4);
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    randomAll = true;
+                }
             }
         }
 
@@ -166,7 +177,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                                 Anchors = Anchors.Center,
                             };
 
-                            if (interactions.Has(Widgets.Interactions.Click))
+                            if (interactions.Has(Widgets.Interactions.Click) || randomAll)
                             {
                                 _characterMaterialIndex = _randomizer.NextInt(0, _characterAssetService.GetAppearancesCount());
                             }
@@ -226,7 +237,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     
                     using (ui.TextButton(id: "Button_RandomName", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
                     {
-                        if (interactions.Has(Widgets.Interactions.Click))
+                        if (interactions.Has(Widgets.Interactions.Click) || randomAll)
                         {
                             string generatedName = _nameGenerator.Generate(key: _characterMaterialIndex.ToString());
                             _nameTextBox.Text.Clear();
@@ -320,7 +331,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     
                     using (ui.TextButton(id: "Button_RandomPoints", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
                     {
-                        if (interactions.Has(Widgets.Interactions.Click))
+                        if (interactions.Has(Widgets.Interactions.Click) || randomAll)
                         {
                             //  If there are no points available, randomize all attributes.
                             //  Otherwise, whatever points remain will be randomly distributed.
