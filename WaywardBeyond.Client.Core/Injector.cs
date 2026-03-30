@@ -212,10 +212,10 @@ public class Injector : IDryIocInjector
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
-        container.RegisterTomlParser<LocalizedTagsDefinition>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();
+        container.RegisterMany<LocalizedTagDefinitionParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)
