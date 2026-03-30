@@ -14,7 +14,7 @@ internal partial class NameGenerator(
     in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) {
     private const float TITLE_CHANCE = 0.2f;
-    private const float FIRST_NAME_CHANCE = 1.0f;
+    private const float FIRST_NAME_CHANCE = 0.7f;
     private const float LAST_NAME_CHANCE = 1.0f;
     private const float SUBTITLE_CHANCE = 0.1f;
     private const float NICKNAME_CHANCE = 0.1f;
@@ -78,6 +78,7 @@ internal partial class NameGenerator(
         //  Cleanup the result, trimming and collapsing whitespace
         result = CollapseWhitespaceRegex().Replace(input: result, replacement: " ");
         result = result.Trim();
+        result = result.Trim('-');
         
         return result;
     }
