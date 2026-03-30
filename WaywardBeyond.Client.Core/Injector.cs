@@ -8,6 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Globalization;
@@ -61,6 +62,9 @@ public class Injector : IDryIocInjector
         container.Register<CharacterAssetService>(Reuse.Singleton);
         
         container.Register<NotificationService>(Reuse.Singleton);
+        
+        container.RegisterDelegate(factory: () => new Randomizer());
+        container.Register<NameGenerator>(Reuse.Singleton);
         
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
@@ -208,10 +212,10 @@ public class Injector : IDryIocInjector
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
-        container.RegisterTomlParser<LocalizedTagsDefinition>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();
+        container.RegisterMany<LocalizedTagDefinitionParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)

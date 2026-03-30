@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -6,9 +8,11 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
+using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
@@ -29,6 +33,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
     private readonly CharacterAssetService _characterAssetService;
+    private readonly NameGenerator _nameGenerator;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -53,7 +58,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
-        in CharacterAssetService characterAssetService
+        in CharacterAssetService characterAssetService,
+        in NameGenerator nameGenerator
     ) {
         _characterSaveService = characterSaveService;
         _characterSaveManager = characterSaveManager;
@@ -61,6 +67,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _soundEffectService = soundEffectService;
         _localization = localization;
         _characterAssetService = characterAssetService;
+        _nameGenerator = nameGenerator;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -95,7 +102,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         var saveNameTextBoxOptions = new TextBoxState.Options(
             Placeholder: localization.GetString("ui.field.characterName"),
             MaxCharacters: 20,
-            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
+            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '<', '>', '|'],
             Constraints: new Constraints
             {
                 Width = new Fixed(300),
@@ -211,7 +218,22 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     }
                 }
 
-                ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+                using (ui.Element())
+                {
+                    ui.Spacing = 8;
+                    
+                    ui.TextBox(id: "TextBox_CharacterName", state: ref _nameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+                    
+                    using (ui.TextButton(id: "Button_RandomName", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                    {
+                        if (interactions.Has(Widgets.Interactions.Click))
+                        {
+                            string generatedName = _nameGenerator.Generate(key: _characterMaterialIndex.ToString());
+                            _nameTextBox.Text.Clear();
+                            _nameTextBox.Text.Append(generatedName);
+                        }
+                    }
+                }
 
                 nameValue = _nameTextBox.Text.ToString().Trim(_characterNameTrimChars);
                 if (string.IsNullOrWhiteSpace(nameValue))

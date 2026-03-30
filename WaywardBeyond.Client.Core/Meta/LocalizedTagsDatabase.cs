@@ -22,7 +22,7 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
     }
     
     /// <inheritdoc/>
-    protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
+    protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml") || path.HasExtension(".csv");
     
     /// <inheritdoc/>
     protected override PathInfo GetRootPath() => AssetPaths.Root.At("lang");
