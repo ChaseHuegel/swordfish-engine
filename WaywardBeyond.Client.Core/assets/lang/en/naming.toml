@@ -5,4 +5,4 @@
 "formats.name.1" = "{Title} {First} {Nickname} {Last} {Subtitle}"
 "formats.name.2" = "{Title} {First} {Nickname} {Last} {Subtitle}"
 "formats.name.3" = "{Title} {First} {Nickname} {Last} {Subtitle}"
-"formats.name.4" = "{Title} {First} {Nickname} {Last} {Subtitle}"
+"formats.name.4" = "{Nickname} {Title}{First}-{Last} {Subtitle}"
