@@ -239,7 +239,15 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     {
                         if (interactions.Has(Widgets.Interactions.Click) || randomAll)
                         {
-                            string generatedName = _nameGenerator.Generate(key: _characterMaterialIndex.ToString());
+                            NameGenerator.Options nameGeneratorOptions = new NameGenerator.Options(
+                                TitleChance: 0.2f,
+                                FirstNameChance: 0.7f,
+                                LastNameChance: 1.0f,
+                                SubtitleChance: 0.1f,
+                                NicknameChance: 0.1f
+                            );
+                            
+                            string generatedName = _nameGenerator.Generate(key: _characterMaterialIndex.ToString(), nameGeneratorOptions);
                             _nameTextBox.Text.Clear();
                             _nameTextBox.Text.Append(generatedName);
                         }

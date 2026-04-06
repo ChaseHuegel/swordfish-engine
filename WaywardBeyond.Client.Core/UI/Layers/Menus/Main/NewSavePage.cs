@@ -24,6 +24,7 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
+    private readonly NameGenerator _nameGenerator;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -37,12 +38,14 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         in GameSaveService gameSaveService,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
-        in ILocalization localization
+        in ILocalization localization,
+        in NameGenerator nameGenerator
     ) {
         _gameSaveService = gameSaveService;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
+        _nameGenerator = nameGenerator;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -121,7 +124,38 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
                 Anchors = Anchors.Center,
             };
             
-            ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                
+                ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+
+                using (ui.TextButton(id: "Button_RandomSaveName", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                {
+                    if (interactions.Has(Widgets.Interactions.Click))
+                    {
+                        NameGenerator.Options nameGeneratorOptions = new NameGenerator.Options(
+                            TitleChance: 0.7f,
+                            FirstNameChance: 0.7f,
+                            LastNameChance: 1.0f,
+                            SubtitleChance: 0.9f,
+                            NicknameChance: 0.7f
+                        );
+
+                        string generatedName = _nameGenerator.Generate(key: "save", nameGeneratorOptions);
+
+                        var attempts = 0;
+                        while (attempts < 10 && (generatedName.Length > _saveNameTextBox.Settings.MaxCharacters || generatedName == _saveNameTextBox.Text.ToString()))
+                        {
+                            generatedName = _nameGenerator.Generate(key: "save", nameGeneratorOptions);
+                            attempts++;
+                        }
+                        
+                        _saveNameTextBox.Text.Clear();
+                        _saveNameTextBox.Text.Append(generatedName);
+                    }
+                }
+            }
 
             var validSaveName = true;
             string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
@@ -150,12 +184,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
                 using (ui.TextButton(id: "Button_RandomSeed", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
                 {
-                    ui.Constraints = new Constraints
-                    {
-                        Anchors = Anchors.Center,
-                        Y = new Fixed(-2),
-                    };
-                    
                     if (interactions.Has(Widgets.Interactions.Click))
                     {
                         _seedTextBox.Text.Clear();
