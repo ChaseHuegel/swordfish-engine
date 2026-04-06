@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Reef;
@@ -8,6 +9,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Extensions;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 
@@ -71,6 +73,7 @@ internal sealed class SelectSavePage(
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
+                Height = new Fixed(196),
             };
 
             ui.ClipConstraints = new Constraints
@@ -98,23 +101,88 @@ internal sealed class SelectSavePage(
                 _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
                 ui.ScrollY = _scrollY * 30;
                 
-                for (var i = 0; i < saves.Length; i++)
+                foreach (GameSave save in saves.OrderByDescending(save => save.Level.LastPlayedMs))
                 {
-                    GameSave save = saves[i];
-                    using (ui.TextButton(id: $"Button_ContinueGame_{i}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
+                    using (ui.TextButton(id: $"Button_SelectSave_{save.Name}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
                     {
                         ui.Constraints = new Constraints
                         {
                             Anchors = Anchors.Center,
                         };
+                        
+                        if (_gameSaveManager.ActiveSave != null && _gameSaveManager.ActiveSave.Value.Name == save.Name)
+                        {
+                            ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                        }
 
                         if (interactions.Has(Widgets.Interactions.Click))
                         {
                             _gameSaveManager.ActiveSave = save;
-                            CharacterSave[] characters = _characterSaveService.GetSaves();
-                            menu.GoToPage(characters.Length == 0 ? MenuPage.NewCharacter : MenuPage.Characters);
                         }
                     }
+                }
+            }
+        }
+        
+        if (_gameSaveManager.ActiveSave != null)
+        {
+            GameSave activeSave = _gameSaveManager.ActiveSave.Value;
+            
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                ui.Padding = new Padding(16);
+                ui.LayoutDirection = LayoutDirection.Vertical;
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+                
+                using (ui.Element())
+                {
+                    ui.Spacing = 8;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+
+                    DateTimeOffset lastPlayed = DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.LastPlayedMs);
+                    using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
+                    using (ui.Text(lastPlayed.ToLocalTime().ToString(format: "g")))
+                    {
+                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                    }
+                }
+
+                TimeSpan age = TimeSpan.FromMilliseconds(activeSave.Level.AgeMs);
+                string timePlayedStr = _localization.GetLongString(age);
+                using (ui.Element())
+                {
+                    ui.Spacing = 8;
+                    ui.Constraints = new Constraints
+                    {
+                        Anchors = Anchors.Center,
+                    };
+                    
+                    using (ui.Text(_localization.GetString("ui.label.timePlayed")!)) { }
+                    using (ui.Text(timePlayedStr))
+                    {
+                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
+                    }
+                }
+            }
+            
+            using (ui.TextButton(id: "Button_Next", text: _localization.GetString("ui.button.next")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+            
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    CharacterSave[] characters = _characterSaveService.GetSaves();
+                    menu.GoToPage(characters.Length == 0 ? MenuPage.NewCharacter : MenuPage.Characters);
                 }
             }
         }

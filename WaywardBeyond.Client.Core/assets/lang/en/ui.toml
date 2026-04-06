@@ -28,6 +28,7 @@
 "ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
 "ui.button.close" = "Close"
+"ui.button.next" = "Next"
 
 "ui.button.selectSave" = "Continue"
 "ui.button.newSave" = "Create save"

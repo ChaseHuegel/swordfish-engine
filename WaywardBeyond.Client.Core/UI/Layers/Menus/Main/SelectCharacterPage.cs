@@ -10,6 +10,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Extensions;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 
@@ -324,57 +325,17 @@ internal sealed class SelectCharacterPage(
                     {
                         Anchors = Anchors.Center,
                     };
-                    
+
+                    DateTimeOffset lastPlayed = DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs);
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
-                    using (ui.Text(DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToLocalTime().ToString("g")))
+                    using (ui.Text(lastPlayed.ToLocalTime().ToString(format: "g")))
                     {
                         ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }
                 }
 
                 TimeSpan age = TimeSpan.FromMilliseconds(activeCharacter.AgeMs);
-                string timePlayedStr;
-                if ((int)age.TotalSeconds > 0)
-                {
-                    var timePlayedBuilder = new StringBuilder();
-                    if (age.TotalHours >= 1)
-                    {
-                        timePlayedBuilder.Append((int)age.TotalHours);
-                        timePlayedBuilder.Append(' ');
-                        timePlayedBuilder.Append(_localization.GetString("ui.word.hours")!);
-                    }
-
-                    if (age.Minutes >= 1)
-                    {
-                        if (timePlayedBuilder.Length > 0)
-                        {
-                            timePlayedBuilder.Append(", ");
-                        }
-                        
-                        timePlayedBuilder.Append(age.Minutes);
-                        timePlayedBuilder.Append(' ');
-                        timePlayedBuilder.Append(_localization.GetString("ui.word.minutes")!);
-                    }
-
-                    if (age.Seconds >= 1)
-                    {
-                        if (timePlayedBuilder.Length > 0)
-                        {
-                            timePlayedBuilder.Append(", ");
-                        }
-                        
-                        timePlayedBuilder.Append(age.Seconds);
-                        timePlayedBuilder.Append(' ');
-                        timePlayedBuilder.Append(_localization.GetString("ui.word.seconds")!);
-                    }
-
-                    timePlayedStr = timePlayedBuilder.ToString();
-                }
-                else
-                {
-                    timePlayedStr = _localization.GetString("ui.text.none")!;
-                }
-
+                string timePlayedStr = _localization.GetLongString(age);
                 using (ui.Element())
                 {
                     ui.Spacing = 8;

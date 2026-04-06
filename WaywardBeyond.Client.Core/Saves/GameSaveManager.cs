@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Shoal.DependencyInjection;
@@ -71,6 +72,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         int autosaveIntervalMs = gameplaySettings.AutosaveIntervalMs.Get();
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
         gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
+        
+        GameSave mostRecentSave = gameSaveService.GetSaves()
+            .OrderByDescending(save => save.Level.LastPlayedMs)
+            .FirstOrDefault();
+        
+        //  Default to the most recent game save, if there is one
+        ActiveSave = mostRecentSave.Path.DirectoryExists() ? mostRecentSave : null;
     }
 
     public void Dispose()
@@ -146,7 +154,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             Save();
         }
 
-        ActiveSave = null;
         CleanupEcs();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
     }
