@@ -1,7 +1,9 @@
 using System;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -27,7 +29,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             _activeSave = value;
         }
     }
-    
+
+    private readonly ILogger<GameSaveManager> _logger;
     private readonly GameSaveService _gameSaveService;
     private readonly IWindowContext _windowContext;
     private readonly IECSContext _ecs;
@@ -41,6 +44,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private GameSave? _activeSave;
     
     public GameSaveManager(
+        in ILogger<GameSaveManager> logger,
         in GameSaveService gameSaveService,
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
@@ -48,6 +52,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in CharacterSaveManager characterSaveManager,
         in GameplaySettings gameplaySettings
     ) {
+        _logger = logger;
         _gameSaveService = gameSaveService;
         _windowContext = windowContext;
         _ecs = ecs;
@@ -73,12 +78,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
         gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
         
-        GameSave mostRecentSave = gameSaveService.GetSaves()
-            .OrderByDescending(save => save.Level.LastPlayedMs)
-            .FirstOrDefault();
-        
         //  Default to the most recent game save, if there is one
-        ActiveSave = mostRecentSave.Path.DirectoryExists() ? mostRecentSave : null;
+        ActiveSave = GetMostRecentSave();
     }
 
     public void Dispose()
@@ -157,7 +158,28 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         CleanupEcs();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
     }
+
+    public void Delete(GameSave save)
+    {
+        try
+        {
+            Directory.Delete(save.Path, recursive: true);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error trying to delete save \"{save}\"", save.Name);
+        }
+    }
     
+    internal GameSave? GetMostRecentSave()
+    {
+        GameSave mostRecentSave = _gameSaveService.GetSaves()
+            .OrderByDescending(save => save.Level.LastPlayedMs)
+            .FirstOrDefault();
+        
+        return mostRecentSave.Path.DirectoryExists() ? mostRecentSave : null;
+    }
+
     private void OnWindowClosed()
     {
         if (!_gameplaySettings.Autosave.Get())

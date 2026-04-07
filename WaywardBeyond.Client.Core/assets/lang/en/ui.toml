@@ -25,10 +25,14 @@
 "ui.menu.playtest" = "In-development Playtest"
 "ui.text.playtest" = "This is an evolving version of Wayward Beyond in early development. Please wishlist it if you are interested in the release!\n\nFeatures and content will be added and changed throughout this playtest. I greatly appreciate feedback on any ideas, suggestions, or bugs, which can be submitted from the menu or by joining the Discord.\n\nThank you for trying out Wayward Beyond!\n-Seven"
 
+"ui.menu.confirm" = "Are you sure?"
+
 "ui.button.submit" = "Submit"
 "ui.button.back" = "Back"
 "ui.button.close" = "Close"
 "ui.button.next" = "Next"
+"ui.button.yes" = "Yes"
+"ui.button.no" = "No"
 
 "ui.button.selectSave" = "Continue"
 "ui.button.newSave" = "Create save"
