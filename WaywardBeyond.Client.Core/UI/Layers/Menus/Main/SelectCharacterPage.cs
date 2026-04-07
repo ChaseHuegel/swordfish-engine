@@ -13,6 +13,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Extensions;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -23,7 +24,9 @@ internal sealed class SelectCharacterPage(
     in SoundEffectService soundEffectService,
     in ILocalization localization,
     in CharacterAssetService characterAssetService,
-    in GameSaveManager gameSaveManager
+    in GameSaveManager gameSaveManager,
+    in ModalMenu modalMenu,
+    in ConfirmModal confirmModal
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectCharacter;
@@ -34,6 +37,8 @@ internal sealed class SelectCharacterPage(
     private readonly ILocalization _localization = localization;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
     private readonly GameSaveManager _gameSaveManager = gameSaveManager;
+    private readonly ModalMenu _modalMenu = modalMenu;
+    private readonly ConfirmModal _confirmModal = confirmModal;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -46,6 +51,14 @@ internal sealed class SelectCharacterPage(
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions
         {
+            Size = 20,
+        },
+        new Widgets.AudioOptions(soundEffectService)
+    );
+    
+    private readonly Widgets.ButtonOptions _smallIconOptions = new(
+        new FontOptions {
+            ID = "Font Awesome 6 Free Solid",
             Size = 20,
         },
         new Widgets.AudioOptions(soundEffectService)
@@ -71,6 +84,7 @@ internal sealed class SelectCharacterPage(
 
         using (ui.Element())
         {
+            ui.Spacing = 20;
             ui.Constraints = new Constraints
             {
                 Anchors = Anchors.Center,
@@ -243,15 +257,10 @@ internal sealed class SelectCharacterPage(
             using (ui.Element("characters"))
             {
                 ui.VerticalScroll = true;
-                ui.LayoutDirection = LayoutDirection.Vertical;
-                ui.Padding = new Padding
-                {
-                    Left = 32,
-                };
 
                 ui.Constraints = new Constraints
                 {
-                    Width = new Fixed(300),
+                    Width = new Fixed(332),
                     Height = new Fixed(196),
                 };
 
@@ -280,23 +289,58 @@ internal sealed class SelectCharacterPage(
                     _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
                     ui.ScrollY = _scrollY * 30;
 
-                    foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
+                    using (ui.Element())
                     {
-                        using (ui.TextButton(id: $"Button_SelectCharacter_{save.Character.Guid}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                        ui.Spacing = 20;
+
+                        using (ui.Element())
                         {
-                            ui.Constraints = new Constraints
+                            ui.LayoutDirection = LayoutDirection.Vertical;
+                            ui.Spacing = 12;
+                        
+                            foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
                             {
-                                Anchors = Anchors.Center | Anchors.Left,
-                            };
+                                using (ui.TextButton(id: $"Button_DeleteCharacter_{save.Character.Guid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                                {
+                                    if (interactions.Has(Widgets.Interactions.Click))
+                                    {
+                                        _characterSaveManager.ActiveSave = save;
+                                        _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
 
-                            if (_characterSaveManager.ActiveSave != null && _characterSaveManager.ActiveSave.Value.Character.Guid == save.Character.Guid)
-                            {
-                                ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                                        void DeleteSave()
+                                        {
+                                            _characterSaveManager.Delete(save);
+                                            _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+                                        }
+                                    }
+                                }
                             }
+                        }
+                        
+                        using (ui.Element())
+                        {
+                            ui.LayoutDirection = LayoutDirection.Vertical;
 
-                            if (interactions.Has(Widgets.Interactions.Click))
+                            foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
                             {
-                                _characterSaveManager.ActiveSave = save;
+                                using (ui.TextButton(id: $"Button_SelectCharacter_{save.Character.Guid}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                                {
+                                    ui.Constraints = new Constraints
+                                    {
+                                        Anchors = Anchors.Center | Anchors.Left,
+                                    };
+
+                                    if (_characterSaveManager.ActiveSave != null &&
+                                        _characterSaveManager.ActiveSave.Value.Character.Guid == save.Character.Guid)
+                                    {
+                                        ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                                    }
+
+                                    if (interactions.Has(Widgets.Interactions.Click))
+                                    {
+                                        _characterSaveManager.ActiveSave = save;
+                                    }
+                                }
                             }
                         }
                     }
