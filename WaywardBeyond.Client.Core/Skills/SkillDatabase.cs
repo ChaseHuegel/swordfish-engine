@@ -24,6 +24,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
     private readonly ILocalization _localization;
     private readonly Dictionary<string, Material> _icons = [];
+    private readonly Dictionary<XPSource, HashSet<string>> _skillIDBySource;
 
     public SkillDatabase(
         in ILogger<SkillDatabase> logger,
@@ -40,6 +41,13 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         _localization = localization;
         _iconShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         _unknownIcon = new Material(_iconShader, textureDatabase.Get("skills/unknown.png"));
+        
+        _skillIDBySource = new Dictionary<XPSource, HashSet<string>>
+        {
+            { XPSource.Place, [] },
+            { XPSource.Break, [] },
+        };
+        
         Load();
     }
     
@@ -85,7 +93,9 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         string localizedCategory = _localization.GetString(assetInfo.Category) ?? assetInfo.Category;
 
         XPSources xpSources = new XPSources();
-        foreach (KeyValuePair<string, int> source in assetInfo.Sources.Break)
+        
+        //  Add any place XP sources
+        foreach (KeyValuePair<string, int> source in assetInfo.Sources.Place)
         {
             //  If this source has a type, try to parse it.
             int separatorIndex = source.Key.IndexOf(':');
@@ -116,7 +126,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
                         for (var i = 0; i < tagValues.Count; i++)
                         {
                             string tagValue = tagValues[i];
-                            xpSources.Break[tagValue] = source.Value;
+                            xpSources.Place[tagValue] = source.Value;
                         }
                         break;
                 }
@@ -124,8 +134,13 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
             //  Otherwise, use the source as-is.
             else
             {
-                xpSources.Break[source.Key] = source.Value;
+                xpSources.Place[source.Key] = source.Value;
             }
+        }
+        
+        if (xpSources.Place.Count > 0)
+        {
+            _skillIDBySource[XPSource.Place].Add(id);
         }
         
         var skill = new Skill(id, localizedName, localizedCategory, icon, assetInfo.MaxLevel, xpSources, assetInfo.Levels);
