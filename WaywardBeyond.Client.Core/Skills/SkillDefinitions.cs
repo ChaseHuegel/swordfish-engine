@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Client.Core.Skills;
 
-public struct SkillDefinitions()
+internal struct SkillDefinitions()
 {
     public List<SkillDefinition> Skills { get; set; }
 }

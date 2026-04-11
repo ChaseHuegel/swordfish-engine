@@ -1,0 +1,24 @@
+"Language" = ""
+
+[Tags]
+"buildable" = [
+    "caution_panel",
+    "control_buttons",
+    "control_panel",
+    "core",
+    "display_console",
+    "display_control",
+    "display_monitor",
+    "glass",
+    "grate",
+    "ice",
+    "light",
+    "panel",
+    "porthole",
+    "rock",
+    "small_light",
+    "storage",
+    "thruster",
+    "truss",
+    "vent",
+]

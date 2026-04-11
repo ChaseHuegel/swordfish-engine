@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
@@ -7,6 +8,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Meta;
 
 namespace WaywardBeyond.Client.Core.Skills;
 
@@ -17,7 +19,9 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
 {
     private readonly Shader _iconShader;
     private readonly Material _unknownIcon;
+    private readonly ILogger<SkillDatabase> _logger;
     private readonly IAssetDatabase<Texture> _textureDatabase;
+    private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
     private readonly ILocalization _localization;
     private readonly Dictionary<string, Material> _icons = [];
 
@@ -26,11 +30,13 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
         in IAssetDatabase<Texture> textureDatabase,
+        in IAssetDatabase<LocalizedTags> localizedTagDatabase,
         in ILocalization localization
-        )
-        : base(logger, fileParseService, vfs)
+    ) : base(logger, fileParseService, vfs)
     {
+        _logger = logger;
         _textureDatabase = textureDatabase;
+        _localizedTagDatabase = localizedTagDatabase;
         _localization = localization;
         _iconShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         _unknownIcon = new Material(_iconShader, textureDatabase.Get("skills/unknown.png"));
@@ -77,8 +83,52 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         //  Localize the display name if a translation exists
         string localizedName = _localization.GetString(assetInfo.Name) ?? assetInfo.Name;
         string localizedCategory = _localization.GetString(assetInfo.Category) ?? assetInfo.Category;
+
+        XPSources xpSources = new XPSources();
+        foreach (KeyValuePair<string, int> source in assetInfo.Sources.Break)
+        {
+            //  If this source has a type, try to parse it.
+            int separatorIndex = source.Key.IndexOf(':');
+            if (separatorIndex != -1 && separatorIndex > 0)
+            {
+                string type = source.Key[..separatorIndex];
+                string value = source.Key[(separatorIndex + 1)..];
+                
+                switch (type)
+                {
+                    case "tag":
+                        //  Find the lang tags
+                        Result<LocalizedTags> localizedTag = _localizedTagDatabase.Get(CultureInfo.CurrentCulture.TwoLetterISOLanguageName);
+                        if (!localizedTag.Success)
+                        {
+                            _logger.LogWarning("Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".", value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
+                            continue;
+                        }
+
+                        //  Find the tag
+                        if (!localizedTag.Value.Tags.TryGetValue(value, out List<string>? tagValues))
+                        {
+                            _logger.LogWarning("Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".", value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
+                            continue;
+                        }
+
+                        //  Add a source for each tag value
+                        for (var i = 0; i < tagValues.Count; i++)
+                        {
+                            string tagValue = tagValues[i];
+                            xpSources.Break[tagValue] = source.Value;
+                        }
+                        break;
+                }
+            }
+            //  Otherwise, use the source as-is.
+            else
+            {
+                xpSources.Break[source.Key] = source.Value;
+            }
+        }
         
-        var skill = new Skill(id, localizedName, localizedCategory, icon, assetInfo.MaxLevel, assetInfo.Sources, assetInfo.Levels);
+        var skill = new Skill(id, localizedName, localizedCategory, icon, assetInfo.MaxLevel, xpSources, assetInfo.Levels);
         return Result<Skill>.FromSuccess(skill);
     }
 }

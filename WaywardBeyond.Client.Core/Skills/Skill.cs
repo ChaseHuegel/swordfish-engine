@@ -9,7 +9,7 @@ internal sealed class Skill(
     string category,
     Material icon,
     int maxLevel,
-    Dictionary<string, int> sources,
+    XPSources sources,
     Dictionary<int, int> levels)
 {
     public string ID { get; } = id;
@@ -17,6 +17,6 @@ internal sealed class Skill(
     public string Category { get; } = category;
     public Material Icon { get; } = icon;
     public int MaxLevel { get; } = maxLevel;
-    public Dictionary<string, int> Sources { get; } = sources;
+    public XPSources Sources { get; } = sources;
     public Dictionary<int, int> Levels { get; } = levels;
 }

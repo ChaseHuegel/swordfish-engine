@@ -5,7 +5,9 @@ Category = "skill.category.misc"
 Icon     = "block/panel.0.png"
 MaxLevel = 100
 Sources  = {
-    "tag:buildable" = 1,
+    Place = {
+        "tag:buildable" = 1,
+    }
 }
 Levels = {
     1 = 61,

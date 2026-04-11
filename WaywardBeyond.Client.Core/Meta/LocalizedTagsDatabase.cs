@@ -19,6 +19,41 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
     ) : base(logger, fileParseService, vfs)
     {
         Load();
+        
+        if (!_localizedTags.TryGetValue(string.Empty, out LocalizedTags? invariantTags))
+        {
+            return;
+        }
+
+        //  Merge any invariant tags into each language
+        foreach ((string key, var localizedTags) in _localizedTags)
+        {
+            if (string.IsNullOrEmpty(key))
+            {
+                continue;
+            }
+
+            foreach (KeyValuePair<string, List<string>> invariantTag in invariantTags.Tags)
+            {
+                if (!localizedTags.Tags.TryGetValue(invariantTag.Key, out List<string>? tags))
+                {
+                    tags = [];
+                    localizedTags.Tags[invariantTag.Key] = tags;
+                }
+                
+                for (var i = 0; i < invariantTag.Value.Count; i++)
+                {
+                    string tag = invariantTag.Value[i];
+                    if (!tags.Contains(tag))
+                    {
+                        tags.Add(tag);
+                    }
+                }
+            }
+        }
+
+        // No longer need the separate invariant entry
+        _localizedTags.Remove(string.Empty);
     }
     
     /// <inheritdoc/>
@@ -52,8 +87,15 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
                 tags = [];
                 localizedTags.Tags[localizedTag.Key] = tags;
             }
-            
-            tags.AddRange(localizedTag.Value);
+
+            for (var i = 0; i < localizedTag.Value.Count; i++)
+            {
+                string tag = localizedTag.Value[i];
+                if (!tags.Contains(tag))
+                {
+                    tags.Add(tag);
+                }
+            }
         }
         
         return Result<LocalizedTags>.FromSuccess(localizedTags);
