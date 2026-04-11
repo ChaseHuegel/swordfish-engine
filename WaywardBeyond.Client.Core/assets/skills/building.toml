@@ -4,11 +4,10 @@ Name     = "skill.name.building"
 Category = "skill.category.misc"
 Icon     = "block/panel.0.png"
 MaxLevel = 100
-Sources  = {
-    Place = {
-        "tag:buildable" = 1,
-    }
-}
+
+[Skills.Sources.Place]
+"tag:buildable" = 1
+
 [Skills.Levels]
 1 = 61
 2 = 105

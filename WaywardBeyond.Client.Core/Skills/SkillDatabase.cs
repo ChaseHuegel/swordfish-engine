@@ -24,7 +24,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase;
     private readonly ILocalization _localization;
     private readonly Dictionary<string, Material> _icons = [];
-    private readonly Dictionary<XPSource, HashSet<string>> _skillIDBySource;
+    private readonly Dictionary<XPSource, HashSet<string>> _skillIDByXPSource;
 
     public SkillDatabase(
         in ILogger<SkillDatabase> logger,
@@ -42,7 +42,7 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         _iconShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
         _unknownIcon = new Material(_iconShader, textureDatabase.Get("skills/unknown.png"));
         
-        _skillIDBySource = new Dictionary<XPSource, HashSet<string>>
+        _skillIDByXPSource = new Dictionary<XPSource, HashSet<string>>
         {
             { XPSource.Place, [] },
             { XPSource.Break, [] },
@@ -92,55 +92,63 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         string localizedName = _localization.GetString(assetInfo.Name) ?? assetInfo.Name;
         string localizedCategory = _localization.GetString(assetInfo.Category) ?? assetInfo.Category;
 
-        XPSources xpSources = new XPSources();
-        
-        //  Add any place XP sources
-        foreach (KeyValuePair<string, int> source in assetInfo.Sources.Place)
+        var xpSources = new Dictionary<XPSource, Dictionary<string, int>>();
+
+        foreach (KeyValuePair<XPSource, Dictionary<string, int>> kvp in assetInfo.Sources)
         {
-            //  If this source has a type, try to parse it.
-            int separatorIndex = source.Key.IndexOf(':');
-            if (separatorIndex != -1 && separatorIndex > 0)
+            XPSource kind = kvp.Key;
+            Dictionary<string, int> sources = kvp.Value;
+
+            foreach (KeyValuePair<string, int> source in sources)
             {
-                string type = source.Key[..separatorIndex];
-                string value = source.Key[(separatorIndex + 1)..];
-                
-                switch (type)
+                //  If this source has a type, try to parse it.
+                int separatorIndex = source.Key.IndexOf(':');
+                if (separatorIndex != -1 && separatorIndex > 0)
                 {
-                    case "tag":
-                        //  Find the lang tags
-                        Result<LocalizedTags> localizedTag = _localizedTagDatabase.Get(CultureInfo.CurrentCulture.TwoLetterISOLanguageName);
-                        if (!localizedTag.Success)
-                        {
-                            _logger.LogWarning("Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".", value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
-                            continue;
-                        }
+                    string type = source.Key[..separatorIndex];
+                    string value = source.Key[(separatorIndex + 1)..];
 
-                        //  Find the tag
-                        if (!localizedTag.Value.Tags.TryGetValue(value, out List<string>? tagValues))
-                        {
-                            _logger.LogWarning("Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".", value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
-                            continue;
-                        }
+                    switch (type)
+                    {
+                        case "tag":
+                            //  Find the lang tags
+                            Result<LocalizedTags> localizedTag =
+                                _localizedTagDatabase.Get(CultureInfo.CurrentCulture.TwoLetterISOLanguageName);
+                            if (!localizedTag.Success)
+                            {
+                                _logger.LogWarning(
+                                    "Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".",
+                                    value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
+                                continue;
+                            }
 
-                        //  Add a source for each tag value
-                        for (var i = 0; i < tagValues.Count; i++)
-                        {
-                            string tagValue = tagValues[i];
-                            xpSources.Place[tagValue] = source.Value;
-                        }
-                        break;
+                            //  Find the tag
+                            if (!localizedTag.Value.Tags.TryGetValue(value, out List<string>? tagValues))
+                            {
+                                _logger.LogWarning(
+                                    "Failed to find tag \"{tag}\" for lang \"{lang}\" when parsing sources for skill ID \"{id}\".",
+                                    value, CultureInfo.CurrentCulture.TwoLetterISOLanguageName, id);
+                                continue;
+                            }
+
+                            //  Add a source for each tag value
+                            for (var i = 0; i < tagValues.Count; i++)
+                            {
+                                string tagValue = tagValues[i];
+                                xpSources[kind][tagValue] = source.Value;
+                            }
+
+                            break;
+                    }
+                }
+                //  Otherwise, use the source as-is.
+                else
+                {
+                    xpSources[kind][source.Key] = source.Value;
                 }
             }
-            //  Otherwise, use the source as-is.
-            else
-            {
-                xpSources.Place[source.Key] = source.Value;
-            }
-        }
-        
-        if (xpSources.Place.Count > 0)
-        {
-            _skillIDBySource[XPSource.Place].Add(id);
+            
+            _skillIDByXPSource[kind].Add(id);
         }
         
         var skill = new Skill(id, localizedName, localizedCategory, icon, assetInfo.MaxLevel, xpSources, assetInfo.Levels);
