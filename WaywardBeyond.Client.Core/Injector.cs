@@ -23,6 +23,7 @@ using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
+using WaywardBeyond.Client.Core.Skills;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -208,6 +209,9 @@ public class Injector : IDryIocInjector
         
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
+        
+        container.Register<SkillDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IAssetDatabase<Skill>, SkillDatabase>();
     }
     
     private static void RegisterParsers(IContainer container)
