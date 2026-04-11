@@ -13,7 +13,7 @@
     <PackageReference Include="Karambolo.Extensions.Logging.File" Version="3.6.0" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
-    <PackageReference Include="Samboy063.Tomlet" Version="5.4.0" />
+    <PackageReference Include="Samboy063.Tomlet" Version="6.2.0" />
     <PackageReference Include="SmartFormat.NET" Version="3.4.0" />
     <PackageReference Include="Swordfish.Library" Version="2.5.14" />
   </ItemGroup>
