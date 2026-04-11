@@ -92,7 +92,11 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         string localizedName = _localization.GetString(assetInfo.Name) ?? assetInfo.Name;
         string localizedCategory = _localization.GetString(assetInfo.Category) ?? assetInfo.Category;
 
-        var xpSources = new Dictionary<XPSource, Dictionary<string, int>>();
+        var xpSources = new Dictionary<XPSource, Dictionary<string, int>>
+        {
+            { XPSource.Place, [] },
+            { XPSource.Break, [] },
+        };
 
         foreach (KeyValuePair<XPSource, Dictionary<string, int>> kvp in assetInfo.Sources)
         {
