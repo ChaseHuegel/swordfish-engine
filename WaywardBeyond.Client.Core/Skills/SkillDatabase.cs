@@ -50,6 +50,28 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         
         Load();
     }
+
+    /// <summary>
+    ///     Gets all skills by an XP source.
+    /// </summary>
+    public Result<Skill[]> Get(XPSource xpSource)
+    {
+        if (!_skillIDByXPSource.TryGetValue(xpSource, out HashSet<string>? skillIDs))
+        {
+            return Result<Skill[]>.FromFailure($"No skills found for XP source \"{xpSource}\"");
+        }
+
+        var skills = new Skill[skillIDs.Count];
+
+        var i = 0;
+        foreach (string id in skillIDs)
+        {
+            skills[i] = Get(id);
+            i++;
+        }
+
+        return Result<Skill[]>.FromSuccess(skills);
+    }
     
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");

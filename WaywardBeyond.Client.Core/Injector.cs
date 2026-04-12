@@ -11,6 +11,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
@@ -51,6 +52,7 @@ public class Injector : IDryIocInjector
         RegisterVoxels(container);
         RegisterWebhooks(container);
         RegisterShortcuts(container);
+        RegisterEvents(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -87,6 +89,11 @@ public class Injector : IDryIocInjector
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
+    }
+
+    private void RegisterEvents(IContainer container)
+    {
+        container.Register<EventInvoker<PlaceEvent>>();
     }
 
     private void RegisterShortcuts(IContainer container)

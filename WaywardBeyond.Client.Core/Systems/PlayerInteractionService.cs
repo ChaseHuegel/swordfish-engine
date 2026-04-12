@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Debug;
+using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Player;
@@ -64,7 +65,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly Line[] _debugLines;
     private readonly DebugSettings _debugSettings;
     private readonly SoundEffectService _soundEffectService;
-    private readonly IAssetDatabase<Skill> _skillDatabase;
+    private readonly EventInvoker<PlaceEvent> _placeEvent;
 
     private DebugInfo _debugInfo;
 
@@ -84,7 +85,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IAssetDatabase<Mesh> meshDatabase,
         in IShortcutService shortcutService,
         in SoundEffectService soundEffectService,
-        in IAssetDatabase<Skill> skillDatabase
+        in EventInvoker<PlaceEvent> placeEvent
     ) {
         _interactionState = interactionState;
         _inputService = inputService;
@@ -99,7 +100,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _itemDatabase = itemDatabase;
         _debugSettings = debugSettings;
         _soundEffectService = soundEffectService;
-        _skillDatabase = skillDatabase;
+        _placeEvent = placeEvent;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -260,6 +261,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             }
 
             BrickInfo brickInfo = brickInfoResult.Value;
+
+            var placeEvent = new PlaceEvent(brickInfo);
+            Result placeEventResult = _placeEvent.Invoke(placeEvent);
+            if (!placeEventResult.Success)
+            {
+                //  Place was canceled
+                return;
+            }
             
             //  If this brick is shapeable, use the selected shape.
             BrickShape shape = brickInfo.Shapeable ? _interactionState.SelectedShape.Get() : brickInfo.Shape;
