@@ -143,6 +143,7 @@ public class Injector : IDryIocInjector
 
         container.Register<Hotbar>(Reuse.Singleton);
         container.Register<Actions>(Reuse.Singleton);
+        container.Register<Bars>(Reuse.Singleton);
         
         container.Register<HUD>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, HUD>();

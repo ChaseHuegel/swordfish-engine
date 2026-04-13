@@ -6,10 +6,11 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
-internal class HUD(in Hotbar hotbar, in Actions actions) : IUILayer
+internal class HUD(in Hotbar hotbar, in Actions actions, in Bars bars) : IUILayer
 {
     private readonly Hotbar _hotbar = hotbar;
     private readonly Actions _actions = actions;
+    private readonly Bars _bars = bars;
 
     public bool IsVisible()
     {
@@ -38,6 +39,23 @@ internal class HUD(in Hotbar hotbar, in Actions actions) : IUILayer
             {
                 //  TODO handle non-success results
                 _hotbar.RenderUI(delta, ui);
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Spacing = 20;
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center | Anchors.Top,
+                Y = new Fixed(30),
+            };
+            
+            if (_bars.IsVisible())
+            {
+                //  TODO handle non-success results
+                _bars.RenderUI(delta, ui);
             }
         }
 

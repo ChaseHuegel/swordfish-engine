@@ -10,9 +10,12 @@ internal class PlaceEventXPListener(in SkillDatabase skillDatabase, in Notificat
 {
     private readonly SkillDatabase _skillDatabase = skillDatabase;
     private readonly NotificationService _notificationService = notificationService;
+    private float xp = 0;
 
     public Result<EventBehavior> ProcessEvent(object sender, PlaceEvent e)
     {
+        xp += 1;
+        
         Result<Skill[]> skills = _skillDatabase.Get(XPSource.Place);
         if (!skills.Success)
         {
@@ -27,8 +30,9 @@ internal class PlaceEventXPListener(in SkillDatabase skillDatabase, in Notificat
             {
                 return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
             }
-            
-            _notificationService.Push($"+{value} {skill.Name} XP");
+
+            var notification = new Notification("Building", xp / 100f);
+            _notificationService.Push(notification);
         }
         
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
