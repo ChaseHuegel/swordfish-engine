@@ -8,7 +8,6 @@ public struct SkillDefinition()
     public string Name;
     public string Category;
     public string? Icon;
-    public int MaxLevel;
     public Dictionary<XPSource, Dictionary<string, int>> Sources;
     public Dictionary<int, int> Levels;
 }

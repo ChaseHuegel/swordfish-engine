@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
@@ -177,7 +178,13 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
             _skillIDByXPSource[kind].Add(id);
         }
         
-        var skill = new Skill(id, localizedName, localizedCategory, icon, assetInfo.MaxLevel, xpSources, assetInfo.Levels);
+        //  Ensure the dictionary is ordered by level
+        Dictionary<int, int> orderedLevels = assetInfo.Levels.OrderBy(kvp => kvp.Key).ToDictionary();
+        
+        //  Determine max level
+        int maxLevel = orderedLevels.Keys.LastOrDefault();
+        
+        var skill = new Skill(id, localizedName, localizedCategory, icon, maxLevel, xpSources, orderedLevels);
         return Result<Skill>.FromSuccess(skill);
     }
 }

@@ -3,7 +3,6 @@ ID       = "building"
 Name     = "skill.name.building"
 Category = "skill.category.misc"
 Icon     = "block/panel.0.png"
-MaxLevel = 100
 
 [Skills.Sources.Place]
 "tag:buildable" = 1

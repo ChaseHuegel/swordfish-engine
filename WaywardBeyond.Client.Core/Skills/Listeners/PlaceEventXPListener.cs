@@ -106,11 +106,9 @@ internal class PlaceEventXPListener(
     
     private LevelInfo CalculateCurrentLevel(Skill skill, int currentXP)
     {
-        IOrderedEnumerable<KeyValuePair<int, int>> levels = skill.Levels.OrderBy(kvp => kvp.Key);
-
-        int currentLevel = 0;
-        int totalXP = 0;
-        foreach (KeyValuePair<int, int> level in levels)
+        var currentLevel = 0;
+        var totalXP = 0;
+        foreach (KeyValuePair<int, int> level in skill.Levels)
         {
             if (totalXP < currentXP)
             {
