@@ -44,7 +44,7 @@ internal class Bars(in NotificationService notificationService)
                 };
 
                 IEnumerable<NotificationState> notificationStates = _notificationService.GetActiveNotifications(NotificationType.Bar)
-                    .DistinctBy(state => state.Notification.Text);
+                    .DistinctBy(state => state.Notification.ID);
                 
                 foreach (NotificationState state in notificationStates)
                 {

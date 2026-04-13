@@ -11,12 +11,14 @@ internal class PlaceEventXPListener(
     in SkillDatabase skillDatabase,
     in NotificationService notificationService,
     in CharacterSaveManager characterSaveManager,
+    in EventInvoker<XPEvent> xpEvent,
     in EventInvoker<LevelUpEvent> levelUpEvent
 ) : IEventProcessor<PlaceEvent>
 {
     private readonly SkillDatabase _skillDatabase = skillDatabase;
     private readonly NotificationService _notificationService = notificationService;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
+    private readonly EventInvoker<XPEvent> _xpEvent = xpEvent;
     private readonly EventInvoker<LevelUpEvent> _levelUpEvent = levelUpEvent;
 
     public Result<EventBehavior> ProcessEvent(object sender, PlaceEvent e)
@@ -74,7 +76,8 @@ internal class PlaceEventXPListener(
                 character.Statistics = new Statistic[oldArr.Length + 1];
                 oldArr.CopyTo(character.Statistics, 0);
             }
-            
+
+            int prevXP = skillStatistic.Value;
             LevelInfo prevLvl = CalculateCurrentLevel(skill, skillStatistic.Value);
             
             skillStatistic.Value += sourceXP;
@@ -85,13 +88,8 @@ internal class PlaceEventXPListener(
 
             LevelInfo currLvl = CalculateCurrentLevel(skill, skillStatistic.Value);
 
-            if (!skill.Levels.TryGetValue(currLvl.Level + 1, out int nextLevelXP))
-            {
-                nextLevelXP = 1;
-            }
-            
-            var notification = new Notification(skill.Name, (float)currLvl.XP / nextLevelXP);
-            _notificationService.Push(notification);
+            var xpEvent = new XPEvent(skill, currLvl.Level, currLvl.XP, sourceXP);
+            _xpEvent.Invoke(xpEvent);
 
             if (prevLvl.Level != currLvl.Level)
             {
