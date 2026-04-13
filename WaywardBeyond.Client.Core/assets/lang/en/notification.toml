@@ -17,3 +17,5 @@
 "ui.notification.name.required" = "Name is required"
 "ui.notification.name.taken" = "Name is already taken"
 "ui.notification.tooSoon" = "Please wait a few moments"
+
+"notification.skill.levelUp" = "{Name} increased from {PreviousLevel} to {Level}!"
