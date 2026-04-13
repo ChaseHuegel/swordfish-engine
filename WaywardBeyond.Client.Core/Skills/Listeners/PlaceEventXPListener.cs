@@ -77,7 +77,6 @@ internal class PlaceEventXPListener(
                 oldArr.CopyTo(character.Statistics, 0);
             }
 
-            int prevXP = skillStatistic.Value;
             LevelInfo prevLvl = CalculateCurrentLevel(skill, skillStatistic.Value);
             
             skillStatistic.Value += sourceXP;
