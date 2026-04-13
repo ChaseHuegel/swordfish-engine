@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
@@ -110,7 +109,7 @@ internal class PlaceEventXPListener(
         var totalXP = 0;
         foreach (KeyValuePair<int, int> level in skill.Levels)
         {
-            if (totalXP < currentXP)
+            if (totalXP + level.Value < currentXP)
             {
                 totalXP += level.Value;
                 currentLevel = level.Key;
