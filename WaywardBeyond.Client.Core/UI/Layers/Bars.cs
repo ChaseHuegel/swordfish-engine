@@ -67,8 +67,8 @@ internal class Bars(in NotificationService notificationService)
                             ui.Color = _backgroundColor;
                             ui.Constraints = new Constraints
                             {
-                                Width = new Fixed(300),
-                                Height = new Fixed(20),
+                                Width = new Fixed(512),
+                                Height = new Fixed(16),
                             };
                             
                             using (ui.Element())
