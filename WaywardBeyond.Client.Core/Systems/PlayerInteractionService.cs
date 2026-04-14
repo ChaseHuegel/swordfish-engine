@@ -23,7 +23,6 @@ using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
-using WaywardBeyond.Client.Core.Skills;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels;
@@ -66,6 +65,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly DebugSettings _debugSettings;
     private readonly SoundEffectService _soundEffectService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
+    private readonly EventInvoker<BreakEvent> _breakEvent;
 
     private DebugInfo _debugInfo;
 
@@ -85,7 +85,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IAssetDatabase<Mesh> meshDatabase,
         in IShortcutService shortcutService,
         in SoundEffectService soundEffectService,
-        in EventInvoker<PlaceEvent> placeEvent
+        in EventInvoker<PlaceEvent> placeEvent,
+        in EventInvoker<BreakEvent> breakEvent
     ) {
         _interactionState = interactionState;
         _inputService = inputService;
@@ -101,6 +102,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _debugSettings = debugSettings;
         _soundEffectService = soundEffectService;
         _placeEvent = placeEvent;
+        _breakEvent = breakEvent;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -196,12 +198,25 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
         
-        _soundEffectService.PlayRemoveMetal();
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
+        if (!brickInfoResult.Success)
+        {
+            return;
+        }
+        
+        var breakEvent = new BreakEvent(brickInfoResult.Value);
+        Result breakEventResult = _breakEvent.Invoke(breakEvent);
+        if (!breakEventResult.Success)
+        {
+            //  Break was canceled
+            return;
+        }
         
         voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
-        
         _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
+        
+        _soundEffectService.PlayRemoveMetal();
+        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
@@ -212,11 +227,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 return;
             }
             
-            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
-            if (brickInfoResult.Success)
-            {
-                inventory.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
-            }
+            inventory.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
         }
     }
 

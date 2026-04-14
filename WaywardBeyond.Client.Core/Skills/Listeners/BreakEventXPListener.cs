@@ -6,21 +6,21 @@ using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Skills.Listeners;
 
-internal class PlaceEventXPListener(
+internal class BreakEventXPListener(
     in SkillDatabase skillDatabase,
     in CharacterSaveManager characterSaveManager,
     in EventInvoker<XPEvent> xpEvent,
     in EventInvoker<LevelUpEvent> levelUpEvent
-) : IEventProcessor<PlaceEvent>
+) : IEventProcessor<BreakEvent>
 {
     private readonly SkillDatabase _skillDatabase = skillDatabase;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly EventInvoker<XPEvent> _xpEvent = xpEvent;
     private readonly EventInvoker<LevelUpEvent> _levelUpEvent = levelUpEvent;
 
-    public Result<EventBehavior> ProcessEvent(object sender, PlaceEvent e)
+    public Result<EventBehavior> ProcessEvent(object sender, BreakEvent e)
     {
-        Result<Skill[]> skills = _skillDatabase.Get(XPSource.Place);
+        Result<Skill[]> skills = _skillDatabase.Get(XPSource.Break);
         if (!skills.Success)
         {
             return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
@@ -29,7 +29,7 @@ internal class PlaceEventXPListener(
         for (var i = 0; i < skills.Value.Length; i++)
         {
             Skill skill = skills.Value[i];
-            Dictionary<string, int> sources = skill.Sources[XPSource.Place];
+            Dictionary<string, int> sources = skill.Sources[XPSource.Break];
             if (!sources.TryGetValue(e.BrickInfo.ID, out int sourceXP))
             {
                 return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);

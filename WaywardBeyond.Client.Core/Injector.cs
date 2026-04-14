@@ -94,6 +94,7 @@ public class Injector : IDryIocInjector
     private void RegisterEvents(IContainer container)
     {
         container.Register<EventInvoker<PlaceEvent>>();
+        container.Register<EventInvoker<BreakEvent>>();
         container.Register<EventInvoker<LevelUpEvent>>();
         container.Register<EventInvoker<XPEvent>>();
     }

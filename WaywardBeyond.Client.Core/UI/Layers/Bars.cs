@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -39,6 +38,7 @@ internal class Bars(in NotificationService notificationService)
             //  Render the bar notifications
             using (ui.Element())
             {
+                ui.LayoutDirection = LayoutDirection.Vertical;
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Center,

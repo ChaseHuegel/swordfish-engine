@@ -1,10 +1,10 @@
 [[Skills]]
-ID       = "building"
-Name     = "skill.name.building"
-Category = "skill.category.misc"
-Icon     = "items/panel.png"
+ID       = "salvaging"
+Name     = "skill.name.salvaging"
+Category = "skill.category.gathering"
+Icon     = "items/laser.png"
 
-[Skills.Sources.Place]
+[Skills.Sources.Break]
 "tag:buildable" = 1
 
 [Skills.Levels]

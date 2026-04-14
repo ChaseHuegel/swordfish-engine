@@ -1,11 +1,11 @@
 [[Skills]]
-ID       = "building"
-Name     = "skill.name.building"
-Category = "skill.category.misc"
-Icon     = "items/panel.png"
+ID       = "mining"
+Name     = "skill.name.mining"
+Category = "skill.category.gathering"
+Icon     = "block/rock.png"
 
-[Skills.Sources.Place]
-"tag:buildable" = 1
+[Skills.Sources.Break]
+"tag:environment" = 1
 
 [Skills.Levels]
 1 = 61
