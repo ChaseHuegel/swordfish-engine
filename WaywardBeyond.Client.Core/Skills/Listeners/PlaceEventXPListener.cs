@@ -32,7 +32,7 @@ internal class PlaceEventXPListener(
             Dictionary<string, int> sources = skill.Sources[XPSource.Place];
             if (!sources.TryGetValue(e.BrickInfo.ID, out int sourceXP))
             {
-                return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
+                continue;
             }
 
             CharacterSave? activeSave = _characterSaveManager.ActiveSave;
