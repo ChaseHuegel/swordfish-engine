@@ -15,8 +15,12 @@ internal sealed class SoundEffectService
     private readonly IECSContext _ecsContext;
 
     private readonly Randomizer _randomizer;
+    
     private readonly string[] _placeMetalSounds;
     private readonly string[] _removeMetalSounds;
+    
+    private readonly string[] _placeRockSounds;
+    private readonly string[] _removeRockSounds;
 
     public SoundEffectService(in AudioChannelSystem audioChannelSystem, in IECSContext ecsContext, in VirtualFileSystem vfs)
     {
@@ -33,6 +37,16 @@ internal sealed class SoundEffectService
         _removeMetalSounds = vfs.GetFiles(removeMetalFolder, SearchOption.TopDirectoryOnly)
             .Select(pathInfo => $"sounds/remove/metal/{pathInfo.GetFileName()}")
             .ToArray();
+        
+        PathInfo placeRockFolder = AssetPaths.Audio.At("sounds/place/rock/");
+        _placeRockSounds = vfs.GetFiles(placeRockFolder, SearchOption.TopDirectoryOnly)
+            .Select(pathInfo => $"sounds/place/rock/{pathInfo.GetFileName()}")
+            .ToArray();
+        
+        PathInfo removeRockFolder = AssetPaths.Audio.At("sounds/remove/rock/");
+        _removeRockSounds = vfs.GetFiles(removeRockFolder, SearchOption.TopDirectoryOnly)
+            .Select(pathInfo => $"sounds/remove/rock/{pathInfo.GetFileName()}")
+            .ToArray();
     }
 
     public void Play(string id, string channelName)
@@ -48,23 +62,32 @@ internal sealed class SoundEffectService
 
     public void PlayPlaceMetal()
     {
-        if (!_audioChannelSystem.TryGetChannelEntity("effects", out int channel))
-        {
-            return;
-        }
-        
-        var audioSource = new AudioSource(id: _randomizer.Select(_placeMetalSounds));
-        Play(audioSource, channel);
+        PlayRandomSound(_placeMetalSounds);
     }
     
     public void PlayRemoveMetal()
+    {
+        PlayRandomSound(_removeMetalSounds);
+    }
+    
+    public void PlayPlaceRock()
+    {
+        PlayRandomSound(_placeRockSounds);
+    }
+    
+    public void PlayRemoveRock()
+    {
+        PlayRandomSound(_removeRockSounds);
+    }
+    
+    private void PlayRandomSound(string[] ids)
     {
         if (!_audioChannelSystem.TryGetChannelEntity("effects", out int channel))
         {
             return;
         }
         
-        var audioSource = new AudioSource(id: _randomizer.Select(_removeMetalSounds));
+        var audioSource = new AudioSource(id: _randomizer.Select(ids));
         Play(audioSource, channel);
     }
 

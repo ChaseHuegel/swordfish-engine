@@ -215,7 +215,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
         _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         
-        _soundEffectService.PlayRemoveMetal();
+        if (brickInfoResult.Value.Tags.Contains("environment"))
+        {
+            _soundEffectService.PlayRemoveRock();
+        }
+        else
+        {
+            _soundEffectService.PlayRemoveMetal();
+        }
+        
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
 
@@ -288,7 +296,14 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
             Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementLocalOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
 
-            _soundEffectService.PlayPlaceMetal();
+            if (brickInfo.Tags.Contains("environment"))
+            {
+                _soundEffectService.PlayPlaceRock();
+            }
+            else
+            {
+                _soundEffectService.PlayPlaceMetal();
+            }
             
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
