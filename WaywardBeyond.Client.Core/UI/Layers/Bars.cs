@@ -38,6 +38,7 @@ internal class Bars(in NotificationService notificationService)
             //  Render the bar notifications
             using (ui.Element())
             {
+                ui.Spacing = 10;
                 ui.LayoutDirection = LayoutDirection.Vertical;
                 ui.Constraints = new Constraints
                 {
@@ -66,11 +67,11 @@ internal class Bars(in NotificationService notificationService)
                         {
                             ui.LayoutDirection = LayoutDirection.None;
                             ui.Color = _backgroundColor;
-                            ui.Padding = new Padding(2);
+                            ui.Padding = new Padding(4);
                             ui.Constraints = new Constraints
                             {
                                 Width = new Fixed(512),
-                                Height = new Fixed(20),
+                                Height = new Fixed(16),
                             };
                             
                             using (ui.Element())
