@@ -33,7 +33,7 @@ internal class NotificationService : IDisposable
         var state = new NotificationState(notification, DateTime.Now);
         _pushedStates.Enqueue(state);
 
-        if (notification.Type != NotificationType.Action)
+        if (notification.Type != NotificationType.Action && notification.Type != NotificationType.Bar)
         {
             _logger.LogInformation("[Notification] {type}: {text}", notification.Type, notification.Text);
         }

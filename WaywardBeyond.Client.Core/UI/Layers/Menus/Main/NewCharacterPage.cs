@@ -533,7 +533,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _education,
                     _resolve,
                     _Body: _characterMaterialIndex,
-                     _Inventory: null
+                    _Statistics: null,
+                    _Inventory: null
                 );
                 
                 Task.Run(() =>

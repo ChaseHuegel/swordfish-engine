@@ -1,0 +1,9 @@
+"Language" = "en"
+
+[Translations]
+"skill.category.misc" = "Misc"
+"skill.category.gathering" = "Gathering"
+
+"skill.name.building" = "Building"
+"skill.name.salvaging" = "Salvaging"
+"skill.name.mining" = "Mining"

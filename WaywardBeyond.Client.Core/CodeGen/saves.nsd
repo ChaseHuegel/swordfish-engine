@@ -50,6 +50,8 @@ message Character
     
     int Body = 11;
     
+    Statistic[]? Statistics = 15;
+    
     ItemData[]? Inventory = 20;
 }
 
@@ -58,6 +60,12 @@ message ItemData
     string ID = 0;
     int Count = 1;
     int MaxSize = 2;
+}
+
+message Statistic
+{
+    string ID = 0;
+    int Value = 1;
 }
 
 message CharacterEntityData
