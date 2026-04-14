@@ -5,7 +5,7 @@ Category = "skill.category.gathering"
 Icon     = "items/laser.png"
 
 [Skills.Sources.Break]
-"tag:buildable" = 1
+"tag:manufactured" = 1
 
 [Skills.Levels]
 1 = 61
