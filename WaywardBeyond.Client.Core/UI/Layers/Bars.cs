@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Globalization;
 using System.Linq;
@@ -65,10 +66,11 @@ internal class Bars(in NotificationService notificationService)
                         {
                             ui.LayoutDirection = LayoutDirection.None;
                             ui.Color = _backgroundColor;
+                            ui.Padding = new Padding(2);
                             ui.Constraints = new Constraints
                             {
                                 Width = new Fixed(512),
-                                Height = new Fixed(16),
+                                Height = new Fixed(20),
                             };
                             
                             using (ui.Element())
@@ -79,7 +81,7 @@ internal class Bars(in NotificationService notificationService)
                                     Width = new Relative(state.Notification.Amount),
                                     Height = new Relative(1f),
                                 };
-                            }   
+                            }
                         }
                     }
                 }
