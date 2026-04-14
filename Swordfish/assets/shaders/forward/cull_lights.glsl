@@ -110,7 +110,7 @@ void compute()
         vec3 closest = clamp(lPos, tileMin, tileMax);
         float dist2 = dot(closest - lPos, closest - lPos);
     
-        if (dist2 > radius * radius)
+        if (dist2 <= radius * radius)
         {
             if (count < uint(uMaxLightsPerTile) && (base + count) < indices.length())
             {
