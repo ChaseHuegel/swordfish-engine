@@ -13,9 +13,8 @@ internal sealed class LightPropagationPrePass(in LightingState lightingState, in
     
     public bool ShouldProcessChunk(ChunkData chunkData)
     {
-        //  If this chunk is made up of a single type, there isn't any reason to propagate lights.
-        //  ! TODO There is an edge case here where the chunk could still need seeding if it were all lights
-        if (chunkData.Palette.Count() == 1)
+        //  Skip empty chunks
+        if (chunkData.Palette.Only(0))
         {
             return false;
         }
