@@ -636,8 +636,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         Result<BrickInfo> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
         string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : "UNKNOWN";
+        var shapeLight = new ShapeLight(debugInfo.Voxel.ShapeLight);
         
         using (ui.Text($"Voxel: {debugInfo.Voxel.ID} ({brickID})")) {}
+        using (ui.Text($"Light: {shapeLight.LightLevel}")) {}
+        using (ui.Text($"Shape: {shapeLight.Shape}")) {}
         using (ui.Text($"Coordinate: {debugInfo.Coordinate}")) {}
         using (ui.Text($"Position: {debugInfo.Position:N3}")) {}
         using (ui.Text($"Normal: {debugInfo.Normal:N0}")) {}
