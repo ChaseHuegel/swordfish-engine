@@ -394,7 +394,8 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             _computeShader.SetUniform("uTileSize", TILE_WIDTH, TILE_HEIGHT);
             _computeShader.SetUniform("uNumLights", lights.Length);
             _computeShader.SetUniform("uMaxLightsPerTile", MAX_LIGHTS_PER_TILE);
-            _computeShader.SetUniform("uProj", renderScene.Projection);
+            _computeShader.SetUniform("uInvProj", inverseProjection);
+            _computeShader.SetUniform("uView", renderScene.View);
             
             var groupsX = (uint)_numTilesX;
             var groupsY = (uint)_numTilesY;
