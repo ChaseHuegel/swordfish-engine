@@ -4,7 +4,7 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class AmbientLightPass(in LightingState lightingState, in DepthState depthState) : VoxelObjectProcessor.IPass
+internal sealed class AmbientLightPass(LightingState lightingState, DepthState depthState) : VoxelObjectProcessor.IPass
 {
     private readonly LightingState _lightingState = lightingState;
     private readonly DepthState _depthState = depthState;

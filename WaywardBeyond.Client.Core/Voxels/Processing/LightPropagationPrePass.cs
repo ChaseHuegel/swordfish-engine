@@ -4,7 +4,7 @@ using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 
-internal sealed class LightPropagationPrePass(in LightingState lightingState, in IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
+internal sealed class LightPropagationPrePass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
 {
     private readonly LightingState _lightingState = lightingState;
     private readonly ushort[] _lightBrickIDs = brickDatabase.Get(info => info.LightSource).Select(info => info.DataID).ToArray();
