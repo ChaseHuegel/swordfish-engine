@@ -24,9 +24,13 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
         player.AddOrUpdate(new IdentifierComponent(character.Name, "player"));
         player.AddOrUpdate(new TransformComponent(model.Position, model.Orientation, model.Scale));
         player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
-        
-        var playerCapsule = new Shape(new Box3(new Vector3(0.25f, 1.7f, 0.25f) * model.Scale));
-        var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, -0.75f, 0f) * model.Scale], [Quaternion.Identity]);
+
+        const float playerStandingHeight = 1.7f;
+        const float playerStandingOffset = -0.75f;
+        const float playerFlyingHeight = 0.75f;
+        const float playerFlyingOffset = -0.2f;
+        var playerCapsule = new Shape(new Box3(new Vector3(0.25f, playerFlyingHeight, 0.25f) * model.Scale));
+        var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, playerFlyingOffset, 0f) * model.Scale], [Quaternion.Identity]);
         player.AddOrUpdate(new ColliderComponent(playerCollider));
         
         player.AddOrUpdate(new GuidComponent(model.Guid));
