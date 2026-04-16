@@ -34,7 +34,7 @@ jobs:
         name: generated-atlases
         path: artifact/
 
-  build-artifact:
+  build-artifact-win64:
     needs: generate-msdf
     runs-on: ubuntu-latest
     steps:
@@ -59,3 +59,29 @@ jobs:
       with:
         name: Wayward Beyond ${{ github.ref_name }} win-x64
         path: artifact
+
+  build-artifact-linux64:
+    needs: generate-msdf
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Download MSDF Atlases
+        uses: actions/download-artifact@v4
+        with:
+          name: generated-atlases
+      - name: Setup nsdc
+        run: |
+          curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
+          unzip nsdc.zip
+          echo "$PWD" >> $GITHUB_PATH
+      - name: Publish
+        run: dotnet publish "WaywardBeyond.Client.Launcher/WaywardBeyond.Client.Launcher.csproj" -c Release -r linux-x64 -o artifact
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: Wayward Beyond ${{ github.ref_name }} linux-x64
+          path: artifact
