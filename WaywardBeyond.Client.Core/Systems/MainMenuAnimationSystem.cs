@@ -16,6 +16,6 @@ internal sealed class MainMenuAnimationSystem : EntitySystem<TransformComponent,
             return;
         }
         
-        transformComponent.Rotate(_axis * delta * 2f);
+        transformComponent.Rotate(_axis * delta);
     }
 }
