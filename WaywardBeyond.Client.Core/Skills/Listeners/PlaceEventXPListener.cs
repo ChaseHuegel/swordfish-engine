@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
+using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Skills.Listeners;
@@ -45,44 +46,11 @@ internal class PlaceEventXPListener(
             Character character = save.Character;
             character.Statistics ??= [];
 
-            int skillStatisticIndex = -1;
-            Statistic skillStatistic = default;
-            for (var n = 0; n < character.Statistics.Length; n++)
-            {
-                Statistic statistic = character.Statistics[n];
-                if (statistic.ID != skill.ID)
-                {
-                    continue;
-                }
-                
-                skillStatistic = statistic;
-                skillStatisticIndex = n;
-                break;
-            }
-
-            if (skillStatistic.ID == null)
-            {
-                skillStatistic = new Statistic(skill.ID, 0);
-            }
-
-            if (skillStatisticIndex == -1)
-            {
-                skillStatisticIndex = character.Statistics.Length;
-                
-                Statistic[] oldArr = character.Statistics;
-                character.Statistics = new Statistic[oldArr.Length + 1];
-                oldArr.CopyTo(character.Statistics, 0);
-            }
-
-            LevelInfo prevLvl = CalculateCurrentLevel(skill, skillStatistic.Value);
-            
-            skillStatistic.Value += sourceXP;
-            
-            character.Statistics[skillStatisticIndex] = skillStatistic;
-
+            Int2 change = character.Statistics.Add(skill.ID, sourceXP);
             _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
 
-            LevelInfo currLvl = CalculateCurrentLevel(skill, skillStatistic.Value);
+            LevelInfo prevLvl = CalculateCurrentLevel(skill, change.Previous);
+            LevelInfo currLvl = CalculateCurrentLevel(skill, change.Current);
 
             var xpEvent = new XPEvent(skill, currLvl.Level, currLvl.XP, sourceXP);
             _xpEvent.Invoke(xpEvent);
