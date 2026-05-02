@@ -97,6 +97,7 @@ public class Injector : IDryIocInjector
         container.Register<EventInvoker<BreakEvent>>();
         container.Register<EventInvoker<LevelUpEvent>>();
         container.Register<EventInvoker<XPEvent>>();
+        container.Register<EventInvoker<PlayerMovedEvent>>();
     }
 
     private void RegisterShortcuts(IContainer container)

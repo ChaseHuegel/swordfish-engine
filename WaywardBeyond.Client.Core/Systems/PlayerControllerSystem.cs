@@ -6,6 +6,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Events;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -20,6 +21,7 @@ internal sealed class PlayerControllerSystem
 
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
+    private readonly EventInvoker<PlayerMovedEvent> _playerMovedEvent;
     
     private readonly ConcurrentQueue<Vector2> _cursorDeltaQueue = new();
     private readonly List<Vector2> _cursorDeltaBuffer = [];
@@ -31,10 +33,12 @@ internal sealed class PlayerControllerSystem
     public PlayerControllerSystem(
         in IInputService inputService,
         in IWindowContext windowContext,
-        in ControlSettings controlSettings
+        in ControlSettings controlSettings,
+        in EventInvoker<PlayerMovedEvent> playerMovedEvent
     ) {
         _inputService = inputService;
         _controlSettings = controlSettings;
+        _playerMovedEvent = playerMovedEvent;
 
         windowContext.Update += OnWindowUpdate;
         windowContext.Focused += OnWindowFocused;
@@ -83,6 +87,9 @@ internal sealed class PlayerControllerSystem
             _cursorDeltaBuffer.Clear();
             return;
         }
+        
+        var playerMovedEvent = new PlayerMovedEvent(transform.Position);
+        _playerMovedEvent.Invoke(playerMovedEvent);
         
         physics.Torque += -physics.Torque * delta * ANGULAR_DECELERATION;
         if (physics.Torque.LengthSquared() <= 0.00001f)
