@@ -1,11 +1,25 @@
 using System;
-using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Statistics;
 
 internal static class StatisticExtensions
 {
+    public static long GetStatistic(this Character character, string id)
+    {
+        if (character.Statistics == null)
+        {
+            return 0;
+        }
+
+        if (character.Statistics.TryGet(id, out var statistic))
+        {
+            return statistic.Value;
+        }
+        
+        return 0;
+    }
+    
     public static StatisticInfo AddStatistic(this ref Character character, string id, long value)
     {
         return character.UpdateStatistic(id, value, StatisticOperation.Add);
