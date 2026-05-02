@@ -5,25 +5,10 @@ namespace WaywardBeyond.Client.Core.Statistics;
 
 internal static class StatisticExtensions
 {
-    public static bool TryGet(this Statistic[] statistics, string id, out Statistic statistic)
+    public static Int2 AddStatistic(this ref Character character, string id, int value)
     {
-        for (var n = 0; n < statistics.Length; n++)
-        {
-            statistic = statistics[n];
-            if (statistic.ID != id)
-            {
-                continue;
-            }
-            
-            return true;
-        }
+        Statistic[] statistics = character.Statistics ?? [];
         
-        statistic = default;
-        return false;
-    }
-    
-    public static Int2 Add(this Statistic[] statistics, string id, int value)
-    {
         int statisticIndex = -1;
         Statistic statistic = default;
         for (var n = 0; n < statistics.Length; n++)
@@ -57,6 +42,25 @@ internal static class StatisticExtensions
         statistic.Value += value;
         statistics[statisticIndex] = statistic;
         
+        character.Statistics = statistics;
+        
         return new Int2(prevValue, statistic.Value);
+    }
+    
+    public static bool TryGet(this Statistic[] statistics, string id, out Statistic statistic)
+    {
+        for (var n = 0; n < statistics.Length; n++)
+        {
+            statistic = statistics[n];
+            if (statistic.ID != id)
+            {
+                continue;
+            }
+            
+            return true;
+        }
+        
+        statistic = default;
+        return false;
     }
 }

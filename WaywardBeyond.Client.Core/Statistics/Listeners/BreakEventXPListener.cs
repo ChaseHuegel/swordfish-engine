@@ -22,10 +22,9 @@ internal class BreakEventStatisticListener(in CharacterSaveManager characterSave
 
         CharacterSave save = activeSave.Value;
         Character character = save.Character;
-        character.Statistics ??= [];
         
-        Int2 broken = character.Statistics.Add("bricks.broken", 1);
-        Int2 brokenBrick = character.Statistics.Add($"bricks.broken:{e.BrickInfo.ID}", 1);
+        Int2 broken = character.AddStatistic("bricks.broken", 1);
+        Int2 brokenBrick = character.AddStatistic($"bricks.broken:{e.BrickInfo.ID}", 1);
         
         Console.WriteLine("Broken: " + broken.Current);
         Console.WriteLine($"Broken {e.BrickInfo.ID}: " + brokenBrick.Current);

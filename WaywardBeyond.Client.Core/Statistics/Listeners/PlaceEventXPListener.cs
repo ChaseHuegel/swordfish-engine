@@ -22,10 +22,9 @@ internal class PlaceEventStatisticListener(in CharacterSaveManager characterSave
 
         CharacterSave save = activeSave.Value;
         Character character = save.Character;
-        character.Statistics ??= [];
         
-        Int2 placed = character.Statistics.Add("bricks.placed", 1);
-        Int2 placedBrick = character.Statistics.Add($"bricks.placed:{e.BrickInfo.ID}", 1);
+        Int2 placed = character.AddStatistic("bricks.placed", 1);
+        Int2 placedBrick = character.AddStatistic($"bricks.placed:{e.BrickInfo.ID}", 1);
         
         Console.WriteLine("Placed: " + placed.Current);
         Console.WriteLine($"Placed {e.BrickInfo.ID}: " + placedBrick.Current);

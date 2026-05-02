@@ -45,9 +45,8 @@ internal class PlaceEventXPListener(
 
             CharacterSave save = activeSave.Value;
             Character character = save.Character;
-            character.Statistics ??= [];
 
-            Int2 change = character.Statistics.Add(skill.ID, sourceXP);
+            Int2 change = character.AddStatistic(skill.ID, sourceXP);
             _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
 
             LevelInfo prevLvl = skill.CalculateLevel(change.Previous);
