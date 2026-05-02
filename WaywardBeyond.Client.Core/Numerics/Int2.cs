@@ -17,6 +17,24 @@ public record struct Int2
         set => Y = value;
     }
     
+    public int Previous
+    {
+        get => X;
+        set => X = value;
+    }
+    
+    public int Next
+    {
+        get => Y;
+        set => Y = value;
+    }
+    
+    public int Current
+    {
+        get => Y;
+        set => Y = value;
+    }
+    
     public int Length => Y - X;
     
     public Int2(int x, int y)

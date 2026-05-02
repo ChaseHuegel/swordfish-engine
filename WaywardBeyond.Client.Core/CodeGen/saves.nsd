@@ -65,7 +65,7 @@ message ItemData
 message Statistic
 {
     string ID = 0;
-    int Value = 1;
+    long Value = 1;
 }
 
 message CharacterEntityData

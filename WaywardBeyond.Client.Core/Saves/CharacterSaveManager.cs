@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Threading;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Saves.Migrations;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -11,28 +11,25 @@ internal sealed class CharacterSaveManager
 {
     public CharacterSave? ActiveSave
     {
-        get
-        {
-            using Lock.Scope _ = _activeSaveLock.EnterScope();
-            return _activeSave;
-        }
-        set
-        {
-            using Lock.Scope _ = _activeSaveLock.EnterScope();
-            _activeSave = value;
-        }
+        get => _activeCharacterSave.ActiveSave;
+        set => _activeCharacterSave.ActiveSave = value;
     }
 
     private readonly ILogger<CharacterSaveManager> _logger;
     private readonly CharacterSaveService _characterSaveService;
+    private readonly ActiveCharacterSave _activeCharacterSave;
+    private readonly ICharacterMigration[] _characterMigrations;
 
-    private readonly Lock _activeSaveLock = new();
-    private CharacterSave? _activeSave;
-
-    public CharacterSaveManager(in ILogger<CharacterSaveManager> logger, in CharacterSaveService characterSaveService)
-    {
+    public CharacterSaveManager(
+        in ILogger<CharacterSaveManager> logger,
+        in CharacterSaveService characterSaveService, 
+        in ActiveCharacterSave activeCharacterSave,
+        in ICharacterMigration[] characterMigrations
+    ) {
         _logger = logger;
         _characterSaveService = characterSaveService;
+        _activeCharacterSave = activeCharacterSave;
+        _characterMigrations = characterMigrations;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
@@ -40,26 +37,32 @@ internal sealed class CharacterSaveManager
 
     public Result<CharacterSave> Load()
     {
-        lock (_activeSaveLock)
+        if (ActiveSave == null)
         {
-            if (ActiveSave == null)
-            {
-                return Result<CharacterSave>.FromFailure("No character selected");
-            }
-            
-            CharacterSave save = ActiveSave.Value;
-            
-            long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            Character character = save.Character with
-            {
-                LastPlayedMs = nowUtcMs,
-            };
-            
-            save = new CharacterSave(save.Path, character);
-            ActiveSave = save;
-            
-            return Result<CharacterSave>.FromSuccess(save);
+            return Result<CharacterSave>.FromFailure("No character selected");
         }
+        
+        CharacterSave save = ActiveSave.Value;
+        
+        long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Character character = save.Character with
+        {
+            LastPlayedMs = nowUtcMs,
+        };
+
+        //  Process any migration
+        for (var i = 0; i < _characterMigrations.Length; i++)
+        {
+            _characterMigrations[i].Process(ref character);
+        }
+
+        //  Version up the character
+        character.Version = WaywardBeyond.Version;
+        
+        save = new CharacterSave(save.Path, character);
+        ActiveSave = save;
+        
+        return Result<CharacterSave>.FromSuccess(save);
     }
 
     public void Save()
@@ -68,8 +71,6 @@ internal sealed class CharacterSaveManager
         {
             return;
         }
-
-        using Lock.Scope _ = _activeSaveLock.EnterScope();
 
         if (ActiveSave == null)
         {

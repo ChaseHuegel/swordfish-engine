@@ -20,6 +20,7 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
+using WaywardBeyond.Client.Core.Saves.Migrations;
 using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
@@ -75,6 +76,8 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterSaveService>(Reuse.Singleton);
         container.Register<CharacterSaveManager>(Reuse.Singleton);
+        container.Register<ActiveCharacterSave>(Reuse.Singleton);
+        container.Register<ICharacterMigration, CharacterMigrationV2>(Reuse.Transient);
 
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
@@ -97,6 +100,7 @@ public class Injector : IDryIocInjector
         container.Register<EventInvoker<BreakEvent>>();
         container.Register<EventInvoker<LevelUpEvent>>();
         container.Register<EventInvoker<XPEvent>>();
+        container.Register<EventInvoker<PlayerMovedEvent>>();
     }
 
     private void RegisterShortcuts(IContainer container)
