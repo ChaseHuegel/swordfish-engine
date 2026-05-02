@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Statistics;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -77,11 +79,9 @@ internal sealed class CharacterSaveManager
         }
 
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Character character = ActiveSave.Value.Character with
-        {
-            AgeMs = ActiveSave.Value.Character.AgeMs + nowUtcMs - ActiveSave.Value.Character.LastPlayedMs,
-            LastPlayedMs = nowUtcMs,
-        };
+        Character character = ActiveSave.Value.Character;
+        StatisticInfo lastPlayedMs = character.SetStatistic("lastPlayed.ms", nowUtcMs);
+        character.AddStatistic("age.ms", nowUtcMs - lastPlayedMs.Previous);
 
         var save = new CharacterSave(ActiveSave.Value.Path, character);
         Result<CharacterSave> saveResult = _characterSaveService.Save(save);
