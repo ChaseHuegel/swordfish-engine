@@ -12,28 +12,22 @@ internal sealed class CharacterSaveManager
 {
     public CharacterSave? ActiveSave
     {
-        get
-        {
-            using Lock.Scope _ = _activeSaveLock.EnterScope();
-            return _activeSave;
-        }
-        set
-        {
-            using Lock.Scope _ = _activeSaveLock.EnterScope();
-            _activeSave = value;
-        }
+        get => _activeCharacterSave.ActiveSave;
+        set => _activeCharacterSave.ActiveSave = value;
     }
 
     private readonly ILogger<CharacterSaveManager> _logger;
     private readonly CharacterSaveService _characterSaveService;
+    private readonly ActiveCharacterSave _activeCharacterSave;
 
     private readonly Lock _activeSaveLock = new();
     private CharacterSave? _activeSave;
 
-    public CharacterSaveManager(in ILogger<CharacterSaveManager> logger, in CharacterSaveService characterSaveService)
+    public CharacterSaveManager(in ILogger<CharacterSaveManager> logger, in CharacterSaveService characterSaveService, in ActiveCharacterSave activeCharacterSave)
     {
         _logger = logger;
         _characterSaveService = characterSaveService;
+        _activeCharacterSave = activeCharacterSave;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
