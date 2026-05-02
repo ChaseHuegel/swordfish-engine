@@ -2,7 +2,6 @@ using System;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
-using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.Statistics.Listeners;
@@ -23,8 +22,8 @@ internal class BreakEventStatisticListener(in CharacterSaveManager characterSave
         CharacterSave save = activeSave.Value;
         Character character = save.Character;
         
-        Int2 broken = character.AddStatistic("bricks.broken", 1);
-        Int2 brokenBrick = character.AddStatistic($"bricks.broken:{e.BrickInfo.ID}", 1);
+        StatisticInfo broken = character.AddStatistic("bricks.broken", 1);
+        StatisticInfo brokenBrick = character.AddStatistic($"bricks.broken:{e.BrickInfo.ID}", 1);
         
         Console.WriteLine("Broken: " + broken.Current);
         Console.WriteLine($"Broken {e.BrickInfo.ID}: " + brokenBrick.Current);

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
-using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Statistics;
 
@@ -46,11 +45,11 @@ internal class PlaceEventXPListener(
             CharacterSave save = activeSave.Value;
             Character character = save.Character;
 
-            Int2 change = character.AddStatistic(skill.ID, sourceXP);
+            StatisticInfo statisticInfo = character.AddStatistic(skill.ID, sourceXP);
             _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
 
-            LevelInfo prevLvl = skill.CalculateLevel(change.Previous);
-            LevelInfo currLvl = skill.CalculateLevel(change.Current);
+            LevelInfo prevLvl = skill.CalculateLevel(statisticInfo.Previous);
+            LevelInfo currLvl = skill.CalculateLevel(statisticInfo.Current);
 
             var xpEvent = new XPEvent(skill, currLvl.Level, currLvl.XP, sourceXP);
             _xpEvent.Invoke(xpEvent);

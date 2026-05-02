@@ -1,3 +1,4 @@
+using System;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 
@@ -5,7 +6,17 @@ namespace WaywardBeyond.Client.Core.Statistics;
 
 internal static class StatisticExtensions
 {
-    public static Int2 AddStatistic(this ref Character character, string id, int value)
+    public static StatisticInfo AddStatistic(this ref Character character, string id, long value)
+    {
+        return character.UpdateStatistic(id, value, StatisticOperation.Add);
+    }
+
+    public static StatisticInfo SetStatistic(this ref Character character, string id, long value)
+    {
+        return character.UpdateStatistic(id, value, StatisticOperation.Set);
+    }
+    
+    private static StatisticInfo UpdateStatistic(this ref Character character, string id, long value, StatisticOperation operation)
     {
         Statistic[] statistics = character.Statistics ?? [];
         
@@ -26,25 +37,36 @@ internal static class StatisticExtensions
 
         if (statistic.ID == null)
         {
-            statistic = new Statistic(id, 0);
+            statistic = new Statistic(id, operation == StatisticOperation.Set ? value : 0);
         }
 
         if (statisticIndex == -1)
         {
             statisticIndex = statistics.Length;
-                
+            
             Statistic[] oldArr = statistics;
             statistics = new Statistic[oldArr.Length + 1];
             oldArr.CopyTo(statistics, 0);
         }
 
-        int prevValue = statistic.Value;
-        statistic.Value += value;
-        statistics[statisticIndex] = statistic;
+        long prevValue = statistic.Value;
+
+        switch (operation)
+        {
+            case StatisticOperation.Add:
+                statistic.Value += value;
+                break;
+            case StatisticOperation.Set:
+                statistic.Value = value;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+        }
         
+        statistics[statisticIndex] = statistic;
         character.Statistics = statistics;
         
-        return new Int2(prevValue, statistic.Value);
+        return new StatisticInfo(prevValue, statistic.Value);
     }
     
     public static bool TryGet(this Statistic[] statistics, string id, out Statistic statistic)
@@ -62,5 +84,11 @@ internal static class StatisticExtensions
         
         statistic = default;
         return false;
+    }
+
+    private enum StatisticOperation
+    {
+        Add,
+        Set
     }
 }

@@ -5,7 +5,7 @@ namespace WaywardBeyond.Client.Core.Skills;
 
 internal static class SkillExtensions
 {
-    public static LevelInfo CalculateLevel(this Skill skill, int currentXP)
+    public static LevelInfo CalculateLevel(this Skill skill, long currentXP)
     {
         var currentLevel = 0;
         var totalXP = 0;
