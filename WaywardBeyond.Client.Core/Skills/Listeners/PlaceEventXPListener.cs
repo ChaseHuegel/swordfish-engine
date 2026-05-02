@@ -49,8 +49,8 @@ internal class PlaceEventXPListener(
             Int2 change = character.Statistics.Add(skill.ID, sourceXP);
             _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
 
-            LevelInfo prevLvl = CalculateCurrentLevel(skill, change.Previous);
-            LevelInfo currLvl = CalculateCurrentLevel(skill, change.Current);
+            LevelInfo prevLvl = skill.CalculateLevel(change.Previous);
+            LevelInfo currLvl = skill.CalculateLevel(change.Current);
 
             var xpEvent = new XPEvent(skill, currLvl.Level, currLvl.XP, sourceXP);
             _xpEvent.Invoke(xpEvent);
@@ -64,26 +64,4 @@ internal class PlaceEventXPListener(
         
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
     }
-    
-    private LevelInfo CalculateCurrentLevel(Skill skill, int currentXP)
-    {
-        var currentLevel = 0;
-        var totalXP = 0;
-        foreach (KeyValuePair<int, int> level in skill.Levels)
-        {
-            if (totalXP + level.Value < currentXP)
-            {
-                totalXP += level.Value;
-                currentLevel = level.Key;
-            }
-            else
-            {
-                break;
-            }
-        }
-        
-        return new LevelInfo(currentLevel, currentXP - totalXP);
-    }
-
-    private record struct LevelInfo(int Level, int XP);
 }
