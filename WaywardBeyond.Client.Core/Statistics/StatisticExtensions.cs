@@ -1,7 +1,7 @@
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 
-namespace WaywardBeyond.Client.Core.Skills;
+namespace WaywardBeyond.Client.Core.Statistics;
 
 internal static class StatisticExtensions
 {
@@ -28,13 +28,14 @@ internal static class StatisticExtensions
         Statistic statistic = default;
         for (var n = 0; n < statistics.Length; n++)
         {
-            statistic = statistics[n];
-            if (statistic.ID != id)
+            Statistic curStatistic = statistics[n];
+            if (curStatistic.ID != id)
             {
                 continue;
             }
             
             statisticIndex = n;
+            statistic = curStatistic;
             break;
         }
 
