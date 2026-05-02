@@ -4,6 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Client.Core.Statistics;
 
 namespace WaywardBeyond.Client.Core.Skills.Listeners;
 
