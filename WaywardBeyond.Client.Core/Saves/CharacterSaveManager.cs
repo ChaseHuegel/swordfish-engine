@@ -77,11 +77,12 @@ internal sealed class CharacterSaveManager
             return;
         }
 
-        Character character = ActiveSave.Value.Character;
-
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        StatisticInfo lastPlayedMs = character.SetStatistic("lastPlayed.ms", nowUtcMs);
-        character.AddStatistic("age.ms", nowUtcMs - lastPlayedMs.Previous);
+        Character character = ActiveSave.Value.Character with
+        {
+            AgeMs = ActiveSave.Value.Character.AgeMs + nowUtcMs - ActiveSave.Value.Character.LastPlayedMs,
+            LastPlayedMs = nowUtcMs,
+        };
 
         var save = new CharacterSave(ActiveSave.Value.Path, character);
         Result<CharacterSave> saveResult = _characterSaveService.Save(save);
