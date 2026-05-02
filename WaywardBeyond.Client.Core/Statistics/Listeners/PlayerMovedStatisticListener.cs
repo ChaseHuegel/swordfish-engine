@@ -50,8 +50,7 @@ internal class PlayerMovedStatisticListener(in ActiveCharacterSave activeCharact
             _accumulatedDistance = remainder;
             
             character.AddStatistic("distance.meters.traveled", meters);
-            StatisticInfo change = character.AddStatistic("distance.meters.traveled.eva", meters);
-            Console.WriteLine($"{change.Previous} -> {change.Current}");
+            character.AddStatistic("distance.meters.traveled.eva", meters);
         }
         
         _activeCharacterSave.ActiveSave = new CharacterSave(save.Path, character);
