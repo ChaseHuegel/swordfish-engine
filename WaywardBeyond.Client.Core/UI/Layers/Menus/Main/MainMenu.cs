@@ -1,9 +1,7 @@
-using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.UI;
-using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
@@ -11,34 +9,25 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.UI.Reef;
 using WaywardBeyond.Client.Core.Services;
-using WaywardBeyond.Client.Core.Systems;
-using WaywardBeyond.Client.Core.Voxels;
-using WaywardBeyond.Client.Core.Voxels.Building;
-using WaywardBeyond.Client.Core.Voxels.Models;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class MainMenu : TitleMenu<MenuPage>
 {
     private readonly ExternalAppService _externalAppService;
-    private readonly IRenderContext _renderContext;
     private readonly Widgets.ButtonOptions _buttonOptions;
 
     public MainMenu(
         ILogger<Menu<MenuPage>> logger,
         IAssetDatabase<Material> materialDatabase,
-        BlueprintDatabase blueprintDatabase,
         ReefContext reefContext,
         IShortcutService shortcutService,
         SoundEffectService soundEffectService,
         ExternalAppService externalAppService,
-        VoxelEntityBuilder voxelEntityBuilder,
-        IMenuPage<MenuPage>[] pages,
-        IRenderContext renderContext
+        IMenuPage<MenuPage>[] pages
     ) : base(logger, materialDatabase, reefContext, pages)
     {
         _externalAppService = externalAppService;
-        _renderContext = renderContext;
 
         //  TODO introduce the menu spaceship
         // Result<VoxelEntityModel> blueprintResult = blueprintDatabase.Get("builtin/mainMenu");

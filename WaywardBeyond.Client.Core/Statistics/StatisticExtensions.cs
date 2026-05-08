@@ -103,6 +103,6 @@ internal static class StatisticExtensions
     private enum StatisticOperation
     {
         Add,
-        Set
+        Set,
     }
 }

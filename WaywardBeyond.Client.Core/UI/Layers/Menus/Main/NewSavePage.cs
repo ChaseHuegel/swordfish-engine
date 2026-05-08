@@ -28,7 +28,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
-    private readonly Widgets.ButtonOptions _iconOptions;
     private readonly Widgets.ButtonOptions _smallIconOptions;
 
     private TextBoxState _saveNameTextBox;
@@ -57,14 +56,6 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
         _buttonOptions = new Widgets.ButtonOptions(
             new FontOptions {
                 Size = 20,
-            },
-            new Widgets.AudioOptions(soundEffectService)
-        );
-        
-        _iconOptions = new Widgets.ButtonOptions(
-            new FontOptions {
-                ID = "Font Awesome 6 Free Solid",
-                Size = 32,
             },
             new Widgets.AudioOptions(soundEffectService)
         );
