@@ -39,6 +39,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Client.Core.T
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shoal.Build", "Shoal.Build\Shoal.Build.csproj", "{2A4B6E7C-8D9F-4A0B-9E8D-3F6A7B8C9D0E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Server.Core", "WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj", "{49F7A41A-8CDD-4CD1-A7D3-C4D7D49634A7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -120,5 +122,9 @@ Global
 		{2A4B6E7C-8D9F-4A0B-9E8D-3F6A7B8C9D0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{2A4B6E7C-8D9F-4A0B-9E8D-3F6A7B8C9D0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{2A4B6E7C-8D9F-4A0B-9E8D-3F6A7B8C9D0E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{49F7A41A-8CDD-4CD1-A7D3-C4D7D49634A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{49F7A41A-8CDD-4CD1-A7D3-C4D7D49634A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{49F7A41A-8CDD-4CD1-A7D3-C4D7D49634A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{49F7A41A-8CDD-4CD1-A7D3-C4D7D49634A7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

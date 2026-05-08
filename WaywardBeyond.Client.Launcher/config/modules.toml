@@ -2,4 +2,5 @@
 LoadOrder = [
     "swordfish",
     "waywardbeyond.client.core",
+    "waywardbeyond.server.core",
 ]

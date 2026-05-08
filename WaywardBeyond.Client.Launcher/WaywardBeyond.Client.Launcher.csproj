@@ -17,6 +17,7 @@
     <ItemGroup>
         <ProjectReference Include="..\Swordfish\Swordfish.csproj" ModulePath="swordfish" />
         <ProjectReference Include="..\WaywardBeyond.Client.Core\WaywardBeyond.Client.Core.csproj" ModulePath="waywardbeyond.client.core" />
+        <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" ModulePath="waywardbeyond.server.core" />
     </ItemGroup>
 
     <ItemGroup>
