@@ -1,0 +1,17 @@
+#version 1.0;
+#namespace Torches.Networking.Models.Auth;
+
+message LoginRequestPacket
+{
+    string Token;
+}
+
+message LoginResponsePacket
+{
+    bool Success;
+    string? Message;
+}
+
+message LogoutPacket
+{
+}

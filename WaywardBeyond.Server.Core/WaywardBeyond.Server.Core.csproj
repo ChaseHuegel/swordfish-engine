@@ -16,6 +16,15 @@
         </None>
     </ItemGroup>
 
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
+      <PackageReference Include="NATS.Net" Version="2.7.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Shoal\Shoal.csproj" />
+    </ItemGroup>
+
     <PropertyGroup>
         <!-- Generate code is being explicitly included, don't also implicitly include it -->
         <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>

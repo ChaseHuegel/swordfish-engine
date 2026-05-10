@@ -1,0 +1,18 @@
+#version 1.0;
+#namespace Torches.Networking.Models.World;
+
+message EnterRequestPacket
+{
+    string CharacterID;
+}
+
+message EnterResponsePacket
+{
+    bool Success;
+    string? Message;
+    int? EntityID;
+}
+
+message LeavePacket
+{
+}

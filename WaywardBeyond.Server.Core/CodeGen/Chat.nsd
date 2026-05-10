@@ -1,0 +1,24 @@
+#version 1.0;
+#namespace Torches.Networking.Models.Chat;
+
+enum ChatChannel
+{
+    Whisper = 0;
+    Local = 1;
+    System = 2;
+    Global = 3;
+    Notification = 4;
+}
+
+message ChatPacket
+{
+    ChatChannel Channel;
+    uint? DestinationID;
+    string Value;
+}
+
+message ChatSubscriptionPacket
+{
+    ChatChannel Channel;
+    bool Unsubscribe;
+}

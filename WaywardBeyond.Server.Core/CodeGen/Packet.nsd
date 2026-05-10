@@ -1,0 +1,25 @@
+#version 1.0;
+#namespace Torches.Networking.Models;
+
+message Packet
+{
+    PacketType Type;
+    byte Version;
+    byte[] Data;
+}
+
+enum PacketType
+{
+    Null                = 0;
+    Chat                = 100;
+    ChatSubscription    = 101;
+    LoginRequest        = 200;
+    LoginResponse       = 201;
+    Logout              = 202;
+    EntityCreate        = 300;
+    EntityUpdate        = 301;
+    EntityDelete        = 302;
+    EnterRequest        = 400;
+    EnterResponse       = 401;
+    Leave               = 402;
+}

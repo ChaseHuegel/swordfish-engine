@@ -1,0 +1,26 @@
+#version 1.0;
+#namespace Torches.Networking.Models.Entity;
+
+message EntityCreatePacket
+{
+    int ID;
+    string Name;
+    Position2d Position;
+}
+
+message EntityUpdatePacket
+{
+    int ID;
+    Position2d Position;
+}
+
+message EntityDeletePacket
+{
+    int ID;
+}
+
+message Position2d
+{
+    double X;
+    double Y;
+}
