@@ -9,6 +9,7 @@ using NATS.Net;
 using Swordfish.Library.Util;
 using Torches.Networking.Models;
 using WaywardBeyond.Server.Core.Config;
+using WaywardBeyond.Server.Core.Networking;
 using WaywardBeyond.Server.Core.Serialization;
 
 namespace WaywardBeyond.Server.Core.Streaming;
@@ -18,21 +19,25 @@ internal sealed class PacketStreamClient : IDisposable
     private const string VAR_NATS_URL = "NATS_URL";
     private const string VAR_SERVER_ID = "SERVER_ID";
     private const string STREAM_NAME = "WAYWARD_BEYOND";
-    private const string SUBJECT_PREFIX = "wb.stream.packets";
+    private const string SUBJECT_PREFIX = "wb.packets";
     
     private readonly ILogger<PacketStreamClient> _logger;
     private readonly ServerEnvironment _environment;
-    
+    private readonly IProtocol _protocol;
+
     private readonly NatsClient _natsClient;
     private readonly CancellationTokenSource _cts;
     private readonly TaskCompletionSource<INatsJSContext?> _jetStreamTCS;
     private readonly PacketNatsSerializer _packetSerializer;
 
-    public PacketStreamClient(in ILogger<PacketStreamClient> logger, in ServerEnvironment environment)
+    private string? _source;
+    
+    public PacketStreamClient(in ILogger<PacketStreamClient> logger, in ServerEnvironment environment, in IProtocol protocol)
     {
         _logger = logger;
         _environment = environment;
-        
+        _protocol = protocol;
+
         string natsUrl = environment.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
         _natsClient = new NatsClient(natsUrl);
         _cts = new CancellationTokenSource();
@@ -51,7 +56,7 @@ internal sealed class PacketStreamClient : IDisposable
         Task.Run(_natsClient.DisposeAsync);
     }
     
-    public Result Publish(Packet packet)
+    public Result Publish(string destination, Packet packet)
     {
         TaskCompletionSource<Result> tcs = new();
         Task.Run(PublishAsync);
@@ -67,7 +72,7 @@ internal sealed class PacketStreamClient : IDisposable
             }
             
             NatsResult<PubAckResponse> publishResponse = await jetStream.TryPublishAsync(
-                subject: $"{SUBJECT_PREFIX}.{packet.Type}",
+                subject: $"{SUBJECT_PREFIX}.{destination}.{packet.Type}",
                 data: packet,
                 serializer: _packetSerializer
             );
@@ -78,8 +83,14 @@ internal sealed class PacketStreamClient : IDisposable
         }
     }
     
-    public Task StartAsync()
+    public Task StartAsync(string source)
     {
+        if (_source != null)
+        {
+            return Task.CompletedTask;
+        }
+        
+        _source = source;
         return TryRunTask(StartAsyncInternal);
     }
 
@@ -89,7 +100,7 @@ internal sealed class PacketStreamClient : IDisposable
      
         void OnFaulted(Task obj)
         {
-            _logger.LogError(obj.Exception, "Caught an exception while starting chat event streaming.");
+            _logger.LogError(obj.Exception, "Caught an exception while starting packet streaming.");
         }
     }
     
@@ -99,7 +110,7 @@ internal sealed class PacketStreamClient : IDisposable
         INatsJSStream stream = await jetStream.CreateStreamAsync(
             new StreamConfig(
                 STREAM_NAME,
-                subjects: [$"{SUBJECT_PREFIX}.>"]
+                subjects: [$"{SUBJECT_PREFIX}.{_source}.>"]
             ),
             cancellationToken: _cts.Token
         );
@@ -134,33 +145,13 @@ internal sealed class PacketStreamClient : IDisposable
                 _logger.LogError("Received a null packet from subject: {subject}", msg.Subject);
                 continue;
             }
-
-            HandlePacket(msg.Subject, msg.Data);
-        }
-    }
-    
-    private void HandlePacket(string subject, Packet packet)
-    {
-        _logger.LogInformation("Recv packet from subject {subject}: {type}.", subject, packet.Type);
-        
-        for (int i = 0; i < packet.Targets.Length; i++)
-        {
-            string target = packet.Targets[i];
-            Result<Session> sessionResult = _loginService.GetSession(target);
-            if (!sessionResult.Success)
-            {
-                return;
-            }
-
-            if (!IsSubscribedToChannel(sessionResult.Value, chatChannel))
-            {
-                continue;
-            }
-
-            result = _protocol.Send(chatPacket, sessionResult.Value);
+            
+            _logger.LogInformation("Recv packet from subject {subject}: {type}.", msg.Subject, msg.Data.Type);
+            
+            Result result = _protocol.Send(msg.Data);
             if (!result)
             {
-                _logger.LogError("Failed to relay a chat to {target} from {sender}: {error}.", target, packet.Sender, result.Message);
+                _logger.LogError("Failed to relay a packet from subject {subject}: {type}.", msg.Subject, msg.Data.Type);
             }
         }
     }
