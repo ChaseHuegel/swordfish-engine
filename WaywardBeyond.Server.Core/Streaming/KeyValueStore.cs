@@ -91,10 +91,10 @@ internal sealed class KeyValueStore : IDisposable
     public Result Delete(string bucket, string key)
     {
         TaskCompletionSource<Result> tcs = new();
-        Task.Run(GetAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        Task.Run(DeleteAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
         return tcs.Task.Result;
      
-        async Task GetAsync()
+        async Task DeleteAsync()
         {
             if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
             {
