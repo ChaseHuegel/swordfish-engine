@@ -67,7 +67,7 @@ internal sealed class PacketStreamClient : IDisposable
             INatsJSContext? jetStream = await _jetStreamTCS.Task;
             if (jetStream == null)
             {
-                tcs.SetResult(Result.FromFailure("Chat event streaming failed to start."));
+                tcs.SetResult(Result.FromFailure("NATS streaming failed to start."));
                 return;
             }
             

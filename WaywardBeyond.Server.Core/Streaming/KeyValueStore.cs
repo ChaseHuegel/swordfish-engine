@@ -1,0 +1,90 @@
+using System;
+using System.Collections.Concurrent;
+using System.Threading;
+using System.Threading.Tasks;
+using NATS.Client.KeyValueStore;
+using NATS.Net;
+using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core.Config;
+
+namespace WaywardBeyond.Server.Core.Streaming;
+
+internal sealed class KeyValueStore : IDisposable
+{
+    private const string VAR_NATS_URL = "NATS_URL";
+    
+    private readonly NatsClient _natsClient;
+    private readonly INatsKVContext _kv;
+    
+    private readonly CancellationTokenSource _cts = new();
+    private readonly ConcurrentDictionary<string, INatsKVStore> _stores = [];
+    
+    public KeyValueStore(in ServerEnvironment environment)
+    {
+        string natsUrl = environment.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
+        _natsClient = new NatsClient(natsUrl);
+        _kv = _natsClient.CreateKeyValueStoreContext();
+    }
+    
+    public void Dispose()
+    {
+        if (!_cts.IsCancellationRequested)
+        {
+            _cts.Cancel();
+        }
+        _cts.Dispose();
+
+        Task.Run(_natsClient.DisposeAsync);
+    }
+    
+    public Result Put<T>(string bucket, string key, T value)
+    {
+        TaskCompletionSource<Result> tcs = new();
+        Task.Run(PutAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        return tcs.Task.Result;
+     
+        async Task PutAsync()
+        {
+            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            {
+                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                _stores.TryAdd(bucket, store);
+            }
+            
+            await store.PutAsync(key, value, cancellationToken: _cts.Token);
+            
+            tcs.SetResult(Result.FromSuccess());
+        }
+        
+        void OnFaulted(Task task, object? state)
+        {
+            Result result = new Result(success: false, message: $"Failed to put \"{key}\"=\"{value}\" in \"{bucket}\"", task.Exception);
+            tcs.SetResult(result);
+        }
+    }
+    
+    public Result<T> Get<T>(string bucket, string key)
+    {
+        TaskCompletionSource<Result<T>> tcs = new();
+        Task.Run(GetAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        return tcs.Task.Result;
+     
+        async Task GetAsync()
+        {
+            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            {
+                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                _stores.TryAdd(bucket, store);
+            }
+
+            NatsKVEntry<T> value = await store.GetEntryAsync<T>(key, cancellationToken: _cts.Token);
+            tcs.SetResult(Result<T>.FromSuccess(value.Value!));
+        }
+        
+        void OnFaulted(Task task, object? state)
+        {
+            var result = new Result<T>(success: false, value: default!, message: $"Failed to get \"{key}\" in \"{bucket}\"", task.Exception);
+            tcs.SetResult(result);
+        }
+    }
+}
