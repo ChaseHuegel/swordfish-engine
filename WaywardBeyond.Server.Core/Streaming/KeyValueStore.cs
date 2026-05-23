@@ -87,4 +87,30 @@ internal sealed class KeyValueStore : IDisposable
             tcs.SetResult(result);
         }
     }
+    
+    public Result Delete(string bucket, string key)
+    {
+        TaskCompletionSource<Result> tcs = new();
+        Task.Run(GetAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        return tcs.Task.Result;
+     
+        async Task GetAsync()
+        {
+            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            {
+                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                _stores.TryAdd(bucket, store);
+            }
+
+            await store.DeleteAsync(key);
+
+            tcs.SetResult(Result.FromSuccess());
+        }
+        
+        void OnFaulted(Task task, object? state)
+        {
+            var result = new Result(success: false, message: $"Failed to get \"{key}\" in \"{bucket}\"", task.Exception);
+            tcs.SetResult(result);
+        }
+    }
 }
