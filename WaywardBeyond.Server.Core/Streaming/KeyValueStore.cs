@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using NATS.Client.Core;
 using NATS.Client.KeyValueStore;
 using NATS.Net;
 using Swordfish.Library.Util;
@@ -12,6 +13,8 @@ namespace WaywardBeyond.Server.Core.Streaming;
 internal sealed class KeyValueStore : IDisposable
 {
     private const string VAR_NATS_URL = "NATS_URL";
+    private const string VAR_NATS_JWT = "NATS_JWT";
+    private const string VAR_NATS_NKEY_SEED = "NATS_NKEY_SEED";
     
     private readonly NatsClient _natsClient;
     private readonly INatsKVContext _kv;
@@ -22,7 +25,20 @@ internal sealed class KeyValueStore : IDisposable
     public KeyValueStore(in ServerEnvironment environment)
     {
         string natsUrl = environment.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
-        _natsClient = new NatsClient(natsUrl);
+        string? natsJwt = environment.GetString(VAR_NATS_JWT);
+        string? natsNkeySeed = environment.GetString(VAR_NATS_NKEY_SEED);
+
+        NatsOpts natsOpts = NatsOpts.Default with
+        {
+            Url = natsUrl,
+            AuthOpts = new NatsAuthOpts
+            {
+                Jwt = natsJwt,
+                Seed = natsNkeySeed
+            }
+        };
+        
+        _natsClient = new NatsClient(natsOpts);
         _kv = _natsClient.CreateKeyValueStoreContext();
     }
     
