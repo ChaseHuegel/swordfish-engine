@@ -1,14 +1,16 @@
 using System;
-using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Saves.Migrations;
+using WaywardBeyond.Server.Core.Streaming;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
 internal sealed class CharacterSaveManager
 {
+    private const string CHARACTERS_BUCKET = "characters";
+    
     public CharacterSave? ActiveSave
     {
         get => _activeCharacterSave.ActiveSave;
@@ -19,17 +21,20 @@ internal sealed class CharacterSaveManager
     private readonly CharacterSaveService _characterSaveService;
     private readonly ActiveCharacterSave _activeCharacterSave;
     private readonly ICharacterMigration[] _characterMigrations;
+    private readonly KeyValueStore _kvStore;
 
     public CharacterSaveManager(
         in ILogger<CharacterSaveManager> logger,
         in CharacterSaveService characterSaveService, 
         in ActiveCharacterSave activeCharacterSave,
-        in ICharacterMigration[] characterMigrations
+        in ICharacterMigration[] characterMigrations,
+        in KeyValueStore kvStore
     ) {
         _logger = logger;
         _characterSaveService = characterSaveService;
         _activeCharacterSave = activeCharacterSave;
         _characterMigrations = characterMigrations;
+        _kvStore = kvStore;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
@@ -59,7 +64,7 @@ internal sealed class CharacterSaveManager
         //  Version up the character
         character.Version = WaywardBeyond.Version;
         
-        save = new CharacterSave(save.Path, character);
+        save = new CharacterSave(character);
         ActiveSave = save;
         
         return Result<CharacterSave>.FromSuccess(save);
@@ -84,7 +89,7 @@ internal sealed class CharacterSaveManager
             LastPlayedMs = nowUtcMs,
         };
 
-        var save = new CharacterSave(ActiveSave.Value.Path, character);
+        var save = new CharacterSave(character);
         Result<CharacterSave> saveResult = _characterSaveService.Save(save);
 
         if (saveResult.Success)
@@ -97,7 +102,7 @@ internal sealed class CharacterSaveManager
     {
         try
         {
-            File.Delete(save.Path);
+            _kvStore.Delete(CHARACTERS_BUCKET, save.Character.Guid);
         }
         catch (Exception ex)
         {
@@ -107,10 +112,10 @@ internal sealed class CharacterSaveManager
     
     internal CharacterSave? GetMostRecentSave()
     {
-        CharacterSave mostRecentSave = _characterSaveService.GetSaves()
+        CharacterSave? mostRecentSave = _characterSaveService.GetSaves()
             .OrderByDescending(save => save.Character.LastPlayedMs)
             .FirstOrDefault();
         
-        return mostRecentSave.Path.FileExists() ? mostRecentSave : null;
+        return mostRecentSave;
     }
 }

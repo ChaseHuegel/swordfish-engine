@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using NATS.Client.Core;
@@ -10,7 +11,7 @@ using WaywardBeyond.Server.Core.Config;
 
 namespace WaywardBeyond.Server.Core.Streaming;
 
-internal sealed class KeyValueStore : IDisposable
+public sealed class KeyValueStore : IDisposable
 {
     private const string VAR_NATS_URL = "NATS_URL";
     private const string VAR_NATS_JWT = "NATS_JWT";
@@ -34,8 +35,8 @@ internal sealed class KeyValueStore : IDisposable
             AuthOpts = new NatsAuthOpts
             {
                 Jwt = natsJwt,
-                Seed = natsNkeySeed
-            }
+                Seed = natsNkeySeed,
+            },
         };
         
         _natsClient = new NatsClient(natsOpts);
@@ -100,6 +101,47 @@ internal sealed class KeyValueStore : IDisposable
         void OnFaulted(Task task, object? state)
         {
             var result = new Result<T>(success: false, value: default!, message: $"Failed to get \"{key}\" in \"{bucket}\"", task.Exception);
+            tcs.SetResult(result);
+        }
+    }
+
+    public Result<T[]> GetAll<T>(string bucket)
+    {
+        TaskCompletionSource<Result<T[]>> tcs = new();
+        Task.Run(GetAllAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        return tcs.Task.Result;
+     
+        async Task GetAllAsync()
+        {
+            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            {
+                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                _stores.TryAdd(bucket, store);
+            }
+
+            var values = new List<T>();
+            await foreach (string key in store.GetKeysAsync(cancellationToken: _cts.Token))
+            {
+                try
+                {
+                    NatsKVEntry<T> entry = await store.GetEntryAsync<T>(key, cancellationToken: _cts.Token);
+                    if (entry.Value != null)
+                    {
+                        values.Add(entry.Value);
+                    }
+                }
+                catch (NatsKVKeyNotFoundException)
+                {
+                    //  Key was deleted between GetKeysAsync and GetEntryAsync, ignore.
+                }
+            }
+
+            tcs.SetResult(Result<T[]>.FromSuccess(values.ToArray()));
+        }
+        
+        void OnFaulted(Task task, object? state)
+        {
+            var result = new Result<T[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
             tcs.SetResult(result);
         }
     }

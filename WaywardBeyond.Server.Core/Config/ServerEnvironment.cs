@@ -4,7 +4,7 @@ using Shoal.CommandLine;
 
 namespace WaywardBeyond.Server.Core.Config;
 
-internal sealed class ServerEnvironment(in CommandLineArgs args)
+public sealed class ServerEnvironment(in CommandLineArgs args)
 {
     private readonly CommandLineArgs _args = args;
 

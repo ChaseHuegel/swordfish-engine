@@ -7,31 +7,33 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Server.Core.Streaming;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
-internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormatter, in NotificationService notificationService, in IECSContext ecs)
+internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormatter, in NotificationService notificationService, in IECSContext ecs, in KeyValueStore kvStore)
 {
-    private const string CHARACTERS_FOLDER = "characters/";
+    private const string CHARACTERS_BUCKET = "characters";
 
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly NotificationService _notificationService = notificationService;
     private readonly IECSContext _ecs = ecs;
+    private readonly KeyValueStore _kvStore = kvStore;
 
-    private readonly PathInfo _charactersDirectory = new(CHARACTERS_FOLDER);
-    
     public CharacterSave[] GetSaves()
     {
-        PathInfo[] characterFiles = _charactersDirectory.GetFiles(SearchOption.AllDirectories);
-        var characterSaves = new CharacterSave[characterFiles.Length];
-        
-        for (var i = 0; i < characterFiles.Length; i++)
+        Result<Character[]> getResult = _kvStore.GetAll<Character>(CHARACTERS_BUCKET);
+        if (!getResult.Success)
         {
-            PathInfo characterFile = characterFiles[i];
-            
-            byte[] bytes = characterFile.ReadBytes();
-            Character character = Character.Deserialize(bytes);
-            characterSaves[i] = new CharacterSave(characterFile, character);
+            return [];
+        }
+
+        Character[] characters = getResult.Value;
+        var characterSaves = new CharacterSave[characters.Length];
+        
+        for (var i = 0; i < characters.Length; i++)
+        {
+            characterSaves[i] = new CharacterSave(characters[i]);
         }
         
         return characterSaves;
@@ -43,8 +45,7 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
         character.LastPlayedMs = nowUtcMs;
         character.AgeMs = 0;
         
-        PathInfo characterSavePath = _charactersDirectory.At($"{character.Guid}.dat");
-        var characterSave = new CharacterSave(characterSavePath, character);
+        var characterSave = new CharacterSave(character);
 
         Result<CharacterSave> saveResult = Save(characterSave);
         if (!saveResult)
@@ -91,13 +92,15 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             }
             
             //  Save the character
-            byte[] bytes = character.Serialize();
-            using var stream = new MemoryStream(bytes);
-            Directory.CreateDirectory(save.Path.GetDirectory());
-            save.Path.Write(stream);
+            Result putResult = _kvStore.Put(CHARACTERS_BUCKET, character.Guid, character);
+            if (!putResult.Success)
+            {
+                _notificationService.Push(_localizedFormatter.GetString("notification.character.saving.failed", save.Character.Name));
+                return new Result<CharacterSave>(success: false, default, putResult.Message, putResult.Exception);
+            }
 
             _notificationService.Push(_localizedFormatter.GetString("notification.character.saved", save.Character.Name));
-            return Result<CharacterSave>.FromSuccess(new CharacterSave(save.Path, character));
+            return Result<CharacterSave>.FromSuccess(new CharacterSave(character));
         }
         catch (Exception ex)
         {
