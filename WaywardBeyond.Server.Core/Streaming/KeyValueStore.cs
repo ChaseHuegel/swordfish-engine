@@ -105,9 +105,9 @@ public sealed class KeyValueStore : IDisposable
         }
     }
 
-    public Result<T[]> GetAll<T>(string bucket)
+    public Result<NatsKVEntry<T>[]> GetAll<T>(string bucket)
     {
-        TaskCompletionSource<Result<T[]>> tcs = new();
+        TaskCompletionSource<Result<NatsKVEntry<T>[]>> tcs = new();
         Task.Run(GetAllAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
         return tcs.Task.Result;
      
@@ -119,16 +119,13 @@ public sealed class KeyValueStore : IDisposable
                 _stores.TryAdd(bucket, store);
             }
 
-            var values = new List<T>();
+            var values = new List<NatsKVEntry<T>>();
             await foreach (string key in store.GetKeysAsync(cancellationToken: _cts.Token))
             {
                 try
                 {
                     NatsKVEntry<T> entry = await store.GetEntryAsync<T>(key, cancellationToken: _cts.Token);
-                    if (entry.Value != null)
-                    {
-                        values.Add(entry.Value);
-                    }
+                    values.Add(entry);
                 }
                 catch (NatsKVKeyNotFoundException)
                 {
@@ -136,12 +133,12 @@ public sealed class KeyValueStore : IDisposable
                 }
             }
 
-            tcs.SetResult(Result<T[]>.FromSuccess(values.ToArray()));
+            tcs.SetResult(Result<NatsKVEntry<T>[]>.FromSuccess(values.ToArray()));
         }
         
         void OnFaulted(Task task, object? state)
         {
-            var result = new Result<T[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
+            var result = new Result<NatsKVEntry<T>[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
             tcs.SetResult(result);
         }
     }
@@ -160,7 +157,7 @@ public sealed class KeyValueStore : IDisposable
                 _stores.TryAdd(bucket, store);
             }
 
-            await store.DeleteAsync(key);
+            await store.DeleteAsync(key, cancellationToken: _cts.Token);
 
             tcs.SetResult(Result.FromSuccess());
         }
@@ -168,6 +165,35 @@ public sealed class KeyValueStore : IDisposable
         void OnFaulted(Task task, object? state)
         {
             var result = new Result(success: false, message: $"Failed to get \"{key}\" in \"{bucket}\"", task.Exception);
+            tcs.SetResult(result);
+        }
+    }
+
+    public Result Delete(string bucket, string[] keys)
+    {
+        TaskCompletionSource<Result> tcs = new();
+        Task.Run(DeleteAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        return tcs.Task.Result;
+     
+        async Task DeleteAsync()
+        {
+            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            {
+                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                _stores.TryAdd(bucket, store);
+            }
+
+            foreach (string key in keys)
+            {
+                await store.DeleteAsync(key, cancellationToken: _cts.Token);
+            }
+
+            tcs.SetResult(Result.FromSuccess());
+        }
+        
+        void OnFaulted(Task task, object? state)
+        {
+            var result = new Result(success: false, message: $"Failed to delete keys in \"{bucket}\"", task.Exception);
             tcs.SetResult(result);
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using NATS.Client.KeyValueStore;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Saves.Migrations;
 using WaywardBeyond.Server.Core.Streaming;
@@ -102,7 +103,15 @@ internal sealed class CharacterSaveManager
     {
         try
         {
-            _kvStore.Delete(CHARACTERS_BUCKET, save.Character.Guid);
+            Result<NatsKVEntry<byte[]>[]> getResult = _kvStore.GetAll<byte[]>(CHARACTERS_BUCKET);
+            if (!getResult.Success) return;
+
+            string[] keysToDelete = getResult.Value
+                .Where(entry => entry.Key.StartsWith(save.Character.Guid))
+                .Select(entry => entry.Key)
+                .ToArray();
+
+            _kvStore.Delete(CHARACTERS_BUCKET, keysToDelete);
         }
         catch (Exception ex)
         {
