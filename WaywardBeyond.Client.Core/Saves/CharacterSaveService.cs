@@ -29,34 +29,81 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             return [];
         }
 
-        IEnumerable<string> guids = getAllResult.Value
-            .Select(entry => entry.Key.Split('.')[0])
-            .Distinct();
+        var characters = new Dictionary<string, Character>();
+        var statistics = new Dictionary<string, List<Statistic>>();
 
-        var characterSaves = new List<CharacterSave>();
-        foreach (string guid in guids)
+        foreach (NatsKVEntry<byte[]> entry in getAllResult.Value)
         {
-            var character = new Character
+            string[] parts = entry.Key.Split('.');
+            if (parts.Length < 2) continue;
+
+            string guid = parts[0];
+            if (!characters.TryGetValue(guid, out Character character))
             {
-                Guid = guid,
-                Name = _kvStore.Get<string>(CHARACTERS_BUCKET, $"{guid}.Name").Value ?? string.Empty,
-                LastPlayedMs = _kvStore.Get<long>(CHARACTERS_BUCKET, $"{guid}.LastPlayedMs").Value,
-                AgeMs = _kvStore.Get<long>(CHARACTERS_BUCKET, $"{guid}.AgeMs").Value,
-                Strength = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Strength").Value,
-                Precision = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Precision").Value,
-                Awareness = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Awareness").Value,
-                Charisma = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Charisma").Value,
-                Education = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Education").Value,
-                Resolve = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Resolve").Value,
-                Body = _kvStore.Get<int>(CHARACTERS_BUCKET, $"{guid}.Body").Value,
-                Inventory = _kvStore.Get<ItemData[]>(CHARACTERS_BUCKET, $"{guid}.Inventory").Value,
-                Statistics = _kvStore.Get<Statistic[]>(CHARACTERS_BUCKET, $"{guid}.Statistics").Value
-            };
+                character = new Character { Guid = guid };
+                characters[guid] = character;
+            }
+
+            if (parts.Length == 3 && parts[1] == "Statistic")
+            {
+                if (!statistics.TryGetValue(guid, out List<Statistic>? statList))
+                {
+                    statList = new List<Statistic>();
+                    statistics[guid] = statList;
+                }
+
+                statList.Add(new Statistic { ID = parts[2], Value = BitConverter.ToInt64(entry.Value, 0) });
+                continue;
+            }
             
-            characterSaves.Add(new CharacterSave(character));
+            string property = parts[1];
+            switch (property)
+            {
+                case "Name":
+                    character.Name = System.Text.Encoding.UTF8.GetString(entry.Value);
+                    break;
+                case "LastPlayedMs":
+                    character.LastPlayedMs = BitConverter.ToInt64(entry.Value, 0);
+                    break;
+                case "AgeMs":
+                    character.AgeMs = BitConverter.ToInt64(entry.Value, 0);
+                    break;
+                case "Strength":
+                    character.Strength = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Precision":
+                    character.Precision = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Awareness":
+                    character.Awareness = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Charisma":
+                    character.Charisma = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Education":
+                    character.Education = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Resolve":
+                    character.Resolve = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Body":
+                    character.Body = BitConverter.ToInt32(entry.Value, 0);
+                    break;
+                case "Inventory":
+                    character.Inventory = _kvStore.Get<ItemData[]>(CHARACTERS_BUCKET, entry.Key).Value;
+                    break;
+            }
         }
-        
-        return characterSaves.ToArray();
+
+        foreach (Character character in characters.Values)
+        {
+            if (statistics.TryGetValue(character.Guid, out List<Statistic>? statList))
+            {
+                character.Statistics = statList.ToArray();
+            }
+        }
+
+        return characters.Values.Select(c => new CharacterSave(c)).ToArray();
     }
     
     public Result<CharacterSave> CreateSave(Character character)
@@ -123,7 +170,14 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Resolve", character.Resolve);
             _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Body", character.Body);
             _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Inventory", character.Inventory);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Statistics", character.Statistics);
+
+            if (character.Statistics != null)
+            {
+                foreach (Statistic statistic in character.Statistics)
+                {
+                    _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Statistic.{statistic.ID}", statistic.Value);
+                }
+            }
 
             _notificationService.Push(_localizedFormatter.GetString("notification.character.saved", save.Character.Name));
             return Result<CharacterSave>.FromSuccess(new CharacterSave(character));
