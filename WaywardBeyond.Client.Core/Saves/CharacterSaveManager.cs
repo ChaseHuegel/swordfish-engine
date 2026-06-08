@@ -11,6 +11,7 @@ namespace WaywardBeyond.Client.Core.Saves;
 internal sealed class CharacterSaveManager
 {
     private const string CHARACTERS_BUCKET = "characters";
+    private const string CHARACTER_DATA_BUCKET = "characterData";
     
     public CharacterSave? ActiveSave
     {
