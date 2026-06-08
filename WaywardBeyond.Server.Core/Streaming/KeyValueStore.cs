@@ -105,13 +105,13 @@ public sealed class KeyValueStore : IDisposable
         }
     }
 
-    public Result<NatsKVEntry<T>[]> GetAll<T>(string bucket)
+    public Result<string[]> GetKeys(string bucket)
     {
-        TaskCompletionSource<Result<NatsKVEntry<T>[]>> tcs = new();
-        Task.Run(GetAllAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        TaskCompletionSource<Result<string[]>> tcs = new();
+        Task.Run(GetKeysAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
         return tcs.Task.Result;
      
-        async Task GetAllAsync()
+        async Task GetKeysAsync()
         {
             if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
             {
@@ -119,26 +119,18 @@ public sealed class KeyValueStore : IDisposable
                 _stores.TryAdd(bucket, store);
             }
 
-            var values = new List<NatsKVEntry<T>>();
+            var values = new List<string>();
             await foreach (string key in store.GetKeysAsync(cancellationToken: _cts.Token))
             {
-                try
-                {
-                    NatsKVEntry<T> entry = await store.GetEntryAsync<T>(key, cancellationToken: _cts.Token);
-                    values.Add(entry);
-                }
-                catch (NatsKVKeyNotFoundException)
-                {
-                    //  Key was deleted between GetKeysAsync and GetEntryAsync, ignore.
-                }
+                values.Add(key);
             }
 
-            tcs.SetResult(Result<NatsKVEntry<T>[]>.FromSuccess(values.ToArray()));
+            tcs.SetResult(Result<string[]>.FromSuccess(values.ToArray()));
         }
         
         void OnFaulted(Task task, object? state)
         {
-            var result = new Result<NatsKVEntry<T>[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
+            var result = new Result<string[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
             tcs.SetResult(result);
         }
     }
