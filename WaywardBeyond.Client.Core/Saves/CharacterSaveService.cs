@@ -15,6 +15,7 @@ namespace WaywardBeyond.Client.Core.Saves;
 internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormatter, in NotificationService notificationService, in IECSContext ecs, in KeyValueStore kvStore)
 {
     private const string CHARACTERS_BUCKET = "characters";
+    private const string CHARACTER_DATA_BUCKET = "characterData";
 
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly NotificationService _notificationService = notificationService;
@@ -90,7 +91,7 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
                     character.Body = BitConverter.ToInt32(entry.Value, 0);
                     break;
                 case "Inventory":
-                    character.Inventory = _kvStore.Get<ItemData[]>(CHARACTERS_BUCKET, entry.Key).Value;
+                    character.Inventory = _kvStore.Get<ItemData[]>(CHARACTER_DATA_BUCKET, entry.Key).Value;
                     break;
             }
         }
@@ -159,23 +160,23 @@ internal sealed class CharacterSaveService(in LocalizedFormatter localizedFormat
             }
             
             //  Save the character properties
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Name", character.Name);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.LastPlayedMs", character.LastPlayedMs);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.AgeMs", character.AgeMs);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Strength", character.Strength);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Precision", character.Precision);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Awareness", character.Awareness);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Charisma", character.Charisma);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Education", character.Education);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Resolve", character.Resolve);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Body", character.Body);
-            _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Inventory", character.Inventory);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Name", character.Name);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.LastPlayedMs", character.LastPlayedMs);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.AgeMs", character.AgeMs);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Strength", character.Strength);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Precision", character.Precision);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Awareness", character.Awareness);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Charisma", character.Charisma);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Education", character.Education);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Resolve", character.Resolve);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Body", character.Body);
+            _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Inventory", character.Inventory);
 
             if (character.Statistics != null)
             {
                 foreach (Statistic statistic in character.Statistics)
                 {
-                    _kvStore.Put(CHARACTERS_BUCKET, $"{character.Guid}.Statistic.{statistic.ID}", statistic.Value);
+                    _kvStore.Put(CHARACTER_DATA_BUCKET, $"{character.Guid}.Statistic.{statistic.ID}", statistic.Value);
                 }
             }
 
