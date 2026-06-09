@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Text.Json;
 using Microsoft.Data.Sqlite;
 using WaywardBeyond.Shared.Config;
 
@@ -14,118 +13,257 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
     public SqliteCharacterStorage(IConfiguration configuration)
     {
         string dbPath = configuration.GetString("SQLITE_PATH") ?? "sqlite/character.db";
+        
         string dbDirectory = Path.GetDirectoryName(dbPath)!;
-        Directory.CreateDirectory(dbDirectory);
+        if (!string.IsNullOrEmpty(dbDirectory))
+        {
+            Directory.CreateDirectory(dbDirectory);
+        }
         
         _connection = new SqliteConnection($"Data Source={dbPath}");
         _connection.Open();
+        
+        using (SqliteCommand command = _connection.CreateCommand())
+        {
+            command.CommandText = "PRAGMA foreign_keys = ON;";
+            command.ExecuteNonQuery();
+        }
+        
         InitializeDatabase();
     }
 
     private void InitializeDatabase()
     {
         using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = @"
-            CREATE TABLE IF NOT EXISTS characters (
-                Guid TEXT PRIMARY KEY,
-                LastPlayedMs INTEGER NOT NULL,
-                AgeMs INTEGER NOT NULL,
-                Name TEXT NOT NULL,
-                Strength INTEGER NOT NULL,
-                Precision INTEGER NOT NULL,
-                Awareness INTEGER NOT NULL,
-                Charisma INTEGER NOT NULL,
-                Education INTEGER NOT NULL,
-                Resolve INTEGER NOT NULL,
-                Body INTEGER NOT NULL,
-                Inventory TEXT,
-                Statistics TEXT
-            );
-        ";
+        command.CommandText = """
+                              CREATE TABLE IF NOT EXISTS characters (
+                                  guid            TEXT PRIMARY KEY,
+                                  name            TEXT NOT NULL,
+                                  last_played_ms  INTEGER NOT NULL,
+                                  age_ms          INTEGER NOT NULL,
+                                  strength        INTEGER NOT NULL,
+                                  precision       INTEGER NOT NULL,
+                                  awareness       INTEGER NOT NULL,
+                                  charisma        INTEGER NOT NULL,
+                                  education       INTEGER NOT NULL,
+                                  resolve         INTEGER NOT NULL,
+                                  body            INTEGER NOT NULL
+                              );
+
+                              CREATE TABLE IF NOT EXISTS inventory_items (
+                                  character_guid  TEXT NOT NULL,
+                                  slot_index      INTEGER NOT NULL,
+                                  item_id         TEXT NOT NULL,
+                                  count           INTEGER NOT NULL,
+                                  max_size        INTEGER NOT NULL,
+                                  PRIMARY KEY (character_guid, slot_index),
+                                  FOREIGN KEY (character_guid) REFERENCES characters (guid) ON DELETE CASCADE
+                              );
+
+                              CREATE TABLE IF NOT EXISTS character_statistics (
+                                  character_guid  TEXT NOT NULL,
+                                  statistic_id    TEXT NOT NULL,
+                                  value           INTEGER NOT NULL,
+                                  PRIMARY KEY (character_guid, statistic_id),
+                                  FOREIGN KEY (character_guid) REFERENCES characters (guid) ON DELETE CASCADE
+                              );
+                              """;
         command.ExecuteNonQuery();
     }
 
     public Character? GetCharacter(string guid)
     {
-        using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = "SELECT * FROM characters WHERE Guid = @Guid;";
-        command.Parameters.AddWithValue("@Guid", guid);
+        Character character;
 
-        using SqliteDataReader reader = command.ExecuteReader();
-        if (reader.Read())
+        using (SqliteCommand command = _connection.CreateCommand())
         {
-            return ReadCharacter(reader);
+            command.CommandText = "SELECT guid, name, last_played_ms, age_ms, strength, precision, awareness, charisma, education, resolve, body FROM characters WHERE guid = @guid;";
+            command.Parameters.AddWithValue("@guid", guid);
+
+            using SqliteDataReader reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                return null;
+            }
+
+            character = new Character
+            {
+                Guid = reader.GetString(0),
+                Name = reader.GetString(1),
+                LastPlayedMs = reader.GetInt64(2),
+                AgeMs = reader.GetInt64(3),
+                Strength = reader.GetInt32(4),
+                Precision = reader.GetInt32(5),
+                Awareness = reader.GetInt32(6),
+                Charisma = reader.GetInt32(7),
+                Education = reader.GetInt32(8),
+                Resolve = reader.GetInt32(9),
+                Body = reader.GetInt32(10),
+            };
         }
-        return null;
+
+        character.Inventory = GetInventory(guid);
+        character.Statistics = GetStatistics(guid);
+
+        return character;
     }
 
     public IEnumerable<Character> GetAllCharacters()
     {
-        using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = "SELECT * FROM characters;";
-        using SqliteDataReader reader = command.ExecuteReader();
-        while (reader.Read())
+        var guids = new List<string>();
+        using (SqliteCommand command = _connection.CreateCommand())
         {
-            yield return ReadCharacter(reader);
+            command.CommandText = "SELECT guid FROM characters;";
+            using SqliteDataReader reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                guids.Add(reader.GetString(0));
+            }
+        }
+
+        foreach (string guid in guids)
+        {
+            Character? character = GetCharacter(guid);
+            if (character.HasValue)
+            {
+                yield return character.Value;
+            }
         }
     }
 
     public bool SaveCharacter(in Character character)
     {
-        using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = """
-                              INSERT OR REPLACE INTO characters (
-                                  Guid, LastPlayedMs, AgeMs, Name, Strength, Precision, Awareness, 
-                                  Charisma, Education, Resolve, Body, Inventory, Statistics
-                              ) VALUES (
-                                  @Guid, @LastPlayedMs, @AgeMs, @Name, @Strength, @Precision, @Awareness, 
-                                  @Charisma, @Education, @Resolve, @Body, @Inventory, @Statistics
-                              );
-                              """;
+        using SqliteTransaction transaction = _connection.BeginTransaction();
+        
+        try
+        {
+            using (SqliteCommand command = _connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = """
+                                      INSERT OR REPLACE INTO characters (
+                                          guid, name, last_played_ms, age_ms, strength, precision, 
+                                          awareness, charisma, education, resolve, body
+                                      ) VALUES (
+                                          @guid, @name, @last_played_ms, @age_ms, @strength, @precision, 
+                                          @awareness, @charisma, @education, @resolve, @body
+                                      );
+                                      """;
+                command.Parameters.AddWithValue("@guid", character.Guid);
+                command.Parameters.AddWithValue("@name", character.Name);
+                command.Parameters.AddWithValue("@last_played_ms", character.LastPlayedMs);
+                command.Parameters.AddWithValue("@age_ms", character.AgeMs);
+                command.Parameters.AddWithValue("@strength", character.Strength);
+                command.Parameters.AddWithValue("@precision", character.Precision);
+                command.Parameters.AddWithValue("@awareness", character.Awareness);
+                command.Parameters.AddWithValue("@charisma", character.Charisma);
+                command.Parameters.AddWithValue("@education", character.Education);
+                command.Parameters.AddWithValue("@resolve", character.Resolve);
+                command.Parameters.AddWithValue("@body", character.Body);
+                command.ExecuteNonQuery();
+            }
 
-        command.Parameters.AddWithValue("@Guid", character.Guid);
-        command.Parameters.AddWithValue("@LastPlayedMs", character.LastPlayedMs);
-        command.Parameters.AddWithValue("@AgeMs", character.AgeMs);
-        command.Parameters.AddWithValue("@Name", character.Name);
-        command.Parameters.AddWithValue("@Strength", character.Strength);
-        command.Parameters.AddWithValue("@Precision", character.Precision);
-        command.Parameters.AddWithValue("@Awareness", character.Awareness);
-        command.Parameters.AddWithValue("@Charisma", character.Charisma);
-        command.Parameters.AddWithValue("@Education", character.Education);
-        command.Parameters.AddWithValue("@Resolve", character.Resolve);
-        command.Parameters.AddWithValue("@Body", character.Body);
-        command.Parameters.AddWithValue("@Inventory", character.Inventory != null ? JsonSerializer.Serialize(character.Inventory) : DBNull.Value);
-        command.Parameters.AddWithValue("@Statistics", character.Statistics != null ? JsonSerializer.Serialize(character.Statistics) : DBNull.Value);
+            ClearSubTable("inventory_items", character.Guid, transaction);
+            if (character.Inventory != null)
+            {
+                for (int i = 0; i < character.Inventory.Length; i++)
+                {
+                    ItemData item = character.Inventory[i];
+                    using SqliteCommand command = _connection.CreateCommand();
+                    command.Transaction = transaction;
+                    command.CommandText = "INSERT INTO inventory_items (character_guid, slot_index, item_id, count, max_size) VALUES (@guid, @slot, @id, @count, @max);";
+                    command.Parameters.AddWithValue("@guid", character.Guid);
+                    command.Parameters.AddWithValue("@slot", i);
+                    command.Parameters.AddWithValue("@id", item.ID);
+                    command.Parameters.AddWithValue("@count", item.Count);
+                    command.Parameters.AddWithValue("@max", item.MaxSize);
+                    command.ExecuteNonQuery();
+                }
+            }
 
-        return command.ExecuteNonQuery() > 0;
+            ClearSubTable("character_statistics", character.Guid, transaction);
+            if (character.Statistics != null)
+            {
+                foreach (Statistic stat in character.Statistics)
+                {
+                    using SqliteCommand command = _connection.CreateCommand();
+                    command.Transaction = transaction;
+                    command.CommandText = "INSERT INTO character_statistics (character_guid, statistic_id, value) VALUES (@guid, @id, @val);";
+                    command.Parameters.AddWithValue("@guid", character.Guid);
+                    command.Parameters.AddWithValue("@id", stat.ID);
+                    command.Parameters.AddWithValue("@val", stat.Value);
+                    command.ExecuteNonQuery();
+                }
+            }
+
+            transaction.Commit();
+            return true;
+        }
+        catch
+        {
+            transaction.Rollback();
+            return false;
+        }
     }
 
     public bool DeleteCharacter(string guid)
     {
         using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = "DELETE FROM characters WHERE Guid = @Guid;";
-        command.Parameters.AddWithValue("@Guid", guid);
+        command.CommandText = "DELETE FROM characters WHERE guid = @guid;";
+        command.Parameters.AddWithValue("@guid", guid);
+        
         return command.ExecuteNonQuery() > 0;
     }
 
-    private static Character ReadCharacter(SqliteDataReader reader)
+    private ItemData[] GetInventory(string guid)
     {
-        return new Character
+        var items = new List<ItemData>();
+        using SqliteCommand command = _connection.CreateCommand();
+        command.CommandText = "SELECT item_id, count, max_size FROM inventory_items WHERE character_guid = @guid ORDER BY slot_index;";
+        command.Parameters.AddWithValue("@guid", guid);
+        
+        using SqliteDataReader reader = command.ExecuteReader();
+        while (reader.Read())
         {
-            Guid = reader.GetString(0),
-            LastPlayedMs = reader.GetInt64(1),
-            AgeMs = reader.GetInt64(2),
-            Name = reader.GetString(3),
-            Strength = reader.GetInt32(4),
-            Precision = reader.GetInt32(5),
-            Awareness = reader.GetInt32(6),
-            Charisma = reader.GetInt32(7),
-            Education = reader.GetInt32(8),
-            Resolve = reader.GetInt32(9),
-            Body = reader.GetInt32(10),
-            Inventory = !reader.IsDBNull(11) ? JsonSerializer.Deserialize<ItemData[]>(reader.GetString(11)) : [],
-            Statistics = !reader.IsDBNull(12) ? JsonSerializer.Deserialize<Statistic[]>(reader.GetString(12)) : [],
-        };
+            items.Add(new ItemData
+            {
+                ID = reader.GetString(0),
+                Count = reader.GetInt32(1),
+                MaxSize = reader.GetInt32(2)
+            });
+        }
+        
+        return items.ToArray();
+    }
+
+    private Statistic[] GetStatistics(string guid)
+    {
+        var stats = new List<Statistic>();
+        using SqliteCommand command = _connection.CreateCommand();
+        command.CommandText = "SELECT statistic_id, value FROM character_statistics WHERE character_guid = @guid;";
+        command.Parameters.AddWithValue("@guid", guid);
+        
+        using SqliteDataReader reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            stats.Add(new Statistic
+            {
+                ID = reader.GetString(0),
+                Value = reader.GetInt64(1)
+            });
+        }
+        
+        return stats.ToArray();
+    }
+    
+    private void ClearSubTable(string tableName, string guid, SqliteTransaction transaction)
+    {
+        using SqliteCommand command = _connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"DELETE FROM {tableName} WHERE character_guid = @guid;";
+        command.Parameters.AddWithValue("@guid", guid);
+        
+        command.ExecuteNonQuery();
     }
 
     public void Dispose()

@@ -17,8 +17,12 @@ public sealed class LiteDbCharacterStorage : ICharacterStorage, IDisposable
     public LiteDbCharacterStorage(IConfiguration configuration)
     {
         string dbPath = configuration.GetString("LITEDB_PATH") ?? "litedb/character.db";
+        
         string dbDirectory = Path.GetDirectoryName(dbPath)!;
-        Directory.CreateDirectory(dbDirectory);
+        if (!string.IsNullOrEmpty(dbDirectory))
+        {
+            Directory.CreateDirectory(dbDirectory);
+        }
         
         _db = new LiteDatabase(dbPath);
         RunMigrations();
