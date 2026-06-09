@@ -230,7 +230,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
     {
         var items = new List<ItemData>();
         using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = "SELECT id, count, max_size FROM inventory WHERE character = @owner ORDER BY slot;";
+        command.CommandText = "SELECT id, count, max_size FROM inventory WHERE owner = @owner ORDER BY slot;";
         command.Parameters.AddWithValue("@owner", id);
         
         using SqliteDataReader reader = command.ExecuteReader();
@@ -251,7 +251,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
     {
         var stats = new List<Statistic>();
         using SqliteCommand command = _connection.CreateCommand();
-        command.CommandText = "SELECT id, value FROM statistics WHERE character = @id;";
+        command.CommandText = "SELECT id, value FROM statistics WHERE owner = @id;";
         command.Parameters.AddWithValue("@id", id);
         
         using SqliteDataReader reader = command.ExecuteReader();
@@ -271,7 +271,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
     {
         using SqliteCommand command = _connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = $"DELETE FROM {tableName} WHERE character = @id;";
+        command.CommandText = $"DELETE FROM {tableName} WHERE owner = @id;";
         command.Parameters.AddWithValue("@id", id);
         
         command.ExecuteNonQuery();
