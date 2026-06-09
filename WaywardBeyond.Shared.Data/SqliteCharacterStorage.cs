@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Data.Sqlite;
+using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Shared.Data;
@@ -71,7 +72,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         command.ExecuteNonQuery();
     }
 
-    public Character? GetCharacter(string guid)
+    public Result<Character> GetCharacter(string guid)
     {
         Character character;
 
@@ -83,7 +84,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
             using SqliteDataReader reader = command.ExecuteReader();
             if (!reader.Read())
             {
-                return null;
+                return Result<Character>.FromFailure("Character not found.");
             }
 
             character = new Character
@@ -105,7 +106,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         character.Inventory = GetInventory(guid);
         character.Statistics = GetStatistics(guid);
 
-        return character;
+        return Result<Character>.FromSuccess(character);
     }
 
     public IEnumerable<Character> GetAllCharacters()
@@ -131,7 +132,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         }
     }
 
-    public bool SaveCharacter(in Character character)
+    public Result SaveCharacter(in Character character)
     {
         using SqliteTransaction transaction = _connection.BeginTransaction();
         
@@ -166,9 +167,14 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
             ClearSubTable("inventory_items", character.Guid, transaction);
             if (character.Inventory != null)
             {
-                for (int i = 0; i < character.Inventory.Length; i++)
+                for (var i = 0; i < character.Inventory.Length; i++)
                 {
                     ItemData item = character.Inventory[i];
+                    if (item.ID == null)
+                    {
+                        continue;
+                    }
+                    
                     using SqliteCommand command = _connection.CreateCommand();
                     command.Transaction = transaction;
                     command.CommandText = "INSERT INTO inventory_items (character_guid, slot_index, item_id, count, max_size) VALUES (@guid, @slot, @id, @count, @max);";
@@ -184,35 +190,40 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
             ClearSubTable("character_statistics", character.Guid, transaction);
             if (character.Statistics != null)
             {
-                foreach (Statistic stat in character.Statistics)
+                foreach (Statistic statistic in character.Statistics)
                 {
+                    if (statistic.ID == null)
+                    {
+                        continue;
+                    }
+                    
                     using SqliteCommand command = _connection.CreateCommand();
                     command.Transaction = transaction;
                     command.CommandText = "INSERT INTO character_statistics (character_guid, statistic_id, value) VALUES (@guid, @id, @val);";
                     command.Parameters.AddWithValue("@guid", character.Guid);
-                    command.Parameters.AddWithValue("@id", stat.ID);
-                    command.Parameters.AddWithValue("@val", stat.Value);
+                    command.Parameters.AddWithValue("@id", statistic.ID);
+                    command.Parameters.AddWithValue("@val", statistic.Value);
                     command.ExecuteNonQuery();
                 }
             }
 
             transaction.Commit();
-            return true;
+            return Result.FromSuccess();
         }
-        catch
+        catch (Exception ex)
         {
             transaction.Rollback();
-            return false;
+            return Result.FromFailure(ex.ToString());
         }
     }
 
-    public bool DeleteCharacter(string guid)
+    public Result DeleteCharacter(string guid)
     {
         using SqliteCommand command = _connection.CreateCommand();
         command.CommandText = "DELETE FROM characters WHERE guid = @guid;";
         command.Parameters.AddWithValue("@guid", guid);
         
-        return command.ExecuteNonQuery() > 0;
+        return new Result(success: command.ExecuteNonQuery() > 0);
     }
 
     private ItemData[] GetInventory(string guid)
@@ -229,7 +240,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
             {
                 ID = reader.GetString(0),
                 Count = reader.GetInt32(1),
-                MaxSize = reader.GetInt32(2)
+                MaxSize = reader.GetInt32(2),
             });
         }
         
@@ -249,7 +260,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
             stats.Add(new Statistic
             {
                 ID = reader.GetString(0),
-                Value = reader.GetInt64(1)
+                Value = reader.GetInt64(1),
             });
         }
         

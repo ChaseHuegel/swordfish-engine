@@ -1,7 +1,10 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
+using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
@@ -17,15 +20,18 @@ internal sealed class CharacterSaveManager
     private readonly ILogger<CharacterSaveManager> _logger;
     private readonly ICharacterStorage _characterStorage;
     private readonly ActiveCharacterSave _activeCharacterSave;
+    private readonly IECSContext _ecs;
 
     public CharacterSaveManager(
         ILogger<CharacterSaveManager> logger,
         ICharacterStorage characterStorage,
-        ActiveCharacterSave activeCharacterSave
+        ActiveCharacterSave activeCharacterSave,
+        IECSContext ecs
     ) {
         _logger = logger;
         _characterStorage = characterStorage;
         _activeCharacterSave = activeCharacterSave;
+        _ecs = ecs;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
@@ -68,6 +74,28 @@ internal sealed class CharacterSaveManager
             LastPlayedMs = nowUtcMs,
         };
 
+        //  Fetch the character's inventory data
+        _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
+        void UpdateInventory(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
+        {
+            if (!store.TryGet(entity, out GuidComponent guidComponent) || guidComponent.Guid.ToString() != character.Guid)
+            {
+                return;
+            }
+
+            if (!store.TryGet(entity, out InventoryComponent inventoryComponent))
+            {
+                return;
+            }
+
+            character.Inventory = new ItemData[inventoryComponent.Contents.Length];
+            for (var i = 0; i < inventoryComponent.Contents.Length; i++)
+            {
+                ItemStack itemStack = inventoryComponent.Contents[i];
+                character.Inventory[i] = new ItemData { ID = itemStack.ID, Count = itemStack.Count, MaxSize = itemStack.MaxSize };
+            }
+        }
+
         if (_characterStorage.SaveCharacter(character))
         {
             ActiveSave = character;
@@ -88,7 +116,7 @@ internal sealed class CharacterSaveManager
     
     internal Character? GetMostRecentSave()
     {
-        Character mostRecentCharacter = _characterStorage.GetAllCharacters()
+        var mostRecentCharacter = _characterStorage.GetAllCharacters()
             .OrderByDescending(c => c.LastPlayedMs)
             .FirstOrDefault();
 

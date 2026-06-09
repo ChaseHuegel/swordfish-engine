@@ -1,11 +1,15 @@
 using System.Collections.Generic;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Shared.Data;
 
 public interface ICharacterStorage
 {
-    Character? GetCharacter(string guid);
+    Result<Character> GetCharacter(string guid);
+    
     IEnumerable<Character> GetAllCharacters();
-    bool SaveCharacter(in Character character);
-    bool DeleteCharacter(string guid);
+    
+    Result SaveCharacter(in Character character);
+    
+    Result DeleteCharacter(string guid);
 }
