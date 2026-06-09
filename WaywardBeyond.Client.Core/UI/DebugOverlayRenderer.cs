@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Net.NetworkInformation;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Reef;

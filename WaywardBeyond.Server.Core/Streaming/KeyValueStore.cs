@@ -7,7 +7,7 @@ using NATS.Client.Core;
 using NATS.Client.KeyValueStore;
 using NATS.Net;
 using Swordfish.Library.Util;
-using WaywardBeyond.Server.Core.Config;
+using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Server.Core.Streaming;
 
@@ -23,11 +23,11 @@ public sealed class KeyValueStore : IDisposable
     private readonly CancellationTokenSource _cts = new();
     private readonly ConcurrentDictionary<string, INatsKVStore> _stores = [];
     
-    public KeyValueStore(in ServerEnvironment environment)
+    public KeyValueStore(in IConfiguration configuration)
     {
-        string natsUrl = environment.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
-        string? natsJwt = environment.GetString(VAR_NATS_JWT);
-        string? natsNkeySeed = environment.GetString(VAR_NATS_NKEY_SEED);
+        string natsUrl = configuration.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
+        string? natsJwt = configuration.GetString(VAR_NATS_JWT);
+        string? natsNkeySeed = configuration.GetString(VAR_NATS_NKEY_SEED);
 
         NatsOpts natsOpts = NatsOpts.Default with
         {

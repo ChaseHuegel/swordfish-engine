@@ -1,6 +1,6 @@
 using System;
 using System.Numerics;
-using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels.Models;
 

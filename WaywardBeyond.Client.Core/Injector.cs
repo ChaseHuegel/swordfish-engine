@@ -20,7 +20,6 @@ using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
-using WaywardBeyond.Client.Core.Saves.Migrations;
 using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
@@ -36,6 +35,8 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -74,10 +75,9 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
         
-        container.Register<CharacterSaveService>(Reuse.Singleton);
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
-        container.Register<ICharacterMigration, CharacterMigrationV2>(Reuse.Transient);
+        container.Register<ICharacterStorage, LiteDbCharacterStorage>(Reuse.Singleton);
 
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
@@ -123,6 +123,8 @@ public class Injector : IDryIocInjector
 
     private static void RegisterConfiguration(IContainer container)
     {
+        container.Register<IConfiguration, EnvCmdConfiguration>(Reuse.Singleton);
+        
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
         

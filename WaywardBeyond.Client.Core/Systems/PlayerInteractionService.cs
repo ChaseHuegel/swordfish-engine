@@ -21,19 +21,18 @@ using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Player;
-using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
-using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
 using DebugInfo = (
     VoxelComponent VoxelComponent,
-    Voxel Voxel,
+    Shared.Data.Voxel Voxel,
     Int3 Coordinate,
     Vector3 Position,
     Vector3 Normal,

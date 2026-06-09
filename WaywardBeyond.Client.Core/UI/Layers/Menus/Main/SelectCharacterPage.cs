@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -13,12 +15,13 @@ using WaywardBeyond.Client.Core.Extensions;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class SelectCharacterPage(
     in CharacterSaveManager characterSaveManager,
-    in CharacterSaveService characterSaveService,
+    in ICharacterStorage characterStorage,
     in IInputService inputService,
     in SoundEffectService soundEffectService,
     in ILocalization localization,
@@ -31,7 +34,7 @@ internal sealed class SelectCharacterPage(
     public MenuPage ID => MenuPage.SelectCharacter;
     
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
-    private readonly CharacterSaveService _characterSaveService = characterSaveService;
+    private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
     private readonly CharacterAssetService _characterAssetService = characterAssetService;
@@ -91,7 +94,7 @@ internal sealed class SelectCharacterPage(
             
             if (_characterSaveManager.ActiveSave != null)
             {
-                Character activeCharacter = _characterSaveManager.ActiveSave.Value.Character;
+                Character activeCharacter = _characterSaveManager.ActiveSave.Value;
                 
                 Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(activeCharacter);
                 using (ui.Image(appearanceMaterial))
@@ -269,8 +272,8 @@ internal sealed class SelectCharacterPage(
                     Height = new Relative(1f),
                 };
 
-                CharacterSave[] saves = _characterSaveService.GetSaves();
-                if (saves.Length == 0)
+                List<Character> characters = _characterStorage.GetAllCharacters().ToList();
+                if (characters.Count == 0)
                 {
                     using (ui.Text(_localization.GetString("ui.text.none")!))
                     {
@@ -285,7 +288,7 @@ internal sealed class SelectCharacterPage(
                 else
                 {
                     float scroll = _inputService.GetMouseScroll();
-                    _scrollY = Math.Clamp(_scrollY + (int)scroll, -(saves.Length - 1), 0);
+                    _scrollY = Math.Clamp(_scrollY + (int)scroll, -(characters.Count - 1), 0);
                     ui.ScrollY = _scrollY * 30;
 
                     using (ui.Element())
@@ -297,18 +300,18 @@ internal sealed class SelectCharacterPage(
                             ui.LayoutDirection = LayoutDirection.Vertical;
                             ui.Spacing = 12;
                         
-                            foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
+                            foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
                             {
-                                using (ui.TextButton(id: $"Button_DeleteCharacter_{save.Character.Guid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                                using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Guid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
                                 {
                                     if (interactions.Has(Widgets.Interactions.Click))
                                     {
-                                        _characterSaveManager.ActiveSave = save;
+                                        _characterSaveManager.ActiveSave = character;
                                         _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
 
                                         void DeleteSave()
                                         {
-                                            _characterSaveManager.Delete(save);
+                                            _characterSaveManager.Delete(character);
                                             _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
                                         }
                                     }
@@ -320,9 +323,9 @@ internal sealed class SelectCharacterPage(
                         {
                             ui.LayoutDirection = LayoutDirection.Vertical;
 
-                            foreach (CharacterSave save in saves.OrderByDescending(save => save.Character.LastPlayedMs))
+                            foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
                             {
-                                using (ui.TextButton(id: $"Button_SelectCharacter_{save.Character.Guid}", text: save.Character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                                using (ui.TextButton(id: $"Button_SelectCharacter_{character.Guid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
                                 {
                                     ui.Constraints = new Constraints
                                     {
@@ -330,14 +333,14 @@ internal sealed class SelectCharacterPage(
                                     };
 
                                     if (_characterSaveManager.ActiveSave != null &&
-                                        _characterSaveManager.ActiveSave.Value.Character.Guid == save.Character.Guid)
+                                        _characterSaveManager.ActiveSave.Value.Guid == character.Guid)
                                     {
                                         ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
                                     }
 
                                     if (interactions.Has(Widgets.Interactions.Click))
                                     {
-                                        _characterSaveManager.ActiveSave = save;
+                                        _characterSaveManager.ActiveSave = character;
                                     }
                                 }
                             }
@@ -349,7 +352,7 @@ internal sealed class SelectCharacterPage(
         
         if (_characterSaveManager.ActiveSave != null)
         {
-            Character activeCharacter = _characterSaveManager.ActiveSave.Value.Character;
+            Character activeCharacter = _characterSaveManager.ActiveSave.Value;
             
             using (ui.Element())
             {

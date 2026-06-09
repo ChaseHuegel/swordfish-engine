@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <Version>0.1.0-alpha</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="LiteDB" Version="5.0.17"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\WaywardBeyond.Shared.Config\WaywardBeyond.Shared.Config.csproj" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <!-- Generate code is being explicitly included, don't also implicitly include it -->
+        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
+    </PropertyGroup>
+    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
+        <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output"/>
+        <ItemGroup>
+            <Compile Include="CodeGen/Output/**/*.cs"/>
+        </ItemGroup>
+    </Target>
+
+</Project>

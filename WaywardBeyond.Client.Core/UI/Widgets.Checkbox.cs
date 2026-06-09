@@ -2,8 +2,6 @@ using System.Numerics;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
-using Swordfish.Audio;
-using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Services;
 
 namespace WaywardBeyond.Client.Core.UI;

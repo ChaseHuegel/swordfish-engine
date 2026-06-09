@@ -11,6 +11,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves.LoadGame;
 
@@ -61,7 +62,7 @@ internal sealed class CharacterEntityLoadStage(
         }
 
         _progress = 0f;
-        CharacterSave characterSave = _characterSaveManager.ActiveSave.Value;
+        Character character = _characterSaveManager.ActiveSave.Value;
         CharacterEntityModel? characterEntityModel = null;
         
         //  Find the entity save matching the character save
@@ -71,7 +72,7 @@ internal sealed class CharacterEntityLoadStage(
             byte[] data = voxelEntityFile.ReadBytes();
             CharacterEntityModel deserializedCharacterEntity = _characterEntitySerializer.Deserialize(data);
 
-            if (deserializedCharacterEntity.Guid.ToString() != characterSave.Character.Guid)
+            if (deserializedCharacterEntity.Guid.ToString() != character.Guid)
             {
                 continue;
             }
@@ -84,11 +85,11 @@ internal sealed class CharacterEntityLoadStage(
         {
             //  No entity found, create a new one
             var spawnPosition = new Vector3(save.Level.SpawnX, save.Level.SpawnY, save.Level.SpawnZ);
-            Guid guid = Guid.Parse(characterSave.Character.Guid);
+            Guid guid = Guid.Parse(character.Guid);
             characterEntityModel = new CharacterEntityModel(guid, spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
         }
 
-        _playerCharacterEntityBuilder.Create(characterSave.Character, characterEntityModel.Value);
+        _playerCharacterEntityBuilder.Create(character, characterEntityModel.Value);
         _progress = 1f;
         return Task.CompletedTask;
     }

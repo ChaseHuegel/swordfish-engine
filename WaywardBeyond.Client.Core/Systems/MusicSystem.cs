@@ -8,7 +8,6 @@ using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.UI;
-using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core.Systems;
 

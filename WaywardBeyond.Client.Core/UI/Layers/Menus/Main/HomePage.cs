@@ -15,7 +15,6 @@ internal sealed class HomePage(
     in SoundEffectService soundEffectService,
     in ILocalization localization,
     in GameSaveService gameSaveService,
-    in CharacterSaveService characterSaveService,
     in ModalMenu modalMenu
 ) : IMenuPage<MenuPage>
 {
@@ -24,7 +23,6 @@ internal sealed class HomePage(
     private readonly Entry _entry = entry;
     private readonly ILocalization _localization = localization;
     private readonly GameSaveService _gameSaveService = gameSaveService;
-    private readonly CharacterSaveService _characterSaveService = characterSaveService;
     private readonly ModalMenu _modalMenu = modalMenu;
 
     private bool _hasShownNotice;

@@ -1,6 +1,6 @@
 using System.Reflection;
 using Swordfish.Library.Types;
-using Version = WaywardBeyond.Client.Core.Saves.Version;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core;
 

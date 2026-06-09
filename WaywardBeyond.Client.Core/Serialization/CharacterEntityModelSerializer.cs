@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Numerics;
 using Swordfish.Library.Serialization;
-using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Serialization;
 

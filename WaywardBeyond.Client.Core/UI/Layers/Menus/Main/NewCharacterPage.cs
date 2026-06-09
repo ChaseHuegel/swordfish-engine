@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
@@ -8,14 +6,13 @@ using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -27,7 +24,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
     public MenuPage ID => MenuPage.NewCharacter;
     
-    private readonly CharacterSaveService _characterSaveService;
+    private readonly ICharacterStorage _characterStorage;
     private readonly CharacterSaveManager _characterSaveManager;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
@@ -53,7 +50,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private int _resolve = 1;
 
     public NewCharacterPage(
-        in CharacterSaveService characterSaveService,
+        in ICharacterStorage characterStorage,
         in CharacterSaveManager characterSaveManager,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
@@ -61,7 +58,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         in CharacterAssetService characterAssetService,
         in NameGenerator nameGenerator
     ) {
-        _characterSaveService = characterSaveService;
+        _characterStorage = characterStorage;
         _characterSaveManager = characterSaveManager;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
@@ -264,7 +261,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
 
                     validName = false;
                 }
-                else if (_characterSaveService.GetSaves().Any(save => save.Character.Name == nameValue))
+                else if (_characterStorage.GetAllCharacters().Any(character => character.Name == nameValue))
                 {
                     using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
                     {
@@ -539,10 +536,10 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 
                 Task.Run(() =>
                     {
-                        Result<CharacterSave> save = _characterSaveService.CreateSave(character);
-                        if (save.Success)
+                        bool saved = _characterStorage.SaveCharacter(character);
+                        if (saved)
                         {
-                            _characterSaveManager.ActiveSave = save.Value;
+                            _characterSaveManager.ActiveSave = character;
                         }
                     }
                 );

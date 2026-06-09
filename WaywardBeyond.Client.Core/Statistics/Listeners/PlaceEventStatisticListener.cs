@@ -2,6 +2,7 @@ using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Statistics.Listeners;
 
@@ -12,19 +13,18 @@ internal class PlaceEventStatisticListener(in CharacterSaveManager characterSave
 
     public Result<EventBehavior> ProcessEvent(object sender, PlaceEvent e)
     {
-        CharacterSave? activeSave = _characterSaveManager.ActiveSave;
+        Character? activeSave = _characterSaveManager.ActiveSave;
         if (activeSave == null)
         {
             return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
         }
 
-        CharacterSave save = activeSave.Value;
-        Character character = save.Character;
+        Character character = activeSave.Value;
         
         character.AddStatistic("bricks.placed", 1);
         character.AddStatistic($"bricks.placed:{e.BrickInfo.ID}", 1);
         
-        _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
+        _characterSaveManager.ActiveSave = character;
         
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
     }

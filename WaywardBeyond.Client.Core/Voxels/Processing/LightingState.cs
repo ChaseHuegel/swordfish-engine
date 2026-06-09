@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using Swordfish.ECS;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 

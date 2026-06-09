@@ -1,5 +1,5 @@
 ﻿#version 1.0;
-#namespace WaywardBeyond.Client.Core.Voxels;
+#namespace WaywardBeyond.Shared.Data;
 
 message VoxelEntityData
 {

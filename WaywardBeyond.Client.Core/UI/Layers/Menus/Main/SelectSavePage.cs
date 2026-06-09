@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using Reef;
@@ -12,6 +13,7 @@ using WaywardBeyond.Client.Core.Extensions;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
@@ -21,7 +23,7 @@ internal sealed class SelectSavePage(
     in IInputService inputService,
     in SoundEffectService soundEffectService,
     in ILocalization localization,
-    in CharacterSaveService characterSaveService,
+    in ICharacterStorage characterStorage,
     in ModalMenu modalMenu,
     in ConfirmModal confirmModal
 ) : IMenuPage<MenuPage>
@@ -32,7 +34,7 @@ internal sealed class SelectSavePage(
     private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly IInputService _inputService = inputService;
     private readonly ILocalization _localization = localization;
-    private readonly CharacterSaveService _characterSaveService = characterSaveService;
+    private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
 
@@ -228,8 +230,8 @@ internal sealed class SelectSavePage(
             
                 if (interactions.Has(Widgets.Interactions.Click))
                 {
-                    CharacterSave[] characters = _characterSaveService.GetSaves();
-                    menu.GoToPage(characters.Length == 0 ? MenuPage.NewCharacter : MenuPage.Characters);
+                    IEnumerable<Character> characters = _characterStorage.GetAllCharacters();
+                    menu.GoToPage(characters.Any() ? MenuPage.Characters : MenuPage.NewCharacter);
                 }
             }
         }

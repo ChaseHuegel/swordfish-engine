@@ -1,10 +1,11 @@
 using System.Threading;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
 internal class ActiveCharacterSave
 {
-    public CharacterSave? ActiveSave
+    public Character? ActiveSave
     {
         get
         {
@@ -19,5 +20,5 @@ internal class ActiveCharacterSave
     }
     
     private readonly Lock _activeSaveLock = new();
-    private CharacterSave? _activeSave;
+    private Character? _activeSave;
 }

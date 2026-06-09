@@ -1,4 +1,5 @@
 ﻿using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels;
 

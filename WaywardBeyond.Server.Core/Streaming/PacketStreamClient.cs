@@ -8,9 +8,9 @@ using NATS.Client.JetStream.Models;
 using NATS.Net;
 using Swordfish.Library.Util;
 using Torches.Networking.Models;
-using WaywardBeyond.Server.Core.Config;
 using WaywardBeyond.Server.Core.Networking;
 using WaywardBeyond.Server.Core.Serialization;
+using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Server.Core.Streaming;
 
@@ -22,7 +22,7 @@ internal sealed class PacketStreamClient : IDisposable
     private const string SUBJECT_PREFIX = "wb.packets";
     
     private readonly ILogger<PacketStreamClient> _logger;
-    private readonly ServerEnvironment _environment;
+    private readonly IConfiguration _configuration;
     private readonly IProtocol _protocol;
 
     private readonly NatsClient _natsClient;
@@ -32,13 +32,13 @@ internal sealed class PacketStreamClient : IDisposable
 
     private string? _source;
     
-    public PacketStreamClient(in ILogger<PacketStreamClient> logger, in ServerEnvironment environment, in IProtocol protocol)
+    public PacketStreamClient(in ILogger<PacketStreamClient> logger, in IConfiguration configuration, in IProtocol protocol)
     {
         _logger = logger;
-        _environment = environment;
+        _configuration = configuration;
         _protocol = protocol;
 
-        string natsUrl = environment.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
+        string natsUrl = configuration.GetString(VAR_NATS_URL) ?? "nats://127.0.0.1:4222";
         _natsClient = new NatsClient(natsUrl);
         _cts = new CancellationTokenSource();
         _jetStreamTCS = new TaskCompletionSource<INatsJSContext?>();
@@ -121,7 +121,7 @@ internal sealed class PacketStreamClient : IDisposable
     
     private async Task ConsumeAsync(INatsJSStream stream)
     {
-        string? consumerID = _environment.GetString(VAR_SERVER_ID);
+        string? consumerID = _configuration.GetString(VAR_SERVER_ID);
         ConsumerConfig consumerConfig;
         if (consumerID == null)
         {

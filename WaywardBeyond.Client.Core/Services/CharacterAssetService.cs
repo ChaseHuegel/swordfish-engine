@@ -6,7 +6,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Services;
 

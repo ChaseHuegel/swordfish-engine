@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Threading;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels;
 

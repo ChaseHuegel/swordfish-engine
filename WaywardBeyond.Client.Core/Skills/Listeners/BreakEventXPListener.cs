@@ -4,6 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Statistics;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Skills.Listeners;
 
@@ -36,17 +37,16 @@ internal class BreakEventXPListener(
                 continue;
             }
 
-            CharacterSave? activeSave = _characterSaveManager.ActiveSave;
+            Character? activeSave = _characterSaveManager.ActiveSave;
             if (activeSave == null)
             {
                 return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
             }
 
-            CharacterSave save = activeSave.Value;
-            Character character = save.Character;
+            Character character = activeSave.Value;
 
             StatisticInfo info = character.AddStatistic(skill.ID, sourceXP);
-            _characterSaveManager.ActiveSave = new CharacterSave(save.Path, character);
+            _characterSaveManager.ActiveSave = character;
 
             LevelInfo prevLvl = skill.CalculateLevel(info.Previous);
             LevelInfo currLvl = skill.CalculateLevel(info.Current);

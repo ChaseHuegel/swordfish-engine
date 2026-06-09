@@ -1,24 +1,26 @@
+using System.Collections.Generic;
+using System.Linq;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
 
 internal sealed class CharactersPage(
     in SoundEffectService soundEffectService,
     in ILocalization localization,
-    in CharacterSaveService characterSaveService
+    in ICharacterStorage characterSaveService
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Characters;
     
     private readonly ILocalization _localization = localization;
-    private readonly CharacterSaveService _characterSaveService = characterSaveService;
+    private readonly ICharacterStorage _characterSaveService = characterSaveService;
 
     private readonly Widgets.ButtonOptions _buttonOptions = new(
         new FontOptions {
@@ -29,8 +31,8 @@ internal sealed class CharactersPage(
     
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
-        CharacterSave[] characters = _characterSaveService.GetSaves();
-        if (characters.Length > 0)
+        IEnumerable<Character> characters = _characterSaveService.GetAllCharacters();
+        if (characters.Any())
         {
             using (ui.TextButton(id: "Button_SelectCharacter", text: _localization.GetString("ui.button.selectCharacter")!, _buttonOptions, out Widgets.Interactions interactions))
             {

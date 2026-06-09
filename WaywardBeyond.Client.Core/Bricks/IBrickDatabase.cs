@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Bricks;
 

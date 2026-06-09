@@ -4,6 +4,7 @@ using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Tests;
 

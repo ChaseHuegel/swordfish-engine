@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.PixelFormats;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.UI;
-using WaywardBeyond.Client.Core.UI.Layers;
 
 namespace WaywardBeyond.Client.Core.Shortcuts;
 

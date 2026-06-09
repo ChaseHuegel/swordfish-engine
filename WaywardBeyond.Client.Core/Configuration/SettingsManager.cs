@@ -1,6 +1,5 @@
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
-using Swordfish.Library.Types;
 using Swordfish.Settings;
 
 namespace WaywardBeyond.Client.Core.Configuration;

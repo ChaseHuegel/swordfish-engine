@@ -2,9 +2,9 @@ using System;
 using System.Net;
 using Shoal.CommandLine;
 
-namespace WaywardBeyond.Server.Core.Config;
+namespace WaywardBeyond.Shared.Config;
 
-public sealed class ServerEnvironment(in CommandLineArgs args)
+public sealed class EnvCmdConfiguration(in CommandLineArgs args) : IConfiguration
 {
     private readonly CommandLineArgs _args = args;
 

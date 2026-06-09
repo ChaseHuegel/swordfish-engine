@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Shoal.Modularity;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;

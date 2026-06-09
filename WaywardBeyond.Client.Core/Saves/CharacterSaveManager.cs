@@ -1,75 +1,52 @@
 using System;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using NATS.Client.KeyValueStore;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Saves.Migrations;
-using WaywardBeyond.Server.Core.Streaming;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
 internal sealed class CharacterSaveManager
 {
-    private const string CHARACTERS_BUCKET = "characters";
-    private const string CHARACTER_DATA_BUCKET = "characterData";
-    
-    public CharacterSave? ActiveSave
+    public Character? ActiveSave
     {
         get => _activeCharacterSave.ActiveSave;
         set => _activeCharacterSave.ActiveSave = value;
     }
 
     private readonly ILogger<CharacterSaveManager> _logger;
-    private readonly CharacterSaveService _characterSaveService;
+    private readonly ICharacterStorage _characterStorage;
     private readonly ActiveCharacterSave _activeCharacterSave;
-    private readonly ICharacterMigration[] _characterMigrations;
-    private readonly KeyValueStore _kvStore;
 
     public CharacterSaveManager(
-        in ILogger<CharacterSaveManager> logger,
-        in CharacterSaveService characterSaveService, 
-        in ActiveCharacterSave activeCharacterSave,
-        in ICharacterMigration[] characterMigrations,
-        in KeyValueStore kvStore
+        ILogger<CharacterSaveManager> logger,
+        ICharacterStorage characterStorage,
+        ActiveCharacterSave activeCharacterSave
     ) {
         _logger = logger;
-        _characterSaveService = characterSaveService;
+        _characterStorage = characterStorage;
         _activeCharacterSave = activeCharacterSave;
-        _characterMigrations = characterMigrations;
-        _kvStore = kvStore;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
     }
 
-    public Result<CharacterSave> Load()
+    public Result<Character> Load()
     {
         if (ActiveSave == null)
         {
-            return Result<CharacterSave>.FromFailure("No character selected");
+            return Result<Character>.FromFailure("No character selected");
         }
         
-        CharacterSave save = ActiveSave.Value;
-        
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Character character = save.Character with
+        Character character = ActiveSave.Value with
         {
             LastPlayedMs = nowUtcMs,
         };
-
-        //  Process any migration
-        for (var i = 0; i < _characterMigrations.Length; i++)
-        {
-            _characterMigrations[i].Process(ref character);
-        }
-
-        //  Version up the character
-        character.Version = WaywardBeyond.Version;
         
-        save = new CharacterSave(character);
-        ActiveSave = save;
+        ActiveSave = character;
         
-        return Result<CharacterSave>.FromSuccess(save);
+        return Result<Character>.FromSuccess(character);
     }
 
     public void Save()
@@ -85,47 +62,36 @@ internal sealed class CharacterSaveManager
         }
 
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Character character = ActiveSave.Value.Character with
+        Character character = ActiveSave.Value with
         {
-            AgeMs = ActiveSave.Value.Character.AgeMs + nowUtcMs - ActiveSave.Value.Character.LastPlayedMs,
+            AgeMs = ActiveSave.Value.AgeMs + (nowUtcMs - ActiveSave.Value.LastPlayedMs),
             LastPlayedMs = nowUtcMs,
         };
 
-        var save = new CharacterSave(character);
-        Result<CharacterSave> saveResult = _characterSaveService.Save(save);
-
-        if (saveResult.Success)
+        if (_characterStorage.SaveCharacter(character))
         {
-            ActiveSave = saveResult.Value;
+            ActiveSave = character;
+        }
+        else
+        {
+            _logger.LogError("Failed to save character {Name} ({Guid})", character.Name, character.Guid);
         }
     }
     
-    public void Delete(CharacterSave save)
+    public void Delete(Character character)
     {
-        try
+        if (!_characterStorage.DeleteCharacter(character.Guid))
         {
-            Result<NatsKVEntry<byte[]>[]> getResult = _kvStore.GetAll<byte[]>(CHARACTERS_BUCKET);
-            if (!getResult.Success) return;
-
-            string[] keysToDelete = getResult.Value
-                .Where(entry => entry.Key.StartsWith(save.Character.Guid))
-                .Select(entry => entry.Key)
-                .ToArray();
-
-            _kvStore.Delete(CHARACTERS_BUCKET, keysToDelete);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error trying to delete character \"{character}\" ({guid})", save.Character.Name, save.Character.Guid);
+            _logger.LogError("Failed to delete character {Name} ({Guid})", character.Name, character.Guid);
         }
     }
     
-    internal CharacterSave? GetMostRecentSave()
+    internal Character? GetMostRecentSave()
     {
-        CharacterSave? mostRecentSave = _characterSaveService.GetSaves()
-            .OrderByDescending(save => save.Character.LastPlayedMs)
+        Character mostRecentCharacter = _characterStorage.GetAllCharacters()
+            .OrderByDescending(c => c.LastPlayedMs)
             .FirstOrDefault();
-        
-        return mostRecentSave;
+
+        return mostRecentCharacter.Guid != null ? mostRecentCharacter : null;
     }
 }

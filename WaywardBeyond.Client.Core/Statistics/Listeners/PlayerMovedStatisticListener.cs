@@ -4,6 +4,7 @@ using Swordfish.Library.Events;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Saves;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Statistics.Listeners;
 
@@ -23,14 +24,13 @@ internal class PlayerMovedStatisticListener(in ActiveCharacterSave activeCharact
             return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
         }
         
-        CharacterSave? activeSave = _activeCharacterSave.ActiveSave;
+        Character? activeSave = _activeCharacterSave.ActiveSave;
         if (activeSave == null)
         {
             return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
         }
 
-        CharacterSave save = activeSave.Value;
-        Character character = save.Character;
+        Character character = activeSave.Value;
 
         Vector3 positionDelta = e.Position - _previousPosition.Value;
         float distance = Math.Abs(positionDelta.Length());
@@ -53,7 +53,7 @@ internal class PlayerMovedStatisticListener(in ActiveCharacterSave activeCharact
             character.AddStatistic("distance.meters.traveled.eva", meters);
         }
         
-        _activeCharacterSave.ActiveSave = new CharacterSave(save.Path, character);
+        _activeCharacterSave.ActiveSave = character;
 
         return Result<EventBehavior>.FromSuccess(EventBehavior.Continue);
     }

@@ -5,8 +5,8 @@ using Swordfish.Library.Types.Shapes;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
-using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 

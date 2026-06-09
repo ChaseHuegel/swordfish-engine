@@ -10,8 +10,8 @@ using Swordfish.Library.Serialization;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI;
-using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
 

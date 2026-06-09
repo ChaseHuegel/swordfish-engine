@@ -1,4 +1,5 @@
 using Swordfish.Library.IO;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
 

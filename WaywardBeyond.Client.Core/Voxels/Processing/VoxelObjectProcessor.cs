@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels.Processing;
 

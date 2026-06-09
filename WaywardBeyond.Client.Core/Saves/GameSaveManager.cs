@@ -11,6 +11,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -285,8 +286,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         public void Dispose()
         {
-            CharacterSave? characterSave = _characterSaveManager.ActiveSave;
-            if (characterSave == null)
+            Character? character = _characterSaveManager.ActiveSave;
+            if (character == null)
             {
                 _gameSaveManager.SaveAndExit();
                 return;
