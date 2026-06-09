@@ -13,7 +13,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
 
     public SqliteCharacterStorage(IConfiguration configuration)
     {
-        string dbPath = configuration.GetString("SQLITE_PATH") ?? "sqlite/character.db";
+        string dbPath = configuration.GetString("CHARACTER_STORAGE_PATH") ?? "saves/characters.db";
         
         string dbDirectory = Path.GetDirectoryName(dbPath)!;
         if (!string.IsNullOrEmpty(dbDirectory))
