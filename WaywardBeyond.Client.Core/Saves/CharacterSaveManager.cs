@@ -96,13 +96,14 @@ internal sealed class CharacterSaveManager
             }
         }
 
-        if (_characterStorage.SaveCharacter(character))
+        Result saveResult = _characterStorage.SaveCharacter(character);
+        if (saveResult)
         {
             ActiveSave = character;
         }
         else
         {
-            _logger.LogError("Failed to save character {Name} ({Guid})", character.Name, character.Guid);
+            _logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Guid}): {Message}", character.Name, character.Guid, saveResult.Message);
         }
     }
     
