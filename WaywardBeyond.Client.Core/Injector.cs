@@ -77,7 +77,7 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
-        container.Register<ICharacterStorage, LiteDbCharacterStorage>(Reuse.Singleton);
+        container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
 
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
