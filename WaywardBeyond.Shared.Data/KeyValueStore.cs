@@ -9,7 +9,7 @@ using NATS.Net;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Config;
 
-namespace WaywardBeyond.Server.Core.Streaming;
+namespace WaywardBeyond.Shared.Data;
 
 public sealed class KeyValueStore : IDisposable
 {

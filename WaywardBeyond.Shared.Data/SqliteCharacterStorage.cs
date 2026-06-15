@@ -132,7 +132,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         }
     }
 
-    public Result SaveCharacter(in Character character)
+    public Result SaveCharacter(Character character)
     {
         using SqliteTransaction transaction = _connection.BeginTransaction();
         

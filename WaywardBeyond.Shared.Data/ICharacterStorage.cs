@@ -9,7 +9,7 @@ public interface ICharacterStorage
     
     IEnumerable<Character> GetAllCharacters();
     
-    Result SaveCharacter(in Character character);
+    Result SaveCharacter(Character character);
     
     Result DeleteCharacter(string guid);
 }
