@@ -1,9 +1,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core.Interop.Windows;
 using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Server.Core.Streaming;
@@ -19,6 +21,7 @@ internal sealed class PersistentNatsProcess : IDisposable
     private readonly ProcessStartInfo _startInfo;
     
     private Process? _process;
+    private IntPtr _jobHandle;
 
     public PersistentNatsProcess(in VirtualFileSystem vfs, in IConfiguration configuration)
     {
@@ -49,11 +52,42 @@ internal sealed class PersistentNatsProcess : IDisposable
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
+        
+        if (OperatingSystem.IsWindows())
+        {
+            _jobHandle = Kernel32.CreateJobObject(IntPtr.Zero, null);
+            
+            var extendedInfo = new JobObjectExtendedLimitInformation
+            {
+                BasicLimitInformation =
+                {
+                    LimitFlags = (uint)JobObjectLimit.KillOnJobClose,
+                },
+            };
+
+            int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
+            IntPtr extendedInfoPtr = Marshal.AllocHGlobal(length);
+            Marshal.StructureToPtr(extendedInfo, extendedInfoPtr, false);
+
+            if (!Kernel32.SetInformationJobObject(_jobHandle, JobObjectInfoType.ExtendedLimitInformation, extendedInfoPtr, (uint)length))
+            {
+                throw new InvalidOperationException($"Unable to set information for Job Object: {Marshal.GetLastWin32Error()}");
+            }
+            
+            Marshal.FreeHGlobal(extendedInfoPtr);
+        }
     }
     
     public void Dispose()
     {
         using Lock.Scope _ = _lock.EnterScope();
+        
+        if (OperatingSystem.IsWindows() && _jobHandle != IntPtr.Zero)
+        {
+            Kernel32.CloseHandle(_jobHandle);
+            _jobHandle = IntPtr.Zero;
+        }
+        
         _process?.Dispose();
     }
     
@@ -72,6 +106,11 @@ internal sealed class PersistentNatsProcess : IDisposable
             return Result.FromFailure($"NATS server process failed to start at \"{_startInfo.FileName}\".");
         }
         
+        if (OperatingSystem.IsWindows())
+        {
+            Kernel32.AssignProcessToJobObject(_jobHandle, process.Handle);
+        }
+        
         _process = process;
         _process.Exited += OnProcessExited;
         
@@ -87,6 +126,12 @@ internal sealed class PersistentNatsProcess : IDisposable
         {
             _process.Exited -= OnProcessExited;
             _process.Dispose();
+            
+            if (OperatingSystem.IsWindows() && _jobHandle != IntPtr.Zero)
+            {
+                Kernel32.CloseHandle(_jobHandle);
+                _jobHandle = IntPtr.Zero;
+            }
         }
 
         //  Restart the process
@@ -94,6 +139,11 @@ internal sealed class PersistentNatsProcess : IDisposable
         if (process == null || process.HasExited)
         {
             throw new InvalidOperationException("NATS server process failed to restart.");
+        }
+        
+        if (OperatingSystem.IsWindows())
+        {
+            Kernel32.AssignProcessToJobObject(_jobHandle, process.Handle);
         }
 
         _process = process;
