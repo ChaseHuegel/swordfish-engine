@@ -3,7 +3,7 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Shared.Data;
 
-public class NATSCharacterStorage(in KeyValueStore keyValueStore) : ICharacterStorage
+public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterStorage
 {
     private const string BUCKET_NAME = "characters";
 
