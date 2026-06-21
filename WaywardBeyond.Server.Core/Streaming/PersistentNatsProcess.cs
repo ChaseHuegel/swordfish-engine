@@ -1,7 +1,6 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Threading;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
@@ -13,7 +12,7 @@ namespace WaywardBeyond.Server.Core.Streaming;
 /// <summary>
 ///     Starts and manages a NATS server, ensuring it stays running.
 /// </summary>
-internal sealed class PersistentNatsProcess : IDisposable
+public sealed class PersistentNatsProcess : IDisposable
 {
     private const string VAR_NATS_ARGS = "NATS_ARGS";
 
@@ -21,7 +20,7 @@ internal sealed class PersistentNatsProcess : IDisposable
     private readonly ProcessStartInfo _startInfo;
     
     private Process? _process;
-    private IntPtr _jobHandle;
+    private Job? _windowsJob;
 
     public PersistentNatsProcess(in VirtualFileSystem vfs, in IConfiguration configuration)
     {
@@ -46,48 +45,24 @@ internal sealed class PersistentNatsProcess : IDisposable
         
         _startInfo = new ProcessStartInfo(absolutePath.Value)
         {
-            Arguments = configuration.GetString(VAR_NATS_ARGS),
+            Arguments = configuration.GetString(VAR_NATS_ARGS) ?? "-js",
             CreateNoWindow = true,
             UseShellExecute = false,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
         };
-        
+
         if (OperatingSystem.IsWindows())
         {
-            _jobHandle = Kernel32.CreateJobObject(IntPtr.Zero, null);
-            
-            var extendedInfo = new JobObjectExtendedLimitInformation
-            {
-                BasicLimitInformation =
-                {
-                    LimitFlags = (uint)JobObjectLimit.KillOnJobClose,
-                },
-            };
-
-            int length = Marshal.SizeOf<JobObjectExtendedLimitInformation>();
-            IntPtr extendedInfoPtr = Marshal.AllocHGlobal(length);
-            Marshal.StructureToPtr(extendedInfo, extendedInfoPtr, false);
-
-            if (!Kernel32.SetInformationJobObject(_jobHandle, JobObjectInfoType.ExtendedLimitInformation, extendedInfoPtr, (uint)length))
-            {
-                throw new InvalidOperationException($"Unable to set information for Job Object: {Marshal.GetLastWin32Error()}");
-            }
-            
-            Marshal.FreeHGlobal(extendedInfoPtr);
+            _windowsJob = new Job();
         }
     }
     
     public void Dispose()
     {
         using Lock.Scope _ = _lock.EnterScope();
-        
-        if (OperatingSystem.IsWindows() && _jobHandle != IntPtr.Zero)
-        {
-            Kernel32.CloseHandle(_jobHandle);
-            _jobHandle = IntPtr.Zero;
-        }
-        
+
+        _windowsJob?.Dispose();
         _process?.Dispose();
     }
     
@@ -105,12 +80,9 @@ internal sealed class PersistentNatsProcess : IDisposable
         {
             return Result.FromFailure($"NATS server process failed to start at \"{_startInfo.FileName}\".");
         }
-        
-        if (OperatingSystem.IsWindows())
-        {
-            Kernel32.AssignProcessToJobObject(_jobHandle, process.Handle);
-        }
-        
+
+        _windowsJob?.AddProcess(process.Handle);
+
         _process = process;
         _process.Exited += OnProcessExited;
         
@@ -127,11 +99,7 @@ internal sealed class PersistentNatsProcess : IDisposable
             _process.Exited -= OnProcessExited;
             _process.Dispose();
             
-            if (OperatingSystem.IsWindows() && _jobHandle != IntPtr.Zero)
-            {
-                Kernel32.CloseHandle(_jobHandle);
-                _jobHandle = IntPtr.Zero;
-            }
+            _windowsJob?.Dispose();
         }
 
         //  Restart the process
@@ -143,7 +111,8 @@ internal sealed class PersistentNatsProcess : IDisposable
         
         if (OperatingSystem.IsWindows())
         {
-            Kernel32.AssignProcessToJobObject(_jobHandle, process.Handle);
+            _windowsJob = new Job();
+            _windowsJob.AddProcess(process.Handle);
         }
 
         _process = process;

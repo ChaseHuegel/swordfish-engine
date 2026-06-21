@@ -35,6 +35,7 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 
@@ -77,7 +78,10 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
-        container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
+        container.Register<ICharacterStorage, NatsCharacterStorage>(Reuse.Singleton);
+        
+        container.Register<KeyValueStore>(setup: Setup.With(allowDisposableTransient: true));
+        container.Register<PersistentNatsProcess>(setup: Setup.With(allowDisposableTransient: true));
 
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         

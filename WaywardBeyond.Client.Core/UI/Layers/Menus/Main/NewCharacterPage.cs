@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
@@ -23,7 +24,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private static readonly char[] _characterNameTrimChars = [' ', '\t', '.', '\n', '\r'];
 
     public MenuPage ID => MenuPage.NewCharacter;
-    
+
+    private readonly ILogger<NewCharacterPage> _logger;
     private readonly ICharacterStorage _characterStorage;
     private readonly CharacterSaveManager _characterSaveManager;
     private readonly IInputService _inputService;
@@ -31,6 +33,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private readonly ILocalization _localization;
     private readonly CharacterAssetService _characterAssetService;
     private readonly NameGenerator _nameGenerator;
+    private readonly NotificationService _notificationService;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
@@ -50,14 +53,17 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
     private int _resolve = 1;
 
     public NewCharacterPage(
+        in ILogger<NewCharacterPage> logger,
         in ICharacterStorage characterStorage,
         in CharacterSaveManager characterSaveManager,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization,
         in CharacterAssetService characterAssetService,
-        in NameGenerator nameGenerator
+        in NameGenerator nameGenerator,
+        in NotificationService notificationService
     ) {
+        _logger = logger;
         _characterStorage = characterStorage;
         _characterSaveManager = characterSaveManager;
         _inputService = inputService;
@@ -65,6 +71,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
         _localization = localization;
         _characterAssetService = characterAssetService;
         _nameGenerator = nameGenerator;
+        _notificationService = notificationService;
 
         _menuButtonOptions = new Widgets.ButtonOptions(
             new FontOptions {
@@ -536,16 +543,22 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 
                 Task.Run(() =>
                     {
-                        bool saved = _characterStorage.SaveCharacter(character);
-                        if (saved)
+                        Result saveResult = _characterStorage.SaveCharacter(character);
+                        if (saveResult)
                         {
                             _characterSaveManager.ActiveSave = character;
+                            menu.GoToPage(MenuPage.SelectCharacter);
+                            ResetState();
+                        }
+                        else
+                        {
+                            var notification = new Notification("Failed to create character!");
+                            _notificationService.Push(notification);
+                            
+                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Guid, saveResult.Message);
                         }
                     }
                 );
-
-                menu.GoToPage(MenuPage.SelectCharacter);
-                ResetState();
             }
         }
         

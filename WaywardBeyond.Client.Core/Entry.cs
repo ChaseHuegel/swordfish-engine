@@ -1,3 +1,4 @@
+using System;
 using System.Drawing;
 using System.Numerics;
 using HardwareInformation;
@@ -10,14 +11,16 @@ using Swordfish.Library.IO;
 using Swordfish.Physics;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
+using WaywardBeyond.Server.Core.Streaming;
 
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class Entry : IAutoActivate
+internal sealed class Entry : IAutoActivate, IDisposable
 {
     private readonly IWindowContext _windowContext;
     private readonly ModalMenu _modalMenu;
+    private readonly PersistentNatsProcess _natsProcess;
 
     public Entry(
         in ILogger<Entry> logger,
@@ -27,10 +30,12 @@ internal sealed class Entry : IAutoActivate
         in IFileParseService fileParseService,
         in IShortcutService shortcutService,
         in ModalMenu modalMenu,
-        in IPhysics physics
+        in IPhysics physics,
+        in PersistentNatsProcess natsProcess
     ) {
         _windowContext = windowContext;
         _modalMenu = modalMenu;
+        _natsProcess = natsProcess;
 
         windowSettings.Title.Set("Wayward Beyond");
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version.Name);
@@ -64,6 +69,13 @@ internal sealed class Entry : IAutoActivate
         shortcutService.RegisterShortcut(feedbackShortcut);
    
         physics.SetGravity(Vector3.Zero);
+
+        natsProcess.Start();
+    }
+    
+    public void Dispose()
+    {
+        _natsProcess.Dispose();
     }
 
     internal void Quit()
