@@ -16,7 +16,7 @@ namespace WaywardBeyond.Server.Core.Streaming;
 public sealed class PersistentNatsProcess : IDisposable
 {
     private readonly ILogger<PersistentNatsProcess> _logger;
-    private const string VAR_NATS_ARGS = "NATS_ARGS";
+    private const string VAR_NATS_EXTRA_ARGS = "NATS_EXTRA_ARGS";
 
     private readonly Lock _lock = new();
     private readonly ProcessStartInfo _startInfo;
@@ -47,15 +47,15 @@ public sealed class PersistentNatsProcess : IDisposable
             throw new FileNotFoundException("NATS server executable not found.");
         }
 
-        string storageDirectory = Path.GetFullPath("saves/");
+        string storageDirectory = Path.GetFullPath("saves/").Replace('\\', '/');
         
         _startInfo = new ProcessStartInfo(absolutePath.Value)
         {
-            Arguments = configuration.GetString(VAR_NATS_ARGS) ?? $"-js -sd \"{storageDirectory}\" -l \"nats.log\" -DV",
+            Arguments = $"-js -sd \"{storageDirectory}\" {configuration.GetString(VAR_NATS_EXTRA_ARGS)}",
             CreateNoWindow = true,
             UseShellExecute = false,
-            RedirectStandardOutput = false,
-            RedirectStandardError = false,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
         };
     }
     
@@ -89,17 +89,26 @@ public sealed class PersistentNatsProcess : IDisposable
                 return Result.FromFailure($"NATS server process failed to start at \"{_startInfo.FileName}\".");
             }
 
+            _process = process;
+            _process.OutputDataReceived += OnProcessOutput;
+            _process.ErrorDataReceived += OnProcessError;
+            _process.Exited += OnProcessExited;
+            
+            _process.BeginOutputReadLine();
+            _process.BeginErrorReadLine();
+
+            if (_process.HasExited)
+            {
+                return Result.FromFailure($"NATS server process failed to start at \"{_startInfo.FileName}\".");
+            }
+
+            _logger.LogInformation("NATS server process started with: {args}", _startInfo.Arguments);
+
             if (OperatingSystem.IsWindows())
             {
                 _windowsJob = new Job();
                 _windowsJob.AddProcess(process.Handle);
             }
-            
-            _logger.LogInformation("NATS server process started with: {args}", _startInfo.Arguments);
-
-            _process = process;
-            _process.Exited += OnProcessExited;
-            _process.BeginOutputReadLine();
         }
         catch (Exception ex)
         {
@@ -128,14 +137,35 @@ public sealed class PersistentNatsProcess : IDisposable
         {
             throw new InvalidOperationException("NATS server process failed to restart.");
         }
+
+        _process = process;
+        _process.OutputDataReceived += OnProcessOutput;
+        _process.ErrorDataReceived += OnProcessError;
+        _process.Exited += OnProcessExited;
+        
+        _process.BeginOutputReadLine();
+        _process.BeginErrorReadLine();
         
         if (OperatingSystem.IsWindows())
         {
             _windowsJob = new Job();
             _windowsJob.AddProcess(process.Handle);
         }
+    }
+    
+    private void OnProcessOutput(object sender, DataReceivedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(e.Data))
+        {
+            _logger.LogInformation("[NATS] {data}", e.Data);
+        }
+    }
 
-        _process = process;
-        _process.Exited += OnProcessExited;
+    private void OnProcessError(object sender, DataReceivedEventArgs e)
+    {
+        if (!string.IsNullOrWhiteSpace(e.Data))
+        {
+            _logger.LogError("[NATS ERROR] {data}", e.Data);
+        }
     }
 }
