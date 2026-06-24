@@ -11,12 +11,12 @@ public sealed class EnvCmdConfiguration(in CommandLineArgs args) : IConfiguratio
     public string? GetString(string key)
     {
         string? value = Environment.GetEnvironmentVariable(key);
-        if (value == null)
+        if (value != null || _args.TryGetValue(key, out value))
         {
-            _args.TryGetValue(key, out value);
+            return value;
         }
-        
-        return value;
+
+        return null;
     }
 
     public IPAddress? GetIPAddress(string key)

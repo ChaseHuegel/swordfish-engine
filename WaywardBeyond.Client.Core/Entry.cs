@@ -8,6 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
@@ -70,7 +71,11 @@ internal sealed class Entry : IAutoActivate, IDisposable
    
         physics.SetGravity(Vector3.Zero);
 
-        natsProcess.Start();
+        Result natsStartResult = natsProcess.Start();
+        if (!natsStartResult.Success)
+        {
+            logger.LogError(natsStartResult.Exception, "Failed to start NATS process. {message}", natsStartResult.Message);
+        }
     }
     
     public void Dispose()
