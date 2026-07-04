@@ -60,7 +60,7 @@ internal sealed class GameSaveService(
         for (var i = 0; i < keysResult.Value.Length; i++)
         {
             string key = keysResult.Value[i];
-            if (!key.EndsWith(".meta"))
+            if (!Guid.TryParse(key, out _))
             {
                 continue;
             }
@@ -177,24 +177,12 @@ internal sealed class GameSaveService(
         try
         {
             byte[] levelData = level.Serialize();
-            _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.meta", levelData);
+            _keyValueStore.Put(BUCKET_NAME, level.Guid, levelData);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "There was an error saving level metadata.");
             anyErrors = true;
-        }
-
-        //  Save version, this is allowed to fail because it isn't a source of truth.
-        //  This is a human-readable value for troubleshooting without deserialization
-        try
-        {
-            string versionString = $"{level.Version.Environment}_{level.Version.Name}_{level.Version.DataVersion})";
-            _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.version", versionString);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "There was an error saving level version reference.");
         }
 
         //  Save voxel entities
@@ -262,9 +250,8 @@ internal sealed class GameSaveService(
     {
         try
         {
-            _keyValueStore.Delete(BUCKET_NAME, $"{save.Level.Guid}.meta");
-            _keyValueStore.Delete(BUCKET_NAME, $"{save.Level.Guid}.version");
-            
+            _keyValueStore.Delete(BUCKET_NAME, save.Level.Guid);
+
             Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
             if (!keysResult.Success)
             {
