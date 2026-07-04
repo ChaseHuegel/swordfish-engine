@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -51,36 +52,86 @@ internal sealed class GameSaveService(
     public GameSave[] GetSaves()
     {
         Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
-        if (!keysResult.Success)
+        var saves = new List<GameSave>();
+
+        if (keysResult.Success)
         {
-            return [];
+            var guidToKey = new Dictionary<string, string>();
+            for (var i = 0; i < keysResult.Value.Length; i++)
+            {
+                string key = keysResult.Value[i];
+                if (!Guid.TryParse(key, out _))
+                {
+                    continue;
+                }
+                
+                guidToKey[key] = key;
+            }
+
+            foreach (KeyValuePair<string, string> kvp in guidToKey)
+            {
+                string key = kvp.Value;
+                Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, key);
+                if (!getResult.Success || getResult.Value.Length == 0)
+                {
+                    continue;
+                }
+                
+                try
+                {
+                    Level level = Level.Deserialize(getResult.Value);
+                    if (!string.IsNullOrEmpty(level.Guid))
+                    {
+                        var save = new GameSave(level.Name, level);
+                        saves.Add(save);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize level from key \"{key}\"", key);
+                }
+            }
         }
 
-        var saves = new List<GameSave>();
-        for (var i = 0; i < keysResult.Value.Length; i++)
+        //  TODO remove this in a near-future update
+        // Scan for old disk saves
+        try
         {
-            string key = keysResult.Value[i];
-            if (!Guid.TryParse(key, out _))
+            if (Directory.Exists("saves"))
             {
-                continue;
+                string[] saveDirectories = Directory.GetDirectories("saves");
+                for (var i = 0; i < saveDirectories.Length; i++)
+                {
+                    string dir = saveDirectories[i];
+                    string levelFilePath = Path.Combine(dir, "level.dat");
+                    if (!File.Exists(levelFilePath))
+                    {
+                        continue;
+                    }
+                    
+                    try
+                    {
+                        byte[] levelBytes = File.ReadAllBytes(levelFilePath);
+                        Level level = Level.Deserialize(levelBytes);
+                        
+                        //  level.Guid and level.Name didn't exist in the old format,
+                        //  the folder name defined its uniqueness and name
+                        level.Guid = Guid.NewGuid().ToString();
+                        level.Name = Path.GetRelativePath("saves", dir);
+                        
+                        var save = new GameSave(level.Name, level);
+                        saves.Add(save);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to deserialize legacy disk level from file \"{path}\"", levelFilePath);
+                    }
+                }
             }
-            
-            Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, key);
-            if (!getResult.Success)
-            {
-                continue;
-            }
-            
-            try
-            {
-                Level level = Level.Deserialize(getResult.Value);
-                var save = new GameSave(level.Name, level);
-                saves.Add(save);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to deserialize level from key \"{key}\"", key);
-            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to scan legacy disk saves directory.");
         }
         
         return saves.ToArray();
@@ -118,6 +169,88 @@ internal sealed class GameSaveService(
     public async Task Load(GameSave save)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.loading", save.Name));
+
+        // Check if the save needs migration from disk to the KV
+        bool existsInKv = false;
+        Result<byte[]> checkResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, save.Level.Guid);
+        if (checkResult.Success && checkResult.Value.Length > 0)
+        {
+            existsInKv = true;
+        }
+
+        //  TODO remove this in a near-future update
+        if (!existsInKv)
+        {
+            // Try migrating from disk
+            string diskPath = Path.Combine("saves", save.Name);
+            if (Directory.Exists(diskPath))
+            {
+                _notificationService.Push($"Migrating legacy save \"{save.Name}\"...");
+                
+                try
+                {
+                    // Migrate level
+                    byte[] levelData = save.Level.Serialize();
+                    _keyValueStore.Put(BUCKET_NAME, save.Level.Guid, levelData);
+
+                    // Migrate voxel entities
+                    string voxelEntitiesPath = Path.Combine(diskPath, "voxelEntities");
+                    if (Directory.Exists(voxelEntitiesPath))
+                    {
+                        string[] files = Directory.GetFiles(voxelEntitiesPath);
+                        foreach (string file in files)
+                        {
+                            try
+                            {
+                                byte[] data = await File.ReadAllBytesAsync(file);
+                                VoxelEntityModel model = _voxelEntitySerializer.Deserialize(data);
+                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.entity.{model.Guid}", data);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to migrate voxel entity from file \"{path}\"", file);
+                            }
+                        }
+                    }
+
+                    // Migrate character entities
+                    string characterEntitiesPath = Path.Combine(diskPath, "characterEntities");
+                    if (Directory.Exists(characterEntitiesPath))
+                    {
+                        string[] files = Directory.GetFiles(characterEntitiesPath);
+                        foreach (string file in files)
+                        {
+                            try
+                            {
+                                byte[] data = await File.ReadAllBytesAsync(file);
+                                CharacterEntityModel model = _characterEntitySerializer.Deserialize(data);
+                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.character.{model.Guid}", data);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Failed to migrate character entity from file \"{path}\"", file);
+                            }
+                        }
+                    }
+
+                    try
+                    {
+                        Directory.Delete(diskPath, recursive: true);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to clean up legacy save data \"{pasave.Name}\"", save.Name);
+                    }
+
+                    _notificationService.Push($"Migrated legacy save \"{save.Name}\"");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to migrate save \"{saveName}\" from disk.", save.Name);
+                    _notificationService.Push($"Failed to migrate legacy save \"{save.Name}\"!");
+                }
+            }
+        }
         
         for (var i = 0; i < _loadStages.Length; i++)
         {
@@ -253,26 +386,32 @@ internal sealed class GameSaveService(
             _keyValueStore.Delete(BUCKET_NAME, save.Level.Guid);
 
             Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
-            if (!keysResult.Success)
+            if (keysResult.Success)
             {
-                return;
-            }
-            
-            string prefix = $"{save.Level.Guid}.";
-            var keysToDelete = new List<string>();
-            for (var i = 0; i < keysResult.Value.Length; i++)
-            {
-                if (!keysResult.Value[i].StartsWith(prefix))
+                string prefix = $"{save.Level.Guid}.";
+                var keysToDelete = new List<string>();
+                for (var i = 0; i < keysResult.Value.Length; i++)
                 {
-                    continue;
+                    if (!keysResult.Value[i].StartsWith(prefix))
+                    {
+                        continue;
+                    }
+                    
+                    keysToDelete.Add(keysResult.Value[i]);
                 }
-                
-                keysToDelete.Add(keysResult.Value[i]);
+                    
+                if (keysToDelete.Count > 0)
+                {
+                    _keyValueStore.Delete(BUCKET_NAME, keysToDelete.ToArray());
+                }
             }
-                
-            if (keysToDelete.Count > 0)
+
+            //  TODO remove this in a near-future update
+            //  Delete the legacy disk-based directory, if it exists
+            string diskPath = Path.Combine("saves", save.Name);
+            if (Directory.Exists(diskPath))
             {
-                _keyValueStore.Delete(BUCKET_NAME, keysToDelete.ToArray());
+                Directory.Delete(diskPath, recursive: true);
             }
         }
         catch (Exception ex)

@@ -6,7 +6,7 @@ namespace WaywardBeyond.Client.Core;
 
 internal static class WaywardBeyond
 {
-    public static readonly Version Version = new(_DataVersion: 2, _Name: AssemblyVersion, _Environment: "Development");
+    public static readonly Version Version = new(_DataVersion: 3, _Name: AssemblyVersion, _Environment: "Development");
 
     public static DataBinding<GameState> GameState { get; } = new(Core.GameState.MainMenu);
     
