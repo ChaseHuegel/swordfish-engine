@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
 using Swordfish.Library.Collections;
-using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Meta;
@@ -19,14 +17,18 @@ internal sealed class CharacterEntityLoadStage(
     in ISerializer<CharacterEntityModel> characterEntitySerializer,
     in PlayerCharacterEntityBuilder playerCharacterEntityBuilder,
     in CharacterSaveManager characterSaveManager,
-    in IAssetDatabase<LocalizedTags> localizedTagDatabase
+    in IAssetDatabase<LocalizedTags> localizedTagDatabase,
+    in KeyValueStore keyValueStore
 ) : ILoadStage<GameSave>
 {
     private readonly ISerializer<CharacterEntityModel> _characterEntitySerializer = characterEntitySerializer;
     private readonly PlayerCharacterEntityBuilder _playerCharacterEntityBuilder = playerCharacterEntityBuilder;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
+    private readonly KeyValueStore _keyValueStore = keyValueStore;
     private readonly Randomizer _randomizer = new();
+
+    private const string BUCKET_NAME = "levels";
 
     private float _progress;
     private string _status = string.Empty;
@@ -65,20 +67,11 @@ internal sealed class CharacterEntityLoadStage(
         Character character = _characterSaveManager.ActiveSave.Value;
         CharacterEntityModel? characterEntityModel = null;
         
-        //  Find the entity save matching the character save
-        PathInfo[] characterEntityFiles = save.Path.At(GameSaveService.CHARACTER_ENTITIES_SUBFOLDER).GetFiles();
-        foreach (PathInfo voxelEntityFile in characterEntityFiles.OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer()))
+        var characterKey = $"{save.Level.Guid}.characters.{character.Guid}";
+        Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, characterKey);
+        if (getResult.Success && getResult.Value.Length > 0)
         {
-            byte[] data = voxelEntityFile.ReadBytes();
-            CharacterEntityModel deserializedCharacterEntity = _characterEntitySerializer.Deserialize(data);
-
-            if (deserializedCharacterEntity.Guid.ToString() != character.Guid)
-            {
-                continue;
-            }
-
-            characterEntityModel = deserializedCharacterEntity;
-            break;
+            characterEntityModel = _characterEntitySerializer.Deserialize(getResult.Value);
         }
         
         if (characterEntityModel == null)

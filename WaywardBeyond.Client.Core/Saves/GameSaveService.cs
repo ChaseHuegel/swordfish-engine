@@ -1,12 +1,12 @@
 using System;
-using System.IO;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI;
@@ -24,12 +24,9 @@ internal sealed class GameSaveService(
     in NotificationService notificationService,
     in ILoadStage<GameOptions>[] newSaveStages,
     in ILoadStage<GameSave>[] loadSaveStages,
-    in ILoadStage[] loadStages
+    in ILoadStage[] loadStages,
+    in KeyValueStore keyValueStore
 ) {
-    private const string SAVES_FOLDER = "saves/";
-    internal const string VOXEL_ENTITIES_SUBFOLDER = "voxelEntities/";
-    internal const string CHARACTER_ENTITIES_SUBFOLDER = "characterEntities/";
-    
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly IECSContext _ecs = ecs;
@@ -39,8 +36,9 @@ internal sealed class GameSaveService(
     private readonly ILoadStage<GameOptions>[] _newSaveStages = newSaveStages;
     private readonly ILoadStage<GameSave>[] _loadSaveStages = loadSaveStages;
     private readonly ILoadStage[] _loadStages = loadStages;
+    private readonly KeyValueStore _keyValueStore = keyValueStore;
 
-    private readonly PathInfo _savesDirectory = new(SAVES_FOLDER);
+    private const string BUCKET_NAME = "levels";
     
     private IProgressStage? _currentStage;
     
@@ -52,40 +50,65 @@ internal sealed class GameSaveService(
     
     public GameSave[] GetSaves()
     {
-        PathInfo[] saveDirectories = _savesDirectory.GetFolders();
-        var saves = new GameSave[saveDirectories.Length];
-        
-        for (var i = 0; i < saveDirectories.Length; i++)
+        Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
+        if (!keysResult.Success)
         {
-            PathInfo saveDirectory = saveDirectories[i];
-            PathInfo levelFile = saveDirectory.At("level.dat");
-            if (!levelFile.Exists())
+            return [];
+        }
+
+        var saves = new List<GameSave>();
+        for (var i = 0; i < keysResult.Value.Length; i++)
+        {
+            string key = keysResult.Value[i];
+            if (!key.EndsWith(".meta"))
             {
                 continue;
             }
             
-            byte[] levelData = levelFile.ReadBytes();
-            Level level = Level.Deserialize(levelData);
-            saves[i] = new GameSave(saveDirectory, saveDirectory.GetFileName(), level);
+            Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, key);
+            if (!getResult.Success)
+            {
+                continue;
+            }
+            
+            try
+            {
+                Level level = Level.Deserialize(getResult.Value);
+                var save = new GameSave(level.Name, level);
+                saves.Add(save);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize level from key \"{key}\"", key);
+            }
         }
         
-        return saves;
+        return saves.ToArray();
     }
     
     public void CreateSave(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
         
-        PathInfo saveDirectory = _savesDirectory.At(options.Name);
-        Directory.CreateDirectory(saveDirectory);
-        
         byte[] seedBytes = Encoding.UTF8.GetBytes(options.Seed);
         byte[] seedHash = SHA1.HashData(seedBytes);
         var seed = BitConverter.ToInt32(seedHash);
 
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        var level = new Level(WaywardBeyond.Version, seed, nowUtcMs, _AgeMs: 0, _SpawnX: 0, _SpawnY: 1, _SpawnZ: 5, GameMode.Creative);
-        var save = new GameSave(saveDirectory, options.Name, level);
+        string guid = Guid.NewGuid().ToString();
+        var level = new Level(
+            WaywardBeyond.Version, 
+            seed, 
+            nowUtcMs, 
+            _AgeMs: 0, 
+            _SpawnX: 0, 
+            _SpawnY: 1, 
+            _SpawnZ: 5, 
+            GameMode.Creative, 
+            guid, 
+            options.Name
+        );
+        var save = new GameSave(options.Name, level);
         
         Save(save);
         
@@ -104,7 +127,24 @@ internal sealed class GameSaveService(
         }
         
         //  (re)generate world data if it doesn't exist
-        if (!save.Path.At(VOXEL_ENTITIES_SUBFOLDER).DirectoryExists())
+        bool voxelEntitiesExist = false;
+        Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
+        if (keysResult.Success)
+        {
+            string prefix = $"{save.Level.Guid}.entity.";
+            for (var i = 0; i < keysResult.Value.Length; i++)
+            {
+                if (!keysResult.Value[i].StartsWith(prefix))
+                {
+                    continue;
+                }
+                
+                voxelEntitiesExist = true;
+                break;
+            }
+        }
+
+        if (!voxelEntitiesExist)
         {
             var gameOptions = new GameOptions(save.Name, save.Level.Seed.ToString());
             for (var i = 0; i < _newSaveStages.Length; i++)
@@ -130,16 +170,34 @@ internal sealed class GameSaveService(
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.saving", save.Name));
         
-        //  Save the level.dat
-        Directory.CreateDirectory(save.Path);
-        PathInfo levelPath = save.Path.At("level.dat");
         Level level = save.Level;
-        byte[] levelData = level.Serialize();
-        using var levelDataStream = new MemoryStream(levelData);
-        levelPath.Write(levelDataStream);
+        var anyErrors = false;
+
+        //  Save level meta
+        try
+        {
+            byte[] levelData = level.Serialize();
+            _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.meta", levelData);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "There was an error saving level metadata.");
+            anyErrors = true;
+        }
+
+        //  Save version, this is allowed to fail because it isn't a source of truth.
+        //  This is a human-readable value for troubleshooting without deserialization
+        try
+        {
+            string versionString = $"{level.Version.Environment}_{level.Version.Name}_{level.Version.DataVersion})";
+            _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.version", versionString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "There was an error saving level version reference.");
+        }
 
         //  Save voxel entities
-        var anyErrors = false;
         _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
         void ForEachVoxelEntity(float delta, DataStore store, int entity, ref VoxelComponent voxelComponent, ref TransformComponent transform)
         {
@@ -151,15 +209,9 @@ internal sealed class GameSaveService(
             try
             {
                 var model = new VoxelEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
-                
                 byte[] data = _voxelEntitySerializer.Serialize(model);
-                using var dataStream = new MemoryStream(data);
                 
-                PathInfo saveDirectory = save.Path.At(VOXEL_ENTITIES_SUBFOLDER);
-                Directory.CreateDirectory(saveDirectory);
-                
-                PathInfo savePath = saveDirectory.At($"{guidComponent.Guid}.dat");
-                savePath.Write(dataStream);
+                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.entity.{guidComponent.Guid}", data);
             }
             catch (Exception ex)
             {
@@ -168,7 +220,7 @@ internal sealed class GameSaveService(
             }
         }
         
-        //  Save character entities
+        // Save character entities
         _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, ForEachCharacterEntity);
         void ForEachCharacterEntity(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
         {
@@ -185,15 +237,9 @@ internal sealed class GameSaveService(
             try
             {
                 var model = new CharacterEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, gameModeComponent.GameMode);
-                
                 byte[] data = _characterEntitySerializer.Serialize(model);
-                using var dataStream = new MemoryStream(data);
                 
-                PathInfo saveDirectory = save.Path.At(CHARACTER_ENTITIES_SUBFOLDER);
-                Directory.CreateDirectory(saveDirectory);
-                
-                PathInfo savePath = saveDirectory.At($"{guidComponent.Guid}.dat");
-                savePath.Write(dataStream);
+                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.character.{guidComponent.Guid}", data);
             }
             catch (Exception ex)
             {
@@ -209,6 +255,42 @@ internal sealed class GameSaveService(
         else
         {
             _notificationService.Push(_localizedFormatter.GetString("notification.save.saved", save.Name));
+        }
+    }
+
+    public void Delete(GameSave save)
+    {
+        try
+        {
+            _keyValueStore.Delete(BUCKET_NAME, $"{save.Level.Guid}.meta");
+            _keyValueStore.Delete(BUCKET_NAME, $"{save.Level.Guid}.version");
+            
+            Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
+            if (!keysResult.Success)
+            {
+                return;
+            }
+            
+            string prefix = $"{save.Level.Guid}.";
+            var keysToDelete = new List<string>();
+            for (var i = 0; i < keysResult.Value.Length; i++)
+            {
+                if (!keysResult.Value[i].StartsWith(prefix))
+                {
+                    continue;
+                }
+                
+                keysToDelete.Add(keysResult.Value[i]);
+            }
+                
+            if (keysToDelete.Count > 0)
+            {
+                _keyValueStore.Delete(BUCKET_NAME, keysToDelete.ToArray());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to delete save \"{saveName}\" ({guid}).", save.Name, save.Level.Guid);
         }
     }
 }

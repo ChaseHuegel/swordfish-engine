@@ -1,5 +1,4 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -111,7 +110,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 LastPlayedMs = nowUtcMs,
             };
         
-            save = new GameSave(save.Path, save.Name, level);
+            save = new GameSave(save.Name, level);
             ActiveSave = save;
         }
 
@@ -142,7 +141,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             LastPlayedMs = nowUtcMs,
         };
         
-        save = new GameSave(save.Path, save.Name, level);
+        save = new GameSave(save.Name, level);
         
         _gameSaveService.Save(save);
         _characterSaveManager.Save();
@@ -164,7 +163,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         try
         {
-            Directory.Delete(save.Path, recursive: true);
+            _gameSaveService.Delete(save);
         }
         catch (Exception ex)
         {
@@ -174,11 +173,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     internal GameSave? GetMostRecentSave()
     {
-        GameSave mostRecentSave = _gameSaveService.GetSaves()
-            .OrderByDescending(save => save.Level.LastPlayedMs)
-            .FirstOrDefault();
+        GameSave[] saves = _gameSaveService.GetSaves();
+        if (saves.Length == 0)
+        {
+            return null;
+        }
         
-        return mostRecentSave.Path.DirectoryExists() ? mostRecentSave : null;
+        return saves.OrderByDescending(save => save.Level.LastPlayedMs).FirstOrDefault();
     }
 
     private void OnWindowClosed()
@@ -246,6 +247,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             
             if (store.TryGet(entity, out MeshRendererComponent meshRendererComponent))
             {
+                if (meshRendererComponent.MeshRenderer == null)
+                {
+                    return;
+                }
+                
                 meshRendererComponent.MeshRenderer.Dispose();
                 meshRendererComponent.MeshRenderer.Mesh.Dispose();
             }

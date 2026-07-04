@@ -1,4 +1,4 @@
-﻿#version 1.0;
+#version 1.0;
 #namespace WaywardBeyond.Shared.Data;
 
 enum GameMode
@@ -28,6 +28,9 @@ message Level
     int SpawnZ = 6;
 
     GameMode DefaultGameMode = 7;
+    
+    string Guid = 8;
+    string Name = 9;
 }
 
 message Character
