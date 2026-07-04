@@ -108,30 +108,32 @@ public sealed class KeyValueStore : IDisposable
     public Result<string[]> GetKeys(string bucket)
     {
         TaskCompletionSource<Result<string[]>> tcs = new();
-        Task.Run(GetKeysAsync).ContinueWith(OnFaulted, TaskContinuationOptions.OnlyOnFaulted);
+        Task.Run(GetKeysAsync);
         return tcs.Task.Result;
      
         async Task GetKeysAsync()
         {
-            if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+            try
             {
-                store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
-                _stores.TryAdd(bucket, store);
-            }
+                if (!_stores.TryGetValue(bucket, out INatsKVStore? store))
+                {
+                    store = await _kv.CreateStoreAsync(bucket, cancellationToken: _cts.Token);
+                    _stores.TryAdd(bucket, store);
+                }
 
-            var values = new List<string>();
-            await foreach (string key in store.GetKeysAsync(cancellationToken: _cts.Token))
+                var values = new List<string>();
+                await foreach (string key in store.GetKeysAsync(cancellationToken: _cts.Token))
+                {
+                    values.Add(key);
+                }
+                
+                tcs.SetResult(Result<string[]>.FromSuccess(values.ToArray()));
+            }
+            catch (Exception ex)
             {
-                values.Add(key);
+                var result = new Result<string[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", ex);
+                tcs.SetResult(result);
             }
-
-            tcs.SetResult(Result<string[]>.FromSuccess(values.ToArray()));
-        }
-        
-        void OnFaulted(Task task, object? state)
-        {
-            var result = new Result<string[]>(success: false, value: [], message: $"Failed to get all in \"{bucket}\"", task.Exception);
-            tcs.SetResult(result);
         }
     }
     
