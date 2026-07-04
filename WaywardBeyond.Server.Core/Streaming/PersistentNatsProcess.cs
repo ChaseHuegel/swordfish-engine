@@ -81,6 +81,22 @@ public sealed class PersistentNatsProcess : IDisposable
             return Result.FromFailure($"NATS server doesn't exist at \"{_startInfo.FileName}\".");
         }
 
+        if (OperatingSystem.IsLinux())
+        {
+            try
+            {
+                UnixFileMode mode = File.GetUnixFileMode(_startInfo.FileName);
+                if (!mode.HasFlag(UnixFileMode.UserExecute))
+                {
+                    File.SetUnixFileMode(_startInfo.FileName, mode | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to set executable permissions on {file}, it may fail to start.", _startInfo.FileName);
+            }
+        }
+
         try
         {
             Process? process = Process.Start(_startInfo);
