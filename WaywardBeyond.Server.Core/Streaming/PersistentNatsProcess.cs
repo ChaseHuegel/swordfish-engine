@@ -171,17 +171,63 @@ public sealed class PersistentNatsProcess : IDisposable
     
     private void OnProcessOutput(object sender, DataReceivedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(e.Data))
-        {
-            _logger.LogInformation("[NATS] {data}", e.Data);
-        }
+        LogNatsLine(e.Data, isErrorDefault: false);
     }
 
     private void OnProcessError(object sender, DataReceivedEventArgs e)
     {
-        if (!string.IsNullOrWhiteSpace(e.Data))
+        LogNatsLine(e.Data, isErrorDefault: true);
+    }
+
+    private void LogNatsLine(string? line, bool isErrorDefault)
+    {
+        if (string.IsNullOrWhiteSpace(line))
         {
-            _logger.LogError("[NATS ERROR] {data}", e.Data);
+            return;
         }
+
+        if (line.Contains("[INF]", StringComparison.Ordinal))
+        {
+            _logger.LogInformation("[NATS] {data}", line);
+            return;
+        }
+
+        if (line.Contains("[WRN]", StringComparison.Ordinal))
+        {
+            _logger.LogWarning("[NATS] {data}", line);
+            return;
+        }
+
+        if (line.Contains("[ERR]", StringComparison.Ordinal))
+        {
+            _logger.LogError("[NATS] {data}", line);
+            return;
+        }
+        
+        if (line.Contains("[FTL]", StringComparison.Ordinal))
+        {
+            _logger.LogCritical("[NATS] {data}", line);
+            return;
+        }
+        
+        if (line.Contains("[DBG]", StringComparison.Ordinal))
+        {
+            _logger.LogDebug("[NATS] {data}", line);
+            return;
+        }
+        
+        if (line.Contains("[TRC]", StringComparison.Ordinal))
+        {
+            _logger.LogTrace("[NATS] {data}", line);
+            return;
+        }
+
+        if (isErrorDefault)
+        {
+            _logger.LogError("[NATS] {data}", line);
+            return;
+        }
+
+        _logger.LogInformation("[NATS] {data}", line);
     }
 }
