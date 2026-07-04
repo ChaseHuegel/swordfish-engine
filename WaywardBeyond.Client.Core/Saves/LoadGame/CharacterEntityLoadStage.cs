@@ -67,7 +67,7 @@ internal sealed class CharacterEntityLoadStage(
         Character character = _characterSaveManager.ActiveSave.Value;
         CharacterEntityModel? characterEntityModel = null;
         
-        var characterKey = $"{save.Level.Guid}.characters.{character.Guid}";
+        var characterKey = $"{save.Level.Guid}.character.{character.Guid}";
         Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, characterKey);
         if (getResult.Success && getResult.Value.Length > 0)
         {
