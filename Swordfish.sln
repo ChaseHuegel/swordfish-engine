@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Data",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Config", "WaywardBeyond.Shared.Config\WaywardBeyond.Shared.Config.csproj", "{B24DA172-7B19-4D4C-8336-393671D7A624}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Networking", "WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj", "{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -138,5 +140,9 @@ Global
 		{B24DA172-7B19-4D4C-8336-393671D7A624}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B24DA172-7B19-4D4C-8336-393671D7A624}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B24DA172-7B19-4D4C-8336-393671D7A624}.Release|Any CPU.Build.0 = Release|Any CPU
+		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

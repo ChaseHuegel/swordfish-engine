@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <Version>0.1.0-alpha</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
+        <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
+    </ItemGroup>
+
+    <PropertyGroup>
+        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
+    </PropertyGroup>
+    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
+        <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output"/>
+        <ItemGroup>
+            <Compile Include="CodeGen/Output/**/*.cs"/>
+        </ItemGroup>
+    </Target>
+
+</Project>

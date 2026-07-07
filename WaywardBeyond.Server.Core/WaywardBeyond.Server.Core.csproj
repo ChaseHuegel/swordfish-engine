@@ -20,6 +20,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Shoal\Shoal.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

@@ -1,0 +1,38 @@
+#version 1.0;
+#namespace WaywardBeyond.Shared.Networking;
+
+message ClientInputMsg
+{
+    uint SequenceNumber   = 0;
+    float MovementX       = 1;
+    float MovementY       = 2;
+    float MovementZ       = 3;
+    float LookDeltaX      = 4;
+    float LookDeltaY      = 5;
+    bool Jump             = 6;
+    bool PrimaryAction    = 7;
+    bool SecondaryAction  = 8;
+    uint ServerTickAtSample = 9;
+}
+
+message EntitySnapshotMsg
+{
+    uint NetworkID        = 0;
+    float PositionX       = 1;
+    float PositionY       = 2;
+    float PositionZ       = 3;
+    float OrientationX    = 4;
+    float OrientationY    = 5;
+    float OrientationZ    = 6;
+    float OrientationW    = 7;
+    float VelocityX       = 8;
+    float VelocityY       = 9;
+    float VelocityZ       = 10;
+}
+
+message WorldSnapshotMsg
+{
+    uint TickNumber          = 0;
+    uint LastProcessedInput  = 1;
+    EntitySnapshotMsg[] Entities = 2;
+}
