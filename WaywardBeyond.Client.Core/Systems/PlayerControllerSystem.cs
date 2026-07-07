@@ -7,6 +7,7 @@ using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Events;
+using WaywardBeyond.Shared.Networking.Systems;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -170,6 +171,8 @@ internal sealed class PlayerControllerSystem
         }
         
         physics.Velocity += velocity * BASE_SPEED * delta;
+        
+        store.MarkDirty<PhysicsComponent>(entity);
     }
 
     private static void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation)

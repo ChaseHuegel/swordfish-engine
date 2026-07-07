@@ -72,7 +72,7 @@ public struct DirtyComponent : IDataComponent
         return false;
     }
 
-    internal readonly void ForEachDirty(Action<int> onDirty)
+    public readonly void ForEachDirty(Action<int> onDirty)
     {
         unsafe
         {

@@ -38,7 +38,7 @@ public static class NetworkRegistry
         }
     }
 
-    internal static int GetBit<T>() where T : struct, IDataComponent
+    public static int GetBit<T>() where T : struct, IDataComponent
     {
         lock (_lock)
         {
@@ -46,7 +46,7 @@ public static class NetworkRegistry
         }
     }
 
-    internal static int GetBit(Type type)
+    public static int GetBit(Type type)
     {
         lock (_lock)
         {
@@ -54,7 +54,7 @@ public static class NetworkRegistry
         }
     }
 
-    internal static Type GetType(int bit)
+    public static Type GetType(int bit)
     {
         lock (_lock)
         {
@@ -62,7 +62,7 @@ public static class NetworkRegistry
         }
     }
 
-    internal static int Count
+    public static int Count
     {
         get
         {
@@ -73,7 +73,7 @@ public static class NetworkRegistry
         }
     }
 
-    internal static IEnumerable<KeyValuePair<Type, int>> GetAll()
+    public static IEnumerable<KeyValuePair<Type, int>> GetAll()
     {
         lock (_lock)
         {

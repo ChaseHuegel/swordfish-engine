@@ -1,5 +1,6 @@
 using Swordfish.ECS;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Shared.Networking.Systems;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -18,5 +19,7 @@ internal sealed class ThrusterSystem : EntitySystem<ThrusterComponent, PhysicsCo
         }
         
         physics.Velocity += transform.GetForward() * -(thruster.Power * 10 * delta);
+        
+        store.MarkDirty<PhysicsComponent>(entity);
     }
 }
