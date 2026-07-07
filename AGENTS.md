@@ -88,7 +88,7 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 
 ## Style Guide
 
-Read `STYLE_GUIDE.md` before writing code — it documents naming, formatting, braces, null handling, DI patterns, threading conventions, and ECS idioms extracted from the codebase.
+Read `STYLE_GUIDE.md` before writing code — it documents naming, formatting, braces, null handling, DI patterns, threading conventions, ECS idioms, and serialization conventions extracted from the codebase.
 
 ## SDK Requirements
 

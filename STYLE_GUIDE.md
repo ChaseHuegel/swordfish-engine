@@ -91,6 +91,12 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Systems inherit `EntitySystem` and override `Tick()`.
 - Prefer `TryGet<T>()` / `out _` pattern over `Has<T>()` + separate `Get<T>()`.
 
+## Needlefish / CodeGen
+
+- Sensitive serialization (networking, data storage) uses Needlefish format (`.nsd` files). Configs are the exception — use TOML.
+- `.cs` files under `**/CodeGen/Output` are **auto-generated** from `.nsd` schemas. Never hand-edit them. Change the `.nsd` source instead.
+- When adding/removing/renaming fields on a serializable type, edit the `.nsd` file, not the generated `.cs`.
+
 ## What Not to Do
 
 - Do not add XML docs to every member — the codebase doesn't.
