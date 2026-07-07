@@ -1,0 +1,96 @@
+using System.Collections.Generic;
+using Swordfish.ECS;
+using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Registry;
+using WaywardBeyond.Shared.Networking.Snapshots;
+using WaywardBeyond.Shared.Networking.Transport;
+
+namespace WaywardBeyond.Client.Core.Systems;
+
+internal sealed class ClientReconcileSystem : IEntitySystem
+{
+    private readonly INetworkTransport _transport;
+    private readonly Dictionary<int, IComponentSnapshotBuilder> _builders;
+
+    public ClientReconcileSystem(
+        in INetworkTransport transport,
+        IComponentSnapshotBuilder[] builders
+    ) {
+        _transport = transport;
+        _builders = [];
+
+        for (var i = 0; i < builders.Length; i++)
+        {
+            int bit = NetworkRegistry.GetBit(builders[i].ComponentType);
+            _builders[bit] = builders[i];
+        }
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        if (_transport.IsLocal)
+        {
+            return;
+        }
+
+        while (_transport.TryReceive<WorldSnapshotMsg>(out WorldSnapshotMsg snapshot))
+        {
+            ApplySnapshot(snapshot, store);
+        }
+    }
+
+    private void ApplySnapshot(WorldSnapshotMsg snapshot, DataStore store)
+    {
+        for (var i = 0; i < snapshot.Entities.Length; i++)
+        {
+            EntitySnapshotMsg entitySnapshot = snapshot.Entities[i];
+
+            if (!store.Find<NetworkComponent>(
+                    (NetworkComponent net) => net.NetworkID == entitySnapshot.NetworkID,
+                    out int entity))
+            {
+                continue;
+            }
+
+            if (!store.TryGet(entity, out PendingInputComponent pending))
+            {
+                ApplyEntitySnapshot(entitySnapshot, store, entity);
+                continue;
+            }
+
+            pending.AckUpTo(snapshot.LastProcessedInput);
+
+            int pendingCount = pending.PendingCount;
+            if (pendingCount == 0)
+            {
+                ApplyEntitySnapshot(entitySnapshot, store, entity);
+                continue;
+            }
+
+            ApplyEntitySnapshot(entitySnapshot, store, entity);
+
+            for (var j = 0; j < pendingCount; j++)
+            {
+                InputComponent input = pending.GetPending(j);
+
+                store.Query<InputComponent, PhysicsComponent>((int)input.SequenceNumber, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
+                {
+                    existing = input;
+                    s.AddOrUpdate(e, existing);
+                });
+            }
+
+            store.AddOrUpdate(entity, pending);
+        }
+    }
+
+    private void ApplyEntitySnapshot(EntitySnapshotMsg entitySnapshot, DataStore store, int entity)
+    {
+        foreach (KeyValuePair<int, IComponentSnapshotBuilder> pair in _builders)
+        {
+            pair.Value.ApplySnapshot(entitySnapshot, store, entity);
+        }
+    }
+}

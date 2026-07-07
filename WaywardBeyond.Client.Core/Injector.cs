@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Meta;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
@@ -35,9 +36,16 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Commands;
+using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Extensions;
+using WaywardBeyond.Shared.Networking.Snapshots;
+using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -56,6 +64,7 @@ public class Injector : IDryIocInjector
         RegisterWebhooks(container);
         RegisterShortcuts(container);
         RegisterEvents(container);
+        RegisterNetworking(container);
         
         container.Register<PlayerData>(Reuse.Singleton);
         
@@ -105,6 +114,28 @@ public class Injector : IDryIocInjector
         container.Register<EventInvoker<LevelUpEvent>>();
         container.Register<EventInvoker<XPEvent>>();
         container.Register<EventInvoker<PlayerMovedEvent>>();
+    }
+
+    private static void RegisterNetworking(IContainer container)
+    {
+        container.RegisterNetworkComponent<NetworkComponent>();
+        container.RegisterNetworkComponent<DirtyComponent>();
+        container.RegisterNetworkComponent<InputComponent>();
+        container.RegisterNetworkComponent<PendingInputComponent>();
+        container.RegisterNetworkComponent<PlaceBlockCommand>();
+        container.RegisterNetworkComponent<BreakBlockCommand>();
+
+        container.Register<INetworkTransport, LocalConnection>(Reuse.Singleton);
+        container.Register<GameClient>(Reuse.Singleton);
+        container.Register<SessionManager>(Reuse.Singleton);
+
+        container.Register<IComponentSnapshotBuilder, TransformSnapshotBuilder>(Reuse.Singleton);
+        container.Register<IComponentSnapshotBuilder, PhysicsSnapshotBuilder>(Reuse.Singleton);
+
+        container.Register<IEntitySystem, ClientInputSystem>();
+        container.Register<IEntitySystem, ClientReconcileSystem>();
+        container.Register<IEntitySystem, ServerInputSystem>();
+        container.Register<IEntitySystem, NetworkReplicationSystem>();
     }
 
     private void RegisterShortcuts(IContainer container)
