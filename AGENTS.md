@@ -86,6 +86,10 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 - `WaywardBeyond.Client.Core.Tests` uses NUnit (not xunit). Tests voxel object processing.
 - All can be run with `dotnet test <project>`.
 
+## Style Guide
+
+Read `STYLE_GUIDE.md` before writing code — it documents naming, formatting, braces, null handling, DI patterns, threading conventions, and ECS idioms extracted from the codebase.
+
 ## SDK Requirements
 
 - .NET 8 SDK minimum (some projects target net9.0, but net8.0 is the common baseline)
