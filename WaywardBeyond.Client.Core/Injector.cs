@@ -125,6 +125,9 @@ public class Injector : IDryIocInjector
         container.RegisterNetworkComponent<PlaceBlockCommand>();
         container.RegisterNetworkComponent<BreakBlockCommand>();
 
+        container.RegisterNetworkComponent<TransformComponent>();
+        container.RegisterNetworkComponent<PhysicsComponent>();
+
         container.Register<INetworkTransport, LocalConnection>(Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
