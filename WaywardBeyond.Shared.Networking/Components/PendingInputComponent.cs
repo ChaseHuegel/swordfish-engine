@@ -19,6 +19,7 @@ public struct PendingInputComponent : IDataComponent
 
     public void Push(in InputComponent input)
     {
+        History ??= new InputComponent[BufferCapacity];
         History[Head % History.Length] = input;
         Head++;
         if (Head - Tail > History.Length)
@@ -31,6 +32,7 @@ public struct PendingInputComponent : IDataComponent
     {
         while (Tail < Head)
         {
+            if (History == null) break;
             uint index = Tail % (uint)History.Length;
             if (History[index].SequenceNumber > sequenceNumber)
             {
@@ -45,6 +47,7 @@ public struct PendingInputComponent : IDataComponent
 
     public readonly InputComponent GetPending(int index)
     {
+        if (History == null) return default;
         return History[(Tail + (uint)index) % (uint)History.Length];
     }
 }
