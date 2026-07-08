@@ -24,6 +24,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 
 - **Allman style** — opening brace on its own line for all blocks (class, method, `if`, `for`, `switch`, etc.).
 - Single-line accessors and simple methods use expression bodies (`=>`) when they fit on one line.
+- All blocks must have braces (if, for, while, etc.).
 
 ## Language Features
 
