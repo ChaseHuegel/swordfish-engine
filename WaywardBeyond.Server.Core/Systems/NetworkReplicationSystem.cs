@@ -80,6 +80,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             if (_builders.TryGetValue(bit, out IComponentSnapshotBuilder? builder))
             {
                 builder.BuildSnapshot(store, entity, ref entitySnapshot);
+                entitySnapshot.ComponentMask |= (uint)(1 << bit);
             }
         });
 

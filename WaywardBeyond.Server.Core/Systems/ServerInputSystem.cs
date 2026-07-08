@@ -31,10 +31,10 @@ public sealed class ServerInputSystem : IEntitySystem
         while (_transport.TryReceive<ClientInputMsg>(out ClientInputMsg msg))
         {
             if (!store.Find<NetworkComponent>(
-                    (NetworkComponent net) => net.NetworkID == msg.SequenceNumber,
+                    (NetworkComponent net) => net.NetworkID == msg.ClientID,
                     out int entity))
             {
-                _logger.LogWarning("Received input for unknown network ID {id}.", msg.SequenceNumber);
+                _logger.LogWarning("Received input for unknown network ID {id}.", msg.ClientID);
                 continue;
             }
 

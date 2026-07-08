@@ -43,9 +43,15 @@ internal sealed class ClientInputSystem : IEntitySystem
             SequenceNumber = ++_sequenceNumber,
         };
 
+        uint clientId = 0;
         store.Query<PlayerComponent>(0f, (float d, DataStore s, int e, ref PlayerComponent player) =>
         {
             s.AddOrUpdate(e, input);
+
+            if (s.TryGet(e, out NetworkComponent net))
+            {
+                clientId = net.NetworkID;
+            }
 
             if (!s.TryGet(e, out PendingInputComponent pending))
             {
@@ -56,7 +62,7 @@ internal sealed class ClientInputSystem : IEntitySystem
             s.AddOrUpdate(e, pending);
         });
 
-        ClientInputMsg msg = input.ToMessage(0);
+        ClientInputMsg msg = input.ToMessage(0, clientId);
         _transport.Send(msg);
     }
 
@@ -64,12 +70,35 @@ internal sealed class ClientInputSystem : IEntitySystem
     {
         var movement = new Vector3();
 
-        if (_inputService.IsKeyHeld(Key.W)) movement -= Vector3.UnitZ;
-        if (_inputService.IsKeyHeld(Key.S)) movement += Vector3.UnitZ;
-        if (_inputService.IsKeyHeld(Key.D)) movement += Vector3.UnitX;
-        if (_inputService.IsKeyHeld(Key.A)) movement -= Vector3.UnitX;
-        if (_inputService.IsKeyHeld(Key.Space)) movement += Vector3.UnitY;
-        if (_inputService.IsKeyHeld(Key.Control)) movement -= Vector3.UnitY;
+        if (_inputService.IsKeyHeld(Key.W))
+        {
+            
+            movement -= Vector3.UnitZ;
+        }
+        
+        if (_inputService.IsKeyHeld(Key.S))
+        {
+            movement += Vector3.UnitZ;
+        }
+        
+        if (_inputService.IsKeyHeld(Key.D))
+        {
+            movement += Vector3.UnitX;
+        }
+        
+        if (_inputService.IsKeyHeld(Key.A))
+        {
+            movement -= Vector3.UnitX;
+        }
+        if (_inputService.IsKeyHeld(Key.Space))
+        {
+            movement += Vector3.UnitY;
+        }
+        
+        if (_inputService.IsKeyHeld(Key.Control))
+        {
+            movement -= Vector3.UnitY;
+        }
 
         return movement;
     }

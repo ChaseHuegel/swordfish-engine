@@ -4,7 +4,7 @@ namespace WaywardBeyond.Shared.Networking.Snapshots;
 
 public static class EntitySnapshotExtensions
 {
-    public static ClientInputMsg ToMessage(in this InputComponent input, uint serverTick)
+    public static ClientInputMsg ToMessage(in this InputComponent input, uint serverTick, uint clientId = 0)
     {
         return new ClientInputMsg
         {
@@ -16,6 +16,7 @@ public static class EntitySnapshotExtensions
             LookDeltaY = input.LookDelta.Y,
             Jump = input.Jump,
             ServerTickAtSample = serverTick,
+            ClientID = clientId,
         };
     }
 

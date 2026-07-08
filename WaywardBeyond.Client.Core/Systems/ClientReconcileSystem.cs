@@ -75,7 +75,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             {
                 InputComponent input = pending.GetPending(j);
 
-                store.Query<InputComponent, PhysicsComponent>((int)input.SequenceNumber, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
+                store.Query<InputComponent, PhysicsComponent>(entity, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
                 {
                     existing = input;
                     s.AddOrUpdate(e, existing);
@@ -90,7 +90,10 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     {
         foreach (KeyValuePair<int, IComponentSnapshotBuilder> pair in _builders)
         {
-            pair.Value.ApplySnapshot(entitySnapshot, store, entity);
+            if ((entitySnapshot.ComponentMask & (1 << pair.Key)) != 0)
+            {
+                pair.Value.ApplySnapshot(entitySnapshot, store, entity);
+            }
         }
     }
 }

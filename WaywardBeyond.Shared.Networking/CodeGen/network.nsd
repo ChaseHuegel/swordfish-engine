@@ -13,6 +13,7 @@ message ClientInputMsg
     bool PrimaryAction    = 7;
     bool SecondaryAction  = 8;
     uint ServerTickAtSample = 9;
+    uint ClientID         = 10;
 }
 
 message EntitySnapshotMsg
@@ -28,6 +29,7 @@ message EntitySnapshotMsg
     float VelocityX       = 8;
     float VelocityY       = 9;
     float VelocityZ       = 10;
+    uint ComponentMask    = 11;
 }
 
 message WorldSnapshotMsg
