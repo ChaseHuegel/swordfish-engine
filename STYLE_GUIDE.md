@@ -33,6 +33,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **`readonly`** — on every field that is set once (constructor or inline). Nearly universal.
 - **`sealed`** — on utility/leaf classes that aren't designed for inheritance.
 - **`in` parameter modifier** — on value types passed to constructors and methods (performance convention).
+- **`internal` access** — prefer on types by default. Only make types public when there is a specific need for the API to be available to other assemblies or projects.
 - **Nullable reference types** — enabled in most projects via `.csproj`. Disabled in `Swordfish.Library` (`<Nullable>disable</Nullable>`). New code should use `#nullable enable` locally where needed.
 - **Collection expressions** (C# 12 `[]`) preferred for initialization over `new List<T>()`.
 
