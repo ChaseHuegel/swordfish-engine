@@ -1,3 +1,5 @@
+using Swordfish.Library.Util;
+
 namespace WaywardBeyond.Shared.Networking.Transport;
 
 public interface INetworkTransport
@@ -5,7 +7,7 @@ public interface INetworkTransport
     bool IsConnected { get; }
     bool IsLocal { get; }
 
-    void Send<T>(in T message);
+    Result Send<T>(in T message);
 
-    bool TryReceive<T>(out T message);
+    Result<T> Receive<T>();
 }

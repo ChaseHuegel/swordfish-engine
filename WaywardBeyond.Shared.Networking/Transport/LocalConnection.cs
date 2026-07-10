@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Shared.Networking.Transport;
 
@@ -17,7 +18,7 @@ public sealed class LocalConnection : INetworkTransport
         _isServer = true;
     }
 
-    public void Send<T>(in T message)
+    public Result Send<T>(in T message)
     {
         if (_isServer)
         {
@@ -27,19 +28,19 @@ public sealed class LocalConnection : INetworkTransport
         {
             _clientToServer.Enqueue(message!);
         }
+
+        return Result.FromSuccess();
     }
 
-    public bool TryReceive<T>(out T message)
+    public Result<T> Receive<T>()
     {
         ConcurrentQueue<object> queue = _isServer ? _clientToServer : _serverToClient;
 
         if (queue.TryDequeue(out object? obj) && obj is T typed)
         {
-            message = typed;
-            return true;
+            return Result<T>.FromSuccess(typed);
         }
 
-        message = default!;
-        return false;
+        return Result<T>.FromFailure("No messages available.");
     }
 }

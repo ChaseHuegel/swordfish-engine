@@ -4,50 +4,53 @@ namespace WaywardBeyond.Shared.Networking.Components;
 
 public struct PendingInputComponent : IDataComponent
 {
-    public const int BufferCapacity = 256;
+    private const int BUFFER_CAPACITY = 256;
 
-    public InputComponent[] History;
-    public uint Head;
-    public uint Tail;
+    private InputComponent[] _history;
+    private uint _head;
+    private uint _tail;
 
-    public PendingInputComponent(int capacity = BufferCapacity)
+    public PendingInputComponent(int capacity = BUFFER_CAPACITY)
     {
-        History = new InputComponent[capacity];
-        Head = 0;
-        Tail = 0;
+        _history = new InputComponent[capacity];
+        _head = 0;
+        _tail = 0;
     }
 
     public void Push(in InputComponent input)
     {
-        History ??= new InputComponent[BufferCapacity];
-        History[Head % History.Length] = input;
-        Head++;
-        if (Head - Tail > History.Length)
+        _history ??= new InputComponent[BUFFER_CAPACITY];
+        _history[_head % _history.Length] = input;
+        _head++;
+        if (_head - _tail > _history.Length)
         {
-            Tail = Head - (uint)History.Length;
+            _tail = _head - (uint)_history.Length;
         }
     }
 
     public void AckUpTo(uint sequenceNumber)
     {
-        while (Tail < Head)
+        while (_tail < _head)
         {
-            if (History == null) break;
-            uint index = Tail % (uint)History.Length;
-            if (History[index].SequenceNumber > sequenceNumber)
+            if (_history == null)
+            {
+                break;
+            }
+            
+            uint index = _tail % (uint)_history.Length;
+            if (_history[index].SequenceNumber > sequenceNumber)
             {
                 break;
             }
 
-            Tail++;
+            _tail++;
         }
     }
 
-    public readonly int PendingCount => (int)(Head - Tail);
+    public readonly int PendingCount => (int)(_head - _tail);
 
     public readonly InputComponent GetPending(int index)
     {
-        if (History == null) return default;
-        return History[(Tail + (uint)index) % (uint)History.Length];
+        return _history?[(_tail + (uint)index) % (uint)_history.Length] ?? default;
     }
 }

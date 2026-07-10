@@ -35,9 +35,10 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             return;
         }
 
-        while (_transport.TryReceive<WorldSnapshotMsg>(out WorldSnapshotMsg snapshot))
+        Result<WorldSnapshotMsg> receiveResult;
+        while ((receiveResult = _transport.Receive<WorldSnapshotMsg>()).Success)
         {
-            ApplySnapshot(snapshot, store);
+            ApplySnapshot(receiveResult.Value, store);
         }
     }
 
@@ -47,9 +48,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         {
             EntitySnapshotMsg entitySnapshot = snapshot.Entities[i];
 
-            if (!store.Find<NetworkComponent>(
-                    (NetworkComponent net) => net.NetworkID == entitySnapshot.NetworkID,
-                    out int entity))
+            if (!store.Find((NetworkComponent net) => net.NetworkID == entitySnapshot.NetworkID, out int entity))
             {
                 continue;
             }
@@ -75,7 +74,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             {
                 InputComponent input = pending.GetPending(j);
 
-                store.Query<InputComponent, PhysicsComponent>(entity, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
+                store.Query(entity, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
                 {
                     existing = input;
                     s.AddOrUpdate(e, existing);

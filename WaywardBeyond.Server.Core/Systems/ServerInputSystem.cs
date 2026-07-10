@@ -28,8 +28,11 @@ public sealed class ServerInputSystem : IEntitySystem
             return;
         }
 
-        while (_transport.TryReceive<ClientInputMsg>(out ClientInputMsg msg))
+        Result<ClientInputMsg> receiveResult;
+        while ((receiveResult = _transport.Receive<ClientInputMsg>()).Success)
         {
+            ClientInputMsg msg = receiveResult.Value;
+
             if (!store.Find<NetworkComponent>(
                     (NetworkComponent net) => net.NetworkID == msg.ClientID,
                     out int entity))
