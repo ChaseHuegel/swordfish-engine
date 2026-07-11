@@ -2,6 +2,7 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Snapshots;
@@ -13,15 +14,18 @@ internal sealed class ClientInputSystem : IEntitySystem
 {
     private readonly IInputService _inputService;
     private readonly INetworkTransport _transport;
+    private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _sequenceNumber;
 
     public ClientInputSystem(
         in IInputService inputService,
-        in INetworkTransport transport
+        in INetworkTransport transport,
+        SnapshotAckTracker snapshotAck
     ) {
         _inputService = inputService;
         _transport = transport;
+        _snapshotAck = snapshotAck;
     }
 
     public void Tick(float delta, DataStore store)
@@ -41,6 +45,7 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookDelta = lookDelta,
             Jump = jump,
             SequenceNumber = ++_sequenceNumber,
+            ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
         };
 
         uint clientId = 0;

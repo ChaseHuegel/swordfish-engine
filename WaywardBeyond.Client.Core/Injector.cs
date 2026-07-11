@@ -131,6 +131,7 @@ public class Injector : IDryIocInjector
         container.Register<INetworkTransport, LocalConnection>(Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
+        container.Register<SnapshotAckTracker>(Reuse.Singleton);
 
         container.Register<IComponentSnapshotBuilder, TransformSnapshotBuilder>(Reuse.Singleton);
         container.Register<IComponentSnapshotBuilder, PhysicsSnapshotBuilder>(Reuse.Singleton);

@@ -32,6 +32,28 @@ message EntitySnapshotMsg
     uint ComponentMask    = 11;
 }
 
+enum GamePacketType
+{
+    ClientInput = 100;
+    WorldSnapshot = 200;
+    EntitySnapshot = 201;
+    PlaceBlock = 300;
+    BreakBlock = 301;
+    LoginRequest = 400;
+    LoginResponse = 401;
+    JoinRequest = 402;
+    JoinResponse = 403;
+    Logout = 404;
+}
+
+message GamePacket
+{
+    uint SequenceNumber   = 0;
+    uint Ack              = 1;
+    GamePacketType Type   = 2;
+    byte[] Payload        = 3;
+}
+
 message WorldSnapshotMsg
 {
     uint TickNumber          = 0;

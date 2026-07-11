@@ -23,7 +23,7 @@ Architecture for multiplayer-ready networking in an ECS-based space RPG voxel ga
 ```
 WaywardBeyond.Shared.Networking/            (new, net9.0)
 ├── CodeGen/
-│   ├── network.nsd                          # ClientInputMsg, WorldSnapshotMsg
+│   ├── network.nsd                          # ClientInputMsg, WorldSnapshotMsg, GamePacket, GamePacketType
 │   └── Output/                              # generated (nsdc)
 ├── Components/
 │   ├── InputComponent.cs                    # continuous player input
@@ -35,6 +35,25 @@ WaywardBeyond.Shared.Networking/            (new, net9.0)
 │   └── BreakBlockCommand.cs                 # one-shot action marker
 ├── Registry/
 │   └── NetworkRegistry.cs                   # component type → bit mapping
+├── Sessions/
+│   ├── Session.cs                           # session ID + metadata struct
+│   └── SessionService.cs                    # service for creating, validating, ending sessions
+├── Transport/
+│   ├── IDataReceiver.cs                     # raw bytes in from transport
+│   ├── IDataSender.cs                       # raw bytes out to transport (per-session or filtered)
+│   ├── IDataProducer.cs                     # coalesced, parsed byte segments
+│   ├── IParser.cs                           # frame → packet boundary parser
+│   ├── FrameStream.cs                       # length-prefixed frame reader/writer
+│   ├── FrameStreamService.cs                # abstract base: per-peer threads, session→frame mapping
+│   ├── TCPFrameServer.cs                    # TCP listener implementation (development use)
+│   └── TCPFrameClient.cs                    # TCP connector implementation (development use)
+├── Messaging/
+│   ├── IMessageConsumer.cs                  # typed message subscription
+│   ├── IMessageProducer.cs                  # typed message sending (session or broadcast)
+│   ├── MessageConsumer.cs                   # generic deserialize + dispatch
+│   ├── MessageProducer.cs                   # generic serialize + send
+│   ├── PacketConsumer.cs                    # GamePacket-envelope-aware consumer (checks type)
+│   └── PacketAwaiter.cs                     # await a specific response packet
 ├── Systems/
 │   └── NetworkedSystem.cs                   # optional base class with MarkDirty<T>()
 ├── Snapshots/
@@ -47,17 +66,21 @@ WaywardBeyond.Shared.Networking/            (new, net9.0)
 ```
 WaywardBeyond.Server.Core/
 ├── Systems/
-│   ├── ServerInputSystem.cs                 # ClientInputMsg → InputComponent
+│   ├── ServerInputSystem.cs                 # ClientInputMsg → InputComponent (triggered by MessageEventProcessor)
 │   ├── OneShotCommandSystem.cs             # command packets → command components
-│   └── NetworkReplicationSystem.cs          # DirtyComponent → WorldSnapshotMsg
-└── SessionManager.cs                        # client connection ↔ entity mapping
+│   └── NetworkReplicationSystem.cs          # DirtyComponent → WorldSnapshotMsg (sends via IMessageProducer)
+├── SessionManager.cs                        # Session ↔ entity handle mapping
+└── Processors/
+    └── ClientInputProcessor.cs              # IEventProcessor<MessageEventArgs<ClientInputMsg>>
 
 WaywardBeyond.Client.Core/
 ├── Systems/
-│   ├── ClientInputSystem.cs                 # IInputService → InputComponent + send
+│   ├── ClientInputSystem.cs                 # IInputService → InputComponent + send via IMessageProducer
 │   └── ClientReconcileSystem.cs             # WorldSnapshotMsg → reconcile prediction
 └── Networking/
-    └── GameClient.cs                        # RUDP connection + singleplayer fallback
+    ├── GameClient.cs                        # transport selection (RUDP/TCP/LocalConnection) + DI wiring
+    └── Processors/
+        └── WorldSnapshotProcessor.cs        # IEventProcessor<MessageEventArgs<WorldSnapshotMsg>>
 ```
 
 ### Reference chains
@@ -71,7 +94,139 @@ WaywardBeyond.Server.Core
 
 WaywardBeyond.Client.Core
   └── references: WaywardBeyond.Shared.Networking (add)
+
+WaywardBeyond.Client.Core (singleplayer)
+  └── uses LocalConnection — same interfaces, zero serialization, direct DataStore write
 ```
+
+---
+
+## Transport Layer
+
+A layered transport abstraction sits between the raw network and the ECS. This decouples gameplay networking from transport specifics (TCP for dev, RUDP for production, named pipes for local).
+
+### Interface layer
+
+```csharp
+// WaywardBeyond.Shared.Networking/Transport/IDataReceiver.cs
+public interface IDataReceiver
+{
+    event EventHandler<DataEventArgs>? Received;
+}
+
+// WaywardBeyond.Shared.Networking/Transport/IDataSender.cs
+public interface IDataSender
+{
+    Result Send(byte[] data, Session target);
+    Result Send(byte[] data, IFilter<Session> targetFilter);
+}
+
+// WaywardBeyond.Shared.Networking/Transport/IDataProducer.cs
+public interface IDataProducer
+{
+    event EventHandler<DataEventArgs>? Received;
+}
+```
+
+`DataProducer` subscribes to all `IDataReceiver`s, runs incoming bytes through an `IParser` to split frame boundaries (e.g. length-prefixed), and re-emits complete byte segments as `DataEventArgs`. This means transport implementations only worry about pushing bytes; framing and coalescing are handled once.
+
+```csharp
+// WaywardBeyond.Shared.Networking/Transport/IParser.cs
+public interface IParser
+{
+    List<byte[]> Parse(byte[] data);   // split raw bytes into complete packets
+}
+```
+
+### FrameStream (length-prefixed framing)
+
+Every message on the wire is prefixed with a 4-byte little-endian length (including the length field itself). This is used during development with TCP; in production the RUDP layer (`Currents/CRNT`) handles its own framing.
+
+```csharp
+// WaywardBeyond.Shared.Networking/Transport/FrameStream.cs
+public sealed class FrameStream(Stream stream) : IDisposable
+{
+    public Result WriteFrame(byte[] data);
+    public Result<byte[]> ReadFrame();
+}
+```
+
+### Session-to-transport mapping
+
+`FrameStreamService` (abstract) manages per-session `FrameStream` instances, each running on its own read loop via `ThreadWorker`. When a peer connects, a `Session` is created through `SessionService` and mapped to the frame stream. On disconnect, the session is cleaned up.
+
+**Not used in singleplayer** — `LocalConnection` implements `IDataSender`/`IDataReceiver` directly, bypassing all framing and threads.
+
+### Transport implementations
+
+| Class | Role | When used |
+|---|---|---|
+| `TCPFrameServer` | `TcpListener` → `FrameStream` per client | Development, LAN |
+| `TCPFrameClient` | Outgoing TCP `TcpClient` → `FrameStream` | Development client |
+| `RUDPFrameServer` | `Currents` listener → framed receives | Production server |
+| `RUDPFrameClient` | `Currents` client → framed receives | Production client |
+| `LocalConnection` | Direct DataStore read/write, no bytes | Singleplayer |
+
+The `GameClient` class (Phase 4) selects the appropriate transport on startup and exposes it as `IDataSender` + `IDataReceiver` — gameplay systems never reference TCP or RUDP directly.
+
+---
+
+## Wire Protocol — GamePacket Envelope
+
+Every message sent over the transport layer is wrapped in a `GamePacket` envelope. This provides demux, ordering, and ack information independent of the transport underneath.
+
+```csharp
+// WaywardBeyond.Shared.Networking/Envelope/GamePacket.cs
+public readonly struct GamePacket
+{
+    public readonly uint SequenceNumber;     // monotonic, per-session
+    public readonly uint Ack;                // last sequence number received from peer
+    public readonly GamePacketType Type;     // which message is in the payload
+    public readonly byte[] Payload;          // serialized message body
+}
+```
+
+```csharp
+// WaywardBeyond.Shared.Networking/Envelope/GamePacketType.cs
+public enum GamePacketType : ushort
+{
+    // Input (client → server)
+    ClientInput     = 100,
+
+    // Replication (server → client)
+    WorldSnapshot   = 200,
+
+    // One-shot commands (client → server)
+    PlaceBlock      = 300,
+    BreakBlock      = 301,
+
+    // Session lifecycle
+    LoginRequest    = 400,
+    LoginResponse   = 401,
+    JoinRequest     = 402,
+    JoinResponse    = 403,
+    Logout          = 404,
+}
+```
+
+### How the envelope is used
+
+```
+[transport bytes] → IParser.Parse() → [complete byte segments]
+    → DataProducer → DataEventArgs
+        → PacketConsumer<T> → checks GamePacket.Type matches serializer's type
+            → strips envelope, deserializes payload → MessageEventArgs<T>
+```
+
+The `PacketConsumer<T>` reads the `GamePacket` envelope, verifies the `Type` field matches its registered type before attempting to deserialize, and discards mismatched packets. This prevents one misbehaving sender from causing deserialization exceptions in unrelated consumers.
+
+### Sequence numbers and acknowledgments
+
+Each `GamePacket` carries a monotonic `SequenceNumber` (per-session direction) and the `Ack` field acknowledging the last packet received from the peer. This allows:
+
+- **Duplicate detection** — drop packets with `SequenceNumber ≤ lastReceived`
+- **RTT estimation** — `now - lastAckWallClock` when `Ack` advances
+- **Reliable delivery** — the transport layer (RUDP) has its own ack at the frame level; the envelope ack is an additional layer for tracking snapshot delivery at the gameplay level
 
 ---
 
@@ -86,7 +241,7 @@ public struct InputComponent : IDataComponent
     public Vector2 LookDelta;            // mouse delta this frame
     public bool Jump;
     public uint SequenceNumber;          // monotonic counter for prediction
-    public uint ServerTickAtSample;      // server tick when input was sampled
+    public uint ServerTickAtSample;      // server tick when input was sampled; also echoes last applied snapshot tick (snapshot ack)
 }
 ```
 
@@ -95,8 +250,9 @@ public struct InputComponent : IDataComponent
 ```csharp
 public struct NetworkComponent : IDataComponent
 {
-    public uint NetworkID;               // maps to a connected client session
+    public Session Session;              // connected client session (from SessionService)
     public uint LastAckedInput;          // last input sequence the server processed
+    public uint LastAckedSnapshot;       // last snapshot sequence the client processed
     public uint ServerTPS;               // server's current tick rate (advertised)
 }
 ```
@@ -146,6 +302,41 @@ public struct BreakBlockCommand : IDataComponent
     public Int3 Position;
 }
 ```
+
+---
+
+## Session Lifecycle
+
+Session management is handled by `SessionService` — separate from the ECS but referenced by `NetworkComponent.Session`. This keeps connection lifecycle logic out of systems while still allowing ECS queries to filter by session.
+
+```csharp
+// WaywardBeyond.Shared.Networking/Session/Session.cs
+public readonly struct Session(uint id) : IEquatable<Session>
+{
+    public readonly uint ID = id;
+    // Equality operators, GetHashCode, etc.
+}
+
+// WaywardBeyond.Shared.Networking/Session/SessionService.cs
+public class SessionService
+{
+    public Result<Session> RequestNew();           // allocate a new session ID
+    public Result<Session> End(Session session);   // close and release
+    public Result<Session> Validate(Session session);  // still alive?
+    public Result<Session> Get(uint id);
+}
+```
+
+### Lifecycle flow
+
+1. **Connection** — Transport layer (`FrameStreamService`) detects new peer → calls `SessionService.RequestNew()` → receives `Session` → maps it to the `FrameStream` internally
+2. **Mapping** — Server entity that represents the player gets `NetworkComponent.Session = session` and is registered in a `Dictionary<Session, int>` lookup from `SessionManager`
+3. **Tick** — `NetworkReplicationSystem` checks which entities have `NetworkComponent.Session` matching connected sessions
+4. **Disconnect** — Transport detects peer gone → calls `SessionService.End(session)` → `SessionManager` removes the mapping → entity may be deleted or flagged for cleanup
+
+### Singleplayer path
+
+In singleplayer, `LocalConnection` uses a sentinel `Session` with `ID = 0`. `SessionService.RequestNew()` is never called — the local player entity is created directly with `Session = new Session(0)` and the transport layer is entirely bypassed.
 
 ---
 
@@ -296,13 +487,35 @@ Registration happens at module load (before gameplay starts) so bit assignments 
 
 ## System Pipeline
 
+### Transport data flow (all frames)
+
+```
+[transport bytes arrive]
+    → FrameStream.ReadFrame() → [complete frame]
+    → DataProducer (via IParser) → [complete byte segments]
+    → PacketConsumer<T>: checks GamePacket.Type matches
+        → deserializes payload → MessageEventArgs<T>
+    → MessageEventProcessor<TMessage>: routes to IEventProcessor<T>[]
+```
+
+Outbound goes the reverse:
+
+```
+MessageProducer<T>.Send(message, session)
+    → ISerializer<T>.Serialize(message) → [payload bytes]
+    → wraps in GamePacket envelope (sequence, ack, type)
+    → FrameStream.WriteFrame(packetBytes)
+    → transport send (TCP, RUDP, or LocalConnection)
+```
+
 ### Client frame (every ECS tick)
 
 ```
 ClientInputSystem (reads IInputService)
   ↓ writes InputComponent on local player entity
   ↓ stores copy in PendingInputComponent.History[]
-  ↓ sends ClientInputMsg over RUDP
+  ↓ sends ClientInputMsg via IMessageProducer<ClientInputMsg>
+      → GamePacket envelope → IDataSender → transport
 
 PlayerControllerSystem (same code as server — prediction)
   ↓ reads InputComponent, writes PhysicsComponent, TransformComponent
@@ -314,11 +527,12 @@ PlayerControllerSystem (same code as server — prediction)
 ### Server frame (every ECS tick)
 
 ```
-RUDP receive → deserialize ClientInputMsg
+[transport → PacketConsumer<ClientInputMsg> → MessageEventProcessor triggers]
 
-ServerInputSystem
+ServerInputSystem (IEventProcessor<MessageEventArgs<ClientInputMsg>>)
   ↓ converts ClientInputMsg → InputComponent on server entity
-  ↓ stores LastAckedInput in NetworkComponent
+  ↓ stores LastAckedInput + LastAckedSnapshot (snapshot ack from client)
+  ↓ in NetworkComponent
 
 PlayerControllerSystem (same code as client — authoritative)
   ↓ reads InputComponent, writes PhysicsComponent, TransformComponent
@@ -329,24 +543,27 @@ Other gameplay systems run (physics, AI, etc.)
 
 NetworkReplicationSystem
   ↓ queries NetworkComponent + DirtyComponent
+  ↓ checks LastAckedSnapshot to skip unchanged entities
   ↓ serializes only flagged components into WorldSnapshotMsg
-  ↓ sends over RUDP
+  ↓ sends via IMessageProducer<WorldSnapshotMsg>
+      → GamePacket envelope → IDataSender → transport
   ↓ clears DirtyComponent
 ```
 
 ### Client receive (asynchronous, not on ECS tick)
 
 ```
-RUDP receive → deserialize WorldSnapshotMsg
+[transport → PacketConsumer<WorldSnapshotMsg> → MessageEventProcessor triggers]
 
-ClientReconcileSystem
-  ↓ finds local entity by NetworkID
-  ↓ reads LastProcessedInput from snapshot
+ClientReconcileSystem (IEventProcessor<MessageEventArgs<WorldSnapshotMsg>>)
+  ↓ finds local entity by Session (not entity ID)
+  ↓ reads LastProcessedInput + TickNumber from snapshot
   ↓ walks PendingInputComponent.History:
       - drops inputs ≤ LastProcessedInput (acknowledged)
       - restores entity state to server snapshot position
       - re-applies remaining unacknowledged inputs
   ↓ writes corrected TransformComponent, PhysicsComponent
+  ↓ echoes TickNumber in next ClientInputMsg.ServerTickAtSample (snapshot ack)
 ```
 
 ---
@@ -363,15 +580,72 @@ ClientReconcileSystem
 
 1. Server snapshot arrives with `LastProcessedInput = N`
 2. All inputs with `SequenceNumber ≤ N` are acknowledged — drop from history
-3. For remaining inputs (`SequenceNumber > N`):
+3. Client updates `NetworkComponent.LastAckedSnapshot = snapshot.TickNumber` and includes this in the next `ClientInputMsg` as an implicit snapshot ack
+4. For remaining inputs (`SequenceNumber > N`):
    a. Overwrite entity's `TransformComponent`/`PhysicsComponent` with snapshot values
    b. Re-run the replayed inputs in order through `PlayerControllerSystem`
-4. Entity state now matches what the server will compute for those inputs
+5. Entity state now matches what the server will compute for those inputs
 
 ### Ring buffer sizing
 
 - 256 entries at 30 Hz (~8.5 seconds) is a comfortable default
 - Increase if high latency is expected
+
+## Snapshot Acknowledgment
+
+Beyond input acknowledgment, the server needs to know which snapshots the client has received. This prevents:
+
+- **Re-sending unchanged data** — server tracks `LastAckedSnapshot` per `NetworkComponent`; if no components changed since the last acked tick, skip the entity
+- **Bandwidth waste** — server uses ack to throttle snapshot rate when the client's receive window is full
+
+### How it works
+
+1. Every `WorldSnapshotMsg` carries a `TickNumber` (monotonic)
+2. Client echoes the highest `TickNumber` it has processed in the next `ClientInputMsg.ServerTickAtSample` field (which already exists for prediction timing)
+3. Server reads this field as a snapshot ack: `NetworkComponent.LastAckedSnapshot = clientMsg.ServerTickAtSample`
+4. `NetworkReplicationSystem` uses `LastAckedSnapshot` to skip entities whose `DirtyComponent` was last dirtied before that tick
+
+```csharp
+// In NetworkReplicationSystem
+store.Query<NetworkComponent, DirtyComponent>(delta, (d, s, entity, ref net, ref dirty) =>
+{
+    if (dirty.LastDirtyTick <= net.LastAckedSnapshot)
+        return;  // client already has this state
+
+    // ... serialize and send delta ...
+});
+```
+
+### Dual ack channels
+
+| Ack type | Field | Direction | Purpose |
+|---|---|---|
+| Input ack | `NetworkComponent.LastAckedInput` | Server → Client (in snapshot) | Trim prediction history |
+| Snapshot ack | `NetworkComponent.LastAckedSnapshot` | Client → Server (echoed in input) | Skip redundant replication |
+
+---
+
+## Interest Management
+
+The architecture above assumes the server sends all relevant entities to all clients — acceptable for small-scale (<64 entities). For the voxel space RPG target, interest management is deferred to a later phase.
+
+### Planned approach: Spatial grid (AOI)
+
+- Divide the world into sectors (e.g., 500m cubes)
+- Each sector tracks which entities are inside it
+- Server maintains per-client `IFilter<Session>` that includes only sectors within a configurable radius of the player
+- `IDataSender.Send(data, IFilter<Session>)` already supports target filtering — the filter implementation becomes AOI-aware
+- `NetworkComponent` reserves a bitfield for sector membership, updated by a dedicated `AreaOfInterestSystem`
+
+### What stays the same
+
+- All ECS replication code is unchanged — only the filter passed to `Send()` changes
+- `DirtyComponent` still tracks what changed; AOI decides who needs to know
+- Transport layer's `IDataSender.Send(data, IFilter<Session>)` is the extension point
+
+### Not in Phase 1
+
+Interest management is **not part of the initial implementation**. Phase 1 targets a fully-connected broadcast model. AOI is added when player counts exceed ~64 and bandwidth becomes measurable.
 
 ---
 
@@ -469,40 +743,57 @@ store.Query<NetworkComponent, DirtyComponent>(delta, (d, s, entity, ref net, ref
 
 ## Implementation Order
 
-### Phase 1 — Foundation
+### Phase 1 — Transport Layer
 1. Create `WaywardBeyond.Shared.Networking` project (`.csproj`, framework references)
-2. Add `CodeGen/network.nsd` with `ClientInputMsg`, `EntitySnapshotMsg`, `WorldSnapshotMsg`
-3. Add `RunCodeGen` target to `.csproj`
-4. Implement `NetworkRegistry` (type→bit mapping, thread-safe)
-5. Implement `DirtyComponent` (256-bit bitset, `SetDirty<T>()`, `Clear()`, `Any()`, `ForEachDirty()`)
-6. Implement `NetworkComponent`
-7. Implement extension method `RegisterNetworkComponent<T>()`
-8. Add project references from `Server.Core` and `Client.Core`
+2. Implement `Session` struct and `SessionService` (allocate, validate, end, get)
+3. Implement transport interfaces: `IDataReceiver`, `IDataSender`, `IDataProducer`, `IParser`
+4. Implement `DataProducer` (subscribes to receivers, parses, re-emits)
+5. Implement `FrameStream` (length-prefixed framing via Stream)
+6. Implement `FrameStreamService` (abstract base: per-session read loops, session→frame mapping)
+7. Implement `TCPFrameServer` and `TCPFrameClient` (development transport)
+8. Implement `GamePacket` envelope (`SequenceNumber`, `Ack`, `Type`, `Payload`)
+9. Implement `IMessageConsumer<T>`, `IMessageProducer<T>`, `MessageConsumer<T>`, `MessageProducer<T>`
+10. Implement `PacketConsumer<T>` (checks `GamePacket.Type` before deserializing)
+11. Implement `PacketAwaiter<T>` (one-shot await for response packets)
 
-### Phase 2 — Shared ECS Components
-9. Implement `InputComponent` (movement, look, jump, sequence number)
-10. Implement `PlaceBlockCommand`, `BreakBlockCommand` (one-shot markers)
-11. Implement `PendingInputComponent` (ring buffer for client prediction)
-12. Implement conversion layer (`EntitySnapshotExtensions`)
+### Phase 2 — Foundation
+12. Add `CodeGen/network.nsd` with `ClientInputMsg`, `EntitySnapshotMsg`, `WorldSnapshotMsg`
+13. Add `RunCodeGen` target to `.csproj`
+14. Implement `NetworkRegistry` (type→bit mapping, thread-safe)
+15. Implement `DirtyComponent` (256-bit bitset, `SetDirty<T>()`, `Clear()`, `Any()`, `ForEachDirty()`)
+16. Implement `NetworkComponent` (includes `Session`, `LastAckedInput`, `LastAckedSnapshot`, `ServerTPS`)
+17. Implement extension method `RegisterNetworkComponent<T>()`
+18. Add project references from `Server.Core` and `Client.Core`
 
-### Phase 3 — Server Systems
-13. Implement `SessionManager` (maps client connections ↔ entity `NetworkID`)
-14. Implement `ServerInputSystem` (receives `ClientInputMsg` → writes `InputComponent`)
-15. Implement `NetworkReplicationSystem` (reads dirty components → builds `WorldSnapshotMsg`)
-16. Wire into server's `Injector.cs`
+### Phase 3 — Shared ECS Components
+19. Implement `InputComponent` (movement, look, jump, sequence number, snapshot ack field)
+20. Implement `PlaceBlockCommand`, `BreakBlockCommand` (one-shot markers)
+21. Implement `PendingInputComponent` (ring buffer for client prediction)
+22. Implement conversion layer (`EntitySnapshotExtensions`)
 
-### Phase 4 — Client Systems
-17. Implement `GameClient` with `IsLocal` flag and bidirectional RUDP (or `LocalConnection`)
-18. Implement `ClientInputSystem` (reads `IInputService` → writes `InputComponent` + sends)
-19. Implement `ClientReconcileSystem` (receives snapshots → reconciles prediction)
-20. Wire into client's `Injector.cs`
+### Phase 4 — Server Systems
+23. Implement `SessionManager` (maps `Session` ↔ entity handle)
+24. Implement `ServerInputSystem` (receives `ClientInputMsg` → writes `InputComponent`, updates `LastAckedInput` and `LastAckedSnapshot`)
+25. Implement `NetworkReplicationSystem` (reads dirty components → builds `WorldSnapshotMsg`, respects `LastAckedSnapshot`)
+26. Wire into server's `Injector.cs`
 
-### Phase 5 — Integration
-21. Implement `LocalConnection` for singleplayer (direct DataStore write, no serialization)
-22. Add `RegisterNetworkComponent<T>()` calls in existing modules for components that need replication
-23. Add `MarkDirty<T>()` calls to existing systems that mutate networked components
-24. Test singleplayer (zero regression — same as before, but now going through the networking abstraction)
-25. Test multiplayer (two clients, one server, latency simulation)
+### Phase 5 — Client Systems
+27. Implement `GameClient` with `IsLocal` flag and bidirectional RUDP (or `LocalConnection`)
+28. Implement `ClientInputSystem` (reads `IInputService` → writes `InputComponent` + sends via transport)
+29. Implement `ClientReconcileSystem` (receives snapshots → reconciles prediction, echoes snapshot ack)
+30. Wire into client's `Injector.cs`
+
+### Phase 6 — Integration
+31. Implement `LocalConnection` for singleplayer (direct DataStore write, no serialization, sentinel Session ID=0)
+32. Add `RegisterNetworkComponent<T>()` calls in existing modules for components that need replication
+33. Add `MarkDirty<T>()` calls to existing systems that mutate networked components
+34. Test singleplayer (zero regression — same as before, but now going through the networking abstraction)
+35. Test multiplayer (two clients, one server, latency simulation)
+
+### Phase 7 — Optimization (deferred)
+36. Implement RUDP transport (Currents/CRNT `RUDPFrameServer`/`RUDPFrameClient`)
+37. Implement AOI interest management (spatial grid filter on `IDataSender.Send`)
+38. Implement snapshot delta compression (skip unchanged entities per `LastAckedSnapshot`)
 
 ---
 
@@ -547,11 +838,16 @@ Modules also implement their own systems that call `MarkDirty<T>()` — the `Net
 | Input model | Two-tier: continuous `InputComponent` + one-shot command components | Keeps hot path tight, complex actions isolated |
 | Change tracking | `DirtyComponent` with 256-bit bitset + explicit registration | ECS-idiomatic, cache-friendly, no changes to DataStore |
 | Replication | Delta-only (changed components only) | Minimizes bandwidth; dirty flag makes detection trivially cheap |
+| Transport layering | `IDataReceiver`/`IDataSender`/`IDataProducer`/`IParser` pipeline | Decouples gameplay from transport; TCP for dev, RUDP for prod, LocalConnection for singleplayer — all via the same interfaces |
+| Wire envelope | `GamePacket` (sequence, ack, type, payload) on every message | Provides demux, ordering, and ack at the gameplay level independent of transport |
+| Session lifecycle | `SessionService` (create/validate/end) + `Session` in `NetworkComponent` | Separates connection management from ECS; clean disconnect path; maps cleanly to `IDataSender.Send(data, IFilter<Session>)` |
+| Snapshot ack | `LastAckedSnapshot` echoed in `ClientInputMsg.ServerTickAtSample` | Lets server skip unchanged entities; dual ack channels (input + snapshot) are independent |
 | Authority | Server authoritative | Simplifies anti-cheat, eliminates sync conflicts |
 | Prediction | Client runs same `PlayerControllerSystem` + reconciles on snapshot | No duplicate game logic; reuse existing systems |
 | Tick rate | Not shared — server advertises, client optionally matches | Space flight prediction drifts minimally; reconciliation fixes any error |
-| Transport | RUDP (Currents/CRNT) for client-server | AGENTS.md lists Currents as existing dependency; RUDP gives reliable + unordered channels |
+| Transport | RUDP (Currents/CRNT) for production client-server; TCP for dev | AGENTS.md lists Currents as existing dependency; abstraction makes transport swappable |
+| Interest mgmt | AOI spatial grid — deferred to Phase 7 | Broadcast is fine for <64 entities; AOI adds bandwidth savings at scale |
 | Inter-server | NATS JetStream (existing `PacketStreamClient`) | Already built and tested |
 | Serialization | Needlefish (.nsd schemas) for network DTOs | Consistent with rest of codebase; auto-generated code |
-| Singleplayer | LocalConnection (direct DataStore, no serialization) | Same systems, same ECS, zero overhead |
+| Singleplayer | LocalConnection (direct DataStore, no serialization, sentinel Session ID=0) | Same systems, same ECS, zero overhead |
 | Mod networking | Explicit registration per module via `RegisterNetworkComponent<T>()` | Predictable, validated at startup, no runtime magic |

@@ -47,6 +47,7 @@ public sealed class ServerInputSystem : IEntitySystem
             store.Query<NetworkComponent>(entity, 0f, (float d, DataStore s, int e, ref NetworkComponent net) =>
             {
                 net.LastAckedInput = msg.SequenceNumber;
+                net.LastAckedSnapshot = msg.ServerTickAtSample;
                 s.AddOrUpdate(e, net);
             });
         }

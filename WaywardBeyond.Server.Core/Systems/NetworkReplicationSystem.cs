@@ -53,10 +53,24 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
+        uint lastProcessedInput = 0;
+        for (var i = 0; i < _pendingSnapshots.Count; i++)
+        {
+            EntitySnapshotMsg entitySnapshot = _pendingSnapshots[i];
+            if (store.Find((NetworkComponent net) => net.NetworkID == entitySnapshot.NetworkID, out int entity)
+                && store.TryGet(entity, out NetworkComponent net))
+            {
+                if (net.LastAckedInput > lastProcessedInput)
+                {
+                    lastProcessedInput = net.LastAckedInput;
+                }
+            }
+        }
+
         var snapshot = new WorldSnapshotMsg
         {
             TickNumber = _tickNumber,
-            LastProcessedInput = 0,
+            LastProcessedInput = lastProcessedInput,
             Entities = _pendingSnapshots.ToArray(),
         };
 
@@ -85,11 +99,6 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         });
 
         _pendingSnapshots.Add(entitySnapshot);
-
-        if (store.TryGet(entity, out NetworkComponent networkComponent))
-        {
-            networkComponent.LastAckedInput = net.LastAckedInput;
-        }
 
         dirty.Clear();
         store.AddOrUpdate(entity, dirty);

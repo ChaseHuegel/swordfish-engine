@@ -6,6 +6,7 @@ using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Snapshots;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Client.Core.Networking;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -13,12 +14,15 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 {
     private readonly INetworkTransport _transport;
     private readonly Dictionary<int, IComponentSnapshotBuilder> _builders;
+    private readonly SnapshotAckTracker _snapshotAck;
 
     public ClientReconcileSystem(
         in INetworkTransport transport,
-        IComponentSnapshotBuilder[] builders
+        IComponentSnapshotBuilder[] builders,
+        SnapshotAckTracker snapshotAck
     ) {
         _transport = transport;
+        _snapshotAck = snapshotAck;
         _builders = [];
 
         for (var i = 0; i < builders.Length; i++)
@@ -83,6 +87,8 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
             store.AddOrUpdate(entity, pending);
         }
+
+        _snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
     }
 
     private void ApplyEntitySnapshot(EntitySnapshotMsg entitySnapshot, DataStore store, int entity)
