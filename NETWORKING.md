@@ -392,7 +392,7 @@ Add the `RunCodeGen` target to the `.csproj` (same pattern as `WaywardBeyond.Sha
     <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
 </PropertyGroup>
 <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
-    <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output"/>
+    <Exec Command="nsdc -r -p -i CodeGen -o ./CodeGen/Output"/>
     <ItemGroup>
         <Compile Include="CodeGen/Output/**/*.cs"/>
     </ItemGroup>
