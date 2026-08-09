@@ -98,7 +98,18 @@ public class SilkInputService : IInputService
             lock (_cursorLock)
             {
                 _cursorOptions = value;
-                _mainMouse.Cursor.CursorMode = (value & CursorOptions.Hidden) == CursorOptions.Hidden ? CursorMode.Hidden : CursorMode.Normal;
+                if ((value & CursorOptions.Locked) == CursorOptions.Locked)
+                {
+                    _mainMouse.Cursor.CursorMode = CursorMode.Raw;
+                }
+                else if ((value & CursorOptions.Hidden) == CursorOptions.Hidden)
+                {
+                    _mainMouse.Cursor.CursorMode = CursorMode.Hidden;
+                }
+                else
+                {
+                    _mainMouse.Cursor.CursorMode = CursorMode.Normal;
+                }
             }
         }
     }
