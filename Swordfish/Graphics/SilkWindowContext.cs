@@ -1,6 +1,7 @@
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Silk.NET.Core;
+using Silk.NET.GLFW;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.Windowing;
@@ -38,6 +39,7 @@ public class SilkWindowContext : IWindowContext
 
     private readonly GL _gl;
     private readonly SynchronizationContext _mainThread;
+    private Vector2D<int>? _pendingResizeSize;
 
     public SilkWindowContext(
         GL gl,
@@ -61,6 +63,8 @@ public class SilkWindowContext : IWindowContext
         window.Update += OnUpdate;
         window.Render += OnRender;
         window.Resize += OnResize;
+
+        OverrideRefreshCallback();
 
         renderSettings.VSync.Changed += OnVSyncChanged;
         ApplyVSync(renderSettings.VSync);
@@ -119,6 +123,24 @@ public class SilkWindowContext : IWindowContext
         Loaded?.Invoke();
     }
 
+    private void OverrideRefreshCallback()
+    {
+        //  GLFW's window refresh callback makes Silk.NET render a full frame re-entrantly from inside
+        //  the event pump, which breaks interactive resizing on Linux. The engine redraws every frame
+        //  regardless, so the refresh callback can be a no-op.
+        //  See https://github.com/dotnet/Silk.NET/issues/2581 and https://github.com/dotnet/Silk.NET/pull/2582
+        if (!OperatingSystem.IsLinux())
+        {
+            return;
+        }
+
+        unsafe
+        {
+            GlfwCallbacks.WindowRefreshCallback noOpRefreshCallback = _ => { };
+            Glfw.GetApi().SetWindowRefreshCallback((WindowHandle*)Window.Handle, noOpRefreshCallback);
+        }
+    }
+
     public Vector2 GetSize()
     {
         return (Vector2)Window.Size;
@@ -151,13 +173,20 @@ public class SilkWindowContext : IWindowContext
     {
         RenderDelta.Set(delta);
 
+        if (_pendingResizeSize != null)
+        {
+            Vector2D<int> size = _pendingResizeSize.Value;
+            _pendingResizeSize = null;
+            _gl.Viewport(size);
+            Resized?.Invoke(new Vector2(size.X, size.Y));
+        }
+
         Render?.Invoke(delta);
     }
 
     private void OnResize(Vector2D<int> size)
     {
-        _gl.Viewport(size);
-        Resized?.Invoke(new Vector2(size.X, size.Y));
+        _pendingResizeSize = size;
     }
 
     private void OnFocusChanged(bool focused)
