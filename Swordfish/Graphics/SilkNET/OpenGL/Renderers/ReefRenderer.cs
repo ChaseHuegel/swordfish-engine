@@ -120,8 +120,8 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
             return;
         }
 
-        List<RenderCommand<Material>> commands = _reefContext.Builder.Build(delta);
         _reefContext.Builder.Debug = _debugSettings.UI.Get();
+        List<RenderCommand<Material>> commands = _reefContext.Builder.Build(delta);
 
         _instances.Clear();
         for (var i = 0; i < commands.Count; i++)

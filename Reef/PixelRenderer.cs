@@ -49,9 +49,10 @@ public sealed class PixelRenderer
         Vector4 color = renderCommand.Color;
         Vector4 backgroundColor = renderCommand.BackgroundColor;
         
-        //  Render rects
-        for (int y = renderCommand.Rect.Top; y <= renderCommand.Rect.Bottom; y++)
-        for (int x = renderCommand.Rect.Left; x <= renderCommand.Rect.Right; x++)
+        //  Render rects.
+        //  IntRect right and bottom bounds are exclusive, matching IntRect.Contains.
+        for (int y = renderCommand.Rect.Top; y < renderCommand.Rect.Bottom; y++)
+        for (int x = renderCommand.Rect.Left; x < renderCommand.Rect.Right; x++)
         {
             //  Skip pixels that are outside the clip rect
             if (!renderCommand.ClipRect.Contains(x, y))
