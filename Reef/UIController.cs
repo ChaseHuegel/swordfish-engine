@@ -154,7 +154,7 @@ public sealed class UIController
         F15 = 126,
         F16 = 127,
         F17 = 128,
-        F18 = 120,
+        F18 = 129,
         F19 = 130,
         F20 = 131,
         F21 = 132,
@@ -209,6 +209,10 @@ public sealed class UIController
     private readonly List<Input> _inputBuffer = [];
     private readonly Dictionary<string, InteractionState> _interactionStates = [];
     private readonly Dictionary<string, TextLayout> _textLayoutCache = [];
+    private readonly HashSet<string> _updatedInteractionIDs = [];
+    private readonly HashSet<string> _updatedTextLayoutIDs = [];
+    private readonly List<string> _removedInteractionIDs = [];
+    private readonly List<string> _removedTextLayoutIDs = [];
     
     public void UpdateMouse(int x, int y, MouseButtons downMouseButtons)
     {
@@ -298,22 +302,19 @@ public sealed class UIController
     {
         lock (_inputBuffer)
         {
-            lock (_inputBuffer)
+            for (int i = _inputBuffer.Count - 1; i >= 0; i--)
             {
-                for (int i = _inputBuffer.Count - 1; i >= 0; i--)
+                //  Find the last input of this key
+                Input input = _inputBuffer[i];
+                if (input != key)
                 {
-                    //  Find the last input of this key
-                    Input input = _inputBuffer[i];
-                    if (input != key)
-                    {
-                        continue;
-                    }
-                
-                    return input.Type == InputType.KeyRelease;
+                    continue;
                 }
-
-                return false;
+            
+                return input.Type == InputType.KeyRelease;
             }
+
+            return false;
         }
     }
     
@@ -327,11 +328,51 @@ public sealed class UIController
     
     internal void EndUpdate()
     {
+        //  Remove interaction states for elements that weren't rendered this frame
+        if (_updatedInteractionIDs.Count < _interactionStates.Count)
+        {
+            _removedInteractionIDs.Clear();
+            foreach (string id in _interactionStates.Keys)
+            {
+                if (!_updatedInteractionIDs.Contains(id))
+                {
+                    _removedInteractionIDs.Add(id);
+                }
+            }
+
+            for (var i = 0; i < _removedInteractionIDs.Count; i++)
+            {
+                _interactionStates.Remove(_removedInteractionIDs[i]);
+            }
+        }
+        _updatedInteractionIDs.Clear();
+
+        //  Remove text layouts for elements that weren't rendered this frame
+        if (_updatedTextLayoutIDs.Count < _textLayoutCache.Count)
+        {
+            _removedTextLayoutIDs.Clear();
+            foreach (string id in _textLayoutCache.Keys)
+            {
+                if (!_updatedTextLayoutIDs.Contains(id))
+                {
+                    _removedTextLayoutIDs.Add(id);
+                }
+            }
+
+            for (var i = 0; i < _removedTextLayoutIDs.Count; i++)
+            {
+                _textLayoutCache.Remove(_removedTextLayoutIDs[i]);
+            }
+        }
+        _updatedTextLayoutIDs.Clear();
+
         _interactionConsumed = false;
     }
     
     internal void UpdateInteraction(string id, IntRect rect)
     {
+        _updatedInteractionIDs.Add(id);
+
         Position cursorPos = _cursor.Current;
         
         bool hovering = !_interactionConsumed && rect.Contains(cursorPos.X, cursorPos.Y);
@@ -370,6 +411,7 @@ public sealed class UIController
 
     internal void UpdateTextLayout(string id, TextLayout layout)
     {
+        _updatedTextLayoutIDs.Add(id);
         _textLayoutCache[id] = layout;
     }
 
