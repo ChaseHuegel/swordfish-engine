@@ -6,6 +6,7 @@
     <Description>Provides build and publish logic for Shoal projects.</Description>
     <Version>1.0.0</Version>
     <IncludeBuildOutput>false</IncludeBuildOutput>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

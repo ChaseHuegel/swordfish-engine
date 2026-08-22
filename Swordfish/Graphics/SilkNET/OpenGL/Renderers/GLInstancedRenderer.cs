@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Library.Extensions;
 using Swordfish.Settings;
 
@@ -13,7 +14,7 @@ internal unsafe class GLInstancedRenderer(in GL gl, in RenderSettings renderSett
 
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _instances = [];
     private readonly Dictionary<GLRenderTarget, List<Matrix4x4>> _transparentInstances = [];
-    private readonly Dictionary<int, GLRenderTarget> _renderTargetEntities = [];
+    private readonly Dictionary<Uuid, GLRenderTarget> _renderTargetEntities = [];
     
     public void PreRender(double delta, RenderScene renderScene, bool isDepthPass)
     {

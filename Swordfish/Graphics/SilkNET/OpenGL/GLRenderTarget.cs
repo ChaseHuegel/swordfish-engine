@@ -1,6 +1,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics.SilkNET.OpenGL;
@@ -9,7 +10,7 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 {
     public const int VERTEX_DATA_LENGTH = 13 + 16;
 
-    public int Entity { get; }
+    public Uuid Entity { get; }
     public RenderOptions RenderOptions { get; }
 
     internal readonly VertexArrayObject<float, uint> VertexArrayObject;
@@ -17,7 +18,7 @@ internal sealed class GLRenderTarget : Handle, IRenderTarget, IEquatable<GLRende
 
     internal readonly GLMaterial[] Materials;
 
-    public unsafe GLRenderTarget(GL gl, int entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
+    public unsafe GLRenderTarget(GL gl, Uuid entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
         Entity = entity;
         VertexArrayObject = vertexArrayObject;

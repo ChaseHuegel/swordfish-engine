@@ -1,3 +1,4 @@
+using Swordfish.ECS;
 using Swordfish.Library.Types;
 
 namespace Swordfish.Graphics;
@@ -14,7 +15,7 @@ public interface IRenderContext
 
     void Bind(Mesh mesh);
 
-    void Bind(MeshRenderer meshRenderer, int entity);
+    void Bind(MeshRenderer meshRenderer, Uuid entity);
     
     void Bind(RectRenderer rectRenderer);
     

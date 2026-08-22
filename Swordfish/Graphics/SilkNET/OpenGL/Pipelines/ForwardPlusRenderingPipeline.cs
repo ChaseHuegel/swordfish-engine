@@ -233,15 +233,9 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
         lock (_lightsBuffer)
         {
             _lightsBuffer.Clear();
-            store.Query<TransformComponent, LightComponent>(0f, LightQuery);
+            var bufferLightAction = new WriteLightAction(this);
+            store.Query<TransformComponent, LightComponent, WriteLightAction>(0f, ref bufferLightAction);
         }
-    }
-
-    private void LightQuery(float f, DataStore store, int entity, ref TransformComponent transform, ref LightComponent light)
-    {
-        var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
-        var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Size);
-        _lightsBuffer.Write(new GPULight(posRadius, colorIntensity));
     }
 
     private void OnWindowResized(Vector2 size)
@@ -577,5 +571,17 @@ internal sealed unsafe class ForwardPlusRenderingPipeline<TRenderStage> : Render
             pixels[i] = skybox.Textures[i].Pixels;
         }
         _skyboxTex = _glContext.CreateTexCubemap(skybox.Name, pixels, (uint)skybox.Width, (uint)skybox.Height, TextureFormat.Rgba, TextureParams.ClampNearest);
+    }
+    
+    private readonly struct WriteLightAction(in ForwardPlusRenderingPipeline<TRenderStage> owner) : IForEach<TransformComponent, LightComponent>
+    {
+        private readonly ForwardPlusRenderingPipeline<TRenderStage> _owner = owner;
+        
+        public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in LightComponent light)
+        {
+            var posRadius = new Vector4(transform.Position.X, transform.Position.Y, transform.Position.Z, light.Radius);
+            var colorIntensity = new Vector4(light.Color.X, light.Color.Y, light.Color.Z, light.Size);
+            _owner._lightsBuffer.Write(new GPULight(posRadius, colorIntensity));
+        }
     }
 }

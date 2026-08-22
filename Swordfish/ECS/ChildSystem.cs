@@ -2,17 +2,26 @@ using System.Numerics;
 
 namespace Swordfish.ECS;
 
-public class ChildSystem : EntitySystem<ChildComponent, TransformComponent>
+public class ChildSystem : IEntitySystem
 {
-    protected override void OnTick(float delta, DataStore store, int entity, ref ChildComponent child, ref TransformComponent transform)
+    public void Tick(float delta, DataStore store)
     {
-        if (!store.TryGet(child.Parent, out TransformComponent parentTransform))
+        UpdateChildAction action = default;
+        store.QueryRef<ChildComponent, TransformComponent, UpdateChildAction>(delta, ref action);
+    }
+    
+    private readonly struct UpdateChildAction : IForEachRef<ChildComponent, TransformComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, ref Ref<ChildComponent> child, ref Ref<TransformComponent> transform)
         {
-            return;
-        }
+            if (!store.TryGet(child.Read.Parent, out TransformComponent parentTransform))
+            {
+                return;
+            }
 
-        transform.Position = parentTransform.Position + Vector3.Transform(child.LocalPosition, parentTransform.Orientation);
-        transform.Orientation = parentTransform.Orientation * child.LocalOrientation;
-        transform.Scale = parentTransform.Scale * child.LocalScale;
+            transform.Write.Position = parentTransform.Position + Vector3.Transform(child.Read.LocalPosition, parentTransform.Orientation);
+            transform.Write.Orientation = parentTransform.Orientation * child.Read.LocalOrientation;
+            transform.Write.Scale = parentTransform.Scale * child.Read.LocalScale;
+        }
     }
 }

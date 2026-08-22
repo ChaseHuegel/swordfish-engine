@@ -126,9 +126,13 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 FixedUpdate?.Invoke(this, EventArgs.Empty);
                 _context.ProcessMessageQueue();
 
-                store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
+                var syncJoltToEntity = new SyncJoltToEntityAction(this);
+                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
+                
                 System.Update(physicsDelta, steps, _jobSystem);
-                store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
+
+                var syncEntityToJolt = new SyncEntityToJoltAction(this);
+                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
 
                 _accumulator -= physicsDelta;
             }
@@ -143,76 +147,16 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             FixedUpdate?.Invoke(this, EventArgs.Empty);
             _context.ProcessMessageQueue();
 
-            store.Query<PhysicsComponent, TransformComponent>(delta, SyncJoltToEntity);
+            var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
+            store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
+            
             System.Update(physicsDelta, steps, _jobSystem);
-            store.Query<PhysicsComponent, TransformComponent>(delta, SyncEntityToJolt);
+            
+            var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
+            store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
 
             _accumulator -= physicsDelta;
         }
-    }
-
-    private void SyncEntityToJolt(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
-    {
-        if (!store.TryGet(entity, out ColliderComponent collider))
-        {
-            return;
-        }
-        
-        Body body;
-        if (physics.Body != null)
-        {
-            body = physics.Body;
-
-            transform.Position = body.Position;
-            transform.Orientation = body.Rotation;
-
-            physics.Velocity = body.GetLinearVelocity();
-            physics.Torque = body.GetAngularVelocity();
-
-            if (collider.SyncedWithPhysics)
-            {
-                return;
-            }
-
-            collider.SyncedWithPhysics = true;
-            store.AddOrUpdate(entity, collider);
-            if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
-            {
-                return;
-            }
-            
-            _bodyInterface.SetShape(body.ID, shape, true, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
-        }
-        else
-        {
-            collider.SyncedWithPhysics = true;
-            store.AddOrUpdate(entity, collider);
-            if (!TryGetJoltShape(collider, transform.Scale, out JoltShape shape))
-            {
-                return;
-            }
-
-            using BodyCreationSettings creationSettings = new(shape, transform.Position, transform.Orientation, (MotionType)physics.BodyType, physics.Layer);
-            body = _bodyInterface.CreateBody(creationSettings);
-            _bodyInterface.AddBody(body.ID, physics.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
-            _bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.CollisionDetection);
-            physics.Body = body;
-            physics.BodyID = body.ID;
-            physics.BodyInterface = _bodyInterface;
-            physics.ThreadContext = _context;
-
-            SyncJoltToEntity(delta, store, entity, ref physics, ref transform);
-        }
-    }
-
-    private void SyncJoltToEntity(float delta, DataStore store, int entity, ref PhysicsComponent physics, ref TransformComponent transform)
-    {
-        if (physics.Body == null)
-        {
-            return;
-        }
-        
-        _bodyInterface.SetPositionRotationAndVelocity(physics.Body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
     }
 
     private static bool TryGetJoltShape(ColliderComponent collider, Vector3 scale, out JoltShape joltShape)
@@ -280,5 +224,82 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         joltShape = null!;
         return false;
+    }
+    
+    private readonly struct SyncEntityToJoltAction(in JoltPhysicsSystem owner) : IForEachRef<PhysicsComponent, TransformComponent>
+    {
+        private readonly JoltPhysicsSystem _owner = owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
+        {
+            if (!store.TryGet(entity, out ColliderComponent collider))
+            {
+                return;
+            }
+
+            Body body;
+            if (physics.Read.Body != null)
+            {
+                body = physics.Read.Body;
+
+                transform.Write.Position = body.Position;
+                transform.Write.Orientation = body.Rotation;
+
+                physics.Write.Velocity = body.GetLinearVelocity();
+                physics.Write.Torque = body.GetAngularVelocity();
+
+                if (collider.SyncedWithPhysics)
+                {
+                    return;
+                }
+
+                collider.SyncedWithPhysics = true;
+                store.AddOrUpdate(entity, collider);
+                if (!TryGetJoltShape(collider, transform.Read.Scale, out JoltShape shape))
+                {
+                    return;
+                }
+
+                _owner._bodyInterface.SetShape(body.ID, shape, true, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+            }
+            else
+            {
+                collider.SyncedWithPhysics = true;
+                store.AddOrUpdate(entity, collider);
+                if (!TryGetJoltShape(collider, transform.Read.Scale, out JoltShape shape))
+                {
+                    return;
+                }
+
+                using BodyCreationSettings creationSettings = new(shape, transform.Read.Position, transform.Read.Orientation, (MotionType)physics.Read.BodyType, physics.Read.Layer);
+                body = _owner._bodyInterface.CreateBody(creationSettings);
+                _owner._bodyInterface.AddBody(body.ID, physics.Read.BodyType == BodyType.Static ? Activation.DontActivate : Activation.Activate);
+                _owner._bodyInterface.SetMotionQuality(body.ID, (MotionQuality)physics.Read.CollisionDetection);
+
+                physics.Write.Body = body;
+                physics.Write.BodyID = body.ID;
+                physics.Write.BodyInterface = _owner._bodyInterface;
+                physics.Write.ThreadContext = _owner._context;
+
+                ref TransformComponent transformValue = ref transform.Write;
+                var syncJoltToEntityAction = new SyncJoltToEntityAction(_owner);
+                syncJoltToEntityAction.Execute(delta, store, entity, physics.Read, transformValue);
+            }
+        }
+    }
+
+    private readonly struct SyncJoltToEntityAction(in JoltPhysicsSystem owner) : IForEach<PhysicsComponent, TransformComponent>
+    {
+        private readonly JoltPhysicsSystem _owner = owner;
+
+        public void Execute(float delta, DataStore store, int entity, in PhysicsComponent physics, in TransformComponent transform)
+        {
+            if (physics.Body == null)
+            {
+                return;
+            }
+
+            _owner._bodyInterface.SetPositionRotationAndVelocity(physics.Body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
+        }
     }
 }
