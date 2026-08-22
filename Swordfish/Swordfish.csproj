@@ -17,6 +17,7 @@
     <PackageId>Swordfish</PackageId>
     <Version>3.8.0</Version>
     <Authors>Chase Huegel</Authors>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

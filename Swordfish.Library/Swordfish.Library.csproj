@@ -8,7 +8,7 @@
     <PackageId>Swordfish.Library</PackageId>
     <Version>3.6.0</Version>
     <Authors>Chase Huegel</Authors>
-    <LangVersion>12</LangVersion>
+    <LangVersion>13</LangVersion>
   </PropertyGroup>
 
   <PropertyGroup>

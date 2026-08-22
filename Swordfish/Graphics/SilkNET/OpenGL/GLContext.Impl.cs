@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Library.Types;
 using Swordfish.Types;
 
@@ -104,14 +105,14 @@ internal unsafe partial class GLContext
 
     private readonly struct GLRenderTargetArgs(
         in GL gl,
-        in int entity,
+        in Uuid entity,
         in VertexArrayObject<float, uint> vertexArrayObject,
         in BufferObject<Matrix4x4> modelsBufferObject,
         in GLMaterial[] materials,
         in RenderOptions renderOptions)
     {
         private readonly GL _gl = gl;
-        private readonly int _entity = entity;
+        private readonly Uuid _entity = entity;
         private readonly VertexArrayObject<float, uint> _vertexArrayObject = vertexArrayObject;
         private readonly BufferObject<Matrix4x4> _modelsBufferObject = modelsBufferObject;
         private readonly GLMaterial[] _materials = materials;

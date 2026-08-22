@@ -1,6 +1,8 @@
+using Swordfish.ECS;
+
 namespace Swordfish.Graphics;
 
 public interface IRenderTarget
 {
-    int Entity { get; }
+    Uuid Entity { get; }
 }
