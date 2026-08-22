@@ -76,9 +76,9 @@ internal sealed class CharacterSaveManager
 
         //  Fetch the character's inventory data
         _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
-        void UpdateInventory(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
+        void UpdateInventory(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
-            if (!store.TryGet(entity, out GuidComponent guidComponent) || guidComponent.Guid.ToString() != character.Guid)
+            if (store.GetUuid(entity).ToValue() != character.Id)
             {
                 return;
             }
@@ -103,24 +103,22 @@ internal sealed class CharacterSaveManager
         }
         else
         {
-            _logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Guid}): {Message}", character.Name, character.Guid, saveResult.Message);
+            _logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Id, saveResult.Message);
         }
     }
     
     public void Delete(Character character)
     {
-        if (!_characterStorage.DeleteCharacter(character.Guid))
+        if (!_characterStorage.DeleteCharacter(character.Id))
         {
-            _logger.LogError("Failed to delete character {Name} ({Guid})", character.Name, character.Guid);
+            _logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Id);
         }
     }
     
     internal Character? GetMostRecentSave()
     {
-        var mostRecentCharacter = _characterStorage.GetAllCharacters()
+        return _characterStorage.GetAllCharacters()
             .OrderByDescending(c => c.LastPlayedMs)
             .FirstOrDefault();
-
-        return mostRecentCharacter.Guid != null ? mostRecentCharacter : null;
     }
 }

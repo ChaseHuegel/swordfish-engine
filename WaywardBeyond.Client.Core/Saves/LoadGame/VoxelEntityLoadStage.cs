@@ -82,7 +82,7 @@ internal sealed class VoxelEntityLoadStage(
             if (getResult.Success && getResult.Value.Length > 0)
             {
                 VoxelEntityModel voxelEntityModel = _voxelEntitySerializer.Deserialize(getResult.Value);
-                _voxelEntityBuilder.Create(voxelEntityModel.Guid, voxelEntityModel.VoxelObject, voxelEntityModel.Position, voxelEntityModel.Orientation, Vector3.One);
+                _voxelEntityBuilder.Create(voxelEntityModel.Uuid, voxelEntityModel.VoxelObject, voxelEntityModel.Position, voxelEntityModel.Orientation, Vector3.One);
             }
             
             processedFiles++;

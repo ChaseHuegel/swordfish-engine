@@ -33,7 +33,7 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 |---|---|---|---|
 | `Shoal/` | App host, DI (DryIoc), module loader, CLI, localization | `net8.0` | Shoal |
 | `Swordfish/` | Engine module: rendering (Silk.NET/OpenGL), physics (Jolt), audio, input, UI | `net8.0` | Swordfish |
-| `Swordfish.ECS/` | Struct-based ECS: Entity, ChunkedStore, World | `net5.0` | Swordfish.ECS |
+| `Swordfish.ECS/` | Struct-based ECS: Entity, ChunkedStore, World | `net8.0` | Swordfish.ECS |
 | `Swordfish.Library/` | Shared types, serialization (Needlefish), DI abstractions | `netstandard2.1` | Swordfish.Library |
 | `Swordfish.Integrations/` | Integrations (SQL, FontAwesome, etc.) | — | Swordfish.Integrations |
 | `Swordfish.Compilation/` | Lexer/parser/linter for custom shader/script langs | `netstandard2.0` | Swordfish.Compilation |
@@ -78,6 +78,7 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 - `AllowUnsafeBlocks` enabled in `Swordfish`, `Shoal`, `Swordfish.ECS`, `Swordfish.Library`, `Reef`.
 - `LangVersion 12` used in projects targeting older frameworks.
 - No lint, format, or typecheck scripts/commands — standard `dotnet build` handles compilation.
+- **ECS dirty tracking**: store-mediated writes (`Alloc<T...>`, `AddOrUpdate`, `Entity.Add`) automatically mark the component dirty. In-place mutation through a query `ref` is NOT auto-detected — mutating systems must use `store.QueryRef<T...>(...)` (or extend `EntitySystemRef<T...>`) and go through the `Ref<T>` accessor's `Write` property, which marks the component dirty and returns a write `ref` (`Read` is `ref readonly` and compiler-enforced). Grab `ref T value = ref accessor.Write;` once at the top of a callback for terse writes. Explicit `store.MarkDirty<T>(entity)` is only needed for reference-content mutation (e.g. `VoxelComponent`, arrays/collections inside a component) where no `Ref<T>` write occurs. `QueryDirty<T>`/`QueryDirty<T1,T2>`/`QueryRemoved<T>` iterate matching dirty components WITHOUT clearing — callers must explicitly `ClearDirty<T>(entity)` (or `ClearDirty(type, entity)`). Component removals are auto-flagged so `QueryRemoved` can detect them; the component value is preserved on removal so `QueryRemoved` readers can access the last known data. Despawn replication: server `NetworkReplicationSystem` collects `QueryRemoved<NetworkComponent>` into `WorldSnapshotMsg.RemovedNetworkIDs`, which clients use to `Free` matching entities.
 
 ## Test Quirks
 

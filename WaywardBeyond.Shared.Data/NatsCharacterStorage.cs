@@ -9,9 +9,9 @@ public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterSt
 
     private readonly KeyValueStore _keyValueStore = keyValueStore;
 
-    public Result<Character> GetCharacter(string guid)
+    public Result<Character> GetCharacter(ulong id)
     {
-        Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, guid);
+        Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, id.ToString());
 
         if (!getResult.Success)
         {
@@ -46,7 +46,12 @@ public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterSt
         for (var i = 0; i < keysResult.Value.Length; i++)
         {
             string key = keysResult.Value[i];
-            Result<Character> charResult = GetCharacter(key);
+            if (!ulong.TryParse(key, out ulong id))
+            {
+                continue;
+            }
+
+            Result<Character> charResult = GetCharacter(id);
             if (charResult.Success)
             {
                 characters.Add(charResult.Value);
@@ -61,7 +66,7 @@ public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterSt
         try
         {
             byte[] data = character.Serialize();
-            return _keyValueStore.Put(BUCKET_NAME, character.Guid, data);
+            return _keyValueStore.Put(BUCKET_NAME, character.Id.ToString(), data);
         }
         catch (System.Exception ex)
         {
@@ -69,8 +74,8 @@ public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterSt
         }
     }
 
-    public Result DeleteCharacter(string guid)
+    public Result DeleteCharacter(ulong id)
     {
-        return _keyValueStore.Delete(BUCKET_NAME, guid);
+        return _keyValueStore.Delete(BUCKET_NAME, id.ToString());
     }
 }

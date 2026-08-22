@@ -119,7 +119,6 @@ public class Injector : IDryIocInjector
     private static void RegisterNetworking(IContainer container)
     {
         container.RegisterNetworkComponent<NetworkComponent>();
-        container.RegisterNetworkComponent<DirtyComponent>();
         container.RegisterNetworkComponent<InputComponent>();
         container.RegisterNetworkComponent<PendingInputComponent>();
         container.RegisterNetworkComponent<PlaceBlockCommand>();

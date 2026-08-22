@@ -5,11 +5,11 @@ namespace WaywardBeyond.Shared.Data;
 
 public interface ICharacterStorage
 {
-    Result<Character> GetCharacter(string guid);
+    Result<Character> GetCharacter(ulong id);
     
     IEnumerable<Character> GetAllCharacters();
     
     Result SaveCharacter(Character character);
     
-    Result DeleteCharacter(string guid);
+    Result DeleteCharacter(ulong id);
 }

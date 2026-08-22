@@ -37,7 +37,7 @@ message Character
 {
     Version Version = 0;
     
-    string Guid = 1;
+    ulong Id = 1;
     
     long LastPlayedMs = 2;
     long AgeMs        = 3;
@@ -73,7 +73,7 @@ message Statistic
 
 message CharacterEntityData
 {
-    string Guid = 0;
+    ulong Uuid = 0;
     
     double X = 1;
     double Y = 2;

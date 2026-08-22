@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Numerics;
+using Swordfish.ECS;
 using Swordfish.Library.Serialization;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
@@ -11,7 +12,7 @@ internal class CharacterEntityModelSerializer : ISerializer<CharacterEntityModel
     public byte[] Serialize(CharacterEntityModel value)
     {
         var characterEntityData = new CharacterEntityData(
-            value.Guid.ToString(),
+            value.Uuid.ToValue(),
             value.Position.X,
             value.Position.Y,
             value.Position.Z,
@@ -32,10 +33,9 @@ internal class CharacterEntityModelSerializer : ISerializer<CharacterEntityModel
     {
         CharacterEntityData characterEntityData = CharacterEntityData.Deserialize(data);
 
-        Guid guid = Guid.TryParse(characterEntityData.Guid, out Guid parsedGuid) ? parsedGuid : Guid.NewGuid();
         var position = new Vector3((float)characterEntityData.X, (float)characterEntityData.Y, (float)characterEntityData.Z);
         var orientation = new Quaternion(characterEntityData.OrientationX, characterEntityData.OrientationY, characterEntityData.OrientationZ, characterEntityData.OrientationW);
         
-        return new CharacterEntityModel(guid, position, orientation, characterEntityData.GameMode);
+        return new CharacterEntityModel(Uuid.FromValue(characterEntityData.Uuid), position, orientation, characterEntityData.GameMode);
     }
 }

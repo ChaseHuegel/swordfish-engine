@@ -7,12 +7,10 @@ using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Events;
-using WaywardBeyond.Shared.Networking.Systems;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class PlayerControllerSystem
-    : EntitySystem<PlayerComponent, PhysicsComponent>
+internal sealed class PlayerControllerSystem : IEntitySystem
 {
     private const float MOUSE_SENSITIVITY = 0.1f;
     private const float BASE_SPEED = 10;
@@ -23,7 +21,7 @@ internal sealed class PlayerControllerSystem
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
     private readonly EventInvoker<PlayerMovedEvent> _playerMovedEvent;
-    
+
     private readonly ConcurrentQueue<Vector2> _cursorDeltaQueue = new();
     private readonly List<Vector2> _cursorDeltaBuffer = [];
 
@@ -52,7 +50,7 @@ internal sealed class PlayerControllerSystem
         {
             return;
         }
-        
+
         _inputEnabled = enabled;
         if (enabled)
         {
@@ -76,120 +74,131 @@ internal sealed class PlayerControllerSystem
         _cursorDeltaQueue.Enqueue(_inputService.CursorDelta);
     }
 
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref PhysicsComponent physics)
-    {
-        while (_cursorDeltaQueue.TryDequeue(out Vector2 cursorDelta))
-        {
-            _cursorDeltaBuffer.Add(cursorDelta);
-        }
-        
-        if (!store.TryGet(entity, out TransformComponent transform))
-        {
-            _cursorDeltaBuffer.Clear();
-            return;
-        }
-        
-        var playerMovedEvent = new PlayerMovedEvent(transform.Position);
-        _playerMovedEvent.Invoke(playerMovedEvent);
-        
-        physics.Torque += -physics.Torque * delta * ANGULAR_DECELERATION;
-        if (physics.Torque.LengthSquared() <= 0.00001f)
-        {
-            physics.Torque = new Vector3();
-        }
-        
-        physics.Velocity += -physics.Velocity * delta * DECELERATION;
-        if (physics.Velocity.LengthSquared() <= 0.00001f)
-        {
-            physics.Velocity = new Vector3();
-        }
-
-        if (!_inputEnabled || _windowUnfocused)
-        {
-            _cursorDeltaBuffer.Clear();
-            return;
-        }
-
-        if (!_inputService.IsKeyHeld(Key.Alt))
-        {
-            float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-            
-            //  Process all cursor deltas that have been recorded between ticks
-            for (var i = 0; i < _cursorDeltaBuffer.Count; i++)
-            {
-                var cursorDelta = _cursorDeltaBuffer[i];
-                Rotate(ref physics, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
-                Rotate(ref physics, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
-            }
-            _cursorDeltaBuffer.Clear();
-        }
-
-        Vector3 forward = transform.GetForward();
-        Vector3 right = transform.GetRight();
-        Vector3 up = transform.GetUp();
-        
-        var velocity = new Vector3();
-        
-        if (_inputService.IsKeyHeld(Key.W))
-        {
-            velocity -= forward;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.S))
-        {
-            velocity += forward;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.D))
-        {
-            velocity += right;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.A))
-        {
-            velocity -= right;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.Space))
-        {
-            velocity += up;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.Control))
-        {
-            velocity -= up;
-        }
-        
-        if (_inputService.IsKeyHeld(Key.Q))
-        {
-            Rotate(ref physics, transform, new Vector3(0, 0, ROLL_RATE * delta));
-        }
-        
-        if (_inputService.IsKeyHeld(Key.E))
-        {
-            Rotate(ref physics, transform, new Vector3(0, 0, -ROLL_RATE * delta));
-        }
-        
-        physics.Velocity += velocity * BASE_SPEED * delta;
-        
-        store.MarkDirty<PhysicsComponent>(entity);
-    }
-
-    private static void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation)
-    {
-        physics.Torque += Vector3.Transform(rotation, transform.Orientation);
-    }
-    
     private void OnWindowFocused()
     {
         SetInputEnabled(_savedMouseLookState);
         _windowUnfocused = false;
     }
-    
+
     private void OnWindowUnfocused()
     {
         _savedMouseLookState = _inputEnabled;
         SetInputEnabled(false);
         _windowUnfocused = true;
+    }
+
+    private struct ForEachAction : IForEachRef<PlayerComponent, PhysicsComponent>
+    {
+        public PlayerControllerSystem Owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<PlayerComponent> player, ref Ref<PhysicsComponent> physics)
+        {
+            while (Owner._cursorDeltaQueue.TryDequeue(out Vector2 cursorDelta))
+            {
+                Owner._cursorDeltaBuffer.Add(cursorDelta);
+            }
+
+            if (!store.TryGet(entity, out TransformComponent transform))
+            {
+                Owner._cursorDeltaBuffer.Clear();
+                return;
+            }
+
+            ref PhysicsComponent physicsValue = ref physics.Write;
+
+            var playerMovedEvent = new PlayerMovedEvent(transform.Position);
+            Owner._playerMovedEvent.Invoke(playerMovedEvent);
+
+            physicsValue.Torque += -physicsValue.Torque * delta * ANGULAR_DECELERATION;
+            if (physicsValue.Torque.LengthSquared() <= 0.00001f)
+            {
+                physicsValue.Torque = new Vector3();
+            }
+
+            physicsValue.Velocity += -physicsValue.Velocity * delta * DECELERATION;
+            if (physicsValue.Velocity.LengthSquared() <= 0.00001f)
+            {
+                physicsValue.Velocity = new Vector3();
+            }
+
+            if (!Owner._inputEnabled || Owner._windowUnfocused)
+            {
+                Owner._cursorDeltaBuffer.Clear();
+                return;
+            }
+
+            if (!Owner._inputService.IsKeyHeld(Key.Alt))
+            {
+                float sensitivityModifier = Owner._controlSettings.LookSensitivity / 5f;
+
+                //  Process all cursor deltas that have been recorded between ticks
+                for (var i = 0; i < Owner._cursorDeltaBuffer.Count; i++)
+                {
+                    var cursorDelta = Owner._cursorDeltaBuffer[i];
+                    Rotate(ref physicsValue, transform, new Vector3(0, -cursorDelta.X, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+                    Rotate(ref physicsValue, transform, new Vector3(-cursorDelta.Y, 0, 0) * MOUSE_SENSITIVITY * sensitivityModifier);
+                }
+                Owner._cursorDeltaBuffer.Clear();
+            }
+
+            Vector3 forward = transform.GetForward();
+            Vector3 right = transform.GetRight();
+            Vector3 up = transform.GetUp();
+
+            var velocity = new Vector3();
+
+            if (Owner._inputService.IsKeyHeld(Key.W))
+            {
+                velocity -= forward;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.S))
+            {
+                velocity += forward;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.D))
+            {
+                velocity += right;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.A))
+            {
+                velocity -= right;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.Space))
+            {
+                velocity += up;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.Control))
+            {
+                velocity -= up;
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.Q))
+            {
+                Rotate(ref physicsValue, transform, new Vector3(0, 0, ROLL_RATE * delta));
+            }
+
+            if (Owner._inputService.IsKeyHeld(Key.E))
+            {
+                Rotate(ref physicsValue, transform, new Vector3(0, 0, -ROLL_RATE * delta));
+            }
+
+            physicsValue.Velocity += velocity * BASE_SPEED * delta;
+        }
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        ForEachAction action = new() { Owner = this };
+        store.QueryRef<PlayerComponent, PhysicsComponent, ForEachAction>(delta, ref action);
+    }
+
+    private static void Rotate(ref PhysicsComponent physics, TransformComponent transform, Vector3 rotation)
+    {
+        physics.Torque += Vector3.Transform(rotation, transform.Orientation);
     }
 }

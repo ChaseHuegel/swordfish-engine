@@ -103,15 +103,8 @@ internal class Inventory : IUILayer
                 {
                     return;
                 }
-                
-                Result<InventoryComponent> inventoryResult = _playerData.GetInventory(_ecsContext.World.DataStore);
-                if (!inventoryResult.Success)
-                {
-                    return;
-                }
-                
-                InventoryComponent inventory = inventoryResult.Value;
-                inventory.Swap(slotIndex, _selectedSlot);
+
+                _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) => inventory.Swap(slotIndex, _selectedSlot));
             }
         }
     }
@@ -155,24 +148,27 @@ internal class Inventory : IUILayer
             if (!isDragSlotEmpty)
             {
                 //  Try to fill the selected stack from the dragged stack, if it is the same as the dragged item
-                if (dragItemStack.ID == selectedItemStack.ID)
+                _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                 {
-                    int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-                    Result<ItemStack> content = inventory.Remove(_draggingSlot, available);
-                    if (content.Success)
+                    if (dragItemStack.ID == selectedItemStack.ID)
                     {
-                        if (!inventory.Add(_selectedSlot, content))
+                        int available = selectedItemStack.MaxSize - selectedItemStack.Count;
+                        Result<ItemStack> content = inventory.Remove(_draggingSlot, available);
+                        if (content.Success)
                         {
-                            inventory.Add(content);
-                            //  TODO if this fails, the item should be dropped so it isn't lost
+                            if (!inventory.Add(_selectedSlot, content))
+                            {
+                                inventory.Add(content);
+                                //  TODO if this fails, the item should be dropped so it isn't lost
+                            }
                         }
                     }
-                } 
-                //  Otherwise, swap the slots
-                else
-                {
-                    inventory.Swap(_draggingSlot, _selectedSlot);
-                }
+                    //  Otherwise, swap the slots
+                    else
+                    {
+                        inventory.Swap(_draggingSlot, _selectedSlot);
+                    }
+                });
             }
         }
         
@@ -260,15 +256,18 @@ internal class Inventory : IUILayer
                                 //  Right-clicking a slot while dragging an item drops 1 count
                                 if (_dragging && rightClicked)
                                 {
-                                    Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
-                                    if (content.Success)
+                                    _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                     {
-                                        if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
+                                        Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
+                                        if (content.Success)
                                         {
-                                            inventory.Add(content);
-                                            //  TODO if this fails, the item should be dropped so it isn't lost
+                                            if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
+                                            {
+                                                inventory.Add(content);
+                                                //  TODO if this fails, the item should be dropped so it isn't lost
+                                            }
                                         }
-                                    }
+                                    });
                                 }
                                 
                                 //  Scrolling while dragging an item will add/remove items by 1
@@ -278,15 +277,18 @@ internal class Inventory : IUILayer
                                     int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
                                     var amount = (int)Math.Abs(scroll);
                                     
-                                    Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
-                                    if (content.Success)
+                                    _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                     {
-                                        if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
+                                        Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
+                                        if (content.Success)
                                         {
-                                            inventory.Add(content);
-                                            //  TODO if this fails, the item should be dropped so it isn't lost
+                                            if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
+                                            {
+                                                inventory.Add(content);
+                                                //  TODO if this fails, the item should be dropped so it isn't lost
+                                            }
                                         }
-                                    }
+                                    });
                                 }
                                 
                                 //  Continue if this slot is empty
@@ -333,12 +335,15 @@ internal class Inventory : IUILayer
                                     //  Shift + click and shift + hold left click quick moves items
                                     if (clicked || held)
                                     {
-                                        Result<ItemStack> content = inventory.Remove(inventorySlot);
-                                        if (content.Success)
+                                        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                         {
-                                            int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
-                                            inventory.Add(content, startingSlot);
-                                        }
+                                            Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                            if (content.Success)
+                                            {
+                                                int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
+                                                inventory.Add(content, startingSlot);
+                                            }
+                                        });
                                     }
                                 }
                                 else
@@ -346,15 +351,18 @@ internal class Inventory : IUILayer
                                     //  Right-clicking a slot splits the stack
                                     if (!_dragging && rightClicked)
                                     {
-                                        Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
-                                        if (content.Success)
+                                        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                         {
-                                            if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
+                                            Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
+                                            if (content.Success)
                                             {
-                                                inventory.Add(content);
-                                                //  TODO if this fails, the item should be dropped so it isn't lost
+                                                if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
+                                                {
+                                                    inventory.Add(content);
+                                                    //  TODO if this fails, the item should be dropped so it isn't lost
+                                                }
                                             }
-                                        }
+                                        });
                                     }
 
                                     //  Start dragging this slot

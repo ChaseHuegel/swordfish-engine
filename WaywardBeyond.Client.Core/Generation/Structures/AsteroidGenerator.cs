@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
+using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
@@ -58,6 +59,6 @@ internal sealed class AsteroidGenerator(in int seed, in VoxelEntityBuilder voxel
         float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         
-        _voxelEntityBuilder.Create(Guid.NewGuid(), voxelObject, position, orientation, Vector3.One);
+        _voxelEntityBuilder.Create(Uuid.NewUuid(), voxelObject, position, orientation, Vector3.One);
     }
 }

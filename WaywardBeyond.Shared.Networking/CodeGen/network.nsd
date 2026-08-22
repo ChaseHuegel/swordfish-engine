@@ -13,12 +13,12 @@ message ClientInputMsg
     bool PrimaryAction    = 7;
     bool SecondaryAction  = 8;
     uint ServerTickAtSample = 9;
-    uint ClientID         = 10;
+    ulong ClientUuid      = 10;
 }
 
 message EntitySnapshotMsg
 {
-    uint NetworkID        = 0;
+    ulong Uuid            = 0;
     float PositionX       = 1;
     float PositionY       = 2;
     float PositionZ       = 3;
@@ -59,4 +59,5 @@ message WorldSnapshotMsg
     uint TickNumber          = 0;
     uint LastProcessedInput  = 1;
     EntitySnapshotMsg[] Entities = 2;
+    ulong[] RemovedUuids     = 3;
 }

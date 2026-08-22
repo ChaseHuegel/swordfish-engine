@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Reef;
 using Reef.Constraints;
 using Reef.UI;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
@@ -526,7 +527,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
             {
                 var character = new Character(
                     WaywardBeyond.Version,
-                    Guid.NewGuid().ToString(),
+                    Uuid.NewUuid().ToValue(),
                     _LastPlayedMs: 0,
                     _AgeMs: 0,
                     nameValue,
@@ -555,7 +556,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                             var notification = new Notification("Failed to create character!");
                             _notificationService.Push(notification);
                             
-                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Guid, saveResult.Message);
+                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Id, saveResult.Message);
                         }
                     }
                 );

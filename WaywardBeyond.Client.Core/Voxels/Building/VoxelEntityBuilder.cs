@@ -51,13 +51,15 @@ internal sealed class VoxelEntityBuilder(
         Wireframe = false,
     };
 
-    public Entity Create(Guid guid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
+    public Entity Create(Uuid uuid, VoxelObject voxelObject, Vector3 position, Quaternion orientation, Vector3 scale)
     {
-        int entity = _dataStore.Alloc(new IdentifierComponent(name: null, tag: "game"), new GuidComponent(guid));
-        int transparencyPtr = _dataStore.Alloc(new IdentifierComponent(name: null, tag: "game"), new GuidComponent(guid));
+        int entity = _dataStore.Alloc(uuid);
+        _dataStore.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
+        int transparencyPtr = _dataStore.Alloc();
+        _dataStore.AddOrUpdate(transparencyPtr, new IdentifierComponent(name: null, tag: "game"));
         
         var transform = new TransformComponent(position, orientation, scale);
-        var voxelComponent = new VoxelComponent(voxelObject, transparencyPtr);
+        var voxelComponent = new VoxelComponent(voxelObject, _dataStore.GetUuid(transparencyPtr));
         
         _dataStore.AddOrUpdate(entity, transform);
         _dataStore.AddOrUpdate(entity, voxelComponent);
@@ -65,7 +67,7 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(entity, new MeshRendererCleanup());
         
         _dataStore.AddOrUpdate(transparencyPtr, transform);
-        _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(entity));
+        _dataStore.AddOrUpdate(transparencyPtr, new ChildComponent(_dataStore.GetUuid(entity)));
         
         VoxelObjectBuilder.Data data = _voxelObjectBuilder.Build(voxelObject);
         UpdateEntity(entity, voxelComponent, data);
@@ -112,15 +114,18 @@ internal sealed class VoxelEntityBuilder(
         _dataStore.AddOrUpdate(entity, new ColliderComponent(data.CollisionShape));
         
         renderer = new MeshRenderer(data.TransparentMesh, _transparentMaterial, _transparentRenderOptions);
-        _dataStore.AddOrUpdate(voxelComponent.TransparencyPtr, new MeshRendererComponent(renderer));
+        if (_dataStore.TryGet(voxelComponent.TransparencyPtr, out int transparencyEntity))
+        {
+            _dataStore.AddOrUpdate(transparencyEntity, new MeshRendererComponent(renderer));
+        }
      
         using Lock.Scope _ = _updatedEntitiesLock.EnterScope();
         
         //  Update any existing entities and cleanup old ones
         _dataStore.Query<VoxelIdentifierComponent, ChildComponent>(0f, ForEachVoxelEntity);
-        void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, ref VoxelIdentifierComponent voxelIdentifier, ref ChildComponent child)
+        void ForEachVoxelEntity(float delta, DataStore store, int voxelEntity, in VoxelIdentifierComponent voxelIdentifier, in ChildComponent child)
         {
-            if (child.Parent != entity)
+            if (child.Parent != store.GetUuid(entity))
             {
                 return;
             }
@@ -161,7 +166,7 @@ internal sealed class VoxelEntityBuilder(
             _dataStore.AddOrUpdate(voxelEntity, new IdentifierComponent(name: null, tag: "game"));
             _dataStore.AddOrUpdate(voxelEntity, new VoxelIdentifierComponent(voxelInfo.X, voxelInfo.Y, voxelInfo.Z));
             _dataStore.AddOrUpdate(voxelEntity, new TransformComponent());
-            _dataStore.AddOrUpdate(voxelEntity, new ChildComponent(entity)
+            _dataStore.AddOrUpdate(voxelEntity, new ChildComponent(_dataStore.GetUuid(entity))
             {
                 LocalPosition = new Vector3(voxelInfo.X, voxelInfo.Y, voxelInfo.Z),
             });

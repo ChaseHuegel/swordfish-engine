@@ -48,27 +48,34 @@ internal sealed class ClientInputSystem : IEntitySystem
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
         };
 
-        uint clientId = 0;
-        store.Query<PlayerComponent>(0f, (float d, DataStore s, int e, ref PlayerComponent player) =>
+        Uuid clientUuid = Uuid.Null;
+        CollectInputAction collectInput = new() { Input = input, ClientUuid = clientUuid };
+        store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
+        clientUuid = collectInput.ClientUuid;
+
+        ClientInputMsg msg = input.ToMessage(0, clientUuid);
+        _transport.Send(msg);
+    }
+
+    private struct CollectInputAction : IForEach<PlayerComponent>
+    {
+        public InputComponent Input;
+        public Uuid ClientUuid;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent cleanupAudioPlayer)
         {
-            s.AddOrUpdate(e, input);
+            store.AddOrUpdate(entity, Input);
 
-            if (s.TryGet(e, out NetworkComponent net))
-            {
-                clientId = net.NetworkID;
-            }
+            ClientUuid = store.GetUuid(entity);
 
-            if (!s.TryGet(e, out PendingInputComponent pending))
+            if (!store.TryGet(entity, out PendingInputComponent pending))
             {
                 pending = new PendingInputComponent();
             }
 
-            pending.Push(input);
-            s.AddOrUpdate(e, pending);
-        });
-
-        ClientInputMsg msg = input.ToMessage(0, clientId);
-        _transport.Send(msg);
+            pending.Push(Input);
+            store.AddOrUpdate(entity, pending);
+        }
     }
 
     private Vector3 GetMovementInput()

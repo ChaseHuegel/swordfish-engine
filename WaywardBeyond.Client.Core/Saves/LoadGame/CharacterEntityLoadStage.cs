@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Threading.Tasks;
+using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
@@ -67,7 +68,7 @@ internal sealed class CharacterEntityLoadStage(
         Character character = _characterSaveManager.ActiveSave.Value;
         CharacterEntityModel? characterEntityModel = null;
         
-        var characterKey = $"{save.Level.Guid}.character.{character.Guid}";
+        var characterKey = $"{save.Level.Guid}.character.{character.Id}";
         Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, characterKey);
         if (getResult.Success && getResult.Value.Length > 0)
         {
@@ -78,8 +79,7 @@ internal sealed class CharacterEntityLoadStage(
         {
             //  No entity found, create a new one
             var spawnPosition = new Vector3(save.Level.SpawnX, save.Level.SpawnY, save.Level.SpawnZ);
-            Guid guid = Guid.Parse(character.Guid);
-            characterEntityModel = new CharacterEntityModel(guid, spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
+            characterEntityModel = new CharacterEntityModel(Uuid.FromValue(character.Id), spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
         }
 
         _playerCharacterEntityBuilder.Create(character, characterEntityModel.Value);

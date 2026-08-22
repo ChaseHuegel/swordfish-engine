@@ -54,10 +54,9 @@ internal sealed class PhysicsSnapshotBuilder : IComponentSnapshotBuilder
 
     public void ApplySnapshot(EntitySnapshotMsg snapshot, DataStore store, int entity)
     {
-        store.Query<PhysicsComponent>(entity, 0f, (float d, DataStore s, int e, ref PhysicsComponent physics) =>
+        store.QueryRef<PhysicsComponent>(entity, 0f, (float d, DataStore s, int e, ref Ref<PhysicsComponent> physics) =>
         {
-            physics.Velocity = new Vector3(snapshot.VelocityX, snapshot.VelocityY, snapshot.VelocityZ);
-            s.AddOrUpdate(entity, physics);
+            physics.Write.Velocity = new Vector3(snapshot.VelocityX, snapshot.VelocityY, snapshot.VelocityZ);
         });
     }
 }

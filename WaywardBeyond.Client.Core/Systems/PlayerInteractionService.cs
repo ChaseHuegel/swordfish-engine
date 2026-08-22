@@ -223,10 +223,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             _soundEffectService.PlayRemoveMetal();
         }
         
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        _ecsContext.World.DataStore.QueryRef<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         return;
 
-        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
         {
             if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent) && gameModeComponent.GameMode == GameMode.Creative)
             {
@@ -234,7 +234,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 return;
             }
             
-            inventory.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
+            inventory.Write.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
         }
     }
 
@@ -245,10 +245,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
 
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
-        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        _ecsContext.World.DataStore.QueryRef<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
+        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
         {
-            Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory);
+            Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory.Read);
             if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
             {
                 return;
@@ -272,7 +272,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             if (!store.TryGet(playerEntity, out GameModeComponent gameModeComponent) || gameModeComponent.GameMode != GameMode.Creative)
             {
                 //  If the player isn't in creative mode, attempt to remove the resource
-                if (!inventory.Remove(mainHand.Slot, 1))
+                if (!inventory.Write.Remove(mainHand.Slot, 1))
                 {
                     return;
                 }
@@ -306,6 +306,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             
             var voxel = brickInfo.ToVoxel(shape, orientation);
             voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
+            _ecsContext.World.DataStore.MarkDirty<VoxelComponent>(clickedEntity.Ptr);
             
             _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
@@ -324,7 +325,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         
         //  If the player has a valid item, select it
         _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
-        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref PlayerComponent player, ref InventoryComponent inventory)
+        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, in PlayerComponent player, in InventoryComponent inventory)
         {
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
             if (!brickInfoResult.Success)
@@ -358,16 +359,17 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 }
 
                 InventoryComponent playerInventory = inventory;
-                store.Query<EquipmentComponent>(playerEntity, 0f, UpdateActiveSlotQuery);
-                void UpdateActiveSlotQuery(float _, DataStore dataStore, int entity, ref EquipmentComponent equipment)
+                store.QueryRef<EquipmentComponent>(playerEntity, 0f, UpdateActiveSlotQuery);
+                void UpdateActiveSlotQuery(float _, DataStore dataStore, int entity, ref Ref<EquipmentComponent> equipment)
                 {
                     if (i >= Hotbar.SLOT_COUNT)
                     {
-                        playerInventory.Swap(equipment.ActiveInventorySlot, i);
+                        playerInventory.Swap(equipment.Read.ActiveInventorySlot, i);
+                        dataStore.MarkDirty<InventoryComponent>(entity);
                     }
                     else
                     {
-                        equipment.ActiveInventorySlot = i;
+                        equipment.Write.ActiveInventorySlot = i;
                     }
                 }
                 break;

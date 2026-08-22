@@ -48,7 +48,7 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
     {
         if (_entity == null)
         {
-            if (!_audioChannelSystem.TryGetChannelEntity("music", out int channel))
+            if (!_audioChannelSystem.TryGetChannelEntity("music", out Uuid channel))
             {
                 return;
             }
@@ -66,37 +66,43 @@ internal sealed class MusicSystem : IEntitySystem, IDebugOverlay
             _entity = store.Alloc(audioPlayer, new AudioSource());
         }
         
-        store.Query<AudioPlayer, AudioSource>(_entity.Value, delta, QueryEntity);
+        QueryEntityAction queryEntity = new() { Owner = this };
+        store.QueryRef<AudioPlayer, AudioSource, QueryEntityAction>(_entity.Value, delta, ref queryEntity);
     }
 
-    private void QueryEntity(float delta, DataStore store, int entity, ref AudioPlayer audioPlayer, ref AudioSource audioSource)
+    private struct QueryEntityAction : IForEachRef<AudioPlayer, AudioSource>
     {
-        if (audioPlayer.State != PlayerState.Stop)
+        public MusicSystem Owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<AudioPlayer> audioPlayer, ref Ref<AudioSource> audioSource)
         {
-            return;
+            if (audioPlayer.Read.State != PlayerState.Stop)
+            {
+                return;
+            }
+
+            //  If playback has finished, start a timer until the next track
+            if (Owner._nextTrackTimer == null)
+            {
+                //  Tracks will play quicker when not in-game
+                Owner._nextTrackTimer = WaywardBeyond.IsInGame() ? Owner._randomizer.NextInt(20, 60) : Owner._randomizer.NextInt(2, 6);
+                return;
+            }
+
+            //  Countdown the timer
+            Owner._nextTrackTimer -= delta;
+            if (Owner._nextTrackTimer > 0f)
+            {
+                return;
+            }
+
+            //  Timer has elapsed, remove it then start the next track
+            Owner._nextTrackTimer = null;
+
+            audioSource.Write.ID = WaywardBeyond.GameState == GameState.MainMenu ? Owner._randomizer.Select(Owner._titleTracks) : Owner._randomizer.Select(Owner._backgroundTracks);
+            audioPlayer.Write.State = PlayerState.Play;
+            Owner._notificationService.Push(new Notification($"Track: {System.IO.Path.GetFileNameWithoutExtension(audioSource.Read.ID)}"));
         }
-
-        //  If playback has finished, start a timer until the next track
-        if (_nextTrackTimer == null)
-        {
-            //  Tracks will play quicker when not in-game
-            _nextTrackTimer = WaywardBeyond.IsInGame() ? _randomizer.NextInt(20, 60) : _randomizer.NextInt(2, 6);
-            return;
-        }
-
-        //  Countdown the timer
-        _nextTrackTimer -= delta;
-        if (_nextTrackTimer > 0f)
-        {
-            return;
-        }
-
-        //  Timer has elapsed, remove it then start the next track
-        _nextTrackTimer = null;
-
-        audioSource.ID = WaywardBeyond.GameState == GameState.MainMenu ? _randomizer.Select(_titleTracks) : _randomizer.Select(_backgroundTracks);
-        audioPlayer.State = PlayerState.Play;
-        _notificationService.Push(new Notification($"Track: {Path.GetFileNameWithoutExtension(audioSource.ID)}"));
     }
 
     public bool IsVisible()

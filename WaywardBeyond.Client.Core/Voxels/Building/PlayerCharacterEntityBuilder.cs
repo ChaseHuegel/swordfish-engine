@@ -17,7 +17,7 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
 
     public Entity Create(Character character, CharacterEntityModel model)
     {
-        int ptr = _dataStore.Alloc();
+        int ptr = _dataStore.Alloc(model.Uuid);
         var player = new Entity(ptr, _dataStore);
         player.Add<PlayerComponent>();
         player.Add<EquipmentComponent>();
@@ -33,7 +33,6 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
         var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, playerFlyingOffset, 0f) * model.Scale], [Quaternion.Identity]);
         player.AddOrUpdate(new ColliderComponent(playerCollider));
         
-        player.AddOrUpdate(new GuidComponent(model.Guid));
         player.AddOrUpdate(new CharacterComponent(character));
         player.AddOrUpdate(new GameModeComponent(model.GameMode));
         
@@ -70,6 +69,7 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
                 
                 if (i < inventory.Contents.Length)
                 {
+                    //  In-place array write; the AddOrUpdate below auto-marks the component dirty
                     inventory.Contents[i] = itemStack;
                 }
                 else

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Numerics;
 using System.Threading.Tasks;
+using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Bricks;
@@ -54,7 +55,7 @@ internal sealed class StarterShipNewGameStage(
         
         var shipVoxelObject = new VoxelObject(chunkSize: 16);
         shipVoxelObject.Set(0, 0, 0, _brickDatabase.Get("core").Value.ToVoxel());
-        _voxelEntityBuilder.Create(Guid.NewGuid(), shipVoxelObject, Vector3.Zero, Quaternion.Identity, Vector3.One);
+        _voxelEntityBuilder.Create(Uuid.NewUuid(), shipVoxelObject, Vector3.Zero, Quaternion.Identity, Vector3.One);
         
         _progress = 1f;
         return Task.CompletedTask;
