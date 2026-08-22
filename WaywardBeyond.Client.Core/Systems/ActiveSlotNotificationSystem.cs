@@ -10,34 +10,45 @@ namespace WaywardBeyond.Client.Core.Systems;
 internal class ActiveSlotNotificationSystem(
     in IAssetDatabase<Item> itemDatabase,
     in NotificationService notificationService
-) : EntitySystem<PlayerComponent, EquipmentComponent>
+) : IEntitySystem
 {
     private readonly IAssetDatabase<Item> _itemDatabase = itemDatabase;
     private readonly NotificationService _notificationService = notificationService;
-    
+
     private int _lastActiveSlot;
-    
-    protected override void OnTick(float delta, DataStore store, int entity, ref PlayerComponent player, ref EquipmentComponent equipment)
+
+    private struct ForEachAction : IForEach<PlayerComponent, EquipmentComponent>
     {
-        if (equipment.ActiveInventorySlot == _lastActiveSlot)
-        {
-            //  No change
-            return;
-        }
-        
-        _lastActiveSlot = equipment.ActiveInventorySlot;
+        public ActiveSlotNotificationSystem Owner;
 
-        //  Attempt to push a notification when the slot changes
-        if (!store.TryGet(entity, out InventoryComponent inventory))
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in EquipmentComponent equipment)
         {
-            return;
-        }
+            if (equipment.ActiveInventorySlot == Owner._lastActiveSlot)
+            {
+                //  No change
+                return;
+            }
 
-        ItemStack activeStack = inventory.Contents.Length > _lastActiveSlot ? inventory.Contents[_lastActiveSlot] : ItemStack.Empty;
-        Result<Item> activeItemResult = _itemDatabase.Get(activeStack.ID);
-        if (activeItemResult.Success)
-        {
-            _notificationService.Push(new Notification(activeItemResult.Value.Name, NotificationType.Action));
+            Owner._lastActiveSlot = equipment.ActiveInventorySlot;
+
+            //  Attempt to push a notification when the slot changes
+            if (!store.TryGet(entity, out InventoryComponent inventory))
+            {
+                return;
+            }
+
+            ItemStack activeStack = inventory.Contents.Length > Owner._lastActiveSlot ? inventory.Contents[Owner._lastActiveSlot] : ItemStack.Empty;
+            Result<Item> activeItemResult = Owner._itemDatabase.Get(activeStack.ID);
+            if (activeItemResult.Success)
+            {
+                Owner._notificationService.Push(new Notification(activeItemResult.Value.Name, NotificationType.Action));
+            }
         }
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        ForEachAction action = new() { Owner = this };
+        store.Query<PlayerComponent, EquipmentComponent, ForEachAction>(delta, ref action);
     }
 }

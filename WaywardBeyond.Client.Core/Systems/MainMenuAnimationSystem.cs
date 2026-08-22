@@ -5,17 +5,28 @@ using Swordfish.Graphics;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class MainMenuAnimationSystem : EntitySystem<TransformComponent, CameraComponent>
+internal sealed class MainMenuAnimationSystem : IEntitySystem
 {
     private readonly Vector3 _axis = new(Random.Shared.NextSingle(), Random.Shared.NextSingle(), Random.Shared.NextSingle());
-    
-    protected override void OnTick(float delta, DataStore store, int entity, ref TransformComponent transformComponent, ref CameraComponent cameraComponent)
+
+    private struct ForEachAction : IForEachRef<TransformComponent, CameraComponent>
     {
-        if (WaywardBeyond.GameState != GameState.MainMenu)
+        public MainMenuAnimationSystem Owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<TransformComponent> transformComponent, ref Ref<CameraComponent> cameraComponent)
         {
-            return;
+            if (WaywardBeyond.GameState != GameState.MainMenu)
+            {
+                return;
+            }
+
+            transformComponent.Write.Rotate(Owner._axis * delta);
         }
-        
-        transformComponent.Rotate(_axis * delta);
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        ForEachAction action = new() { Owner = this };
+        store.QueryRef<TransformComponent, CameraComponent, ForEachAction>(delta, ref action);
     }
 }

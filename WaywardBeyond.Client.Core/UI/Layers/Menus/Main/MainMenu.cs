@@ -34,7 +34,7 @@ internal sealed class MainMenu : TitleMenu<MenuPage>
         // if (blueprintResult)
         // {
         //     VoxelEntityModel voxelEntityModel = blueprintResult.Value;
-        //     voxelEntityBuilder.Create(voxelEntityModel.Guid, voxelEntityModel.VoxelObject, new Vector3(5f, 0f, -20f), Quaternion.Identity, Vector3.One);
+        //     voxelEntityBuilder.Create(voxelEntityModel.Uuid, voxelEntityModel.VoxelObject, new Vector3(5f, 0f, -20f), Quaternion.Identity, Vector3.One);
         // }
         // else
         // {

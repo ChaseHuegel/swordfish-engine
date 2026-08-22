@@ -302,7 +302,7 @@ internal sealed class SelectCharacterPage(
                         
                             foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
                             {
-                                using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Guid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                                using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Id}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
                                 {
                                     if (interactions.Has(Widgets.Interactions.Click))
                                     {
@@ -325,7 +325,7 @@ internal sealed class SelectCharacterPage(
 
                             foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
                             {
-                                using (ui.TextButton(id: $"Button_SelectCharacter_{character.Guid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                                using (ui.TextButton(id: $"Button_SelectCharacter_{character.Id}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
                                 {
                                     ui.Constraints = new Constraints
                                     {
@@ -333,7 +333,7 @@ internal sealed class SelectCharacterPage(
                                     };
 
                                     if (_characterSaveManager.ActiveSave != null &&
-                                        _characterSaveManager.ActiveSave.Value.Guid == character.Guid)
+                                        _characterSaveManager.ActiveSave.Value.Id == character.Id)
                                     {
                                         ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
                                     }

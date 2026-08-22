@@ -9,42 +9,37 @@ namespace WaywardBeyond.Server.Core;
 
 public sealed class SessionManager
 {
-    private readonly ConcurrentDictionary<uint, int> _connectionToEntity = new();
+    private readonly ConcurrentDictionary<Uuid, int> _connectionToEntity = new();
     private readonly ConcurrentDictionary<Session, int> _sessionToEntity = new();
-    private uint _nextNetworkID = 1;
 
-    public uint AssignNetworkID(DataStore store, int entity)
+    public Uuid AssignUuid(DataStore store, int entity)
     {
-        uint networkID = _nextNetworkID++;
+        Uuid uuid = store.GetUuid(entity);
 
-        store.AddOrUpdate(entity, new NetworkComponent
-        {
-            NetworkID = networkID,
-        });
+        store.AddOrUpdate(entity, new NetworkComponent());
 
-        _connectionToEntity[networkID] = entity;
-        return networkID;
+        _connectionToEntity[uuid] = entity;
+        return uuid;
     }
 
     public void AssignSession(DataStore store, int entity, Session session)
     {
-        store.Query<NetworkComponent>(entity, 0f, (float d, DataStore s, int e, ref NetworkComponent net) =>
+        store.QueryRef<NetworkComponent>(entity, 0f, (float d, DataStore s, int e, ref Ref<NetworkComponent> net) =>
         {
-            net.Session = session;
-            s.AddOrUpdate(e, net);
+            net.Write.Session = session;
         });
 
         _sessionToEntity[session] = entity;
     }
 
-    public Result<int> GetEntity(uint networkID)
+    public Result<int> GetEntity(Uuid uuid)
     {
-        if (_connectionToEntity.TryGetValue(networkID, out int entity))
+        if (_connectionToEntity.TryGetValue(uuid, out int entity))
         {
             return Result<int>.FromSuccess(entity);
         }
 
-        return Result<int>.FromFailure($"No entity mapped to network ID {networkID}.");
+        return Result<int>.FromFailure($"No entity mapped to uuid {uuid}.");
     }
 
     public Result<int> GetEntity(Session session)

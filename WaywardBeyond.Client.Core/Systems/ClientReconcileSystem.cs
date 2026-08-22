@@ -52,9 +52,9 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         {
             EntitySnapshotMsg entitySnapshot = snapshot.Entities[i];
 
-            if (!store.Find((NetworkComponent net) => net.NetworkID == entitySnapshot.NetworkID, out int entity))
+            if (!store.TryGet(Uuid.FromValue(entitySnapshot.Uuid), out int entity))
             {
-                continue;
+                entity = store.Alloc(Uuid.FromValue(entitySnapshot.Uuid));
             }
 
             if (!store.TryGet(entity, out PendingInputComponent pending))
@@ -78,17 +78,33 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             {
                 InputComponent input = pending.GetPending(j);
 
-                store.Query(entity, 0f, (float d, DataStore s, int e, ref InputComponent existing, ref PhysicsComponent physics) =>
-                {
-                    existing = input;
-                    s.AddOrUpdate(e, existing);
-                });
+                ApplyPendingInputAction applyPending = new() { Input = input };
+                store.QueryRef<InputComponent, PhysicsComponent, ApplyPendingInputAction>(entity, 0f, ref applyPending);
             }
 
             store.AddOrUpdate(entity, pending);
         }
 
+        for (var i = 0; i < snapshot.RemovedUuids.Length; i++)
+        {
+            Uuid uuid = Uuid.FromValue(snapshot.RemovedUuids[i]);
+            if (store.TryGet(uuid, out int entity))
+            {
+                store.Free(entity);
+            }
+        }
+
         _snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
+    }
+
+    private struct ApplyPendingInputAction : IForEachRef<InputComponent, PhysicsComponent>
+    {
+        public InputComponent Input;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<InputComponent> existing, ref Ref<PhysicsComponent> physics)
+        {
+            existing.Write = Input;
+        }
     }
 
     private void ApplyEntitySnapshot(EntitySnapshotMsg entitySnapshot, DataStore store, int entity)

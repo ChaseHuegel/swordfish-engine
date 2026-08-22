@@ -1,12 +1,13 @@
+using Swordfish.ECS;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Shared.Networking.Snapshots;
 
 public static class EntitySnapshotExtensions
 {
-    public static ClientInputMsg ToMessage(in this InputComponent input, uint serverTick, uint clientId = 0)
+    public static ClientInputMsg ToMessage(in this InputComponent input, uint serverTick, Uuid clientUuid = default)
     {
-        return new ClientInputMsg
+        var msg = new ClientInputMsg
         {
             SequenceNumber = input.SequenceNumber,
             MovementX = input.Movement.X,
@@ -16,8 +17,9 @@ public static class EntitySnapshotExtensions
             LookDeltaY = input.LookDelta.Y,
             Jump = input.Jump,
             ServerTickAtSample = serverTick,
-            ClientID = clientId,
+            ClientUuid = clientUuid.ToValue(),
         };
+        return msg;
     }
 
     public static InputComponent ToComponent(in this ClientInputMsg msg)

@@ -238,7 +238,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         //  TODO should create a new ECS world instead of trying to cleanup state
         _ecs.World.DataStore.Query<IdentifierComponent>(0f, CleanupGameEntitiesQuery);
-        void CleanupGameEntitiesQuery(float delta, DataStore store, int entity, ref IdentifierComponent identifier)
+        void CleanupGameEntitiesQuery(float delta, DataStore store, int entity, in IdentifierComponent identifier)
         {
             if (identifier.Tag != "game")
             {
@@ -265,7 +265,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         }
         
         _ecs.World.DataStore.Query<PlayerComponent>(0f, CleanupPlayerQuery);
-        void CleanupPlayerQuery(float delta, DataStore store, int entity, ref PlayerComponent player)
+        void CleanupPlayerQuery(float delta, DataStore store, int entity, in PlayerComponent player)
         {
             if (store.TryGet(entity, out PhysicsComponent physicsComponent))
             {

@@ -1,25 +1,31 @@
 using Swordfish.ECS;
 using WaywardBeyond.Client.Core.Components;
-using WaywardBeyond.Shared.Networking.Systems;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
-internal sealed class ThrusterSystem : EntitySystem<ThrusterComponent, PhysicsComponent>
+internal sealed class ThrusterSystem : IEntitySystem
 {
-    protected override void OnTick(float delta, DataStore store, int entity, ref ThrusterComponent thruster, ref PhysicsComponent physics)
+    private struct ForEachAction : IForEachRef<ThrusterComponent, PhysicsComponent>
     {
-        if (thruster.Power <= 0)
+        public void Execute(float delta, DataStore store, int entity, ref Ref<ThrusterComponent> thruster, ref Ref<PhysicsComponent> physics)
         {
-            return;
-        }
+            if (thruster.Read.Power <= 0)
+            {
+                return;
+            }
 
-        if (!store.TryGet(entity, out TransformComponent transform))
-        {
-            return;
+            if (!store.TryGet(entity, out TransformComponent transform))
+            {
+                return;
+            }
+
+            physics.Write.Velocity += transform.GetForward() * -(thruster.Read.Power * 10 * delta);
         }
-        
-        physics.Velocity += transform.GetForward() * -(thruster.Power * 10 * delta);
-        
-        store.MarkDirty<PhysicsComponent>(entity);
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        ForEachAction action = default;
+        store.QueryRef<ThrusterComponent, PhysicsComponent, ForEachAction>(delta, ref action);
     }
 }

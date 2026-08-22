@@ -3,7 +3,7 @@
 
 message VoxelEntityData
 {
-    string Guid = 0;
+    ulong Uuid = 0;
     
     double X = 1;
     double Y = 2;

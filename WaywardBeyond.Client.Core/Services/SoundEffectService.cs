@@ -51,7 +51,7 @@ internal sealed class SoundEffectService
 
     public void Play(string id, string channelName)
     {
-        if (!_audioChannelSystem.TryGetChannelEntity(channelName, out int channel))
+        if (!_audioChannelSystem.TryGetChannelEntity(channelName, out Uuid channel))
         {
             return;
         }
@@ -82,7 +82,7 @@ internal sealed class SoundEffectService
     
     private void PlayRandomSound(string[] ids)
     {
-        if (!_audioChannelSystem.TryGetChannelEntity("effects", out int channel))
+        if (!_audioChannelSystem.TryGetChannelEntity("effects", out Uuid channel))
         {
             return;
         }
@@ -91,7 +91,7 @@ internal sealed class SoundEffectService
         Play(audioSource, channel);
     }
 
-    private void Play(AudioSource audioSource, int channelEntity)
+    private void Play(AudioSource audioSource, Uuid channelEntity)
     {
         var audioPlayer = new AudioPlayer
         {

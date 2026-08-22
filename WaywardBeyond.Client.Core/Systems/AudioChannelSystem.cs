@@ -14,9 +14,9 @@ internal sealed class AudioChannelSystem(in VolumeSettings volumeSettings) : IEn
     private int? _interfaceChannel;
     private int? _musicChannel;
 
-    private readonly ConcurrentDictionary<string, int> _channelEntities = [];
+    private readonly ConcurrentDictionary<string, Uuid> _channelEntities = [];
 
-    public bool TryGetChannelEntity(string name, out int channel)
+    public bool TryGetChannelEntity(string name, out Uuid channel)
     {
         return _channelEntities.TryGetValue(name, out channel);
     }
@@ -27,25 +27,25 @@ internal sealed class AudioChannelSystem(in VolumeSettings volumeSettings) : IEn
         if (_masterChannel == null)
         {
             _masterChannel = store.Alloc(new IdentifierComponent(name: "master", tag: "audio"), new AudioChannel(_volumeSettings.Master.Get()));
-            _channelEntities["master"] = _masterChannel.Value;
+            _channelEntities["master"] = store.GetUuid(_masterChannel.Value);
         }
         
         if (_effectsChannel == null)
         {
             _effectsChannel = store.Alloc(new IdentifierComponent(name: "effects", tag: "audio"), new AudioChannel(_volumeSettings.Effects.Get()));
-            _channelEntities["effects"] = _effectsChannel.Value;
+            _channelEntities["effects"] = store.GetUuid(_effectsChannel.Value);
         }
         
         if (_interfaceChannel == null)
         {
             _interfaceChannel = store.Alloc(new IdentifierComponent(name: "interface", tag: "audio"), new AudioChannel(_volumeSettings.Interface.Get()));
-            _channelEntities["interface"] = _interfaceChannel.Value;
+            _channelEntities["interface"] = store.GetUuid(_interfaceChannel.Value);
         }
         
         if (_musicChannel == null)
         {
             _musicChannel = store.Alloc(new IdentifierComponent(name: "music", tag: "audio"), new AudioChannel(_volumeSettings.Music.Get()));
-            _channelEntities["music"] = _musicChannel.Value;
+            _channelEntities["music"] = store.GetUuid(_musicChannel.Value);
         }
         
         //  Update channels

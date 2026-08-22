@@ -15,7 +15,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         InventoryComponent value = default;
         
         store.Query<PlayerComponent, InventoryComponent>(0f, InventoryQuery);
-        void InventoryQuery(float delta, DataStore _, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
+        void InventoryQuery(float delta, DataStore _, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
             value = inventory;
         }
@@ -28,7 +28,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         var slot = 0;
         
         store.Query<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
-        void EquipmentQuery(float delta, DataStore _, int entity, ref PlayerComponent player, ref EquipmentComponent equipment)
+        void EquipmentQuery(float delta, DataStore _, int entity, in PlayerComponent player, in EquipmentComponent equipment)
         {
             slot = equipment.ActiveInventorySlot;
         }
@@ -38,10 +38,10 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
     
     public Result SetActiveSlot(DataStore store, int slot)
     {
-        store.Query<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
-        void EquipmentQuery(float delta, DataStore _, int entity, ref PlayerComponent player, ref EquipmentComponent equipment)
+        store.QueryRef<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
+        void EquipmentQuery(float delta, DataStore _, int entity, ref Ref<PlayerComponent> player, ref Ref<EquipmentComponent> equipment)
         {
-            equipment.ActiveInventorySlot = slot;
+            equipment.Write.ActiveInventorySlot = slot;
         }
         
         return Result.FromSuccess();
@@ -52,7 +52,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         Result<ItemSlot> result = default;
         
         store.Query<PlayerComponent, InventoryComponent>(delta: 0f, QueryPlayerInventory);
-        void QueryPlayerInventory(float delta, DataStore store, int entity, ref PlayerComponent player, ref InventoryComponent inventory)
+        void QueryPlayerInventory(float delta, DataStore store, int entity, in PlayerComponent player, in InventoryComponent inventory)
         {
             result = GetMainHand(store, entity, inventory);
         }
@@ -86,5 +86,15 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         
         var itemSlot = new ItemSlot(equipment.ActiveInventorySlot, itemResult);
         return Result<ItemSlot>.FromSuccess(itemSlot);
+    }
+
+    public delegate void InventoryMutation(ref InventoryComponent inventory);
+
+    public void MutateInventory(DataStore store, InventoryMutation mutation)
+    {
+        store.QueryRef<PlayerComponent, InventoryComponent>(0f, (float delta, DataStore dataStore, int entity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory) =>
+        {
+            mutation(ref inventory.Write);
+        });
     }
 }

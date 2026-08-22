@@ -38,7 +38,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         using SqliteCommand command = _connection.CreateCommand();
         command.CommandText = """
                               CREATE TABLE IF NOT EXISTS characters (
-                                  id              TEXT PRIMARY KEY,
+                                  id              INTEGER PRIMARY KEY,
                                   name            TEXT NOT NULL,
                                   last_played_ms  INTEGER NOT NULL,
                                   age_ms          INTEGER NOT NULL,
@@ -52,7 +52,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                               );
 
                               CREATE TABLE IF NOT EXISTS inventory (
-                                  owner       TEXT NOT NULL,
+                                  owner       INTEGER NOT NULL,
                                   slot        INTEGER NOT NULL,
                                   id          TEXT NOT NULL,
                                   count       INTEGER NOT NULL,
@@ -62,7 +62,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                               );
 
                               CREATE TABLE IF NOT EXISTS statistics (
-                                  owner       TEXT NOT NULL,
+                                  owner       INTEGER NOT NULL,
                                   id          TEXT NOT NULL,
                                   value       INTEGER NOT NULL,
                                   PRIMARY KEY (owner, id),
@@ -72,7 +72,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         command.ExecuteNonQuery();
     }
 
-    public Result<Character> GetCharacter(string id)
+    public Result<Character> GetCharacter(ulong id)
     {
         Character character;
 
@@ -89,7 +89,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
 
             character = new Character
             {
-                Guid = reader.GetString(0),
+                Id = (ulong)reader.GetInt64(0),
                 Name = reader.GetString(1),
                 LastPlayedMs = reader.GetInt64(2),
                 AgeMs = reader.GetInt64(3),
@@ -111,18 +111,18 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
 
     public IEnumerable<Character> GetAllCharacters()
     {
-        var ids = new List<string>();
+        var ids = new List<ulong>();
         using (SqliteCommand command = _connection.CreateCommand())
         {
             command.CommandText = "SELECT id FROM characters;";
             using SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {
-                ids.Add(reader.GetString(0));
+                ids.Add((ulong)reader.GetInt64(0));
             }
         }
 
-        foreach (string id in ids)
+        foreach (ulong id in ids)
         {
             Result<Character> character = GetCharacter(id);
             if (character.Success)
@@ -150,7 +150,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                                           @awareness, @charisma, @education, @resolve, @body
                                       );
                                       """;
-                command.Parameters.AddWithValue("@id", character.Guid);
+                command.Parameters.AddWithValue("@id", character.Id);
                 command.Parameters.AddWithValue("@name", character.Name);
                 command.Parameters.AddWithValue("@last_played_ms", character.LastPlayedMs);
                 command.Parameters.AddWithValue("@age_ms", character.AgeMs);
@@ -164,7 +164,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                 command.ExecuteNonQuery();
             }
 
-            ClearSubTable("inventory", character.Guid, transaction);
+            ClearSubTable("inventory", character.Id, transaction);
             if (character.Inventory != null)
             {
                 for (var i = 0; i < character.Inventory.Length; i++)
@@ -178,7 +178,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                     using SqliteCommand command = _connection.CreateCommand();
                     command.Transaction = transaction;
                     command.CommandText = "INSERT INTO inventory (owner, slot, id, count, max_size) VALUES (@owner, @slot, @id, @count, @max);";
-                    command.Parameters.AddWithValue("@owner", character.Guid);
+                    command.Parameters.AddWithValue("@owner", character.Id);
                     command.Parameters.AddWithValue("@slot", i);
                     command.Parameters.AddWithValue("@id", item.ID);
                     command.Parameters.AddWithValue("@count", item.Count);
@@ -187,7 +187,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                 }
             }
 
-            ClearSubTable("statistics", character.Guid, transaction);
+            ClearSubTable("statistics", character.Id, transaction);
             if (character.Statistics != null)
             {
                 foreach (Statistic statistic in character.Statistics)
@@ -200,7 +200,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
                     using SqliteCommand command = _connection.CreateCommand();
                     command.Transaction = transaction;
                     command.CommandText = "INSERT INTO statistics (owner, id, value) VALUES (@owner, @id, @val);";
-                    command.Parameters.AddWithValue("@owner", character.Guid);
+                    command.Parameters.AddWithValue("@owner", character.Id);
                     command.Parameters.AddWithValue("@id", statistic.ID);
                     command.Parameters.AddWithValue("@val", statistic.Value);
                     command.ExecuteNonQuery();
@@ -217,7 +217,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         }
     }
 
-    public Result DeleteCharacter(string id)
+    public Result DeleteCharacter(ulong id)
     {
         using SqliteCommand command = _connection.CreateCommand();
         command.CommandText = "DELETE FROM characters WHERE id = @id;";
@@ -226,7 +226,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         return new Result(success: command.ExecuteNonQuery() > 0);
     }
 
-    private ItemData[] GetInventory(string id)
+    private ItemData[] GetInventory(ulong id)
     {
         var items = new List<ItemData>();
         using SqliteCommand command = _connection.CreateCommand();
@@ -247,7 +247,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         return items.ToArray();
     }
 
-    private Statistic[] GetStatistics(string id)
+    private Statistic[] GetStatistics(ulong id)
     {
         var stats = new List<Statistic>();
         using SqliteCommand command = _connection.CreateCommand();
@@ -267,7 +267,7 @@ public sealed class SqliteCharacterStorage : ICharacterStorage, IDisposable
         return stats.ToArray();
     }
     
-    private void ClearSubTable(string tableName, string id, SqliteTransaction transaction)
+    private void ClearSubTable(string tableName, ulong id, SqliteTransaction transaction)
     {
         using SqliteCommand command = _connection.CreateCommand();
         command.Transaction = transaction;

@@ -204,7 +204,7 @@ internal sealed class GameSaveService(
                             {
                                 byte[] data = await File.ReadAllBytesAsync(file);
                                 VoxelEntityModel model = _voxelEntitySerializer.Deserialize(data);
-                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.entity.{model.Guid}", data);
+                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.entity.{model.Uuid}", data);
                             }
                             catch (Exception ex)
                             {
@@ -224,7 +224,7 @@ internal sealed class GameSaveService(
                             {
                                 byte[] data = await File.ReadAllBytesAsync(file);
                                 CharacterEntityModel model = _characterEntitySerializer.Deserialize(data);
-                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.character.{model.Guid}", data);
+                                _keyValueStore.Put(BUCKET_NAME, $"{save.Level.Guid}.character.{model.Uuid}", data);
                             }
                             catch (Exception ex)
                             {
@@ -320,51 +320,46 @@ internal sealed class GameSaveService(
 
         //  Save voxel entities
         _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
-        void ForEachVoxelEntity(float delta, DataStore store, int entity, ref VoxelComponent voxelComponent, ref TransformComponent transform)
+        void ForEachVoxelEntity(float delta, DataStore store, int entity, in VoxelComponent voxelComponent, in TransformComponent transform)
         {
-            if (!store.TryGet(entity, out GuidComponent guidComponent))
-            {
-                return;
-            }
-            
+            Uuid uuid = store.GetUuid(entity);
+
             try
             {
-                var model = new VoxelEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
+                var model = new VoxelEntityModel(uuid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
                 byte[] data = _voxelEntitySerializer.Serialize(model);
                 
-                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.entity.{guidComponent.Guid}", data);
+                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.entity.{uuid}", data);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\" ({guid}).", entity, guidComponent.Guid);
+                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\" ({uuid}).", entity, uuid);
                 anyErrors = true;
             }
         }
         
         // Save character entities
         _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, ForEachCharacterEntity);
-        void ForEachCharacterEntity(float delta, DataStore store, int entity, ref CharacterComponent characterComponent, ref TransformComponent transform)
+        void ForEachCharacterEntity(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
-            if (!store.TryGet(entity, out GuidComponent guidComponent))
-            {
-                return;
-            }
-            
             if (!store.TryGet(entity, out GameModeComponent gameModeComponent))
             {
                 return;
             }
-            
+
+            Uuid uuid = store.GetUuid(entity);
+            ulong characterId = characterComponent.Character.Id;
+
             try
             {
-                var model = new CharacterEntityModel(guidComponent.Guid, transform.Position, transform.Orientation, gameModeComponent.GameMode);
+                var model = new CharacterEntityModel(uuid, transform.Position, transform.Orientation, gameModeComponent.GameMode);
                 byte[] data = _characterEntitySerializer.Serialize(model);
                 
-                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.character.{guidComponent.Guid}", data);
+                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.character.{characterId}", data);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "There was an error saving character entity \"{entity}\" ({guid}).", entity, guidComponent.Guid);
+                _logger.LogError(ex, "There was an error saving character entity \"{entity}\" ({uuid}).", entity, uuid);
                 anyErrors = true;
             }
         }

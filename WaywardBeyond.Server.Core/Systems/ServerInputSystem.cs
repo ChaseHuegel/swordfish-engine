@@ -33,23 +33,35 @@ public sealed class ServerInputSystem : IEntitySystem
         {
             ClientInputMsg msg = receiveResult.Value;
 
-            if (!store.Find<NetworkComponent>(
-                    (NetworkComponent net) => net.NetworkID == msg.ClientID,
-                    out int entity))
+            if (!store.TryGet(Uuid.FromValue(msg.ClientUuid), out int entity))
             {
-                _logger.LogWarning("Received input for unknown network ID {id}.", msg.ClientID);
+                _logger.LogWarning("Received input for unknown uuid {uuid}.", msg.ClientUuid);
                 continue;
             }
 
             InputComponent input = msg.ToComponent();
             store.AddOrUpdate(entity, input);
 
-            store.Query<NetworkComponent>(entity, 0f, (float d, DataStore s, int e, ref NetworkComponent net) =>
+            ApplyInputAction applyInput = new()
             {
-                net.LastAckedInput = msg.SequenceNumber;
-                net.LastAckedSnapshot = msg.ServerTickAtSample;
-                s.AddOrUpdate(e, net);
-            });
+                Owner = this,
+                LastAckedInput = msg.SequenceNumber,
+                LastAckedSnapshot = msg.ServerTickAtSample,
+            };
+            store.QueryRef<NetworkComponent, ApplyInputAction>(entity, 0f, ref applyInput);
+        }
+    }
+
+    private struct ApplyInputAction : IForEachRef<NetworkComponent>
+    {
+        public ServerInputSystem Owner;
+        public uint LastAckedInput;
+        public uint LastAckedSnapshot;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<NetworkComponent> net)
+        {
+            net.Write.LastAckedInput = LastAckedInput;
+            net.Write.LastAckedSnapshot = LastAckedSnapshot;
         }
     }
 }

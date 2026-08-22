@@ -18,14 +18,17 @@ Extracted from the codebase. These are observed conventions, not aspirational ru
 | Locals | camelCase, `var` when type is obvious | `var options`, explicit for clarity |
 | Enums | PascalCase for type and members | `LayoutDirection.Vertical` |
 
+Keep-as-is abbreviations (registered in JetBrains `.DotSettings`): `API`, `ECS`, `GL`, `ID`, `IO`, `IP`, `ISO`, `KVP`, `UI`, `UID`.
+
 One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 
 ## Braces & Layout
 
 - **Allman style** — opening brace on its own line for all blocks (class, method, `if`, `for`, `switch`, etc.).
-- Single-line accessors and lambda excpressions use expression bodies (`=>`) when they fit on one line.
-- Simple methods use braces even when when they fit on one line unless they are a lambda.
+- Single-line accessors and lambda expressions use expression bodies (`=>`) when they fit on one line.
+- Simple methods use braces even when they fit on one line unless they are a lambda.
 - All blocks must have braces (if, for, while, etc.).
+- Projects with `ImplicitUsings` enabled omit redundant `using` directives (`Swordfish.ECS`, `Swordfish`); projects without it (e.g. `Swordfish.Library`) list them explicitly.
 
 ## Language Features
 
@@ -34,7 +37,8 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **`sealed`** — on utility/leaf classes that aren't designed for inheritance.
 - **`in` parameter modifier** — on value types passed to constructors and methods (performance convention).
 - **`internal` access** — prefer on types by default. Only make types public when there is a specific need for the API to be available to other assemblies or projects.
-- **Nullable reference types** — enabled in most projects via `.csproj`. Disabled in `Swordfish.Library` (`<Nullable>disable</Nullable>`). New code should use `#nullable enable` locally where needed.
+- **Nullable reference types** — enabled by default; all new code is nullable-aware. `Swordfish.Library` still has it disabled (`<Nullable>disable</Nullable>`) but this is a legacy maintenance exception, not the convention — new/edited code there should add `#nullable enable` until it can be migrated.
+- **Primary constructors** — promoted to fields when captured, e.g. `BehaviorTree<TTarget>(in BehaviorNode root)` declaring `public readonly BehaviorNode Root = root;`.
 - **Collection expressions** (C# 12 `[]`) preferred for initialization over `new List<T>()`.
 
 ## Null Handling
@@ -49,7 +53,9 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **Structs** for: ECS components (`: IDataComponent`), small data holders, math types (`Vector3`, `IntRect`), value wrappers.
 - **Classes** for: services, managers, long-lived objects, dependency-injected types.
 - **`readonly struct`** for immutable value types (ECS components, result types).
-- **No record types** (codebase targets netstandard2.0/2.1 in several projects).
+- **`readonly ref struct`** for accessor / stack-only types (`Ref<T>`).
+- **`partial`** where generated or source-extended code augments a type (`Entity` uses `readonly partial struct`).
+- **No record types** (record declarations don't work across the netstandard2.0/2.1 shared-library targets).
 
 ## DI & Architecture
 
@@ -93,6 +99,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Generic constraints: `where T1 : struct, IDataComponent`.
 - Systems inherit `EntitySystem` and override `Tick()`.
 - Prefer `TryGet<T>()` / `out _` pattern over `Has<T>()` + separate `Get<T>()`.
+- Query access modes: read-only `Query` (`in T`) vs read-write `QueryRef` (`ref Ref<T>`), mirroring the `Ref<T>` accessor and the `ForEachRef` delegate.
 
 ## Needlefish / CodeGen
 
@@ -107,5 +114,6 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Do not qualify `this.` — ever.
 - Do not use `is null` / `is not null` — use `== null` / `!= null`.
 - Do not use records (incompatible with netstandard2.0 csproj targets).
+- Do not disable Nullable in new projects — `Swordfish.Library` is a legacy exception; default to nullable-aware code.
 - Do not introduce new test frameworks — stick with xunit for engine tests, NUnit for WaywardBeyond.
 - Do not remove `CopyToOutputDirectory=Always` from manifest files.
