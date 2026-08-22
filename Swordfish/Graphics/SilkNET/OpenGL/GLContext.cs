@@ -1,5 +1,6 @@
 using System.Numerics;
 using Silk.NET.OpenGL;
+using Swordfish.ECS;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.Types;
 using Swordfish.Types;
@@ -61,7 +62,7 @@ internal unsafe partial class GLContext(in GL gl, in SynchronizationContext sync
         return _glThread.WaitForResult(GLMaterialArgs.Factory, new GLMaterialArgs(shaderProgram, textures, transparent));
     }
 
-    internal GLRenderTarget CreateGLRenderTarget(int entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
+    internal GLRenderTarget CreateGLRenderTarget(Uuid entity, VertexArrayObject<float, uint> vertexArrayObject, BufferObject<Matrix4x4> modelsBufferObject, GLMaterial[] materials, RenderOptions renderOptions)
     {
         return _glThread.WaitForResult(GLRenderTargetArgs.Factory, new GLRenderTargetArgs(_gl, entity, vertexArrayObject, modelsBufferObject, materials, renderOptions));
     }

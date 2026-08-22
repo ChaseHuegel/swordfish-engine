@@ -474,27 +474,27 @@ public class Demo : IEntryPoint, IAutoActivate
             return;
         }
 
-        _ecsContext.World.DataStore.Query<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
-        void UpdateTransform(float delta, DataStore store, int entity, ref TransformComponent transform)
+        _ecsContext.World.DataStore.QueryRef<TransformComponent>(raycast.Entity.Ptr, 1f, UpdateTransform);
+        void UpdateTransform(float delta, DataStore store, int entity, ref Ref<TransformComponent> transform)
         {
             float scroll = _scrollBuffer;
-            transform.Position = raycast.Point;
+            transform.Write.Position = raycast.Point;
             if (scroll != 0)
             {
-                transform.Orientation = Quaternion.Multiply(transform.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DEGREES_TO_RADIANS, 0, 0));
+                transform.Write.Orientation = Quaternion.Multiply(transform.Read.Orientation, Quaternion.CreateFromYawPitchRoll(15 * scroll * MathS.DEGREES_TO_RADIANS, 0, 0));
                 Interlocked.Exchange(ref _scrollBuffer, _scrollBuffer - scroll);
             }
 
-            _positionGizmo.Render(transform);
-            _orientationGizmo.Render(transform);
-            _scaleGizmo.Render(transform);
+            _positionGizmo.Render(transform.Read);
+            _orientationGizmo.Render(transform.Read);
+            _scaleGizmo.Render(transform.Read);
         }
 
-        _ecsContext.World.DataStore.Query<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
-        void UpdatePhysics(float delta, DataStore store, int entity, ref PhysicsComponent physics)
+        _ecsContext.World.DataStore.QueryRef<PhysicsComponent>(raycast.Entity.Ptr, 1f, UpdatePhysics);
+        void UpdatePhysics(float delta, DataStore store, int entity, ref Ref<PhysicsComponent> physics)
         {
-            physics.Velocity = Vector3.Zero;
-            physics.Torque = Vector3.Zero;
+            physics.Write.Velocity = Vector3.Zero;
+            physics.Write.Torque = Vector3.Zero;
         }
     }
 

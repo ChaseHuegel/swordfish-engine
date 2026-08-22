@@ -54,7 +54,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
     public void Bind(Texture texture) => BindTexture(texture);
     public void Bind(Mesh mesh) => BindMesh(mesh);
     public void Bind(Material material) => BindMaterial(material);
-    public void Bind(MeshRenderer meshRenderer, int entity) => BindMeshRenderer(meshRenderer, entity);
+    public void Bind(MeshRenderer meshRenderer, Uuid entity) => BindMeshRenderer(meshRenderer, entity);
     public void Bind(RectRenderer rectRenderer) => BindRectRenderer(rectRenderer);
 
     public RenderScene GetSceneContext()
@@ -78,38 +78,14 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         Matrix4x4 cameraProjection = _sceneData.Projection;
 
         //  Collect the camera's state
-        store.Query<CameraComponent, ViewFrustumComponent>(0f, QueryCamera);
-        void QueryCamera(float d, DataStore s, int entity, ref CameraComponent camera, ref ViewFrustumComponent viewFrustum)
-        {
-            if (!s.TryGet(entity, out TransformComponent transform))
-            {
-                return;
-            }
-
-            viewFrustum.FOV.Degrees = _renderSettings.FOV.Get();
-            viewFrustum.NearPlane = _renderSettings.NearPlane.Get();
-            viewFrustum.FarPlane = _renderSettings.FarPlane.Get();
-
-            var e = new Entity(entity, s);
-            var cameraEntity = new CameraEntity(e, viewFrustum, transform);
-
-            cameraView = cameraEntity.GetView();
-            cameraProjection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.FOV.Radians, _windowAspectRatio, viewFrustum.NearPlane, viewFrustum.FarPlane);
-
-            MainCamera.Set(cameraEntity);
-        }
+        var queryCameraAction = new ReadCameraAction(this, cameraView, cameraProjection);
+        store.QueryRef<CameraComponent, ViewFrustumComponent, ReadCameraAction>(0f, ref queryCameraAction);
+        cameraView = queryCameraAction.View;
+        cameraProjection = queryCameraAction.Projection;
 
         //  Collect all renderable entities
-        store.Query<TransformComponent, MeshRendererComponent>(0f, QueryRenderableEntities);
-        void QueryRenderableEntities(float d, DataStore s, int e, ref TransformComponent transform, ref MeshRendererComponent meshRendererComponent)
-        {
-            if (meshRendererComponent.MeshRenderer == null)
-            {
-                return;
-            }
-
-            _renderableEntities.Add(new EntityModel(e, transform.ToMatrix4X4(), meshRendererComponent.MeshRenderer));
-        }
+        var queryRenderableEntitiesAction = new ReadRenderableEntityAction(this);
+        store.Query<TransformComponent, MeshRendererComponent, ReadRenderableEntityAction>(0f, ref queryRenderableEntitiesAction);
 
         //  Write the scene data then reset for the next Tick
         Volatile.Write(ref _sceneData, new SceneData(cameraView, cameraProjection, _renderableEntities.ToArray()));
@@ -233,7 +209,7 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         return Unsafe.As<GLMaterial>(handle);
     }
 
-    private void BindMeshRenderer(MeshRenderer meshRenderer, int entity)
+    private void BindMeshRenderer(MeshRenderer meshRenderer, Uuid entity)
     {
         if (_linkedHandles.TryGetValue(meshRenderer, out IHandle? _))
         {
@@ -331,5 +307,47 @@ internal sealed class GLRenderContext : IRenderContext, IDisposable, IAutoActiva
         public readonly Matrix4x4 View = view;
         public readonly Matrix4x4 Projection = projection;
         public readonly EntityModel[] Instances = instances;
+    }
+    
+    private struct ReadCameraAction(in GLRenderContext owner, in Matrix4x4 view, in Matrix4x4 projection) : IForEachRef<CameraComponent, ViewFrustumComponent>
+    {
+        private readonly GLRenderContext _owner = owner;
+        public Matrix4x4 View = view;
+        public Matrix4x4 Projection = projection;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<CameraComponent> camera, ref Ref<ViewFrustumComponent> viewFrustum)
+        {
+            if (!store.TryGet(entity, out TransformComponent transform))
+            {
+                return;
+            }
+
+            viewFrustum.Write.FOV.Degrees = _owner._renderSettings.FOV.Get();
+            viewFrustum.Write.NearPlane = _owner._renderSettings.NearPlane.Get();
+            viewFrustum.Write.FarPlane = _owner._renderSettings.FarPlane.Get();
+
+            var e = new Entity(entity, store);
+            var cameraEntity = new CameraEntity(e, viewFrustum.Read, transform);
+
+            View = cameraEntity.GetView();
+            Projection = Matrix4x4.CreatePerspectiveFieldOfView(viewFrustum.Read.FOV.Radians, _owner._windowAspectRatio, viewFrustum.Read.NearPlane, viewFrustum.Read.FarPlane);
+
+            _owner.MainCamera.Set(cameraEntity);
+        }
+    }
+
+    private readonly struct ReadRenderableEntityAction(in GLRenderContext owner) : IForEach<TransformComponent, MeshRendererComponent>
+    {
+        private readonly GLRenderContext _owner = owner;
+
+        public void Execute(float delta, DataStore store, int entity, in TransformComponent transform, in MeshRendererComponent meshRendererComponent)
+        {
+            if (meshRendererComponent.MeshRenderer == null)
+            {
+                return;
+            }
+
+            _owner._renderableEntities.Add(new EntityModel(store.GetUuid(entity), transform.ToMatrix4X4(), meshRendererComponent.MeshRenderer));
+        }
     }
 }
