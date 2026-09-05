@@ -27,7 +27,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
         for (var i = 0; i < builders.Length; i++)
         {
-            int bit = NetworkRegistry.GetBit(builders[i].ComponentType);
+            int bit = NetworkRegistry.GetUuid(builders[i].ComponentType);
             _builders[bit] = builders[i];
         }
     }

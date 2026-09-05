@@ -1,63 +1,19 @@
 #version 1.0;
 #namespace WaywardBeyond.Shared.Networking;
 
-message ClientInputMsg
+message ComponentSnapshot
 {
-    uint SequenceNumber   = 0;
-    float MovementX       = 1;
-    float MovementY       = 2;
-    float MovementZ       = 3;
-    float LookDeltaX      = 4;
-    float LookDeltaY      = 5;
-    bool Jump             = 6;
-    bool PrimaryAction    = 7;
-    bool SecondaryAction  = 8;
-    uint ServerTickAtSample = 9;
-    ulong ClientUuid      = 10;
+    ulong Entity        = 0;
+    uint SequenceNumber = 1;
+    uint Ack            = 2;
+    ulong TypeUuid      = 3;
+    byte[] Payload      = 4;
 }
 
-message EntitySnapshotMsg
+message WorldSnapshot
 {
-    ulong Uuid            = 0;
-    float PositionX       = 1;
-    float PositionY       = 2;
-    float PositionZ       = 3;
-    float OrientationX    = 4;
-    float OrientationY    = 5;
-    float OrientationZ    = 6;
-    float OrientationW    = 7;
-    float VelocityX       = 8;
-    float VelocityY       = 9;
-    float VelocityZ       = 10;
-    uint ComponentMask    = 11;
-}
-
-enum GamePacketType
-{
-    ClientInput = 100;
-    WorldSnapshot = 200;
-    EntitySnapshot = 201;
-    PlaceBlock = 300;
-    BreakBlock = 301;
-    LoginRequest = 400;
-    LoginResponse = 401;
-    JoinRequest = 402;
-    JoinResponse = 403;
-    Logout = 404;
-}
-
-message GamePacket
-{
-    uint SequenceNumber   = 0;
-    uint Ack              = 1;
-    GamePacketType Type   = 2;
-    byte[] Payload        = 3;
-}
-
-message WorldSnapshotMsg
-{
-    uint TickNumber          = 0;
-    uint LastProcessedInput  = 1;
-    EntitySnapshotMsg[] Entities = 2;
-    ulong[] RemovedUuids     = 3;
+    uint TickNumber                 = 0;
+    uint LastProcessedInput         = 1;
+    ComponentSnapshot[] Components  = 2;
+    ulong[] RemovedEntities         = 3;
 }
