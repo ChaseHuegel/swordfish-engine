@@ -1,4 +1,5 @@
-using System.Numerics;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -6,14 +7,16 @@ using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Client-side adjacent to server-authoritative spawn. Submits a <see cref="SpawnRequest"/> on
-/// behalf of a local player, and once the server assigns an entity uuid it materializes the local
-/// (client-owned) player onto the client world, keyed to the server's identity.
+/// Submits a <see cref="SpawnRequest"/> on behalf of a local player and, once the server assigns an
+/// entity uuid, materializes the local player and hands its initial transform up as a placement so
+/// the server mirror starts at the right position. Requests are handed off over a queue so the load
+/// thread never mutates state the ECS thread reads; each request is sent at most once.
 /// </summary>
 internal sealed class ClientPlayerSpawnSystem : IEntitySystem
 {
@@ -21,9 +24,9 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly ILogger<ClientPlayerSpawnSystem> _logger;
 
-    private Character? _character;
-    private CharacterEntityModel? _model;
-    private bool _requested;
+    private readonly ConcurrentQueue<PlayerSpawnRequest> _requests = new();
+    private PlayerSpawnRequest? _pending;
+    private bool _sent;
     private bool _spawned;
 
     public ClientPlayerSpawnSystem(
@@ -38,38 +41,34 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
 
     public void RequestSpawn(Character character, CharacterEntityModel model)
     {
-        _character = character;
-        _model = model;
-        _requested = true;
-        _spawned = false;
+        _requests.Enqueue(new PlayerSpawnRequest(character, model));
     }
 
     public void Tick(float delta, DataStore store)
     {
-        if (_requested && !_spawned && _model is { } model)
+        if (!_spawned && _pending == null && _requests.TryDequeue(out PlayerSpawnRequest request))
         {
-            var request = new SpawnRequest
-            {
-                CharacterId = _character?.Id ?? 0,
-                PositionX = model.Position.X,
-                PositionY = model.Position.Y,
-                PositionZ = model.Position.Z,
-                OrientationX = model.Orientation.X,
-                OrientationY = model.Orientation.Y,
-                OrientationZ = model.Orientation.Z,
-                OrientationW = model.Orientation.W,
-            };
-            _transport.Send(request);
+            _pending = request;
+            _sent = false;
+        }
+
+        if (!_spawned && !_sent && _pending != null)
+        {
+            _transport.Send(new SpawnRequest { CharacterId = _pending.Value.Character.Id });
+            _sent = true;
         }
 
         Result<SpawnResponse> receiveResult;
         while ((receiveResult = _transport.Receive<SpawnResponse>()).Success)
         {
             SpawnResponse response = receiveResult.Value;
-            if (_spawned || !response.Accepted || _character is not { } character || _model is not { } spawnModel)
+            if (_spawned || !response.Accepted || _pending == null)
             {
                 continue;
             }
+
+            Character character = _pending.Value.Character;
+            CharacterEntityModel model = _pending.Value.Model;
 
             Uuid playerUuid = Uuid.FromValue(response.Entity);
             if (!store.TryGet(playerUuid, out int entity))
@@ -77,10 +76,44 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
                 entity = store.Alloc(playerUuid);
             }
 
-            _playerBuilder.Decorate(new Entity(entity, store), character, spawnModel);
+            _playerBuilder.Decorate(new Entity(entity, store), character, model);
+            SendInitialTransform(store, entity);
+
             _spawned = true;
-            _requested = false;
+            _sent = false;
+            _pending = null;
+
             _logger.LogInformation("Spawned local player entity {uuid}.", playerUuid);
+        }
+    }
+
+    private void SendInitialTransform(DataStore store, int entity)
+    {
+        if (!NetworkRegistry.TryGetInfo(typeof(TransformComponent), out NetworkComponentInfo info)
+            || !store.TryGet<TransformComponent>(entity, out _))
+        {
+            return;
+        }
+
+        byte[] payload = info.Codec.Serialize(store, entity);
+        var placement = new WorldSnapshot
+        {
+            Components = [new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), payload)],
+            RemovedEntities = [],
+        };
+
+        _transport.Send(placement);
+    }
+
+    private readonly struct PlayerSpawnRequest
+    {
+        public readonly Character Character;
+        public readonly CharacterEntityModel Model;
+
+        public PlayerSpawnRequest(Character character, CharacterEntityModel model)
+        {
+            Character = character;
+            Model = model;
         }
     }
 }

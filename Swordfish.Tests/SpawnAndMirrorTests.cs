@@ -1,8 +1,11 @@
 using System;
+using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core;
 using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -33,15 +36,23 @@ public class SpawnAndMirrorTests
         }
     }
 
+    private sealed class NoopCodec<T> : IPayloadCodec where T : struct, IDataComponent
+    {
+        public Type ComponentType => typeof(T);
+        public byte[] Serialize(DataStore store, int entity) => [];
+        public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload) { }
+    }
+
     [Fact]
     public void ServerMaterializesMirrorForUnknownClientOwnedEntity()
     {
         NetworkRegistry.Register<MirrorComponent>(Uuid.FromValue(0xE001), NetworkDirection.ClientOwned, new MirrorCodec());
 
-        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var connection = new LocalConnection(new object[] { new NsdMessageSerializer<WorldSnapshot>() });
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
             connection.Server,
+            new ServerPlayerOwnership(),
             NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
         );
 
@@ -68,7 +79,7 @@ public class SpawnAndMirrorTests
     [Fact]
     public void ServerSpawnRepliesWithAuthoritativeUuid()
     {
-        var connection = new LocalConnection(new INetworkSerializer[]
+        var connection = new LocalConnection(new object[]
         {
             new NsdMessageSerializer<SpawnRequest>(),
             new NsdMessageSerializer<SpawnResponse>(),
@@ -76,19 +87,13 @@ public class SpawnAndMirrorTests
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.ServerSpawnSystem(
             connection.Server,
+            new ServerPlayerOwnership(),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerSpawnSystem>.Instance
         );
 
         var request = new SpawnRequest
         {
             CharacterId = 99,
-            PositionX = 1f,
-            PositionY = 2f,
-            PositionZ = 3f,
-            OrientationX = 0f,
-            OrientationY = 0f,
-            OrientationZ = 0f,
-            OrientationW = 1f,
         };
         connection.Client.Send(request);
 
@@ -100,5 +105,44 @@ public class SpawnAndMirrorTests
 
         Assert.True(serverStore.TryGet(Uuid.FromValue(response.Value.Entity), out int entity));
         Assert.True(serverStore.TryGet(entity, out WaywardBeyond.Shared.Networking.Components.NetworkComponent net));
+    }
+
+    [Fact]
+    public void ServerAcceptsInitialTransformPlacementButDoesNotEchoToOwner()
+    {
+        NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new NoopCodec<TransformComponent>());
+
+        var ownership = new ServerPlayerOwnership();
+        var connection = new LocalConnection(new object[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var serverStore = new DataStore();
+
+        int player = serverStore.Alloc();
+        Uuid playerUuid = serverStore.GetUuid(player);
+        serverStore.AddOrUpdate(player, new NetworkComponent());
+        ownership.SetOwnedPlayer(playerUuid);
+
+        var placement = new WorldSnapshot
+        {
+            Components =
+            [
+                new ComponentSnapshot(playerUuid.ToValue(), 2, new TransformMessage(1f, 2f, 3f, 0f, 0f, 0f, 1f, 1f, 1f, 1f).Serialize()),
+            ],
+            RemovedEntities = [],
+        };
+        connection.Client.Send(placement);
+
+        var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
+            connection.Server,
+            ownership,
+            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
+        );
+        system.Tick(0f, serverStore);
+
+        Assert.True(serverStore.TryGet(playerUuid, out int placedEntity));
+        Assert.True(serverStore.TryGet(placedEntity, out TransformComponent transform));
+        Assert.Equal(new Vector3(1f, 2f, 3f), transform.Position);
+
+        // The transform is not echoed back to the owning client.
+        Assert.False(connection.Client.Receive<WorldSnapshot>().Success);
     }
 }

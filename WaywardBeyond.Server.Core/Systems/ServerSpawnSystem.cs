@@ -10,19 +10,22 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// <summary>
 /// Server-authoritative spawn. Handles client <see cref="SpawnRequest"/>s by allocating a player
 /// entity on the server world, wiring it for replication, and replying with the assigned uuid. The
-/// server holds authority over which spawns it materializes and replicates; client-side motion is
-/// authored by the client and mirrored upstream (see <see cref="NetworkReplicationSystem"/>).
+/// server holds authority over which spawns it materializes; the client later seats the initial
+/// transform as a placement and drives local motion.
 /// </summary>
 public sealed class ServerSpawnSystem : IEntitySystem
 {
     private readonly IServerConnection _transport;
+    private readonly ServerPlayerOwnership _ownership;
     private readonly ILogger<ServerSpawnSystem> _logger;
 
     public ServerSpawnSystem(
         in IServerConnection transport,
+        in ServerPlayerOwnership ownership,
         in ILogger<ServerSpawnSystem> logger
     ) {
         _transport = transport;
+        _ownership = ownership;
         _logger = logger;
     }
 
@@ -41,6 +44,7 @@ public sealed class ServerSpawnSystem : IEntitySystem
         Uuid uuid = store.GetUuid(entity);
 
         store.AddOrUpdate(entity, new NetworkComponent());
+        _ownership.SetOwnedPlayer(uuid);
 
         _transport.Send(new SpawnResponse { Entity = uuid.ToValue(), Accepted = true });
 

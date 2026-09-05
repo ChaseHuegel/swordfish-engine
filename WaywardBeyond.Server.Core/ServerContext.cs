@@ -26,8 +26,10 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _threadWorker = new ThreadWorker(Update, "Server");
 
         World = new World();
-        World.AddSystem(new NetworkReplicationSystem(transport, loggerFactory.CreateLogger<NetworkReplicationSystem>()));
-        World.AddSystem(new ServerSpawnSystem(transport, loggerFactory.CreateLogger<ServerSpawnSystem>()));
+
+        var ownership = new ServerPlayerOwnership();
+        World.AddSystem(new NetworkReplicationSystem(transport, ownership, loggerFactory.CreateLogger<NetworkReplicationSystem>()));
+        World.AddSystem(new ServerSpawnSystem(transport, ownership, loggerFactory.CreateLogger<ServerSpawnSystem>()));
     }
 
     public void Run()

@@ -46,9 +46,10 @@ public static class NetworkRegistry
 
             foreach (Type type in types)
             {
+                NetworkComponentAttribute? attribute = type.GetCustomAttribute<NetworkComponentAttribute>();
                 if (!type.IsValueType
                     || !typeof(IDataComponent).IsAssignableFrom(type)
-                    || type.GetCustomAttribute<NetworkComponentAttribute>() is not { } attribute)
+                    || attribute == null)
                 {
                     continue;
                 }

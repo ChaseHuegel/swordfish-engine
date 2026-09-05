@@ -63,7 +63,8 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             entity = store.Alloc(entityUuid);
         }
 
-        if (NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
+        if (NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
+            && info.Direction == NetworkDirection.ServerOwned)
         {
             info.Codec.Apply(store, entity, snapshot.Payload);
         }

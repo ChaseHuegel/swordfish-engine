@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Networking.Serialization;
 
 namespace WaywardBeyond.Shared.Networking.Transport;
 
 public sealed class TcpTransport : INetworkTransport, IDisposable
 {
-    private readonly Dictionary<Type, object> _serializers = new();
+    private readonly SerializerCache _serializers;
     private TcpClient? _client;
     private TcpListener? _listener;
     private NetworkStream? _stream;
@@ -25,20 +25,7 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
 
     public TcpTransport(object[] serializers)
     {
-        for (int i = 0; i < serializers.Length; i++)
-        {
-            object serializer = serializers[i];
-            Type type = serializer.GetType();
-
-            foreach (Type iface in type.GetInterfaces())
-            {
-                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(ISerializer<>))
-                {
-                    Type key = iface.GetGenericArguments()[0];
-                    _serializers[key] = serializer;
-                }
-            }
-        }
+        _serializers = new SerializerCache(serializers);
     }
 
     public void Connect(string host, int port)
@@ -68,12 +55,11 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
 
     public Result Send<T>(in T message)
     {
-        if (!_serializers.TryGetValue(typeof(T), out object? serializerObj))
+        if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
         {
             return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
 
-        ISerializer<T> serializer = (ISerializer<T>)serializerObj;
         byte[] data = serializer.Serialize(message);
 
         lock (_sendLock)
@@ -94,7 +80,7 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
 
     public Result<T> Receive<T>()
     {
-        if (!_serializers.TryGetValue(typeof(T), out object? serializerObj))
+        if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
         {
             return Result<T>.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
@@ -106,7 +92,6 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
 
         try
         {
-            ISerializer<T> serializer = (ISerializer<T>)serializerObj;
             return Result<T>.FromSuccess(serializer.Deserialize(data));
         }
         catch (Exception ex)

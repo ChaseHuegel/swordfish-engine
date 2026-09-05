@@ -1,15 +1,16 @@
 using System;
 using System.Linq.Expressions;
 using System.Reflection;
+using Swordfish.Library.Serialization;
 
 namespace WaywardBeyond.Shared.Networking.Serialization;
 
 /// <summary>
-/// <see cref="INetworkSerializer"/> over an nsd message. Drives the generated
+/// <see cref="ISerializer{T}"/> over an nsd message. Drives the generated
 /// <c>Serialize()</c>/<c>Deserialize(ReadOnlySpan&lt;byte&gt;)</c> methods emitted by <c>nsdc</c>,
 /// so no per-message adapter is required.
 /// </summary>
-public sealed class NsdMessageSerializer<T> : INetworkSerializer
+public sealed class NsdMessageSerializer<T> : ISerializer<T>
 {
     private static readonly Func<T, byte[]> SerializeDelegate;
     private static readonly Func<ReadOnlySpan<byte>, T> DeserializeDelegate;
@@ -28,9 +29,7 @@ public sealed class NsdMessageSerializer<T> : INetworkSerializer
         DeserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
     }
 
-    public Type MessageType => typeof(T);
+    public byte[] Serialize(T message) => SerializeDelegate(message);
 
-    public byte[] Serialize(object message) => SerializeDelegate((T)message);
-
-    public object Deserialize(ReadOnlySpan<byte> data) => DeserializeDelegate(data);
+    public T Deserialize(byte[] data) => DeserializeDelegate(data);
 }

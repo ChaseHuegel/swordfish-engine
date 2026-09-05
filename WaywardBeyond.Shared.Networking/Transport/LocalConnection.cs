@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Serialization;
 
@@ -14,20 +14,16 @@ namespace WaywardBeyond.Shared.Networking.Transport;
 /// </summary>
 public sealed class LocalConnection
 {
-    private readonly Dictionary<Type, INetworkSerializer> _serializers;
+    private readonly SerializerCache _serializers;
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _clientToServer = new();
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _serverToClient = new();
 
     public IServerConnection Server { get; }
     public IClientConnection Client { get; }
 
-    public LocalConnection(IEnumerable<INetworkSerializer> serializers)
+    public LocalConnection(object[] serializers)
     {
-        _serializers = new Dictionary<Type, INetworkSerializer>();
-        foreach (INetworkSerializer serializer in serializers)
-        {
-            _serializers[serializer.MessageType] = serializer;
-        }
+        _serializers = new SerializerCache(serializers);
 
         var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer);
         var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient);
@@ -37,7 +33,7 @@ public sealed class LocalConnection
 
     private sealed class LocalConnectionEndpoint : IClientConnection, IServerConnection
     {
-        private readonly Dictionary<Type, INetworkSerializer> _serializers;
+        private readonly SerializerCache _serializers;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _sendQueues;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues;
 
@@ -45,7 +41,7 @@ public sealed class LocalConnection
         public bool IsLocal => true;
 
         public LocalConnectionEndpoint(
-            Dictionary<Type, INetworkSerializer> serializers,
+            SerializerCache serializers,
             ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> sendQueues,
             ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> receiveQueues
         ) {
@@ -56,19 +52,19 @@ public sealed class LocalConnection
 
         public Result Send<T>(in T message)
         {
-            if (!_serializers.TryGetValue(typeof(T), out INetworkSerializer? serializer))
+            if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
             {
                 return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
             }
 
             _sendQueues.GetOrAdd(typeof(T), static _ => new ConcurrentQueue<byte[]>())
-                .Enqueue(serializer.Serialize(message!));
+                .Enqueue(serializer.Serialize(message));
             return Result.FromSuccess();
         }
 
         public Result<T> Receive<T>()
         {
-            if (!_serializers.TryGetValue(typeof(T), out INetworkSerializer? serializer))
+            if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
             {
                 return Result<T>.FromFailure($"No serializer registered for type {typeof(T).Name}.");
             }
@@ -81,7 +77,7 @@ public sealed class LocalConnection
 
             try
             {
-                return Result<T>.FromSuccess((T)serializer.Deserialize(data));
+                return Result<T>.FromSuccess(serializer.Deserialize(data));
             }
             catch (Exception ex)
             {

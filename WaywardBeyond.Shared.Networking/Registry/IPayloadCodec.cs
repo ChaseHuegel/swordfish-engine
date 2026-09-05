@@ -18,12 +18,3 @@ public interface IPayloadCodec
     /// <summary>Applies a deserialized payload onto <paramref name="entity"/>.</summary>
     void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload);
 }
-
-/// <summary>Typed convenience surface over <see cref="IPayloadCodec"/> for nsd-message components.</summary>
-public interface IPayloadCodec<T> : IPayloadCodec
-    where T : struct, IDataComponent
-{
-    byte[] Serialize(in T value);
-
-    T Deserialize(ReadOnlySpan<byte> payload);
-}

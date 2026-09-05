@@ -19,13 +19,6 @@ message WorldSnapshot
 message SpawnRequest
 {
     ulong CharacterId   = 0;
-    float PositionX     = 1;
-    float PositionY     = 2;
-    float PositionZ     = 3;
-    float OrientationX  = 4;
-    float OrientationY  = 5;
-    float OrientationZ  = 6;
-    float OrientationW  = 7;
 }
 
 message SpawnResponse

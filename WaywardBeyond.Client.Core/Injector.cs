@@ -123,9 +123,13 @@ public class Injector : IDryIocInjector
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 
-        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<WorldSnapshot>());
-        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<SpawnRequest>());
-        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<SpawnResponse>());
+        var serializers = new object[]
+        {
+            new NsdMessageSerializer<WorldSnapshot>(),
+            new NsdMessageSerializer<SpawnRequest>(),
+            new NsdMessageSerializer<SpawnResponse>(),
+        };
+        container.RegisterInstance<object[]>(serializers);
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<IServerConnection>(context => context.Resolve<LocalConnection>().Server, Reuse.Singleton);
