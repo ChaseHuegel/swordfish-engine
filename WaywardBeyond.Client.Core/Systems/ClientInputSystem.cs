@@ -30,8 +30,11 @@ internal sealed class ClientInputSystem : IEntitySystem
 
         var input = new InputComponent
         {
-            Movement = movement,
-            LookDelta = lookDelta,
+            MovementX = movement.X,
+            MovementY = movement.Y,
+            MovementZ = movement.Z,
+            LookDeltaX = lookDelta.X,
+            LookDeltaY = lookDelta.Y,
             Jump = jump,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,

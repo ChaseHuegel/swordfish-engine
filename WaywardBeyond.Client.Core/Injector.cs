@@ -44,7 +44,6 @@ using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
-using WaywardBeyond.Shared.Networking.Snapshots;
 using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Client.Core;
@@ -118,7 +117,7 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        NetworkRegistry.Register<InputComponent>(Uuid.FromValue(1), NetworkDirection.ClientOwned, new InputCodec());
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 

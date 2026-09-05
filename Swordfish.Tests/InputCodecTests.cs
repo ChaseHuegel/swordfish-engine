@@ -1,29 +1,32 @@
-using System.Numerics;
 using Swordfish.ECS;
+using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Snapshots;
+using WaywardBeyond.Shared.Networking.Registry;
 using Xunit;
 
 namespace Swordfish.Tests;
 
-public class InputCodecTests
+public class NetworkComponentCodecTests
 {
     [Fact]
-    public void RoundTripsInputComponentThroughCodec()
+    public void NsdComponentCodecRoundTripsInputComponent()
     {
         var store = new DataStore();
         int entity = store.Alloc();
         var input = new InputComponent
         {
-            Movement = new Vector3(1f, 2f, 3f),
-            LookDelta = new Vector2(4f, 5f),
+            MovementX = 1f,
+            MovementY = 2f,
+            MovementZ = 3f,
+            LookDeltaX = 4f,
+            LookDeltaY = 5f,
             Jump = true,
             SequenceNumber = 9,
             ServerTickAtSample = 7,
         };
         store.AddOrUpdate(entity, input);
 
-        var codec = new InputCodec();
+        var codec = new NsdComponentCodec<InputComponent>();
         byte[] payload = codec.Serialize(store, entity);
 
         Assert.NotEmpty(payload);
@@ -33,29 +36,42 @@ public class InputCodecTests
         codec.Apply(output, outputEntity, payload);
 
         Assert.True(output.TryGet(outputEntity, out InputComponent result));
-        Assert.Equal(input.Movement, result.Movement);
-        Assert.Equal(input.LookDelta, result.LookDelta);
+        Assert.Equal(input.MovementX, result.MovementX);
+        Assert.Equal(input.MovementY, result.MovementY);
+        Assert.Equal(input.MovementZ, result.MovementZ);
+        Assert.Equal(input.LookDeltaX, result.LookDeltaX);
+        Assert.Equal(input.LookDeltaY, result.LookDeltaY);
         Assert.Equal(input.Jump, result.Jump);
         Assert.Equal(input.SequenceNumber, result.SequenceNumber);
         Assert.Equal(input.ServerTickAtSample, result.ServerTickAtSample);
     }
 
     [Fact]
+    public void InitializeRegistersAttributedComponents()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
+        Assert.True(NetworkRegistry.TryGetInfo<InputComponent>(out NetworkComponentInfo info));
+        Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
+        Assert.IsType<NsdComponentCodec<InputComponent>>(info.Codec);
+    }
+
+    [Fact]
     public void WorldSnapshotRoundTripsComponentSnapshots()
     {
-        var snapshot = new WaywardBeyond.Shared.Networking.WorldSnapshot
+        var snapshot = new WorldSnapshot
         {
             TickNumber = 5,
             LastProcessedInput = 3,
             Components =
             [
-                new WaywardBeyond.Shared.Networking.ComponentSnapshot(0x1234, 0x1001, [1, 2, 3, 4]),
+                new ComponentSnapshot(0x1234, 0x1001, [1, 2, 3, 4]),
             ],
             RemovedEntities = [0xFFFF],
         };
 
         byte[] bytes = snapshot.Serialize();
-        WaywardBeyond.Shared.Networking.WorldSnapshot roundTripped = WaywardBeyond.Shared.Networking.WorldSnapshot.Deserialize(bytes);
+        WorldSnapshot roundTripped = WorldSnapshot.Deserialize(bytes);
 
         Assert.Equal(snapshot.TickNumber, roundTripped.TickNumber);
         Assert.Equal(snapshot.LastProcessedInput, roundTripped.LastProcessedInput);

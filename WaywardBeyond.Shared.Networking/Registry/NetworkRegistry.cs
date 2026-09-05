@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Reflection;
 using System.Threading;
 using Swordfish.ECS;
 
@@ -21,6 +23,41 @@ public static class NetworkRegistry
         where T : struct, IDataComponent
     {
         return Register(typeof(T), uuid, direction, codec);
+    }
+
+    /// <summary>
+    /// Scans the given <paramref name="assemblies"/> for <see cref="IDataComponent"/> structs annotated
+    /// with <see cref="NetworkComponentAttribute"/> and registers them, using a
+    /// <see cref="NsdComponentCodec{T}"/> derived from their generated nsd serializer.
+    /// </summary>
+    public static void Initialize(IEnumerable<Assembly> assemblies)
+    {
+        foreach (Assembly assembly in assemblies)
+        {
+            Type[] types;
+            try
+            {
+                types = assembly.GetTypes();
+            }
+            catch (ReflectionTypeLoadException e)
+            {
+                types = e.Types.Where(t => t != null).ToArray()!;
+            }
+
+            foreach (Type type in types)
+            {
+                if (!type.IsValueType
+                    || !typeof(IDataComponent).IsAssignableFrom(type)
+                    || type.GetCustomAttribute<NetworkComponentAttribute>() is not { } attribute)
+                {
+                    continue;
+                }
+
+                Type codecType = typeof(NsdComponentCodec<>).MakeGenericType(type);
+                IPayloadCodec codec = (IPayloadCodec)Activator.CreateInstance(codecType)!;
+                Register(type, attribute.Uuid, attribute.Direction, codec);
+            }
+        }
     }
 
     public static bool Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
