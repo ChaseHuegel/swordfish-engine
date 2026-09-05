@@ -10,18 +10,9 @@ using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
-internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IRenderContext renderContext)
+internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext)
 {
-    private readonly DataStore _dataStore = dataStore;
     private readonly IRenderContext _renderContext = renderContext;
-
-    public Entity Create(Character character, CharacterEntityModel model)
-    {
-        int ptr = _dataStore.Alloc(model.Uuid);
-        var player = new Entity(ptr, _dataStore);
-        Decorate(player, character, model);
-        return player;
-    }
 
     public void Decorate(Entity player, Character character, CharacterEntityModel model)
     {
