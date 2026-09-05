@@ -3,38 +3,27 @@ using Swordfish.ECS;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Networking;
-using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Snapshots;
-using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class ClientInputSystem : IEntitySystem
 {
     private readonly IInputService _inputService;
-    private readonly INetworkTransport _transport;
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _sequenceNumber;
 
     public ClientInputSystem(
         in IInputService inputService,
-        in INetworkTransport transport,
         SnapshotAckTracker snapshotAck
     ) {
         _inputService = inputService;
-        _transport = transport;
         _snapshotAck = snapshotAck;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        if (!_transport.IsConnected)
-        {
-            return;
-        }
-
         Vector3 movement = GetMovementInput();
         Vector2 lookDelta = _inputService.CursorDelta;
         bool jump = _inputService.IsKeyHeld(Key.Space);
@@ -48,25 +37,17 @@ internal sealed class ClientInputSystem : IEntitySystem
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
         };
 
-        Uuid clientUuid = Uuid.Null;
-        CollectInputAction collectInput = new() { Input = input, ClientUuid = clientUuid };
+        CollectInputAction collectInput = new() { Input = input };
         store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
-        clientUuid = collectInput.ClientUuid;
-
-        ClientInputMsg msg = input.ToMessage(0, clientUuid);
-        _transport.Send(msg);
     }
 
     private struct CollectInputAction : IForEach<PlayerComponent>
     {
         public InputComponent Input;
-        public Uuid ClientUuid;
 
-        public void Execute(float delta, DataStore store, int entity, in PlayerComponent cleanupAudioPlayer)
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
         {
             store.AddOrUpdate(entity, Input);
-
-            ClientUuid = store.GetUuid(entity);
 
             if (!store.TryGet(entity, out PendingInputComponent pending))
             {

@@ -1,47 +1,48 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
-using WaywardBeyond.Shared.Networking.Snapshots;
 using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Server.Core.Systems;
 
+/// <summary>
+/// Server-side replication. Applies inbound client-owned snapshots (e.g. input) and publishes
+/// authoritative server-owned component snapshots plus despawns for any entity that carries a
+/// <see cref="NetworkComponent"/>, automatically driven by ECS dirty tracking.
+/// </summary>
 public sealed class NetworkReplicationSystem : IEntitySystem
 {
     private readonly INetworkTransport _transport;
     private readonly ILogger<NetworkReplicationSystem> _logger;
-    private readonly Dictionary<Type, IComponentSnapshotBuilder> _builders;
-    private readonly List<EntitySnapshotMsg> _pendingSnapshots = [];
-    private readonly List<Uuid> _removedUuids = [];
+
+    private readonly List<ComponentSnapshot> _pending = [];
+    private readonly List<ulong> _removed = [];
     private uint _tickNumber;
 
     public NetworkReplicationSystem(
         in INetworkTransport transport,
-        in ILogger<NetworkReplicationSystem> logger,
-        IComponentSnapshotBuilder[] builders
+        in ILogger<NetworkReplicationSystem> logger
     ) {
         _transport = transport;
         _logger = logger;
-
-        _builders = [];
-        for (var i = 0; i < builders.Length; i++)
-        {
-            _builders[builders[i].ComponentType] = builders[i];
-        }
     }
 
     public void Tick(float delta, DataStore store)
     {
-        _tickNumber++;
+        if (!_transport.IsLocal)
+        {
+            ApplyInbound(store);
+        }
 
-        _pendingSnapshots.Clear();
-        _removedUuids.Clear();
+        _tickNumber++;
+        _pending.Clear();
+        _removed.Clear();
 
         OnTickAction onTick = new() { Owner = this };
         store.Query<NetworkComponent, OnTickAction>(delta, ref onTick);
@@ -54,70 +55,98 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
-        if (_pendingSnapshots.Count == 0 && _removedUuids.Count == 0)
+        if (_pending.Count == 0 && _removed.Count == 0)
         {
             return;
         }
 
         uint lastProcessedInput = 0;
-        for (var i = 0; i < _pendingSnapshots.Count; i++)
+        for (var i = 0; i < _pending.Count; i++)
         {
-            EntitySnapshotMsg entitySnapshot = _pendingSnapshots[i];
-            if (store.TryGet(Uuid.FromValue(entitySnapshot.Uuid), out int entity)
-                && store.TryGet(entity, out NetworkComponent net))
+            ComponentSnapshot snap = _pending[i];
+            if (store.TryGet(Uuid.FromValue(snap.Entity), out int entity)
+                && store.TryGet(entity, out NetworkComponent net)
+                && net.LastAckedInput > lastProcessedInput)
             {
-                if (net.LastAckedInput > lastProcessedInput)
-                {
-                    lastProcessedInput = net.LastAckedInput;
-                }
+                lastProcessedInput = net.LastAckedInput;
             }
         }
 
-        var removedUuids = new ulong[_removedUuids.Count];
-        for (var i = 0; i < _removedUuids.Count; i++)
-        {
-            removedUuids[i] = _removedUuids[i].ToValue();
-        }
-
-        var snapshot = new WorldSnapshotMsg
+        var snapshot = new WorldSnapshot
         {
             TickNumber = _tickNumber,
             LastProcessedInput = lastProcessedInput,
-            Entities = _pendingSnapshots.ToArray(),
-            RemovedUuids = removedUuids,
+            Components = _pending.ToArray(),
+            RemovedEntities = _removed.ToArray(),
         };
 
         _transport.Send(snapshot);
+    }
+
+    private void ApplyInbound(DataStore store)
+    {
+        Result<WorldSnapshot> receiveResult;
+        while ((receiveResult = _transport.Receive<WorldSnapshot>()).Success)
+        {
+            WorldSnapshot snapshot = receiveResult.Value;
+            ComponentSnapshot[] components = snapshot.Components;
+            for (var i = 0; i < components.Length; i++)
+            {
+                ApplyComponent(store, components[i]);
+            }
+        }
+    }
+
+    private void ApplyComponent(DataStore store, ComponentSnapshot snapshot)
+    {
+        Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
+        if (!store.TryGet(entityUuid, out int entity))
+        {
+            _logger.LogWarning("Ignoring component snapshot for unknown entity {uuid}.", snapshot.Entity);
+            return;
+        }
+
+        if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
+        {
+            _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
+            return;
+        }
+
+        info.Codec.Apply(store, entity, snapshot.Payload);
+
+        if (info.Type == typeof(InputComponent)
+            && store.TryGet(entity, out InputComponent input))
+        {
+            store.QueryRef<NetworkComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            {
+                if (input.SequenceNumber > net.Read.LastAckedInput)
+                {
+                    net.Write.LastAckedInput = input.SequenceNumber;
+                }
+
+                net.Write.LastAckedSnapshot = input.ServerTickAtSample;
+            });
+        }
     }
 
     private struct OnTickAction : IForEach<NetworkComponent>
     {
         public NetworkReplicationSystem Owner;
 
-        public void Execute(float delta, DataStore store, int entity, in NetworkComponent cleanupAudioPlayer)
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
-            var entitySnapshot = new EntitySnapshotMsg
-            {
-                Uuid = store.GetUuid(entity).ToValue(),
-            };
+            Uuid entityUuid = store.GetUuid(entity);
 
-            bool anyDirty = false;
-            foreach (KeyValuePair<Type, IComponentSnapshotBuilder> pair in Owner._builders)
+            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ServerOwned))
             {
-                if (!store.IsDirty(pair.Key, entity))
+                if (!store.IsDirty(info.Type, entity))
                 {
                     continue;
                 }
 
-                pair.Value.BuildSnapshot(store, entity, ref entitySnapshot);
-                entitySnapshot.ComponentMask |= (uint)(1 << NetworkRegistry.GetBit(pair.Key));
-                store.ClearDirty(pair.Key, entity);
-                anyDirty = true;
-            }
-
-            if (anyDirty)
-            {
-                Owner._pendingSnapshots.Add(entitySnapshot);
+                byte[] payload = info.Codec.Serialize(store, entity);
+                Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
+                store.ClearDirty(info.Type, entity);
             }
         }
     }
@@ -126,18 +155,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     {
         public NetworkReplicationSystem Owner;
 
-        public void Execute(float delta, DataStore store, int entity, in NetworkComponent cleanupAudioPlayer)
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
         {
-            Owner._removedUuids.Add(store.GetUuid(entity));
-            Owner.ClearDirty(store, entity);
-        }
-    }
+            Owner._removed.Add(store.GetUuid(entity).ToValue());
 
-    private void ClearDirty(DataStore store, int entity)
-    {
-        foreach (Type componentType in _builders.Keys)
-        {
-            store.ClearDirty(componentType, entity);
+            store.ClearDirty<NetworkComponent>(entity);
+            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ServerOwned))
+            {
+                store.ClearDirty(info.Type, entity);
+            }
         }
     }
 }

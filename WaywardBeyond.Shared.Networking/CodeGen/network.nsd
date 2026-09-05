@@ -3,17 +3,51 @@
 
 message ComponentSnapshot
 {
-    ulong Entity        = 0;
-    uint SequenceNumber = 1;
-    uint Ack            = 2;
-    ulong TypeUuid      = 3;
-    byte[] Payload      = 4;
+    ulong Entity    = 0;
+    ulong TypeUuid  = 1;
+    byte[] Payload  = 2;
 }
 
 message WorldSnapshot
 {
-    uint TickNumber                 = 0;
-    uint LastProcessedInput         = 1;
-    ComponentSnapshot[] Components  = 2;
-    ulong[] RemovedEntities         = 3;
+    uint TickNumber           = 0;
+    uint LastProcessedInput   = 1;
+    ComponentSnapshot[] Components     = 2;
+    ulong[] RemovedEntities   = 3;
+}
+
+message TransformMessage
+{
+    float PositionX      = 0;
+    float PositionY      = 1;
+    float PositionZ      = 2;
+    float OrientationX   = 3;
+    float OrientationY   = 4;
+    float OrientationZ   = 5;
+    float OrientationW   = 6;
+    float ScaleX         = 7;
+    float ScaleY         = 8;
+    float ScaleZ         = 9;
+}
+
+message PhysicsMessage
+{
+    float VelocityX = 0;
+    float VelocityY = 1;
+    float VelocityZ = 2;
+    float TorqueX   = 3;
+    float TorqueY   = 4;
+    float TorqueZ   = 5;
+}
+
+message InputMessage
+{
+    float MovementX       = 0;
+    float MovementY       = 1;
+    float MovementZ       = 2;
+    float LookDeltaX      = 3;
+    float LookDeltaY      = 4;
+    bool  Jump            = 5;
+    uint  SequenceNumber  = 6;
+    uint  ServerTickAtSample = 7;
 }

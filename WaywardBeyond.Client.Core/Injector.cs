@@ -43,7 +43,7 @@ using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Extensions;
+using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Snapshots;
 using WaywardBeyond.Shared.Networking.Transport;
 
@@ -118,26 +118,18 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        container.RegisterNetworkComponent<NetworkComponent>();
-        container.RegisterNetworkComponent<InputComponent>();
-        container.RegisterNetworkComponent<PendingInputComponent>();
-        container.RegisterNetworkComponent<PlaceBlockCommand>();
-        container.RegisterNetworkComponent<BreakBlockCommand>();
-
-        container.RegisterNetworkComponent<TransformComponent>();
-        container.RegisterNetworkComponent<PhysicsComponent>();
+        NetworkRegistry.Register<InputComponent>(Uuid.FromValue(1), NetworkDirection.ClientOwned, new InputCodec());
+        NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
+        NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 
         container.Register<INetworkTransport, LocalConnection>(Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
 
-        container.Register<IComponentSnapshotBuilder, TransformSnapshotBuilder>(Reuse.Singleton);
-        container.Register<IComponentSnapshotBuilder, PhysicsSnapshotBuilder>(Reuse.Singleton);
-
         container.Register<IEntitySystem, ClientInputSystem>();
+        container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
-        container.Register<IEntitySystem, ServerInputSystem>();
         container.Register<IEntitySystem, NetworkReplicationSystem>();
     }
 
