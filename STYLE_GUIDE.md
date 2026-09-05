@@ -43,7 +43,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 
 ## Null Handling
 
-- `== null` / `!= null` for checks (not `is null` / `is not null`).
+- `== null` / `!= null` for checks (not `is null` / `is not null` / `is { } foo` / `is not { } foo`).
 - `?.` for null-conditional invocation on delegates and events.
 - `??` / `??=` for coalescing and coalescing assignment.
 - `?? throw` for guard clauses in constructors.
@@ -56,6 +56,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **`readonly ref struct`** for accessor / stack-only types (`Ref<T>`).
 - **`partial`** where generated or source-extended code augments a type (`Entity` uses `readonly partial struct`).
 - **No record types** (record declarations don't work across the netstandard2.0/2.1 shared-library targets).
+- Type should be separated into their own files unless they are nested within another type
 
 ## DI & Architecture
 
@@ -112,7 +113,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Do not add XML docs to every member — the codebase doesn't.
 - Do not use block-scoped namespaces (`namespace X { }`).
 - Do not qualify `this.` — ever.
-- Do not use `is null` / `is not null` — use `== null` / `!= null`.
+- Do not use `is null` / `is not null` / `is { } foo` / `is not { } foo` — use `== null` / `!= null`.
 - Do not use records (incompatible with netstandard2.0 csproj targets).
 - Do not disable Nullable in new projects — `Swordfish.Library` is a legacy exception; default to nullable-aware code.
 - Do not introduce new test frameworks — stick with xunit for engine tests, NUnit for WaywardBeyond.
