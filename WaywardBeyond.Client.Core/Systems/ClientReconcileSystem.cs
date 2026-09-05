@@ -15,11 +15,11 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// </summary>
 internal sealed class ClientReconcileSystem : IEntitySystem
 {
-    private readonly INetworkTransport _transport;
+    private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
 
     public ClientReconcileSystem(
-        in INetworkTransport transport,
+        in IClientConnection transport,
         SnapshotAckTracker snapshotAck
     ) {
         _transport = transport;
@@ -28,11 +28,6 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
-        if (_transport.IsLocal)
-        {
-            return;
-        }
-
         Result<WorldSnapshot> receiveResult;
         while ((receiveResult = _transport.Receive<WorldSnapshot>()).Success)
         {

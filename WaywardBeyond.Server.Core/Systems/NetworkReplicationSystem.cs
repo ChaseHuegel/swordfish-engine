@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -18,7 +17,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// </summary>
 public sealed class NetworkReplicationSystem : IEntitySystem
 {
-    private readonly INetworkTransport _transport;
+    private readonly IServerConnection _transport;
     private readonly ILogger<NetworkReplicationSystem> _logger;
 
     private readonly List<ComponentSnapshot> _pending = [];
@@ -26,7 +25,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private uint _tickNumber;
 
     public NetworkReplicationSystem(
-        in INetworkTransport transport,
+        in IServerConnection transport,
         in ILogger<NetworkReplicationSystem> logger
     ) {
         _transport = transport;
@@ -35,10 +34,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
-        if (!_transport.IsLocal)
-        {
-            ApplyInbound(store);
-        }
+        ApplyInbound(store);
 
         _tickNumber++;
         _pending.Clear();
@@ -49,11 +45,6 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
         OnRemovedAction onRemoved = new() { Owner = this };
         store.QueryRemoved<NetworkComponent, OnRemovedAction>(0f, ref onRemoved);
-
-        if (_transport.IsLocal)
-        {
-            return;
-        }
 
         if (_pending.Count == 0 && _removed.Count == 0)
         {

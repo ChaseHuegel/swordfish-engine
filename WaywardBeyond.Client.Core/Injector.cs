@@ -125,7 +125,8 @@ public class Injector : IDryIocInjector
 
         container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<WorldSnapshot>());
         container.Register<LocalConnection>(Reuse.Singleton);
-        container.RegisterDelegate<INetworkTransport>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
+        container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
+        container.RegisterDelegate<IServerConnection>(context => context.Resolve<LocalConnection>().Server, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
@@ -133,7 +134,8 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
-        container.Register<IEntitySystem, NetworkReplicationSystem>();
+
+        ServerComposition.Register(container);
     }
 
     private void RegisterShortcuts(IContainer container)

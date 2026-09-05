@@ -13,21 +13,16 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// </summary>
 internal sealed class ClientReplicationSystem : IEntitySystem
 {
-    private readonly INetworkTransport _transport;
+    private readonly IClientConnection _transport;
     private readonly List<ComponentSnapshot> _pending = [];
 
-    public ClientReplicationSystem(in INetworkTransport transport)
+    public ClientReplicationSystem(in IClientConnection transport)
     {
         _transport = transport;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        if (_transport.IsLocal)
-        {
-            return;
-        }
-
         _pending.Clear();
 
         CollectAction action = new() { Owner = this };

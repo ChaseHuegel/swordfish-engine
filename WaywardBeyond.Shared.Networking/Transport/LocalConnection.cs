@@ -18,8 +18,8 @@ public sealed class LocalConnection
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _clientToServer = new();
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _serverToClient = new();
 
-    public INetworkTransport Server { get; }
-    public INetworkTransport Client { get; }
+    public IServerConnection Server { get; }
+    public IClientConnection Client { get; }
 
     public LocalConnection(IEnumerable<INetworkSerializer> serializers)
     {
@@ -29,11 +29,13 @@ public sealed class LocalConnection
             _serializers[serializer.MessageType] = serializer;
         }
 
-        Server = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer);
-        Client = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient);
+        var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer);
+        var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient);
+        Server = serverEndpoint;
+        Client = clientEndpoint;
     }
 
-    private sealed class LocalConnectionEndpoint : INetworkTransport
+    private sealed class LocalConnectionEndpoint : IClientConnection, IServerConnection
     {
         private readonly Dictionary<Type, INetworkSerializer> _serializers;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _sendQueues;
