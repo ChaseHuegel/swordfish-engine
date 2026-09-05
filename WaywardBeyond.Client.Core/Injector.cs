@@ -41,9 +41,11 @@ using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
+using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Client.Core;
@@ -121,7 +123,9 @@ public class Injector : IDryIocInjector
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 
-        container.Register<INetworkTransport, LocalConnection>(Reuse.Singleton);
+        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<WorldSnapshot>());
+        container.Register<LocalConnection>(Reuse.Singleton);
+        container.RegisterDelegate<INetworkTransport>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
