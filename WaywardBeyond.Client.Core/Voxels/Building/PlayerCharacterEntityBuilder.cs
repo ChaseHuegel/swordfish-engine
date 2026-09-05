@@ -19,6 +19,12 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
     {
         int ptr = _dataStore.Alloc(model.Uuid);
         var player = new Entity(ptr, _dataStore);
+        Decorate(player, character, model);
+        return player;
+    }
+
+    public void Decorate(Entity player, Character character, CharacterEntityModel model)
+    {
         player.Add<PlayerComponent>();
         player.Add<EquipmentComponent>();
         player.AddOrUpdate(new IdentifierComponent(character.Name, "player"));
@@ -84,7 +90,5 @@ internal sealed class PlayerCharacterEntityBuilder(in DataStore dataStore, in IR
         //  Child the camera to the player for a first person view
         var cameraChildComponent = new ChildComponent(player);
         _renderContext.MainCamera.Get().Entity.AddOrUpdate(cameraChildComponent);
-        
-        return player;
     }
 }

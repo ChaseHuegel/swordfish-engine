@@ -90,17 +90,18 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     private void ApplyComponent(DataStore store, ComponentSnapshot snapshot)
     {
-        Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
-        if (!store.TryGet(entityUuid, out int entity))
-        {
-            _logger.LogWarning("Ignoring component snapshot for unknown entity {uuid}.", snapshot.Entity);
-            return;
-        }
-
         if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
         {
             _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
             return;
+        }
+
+        Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
+        if (!store.TryGet(entityUuid, out int entity))
+        {
+            //  The client authored this entity; materialize a server-side mirror. Mirrors carry no
+            //  NetworkComponent, so they are never replicated downstream to other clients.
+            entity = store.Alloc(entityUuid);
         }
 
         info.Codec.Apply(store, entity, snapshot.Payload);

@@ -16,6 +16,24 @@ message WorldSnapshot
     ulong[] RemovedEntities   = 3;
 }
 
+message SpawnRequest
+{
+    ulong CharacterId   = 0;
+    float PositionX     = 1;
+    float PositionY     = 2;
+    float PositionZ     = 3;
+    float OrientationX  = 4;
+    float OrientationY  = 5;
+    float OrientationZ  = 6;
+    float OrientationW  = 7;
+}
+
+message SpawnResponse
+{
+    ulong Entity    = 0;
+    bool  Accepted  = 1;
+}
+
 message TransformMessage
 {
     float PositionX      = 0;

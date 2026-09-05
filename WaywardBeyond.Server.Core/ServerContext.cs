@@ -27,6 +27,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         World = new World();
         World.AddSystem(new NetworkReplicationSystem(transport, loggerFactory.CreateLogger<NetworkReplicationSystem>()));
+        World.AddSystem(new ServerSpawnSystem(transport, loggerFactory.CreateLogger<ServerSpawnSystem>()));
     }
 
     public void Run()

@@ -124,6 +124,8 @@ public class Injector : IDryIocInjector
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 
         container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<WorldSnapshot>());
+        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<SpawnRequest>());
+        container.RegisterInstance<INetworkSerializer>(new NsdMessageSerializer<SpawnResponse>());
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<IServerConnection>(context => context.Resolve<LocalConnection>().Server, Reuse.Singleton);
@@ -134,6 +136,8 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
+        container.Register<ClientPlayerSpawnSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, ClientPlayerSpawnSystem>();
 
         ServerComposition.Register(container);
     }

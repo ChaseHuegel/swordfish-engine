@@ -8,7 +8,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Meta;
-using WaywardBeyond.Client.Core.Voxels.Building;
+using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 
@@ -16,14 +16,14 @@ namespace WaywardBeyond.Client.Core.Saves.LoadGame;
 
 internal sealed class CharacterEntityLoadStage(
     in ISerializer<CharacterEntityModel> characterEntitySerializer,
-    in PlayerCharacterEntityBuilder playerCharacterEntityBuilder,
+    in ClientPlayerSpawnSystem clientPlayerSpawnSystem,
     in CharacterSaveManager characterSaveManager,
     in IAssetDatabase<LocalizedTags> localizedTagDatabase,
     in KeyValueStore keyValueStore
 ) : ILoadStage<GameSave>
 {
     private readonly ISerializer<CharacterEntityModel> _characterEntitySerializer = characterEntitySerializer;
-    private readonly PlayerCharacterEntityBuilder _playerCharacterEntityBuilder = playerCharacterEntityBuilder;
+    private readonly ClientPlayerSpawnSystem _clientPlayerSpawnSystem = clientPlayerSpawnSystem;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
     private readonly KeyValueStore _keyValueStore = keyValueStore;
@@ -82,7 +82,7 @@ internal sealed class CharacterEntityLoadStage(
             characterEntityModel = new CharacterEntityModel(Uuid.FromValue(character.Id), spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
         }
 
-        _playerCharacterEntityBuilder.Create(character, characterEntityModel.Value);
+        _clientPlayerSpawnSystem.RequestSpawn(character, characterEntityModel.Value);
         _progress = 1f;
         return Task.CompletedTask;
     }

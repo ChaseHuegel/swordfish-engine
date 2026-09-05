@@ -26,6 +26,7 @@
     <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
     <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" />
     <None Update="TestFiles\Fonts\Font Awesome 6 Free Solid.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
