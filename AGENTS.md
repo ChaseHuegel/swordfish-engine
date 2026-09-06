@@ -93,6 +93,10 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 
 Read `STYLE_GUIDE.md` before writing code — it documents naming, formatting, braces, null handling, DI patterns, threading conventions, ECS idioms, and serialization conventions extracted from the codebase.
 
+## Committing
+
+Read `COMMITS.md` before committing — it documents the repo's commit message style (terse, imperative, one-line subjects; issue references appended as `#NNN`).
+
 ## SDK Requirements
 
 - .NET 8 SDK minimum (some projects target net9.0, but net8.0 is the common baseline)
