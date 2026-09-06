@@ -11,7 +11,7 @@ public class LocalConnectionTests
 {
     private static LocalConnection CreateConnection()
     {
-        return new LocalConnection(new object[] { new NsdMessageSerializer<WorldSnapshot>() });
+        return new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
     }
 
     [Fact]

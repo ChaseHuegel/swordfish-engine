@@ -10,10 +10,12 @@ namespace WaywardBeyond.Shared.Networking.Serialization;
 /// <c>Serialize()</c>/<c>Deserialize(ReadOnlySpan&lt;byte&gt;)</c> methods emitted by <c>nsdc</c>,
 /// so no per-message adapter is required.
 /// </summary>
-public sealed class NsdMessageSerializer<T> : ISerializer<T>
+public sealed class NsdMessageSerializer<T> : ISerializer<T>, INetworkSerializer
 {
-    private static readonly Func<T, byte[]> SerializeDelegate;
-    private static readonly Func<ReadOnlySpan<byte>, T> DeserializeDelegate;
+    public Type MessageType => typeof(T);
+
+    private static readonly Func<T, byte[]> _serializeDelegate;
+    private static readonly Func<ReadOnlySpan<byte>, T> _deserializeDelegate;
 
     static NsdMessageSerializer()
     {
@@ -23,13 +25,13 @@ public sealed class NsdMessageSerializer<T> : ISerializer<T>
             ?? throw new InvalidOperationException($"{typeof(T).FullName} is not an nsd message (missing Deserialize(ReadOnlySpan<byte>)).");
 
         ParameterExpression instance = Expression.Parameter(typeof(T), "value");
-        SerializeDelegate = Expression.Lambda<Func<T, byte[]>>(Expression.Call(instance, serialize), instance).Compile();
+        _serializeDelegate = Expression.Lambda<Func<T, byte[]>>(Expression.Call(instance, serialize), instance).Compile();
 
         ParameterExpression buffer = Expression.Parameter(typeof(ReadOnlySpan<byte>), "payload");
-        DeserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
+        _deserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
     }
 
-    public byte[] Serialize(T message) => SerializeDelegate(message);
+    public byte[] Serialize(T message) => _serializeDelegate(message);
 
-    public T Deserialize(byte[] data) => DeserializeDelegate(data);
+    public T Deserialize(byte[] data) => _deserializeDelegate(data);
 }

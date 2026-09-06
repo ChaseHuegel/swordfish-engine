@@ -5,28 +5,19 @@ using Swordfish.Library.Serialization;
 namespace WaywardBeyond.Shared.Networking.Serialization;
 
 /// <summary>
-/// Indexes the <see cref="ISerializer{T}"/> implementations discovered in an <see cref="object"/>[]
-/// (registered with DryIoc) by their message type, mirroring the lookup a socket transport needs.
+/// Indexes the <see cref="ISerializer{T}"/> implementations managed by the DI container,
+/// keyed by their message type, mirroring the lookup a socket transport needs.
 /// </summary>
 public sealed class SerializerCache
 {
     private readonly Dictionary<Type, object> _serializers;
 
-    public SerializerCache(object[] serializers)
+    public SerializerCache(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new Dictionary<Type, object>();
-        for (int i = 0; i < serializers.Length; i++)
+        foreach (INetworkSerializer serializer in serializers)
         {
-            object serializer = serializers[i];
-            Type type = serializer.GetType();
-
-            foreach (Type iface in type.GetInterfaces())
-            {
-                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(ISerializer<>))
-                {
-                    _serializers[iface.GetGenericArguments()[0]] = serializer;
-                }
-            }
+            _serializers[serializer.MessageType] = serializer;
         }
     }
 

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
@@ -23,7 +24,7 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
     public bool IsConnected => _client?.Connected ?? false;
     public bool IsLocal => false;
 
-    public TcpTransport(object[] serializers)
+    public TcpTransport(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new SerializerCache(serializers);
     }

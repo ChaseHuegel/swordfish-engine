@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Serialization;
@@ -21,7 +22,7 @@ public sealed class LocalConnection
     public IServerConnection Server { get; }
     public IClientConnection Client { get; }
 
-    public LocalConnection(object[] serializers)
+    public LocalConnection(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new SerializerCache(serializers);
 

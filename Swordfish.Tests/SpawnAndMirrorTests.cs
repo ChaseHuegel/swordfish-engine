@@ -48,7 +48,7 @@ public class SpawnAndMirrorTests
     {
         NetworkRegistry.Register<MirrorComponent>(Uuid.FromValue(0xE001), NetworkDirection.ClientOwned, new MirrorCodec());
 
-        var connection = new LocalConnection(new object[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
             connection.Server,
@@ -79,7 +79,7 @@ public class SpawnAndMirrorTests
     [Fact]
     public void ServerSpawnRepliesWithAuthoritativeUuid()
     {
-        var connection = new LocalConnection(new object[]
+        var connection = new LocalConnection(new INetworkSerializer[]
         {
             new NsdMessageSerializer<SpawnRequest>(),
             new NsdMessageSerializer<SpawnResponse>(),
@@ -113,7 +113,7 @@ public class SpawnAndMirrorTests
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new NoopCodec<TransformComponent>());
 
         var ownership = new ServerPlayerOwnership();
-        var connection = new LocalConnection(new object[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
         var serverStore = new DataStore();
 
         int player = serverStore.Alloc();
