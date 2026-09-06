@@ -13,8 +13,8 @@ namespace WaywardBeyond.Shared.Networking.Registry;
 public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
     where T : struct, IDataComponent
 {
-    private static readonly Func<T, byte[]> SerializeDelegate;
-    private static readonly Func<ReadOnlySpan<byte>, T> DeserializeDelegate;
+    private static readonly Func<T, byte[]> _serializeDelegate;
+    private static readonly Func<ReadOnlySpan<byte>, T> _deserializeDelegate;
 
     static NsdComponentCodec()
     {
@@ -24,10 +24,10 @@ public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
             ?? throw CreateMissingSerializer();
 
         ParameterExpression instance = Expression.Parameter(typeof(T), "value");
-        SerializeDelegate = Expression.Lambda<Func<T, byte[]>>(Expression.Call(instance, serialize), instance).Compile();
+        _serializeDelegate = Expression.Lambda<Func<T, byte[]>>(Expression.Call(instance, serialize), instance).Compile();
 
         ParameterExpression buffer = Expression.Parameter(typeof(ReadOnlySpan<byte>), "payload");
-        DeserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
+        _deserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
     }
 
     public Type ComponentType => typeof(T);
@@ -39,17 +39,17 @@ public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
             return [];
         }
 
-        return SerializeDelegate(component);
+        return _serializeDelegate(component);
     }
 
     public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
-        store.AddOrUpdate(entity, DeserializeDelegate(payload));
+        store.AddOrUpdate(entity, _deserializeDelegate(payload));
     }
 
-    byte[] IPayloadCodec<T>.Serialize(in T value) => SerializeDelegate(value);
+    byte[] IPayloadCodec<T>.Serialize(in T value) => _serializeDelegate(value);
 
-    T IPayloadCodec<T>.Deserialize(ReadOnlySpan<byte> payload) => DeserializeDelegate(payload);
+    T IPayloadCodec<T>.Deserialize(ReadOnlySpan<byte> payload) => _deserializeDelegate(payload);
 
     private static InvalidOperationException CreateMissingSerializer()
     {
