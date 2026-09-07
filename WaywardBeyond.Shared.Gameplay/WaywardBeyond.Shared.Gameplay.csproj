@@ -9,7 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
+        <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
         <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
