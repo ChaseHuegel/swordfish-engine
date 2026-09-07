@@ -23,7 +23,7 @@
       <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
-      <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <PackageReference Include="HardwareInformation" Version="5.0.2" />
         <PackageReference Include="LibNoise" Version="0.2.0" />
     </ItemGroup>

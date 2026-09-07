@@ -34,8 +34,6 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
@@ -140,7 +138,6 @@ public class Injector : IDryIocInjector
             return hub;
         }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
-        container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
 
         container.Register<IEntitySystem, ClientInputSystem>();
@@ -154,8 +151,6 @@ public class Injector : IDryIocInjector
 
         container.Register<WorldsClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientWorldServiceSystem>();
-
-        ServerComposition.Register(container);
     }
 
     private void RegisterShortcuts(IContainer container)

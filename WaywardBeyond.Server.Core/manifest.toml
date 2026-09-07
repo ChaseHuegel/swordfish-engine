@@ -1,0 +1,9 @@
+ID = "waywardbeyond.server.core"
+Name = "Wayward Beyond Server"
+Description = "The authoritative multiplayer server for Wayward Beyond."
+Author = "Chase Huegel"
+Website = "https://github.com/ChaseHuegel"
+Source = "https://github.com/ChaseHuegel/swordfish-engine"
+Assemblies = [
+    "WaywardBeyond.Server.Core.dll",
+]

@@ -11,6 +11,9 @@
     <ItemGroup>
         <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
         <EmbeddedResource Include="manifest\**\*.*" />
+        <None Update="manifest.toml">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
