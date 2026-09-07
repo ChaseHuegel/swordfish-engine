@@ -88,6 +88,10 @@ public class SpawnAndMirrorTests
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.ServerSpawnSystem(
             connection.Server,
+            new WaywardBeyond.Server.Core.Saves.ServerWorldService(
+                NullLogger<WaywardBeyond.Server.Core.Saves.ServerWorldService>.Instance,
+                () => throw new NotImplementedException()
+            ),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerSpawnSystem>.Instance
         );
 

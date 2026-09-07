@@ -6,7 +6,9 @@ using Swordfish.ECS;
 using Swordfish.Library.Threading;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -31,10 +33,12 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly NetworkReplicationSystem _replication;
     private readonly JoltPhysicsSystem _physics;
     private readonly SharedPlayerMotionStep _motionStep;
+    private readonly ServerWorldService _worldService;
 
     public ServerContext(
         in IServerConnection transport,
         in PhysicsSettings physicsSettings,
+        in Func<KeyValueStore> keyValueStore,
         ILoggerFactory loggerFactory
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
@@ -42,7 +46,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         World = new World();
 
-        _spawn = new ServerSpawnSystem(transport, loggerFactory.CreateLogger<ServerSpawnSystem>());
+        _worldService = new ServerWorldService(loggerFactory.CreateLogger<ServerWorldService>(), keyValueStore);
+        _spawn = new ServerSpawnSystem(transport, _worldService, loggerFactory.CreateLogger<ServerSpawnSystem>());
         _replication = new NetworkReplicationSystem(transport, loggerFactory.CreateLogger<NetworkReplicationSystem>());
 
         _physics = new JoltPhysicsSystem(loggerFactory.CreateLogger<JoltPhysicsSystem>(), physicsSettings);
