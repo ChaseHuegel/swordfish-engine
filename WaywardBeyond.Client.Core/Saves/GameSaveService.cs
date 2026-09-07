@@ -11,6 +11,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 
@@ -277,6 +278,7 @@ internal sealed class GameSaveService(
             }
         }
 
+        var generatedWorld = false;
         if (!voxelEntitiesExist)
         {
             var gameOptions = new GameOptions(save.Name, save.Level.Seed.ToString());
@@ -286,11 +288,27 @@ internal sealed class GameSaveService(
                 _currentStage = stage;
                 await stage.Load(gameOptions);
             }
+
+            generatedWorld = true;
+
+            //  A freshly generated world only exists in the client store until the first autosave.
+            //  Persist it now so the authoritative server can read it from the levels bucket when it
+            //  processes this save's spawn request.
+            PersistVoxelEntities(save.Level);
         }
 
         for (var i = 0; i < _loadSaveStages.Length; i++)
         {
             ILoadStage<GameSave> stage = _loadSaveStages[i];
+
+            //  When the world was just generated above it is already present in the client store; skip
+            //  the KV-backed voxel load stage, which would otherwise re-read the entries we just wrote
+            //  and create duplicate entities.
+            if (generatedWorld && stage is VoxelEntityLoadStage)
+            {
+                continue;
+            }
+
             _currentStage = stage;
             await stage.Load(save);
         }
@@ -371,6 +389,26 @@ internal sealed class GameSaveService(
         else
         {
             _notificationService.Push(_localizedFormatter.GetString("notification.save.saved", save.Name));
+        }
+    }
+
+    private void PersistVoxelEntities(Level level)
+    {
+        _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
+        void ForEachVoxelEntity(float delta, DataStore store, int entity, in VoxelComponent voxelComponent, in TransformComponent transform)
+        {
+            try
+            {
+                Uuid uuid = store.GetUuid(entity);
+                var model = new VoxelEntityModel(uuid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
+                byte[] data = _voxelEntitySerializer.Serialize(model);
+
+                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.entity.{uuid}", data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "There was an error persisting generated voxel entity \"{entity}\".", entity);
+            }
         }
     }
 

@@ -37,9 +37,9 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
         _logger = logger;
     }
 
-    public void RequestSpawn(Character character)
+    public void RequestSpawn(Character character, string levelGuid)
     {
-        _requests.Enqueue(new PlayerSpawnRequest(character));
+        _requests.Enqueue(new PlayerSpawnRequest(character, levelGuid));
     }
 
     public void Tick(float delta, DataStore store)
@@ -52,7 +52,11 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
 
         if (!_spawned && !_sent && _pending != null)
         {
-            _transport.Send(new SpawnRequest { CharacterId = _pending.Value.Character.Id });
+            _transport.Send(new SpawnRequest
+            {
+                CharacterId = _pending.Value.Character.Id,
+                LevelGuid = _pending.Value.LevelGuid,
+            });
             _sent = true;
         }
 
@@ -86,10 +90,12 @@ internal sealed class ClientPlayerSpawnSystem : IEntitySystem
     private readonly struct PlayerSpawnRequest
     {
         public readonly Character Character;
+        public readonly string LevelGuid;
 
-        public PlayerSpawnRequest(Character character)
+        public PlayerSpawnRequest(Character character, string levelGuid)
         {
             Character = character;
+            LevelGuid = levelGuid;
         }
     }
 }

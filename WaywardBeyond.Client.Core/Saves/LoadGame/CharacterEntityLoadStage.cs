@@ -58,7 +58,7 @@ internal sealed class CharacterEntityLoadStage(
         Character character = _characterSaveManager.ActiveSave.Value;
 
         //  The server owns the initial transform; it assigns the spawn and replicates it downstream.
-        _clientPlayerSpawnSystem.RequestSpawn(character);
+        _clientPlayerSpawnSystem.RequestSpawn(character, save.Level.Guid);
         _progress = 1f;
         return Task.CompletedTask;
     }

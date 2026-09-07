@@ -19,6 +19,7 @@ message WorldSnapshot
 message SpawnRequest
 {
     ulong CharacterId   = 0;
+    string LevelGuid    = 1;
 }
 
 message SpawnResponse

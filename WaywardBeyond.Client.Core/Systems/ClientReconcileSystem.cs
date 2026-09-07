@@ -42,6 +42,14 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
+        //  Only reconcile while actually in-game. In the menu the client world is empty; the server can
+        //  still be publishing its (previous) world, and applying those snapshots would re-allocate stray
+        //  entities with physics components but no colliders.
+        if (WaywardBeyond.GameState < GameState.Loading)
+        {
+            return;
+        }
+
         Result<WorldSnapshot> receiveResult;
         while ((receiveResult = _transport.Receive<WorldSnapshot>()).Success)
         {
