@@ -42,10 +42,14 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
-        //  Only reconcile while actually in-game. In the menu the client world is empty; the server can
-        //  still be publishing its (previous) world, and applying those snapshots would re-allocate stray
-        //  entities with physics components but no colliders.
-        if (WaywardBeyond.GameState < GameState.Loading)
+        //  Only reconcile once play has begun. During Loading the load/UI thread is still building the
+        //  client's world entities (VoxelEntityBuilder.Create on a background thread), and applying
+        //  world-body snapshots here would write Transform/Physics into those same entities concurrently
+        //  with the build - a data race that corrupts the component slab. By the time Playing is set,
+        //  GameSaveService.Load has finished building the world, so this thread is the only writer.
+        //  The menu is skipped too: the client world is empty there and stale server snapshots would
+        //  re-allocate stray entities.
+        if (WaywardBeyond.GameState < GameState.Playing)
         {
             return;
         }

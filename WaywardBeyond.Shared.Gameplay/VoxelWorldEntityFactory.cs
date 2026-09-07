@@ -18,6 +18,14 @@ public static class VoxelWorldEntityFactory
 {
     public static Entity CreateAuthority(in DataStore store, in VoxelEntityData data)
     {
+        //  Skip entities with no solid voxels - an empty CompoundShape would otherwise be handed to the
+        //  physics system, which is a degenerate/undefined body. Such entities never occur in practice
+        //  (chunks are only emitted once a voxel is set), so this is a defensive guard.
+        if (!HasSolidVoxels(data))
+        {
+            return default;
+        }
+
         int entity = store.Alloc(Uuid.FromValue(data.Uuid));
 
         store.AddOrUpdate(entity, new IdentifierComponent(name: null, tag: "game"));
@@ -31,5 +39,33 @@ public static class VoxelWorldEntityFactory
         store.AddOrUpdate(entity, new NetworkComponent());
 
         return new Entity(entity, store);
+    }
+
+    private static bool HasSolidVoxels(in VoxelEntityData data)
+    {
+        ChunkInfo[] chunks = data.Chunks;
+        if (chunks == null || chunks.Length == 0)
+        {
+            return false;
+        }
+
+        for (var c = 0; c < chunks.Length; c++)
+        {
+            Voxel[] voxels = chunks[c].Chunk.Voxels;
+            if (voxels == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < voxels.Length; i++)
+            {
+                if (voxels[i].ID != 0)
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }
