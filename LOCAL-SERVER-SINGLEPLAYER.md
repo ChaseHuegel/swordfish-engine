@@ -198,6 +198,19 @@ allocates entity at same uuid, decorates, sends initial `TransformComponent` pla
 acks. `PlayerControllerSystem` (client-only) drives local motion — client-authoritative. Server
 publishes no authoritative state for the owned player; reconcile is inert.
 
+**Phase 2 deltas** (authoritative world, landed):
+- `SpawnRequest` now carries `LevelGuid`; `ServerSpawnSystem` routes through `ServerWorldService`
+  (`Server.Core/Saves/`), which loads the authoritative voxel world from the `levels` bucket on spawn
+  (unloading + disposing the previous world), resolves the spawn transform (persisted
+  `<level>.character.<id>` or `Level.Spawn`), and assigns it. No client-authored placement is accepted.
+- World/voxel structure bodies are replicated: they carry `NetworkComponent` server-side, so their
+  dirty `TransformComponent`/`PhysicsComponent` flow through the existing `WorldSnapshot` path each tick
+  (2.3). Client keeps local colliders for prediction and snaps authoritative drift.
+- Shared structure dynamics (`ThrusterComponent` + per-physics-step thruster evaluation) live in the
+  shared deterministic step (`WaywardBeyond.Shared.Gameplay`); the old client `ThrusterSystem` is gone.
+- `TransformCodec`/`PhysicsCodec` moved shared (usable by the server host and headless tests).
+- Client reconcile no-ops while `GameState < Loading`.
+
 ---
 
 ## Phase 1 — Arena authority (server-authoritative player sim)
@@ -378,7 +391,7 @@ The headless determinism + authority tests pass; the live loopback visual check 
 ## Phase 2 — Server voxel world + remote player visuals
 
 ### 2.1 [S/G] Server loads save data and builds voxel colliders
-`[ ]` Builds on Phase 1's server Jolt world:
+`[x]` Builds on Phase 1's server Jolt world:
 - **Collision-shape derivation comes first (`[S]`):** split it out of `VoxelObjectBuilder.Build`
   (`VoxelObjectBuilder.cs:41` produces `CollisionShape` together with `OpaqueMesh`/`TransparentMesh` in
   render-coupled client code). The shared derivation builds the shape from `VoxelObject` voxel data;
@@ -393,7 +406,13 @@ The headless determinism + authority tests pass; the live loopback visual check 
 - **Acceptance:** server authority resolves movement against voxel structures (no longer arena-only).
 
 ### 2.2 [S/G] Remote player visuals (public character view)
-`[ ]` Relay a **minimal public character view** so clients can materialize remote players:
+`[ ]` **Deferred** to a follow-up after Phase 2. There is no 3D character avatar or remote-player render
+path today (only 2D character portrait `Material`s selected by `Character.Body`), and the acceptance is
+inherently visual/Windows-only. It also belongs to the join request (Phase 3/4) for the public-view upload.
+Re-anchor its acceptance to the multi-client session (Phase 3) + join-streaming (Phase 4) work once those
+land; the server-side public view (stable uuid + ServerOwned nsd codec carrying
+`CharacterId`/`Name`/`Body`) is unchanged in intent.
+Relay a **minimal public character view** so clients can materialize remote players:
 - New replicated data on the server player entity carrying `CharacterId`, `Name`, `Body` (appearance
   index). Add `PlayerViewComponent` (or similar) with a stable uuid + ServerOwned codec — payload is a
   new/derived shared nsd message; goes through the existing dirty/snapshot path.
@@ -405,7 +424,7 @@ The headless determinism + authority tests pass; the live loopback visual check 
   data crosses the wire.
 
 ### 2.3 [S/G] World-body replication + shared structure dynamics (decision 16)
-`[ ]` World/voxel bodies are **Dynamic and server-authored** (`VoxelEntityBuilder.cs:66` already
+`[x]` World/voxel bodies are **Dynamic and server-authored** (`VoxelEntityBuilder.cs:66` already
 creates `BodyType.Dynamic`); their motion must replicate:
 - Server world entities join the snapshot path: give them the replication marker so
   `NetworkReplicationSystem`'s `NetworkComponent` gate covers them (they currently carry none). Their
@@ -663,6 +682,9 @@ stream, input, remote-player visuals, and replicate flows (peer path first real 
 | Sensitivity accidentally duplicated into shared code | 1.1/1.2 keep it client-only by construction; grep review |
 | Client keeps colliders (decision 9) → dual-physics divergence/cost | Document that client colliders are for prediction only; reconcile owns corrections; watch CPU |
 | Server voxel world (Phase 2) depends on `levels` data before Phase 4 completes | Interim server-side `levels` read/load-stage acceptable; finalized by 4.2 |
+| Fresh worlds aren't in `levels` until the first autosave | Client persists generated voxel entities to KV right after worldgen before sending the spawn request (2.1); server reads on spawn |
+| Server keeps publishing a stale world into an empty menu client | Client reconcile gates on `GameState >= Loading`; server unloads the previous world (disposing bodies) on a level-changing spawn (2.1) |
+| Server voxel-world build blocks the server tick loop on load | One-time per level load on the server thread during the client's Loading phase; throttled/worker-submitted saves are Phase 4 (4.2) |
 | NATS single instance shared client+server in-process | No change now (both buckets on same local NATS); if a dedicated server runs its own NATS later, `characters` stay client-local — note it |
 | Sessions phase (3) precedes transport demux (5) | Validate N sessions over the connection hub + `LocalConnection` fixture (3.0); real LAN smoke waits for Phase 5, where it lives |
 | In-process hidden state sharing (statics, e.g. `NetworkRegistry`) across worlds | Document shared statics; keep server/client code paths free of raw cross-`DataStore` access |

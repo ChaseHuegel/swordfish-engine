@@ -89,6 +89,7 @@ message WorldSnapshot
 message SpawnRequest
 {
     ulong CharacterId   = 0;
+    string LevelGuid    = 1;
 }
 
 message SpawnResponse
@@ -109,9 +110,9 @@ message InputComponent
     float MovementX          = 0;
     float MovementY          = 1;
     float MovementZ          = 2;
-    float LookDeltaX         = 3;
-    float LookDeltaY         = 4;
-    bool  Jump               = 5;
+    float LookPitch          = 3;
+    float LookYaw            = 4;
+    float LookRoll           = 5;
     uint  SequenceNumber     = 6;
     uint  ServerTickAtSample = 7;
 }
@@ -198,18 +199,18 @@ code and is the first real transport to plug in once demux lands.
 
 ## Spawn handshake
 
-1. `ClientPlayerSpawnSystem` (`Client.Core/Systems/`) submits a `SpawnRequest` with a character ID.
-2. `ServerSpawnSystem` (`Server.Core/Systems/`) allocates a server entity, adds a `NetworkComponent`,
-   records ownership, and replies `SpawnResponse { Entity, Accepted }`.
-3. The client allocates an entity with the same `Uuid`, decorates it, and sends its initial
-   `TransformComponent` up as a placement.
-4. `NetworkReplicationSystem.ApplyPlacement` seats it on the server mirror and clears its dirty flag.
+1. `ClientPlayerSpawnSystem` (`Client.Core/Systems/`) submits a `SpawnRequest { CharacterId, LevelGuid }`
+   once the level has loaded (freshly generated worlds are persisted to the `levels` bucket first so the
+   server can read them).
+2. `ServerSpawnSystem` (`Server.Core/Systems/`) - via `ServerWorldService` - loads the authoritative voxel
+   world for `LevelGuid` from the `levels` bucket (unloading any previous world), resolves the spawn
+   transform (the persisted `<level>.character.<id>` location, else `Level.Spawn`), allocates the server
+   entity mirror, and replies `SpawnResponse { Entity, Accepted }`.
+3. The client allocates an entity with the same `Uuid` and decorates it. The server assigns the initial
+   transform and it replicates downstream; the client never authors `ServerOwned` state.
 
-Today ownership is tracked by `ServerPlayerOwnership`, a **single** `Uuid?` — a single-client
-assumption. The server also skips echoing the owned player's transform back to its owner
-(`NetworkReplicationSystem.OnTickAction`, lines ~181-186), because local client motion is
-self-authoritative. Both of these are scheduled for removal (see
-[`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md)).
+The server owns body construction and the initial transform (see 1.9). Ownership is being replaced by
+session routing (Phase 3); see [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
 
 ## Replication (dirty-driven)
 
@@ -223,6 +224,10 @@ self-authoritative. Both of these are scheduled for removal (see
 - Each tick, it queries entities carrying `NetworkComponent`, serializes every **dirty** `ServerOwned`
   component into `ComponentSnapshot`s, collects **removed** entities via `QueryRemoved`, and sends one
   `WorldSnapshot { TickNumber, LastProcessedInput, Components, RemovedEntities }`.
+- **World/voxel bodies (Phase 2).** Server-authoritative structures (Dynamic bodies carrying a
+  `NetworkComponent`) flow through this same path each tick: their `TransformComponent` and
+  `PhysicsComponent` are dirtied by the physics sync cycle, so the client snaps any drift in its own
+  local prediction colliders against the authoritative structure state.
 
 ### Client → server
 
@@ -254,13 +259,12 @@ These are gameplay-level bookkeeping for prediction. They are **not** a transpor
 
 ## Current gaps / known issues
 
-- **No server-side simulation.** The server mirror stores what the client sends; no physics or
-  movement systems run on `ServerContext.World`.
-- **Client-authoritative owned player.** `PlayerControllerSystem` (client-only) authors motion; the
-  server's transform-echo skip assumes it.
-- **Single-client coupling.** `ServerPlayerOwnership` holds one uuid; `SessionManager` exists but is
-  dormant.
-- **No disconnect handling.** Remote/client mirrors are not cleaned up; sessions never end.
+- **No voxel content mutation replication.** World/voxel **motion** is replicated (Phase 2), but editing
+  blocks across clients is out of scope.
+- **Single-client coupling.** `ServerPlayerOwnership` has been replaced by spawning through
+  `ServerWorldService`; `SessionManager` (session routing) is still dormant until Phase 3.
+- **No disconnect handling.** Remote/client mirrors are not cleaned up; sessions never end. In Phase 2 a
+  new `SpawnRequest` for a different level unloads the server's previous world (disposing its bodies).
 - **`TcpTransport` has a single shared receive queue** — no per-type demux; unusable for the current
   polling model and unexercised.
 - **Server boot is hard-wired.** `ServerComposition.Register` is invoked from the client's `Injector`
