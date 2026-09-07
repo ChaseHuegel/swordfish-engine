@@ -18,8 +18,10 @@ public class NetworkComponentCodecTests
             MovementX = 1f,
             MovementY = 2f,
             MovementZ = 3f,
-            LookYaw = 4f,
-            LookPitch = 5f,
+            LookX = 0.1f,
+            LookY = 0.2f,
+            LookZ = 0.3f,
+            LookW = 0.9f,
             Jump = true,
             SequenceNumber = 9,
             ServerTickAtSample = 7,
@@ -39,8 +41,10 @@ public class NetworkComponentCodecTests
         Assert.Equal(input.MovementX, result.MovementX);
         Assert.Equal(input.MovementY, result.MovementY);
         Assert.Equal(input.MovementZ, result.MovementZ);
-        Assert.Equal(input.LookYaw, result.LookYaw);
-        Assert.Equal(input.LookPitch, result.LookPitch);
+        Assert.Equal(input.LookX, result.LookX);
+        Assert.Equal(input.LookY, result.LookY);
+        Assert.Equal(input.LookZ, result.LookZ);
+        Assert.Equal(input.LookW, result.LookW);
         Assert.Equal(input.Jump, result.Jump);
         Assert.Equal(input.SequenceNumber, result.SequenceNumber);
         Assert.Equal(input.ServerTickAtSample, result.ServerTickAtSample);

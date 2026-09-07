@@ -19,9 +19,6 @@ public static class PlayerBodyConfig
     public const float DECELERATION = 2f;
     public const float JUMP_SPEED = 8f;
 
-    /// <summary>Maximum orientation change (radians) the step will apply in a single physics step.</summary>
-    public const float MAX_LOOK_DELTA = 0.35f;
-
     public static readonly Vector3 PLAYER_SCALE = Vector3.One;
     public static readonly Vector3 DEFAULT_SPAWN_POSITION = new(0f, 1f, 5f);
 

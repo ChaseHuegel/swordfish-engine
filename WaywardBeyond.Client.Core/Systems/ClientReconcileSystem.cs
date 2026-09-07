@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
@@ -21,6 +24,11 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
+
+    //  Local players whose look is now client-predicted. The first authoritative transform seats them
+    //  (server-assigned spawn); afterwards their orientation comes from local prediction, not the echo,
+    //  so the authoritative snapshot never snaps the view back and causes look jitter.
+    private readonly HashSet<Uuid> _seatedPlayers = [];
 
     public ClientReconcileSystem(
         in IClientConnection transport,
@@ -80,7 +88,42 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             return;
         }
 
+        //  The local player's look is client-predicted; never accept the authoritative echo over it
+        //  (position/scale are authority, orientation stays locally predicted once seated at spawn).
+        if (info.Type == typeof(TransformComponent) && store.TryGet(entity, out PlayerComponent _))
+        {
+            ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+            return;
+        }
+
         info.Codec.Apply(store, entity, snapshot.Payload);
+    }
+
+    private void ApplyLocallyOwnedTransform(DataStore store, int entity, ReadOnlySpan<byte> payload)
+    {
+        TransformMessage message = TransformMessage.Deserialize(payload);
+
+        var serverPosition = new Vector3(message.PositionX, message.PositionY, message.PositionZ);
+        var serverScale = new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ);
+
+        if (_seatedPlayers.Add(store.GetUuid(entity)))
+        {
+            //  Seed the server-assigned spawn transform once.
+            store.AddOrUpdate(entity, new TransformComponent(
+                serverPosition,
+                new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW),
+                serverScale
+            ));
+            return;
+        }
+
+        //  Keep the locally predicted look; snap only position/scale from the authority.
+        store.QueryRef<TransformComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<TransformComponent> transform) =>
+        {
+            ref TransformComponent transformValue = ref transform.Write;
+            transformValue.Position = serverPosition;
+            transformValue.Scale = serverScale;
+        });
     }
 
     private static void TrimPendingInput(uint ackTick, DataStore store)

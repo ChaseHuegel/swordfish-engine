@@ -79,10 +79,10 @@ public sealed class SharedPlayerMotionStep : IDisposable
         ref PhysicsComponent physicsValue = ref physics.Write;
         ref TransformComponent transformValue = ref transform.Write;
 
-        //  Look: set orientation from absolute yaw/pitch, clamped relative to the current orientation.
-        //  This clamp lives here so prediction and the authoritative server clamp identically.
-        Quaternion target = Quaternion.CreateFromYawPitchRoll(command.LookYaw, command.LookPitch, 0f);
-        transformValue.Orientation = RotateToward(transformValue.Orientation, target, PlayerBodyConfig.MAX_LOOK_DELTA);
+        //  Look: set the orientation directly from the resolved (gimbal-free) look quaternion carried by
+        //  the command. Both prediction and the authoritative server apply the identical value, so the
+        //  result is deterministic; no per-step clamp is needed (angular anti-cheat is out of scope).
+        transformValue.Orientation = Quaternion.Normalize(new Quaternion(command.LookX, command.LookY, command.LookZ, command.LookW));
 
         //  Movement: derive world-space direction from the command and the current orientation.
         Vector3 forward = transformValue.GetForward();
@@ -107,24 +107,5 @@ public sealed class SharedPlayerMotionStep : IDisposable
         }
 
         _jumpStates[entity] = command.Jump;
-    }
-
-    private static Quaternion RotateToward(in Quaternion current, in Quaternion target, float maxDelta)
-    {
-        float dot = Quaternion.Dot(current, target);
-        if (dot < 0f)
-        {
-            //  Take the shortest arc by negating the target.
-            var negated = new Quaternion(-target.X, -target.Y, -target.Z, -target.W);
-            return RotateToward(current, negated, maxDelta);
-        }
-
-        float angle = (float)Math.Acos(Math.Clamp(dot, -1f, 1f));
-        if (angle <= maxDelta || angle <= 0.000001f)
-        {
-            return target;
-        }
-
-        return Quaternion.Slerp(current, target, maxDelta / angle);
     }
 }

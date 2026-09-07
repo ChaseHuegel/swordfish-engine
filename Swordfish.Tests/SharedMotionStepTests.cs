@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Physics;
 using WaywardBeyond.Shared.Gameplay;
@@ -45,11 +46,19 @@ public class SharedMotionStepTests
 
         for (uint tick = 1; tick <= 40; tick++)
         {
+            //  Include yaw, pitch, and roll to exercise the gimbal-free look + Q/E roll.
+            var look = Quaternion.CreateFromYawPitchRoll(
+                tick * 0.01f,
+                (tick % 8 == 0) ? 0.02f : 0f,
+                (tick % 16 == 0) ? 0.03f : 0f
+            );
             var command = new InputComponent
             {
                 MovementZ = (tick % 4 == 0) ? -1f : 0f,
-                LookYaw = tick * 0.01f,
-                LookPitch = (tick % 8 == 0) ? 0.02f : 0f,
+                LookX = look.X,
+                LookY = look.Y,
+                LookZ = look.Z,
+                LookW = look.W,
                 Jump = tick == 5,
                 SequenceNumber = tick,
                 ServerTickAtSample = tick,

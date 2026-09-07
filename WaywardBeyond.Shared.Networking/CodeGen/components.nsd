@@ -6,9 +6,11 @@ message InputComponent
     float MovementX           = 0;
     float MovementY           = 1;
     float MovementZ           = 2;
-    float LookYaw             = 3;
-    float LookPitch           = 4;
-    bool  Jump                = 5;
-    uint  SequenceNumber      = 6;
-    uint  ServerTickAtSample  = 7;
+    float LookX               = 3;
+    float LookY               = 4;
+    float LookZ               = 5;
+    float LookW               = 6;
+    bool  Jump                = 7;
+    uint  SequenceNumber      = 8;
+    uint  ServerTickAtSample  = 9;
 }
