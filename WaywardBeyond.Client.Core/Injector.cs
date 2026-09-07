@@ -42,6 +42,7 @@ using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
@@ -133,6 +134,14 @@ public class Injector : IDryIocInjector
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
+
+        //  The client's per-world shared motion step, bound to the client physics + world store.
+        container.RegisterDelegate<SharedPlayerMotionStep.CommandResolver>(context =>
+        {
+            DataStore store = context.Resolve<DataStore>();
+            return (int entity, uint simTick, out InputComponent command) => store.TryGet(entity, out command);
+        }, Reuse.Singleton);
+        container.Register<SharedPlayerMotionStep>(Reuse.Singleton);
 
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
@@ -248,8 +257,8 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
 
-        container.Register<PlayerControllerSystem>(Reuse.Singleton);
-        container.RegisterMapping<IEntitySystem, PlayerControllerSystem>();
+        container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, ClientPlayerMotionProcessor>();
     }
     
     private static void RegisterDatabases(IContainer container)

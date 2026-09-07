@@ -1,6 +1,7 @@
-using System.Collections.Generic;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -10,20 +11,26 @@ using WaywardBeyond.Client.Core.Networking;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Client-side reconciliation. Applies authoritative server-owned component snapshots, trims and
-/// replays locally pending input for prediction, and frees entities despawned by the server.
+/// Client-side reconciliation. Applies authoritative server-owned component snapshots (full state:
+/// position, orientation, linear + angular velocity), trims <see cref="PendingInputComponent"/> up to
+/// the server's last-processed sim tick, realigns the shared prediction step to the server's published
+/// sim tick, and frees entities despawned by the server. Local prediction continues from the corrected
+/// state, so concatenated snapshots never over-apply commands the server already collapsed.
 /// </summary>
 internal sealed class ClientReconcileSystem : IEntitySystem
 {
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
+    private readonly SharedPlayerMotionStep _motionStep;
 
     public ClientReconcileSystem(
         in IClientConnection transport,
-        SnapshotAckTracker snapshotAck
+        SnapshotAckTracker snapshotAck,
+        in SharedPlayerMotionStep motionStep
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
+        _motionStep = motionStep;
     }
 
     public void Tick(float delta, DataStore store)
@@ -40,7 +47,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
-            ApplyComponent(components[i], snapshot.LastProcessedInput, store);
+            ApplyComponent(components[i], store);
         }
 
         ulong[] removed = snapshot.RemovedEntities;
@@ -52,10 +59,15 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             }
         }
 
+        TrimPendingInput(snapshot.LastProcessedInput, store);
+
+        //  Align live prediction with the server's sim tick after the authoritative state is applied.
+        _motionStep.AlignTo(snapshot.TickNumber);
+
         _snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
     }
 
-    private void ApplyComponent(ComponentSnapshot snapshot, uint lastProcessedInput, DataStore store)
+    private void ApplyComponent(ComponentSnapshot snapshot, DataStore store)
     {
         Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
         if (!store.TryGet(entityUuid, out int entity))
@@ -63,38 +75,30 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             entity = store.Alloc(entityUuid);
         }
 
-        if (NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
-            && info.Direction == NetworkDirection.ServerOwned)
-        {
-            info.Codec.Apply(store, entity, snapshot.Payload);
-        }
-
-        if (!store.TryGet(entity, out PendingInputComponent pending))
+        if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
+            || info.Direction != NetworkDirection.ServerOwned)
         {
             return;
         }
 
-        pending.AckUpTo(lastProcessedInput);
-
-        int pendingCount = pending.PendingCount;
-        for (var j = 0; j < pendingCount; j++)
-        {
-            InputComponent input = pending.GetPending(j);
-
-            ApplyPendingInputAction applyPending = new() { Input = input };
-            store.QueryRef<InputComponent, PhysicsComponent, ApplyPendingInputAction>(entity, 0f, ref applyPending);
-        }
-
-        store.AddOrUpdate(entity, pending);
+        info.Codec.Apply(store, entity, snapshot.Payload);
     }
 
-    private struct ApplyPendingInputAction : IForEachRef<InputComponent, PhysicsComponent>
+    private static void TrimPendingInput(uint ackTick, DataStore store)
     {
-        public InputComponent Input;
+        TrimPendingAction action = new() { AckTick = ackTick };
+        store.Query<PlayerComponent, PendingInputComponent, TrimPendingAction>(0f, ref action);
+    }
 
-        public void Execute(float delta, DataStore store, int entity, ref Ref<InputComponent> existing, ref Ref<PhysicsComponent> physics)
+    private struct TrimPendingAction : IForEach<PlayerComponent, PendingInputComponent>
+    {
+        public uint AckTick;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in PendingInputComponent pending)
         {
-            existing.Write = Input;
+            PendingInputComponent trimmed = pending;
+            trimmed.AckUpTo(AckTick);
+            store.AddOrUpdate(entity, trimmed);
         }
     }
 }

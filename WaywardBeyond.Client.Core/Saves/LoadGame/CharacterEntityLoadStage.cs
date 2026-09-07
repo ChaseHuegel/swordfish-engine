@@ -1,35 +1,25 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Numerics;
 using System.Threading.Tasks;
-using Swordfish.ECS;
 using Swordfish.Library.Collections;
-using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Systems;
-using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Saves.LoadGame;
 
 internal sealed class CharacterEntityLoadStage(
-    in ISerializer<CharacterEntityModel> characterEntitySerializer,
     in ClientPlayerSpawnSystem clientPlayerSpawnSystem,
     in CharacterSaveManager characterSaveManager,
-    in IAssetDatabase<LocalizedTags> localizedTagDatabase,
-    in KeyValueStore keyValueStore
+    in IAssetDatabase<LocalizedTags> localizedTagDatabase
 ) : ILoadStage<GameSave>
 {
-    private readonly ISerializer<CharacterEntityModel> _characterEntitySerializer = characterEntitySerializer;
     private readonly ClientPlayerSpawnSystem _clientPlayerSpawnSystem = clientPlayerSpawnSystem;
     private readonly CharacterSaveManager _characterSaveManager = characterSaveManager;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
-    private readonly KeyValueStore _keyValueStore = keyValueStore;
     private readonly Randomizer _randomizer = new();
-
-    private const string BUCKET_NAME = "levels";
 
     private float _progress;
     private string _status = string.Empty;
@@ -66,23 +56,9 @@ internal sealed class CharacterEntityLoadStage(
 
         _progress = 0f;
         Character character = _characterSaveManager.ActiveSave.Value;
-        CharacterEntityModel? characterEntityModel = null;
-        
-        var characterKey = $"{save.Level.Guid}.character.{character.Id}";
-        Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, characterKey);
-        if (getResult.Success && getResult.Value.Length > 0)
-        {
-            characterEntityModel = _characterEntitySerializer.Deserialize(getResult.Value);
-        }
-        
-        if (characterEntityModel == null)
-        {
-            //  No entity found, create a new one
-            var spawnPosition = new Vector3(save.Level.SpawnX, save.Level.SpawnY, save.Level.SpawnZ);
-            characterEntityModel = new CharacterEntityModel(Uuid.FromValue(character.Id), spawnPosition, Quaternion.Identity, save.Level.DefaultGameMode);
-        }
 
-        _clientPlayerSpawnSystem.RequestSpawn(character, characterEntityModel.Value);
+        //  The server owns the initial transform; it assigns the spawn and replicates it downstream.
+        _clientPlayerSpawnSystem.RequestSpawn(character);
         _progress = 1f;
         return Task.CompletedTask;
     }

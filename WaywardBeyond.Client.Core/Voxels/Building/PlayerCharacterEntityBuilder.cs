@@ -1,12 +1,10 @@
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.Library.Types.Shapes;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
-using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 
 namespace WaywardBeyond.Client.Core.Voxels.Building;
 
@@ -14,24 +12,21 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
 {
     private readonly IRenderContext _renderContext = renderContext;
 
-    public void Decorate(Entity player, Character character, CharacterEntityModel model)
+    public void Decorate(Entity player, Character character)
     {
         player.Add<PlayerComponent>();
         player.Add<EquipmentComponent>();
         player.AddOrUpdate(new IdentifierComponent(character.Name, "player"));
-        player.AddOrUpdate(new TransformComponent(model.Position, model.Orientation, model.Scale));
-        player.AddOrUpdate(new PhysicsComponent(Layers.MOVING, BodyType.Dynamic, CollisionDetection.Continuous));
-
-        const float playerStandingHeight = 1.7f;
-        const float playerStandingOffset = -0.75f;
-        const float playerFlyingHeight = 0.75f;
-        const float playerFlyingOffset = -0.2f;
-        var playerCapsule = new Shape(new Box3(new Vector3(0.25f, playerFlyingHeight, 0.25f) * model.Scale));
-        var playerCollider = new CompoundShape([playerCapsule], [new Vector3(0f, playerFlyingOffset, 0f) * model.Scale], [Quaternion.Identity]);
-        player.AddOrUpdate(new ColliderComponent(playerCollider));
+        player.AddOrUpdate(new TransformComponent(
+            PlayerBodyConfig.DEFAULT_SPAWN_POSITION,
+            Quaternion.Identity,
+            PlayerBodyConfig.PLAYER_SCALE
+        ));
+        player.AddOrUpdate(PlayerBodyConfig.CreatePhysics());
+        player.AddOrUpdate(PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
         
         player.AddOrUpdate(new CharacterComponent(character));
-        player.AddOrUpdate(new GameModeComponent(model.GameMode));
+        player.AddOrUpdate(new GameModeComponent(GameMode.Creative));
         
         var inventory = new InventoryComponent(size: 45);
         if (character.Inventory == null)
