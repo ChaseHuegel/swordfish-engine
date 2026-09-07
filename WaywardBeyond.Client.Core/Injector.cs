@@ -20,9 +20,6 @@ using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Saves;
-using WaywardBeyond.Client.Core.Saves.LoadGame;
-using WaywardBeyond.Client.Core.Saves.LoadOrNewGame;
-using WaywardBeyond.Client.Core.Saves.NewGame;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
@@ -100,11 +97,6 @@ public class Injector : IDryIocInjector
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
-        container.Register<ILoadStage<GameOptions>, StarterShipNewGameStage>();
-        container.Register<ILoadStage<GameOptions>, WorldGenNewGameStage>();
-        container.Register<ILoadStage<GameSave>, VoxelEntityLoadStage>();
-        container.Register<ILoadStage<GameSave>, CharacterEntityLoadStage>();
-        container.Register<ILoadStage, CharacterLoadStage>();
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();
@@ -136,6 +128,10 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<JoinRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<JoinAccept>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<WorldEntityAdd>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>
@@ -151,8 +147,9 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
-        container.Register<ClientPlayerSpawnSystem>(Reuse.Singleton);
-        container.RegisterMapping<IEntitySystem, ClientPlayerSpawnSystem>();
+
+        container.Register<ClientJoinSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, ClientJoinSystem>();
 
         container.Register<WorldsClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientWorldServiceSystem>();

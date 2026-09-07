@@ -11,6 +11,7 @@ using Swordfish.Library.Types;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Client.Core.Systems;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -36,6 +37,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly IECSContext _ecs;
     private readonly CharacterSaveManager _characterSaveManager;
     private readonly GameplaySettings _gameplaySettings;
+    private readonly ClientJoinSystem _joinSystem;
 
     private readonly Lock _autosaveTimerLock = new();
     private Timer _autosaveTimer;
@@ -50,7 +52,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IShortcutService shortcutService,
         in IECSContext ecs,
         in CharacterSaveManager characterSaveManager,
-        in GameplaySettings gameplaySettings
+        in GameplaySettings gameplaySettings,
+        in ClientJoinSystem joinSystem
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
@@ -58,6 +61,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _ecs = ecs;
         _characterSaveManager = characterSaveManager;
         _gameplaySettings = gameplaySettings;
+        _joinSystem = joinSystem;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -97,28 +101,35 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     public Task Load()
     {
-        GameSave save;
         lock (_activeSaveLock)
         {
             if (ActiveSave == null)
             {
                 return Task.CompletedTask;
             }
-            
-            save = ActiveSave.Value;
-            
+
+            Character? character = _characterSaveManager.ActiveSave;
+            if (character == null)
+            {
+                return Task.CompletedTask;
+            }
+
+            GameSave save = ActiveSave.Value;
+
             long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             Level level = save.Level with
             {
                 LastPlayedMs = nowUtcMs,
             };
-        
+
             save = new GameSave(save.Name, level);
             ActiveSave = save;
+
+            WaywardBeyond.GameState.Set(GameState.Loading);
+            _joinSystem.RequestJoin(character.Value, level.Guid);
         }
 
-        using var gameLoadContext = new GameLoadContext(_characterSaveManager, gameSaveManager: this);
-        return _gameSaveService.Load(save);
+        return Task.CompletedTask;
     }
     
     public Task Save()

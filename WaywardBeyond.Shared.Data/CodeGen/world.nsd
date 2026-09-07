@@ -43,3 +43,40 @@ message SaveWorldResponse
 {
     bool Success = 1;
 }
+
+message PublicView
+{
+    ulong CharacterId = 0;
+    string Name = 1;
+    int Body = 2;
+}
+
+message JoinRequest
+{
+    string LevelGuid = 0;
+    ulong CharacterId = 1;
+    PublicView PublicView = 2;
+}
+
+message JoinAccept
+{
+    Level Level = 0;
+    float SpawnX = 1;
+    float SpawnY = 2;
+    float SpawnZ = 3;
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    ulong PlayerEntity = 8;
+}
+
+message WorldEntityAdd
+{
+    VoxelEntityData VoxelEntity = 0;
+}
+
+message WorldStreamComplete
+{
+    uint Dummy = 0;
+}

@@ -31,6 +31,7 @@ public sealed class WorldSaveService
     private readonly Func<KeyValueStore> _keyValueStore;
 
     public string? CurrentLevelGuid { get; private set; }
+    public Level? CurrentLevel { get; private set; }
     public Vector3 LevelSpawn { get; private set; } = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
 
     public WorldSaveService(
@@ -225,6 +226,7 @@ public sealed class WorldSaveService
         }
 
         Level level = Level.Deserialize(metaResult.Value);
+        CurrentLevel = level;
         LevelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
 
         Result<string[]> keysResult = kv.GetKeys(BUCKET_NAME);
@@ -272,6 +274,7 @@ public sealed class WorldSaveService
         store.Query<NetworkComponent, UnloadAction>(0f, ref action);
 
         CurrentLevelGuid = null;
+        CurrentLevel = null;
         LevelSpawn = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
     }
 

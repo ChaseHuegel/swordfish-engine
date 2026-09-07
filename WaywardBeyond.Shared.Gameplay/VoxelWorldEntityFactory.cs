@@ -42,6 +42,36 @@ public static class VoxelWorldEntityFactory
         return new Entity(entity, store);
     }
 
+    /// <summary>
+    /// Serializes a live authority structure entity back to its <see cref="VoxelEntityData"/> form, using
+    /// its current authoritative transform and the retained chunk content. Used when streaming the world
+    /// to a client at join and by server-side world saves, so the data has the same shape the client's
+    /// view world is built from.
+    /// </summary>
+    public static VoxelEntityData ToVoxelEntityData(in DataStore store, int entity)
+    {
+        if (!store.TryGet(entity, out TransformComponent transform) ||
+            !store.TryGet(entity, out VoxelEntityDataComponent content))
+        {
+            return default;
+        }
+
+        return new VoxelEntityData(
+            store.GetUuid(entity).ToValue(),
+            transform.Position.X,
+            transform.Position.Y,
+            transform.Position.Z,
+            transform.Orientation.X,
+            transform.Orientation.Y,
+            transform.Orientation.Z,
+            transform.Orientation.W,
+            transform.Scale.X,
+            transform.Scale.Y,
+            transform.Scale.Z,
+            content.Chunks
+        );
+    }
+
     private static bool HasSolidVoxels(in VoxelEntityData data)
     {
         ChunkInfo[] chunks = data.Chunks;
