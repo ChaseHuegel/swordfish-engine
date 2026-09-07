@@ -206,7 +206,7 @@ transport implementations (`LocalConnection`, and later `TcpTransport`) feed it 
 consumes it. Server systems construct against the hub instead of a single connection:
 
 - `Receive<T>()` polls every client connection and tags each inbound message with the `clientId` it
-  arrived on — so `ServerSpawnSystem` routes the `SpawnResponse` back to the requesting client and
+  arrived on — so the server's join/world systems route responses back to the requesting client and
   `SessionManager` keys a session to that client.
 - `Send<T>(clientId, ...)` addresses a single client; `Clients` enumerates every connected client.
 - `Remove(clientId)` queues a disconnect that `DrainDisconnects()` surfaces to the server teardown step.
@@ -217,27 +217,41 @@ side sees a hub.
 ### `SessionManager` & sessions
 
 `Server.Core/SessionManager.cs` binds the full `clientId ↔ Session ↔ player entity` chain, stamping
-`NetworkComponent.Session`. `ServerSpawnSystem` allocates a `Session` per connection and calls
+`NetworkComponent.Session`. `ServerJoinSystem` allocates a `Session` per connection and calls
 `Register`; `NetworkReplicationSystem` uses `SessionManager.TryGetEntity(clientId, ...)` to read that
 client's per-entity acked input. Disconnect teardown (`ServerContext.HandleDisconnects`) disposes the
 mirror's physics body, captures its uuid, frees the entity, and clears the mapping — the despawn is
 then broadcast to remaining clients in `RemovedEntities`.
 
-## Spawn handshake
+## Join handshake & full-world stream
 
-1. `ClientPlayerSpawnSystem` (`Client.Core/Systems/`) submits a `SpawnRequest { CharacterId, LevelGuid }`
-   once the level has loaded (freshly generated worlds are persisted to the `levels` bucket first so the
-   server can read them).
-2. `ServerSpawnSystem` (`Server.Core/Systems/`) - via `ServerWorldService` - loads the authoritative voxel
-   world for `LevelGuid` from the `levels` bucket (unloading any previous world), resolves the spawn
-   transform (the persisted `<level>.character.<id>` location, else `Level.Spawn`), allocates the server
-   entity mirror, binds it to a fresh `Session`, and replies `SpawnResponse { Entity, Accepted }` to the
-   requesting connection through the hub.
-3. The client allocates an entity with the same `Uuid` and decorates it. The server assigns the initial
-   transform and it replicates downstream; the client never authors `ServerOwned` state.
+The client no longer loads or generates world state. `GameSaveService`/its load stages were retired in
+favor of a server-driven join that streams the entire world per entity.
 
-The server owns body construction and the initial transform (see 1.9); ownership is routed per session
-(Phase 3). See [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
+1. `ClientJoinSystem` (`Client.Core/Systems/`) submits a `JoinRequest { LevelGuid, CharacterId, PublicView }`
+   where `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`) — **never** inventory,
+   attributes, or statistics. It drives `MainMenu → Loading → Playing` and is queued from the menu so view
+   building runs on the client ECS thread.
+2. `ServerJoinSystem` (`Server.Core/Systems/`) - via `WorldSaveService` (`Server.Core/Saves/`) - loads the
+   authoritative voxel world for `LevelGuid` from the server-owned `levels` bucket (unloading any previous
+   world, disposing its physics bodies), resolves the spawn transform (the persisted
+   `<level>.character.<id>` location, else `Level.Spawn`), allocates the server mirror, binds it to a fresh
+   `Session`, and replies `JoinAccept { Level, SpawnTransform, PlayerEntity }`.
+3. It then streams the world as one `WorldEntityAdd { VoxelEntityData }` per structure (bounded per-entity,
+   so no unbounded batch), followed by a `WorldStreamComplete`. The client builds a view entity for each
+   arrival (mesh + a local prediction collider) on the ECS thread, and **only** transitions to `Playing` on
+   `WorldStreamComplete` — which is what keeps `ClientReconcileSystem` (gated on `Playing`) inert until the
+   world is fully streamed.
+4. The player is seated at the server-assigned spawn; the first authoritative transform snapshot seats it
+   and reconcile corrects from there. The client never authors `ServerOwned` state.
+
+Alongside join, the save-listing menu is served by the server: `NewWorldRequest`, `ListWorldsRequest`,
+`DeleteWorldRequest`, and `SaveWorldRequest` (flush authoritative world) map to `WorldSaveService`
+operations, driven by a client `WorldsClient` that awaits responses the ECS thread completes. Characters
+remain client-owned (`characters` bucket, unchanged).
+
+The server owns body construction, the initial transform, and world persistence. See
+[`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
 
 ## Replication (dirty-driven)
 
@@ -320,9 +334,10 @@ The current initiative targets:
    minimal public character view (identity/name/appearance — never inventory or attributes).
 4. **Multi-client routing** (landed): a server-side connection hub with per-session acks — the single
    `WorldSnapshot.LastProcessedInput` field is per-recipient; the server composes a per-client
-   snapshot per tick. Next: **server-owned world state** — the server owns the world save (`levels`
-   KV), world generation, and per-character location persistence, streaming the full world to clients
-   at join; clients own only `characters` KV.
+   snapshot per tick. **Server-owned world state** (landed): the server owns the world save (the
+   `levels` KV), world generation, and per-character location persistence, and streams the full world
+   to clients per-entity at join (`WorldEntityAdd` + `WorldStreamComplete`); clients own only the
+   `characters` KV and build their view world from the stream.
 5. Per-type transport demux and transport selection as a DI decision; a dedicated executable stays a
    clean seam (server boot via module discovery), not a shipped launcher.
 

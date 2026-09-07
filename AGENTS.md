@@ -82,6 +82,19 @@ dotnet run --project Reef.Benchmarks  # BenchmarkDotNet
 
 - **Networked components (automatic replication)**: `WaywardBeyond.Shared.Networking` is a standalone layer over the ECS; the engine is never modified. A game/networking component is networked by defining it as an nsd `message` (partial) and adding `[NetworkComponent(uuid, direction)]` + `IDataComponent` on a partial declaration — `nsdc -p` emits partials. `NetworkRegistry.Initialize(assemblies)` scans for these and registers each with a default `NsdComponentCodec<T>` (drives the generated `Serialize()`/`Deserialize`). Engine/third-party components (e.g. `TransformComponent`, `PhysicsComponent`) are registered explicitly via `NetworkRegistry.Register<T>(uuid, direction, codec)` from the game wiring, never from the engine. Each entry has a stable `Uuid` type-identity and a `NetworkDirection` (`ServerOwned` = authoritative, replicated server→client; `ClientOwned` = client-authored, e.g. `InputComponent`, replicated client→server). The server `NetworkReplicationSystem` publishes dirty ServerOwned components + despawns and applies inbound ClientOwned snapshots; the client `ClientReconcileSystem` applies authoritative snapshots + replays pending input; `ClientReplicationSystem` sends dirty ClientOwned components upstream. `ComponentSnapshot { Entity, TypeUuid, Payload }` packets are packed into `WorldSnapshot { TickNumber, LastProcessedInput, Components[], RemovedEntities[] }`. Note: the game is currently single-process — the client embeds the server systems and uses a `LocalConnection` where `IsLocal` short-circuits replication, so the peer (`TcpTransport`) path is not yet exercised.
 
+### Join / world ownership (Phase 4)
+The server owns the `levels` KV bucket, world generation, and per-character location persistence
+(`Server.Core/Saves/WorldSaveService` + `ServerWorldSystem`/`ServerJoinSystem`). Clients own only
+`characters`. The client no longer generates or saves worlds: `ClientJoinSystem` sends a
+`JoinRequest { LevelGuid, CharacterId, PublicView }` (PublicView = Id/Name/Body only, never inventory),
+the server replies `JoinAccept` then streams the world as per-entity `WorldEntityAdd { VoxelEntityData }`
+messages followed by `WorldStreamComplete`; the client builds view entities on the ECS thread and only
+sets `Playing` on `WorldStreamComplete`, which is the gate that keeps `ClientReconcileSystem` inert until
+the world is streamed. Save listing/create/delete and world-save flush are server requests
+(`ListWorldsRequest`/`NewWorldRequest`/`DeleteWorldRequest`/`SaveWorldRequest`) driven by a client
+`WorldsClient` whose responses the ECS thread completes. The old `ClientPlayerSpawnSystem`/`ServerSpawnSystem`
+spawn path and client load stages were removed in favor of join. See `LOCAL-SERVER-SINGLEPLAYER.md` Phase 4.
+
 ## Test Quirks
 
 - `Swordfish.Tests` uses xunit + `TestBase` abstract class with DryIoc `Container` setup/teardown. Test files like `TestFiles/` are copied to output.

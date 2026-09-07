@@ -502,7 +502,7 @@ owns the `levels` bucket, world gen, the authoritative voxel world, and per-char
 persistence. Clients own only `characters`. World data is streamed to the client during join.
 
 ### 4.1 [S/G] World generation moves server-side
-`[ ]` Re-host world-gen into shared/server code:
+`[x]` Re-host world-gen into shared/server code:
 - `WorldGenerator`, `WorldGenNewGameStage`, `StarterShipNewGameStage`, and deps (`BrickDatabase`,
   `VoxelObjectBuilder`) move out of `Client.Core`. **`VoxelObjectBuilder` splits** (per 2.1/4.3): the
   collision-shape derivation becomes shared `[S]`; the mesh/render half stays client-side.
@@ -517,7 +517,7 @@ persistence. Clients own only `characters`. World data is streamed to the client
   longer runs client-side.
 
 ### 4.2 [G] Server `WorldSaveService` + client save contraction
-`[ ]` Server-side counterpart to `GameSaveService` over the **server** ECS:
+`[x]` Server-side counterpart to `GameSaveService` over the **server** ECS:
 - Reads/writes `levels` KV: `Level` meta + `VoxelEntityData` + per-character location
   (`<guid>.character.<id>`), world-gen-if-empty, retain the legacy disk-migration path.
 - **Structure transforms are sampled from the server's authoritative world** (decision 16) — the
@@ -541,7 +541,7 @@ persistence. Clients own only `characters`. World data is streamed to the client
   `characters`.
 
 ### 4.3 [S/G] Split the entity builders
-`[ ]` `VoxelEntityBuilder` becomes two variants:
+`[x]` `VoxelEntityBuilder` becomes two variants:
 - **Authority** (server): ECS entities + colliders, no mesh components (used in Phase 2).
 - **View** (client): ECS entities + meshes **+ local colliders kept for prediction** (locked decision
   9); server reconcile corrects.
@@ -583,7 +583,7 @@ Extend the spawn/join flow (Phase 3 + 1.9):
   player spawns at their persisted location.
 
 ### 4.5 [G] Client character ownership & public view
-`[ ]` Keep `ICharacterStorage`/`NatsCharacterStorage` (`characters` bucket) client-owned unchanged —
+`[x]` Keep `ICharacterStorage`/`NatsCharacterStorage` (`characters` bucket) client-owned unchanged —
 **no `EquipmentComponent` persistence, no new `Character` fields** (locked decision 11).
 - The only character data transmitted is the minimal public view (Id, Name, Body) from 4.4/2.2.
 - Client character menus (`SelectCharacterPage` etc.) stay local; `SelectSavePage` lists worlds from
@@ -591,7 +591,7 @@ Extend the spawn/join flow (Phase 3 + 1.9):
 - **Acceptance:** inventory/attributes/statistics are absent from every wire message.
 
 ### 4.6 [S] Consolidate duplicated DTO/serializers
-`[ ]` Unify client `VoxelEntityModelSerializer`/`CharacterEntityModelSerializer`
+`[x]` Unify client `VoxelEntityModelSerializer`/`CharacterEntityModelSerializer`
 (`Client.Core/Serialization/`) with shared `VoxelEntityData`/`CharacterEntityData` so **streamed ==
 persisted** payloads; audit for client-only dependencies so they can run server-side.
 - **Precision:** pin one convention — `VoxelEntityData`/`CharacterEntityData` use `double` positions
@@ -605,7 +605,7 @@ persisted** payloads; audit for client-only dependencies so they can run server-
 ## Phase 5 — Transport, LAN, and the dedicated-host seam
 
 ### 5.1 [G] Transport selection as a DI/decision
-`[ ]` Replace the hardwired `LocalConnection` delegates (`Client.Core/Injector.cs:130-132`) with a
+`[x]` Replace the hardwired `LocalConnection` delegates (`Client.Core/Injector.cs:130-132`) with a
 host-mode selection: `LocalConnection` = default singleplayer; `TcpTransport` = when hosting/joining
 over a socket. `IsLocal` shrinks to plumbing, never a simulation fork.
 - **Acceptance:** singleplayer boots through the same selection path LAN will use.
