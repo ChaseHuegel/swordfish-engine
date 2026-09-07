@@ -644,6 +644,7 @@ stream, input, remote-player visuals, and replicate flows (peer path first real 
 | Shutdown flush races NATS teardown (Shoal dispose order unspecified) | Explicit flush-complete-awaited-before-`PersistentNatsProcess`-dispose sequencing point (4.2) |
 | World-switch leaks server physics bodies | Reuse the 3.2 `PhysicsComponent` dispose path on world unload (4.2) |
 | Second `JoltPhysicsSystem` in-process (Foundation non-idempotent) | `[E1]` once-only `Foundation.Init` guard landed as its own engine commit before the server instance (1.6) |
+| Two concurrent physics worlds abort (shared temp allocator) | JoltPhysicsSharp `Update(dt, steps, jobSystem)` funnels every solve through one function-local `TempAllocatorImplWithMallocFallback`; two worlds solving on two threads corrupt it → SIGABRT. `[E3]` serializes native solves across worlds with a shared lock (1.6). Upstream exposes no per-system allocator through 2.22.0 |
 | Engine/game entanglement blocks cherry-picking into the engine project | Separate engine commits, committed first, standalone green; every `[E]` change justified in the engine change register |
 | Server thread dies silently on physics/ECS exception (Jolt assert throws) | try/catch/log guard around `ServerContext.Update` (1.6) |
 | Cross-type ordering at join (per-type transport queues, no envelope) | Client gates snapshot application until `WorldStreamComplete` (4.4) |
@@ -666,6 +667,7 @@ must land as its own engine commit, committed **before** the game commits that c
 |---|---|---|---|---|
 | `[E1]` | Once-only `Foundation.Init` (and DEBUG assert/trace handler) guard in `JoltPhysicsSystem` ctor | `Foundation.Init` (JoltPhysicsSharp) is non-idempotent; game cannot guard without touching the engine ctor that calls it | Any host running two physics worlds in one process needs it — a general engine capability, not WaywardBeyond-specific | No |
 | `[E2]` | Expose construction of a second physics `IPhysics`/`JoltPhysicsSystem` instance separate from the engine's singleton (`EngineContainer.cs:84` registers it internal + `Reuse.Singleton`) | The type is `internal` and registered app-singleton; game code cannot obtain a second instance bound to the server world | Hosting an additional physics world is a general engine capability; keeps the game host-agnostic | No |
+| `[E3]` | Serialize native physics solves across worlds (shared lock around each `JoltPhysicsSystem` fixed step) | JoltPhysicsSharp's `Update(dt, steps, jobSystem)` uses a shared function-local temp allocator; two worlds solving concurrently on two threads corrupt it and `abort()` (diagnosed: SIGABRT in `TempAllocatorImplWithMallocFallback::Free`). Game cannot fix it without touching the engine's solve call | Hosting multiple physics worlds that update concurrently in one process is a generic engine capability; the binding exposes no per-system allocator (through 2.22.0) | No |
 
 If a future task needs another `[E]` change, it must first attempt a game/shared-side implementation and
 add the row here with justification before committing.
