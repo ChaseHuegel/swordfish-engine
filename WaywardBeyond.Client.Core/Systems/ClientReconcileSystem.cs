@@ -1,7 +1,6 @@
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
-using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -21,16 +20,16 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 {
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
-    private readonly SharedPlayerMotionStep _motionStep;
+    private readonly ClientPlayerMotionProcessor _motionProcessor;
 
     public ClientReconcileSystem(
         in IClientConnection transport,
         SnapshotAckTracker snapshotAck,
-        in SharedPlayerMotionStep motionStep
+        in ClientPlayerMotionProcessor motionProcessor
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
-        _motionStep = motionStep;
+        _motionProcessor = motionProcessor;
     }
 
     public void Tick(float delta, DataStore store)
@@ -62,7 +61,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         TrimPendingInput(snapshot.LastProcessedInput, store);
 
         //  Align live prediction with the server's sim tick after the authoritative state is applied.
-        _motionStep.AlignTo(snapshot.TickNumber);
+        _motionProcessor.Step?.AlignTo(snapshot.TickNumber);
 
         _snapshotAck.LastAppliedSnapshotTick = snapshot.TickNumber;
     }
