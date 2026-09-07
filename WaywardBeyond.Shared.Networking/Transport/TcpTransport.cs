@@ -3,20 +3,31 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Serialization;
 
 namespace WaywardBeyond.Shared.Networking.Transport;
 
-public sealed class TcpTransport : INetworkTransport, IDisposable
+/// <summary>
+/// Socket transport usable as either a client (<see cref="Connect"/>) or a server peer
+/// (<see cref="Listen"/>). Every message is serialized through the wire format and framed with a
+/// length prefix plus a type tag, then dispatched to a per-type queue on the receiving side — so a
+/// peer can poll for several distinct message kinds independently without one polling loop stealing
+/// another's frames. Transport framing only: no ack, ordering, or reliability.
+/// </summary>
+public sealed class TcpTransport : IClientConnection, IServerConnection, IDisposable
 {
     private readonly SerializerCache _serializers;
+    private readonly ILogger _logger;
     private TcpClient? _client;
     private TcpListener? _listener;
     private NetworkStream? _stream;
-    private readonly ConcurrentQueue<byte[]> _receiveQueue = new();
+    private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
     private readonly object _sendLock = new();
     private volatile bool _isRunning;
     private Thread? _receiveThread;
@@ -24,15 +35,20 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
     public bool IsConnected => _client?.Connected ?? false;
     public bool IsLocal => false;
 
-    public TcpTransport(IEnumerable<INetworkSerializer> serializers)
+    public TcpTransport(IEnumerable<INetworkSerializer> serializers, ILoggerFactory? loggerFactory = null)
     {
         _serializers = new SerializerCache(serializers);
+        _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
     }
+
+    /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
+    public int LocalPort => (_listener?.LocalEndpoint as IPEndPoint)?.Port ?? 0;
 
     public void Connect(string host, int port)
     {
         _client = new TcpClient();
         _client.Connect(host, port);
+        _client.NoDelay = true;
         _stream = _client.GetStream();
         StartReceiveLoop();
     }
@@ -41,9 +57,26 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
     {
         _listener = new TcpListener(IPAddress.Any, port);
         _listener.Start();
-        _client = _listener.AcceptTcpClient();
-        _stream = _client.GetStream();
-        StartReceiveLoop();
+        var acceptThread = new Thread(AcceptLoop)
+        {
+            IsBackground = true,
+            Name = "TcpTransport Accept"
+        };
+        acceptThread.Start();
+    }
+
+    private void AcceptLoop()
+    {
+        try
+        {
+            _client = _listener!.AcceptTcpClient();
+            _stream = _client.GetStream();
+            StartReceiveLoop();
+        }
+        catch
+        {
+            //  Listener stopped (Dispose/Disconnect) while waiting for a connection.
+        }
     }
 
     public void Disconnect()
@@ -60,16 +93,28 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
         {
             return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
+        if (!_serializers.TryGetTypeName<T>(out string typeName))
+        {
+            return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
+        }
 
-        byte[] data = serializer.Serialize(message);
+        byte[] payload = serializer.Serialize(message);
+        byte[] typeTag = Encoding.UTF8.GetBytes(typeName);
+
+        //  Frame body = [4-byte type-tag length][type tag][payload], preceded on the wire by a
+        //  [4-byte body length] prefix (the body length excludes the prefix itself).
+        byte[] frame = new byte[4 + typeTag.Length + payload.Length];
+        BitConverter.TryWriteBytes(frame.AsSpan(0, 4), typeTag.Length);
+        typeTag.CopyTo(frame, 4);
+        payload.CopyTo(frame, 4 + typeTag.Length);
+        byte[] lengthPrefix = BitConverter.GetBytes(frame.Length);
 
         lock (_sendLock)
         {
             try
             {
-                byte[] lengthPrefix = BitConverter.GetBytes(data.Length);
                 _stream?.Write(lengthPrefix, 0, 4);
-                _stream?.Write(data, 0, data.Length);
+                _stream?.Write(frame, 0, frame.Length);
                 return Result.FromSuccess();
             }
             catch (Exception ex)
@@ -86,7 +131,7 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
             return Result<T>.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
 
-        if (!_receiveQueue.TryDequeue(out byte[]? data))
+        if (!_receiveQueues.TryGetValue(typeof(T), out ConcurrentQueue<byte[]>? queue) || !queue.TryDequeue(out byte[]? data))
         {
             return Result<T>.FromFailure("No messages available.");
         }
@@ -130,15 +175,35 @@ public sealed class TcpTransport : INetworkTransport, IDisposable
                     break;
                 }
 
-                int length = BitConverter.ToInt32(lengthBuffer, 0);
-                byte[] data = new byte[length];
-
-                if (ReadExact(data, 0, length) == 0)
+                int frameLength = BitConverter.ToInt32(lengthBuffer, 0);
+                if (frameLength < 8)
                 {
                     break;
                 }
 
-                _receiveQueue.Enqueue(data);
+                byte[] frame = new byte[frameLength];
+                if (ReadExact(frame, 0, frameLength) == 0)
+                {
+                    break;
+                }
+
+                int typeTagLength = BitConverter.ToInt32(frame, 0);
+                if (typeTagLength < 0 || 4 + typeTagLength > frameLength)
+                {
+                    break;
+                }
+
+                string typeName = Encoding.UTF8.GetString(frame, 4, typeTagLength);
+                byte[] payload = new byte[frameLength - 4 - typeTagLength];
+                Array.Copy(frame, 4 + typeTagLength, payload, 0, payload.Length);
+
+                if (!_serializers.TryGetType(typeName, out Type type))
+                {
+                    _logger.LogWarning("Dropping frame with unknown type tag '{typeName}'.", typeName);
+                    continue;
+                }
+
+                _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<byte[]>()).Enqueue(payload);
             }
             catch
             {
