@@ -21,13 +21,16 @@ simulation path.
 1. **In-process local server** for singleplayer + future LAN hosting. A dedicated executable stays a
    *clean seam only* — **no `WaywardBeyond.Server.Launcher` this initiative**.
 2. **Server-authoritative simulation with client prediction** for all players, including the local one.
-3. **Torque-driven look (physics).** The client sends the sensitivity-resolved **per-axis look deltas**
-   (`LookPitchDelta`/`LookYawDelta`/`LookRollDelta`, radians) and the shared step applies them as body
-   torque; Jolt integrates rotation. This restores the pre-Phase-1 torque look feel. Both worlds apply
-   the identical command at the same sim tick and their solves are serialized (`[E3]`), so rotation is
-   deterministic. The local player's orientation stays client-predicted (reconcile seats it once at
-   spawn and then only corrects position/velocity), so the authoritative echo never snaps the view.
-   Angular anti-cheat is out of scope.
+3. **Torque-driven look (physics), sampled on the window path.** Cursor movement is captured on the
+   high-frequency window-update path (not the slower ECS tick) into a queue, so no input is missed.
+   The client accumulates the sensitivity-resolved **absolute look totals**
+   (`LookPitch`/`LookYaw`/`LookRoll`, radians) in the `InputComponent`; the shared step applies the
+   **per-sim-tick difference** of those totals as body torque, decoupled from `dt`
+   (delta `/ PHYSICS_STEP`), so each step rotates by the full accumulated delta and Q/E roll is visible;
+   Jolt integrates rotation. Both worlds consume the same totals at the same sim tick and their solves
+   are serialized (`[E3]`), so rotation is deterministic. The local player's orientation stays
+   client-predicted (reconcile seats it once at spawn, then corrects only position/velocity), so the
+   authoritative echo never snaps the view. Angular anti-cheat is out of scope.
 4. **Mouse sensitivity is a client-local setting** — never networked, never a shared/duplicated
    constant. The wire carries *resolved* look, not config.
 5. **Fixed-step physics with tick-tagged commands.** `JoltPhysicsSystem` already integrates the solver
@@ -254,11 +257,12 @@ publishes no authoritative state for the owned player; reconcile is inert.
 - **Shared player-motion step.** Query contract keys on **`InputComponent + PhysicsComponent +
   TransformComponent`** (all shared/engine types — no client `PlayerComponent`, no `Session`-keyed
   uniqueness). Per entity:
-  - **Look:** apply the resolved per-axis look deltas (`LookPitchDelta`/`LookYawDelta`/
-    `LookRollDelta`) as body torque — `Torque += Transform(delta, orientation)` after angular
-    deceleration (`ANGULAR_DECELERATION`) — letting Jolt integrate rotation. Both prediction and the
-    server apply the identical command at the same sim tick and their solves are serialized (`[E3]`),
-    so rotation is deterministic. Never writes orientation directly.
+  - **Look:** take the **per-sim-tick difference** of the absolute look totals
+    (`LookPitch`/`LookYaw`/`LookRoll`) since the last applied value and apply it as body torque,
+    decoupled from `dt` (`Torque += Transform(delta / PHYSICS_STEP, orientation)`) after angular
+    deceleration (`ANGULAR_DECELERATION`) — letting Jolt integrate rotation and making Q/E roll visible.
+    Both prediction and the server consume the same totals at the same sim tick and their solves are
+    serialized (`[E3]`), so rotation is deterministic. Never writes orientation directly.
   - **Movement:** compute forces from `Movement` + orientation-derived `GetForward/Right/Up`
     (`PlayerControllerSystem.cs:144-190` behavior) → `PhysicsComponent`, carrying `BASE_SPEED`,
     `DECELERATION`, jump handling. Pin `Jump` one-shot vs hold semantics.
