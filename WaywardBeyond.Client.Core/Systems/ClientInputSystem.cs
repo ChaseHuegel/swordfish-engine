@@ -43,7 +43,6 @@ internal sealed class ClientInputSystem : IEntitySystem
     public void Tick(float delta, DataStore store)
     {
         Vector3 movement = GetMovementInput();
-        bool jump = _inputService.IsKeyHeld(Key.Space);
 
         //  Mouse sensitivity is a client-local setting. Resolve the captured cursor deltas (window path)
         //  and Q/E roll into accumulated radians here so the wire only ever carries resolved look totals.
@@ -65,7 +64,6 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookPitch = _lookPitch,
             LookYaw = _lookYaw,
             LookRoll = _lookRoll,
-            Jump = jump,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
         };

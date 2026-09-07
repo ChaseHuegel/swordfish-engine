@@ -62,7 +62,6 @@ public class SharedMotionStepTests
                 LookPitch = pitch,
                 LookYaw = yaw,
                 LookRoll = roll,
-                Jump = tick == 5,
                 SequenceNumber = tick,
                 ServerTickAtSample = tick,
             };

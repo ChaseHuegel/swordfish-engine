@@ -25,7 +25,6 @@ public sealed class SharedPlayerMotionStep : IDisposable
     private readonly IPhysics _physics;
     private readonly CommandResolver _resolveCommand;
 
-    private readonly Dictionary<int, bool> _jumpStates = [];
     private readonly Dictionary<int, Vector3> _lastAppliedLook = [];
 
     public uint CurrentSimTick { get; private set; }
@@ -117,14 +116,5 @@ public sealed class SharedPlayerMotionStep : IDisposable
         }
 
         physicsValue.Velocity += direction * PlayerBodyConfig.BASE_SPEED * PlayerBodyConfig.PHYSICS_STEP;
-
-        //  Jump is one-shot on the rising edge of the Jump flag.
-        bool wasDown = _jumpStates.TryGetValue(entity, out bool previous) && previous;
-        if (command.Jump && !wasDown)
-        {
-            physicsValue.Velocity += new Vector3(0f, PlayerBodyConfig.JUMP_SPEED, 0f);
-        }
-
-        _jumpStates[entity] = command.Jump;
     }
 }

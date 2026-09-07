@@ -21,7 +21,6 @@ public class NetworkComponentCodecTests
             LookPitch = 1.1f,
             LookYaw = 2.2f,
             LookRoll = 3.3f,
-            Jump = true,
             SequenceNumber = 9,
             ServerTickAtSample = 7,
         };
@@ -43,7 +42,6 @@ public class NetworkComponentCodecTests
         Assert.Equal(input.LookPitch, result.LookPitch);
         Assert.Equal(input.LookYaw, result.LookYaw);
         Assert.Equal(input.LookRoll, result.LookRoll);
-        Assert.Equal(input.Jump, result.Jump);
         Assert.Equal(input.SequenceNumber, result.SequenceNumber);
         Assert.Equal(input.ServerTickAtSample, result.ServerTickAtSample);
     }
