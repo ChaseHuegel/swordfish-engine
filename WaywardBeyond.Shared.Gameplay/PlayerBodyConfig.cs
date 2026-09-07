@@ -18,7 +18,7 @@ public static class PlayerBodyConfig
     public const float BASE_SPEED = 10f;
     public const float DECELERATION = 2f;
     public const float JUMP_SPEED = 8f;
-    public const float ANGULAR_DECELERATION = 50f;
+    public const float ANGULAR_DECELERATION = 10f;
 
     public static readonly Vector3 PLAYER_SCALE = Vector3.One;
     public static readonly Vector3 DEFAULT_SPAWN_POSITION = new(0f, 1f, 5f);

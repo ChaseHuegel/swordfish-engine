@@ -26,6 +26,7 @@ public sealed class SharedPlayerMotionStep : IDisposable
     private readonly CommandResolver _resolveCommand;
 
     private readonly Dictionary<int, bool> _jumpStates = [];
+    private readonly Dictionary<int, Vector3> _lastAppliedLook = [];
 
     public uint CurrentSimTick { get; private set; }
 
@@ -79,18 +80,28 @@ public sealed class SharedPlayerMotionStep : IDisposable
         ref PhysicsComponent physicsValue = ref physics.Write;
         ref readonly TransformComponent transformValue = ref transform.Read;
 
-        //  Look: drive rotation through physics torque (restored physics-look feel). The resolved
-        //  per-axis deltas are world-space; transform them into the body frame by the current orientation
-        //  and let Jolt integrate. Both prediction and the authoritative server apply the identical
-        //  command at the same sim tick, and their solves are serialized, so the rotation is deterministic.
+        //  Look: drive rotation through physics torque (restored physics-look feel). The wire carries the
+        //  running absolute look totals; take the per-sim-tick difference so no input is dropped regardless
+        //  of sampling cadence, then apply it decoupled from dt (delta / PHYSICS_STEP) so each step rotates
+        //  by the full accumulated delta and Q/E roll is visible. World-space delta -> body frame by the
+        //  current orientation; Jolt integrates. Both sides consume the same totals, serialized solves make
+        //  the rotation deterministic.
         physicsValue.Torque += -physicsValue.Torque * PlayerBodyConfig.PHYSICS_STEP * PlayerBodyConfig.ANGULAR_DECELERATION;
         if (physicsValue.Torque.LengthSquared() <= 0.00001f)
         {
             physicsValue.Torque = new Vector3();
         }
 
-        var lookDelta = new Vector3(command.LookPitchDelta, command.LookYawDelta, command.LookRollDelta);
-        physicsValue.Torque += Vector3.Transform(lookDelta, transform.Read.Orientation);
+        var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
+        if (_lastAppliedLook.TryGetValue(entity, out Vector3 lastApplied))
+        {
+            Vector3 perStep = lookTotals - lastApplied;
+            if (perStep != Vector3.Zero)
+            {
+                physicsValue.Torque += Vector3.Transform(perStep / PlayerBodyConfig.PHYSICS_STEP, transform.Read.Orientation);
+            }
+        }
+        _lastAppliedLook[entity] = lookTotals;
 
         //  Movement: derive world-space direction from the command and the current orientation.
         Vector3 forward = transformValue.GetForward();

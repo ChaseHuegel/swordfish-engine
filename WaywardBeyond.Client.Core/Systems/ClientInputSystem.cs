@@ -11,20 +11,30 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class ClientInputSystem : IEntitySystem
 {
-    private const float MOUSE_SENSITIVITY = 0.1f;
+    private const float MOUSE_SENSITIVITY = 0.01f;
     private const float ROLL_RATE = 50f;
 
+    private readonly ClientPlayerMotionProcessor _motionProcessor;
     private readonly IInputService _inputService;
     private readonly ControlSettings _controlSettings;
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _sequenceNumber;
 
+    //  Running absolute look totals in radians. The wire carries these totals and the shared step applies
+    //  the per-sim-tick difference, so no input is dropped regardless of sampling vs physics cadence.
+    //  Sensitivity and roll rate stay client-local.
+    private float _lookPitch;
+    private float _lookYaw;
+    private float _lookRoll;
+
     public ClientInputSystem(
+        in ClientPlayerMotionProcessor motionProcessor,
         in IInputService inputService,
         in ControlSettings controlSettings,
         SnapshotAckTracker snapshotAck
     ) {
+        _motionProcessor = motionProcessor;
         _inputService = inputService;
         _controlSettings = controlSettings;
         _snapshotAck = snapshotAck;
@@ -33,26 +43,28 @@ internal sealed class ClientInputSystem : IEntitySystem
     public void Tick(float delta, DataStore store)
     {
         Vector3 movement = GetMovementInput();
-        Vector2 cursorDelta = _inputService.CursorDelta;
         bool jump = _inputService.IsKeyHeld(Key.Space);
 
-        //  Mouse sensitivity is a client-local setting. Resolve the raw cursor delta and Q/E roll into
-        //  per-axis radians here so the wire only ever carries resolved look intent.
+        //  Mouse sensitivity is a client-local setting. Resolve the captured cursor deltas (window path)
+        //  and Q/E roll into accumulated radians here so the wire only ever carries resolved look totals.
         float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
-        float yawDelta = -cursorDelta.X * MOUSE_SENSITIVITY * sensitivityModifier;
-        float pitchDelta = -cursorDelta.Y * MOUSE_SENSITIVITY * sensitivityModifier;
+        while (_motionProcessor.CursorUpdates.TryDequeue(out Vector2 cursorDelta))
+        {
+            _lookYaw += -cursorDelta.X * MOUSE_SENSITIVITY * sensitivityModifier;
+            _lookPitch += -cursorDelta.Y * MOUSE_SENSITIVITY * sensitivityModifier;
+        }
 
         float rollDirection = (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f);
-        float rollDelta = rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
+        _lookRoll += rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
 
         var input = new InputComponent
         {
             MovementX = movement.X,
             MovementY = movement.Y,
             MovementZ = movement.Z,
-            LookPitchDelta = pitchDelta,
-            LookYawDelta = yawDelta,
-            LookRollDelta = rollDelta,
+            LookPitch = _lookPitch,
+            LookYaw = _lookYaw,
+            LookRoll = _lookRoll,
             Jump = jump,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,

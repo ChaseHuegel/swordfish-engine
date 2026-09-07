@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
@@ -16,9 +18,16 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// resolves the world store, which would recurse during container build. This system exists only where
 /// the simulator meets the window, so the capture, motion statistics, and prediction survive the removal
 /// of the client-authoritative controller path.
+///
+/// Cursor movement is captured on the high-frequency window-update path (per render frame) into a queue,
+/// because <see cref="IInputService.CursorDelta"/> is a transient per-frame value that sampling at the
+/// slower ECS tick rate would miss entirely.
 /// </summary>
 internal sealed class ClientPlayerMotionProcessor : IEntitySystem
 {
+    /// <summary>Filled on the window thread per render frame; drained by <see cref="Systems.ClientInputSystem"/> on the ECS thread.</summary>
+    public readonly ConcurrentQueue<Vector2> CursorUpdates = new();
+
     private readonly IInputService _inputService;
     private readonly IPhysics _physics;
     private readonly EventInvoker<PlayerMovedEvent> _playerMovedEvent;
@@ -40,8 +49,17 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
         _physics = physics;
         _playerMovedEvent = playerMovedEvent;
 
+        windowContext.Update += OnWindowUpdate;
         windowContext.Focused += OnWindowFocused;
         windowContext.Unfocused += OnWindowUnfocused;
+    }
+
+    private void OnWindowUpdate(double delta)
+    {
+        if (WaywardBeyond.IsPlaying())
+        {
+            CursorUpdates.Enqueue(_inputService.CursorDelta);
+        }
     }
 
     public void SetInputEnabled(bool enabled)

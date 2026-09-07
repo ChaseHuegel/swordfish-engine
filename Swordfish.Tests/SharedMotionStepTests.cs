@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Physics;
@@ -23,7 +24,7 @@ public class SharedMotionStepTests
     {
         int entity = store.Alloc(uuid);
         store.AddOrUpdate(entity, new InputComponent());
-        store.AddOrUpdate(entity, new TransformComponent());
+        store.AddOrUpdate(entity, new TransformComponent(PlayerBodyConfig.DEFAULT_SPAWN_POSITION, Quaternion.Identity, PlayerBodyConfig.PLAYER_SCALE));
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
         return entity;
@@ -47,14 +48,20 @@ public class SharedMotionStepTests
         var serverInputs = new InputStageBuffer();
         var clientInputs = new InputStageBuffer();
 
+        float pitch = 0f, yaw = 0f, roll = 0f;
         for (uint tick = 1; tick <= 40; tick++)
         {
+            //  The wire carries running absolute look totals; the step applies per-sim-tick differences.
+            pitch += 0.01f;
+            if (tick % 8 == 0) yaw += 0.02f;
+            if (tick % 16 == 0) roll += 0.03f;
+
             var command = new InputComponent
             {
                 MovementZ = (tick % 4 == 0) ? -1f : 0f,
-                LookPitchDelta = 0.01f,
-                LookYawDelta = (tick % 8 == 0) ? 0.02f : 0f,
-                LookRollDelta = (tick % 16 == 0) ? 0.03f : 0f,
+                LookPitch = pitch,
+                LookYaw = yaw,
+                LookRoll = roll,
                 Jump = tick == 5,
                 SequenceNumber = tick,
                 ServerTickAtSample = tick,
@@ -101,12 +108,17 @@ public class SharedMotionStepTests
 
         var clientInputs = new InputStageBuffer();
         var serverInputs = new InputStageBuffer();
+        float yaw = 0f, pitch = 0f;
         for (uint tick = 1; tick <= 60; tick++)
         {
+            //  Cumulative totals: the step applies the per-sim-tick difference (0.05 yaw / 0.03 pitch).
+            yaw += 0.05f;
+            if (tick % 10 == 0) pitch += 0.03f;
+
             var command = new InputComponent
             {
-                LookYawDelta = 0.05f,
-                LookPitchDelta = (tick % 10 == 0) ? 0.03f : 0f,
+                LookPitch = pitch,
+                LookYaw = yaw,
                 SequenceNumber = tick,
                 ServerTickAtSample = tick,
             };
@@ -130,5 +142,38 @@ public class SharedMotionStepTests
         Assert.True(clientStore.TryGet<PhysicsComponent>(clientEntity, out PhysicsComponent clientPhysicsState));
         Assert.True(serverStore.TryGet<PhysicsComponent>(serverEntity, out PhysicsComponent serverPhysicsState));
         Assert.Equal(clientPhysicsState.Velocity, serverPhysicsState.Velocity);
+
+        //  The look deltas were applied and integrated (not dropped): the body rotated away from identity.
+        Assert.NotEqual(System.Numerics.Quaternion.Identity, clientTransform.Orientation);
+    }
+
+    /// <summary>
+    /// Movement keys must map to the intended view-relative world directions. At identity, forward =
+    /// +Z, so W (MovementZ = -1) must yield velocity toward -Z, D (MovementX = +1) toward +right (X),
+    /// and Space (MovementY = +1) toward +up (Y).
+    /// </summary>
+    [Theory]
+    [InlineData(0f, 0f, -1f, 0f, 0f, -1f)]
+    [InlineData(0f, 0f, 1f, 0f, 0f, 1f)]
+    [InlineData(1f, 0f, 0f, 1f, 0f, 0f)]
+    [InlineData(-1f, 0f, 0f, -1f, 0f, 0f)]
+    [InlineData(0f, 1f, 0f, 0f, 1f, 0f)]
+    [InlineData(0f, -1f, 0f, 0f, -1f, 0f)]
+    public void MovementInputMapsToViewRelativeDirection(float mx, float my, float mz, float ex, float ey, float ez)
+    {
+        var uuid = Uuid.FromValue(0x9999);
+        var store = new DataStore();
+        int entity = CreatePlayer(store, uuid);
+        var inputs = new InputStageBuffer();
+        inputs.Stage(new InputComponent { MovementX = mx, MovementY = my, MovementZ = mz, SequenceNumber = 1, ServerTickAtSample = 1 });
+
+        var physics = new TestPhysics();
+        using var step = new SharedPlayerMotionStep(store, physics, (int _, uint simTick, out InputComponent c) => inputs.TryGet(simTick, out c));
+        step.Step();
+
+        Assert.True(store.TryGet<PhysicsComponent>(entity, out PhysicsComponent physicsState));
+        var expected = new System.Numerics.Vector3(ex, ey, ez) * PlayerBodyConfig.BASE_SPEED * PlayerBodyConfig.PHYSICS_STEP;
+        var tolerance = PlayerBodyConfig.BASE_SPEED * PlayerBodyConfig.PHYSICS_STEP * 0.001f;
+        Assert.True((expected - physicsState.Velocity).Length() <= tolerance, $"Expected {expected}, got {physicsState.Velocity}");
     }
 }
