@@ -196,7 +196,7 @@ publishes no authoritative state for the owned player; reconcile is inert.
 ## Phase 1 — Arena authority (server-authoritative player sim)
 
 ### 1.1 [G] Redefine networked look input
-`[ ]` Change `InputComponent` from raw cursor deltas to sensitivity-resolved absolute angles.
+`[x]` Change `InputComponent` from raw cursor deltas to sensitivity-resolved absolute angles.
 - Edit `Shared.Networking/CodeGen/components.nsd`: replace `LookDeltaX/LookDeltaY` with
   `LookYaw`/`LookPitch` (radians, absolute). Regenerate via `nsdc -r -p -i CodeGen -o ./CodeGen/Output`
   (project builds run `RunCodeGen` automatically).
@@ -204,7 +204,7 @@ publishes no authoritative state for the owned player; reconcile is inert.
   `LookDeltaX/Y` remains.
 
 ### 1.2 [G] Client sampling applies sensitivity locally
-`[ ]` Update `Client.Core/Systems/ClientInputSystem.cs`:
+`[x]` Update `Client.Core/Systems/ClientInputSystem.cs`:
 - Accumulate `_inputService.CursorDelta` across ticks; maintain running yaw/pitch state.
 - Fold `MOUSE_SENSITIVITY` + `ControlSettings.LookSensitivity` into the resolved radian output at
   sample time. Sensitivity is now permanently a **client-local** concern.
@@ -214,7 +214,7 @@ publishes no authoritative state for the owned player; reconcile is inert.
   sensitivity.
 
 ### 1.3 [G] Canonicalize `PhysicsMessage` payload semantics
-`[ ]` `PhysicsComponent.Torque` is dual-semantics today: accumulated torque pre-step, but
+`[x]` `PhysicsComponent.Torque` is dual-semantics today: accumulated torque pre-step, but
 `body.GetAngularVelocity()` after Jolt sync (`JoltPhysicsSystem.cs:254,307`). Resolve it:
 - Add `AngularVelocity` (X/Y/Z) and drop/relabel `Torque` in `network.nsd` `PhysicsMessage`; update
   `PhysicsCodec` (`Client.Core/Networking/PhysicsCodec.cs`) to the canonical fields. The component
@@ -229,7 +229,7 @@ publishes no authoritative state for the owned player; reconcile is inert.
   player path writes torque.
 
 ### 1.4 [S] Shared simulation step — tick-tagged commands, driven per physics step (new project)
-`[ ]` New shared gameplay project **`WaywardBeyond.Shared.Gameplay`** (`net9.0`; refs `Swordfish`,
+`[x]` New shared gameplay project **`WaywardBeyond.Shared.Gameplay`** (`net9.0`; refs `Swordfish`,
 `Swordfish.ECS`, `Shared.Networking`/`Shared.Data`), referenced by both client and server. Contains:
 - **Per-world instance, not a DI singleton** — it holds per-world sim state (command staging, look
   accumulation, clamp base). The client world and server world each resolve their own instance; a
@@ -270,7 +270,7 @@ publishes no authoritative state for the owned player; reconcile is inert.
   both sides; no duplicated movement/rotation/body-config code remains client-only.
 
 ### 1.5 [G] Delete the client-authoritative rotation path
-`[ ]` In `Client.Core/Systems/PlayerControllerSystem.cs`, remove torque/cursor-queue/Rotate/angular
+`[x]` In `Client.Core/Systems/PlayerControllerSystem.cs`, remove torque/cursor-queue/Rotate/angular
 deceleration (`:112-142`, `:200-203`).
 - **Relocate the stranded responsibilities** explicitly:
   - Mouse capture / window-focus handling (`SetInputEnabled`, `OnWindowUnfocused`, cursor lock) — move
@@ -286,7 +286,7 @@ deceleration (`:112-142`, `:200-203`).
   still work.
 
 ### 1.6 [E1+E2, then G/S] Server runs simulation (with ordering)
-`[ ]` Wire `ServerContext` (`Server.Core/ServerContext.cs`) with the shared step and physics. **Commit
+`[x]` Wire `ServerContext` (`Server.Core/ServerContext.cs`) with the shared step and physics. **Commit
 order is engine-first:** `[E1]` then `[E2]` land as separate engine commits (standalone green), then
 the `[G/S]` game commits consume them.
 - **[E1] Engine commit — once-only `Foundation.Init` guard.** `Foundation.Init` is **not idempotent**;
@@ -327,13 +327,13 @@ the `[G/S]` game commits consume them.
   code**.
 
 ### 1.7 [G] Authority flip — echo authoritative state to every client
-`[ ]` Remove the owned-player transform-echo skip (`NetworkReplicationSystem.cs:181-186`):
+`[x]` Remove the owned-player transform-echo skip (`NetworkReplicationSystem.cs:181-186`):
 - `NetworkReplicationSystem` publishes authoritative state to **all** clients including the local one.
 - `ServerPlayerOwnership` is removed; its role is replaced by session routing (Phase 3).
 - Must land *with* 1.4/1.8/1.9 so the local player never visibly stutters.
 
 ### 1.8 [G] Make reconciliation real
-`[ ]` Update `Client.Core/Systems/ClientReconcileSystem.cs`:
+`[x]` Update `Client.Core/Systems/ClientReconcileSystem.cs`:
 - Apply authoritative `Transform`/`Physics` snapshot (**full state: position, orientation, linear AND
   angular velocity** — snap before replay).
 - Trim `PendingInputComponent` by `WorldSnapshot.LastProcessedInput` (existing `AckUpTo`, now on
@@ -350,7 +350,7 @@ the `[G/S]` game commits consume them.
   "client prediction == server result (modulo unacked input)" test passes.
 
 ### 1.9 [G] Spawn handshake inversion
-`[ ]` Under authority the **server** assigns the initial transform: delete the client's
+`[x]` Under authority the **server** assigns the initial transform: delete the client's
 placement-upstream flow (`ClientPlayerSpawnSystem.SendInitialTransform`, `ClientPlayerSpawnSystem.cs:90-106`)
 and `NetworkReplicationSystem.ApplyPlacement`'s client-authored-transform acceptance
 (`NetworkReplicationSystem.cs:141-163`). The client adopts the server-spawned transform (restored
@@ -359,8 +359,10 @@ location or `Level.Spawn`).
   server-side.
 
 ### Phase 1 acceptance (gate)
-In singleplayer (loopback): behavior visually near-identical to today, but the server now provably
+`[~]` In singleplayer (loopback): behavior visually near-identical to today, but the server now provably
 holds authority — verified by deliberately drifting client state and watching reconcile correct it.
+The headless determinism + authority tests pass; the live loopback visual check is pending on Windows
+(Reef/window runtime).
 
 ---
 
