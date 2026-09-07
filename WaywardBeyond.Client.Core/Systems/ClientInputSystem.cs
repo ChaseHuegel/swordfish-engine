@@ -19,7 +19,6 @@ internal sealed class ClientInputSystem : IEntitySystem
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _sequenceNumber;
-    private Quaternion _lookOrientation = Quaternion.Identity;
 
     public ClientInputSystem(
         in IInputService inputService,
@@ -38,8 +37,7 @@ internal sealed class ClientInputSystem : IEntitySystem
         bool jump = _inputService.IsKeyHeld(Key.Space);
 
         //  Mouse sensitivity is a client-local setting. Resolve the raw cursor delta and Q/E roll into
-        //  continuous (gimbal-free) absolute look here so the wire only ever carries resolved angles,
-        //  accumulated as a quaternion.
+        //  per-axis radians here so the wire only ever carries resolved look intent.
         float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
         float yawDelta = -cursorDelta.X * MOUSE_SENSITIVITY * sensitivityModifier;
         float pitchDelta = -cursorDelta.Y * MOUSE_SENSITIVITY * sensitivityModifier;
@@ -47,18 +45,14 @@ internal sealed class ClientInputSystem : IEntitySystem
         float rollDirection = (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f);
         float rollDelta = rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
 
-        var lookDelta = Quaternion.CreateFromYawPitchRoll(yawDelta, pitchDelta, rollDelta);
-        _lookOrientation = Quaternion.Normalize(Quaternion.Multiply(lookDelta, _lookOrientation));
-
         var input = new InputComponent
         {
             MovementX = movement.X,
             MovementY = movement.Y,
             MovementZ = movement.Z,
-            LookX = _lookOrientation.X,
-            LookY = _lookOrientation.Y,
-            LookZ = _lookOrientation.Z,
-            LookW = _lookOrientation.W,
+            LookPitchDelta = pitchDelta,
+            LookYawDelta = yawDelta,
+            LookRollDelta = rollDelta,
             Jump = jump,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,

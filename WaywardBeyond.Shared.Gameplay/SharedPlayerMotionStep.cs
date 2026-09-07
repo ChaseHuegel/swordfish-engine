@@ -77,12 +77,20 @@ public sealed class SharedPlayerMotionStep : IDisposable
         }
 
         ref PhysicsComponent physicsValue = ref physics.Write;
-        ref TransformComponent transformValue = ref transform.Write;
+        ref readonly TransformComponent transformValue = ref transform.Read;
 
-        //  Look: set the orientation directly from the resolved (gimbal-free) look quaternion carried by
-        //  the command. Both prediction and the authoritative server apply the identical value, so the
-        //  result is deterministic; no per-step clamp is needed (angular anti-cheat is out of scope).
-        transformValue.Orientation = Quaternion.Normalize(new Quaternion(command.LookX, command.LookY, command.LookZ, command.LookW));
+        //  Look: drive rotation through physics torque (restored physics-look feel). The resolved
+        //  per-axis deltas are world-space; transform them into the body frame by the current orientation
+        //  and let Jolt integrate. Both prediction and the authoritative server apply the identical
+        //  command at the same sim tick, and their solves are serialized, so the rotation is deterministic.
+        physicsValue.Torque += -physicsValue.Torque * PlayerBodyConfig.PHYSICS_STEP * PlayerBodyConfig.ANGULAR_DECELERATION;
+        if (physicsValue.Torque.LengthSquared() <= 0.00001f)
+        {
+            physicsValue.Torque = new Vector3();
+        }
+
+        var lookDelta = new Vector3(command.LookPitchDelta, command.LookYawDelta, command.LookRollDelta);
+        physicsValue.Torque += Vector3.Transform(lookDelta, transform.Read.Orientation);
 
         //  Movement: derive world-space direction from the command and the current orientation.
         Vector3 forward = transformValue.GetForward();
