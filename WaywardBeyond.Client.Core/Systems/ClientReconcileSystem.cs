@@ -88,15 +88,27 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             return;
         }
 
-        //  The local player's look is client-predicted; never accept the authoritative echo over it
-        //  (position/scale are authority, orientation stays locally predicted once seated at spawn).
-        if (info.Type == typeof(TransformComponent) && store.TryGet(entity, out PlayerComponent _))
+        if (!store.TryGet(entity, out PlayerComponent _))
         {
-            ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+            info.Codec.Apply(store, entity, snapshot.Payload);
             return;
         }
 
-        info.Codec.Apply(store, entity, snapshot.Payload);
+        //  The local player's look is client-predicted; never accept the authoritative echo over it.
+        //  Position/scale (and linear velocity) are authority, but orientation and angular velocity stay
+        //  locally predicted once seated at spawn, so the echo never snaps or clobbers the local look.
+        if (info.Type == typeof(TransformComponent))
+        {
+            ApplyLocallyOwnedTransform(store, entity, snapshot.Payload);
+        }
+        else if (info.Type == typeof(PhysicsComponent))
+        {
+            ApplyLocallyOwnedPhysics(store, entity, snapshot.Payload);
+        }
+        else
+        {
+            info.Codec.Apply(store, entity, snapshot.Payload);
+        }
     }
 
     private void ApplyLocallyOwnedTransform(DataStore store, int entity, ReadOnlySpan<byte> payload)
@@ -123,6 +135,18 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             ref TransformComponent transformValue = ref transform.Write;
             transformValue.Position = serverPosition;
             transformValue.Scale = serverScale;
+        });
+    }
+
+    private static void ApplyLocallyOwnedPhysics(DataStore store, int entity, ReadOnlySpan<byte> payload)
+    {
+        //  Linear velocity is authority; angular velocity is the local torque-driven look and must not be
+        //  clobbered by the server echo.
+        PhysicsMessage message = PhysicsMessage.Deserialize(payload);
+
+        store.QueryRef<PhysicsComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<PhysicsComponent> physics) =>
+        {
+            physics.Write.Velocity = new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ);
         });
     }
 
