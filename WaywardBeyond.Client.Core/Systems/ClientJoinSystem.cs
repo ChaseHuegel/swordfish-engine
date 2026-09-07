@@ -63,6 +63,11 @@ internal sealed class ClientJoinSystem : IEntitySystem
         {
             _request = request;
             _sent = false;
+            _seated = false;
+
+            //  Reset per-session state: a fresh join seats a brand-new player and rebuilds its view world
+            //  with a freshly resolved builder, so no state leaks between joined worlds.
+            _voxelBuilder = null;
         }
 
         if (_request != null && !_sent)

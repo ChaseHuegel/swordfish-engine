@@ -109,6 +109,62 @@ public class ServerJoinStreamTests : IDisposable
         Assert.True(streamed > 0, "Join should stream at least one world entity.");
     }
 
+    [Fact]
+    public void LeaveThenJoinADifferentWorld()
+    {
+        using KeyValueStore kv = new(_nats.Configuration);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+
+        Assert.True(world.CreateWorld("World A", seed: "111", GameMode.Creative, out string levelA));
+        Assert.True(world.CreateWorld("World B", seed: "222", GameMode.Creative, out string levelB));
+
+        var hub = new ServerConnectionHub();
+        var connection = new LocalConnection(new INetworkSerializer[]
+        {
+            new NsdMessageSerializer<JoinRequest>(),
+            new NsdMessageSerializer<JoinAccept>(),
+            new NsdMessageSerializer<WorldEntityAdd>(),
+            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LeaveGameRequest>(),
+        });
+        hub.Add(connection.Server);
+
+        var serverStore = new DataStore();
+        ServerJoinSystem join = new(hub, new SessionManager(), world, NullLogger<ServerJoinSystem>.Instance);
+
+        int DrainWorld()
+        {
+            var count = 0;
+            Result<WorldEntityAdd> add;
+            while ((add = connection.Client.Receive<WorldEntityAdd>()).Success)
+            {
+                count++;
+            }
+
+            return count;
+        }
+
+        //  Join world A.
+        connection.Client.Send(new JoinRequest { LevelGuid = levelA, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
+        join.Tick(0f, serverStore);
+        Assert.True(connection.Client.Receive<JoinAccept>().Success);
+        Assert.True(DrainWorld() > 0);
+        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
+
+        //  Leave A (menu exit), then join the different world B.
+        connection.Client.Send(new LeaveGameRequest { Dummy = 0 });
+        join.Tick(0f, serverStore);
+
+        connection.Client.Send(new JoinRequest { LevelGuid = levelB, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
+        join.Tick(0f, serverStore);
+
+        Result<JoinAccept> acceptB = connection.Client.Receive<JoinAccept>();
+        Assert.True(acceptB.Success);
+        Assert.Equal(levelB, acceptB.Value.Level.Guid);
+        Assert.True(DrainWorld() > 0, "Joining world B should stream its structures.");
+        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
+    }
+
     private struct CollectCountAction : IForEach<VoxelEntityDataComponent>
     {
         public int Count;
