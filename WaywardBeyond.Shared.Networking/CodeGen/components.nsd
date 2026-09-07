@@ -6,8 +6,8 @@ message InputComponent
     float MovementX           = 0;
     float MovementY           = 1;
     float MovementZ           = 2;
-    float LookDeltaX          = 3;
-    float LookDeltaY          = 4;
+    float LookYaw             = 3;
+    float LookPitch           = 4;
     bool  Jump                = 5;
     uint  SequenceNumber      = 6;
     uint  ServerTickAtSample  = 7;

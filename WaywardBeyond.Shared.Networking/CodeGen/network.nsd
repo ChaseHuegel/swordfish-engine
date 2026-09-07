@@ -43,10 +43,10 @@ message TransformMessage
 
 message PhysicsMessage
 {
-    float VelocityX = 0;
-    float VelocityY = 1;
-    float VelocityZ = 2;
-    float TorqueX   = 3;
-    float TorqueY   = 4;
-    float TorqueZ   = 5;
+    float VelocityX          = 0;
+    float VelocityY          = 1;
+    float VelocityZ          = 2;
+    float AngularVelocityX   = 3;
+    float AngularVelocityY   = 4;
+    float AngularVelocityZ   = 5;
 }

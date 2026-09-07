@@ -6,6 +6,13 @@ using WaywardBeyond.Shared.Networking.Registry;
 
 namespace WaywardBeyond.Client.Core.Networking;
 
+/// <summary>
+/// Maps the engine <see cref="PhysicsComponent"/> onto the canonical <see cref="PhysicsMessage"/> wire
+/// shape. The engine component's <c>Torque</c> field holds angular velocity only at sync boundaries
+/// (set from <c>body.GetAngularVelocity()</c> during the Jolt sync cycle); the codec therefore treats
+/// it as angular velocity. The component's <c>Layer</c>/<c>BodyType</c>/<c>CollisionDetection</c> are
+/// constructor-only and are never fabricated here - the server owns body construction at spawn.
+/// </summary>
 public sealed class PhysicsCodec : IPayloadCodec
 {
     public Type ComponentType => typeof(PhysicsComponent);
@@ -31,7 +38,7 @@ public sealed class PhysicsCodec : IPayloadCodec
         store.QueryRef<PhysicsComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<PhysicsComponent> physics) =>
         {
             physics.Write.Velocity = new Vector3(message.VelocityX, message.VelocityY, message.VelocityZ);
-            physics.Write.Torque = new Vector3(message.TorqueX, message.TorqueY, message.TorqueZ);
+            physics.Write.Torque = new Vector3(message.AngularVelocityX, message.AngularVelocityY, message.AngularVelocityZ);
         });
     }
 }
