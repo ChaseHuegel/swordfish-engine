@@ -21,11 +21,13 @@ simulation path.
 1. **In-process local server** for singleplayer + future LAN hosting. A dedicated executable stays a
    *clean seam only* — **no `WaywardBeyond.Server.Launcher` this initiative**.
 2. **Server-authoritative simulation with client prediction** for all players, including the local one.
-3. **Kinematic look.** The client sends the sensitivity-resolved **absolute look orientation** (a
-   gimbal-free quaternion, accumulated from cursor + Q/E roll) and the server applies it directly.
-   **No client camera smoothing**; no torque-driven look (torque look was always temporary).
-   The local player's orientation stays client-predicted (reconcile seats it once at spawn and then only
-   corrects position/velocity), so the authoritative echo never snaps the view.
+3. **Torque-driven look (physics).** The client sends the sensitivity-resolved **per-axis look deltas**
+   (`LookPitchDelta`/`LookYawDelta`/`LookRollDelta`, radians) and the shared step applies them as body
+   torque; Jolt integrates rotation. This restores the pre-Phase-1 torque look feel. Both worlds apply
+   the identical command at the same sim tick and their solves are serialized (`[E3]`), so rotation is
+   deterministic. The local player's orientation stays client-predicted (reconcile seats it once at
+   spawn and then only corrects position/velocity), so the authoritative echo never snaps the view.
+   Angular anti-cheat is out of scope.
 4. **Mouse sensitivity is a client-local setting** — never networked, never a shared/duplicated
    constant. The wire carries *resolved* look, not config.
 5. **Fixed-step physics with tick-tagged commands.** `JoltPhysicsSystem` already integrates the solver
@@ -252,10 +254,11 @@ publishes no authoritative state for the owned player; reconcile is inert.
 - **Shared player-motion step.** Query contract keys on **`InputComponent + PhysicsComponent +
   TransformComponent`** (all shared/engine types — no client `PlayerComponent`, no `Session`-keyed
   uniqueness). Per entity:
-  - **Look:** set `TransformComponent.Orientation` directly from the resolved gimbal-free look
-    quaternion carried by the command (`LookX/Y/Z/W`). Both prediction and the server apply the
-    identical value, so the result is deterministic (no per-step clamp; angular anti-cheat is out of
-    scope). Never writes `Torque`.
+  - **Look:** apply the resolved per-axis look deltas (`LookPitchDelta`/`LookYawDelta`/
+    `LookRollDelta`) as body torque — `Torque += Transform(delta, orientation)` after angular
+    deceleration (`ANGULAR_DECELERATION`) — letting Jolt integrate rotation. Both prediction and the
+    server apply the identical command at the same sim tick and their solves are serialized (`[E3]`),
+    so rotation is deterministic. Never writes orientation directly.
   - **Movement:** compute forces from `Movement` + orientation-derived `GetForward/Right/Up`
     (`PlayerControllerSystem.cs:144-190` behavior) → `PhysicsComponent`, carrying `BASE_SPEED`,
     `DECELERATION`, jump handling. Pin `Jump` one-shot vs hold semantics.
@@ -282,11 +285,10 @@ deceleration (`:112-142`, `:200-203`).
     step so `PlayerMovedStatisticListener` (stats persistence) keeps working.
 - The camera reads `TransformComponent.Orientation` directly (no smoothing; local smoothness comes from
   prediction ticking).
-- Kinematic orientation rides the existing entity-wins sync cycle: `SyncEntityToJolt` pushes entity
-  rotation into the body and `SyncJoltToEntity` reads it back each step (`JoltPhysicsSystem.cs:250-251,307`).
-  The only requirement is that nothing writes `Torque` on the player — which 1.3/1.4 guarantee.
-- **Acceptance:** no code path rotates the player via torque; focus/cursor handling and movement stats
-  still work.
+- Rotation is physics-driven: `SyncEntityToJolt` pushes the rotating body and `SyncJoltToEntity` reads
+  rotation back each step (`JoltPhysicsSystem.cs:250-251,307`). The torque-look restores the old feel.
+- **Acceptance:** the player rotates via torque through the shared step; focus/cursor handling and
+  movement stats still work.
 
 ### 1.6 [E1+E2, then G/S] Server runs simulation (with ordering)
 `[x]` Wire `ServerContext` (`Server.Core/ServerContext.cs`) with the shared step and physics. **Commit
@@ -651,7 +653,7 @@ stream, input, remote-player visuals, and replicate flows (peer path first real 
 | Engine/game entanglement blocks cherry-picking into the engine project | Separate engine commits, committed first, standalone green; every `[E]` change justified in the engine change register |
 | Server thread dies silently on physics/ECS exception (Jolt assert throws) | try/catch/log guard around `ServerContext.Update` (1.6) |
 | Cross-type ordering at join (per-type transport queues, no envelope) | Client gates snapshot application until `WorldStreamComplete` (4.4) |
-| Player Jolt body re-introduces torque integration, reverting look feel | 1.3/1.4 never write `Torque`; existing sync cycle makes orientation entity-wins; test asserts orientation tracks the shared step output |
+| Torque look drift between prediction and server | Shared step applies the identical command at the same sim tick and solves are serialized (`[E3]`), so torque integrates identically; `TorqueLookIntegratesIdenticallyAcrossTwoJoltWorlds` asserts equal final orientation |
 | Authority flip (1.7) lands without prediction → local player stutters | Land 1.4+1.7+1.8+1.9 in the same commit/window |
 | Prediction drift from clamp/validation asymmetry | All clamps in shared code (1.4); replay uses the same step + same command-per-step mapping (1.8) |
 | Sensitivity accidentally duplicated into shared code | 1.1/1.2 keep it client-only by construction; grep review |
