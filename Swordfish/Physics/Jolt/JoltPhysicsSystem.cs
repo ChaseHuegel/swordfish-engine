@@ -15,6 +15,9 @@ namespace Swordfish.Physics.Jolt;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
+    private static readonly object _foundationLock = new();
+    private static bool _foundationInitialized;
+
     private static class Layers
     {
         public static readonly ObjectLayer NonMoving = Physics.Layers.NON_MOVING;
@@ -55,12 +58,8 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     public JoltPhysicsSystem(ILogger logger, PhysicsSettings physicsSettings)
     {
         _physicsSettings = physicsSettings;
-        
-        if (!Foundation.Init(doublePrecision: false))
-        {
-            logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
-            throw new Exception("Unable to initialize Jolt Foundation.");
-        }
+
+        InitializeFoundation(logger);
 
 #if DEBUG
         Foundation.SetTraceHandler(message => logger.LogDebug("Jolt debug: {message}", message));
@@ -161,6 +160,30 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
 
             _accumulator -= physicsDelta;
+        }
+    }
+
+    private static void InitializeFoundation(ILogger logger)
+    {
+        if (_foundationInitialized)
+        {
+            return;
+        }
+
+        lock (_foundationLock)
+        {
+            if (_foundationInitialized)
+            {
+                return;
+            }
+
+            if (!Foundation.Init(doublePrecision: false))
+            {
+                logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
+                throw new Exception("Unable to initialize Jolt Foundation.");
+            }
+
+            _foundationInitialized = true;
         }
     }
 
