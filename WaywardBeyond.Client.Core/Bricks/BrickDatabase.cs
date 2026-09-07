@@ -8,7 +8,6 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
@@ -127,8 +126,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
     private Result<ushort> GenerateDataID(string str)
     {
-        uint hash = FNV1a.ComputeHash32(str);
-        var id = (ushort)(hash % ushort.MaxValue);
+        ushort id = FNV1a.ComputeDataID(str);
         
         var collisions = 0;
         lock (_bricksByDataID)
