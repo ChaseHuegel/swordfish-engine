@@ -4,7 +4,7 @@ using Swordfish.ECS;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Registry;
 
-namespace WaywardBeyond.Client.Core.Networking;
+namespace WaywardBeyond.Shared.Gameplay;
 
 /// <summary>
 /// Maps the engine <see cref="PhysicsComponent"/> onto the canonical <see cref="PhysicsMessage"/> wire

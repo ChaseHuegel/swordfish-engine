@@ -42,6 +42,7 @@ using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
