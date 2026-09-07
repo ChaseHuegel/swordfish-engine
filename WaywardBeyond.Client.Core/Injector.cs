@@ -130,7 +130,12 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<SpawnResponse>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
-        container.RegisterDelegate<IServerConnection>(context => context.Resolve<LocalConnection>().Server, Reuse.Singleton);
+        container.RegisterDelegate<ServerConnectionHub>(context =>
+        {
+            ServerConnectionHub hub = new();
+            hub.Add(context.Resolve<LocalConnection>().Server);
+            return hub;
+        }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SessionManager>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);

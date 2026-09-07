@@ -19,8 +19,10 @@ namespace WaywardBeyond.Server.Core;
 /// Hosts the authoritative server world and ticks its systems on a dedicated thread. The server runs its
 /// own physics world and the shared player-motion step, mirroring the client's runtime config so
 /// authority and prediction don't diverge. Systems are ticked in an explicit order:
-/// spawn → replication apply → physics (runs the shared step per fixed step) → replication publish.
-/// In the current singleplayer layout this runs in-process alongside the client world.
+/// spawn → replication apply → physics (runs the shared step per fixed step) → disconnect teardown →
+/// replication publish. Multiple clients are served through a <see cref="ServerConnectionHub"/> and routed
+/// by <see cref="SessionManager"/>; in the current singleplayer layout this runs in-process alongside the
+/// client world as the N=1 case.
 /// </summary>
 public sealed class ServerContext : IEntryPoint, IDisposable
 {
@@ -29,6 +31,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ThreadWorker _threadWorker;
     private readonly ILogger _logger;
 
+    private readonly ServerConnectionHub _hub;
+    private readonly SessionManager _sessions;
     private readonly ServerSpawnSystem _spawn;
     private readonly NetworkReplicationSystem _replication;
     private readonly JoltPhysicsSystem _physics;
@@ -36,7 +40,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ServerWorldService _worldService;
 
     public ServerContext(
-        in IServerConnection transport,
+        in ServerConnectionHub hub,
+        SessionManager sessions,
         in PhysicsSettings physicsSettings,
         in Func<KeyValueStore> keyValueStore,
         ILoggerFactory loggerFactory
@@ -44,11 +49,13 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _logger = loggerFactory.CreateLogger<ServerContext>();
         _threadWorker = new ThreadWorker(Update, "Server");
 
+        _hub = hub;
+        _sessions = sessions;
         World = new World();
 
         _worldService = new ServerWorldService(loggerFactory.CreateLogger<ServerWorldService>(), keyValueStore);
-        _spawn = new ServerSpawnSystem(transport, _worldService, loggerFactory.CreateLogger<ServerSpawnSystem>());
-        _replication = new NetworkReplicationSystem(transport, loggerFactory.CreateLogger<NetworkReplicationSystem>());
+        _spawn = new ServerSpawnSystem(hub, sessions, _worldService, loggerFactory.CreateLogger<ServerSpawnSystem>());
+        _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
 
         _physics = new JoltPhysicsSystem(loggerFactory.CreateLogger<JoltPhysicsSystem>(), physicsSettings);
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).
@@ -66,6 +73,14 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     public void Dispose()
     {
         _threadWorker.Stop();
+
+        //  Tear down any remaining sessions and their connections for the (in-process N=1) shutdown.
+        foreach ((Uuid clientId, _) in _hub.Clients)
+        {
+            _sessions.EndSession(clientId);
+            _hub.Remove(clientId);
+        }
+
         _logger.LogInformation("Stopped server thread.");
     }
 
@@ -74,6 +89,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         try
         {
             DataStore store = World.DataStore;
+
+            HandleDisconnects(store);
 
             _spawn.Tick(delta, store);
             _replication.ApplyStage(delta, store);
@@ -85,6 +102,32 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         catch (Exception ex)
         {
             _logger.LogError(ex, "Unhandled exception in the server tick loop.");
+        }
+    }
+
+    /// <summary>
+    /// Ends dropped client sessions: disposes the mirror's physics body (marshalled to the physics thread
+    /// via its <see cref="PhysicsComponent.Dispose"/>) before freeing the entity so the subsequent publish
+    /// stage replicates its despawn to remaining clients, then clears the session mappings.
+    /// </summary>
+    private void HandleDisconnects(DataStore store)
+    {
+        foreach (Uuid clientId in _hub.DrainDisconnects())
+        {
+            if (_sessions.TryGetEntity(clientId, out int entity))
+            {
+                if (store.TryGet(entity, out PhysicsComponent physics))
+                {
+                    physics.Dispose();
+                }
+
+                //  Capture the uuid before Free (which clears it) so the despawn can replicate.
+                _replication.RequestDespawn(store.GetUuid(entity).ToValue());
+                store.Free(entity);
+            }
+
+            _sessions.EndSession(clientId);
+            _logger.LogInformation("Ended session for client {client}.", clientId);
         }
     }
 

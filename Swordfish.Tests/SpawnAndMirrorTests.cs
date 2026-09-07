@@ -54,9 +54,12 @@ public class SpawnAndMirrorTests
         NetworkRegistry.Register<MirrorComponent>(Uuid.FromValue(0xE001), NetworkDirection.ClientOwned, new MirrorCodec());
 
         var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var hub = new ServerConnectionHub();
+        hub.Add(connection.Server);
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
-            connection.Server,
+            hub,
+            new SessionManager(),
             NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
         );
 
@@ -85,9 +88,12 @@ public class SpawnAndMirrorTests
             new NsdMessageSerializer<SpawnRequest>(),
             new NsdMessageSerializer<SpawnResponse>(),
         });
+        var hub = new ServerConnectionHub();
+        hub.Add(connection.Server);
         var serverStore = new DataStore();
         var system = new WaywardBeyond.Server.Core.Systems.ServerSpawnSystem(
-            connection.Server,
+            hub,
+            new SessionManager(),
             new WaywardBeyond.Server.Core.Saves.ServerWorldService(
                 NullLogger<WaywardBeyond.Server.Core.Saves.ServerWorldService>.Instance,
                 () => throw new NotImplementedException()
@@ -117,6 +123,8 @@ public class SpawnAndMirrorTests
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new PlaceTransformCodec());
 
         var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<WorldSnapshot>() });
+        var hub = new ServerConnectionHub();
+        hub.Add(connection.Server);
         var serverStore = new DataStore();
 
         int player = serverStore.Alloc();
@@ -135,7 +143,8 @@ public class SpawnAndMirrorTests
         connection.Client.Send(placement);
 
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
-            connection.Server,
+            hub,
+            new SessionManager(),
             NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
         );
         system.ApplyStage(0f, serverStore);

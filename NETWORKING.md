@@ -33,13 +33,13 @@ there is no separate singleplayer simulation path.
 |---|---|
 | Separate client/server worlds on separate threads | Implemented |
 | Serialized loopback (`LocalConnection`) with full wire format | Implemented |
-| Dirty-driven replication (server → client) | Implemented, but server never simulates anything |
+| Dirty-driven replication (server → client) | Implemented |
 | Client-owned input replication (client → server) | Implemented |
-| Server spawn handshake | Implemented (single-client assumptions) |
-| Client prediction + reconciliation | Partially implemented; dormant against real data |
-| Authoritative server simulation (physics/movement) | **Not implemented** — client drives its own motion |
-| Multi-client sessions | Scaffolded (`SessionManager`), not wired |
-| Peer transport (`TcpTransport`) | Exists, unexercised, no per-type demux |
+| Server spawn handshake | Implemented |
+| Client prediction + reconciliation | Implemented (server-authoritative, sim-tick driven) |
+| Authoritative server simulation (physics/movement) | Implemented (shared deterministic step on the server world) |
+| Multi-client sessions & disconnect | Implemented (`ServerConnectionHub` + `SessionManager`) |
+| Peer transport (`TcpTransport`) | Exists, unexercised, no per-type demux (Phase 5) |
 
 See [Current gaps](#current-gaps--known-issues) for the full list.
 
@@ -52,8 +52,9 @@ Two independent ECS worlds run concurrently inside the game process:
 - **Server world** — `WaywardBeyond.Server.Core/ServerContext.cs`, ticked on the `"Server"` thread.
   Runs the authoritative server systems.
 
-`ServerContext` builds its own `World`/`DataStore` and is host-agnostic: it takes an
-`IServerConnection` and an `ILoggerFactory`, constructs its systems, and tick them. Its doc comment
+`ServerContext` builds its own `World`/`DataStore` and is host-agnostic: it takes a
+`ServerConnectionHub`, a `PhysicsSettings`, a lazy `KeyValueStore` factory, and an `ILoggerFactory`
+(plus a shared `SessionManager`), constructs its systems, and ticks them. Its doc comment
 notes that in a networked layout it would run standalone; a future dedicated server is a thin host
 around this same class.
 
@@ -195,7 +196,32 @@ serializers, same message shapes, same polling model as a real socket — with z
 `Listen(port)` for server mode). It length-prefixes each serialized message and reads frames on a
 background thread into a **single shared receive queue** — it has no per-type demux yet, so it cannot
 yet host the polling systems that each `Receive<T>` a distinct type. It is unexercised in production
-code and is the first real transport to plug in once demux lands.
+code and is the first real transport to plug in once demux lands (Phase 5).
+
+### `ServerConnectionHub` (multi-client sessions)
+
+`Transport/ServerConnectionHub.cs` aggregates one `IServerConnection` per connected client under an
+opaque `Uuid` (`clientId`) assigned on `Add`. It is shared code (not server core) because the shared
+transport implementations (`LocalConnection`, and later `TcpTransport`) feed it and every world side
+consumes it. Server systems construct against the hub instead of a single connection:
+
+- `Receive<T>()` polls every client connection and tags each inbound message with the `clientId` it
+  arrived on — so `ServerSpawnSystem` routes the `SpawnResponse` back to the requesting client and
+  `SessionManager` keys a session to that client.
+- `Send<T>(clientId, ...)` addresses a single client; `Clients` enumerates every connected client.
+- `Remove(clientId)` queues a disconnect that `DrainDisconnects()` surfaces to the server teardown step.
+
+Each client still owns one `IClientConnection` (upstream sends, downstream receives); only the server
+side sees a hub.
+
+### `SessionManager` & sessions
+
+`Server.Core/SessionManager.cs` binds the full `clientId ↔ Session ↔ player entity` chain, stamping
+`NetworkComponent.Session`. `ServerSpawnSystem` allocates a `Session` per connection and calls
+`Register`; `NetworkReplicationSystem` uses `SessionManager.TryGetEntity(clientId, ...)` to read that
+client's per-entity acked input. Disconnect teardown (`ServerContext.HandleDisconnects`) disposes the
+mirror's physics body, captures its uuid, frees the entity, and clears the mapping — the despawn is
+then broadcast to remaining clients in `RemovedEntities`.
 
 ## Spawn handshake
 
@@ -205,12 +231,13 @@ code and is the first real transport to plug in once demux lands.
 2. `ServerSpawnSystem` (`Server.Core/Systems/`) - via `ServerWorldService` - loads the authoritative voxel
    world for `LevelGuid` from the `levels` bucket (unloading any previous world), resolves the spawn
    transform (the persisted `<level>.character.<id>` location, else `Level.Spawn`), allocates the server
-   entity mirror, and replies `SpawnResponse { Entity, Accepted }`.
+   entity mirror, binds it to a fresh `Session`, and replies `SpawnResponse { Entity, Accepted }` to the
+   requesting connection through the hub.
 3. The client allocates an entity with the same `Uuid` and decorates it. The server assigns the initial
    transform and it replicates downstream; the client never authors `ServerOwned` state.
 
-The server owns body construction and the initial transform (see 1.9). Ownership is being replaced by
-session routing (Phase 3); see [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
+The server owns body construction and the initial transform (see 1.9); ownership is routed per session
+(Phase 3). See [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
 
 ## Replication (dirty-driven)
 
@@ -218,12 +245,16 @@ session routing (Phase 3); see [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-S
 
 `NetworkReplicationSystem` (`Server.Core/Systems/`):
 
-- `ApplyInbound` drains `WorldSnapshot`s from clients, applying `ClientOwned` components (materializing
-  a server mirror for unknown entity uuids) and advancing `LastAckedInput`/`LastAckedSnapshot` on
-  `InputComponent` application.
-- Each tick, it queries entities carrying `NetworkComponent`, serializes every **dirty** `ServerOwned`
-  component into `ComponentSnapshot`s, collects **removed** entities via `QueryRemoved`, and sends one
-  `WorldSnapshot { TickNumber, LastProcessedInput, Components, RemovedEntities }`.
+- `ApplyStage` drains `WorldSnapshot`s across **all** connected clients, applying `ClientOwned`
+  components (materializing a server mirror for unknown entity uuids) and advancing
+  `LastAckedInput`/`LastAckedSnapshot` on `InputComponent` application. The inbound snapshot's entity
+  uuid addresses the target, so cross-connection routing is unnecessary here.
+- Each tick, `PublishStage` queries entities carrying `NetworkComponent`, serializes every **dirty**
+  `ServerOwned` component into `ComponentSnapshot`s, then composes a **per-client** `WorldSnapshot`
+  for every connected client. The component set and `RemovedEntities` are the same for all clients, but
+  `LastProcessedInput` is that client's own entity's `LastAckedInput`.
+- Despaws are those queued via `RequestDespawn` (which must be called before the entity is freed, since
+  `DataStore.Free` clears the uuid), broadcast to remaining clients in `RemovedEntities`.
 - **World/voxel bodies (Phase 2).** Server-authoritative structures (Dynamic bodies carrying a
   `NetworkComponent`) flow through this same path each tick: their `TransformComponent` and
   `PhysicsComponent` are dirtied by the physics sync cycle, so the client snaps any drift in its own
@@ -259,17 +290,18 @@ These are gameplay-level bookkeeping for prediction. They are **not** a transpor
 
 ## Current gaps / known issues
 
-- **No voxel content mutation replication.** World/voxel **motion** is replicated (Phase 2), but editing
+- **No voxel content mutation replication.** World/voxel **motion** is replicated, but editing
   blocks across clients is out of scope.
-- **Single-client coupling.** `ServerPlayerOwnership` has been replaced by spawning through
-  `ServerWorldService`; `SessionManager` (session routing) is still dormant until Phase 3.
-- **No disconnect handling.** Remote/client mirrors are not cleaned up; sessions never end. In Phase 2 a
-  new `SpawnRequest` for a different level unloads the server's previous world (disposing its bodies).
+- **Despawn uuids must be captured before `store.Free`.** Because `DataStore.Free` clears an entity's
+  uuid, despawns are recorded explicitly (`NetworkReplicationSystem.RequestDespawn`) rather than read
+  back after freeing. Wiring the disconnect path is done; world-switch despawns reuse this.
+- **Disconnect detection is manual for in-process loopback.** `LocalConnection` never disconnects on its
+  own; `ServerConnectionHub.Remove` is the explicit disconnect trigger. Real socket-level detection
+  waits for the TCP peer path (Phase 5).
 - **`TcpTransport` has a single shared receive queue** — no per-type demux; unusable for the current
-  polling model and unexercised.
+  polling model and unexercised (Phase 5).
 - **Server boot is hard-wired.** `ServerComposition.Register` is invoked from the client's `Injector`
   because `WaywardBeyond.Server.Core` lacks a `manifest.toml`.
-- **Input look is raw cursor delta** (`LookDeltaX/Y`), with sensitivity applied at consumption.
 
 ## Direction
 
@@ -286,9 +318,9 @@ The current initiative targets:
 3. Server-side voxel world with **replicated world-body dynamics** (structures remain Dynamic and
    server-authored; motion replicates via the snapshot path) plus remote-player visuals relaying only a
    minimal public character view (identity/name/appearance — never inventory or attributes).
-4. Multi-client routing via a **server-side connection hub** with **per-session acks** (the single
+4. **Multi-client routing** (landed): a server-side connection hub with per-session acks — the single
    `WorldSnapshot.LastProcessedInput` field is per-recipient; the server composes a per-client
-   snapshot per tick), then **server-owned world state**: the server owns the world save (`levels`
+   snapshot per tick. Next: **server-owned world state** — the server owns the world save (`levels`
    KV), world generation, and per-character location persistence, streaming the full world to clients
    at join; clients own only `characters` KV.
 5. Per-type transport demux and transport selection as a DI decision; a dedicated executable stays a

@@ -6,42 +6,48 @@ using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Server.Core.Systems;
 
 /// <summary>
-/// Server-authoritative spawn. Handles client <see cref="SpawnRequest"/>s by allocating a player
+/// Server-authoritative spawn. Handles each client's <see cref="SpawnRequest"/> by allocating a player
 /// entity on the server world, constructing its physics body (server owns body construction), wiring it
-/// for replication, and replying with the assigned uuid. The server assigns the initial transform,
-/// which replicates downstream; the client never authors authoritative state.
+/// for replication, binding it to a session, and replying to that client with the assigned uuid. The
+/// server assigns the initial transform, which replicates downstream; the client never authors
+/// authoritative state. Each request is routed back to the connection it arrived on via the hub.
 /// </summary>
 public sealed class ServerSpawnSystem : IEntitySystem
 {
-    private readonly IServerConnection _transport;
+    private readonly ServerConnectionHub _hub;
+    private readonly SessionManager _sessions;
     private readonly ServerWorldService _worldService;
     private readonly ILogger<ServerSpawnSystem> _logger;
 
+    private uint _nextSessionId;
+
     public ServerSpawnSystem(
-        in IServerConnection transport,
+        in ServerConnectionHub hub,
+        SessionManager sessions,
         in ServerWorldService worldService,
         in ILogger<ServerSpawnSystem> logger
     ) {
-        _transport = transport;
+        _hub = hub;
+        _sessions = sessions;
         _worldService = worldService;
         _logger = logger;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        Result<SpawnRequest> receiveResult;
-        while ((receiveResult = _transport.Receive<SpawnRequest>()).Success)
+        foreach ((Uuid clientId, SpawnRequest request) in _hub.Receive<SpawnRequest>())
         {
-            HandleSpawn(receiveResult.Value, store);
+            HandleSpawn(clientId, request, store);
         }
     }
 
-    private void HandleSpawn(SpawnRequest request, DataStore store)
+    private void HandleSpawn(Uuid clientId, SpawnRequest request, DataStore store)
     {
         string levelGuid = request.LevelGuid ?? string.Empty;
 
@@ -68,8 +74,11 @@ public sealed class ServerSpawnSystem : IEntitySystem
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
 
-        _transport.Send(new SpawnResponse { Entity = uuid.ToValue(), Accepted = true });
+        Session session = new(_nextSessionId++);
+        _sessions.Register(store, entity, clientId, session);
 
-        _logger.LogInformation("Spawned player entity {uuid} for character {character} in level {level}.", uuid, request.CharacterId, levelGuid);
+        _hub.Send(clientId, new SpawnResponse { Entity = uuid.ToValue(), Accepted = true });
+
+        _logger.LogInformation("Spawned player entity {uuid} for character {character} in level {level} on session {session}.", uuid, request.CharacterId, levelGuid, session.ID);
     }
 }

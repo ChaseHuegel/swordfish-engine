@@ -448,37 +448,45 @@ creates `BodyType.Dynamic`); their motion must replicate:
 ## Phase 3 — Multi-client sessions & disconnect (LAN)
 
 ### 3.0 [G] Connection hub & per-session ack
-`[ ]` Every transport/interface is single-pair today (`INetworkTransport`/`IClientConnection`/
+`[x]` Every transport/interface is single-pair today (`INetworkTransport`/`IClientConnection`/
 `IServerConnection` have no addressing; `ServerContext.cs:23` and `NetworkReplicationSystem` hold one
 `IServerConnection`; `LocalConnection` is one client+server pair; `TcpTransport.Listen` accepts one
 peer, `TcpTransport.cs:40-47`). Model N clients explicitly:
-- **`ServerConnectionHub`** (server core) owns a **set of per-client `IServerConnection`s**;
+- **`ServerConnectionHub`** owns a **set of per-client `IServerConnection`s**;
   `ServerContext`/`NetworkReplicationSystem` construct against the hub instead of a single connection.
-- **Per-session ack:** the [`WorldSnapshot.LastProcessedInput`](../NETWORKING.md) single field can't
-  carry N clients' acks, so the server composes a **per-client `WorldSnapshot`** each tick — the same
-  broadcast component set (small N), but `LastProcessedInput` = that client's value, derived from its
-  entity's `LastAckedInput`.
+  *Location note:* the hub lives in **`Shared.Networking` (`Transport/ServerConnectionHub.cs`)**, not
+  server core — the shared transports (`LocalConnection`, and later `TcpTransport`) feed it and every
+  side (server core, tests) consumes it, so it cannot live in a project that references `Shared.Networking`.
+- **Per-session ack:** `WorldSnapshot.LastProcessedInput` is per-recipient — the server composes a
+  **per-client `WorldSnapshot`** each tick (same broadcast component/removal set for all clients, but
+  `LastProcessedInput` = that client's `LastAckedInput` from its entity).
 - `SessionManager` mapping becomes **session ↔ connection ↔ entity**.
-- `TcpTransport.Listen` gains a **multi-peer accept loop** (one endpoint per accepted peer, added to
-  the hub); `LocalConnection` gains a multi-client test fixture (N client endpoints → one server hub)
-  for the N-client tests. Client side stays one `IClientConnection` per client.
+- The **`LocalConnection` N-client fixture** is N `LocalConnection` pairs, each `.Server` added to one
+  hub (each pair's queues stay isolated, so routing is exercised with zero sockets).
+- **`TcpTransport.Listen` multi-peer accept is deferred to Phase 5**, where the per-type demux (5.2) it
+  depends on also lands; Phase 3 is validated over the hub + `LocalConnection` fixture, matching the
+  plan's own "without a socket" acceptance.
 - **Acceptance:** the hub serves N connected clients; each receives per-client acks; the N-client test
-  fixture exercises routing without a socket.
+  fixture (`Swordfish.Tests/SessionRoutingTests.cs`) exercises routing without a socket.
 
 ### 3.1 [G] Sessions replace single ownership
-`[ ]` Wire `SessionManager` (`Server.Core/SessionManager.cs`) + `Session`:
-- `ServerSpawnSystem` (`Server.Core/Systems/ServerSpawnSystem.cs:47`) allocates a session per
-  connection and sets `NetworkComponent.Session` instead of `ServerPlayerOwnership.SetOwnedPlayer`.
+`[x]` Wire `SessionManager` (`Server.Core/SessionManager.cs`) + `Session`:
+- `ServerSpawnSystem` (`Server.Core/Systems/ServerSpawnSystem.cs`) allocates a session per
+  connection and sets `NetworkComponent.Session` via `SessionManager.Register` (which binds
+  clientId ↔ session ↔ entity) instead of single ownership.
 - Replication rules key off session → connection → entity (a remote LAN client *does* receive its own
   authoritative transform; the local player behaves identically).
 - **Acceptance:** N synthetic clients can spawn and be routed concurrently over the connection hub /
   `LocalConnection` fixture.
 
 ### 3.2 [G] Disconnect handling
-`[ ]` None exists today. On disconnect: end session, free client mirrors, remove mappings, **dispose
-`PhysicsComponent` bodies** (they are `IDisposable` and post body-destroy to their `ThreadContext`)
-before `store.Free`, and replicate despawns via the existing `WorldSnapshot.RemovedEntities` path
-(`NetworkReplicationSystem.cs:195-209` already picks up remote despawns of server entities).
+`[x]` On disconnect (`ServerContext.HandleDisconnects` + `ServerConnectionHub.Remove`/`DrainDisconnects`):
+end session, free the client mirror, **dispose `PhysicsComponent` bodies** (they are `IDisposable` and
+post body-destroy to their `ThreadContext`), clear mappings, and replicate despawns via
+`WorldSnapshot.RemovedEntities`. *Implementation note:* `DataStore.Free` clears an entity's uuid, so the
+despawn uuid is captured **before** the free and queued via `NetworkReplicationSystem.RequestDespawn`
+(the old `QueryRemoved<NetworkComponent>` read of `store.GetUuid` after `Free` published `Uuid.Null`
+— a latent bug, fixed here).
 - **Acceptance:** dropping a client removes its entity server-side and clients observe the despawn.
 
 ### Design note
