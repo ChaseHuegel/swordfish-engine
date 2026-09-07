@@ -28,7 +28,11 @@ public struct PendingInputComponent : IDataComponent
         }
     }
 
-    public void AckUpTo(uint sequenceNumber)
+    /// <summary>
+    /// Trims inputs whose target sim tick (<see cref="InputComponent.ServerTickAtSample"/>) is at or
+    /// below the given acked sim tick.
+    /// </summary>
+    public void AckUpTo(uint simTick)
     {
         while (_tail < _head)
         {
@@ -38,7 +42,7 @@ public struct PendingInputComponent : IDataComponent
             }
             
             uint index = _tail % (uint)_history.Length;
-            if (_history[index].SequenceNumber > sequenceNumber)
+            if (_history[index].ServerTickAtSample > simTick)
             {
                 break;
             }

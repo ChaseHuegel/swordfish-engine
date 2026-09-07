@@ -47,6 +47,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Config
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Networking", "WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj", "{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WaywardBeyond.Shared.Gameplay", "WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj", "{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.ECS.Generator", "Swordfish.ECS.Generator\Swordfish.ECS.Generator.csproj", "{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Swordfish.ECS.Benchmarks", "Swordfish.ECS.Benchmarks\Swordfish.ECS.Benchmarks.csproj", "{8A0083D1-C544-4A10-81F3-0B685EAD18D4}"
@@ -325,6 +327,18 @@ Global
 		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Release|x64.Build.0 = Release|Any CPU
 		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Release|x86.ActiveCfg = Release|Any CPU
 		{949C1CBB-5D6D-47E1-8273-CB6D5EB25540}.Release|x86.Build.0 = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|x64.Build.0 = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Debug|x86.Build.0 = Debug|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|x64.ActiveCfg = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|x64.Build.0 = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|x86.ActiveCfg = Release|Any CPU
+		{F6A2C4D1-9B8E-4E2A-AF63-83D7E1C4B9A2}.Release|x86.Build.0 = Release|Any CPU
 		{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BA467C17-0CA7-4E3E-8AE9-5A1B0CC5E722}.Debug|x64.ActiveCfg = Debug|Any CPU
