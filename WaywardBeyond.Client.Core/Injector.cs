@@ -287,7 +287,6 @@ public class Injector : IDryIocInjector
     {
         container.Register<IEntitySystem, PlayerViewModelSystem>();
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
-        container.Register<IEntitySystem, ThrusterSystem>();
         container.Register<IEntitySystem, MainMenuAnimationSystem>();
         container.Register<IEntitySystem, ActiveSlotNotificationSystem>();
         

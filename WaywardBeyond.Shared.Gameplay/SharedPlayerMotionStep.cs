@@ -65,6 +65,27 @@ public sealed class SharedPlayerMotionStep : IDisposable
             {
                 Execute(entity, ref physics, ref transform);
             });
+
+        ApplyStructureDynamics();
+    }
+
+    /// <summary>
+    /// Shared structure dynamics: evaluates thrusters on dynamic voxel world bodies once per fixed physics
+    /// step. Runs in the same step, after player motion, so both worlds apply identical per-step forces;
+    /// the authoritative result replicates downstream and the client prediction is corrected by snapshots.
+    /// </summary>
+    private void ApplyStructureDynamics()
+    {
+        _store.QueryRef<ThrusterComponent, PhysicsComponent, TransformComponent>(0f,
+            (float _, DataStore store, int entity, ref Ref<ThrusterComponent> thruster, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform) =>
+            {
+                if (thruster.Read.Power <= 0)
+                {
+                    return;
+                }
+
+                physics.Write.Velocity += transform.Read.GetForward() * -(thruster.Read.Power * 10 * PlayerBodyConfig.PHYSICS_STEP);
+            });
     }
 
     private void Execute(int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
