@@ -137,6 +137,13 @@ public class ServerJoinStreamTests : IDisposable
             Directory.CreateDirectory(_storeDir);
             int port = GetFreePort();
 
+            if (!OperatingSystem.IsWindows())
+            {
+                UnixFileMode mode = File.GetUnixFileMode(binary)
+                    | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
+                File.SetUnixFileMode(binary, mode);
+            }
+
             _process = new Process
             {
                 StartInfo = new ProcessStartInfo
