@@ -26,12 +26,16 @@ public sealed class InputStageBuffer
         }
     }
 
+    /// <summary>
+    /// Returns the newest staged command whose target sim tick is at or below the given sim tick, so a
+    /// command tagged slightly in the past (network late) is still consumed rather than skipped.
+    /// </summary>
     public bool TryGet(uint simTick, out InputComponent command)
     {
         for (uint i = _head; i > _tail; i--)
         {
             uint index = (i - 1) % CAPACITY;
-            if (_ticks[index] == simTick)
+            if (_ticks[index] <= simTick)
             {
                 command = _entries[index];
                 return true;
