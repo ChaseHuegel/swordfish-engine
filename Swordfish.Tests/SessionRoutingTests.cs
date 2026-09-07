@@ -61,6 +61,7 @@ public class SessionRoutingTests
         new NsdMessageSerializer<JoinAccept>(),
         new NsdMessageSerializer<WorldStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
+        new NsdMessageSerializer<LeaveGameRequest>(),
     };
 
     private sealed class Fixture
@@ -223,5 +224,28 @@ public class SessionRoutingTests
             Assert.True(received.Success, $"Client {i} should receive a snapshot.");
             Assert.Contains(droppedUuid.ToValue(), received.Value.RemovedEntities);
         }
+    }
+
+    [Fact]
+    public void LeavingGameEndsSessionAndFreesMirror()
+    {
+        Fixture fixture = new(1);
+        var system = new ServerJoinSystem(
+            fixture.Hub,
+            fixture.Sessions,
+            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException()),
+            NullLogger<ServerJoinSystem>.Instance
+        );
+
+        int entity = fixture.Store.Alloc();
+        Uuid entityUuid = fixture.Store.GetUuid(entity);
+        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+        fixture.Sessions.Register(fixture.Store, entity, fixture.ClientIds[0], new Session(1u));
+
+        fixture.Client(0).Send(new LeaveGameRequest { Dummy = 0 });
+        system.Tick(0f, fixture.Store);
+
+        Assert.False(fixture.Sessions.TryGetEntity(fixture.ClientIds[0], out _));
+        Assert.False(fixture.Store.TryGet(entityUuid, out _));
     }
 }

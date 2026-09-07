@@ -169,8 +169,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             Save();
         }
 
-        CleanupEcs();
+        //  Drop below Playing BEFORE freeing the world so reconciliation (gated on Playing) stops and
+        //  cannot resurrect freed entities from in-flight server snapshots during teardown.
         WaywardBeyond.GameState.Set(GameState.MainMenu);
+        CleanupEcs();
+
+        //  Ask the server to end this player's session and free its mirror.
+        _gameSaveService.LeaveGame();
     }
 
     public void Delete(GameSave save)
@@ -259,13 +264,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return;
             }
             
-            if (store.TryGet(entity, out MeshRendererComponent meshRendererComponent))
+            if (store.TryGet(entity, out MeshRendererComponent meshRendererComponent) && meshRendererComponent.MeshRenderer != null)
             {
-                if (meshRendererComponent.MeshRenderer == null)
-                {
-                    return;
-                }
-                
                 meshRendererComponent.MeshRenderer.Dispose();
                 meshRendererComponent.MeshRenderer.Mesh.Dispose();
             }

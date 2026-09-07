@@ -48,6 +48,32 @@ public sealed class ServerJoinSystem : IEntitySystem
         {
             HandleJoin(clientId, request, store);
         }
+
+        foreach ((Uuid clientId, LeaveGameRequest _) in _hub.Receive<LeaveGameRequest>())
+        {
+            HandleLeave(clientId, store);
+        }
+    }
+
+    /// <summary>
+    /// Ends a player's server session when they return to the menu: disposes and frees the player mirror
+    /// and clears the session mapping. The connection is deliberately left registered on the hub so the
+    /// client can join again. No despawn is broadcast (single-player N=1; a LAN follow-up can route it).
+    /// </summary>
+    private void HandleLeave(Uuid clientId, DataStore store)
+    {
+        if (_sessions.TryGetEntity(clientId, out int entity))
+        {
+            if (store.TryGet(entity, out PhysicsComponent physics))
+            {
+                physics.Dispose();
+            }
+
+            store.Free(entity);
+            _logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
+        }
+
+        _sessions.EndSession(clientId);
     }
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)

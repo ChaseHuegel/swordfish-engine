@@ -78,5 +78,10 @@ message WorldEntityAdd
 
 message WorldStreamComplete
 {
-    uint Dummy = 0;
+    byte Dummy = 0;
+}
+
+message LeaveGameRequest
+{
+    byte Dummy = 0;
 }

@@ -130,6 +130,7 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<JoinAccept>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldEntityAdd>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>

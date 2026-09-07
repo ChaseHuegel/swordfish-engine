@@ -82,6 +82,12 @@ internal sealed class GameSaveService(
         return _worldsClient.SaveWorldAsync();
     }
 
+    /// <summary>Notifies the server the player is returning to the menu (end session, free mirror).</summary>
+    public void LeaveGame()
+    {
+        _worldsClient.SendLeaveGame();
+    }
+
     private async Task CreateWorldAsync(string name, string seed)
     {
         bool success = await _worldsClient.CreateWorldAsync(name, seed, GameMode.Creative);

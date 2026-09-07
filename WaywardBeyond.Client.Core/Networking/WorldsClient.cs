@@ -73,6 +73,15 @@ internal sealed class WorldsClient
         return completion.Task;
     }
 
+    /// <summary>
+    /// Fire-and-forget notification to the server that the player is returning to the menu, so it can
+    /// end the session and free the player mirror. There is no response to await.
+    /// </summary>
+    public void SendLeaveGame()
+    {
+        _transport.Send(new LeaveGameRequest { Dummy = 0 });
+    }
+
     private void Drain<TResponse>()
     {
         Result<TResponse> result;

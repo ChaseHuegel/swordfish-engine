@@ -57,6 +57,13 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         Result<WorldSnapshot> receiveResult;
         while ((receiveResult = _transport.Receive<WorldSnapshot>()).Success)
         {
+            //  Re-check the gate inside the drain so an exit to the menu mid-drain stops applying (and
+            //  can no longer re-allocate entities the teardown is freeing).
+            if (WaywardBeyond.GameState < GameState.Playing)
+            {
+                return;
+            }
+
             ApplySnapshot(receiveResult.Value, store);
         }
     }
