@@ -21,6 +21,7 @@
       <ProjectReference Include="..\Shoal\Shoal.csproj" />
       <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
     </ItemGroup>
 

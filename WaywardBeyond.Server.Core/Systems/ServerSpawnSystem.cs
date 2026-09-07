@@ -1,6 +1,8 @@
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -9,23 +11,20 @@ namespace WaywardBeyond.Server.Core.Systems;
 
 /// <summary>
 /// Server-authoritative spawn. Handles client <see cref="SpawnRequest"/>s by allocating a player
-/// entity on the server world, wiring it for replication, and replying with the assigned uuid. The
-/// server holds authority over which spawns it materializes; the client later seats the initial
-/// transform as a placement and drives local motion.
+/// entity on the server world, constructing its physics body (server owns body construction), wiring it
+/// for replication, and replying with the assigned uuid. The server assigns the initial transform,
+/// which replicates downstream; the client never authors authoritative state.
 /// </summary>
 public sealed class ServerSpawnSystem : IEntitySystem
 {
     private readonly IServerConnection _transport;
-    private readonly ServerPlayerOwnership _ownership;
     private readonly ILogger<ServerSpawnSystem> _logger;
 
     public ServerSpawnSystem(
         in IServerConnection transport,
-        in ServerPlayerOwnership ownership,
         in ILogger<ServerSpawnSystem> logger
     ) {
         _transport = transport;
-        _ownership = ownership;
         _logger = logger;
     }
 
@@ -44,7 +43,14 @@ public sealed class ServerSpawnSystem : IEntitySystem
         Uuid uuid = store.GetUuid(entity);
 
         store.AddOrUpdate(entity, new NetworkComponent());
-        _ownership.SetOwnedPlayer(uuid);
+        store.AddOrUpdate(entity, new InputComponent());
+        store.AddOrUpdate(entity, new TransformComponent(
+            PlayerBodyConfig.DEFAULT_SPAWN_POSITION,
+            Quaternion.Identity,
+            PlayerBodyConfig.PLAYER_SCALE
+        ));
+        store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
+        store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
 
         _transport.Send(new SpawnResponse { Entity = uuid.ToValue(), Accepted = true });
 
