@@ -10,6 +10,7 @@ using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Globalization;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.Saves.LoadGame;
 using WaywardBeyond.Client.Core.Voxels.Models;
@@ -27,7 +28,8 @@ internal sealed class GameSaveService(
     in ILoadStage<GameOptions>[] newSaveStages,
     in ILoadStage<GameSave>[] loadSaveStages,
     in ILoadStage[] loadStages,
-    in KeyValueStore keyValueStore
+    in KeyValueStore keyValueStore,
+    in WorldsClient worldsClient
 ) {
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
@@ -39,9 +41,13 @@ internal sealed class GameSaveService(
     private readonly ILoadStage<GameSave>[] _loadSaveStages = loadSaveStages;
     private readonly ILoadStage[] _loadStages = loadStages;
     private readonly KeyValueStore _keyValueStore = keyValueStore;
+    private readonly WorldsClient _worldsClient = worldsClient;
 
     private const string BUCKET_NAME = "levels";
-    
+
+    private readonly object _savesGate = new();
+    private GameSave[] _saves = [];
+
     private IProgressStage? _currentStage;
     
     public string GetStatus()
@@ -52,119 +58,65 @@ internal sealed class GameSaveService(
     
     public GameSave[] GetSaves()
     {
-        Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
-        var saves = new List<GameSave>();
-
-        if (keysResult.Success)
+        lock (_savesGate)
         {
-            var guidToKey = new Dictionary<string, string>();
-            for (var i = 0; i < keysResult.Value.Length; i++)
-            {
-                string key = keysResult.Value[i];
-                if (!Guid.TryParse(key, out _))
-                {
-                    continue;
-                }
-                
-                guidToKey[key] = key;
-            }
-
-            foreach (KeyValuePair<string, string> kvp in guidToKey)
-            {
-                string key = kvp.Value;
-                Result<byte[]> getResult = _keyValueStore.Get<byte[]>(BUCKET_NAME, key);
-                if (!getResult.Success || getResult.Value.Length == 0)
-                {
-                    continue;
-                }
-                
-                try
-                {
-                    Level level = Level.Deserialize(getResult.Value);
-                    if (!string.IsNullOrEmpty(level.Guid))
-                    {
-                        var save = new GameSave(level.Name, level);
-                        saves.Add(save);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to deserialize level from key \"{key}\"", key);
-                }
-            }
+            return _saves;
         }
+    }
 
-        //  TODO remove this in a near-future update
-        // Scan for old disk saves
+    /// <summary>
+    /// Refreshes the cached save listing from the server-owned <c>levels</c> bucket (via a
+    /// <see cref="ListWorldsRequest"/>). The client no longer owns world metadata; it maintains only a
+    /// cached view for the menu.
+    /// </summary>
+    public async Task RefreshWorldsAsync()
+    {
         try
         {
-            if (Directory.Exists("saves"))
+            Level[] levels = await _worldsClient.GetLevelsAsync();
+
+            var saves = new GameSave[levels.Length];
+            for (var i = 0; i < levels.Length; i++)
             {
-                string[] saveDirectories = Directory.GetDirectories("saves");
-                for (var i = 0; i < saveDirectories.Length; i++)
-                {
-                    string dir = saveDirectories[i];
-                    string levelFilePath = Path.Combine(dir, "level.dat");
-                    if (!File.Exists(levelFilePath))
-                    {
-                        continue;
-                    }
-                    
-                    try
-                    {
-                        byte[] levelBytes = File.ReadAllBytes(levelFilePath);
-                        Level level = Level.Deserialize(levelBytes);
-                        
-                        //  level.Guid and level.Name didn't exist in the old format,
-                        //  the folder name defined its uniqueness and name
-                        level.Guid = Guid.NewGuid().ToString();
-                        level.Name = Path.GetRelativePath("saves", dir);
-                        
-                        var save = new GameSave(level.Name, level);
-                        saves.Add(save);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to deserialize legacy disk level from file \"{path}\"", levelFilePath);
-                    }
-                }
+                Level level = levels[i];
+                saves[i] = new GameSave(level.Name, level);
+            }
+
+            lock (_savesGate)
+            {
+                _saves = saves;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to scan legacy disk saves directory.");
+            _logger.LogError(ex, "Failed to refresh the world listing from the server.");
         }
-        
-        return saves.ToArray();
     }
-    
+
     public void CreateSave(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
-        
-        byte[] seedBytes = Encoding.UTF8.GetBytes(options.Seed);
-        byte[] seedHash = SHA1.HashData(seedBytes);
-        var seed = BitConverter.ToInt32(seedHash);
+        _ = CreateWorldAsync(options.Name, options.Seed);
+    }
 
-        long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        string guid = Guid.NewGuid().ToString();
-        var level = new Level(
-            WaywardBeyond.Version, 
-            seed, 
-            nowUtcMs, 
-            _AgeMs: 0, 
-            _SpawnX: 0, 
-            _SpawnY: 1, 
-            _SpawnZ: 5, 
-            GameMode.Creative, 
-            guid, 
-            options.Name
-        );
-        var save = new GameSave(options.Name, level);
-        
-        Save(save);
-        
-        _notificationService.Push(_localizedFormatter.GetString("notification.save.created", options.Name));
+    /// <summary>
+    /// Asks the server to flush its authoritative world to the <c>levels</c> bucket. The client no longer
+    /// stores world state; quicksave/autosave/pause/close all delegate persistence to the server.
+    /// </summary>
+    public Task TriggerServerSave()
+    {
+        return _worldsClient.SaveWorldAsync();
+    }
+
+    private async Task CreateWorldAsync(string name, string seed)
+    {
+        bool success = await _worldsClient.CreateWorldAsync(name, seed, GameMode.Creative);
+        await RefreshWorldsAsync();
+
+        _notificationService.Push(_localizedFormatter.GetString(
+            success ? "notification.save.created" : "notification.save.creating.failed",
+            name
+        ));
     }
 
     public async Task Load(GameSave save)
@@ -317,81 +269,6 @@ internal sealed class GameSaveService(
         _notificationService.Push(_localizedFormatter.GetString("notification.save.loaded", save.Name));
     }
     
-    public void Save(GameSave save)
-    {
-        _notificationService.Push(_localizedFormatter.GetString("notification.save.saving", save.Name));
-        
-        Level level = save.Level;
-        var anyErrors = false;
-
-        //  Save level meta
-        try
-        {
-            byte[] levelData = level.Serialize();
-            _keyValueStore.Put(BUCKET_NAME, level.Guid, levelData);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "There was an error saving level metadata.");
-            anyErrors = true;
-        }
-
-        //  Save voxel entities
-        _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
-        void ForEachVoxelEntity(float delta, DataStore store, int entity, in VoxelComponent voxelComponent, in TransformComponent transform)
-        {
-            Uuid uuid = store.GetUuid(entity);
-
-            try
-            {
-                var model = new VoxelEntityModel(uuid, transform.Position, transform.Orientation, voxelComponent.VoxelObject);
-                byte[] data = _voxelEntitySerializer.Serialize(model);
-                
-                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.entity.{uuid}", data);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "There was an error saving voxel entity \"{entity}\" ({uuid}).", entity, uuid);
-                anyErrors = true;
-            }
-        }
-        
-        // Save character entities
-        _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, ForEachCharacterEntity);
-        void ForEachCharacterEntity(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
-        {
-            if (!store.TryGet(entity, out GameModeComponent gameModeComponent))
-            {
-                return;
-            }
-
-            Uuid uuid = store.GetUuid(entity);
-            ulong characterId = characterComponent.Character.Id;
-
-            try
-            {
-                var model = new CharacterEntityModel(uuid, transform.Position, transform.Orientation, gameModeComponent.GameMode);
-                byte[] data = _characterEntitySerializer.Serialize(model);
-                
-                _keyValueStore.Put(BUCKET_NAME, $"{level.Guid}.character.{characterId}", data);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "There was an error saving character entity \"{entity}\" ({uuid}).", entity, uuid);
-                anyErrors = true;
-            }
-        }
-
-        if (anyErrors)
-        {
-            _notificationService.Push(_localizedFormatter.GetString("notification.save.saving.failed", save.Name));
-        }
-        else
-        {
-            _notificationService.Push(_localizedFormatter.GetString("notification.save.saved", save.Name));
-        }
-    }
-
     private void PersistVoxelEntities(Level level)
     {
         _ecs.World.DataStore.Query<VoxelComponent, TransformComponent>(0f, ForEachVoxelEntity);
@@ -414,42 +291,17 @@ internal sealed class GameSaveService(
 
     public void Delete(GameSave save)
     {
-        try
-        {
-            _keyValueStore.Delete(BUCKET_NAME, save.Level.Guid);
+        _ = DeleteWorldAsync(save.Level.Guid, save.Name);
+    }
 
-            Result<string[]> keysResult = _keyValueStore.GetKeys(BUCKET_NAME);
-            if (keysResult.Success)
-            {
-                string prefix = $"{save.Level.Guid}.";
-                var keysToDelete = new List<string>();
-                for (var i = 0; i < keysResult.Value.Length; i++)
-                {
-                    if (!keysResult.Value[i].StartsWith(prefix))
-                    {
-                        continue;
-                    }
-                    
-                    keysToDelete.Add(keysResult.Value[i]);
-                }
-                    
-                if (keysToDelete.Count > 0)
-                {
-                    _keyValueStore.Delete(BUCKET_NAME, keysToDelete.ToArray());
-                }
-            }
+    private async Task DeleteWorldAsync(string levelGuid, string name)
+    {
+        bool success = await _worldsClient.DeleteWorldAsync(levelGuid);
+        await RefreshWorldsAsync();
 
-            //  TODO remove this in a near-future update
-            //  Delete the legacy disk-based directory, if it exists
-            string diskPath = Path.Combine("saves", save.Name);
-            if (Directory.Exists(diskPath))
-            {
-                Directory.Delete(diskPath, recursive: true);
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to delete save \"{saveName}\" ({guid}).", save.Name, save.Level.Guid);
-        }
+        _notificationService.Push(_localizedFormatter.GetString(
+            success ? "notification.save.deleted" : "notification.save.deleting.failed",
+            name
+        ));
     }
 }

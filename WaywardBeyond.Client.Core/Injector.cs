@@ -154,6 +154,9 @@ public class Injector : IDryIocInjector
         container.Register<ClientPlayerSpawnSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientPlayerSpawnSystem>();
 
+        container.Register<WorldsClient>(Reuse.Singleton);
+        container.Register<IEntitySystem, ClientWorldServiceSystem>();
+
         ServerComposition.Register(container);
     }
 

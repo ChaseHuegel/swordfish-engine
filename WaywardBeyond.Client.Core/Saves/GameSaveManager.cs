@@ -80,6 +80,9 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         //  Default to the most recent game save, if there is one
         ActiveSave = GetMostRecentSave();
+
+        //  The save listing is served from the server; start loading it so the menu populates promptly.
+        _ = _gameSaveService.RefreshWorldsAsync();
     }
 
     public void Dispose()
@@ -125,7 +128,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             return Task.CompletedTask;
         }
         
-        using Lock.Scope _ = _activeSaveLock.EnterScope();
+        using Lock.Scope activeSaveScope = _activeSaveLock.EnterScope();
         
         if (ActiveSave == null)
         {
@@ -143,8 +146,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         save = new GameSave(save.Name, level);
         
-        _gameSaveService.Save(save);
         _characterSaveManager.Save();
+        _ = _gameSaveService.TriggerServerSave();
         return Task.CompletedTask;
     }
     

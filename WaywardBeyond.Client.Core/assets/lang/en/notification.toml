@@ -3,6 +3,9 @@
 [Translations]
 "notification.save.creating" = "Creating \"{0}\"..."
 "notification.save.created" = "Created save \"{0}\"."
+"notification.save.deleted" = "Deleted save \"{0}\"."
+"notification.save.creating.failed" = "Failed to create save \"{0}\"."
+"notification.save.deleting.failed" = "Failed to delete save \"{0}\"."
 "notification.save.loading" = "Loading \"{0}\"..."
 "notification.save.loaded" = "Loaded save \"{0}\"."
 "notification.save.saving" = "Saving \"{0}\"..."
