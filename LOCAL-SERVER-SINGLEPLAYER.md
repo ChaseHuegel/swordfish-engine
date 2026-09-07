@@ -21,9 +21,11 @@ simulation path.
 1. **In-process local server** for singleplayer + future LAN hosting. A dedicated executable stays a
    *clean seam only* — **no `WaywardBeyond.Server.Launcher` this initiative**.
 2. **Server-authoritative simulation with client prediction** for all players, including the local one.
-3. **Kinematic look.** The client sends sensitivity-resolved **absolute yaw/pitch**; the server applies
-   it directly (clamped). **No client camera smoothing**; no torque-driven look (torque look was always
-   temporary).
+3. **Kinematic look.** The client sends the sensitivity-resolved **absolute look orientation** (a
+   gimbal-free quaternion, accumulated from cursor + Q/E roll) and the server applies it directly.
+   **No client camera smoothing**; no torque-driven look (torque look was always temporary).
+   The local player's orientation stays client-predicted (reconcile seats it once at spawn and then only
+   corrects position/velocity), so the authoritative echo never snaps the view.
 4. **Mouse sensitivity is a client-local setting** — never networked, never a shared/duplicated
    constant. The wire carries *resolved* look, not config.
 5. **Fixed-step physics with tick-tagged commands.** `JoltPhysicsSystem` already integrates the solver
@@ -250,9 +252,10 @@ publishes no authoritative state for the owned player; reconcile is inert.
 - **Shared player-motion step.** Query contract keys on **`InputComponent + PhysicsComponent +
   TransformComponent`** (all shared/engine types — no client `PlayerComponent`, no `Session`-keyed
   uniqueness). Per entity:
-  - **Look:** set `TransformComponent.Orientation` from `norm(LookYaw, LookPitch)`, clamped by a
-    per-step angular speed limit (clamp-on-delta relative to last applied orientation). The clamp
-    lives here so prediction and server are identical. Never writes `Torque`.
+  - **Look:** set `TransformComponent.Orientation` directly from the resolved gimbal-free look
+    quaternion carried by the command (`LookX/Y/Z/W`). Both prediction and the server apply the
+    identical value, so the result is deterministic (no per-step clamp; angular anti-cheat is out of
+    scope). Never writes `Torque`.
   - **Movement:** compute forces from `Movement` + orientation-derived `GetForward/Right/Up`
     (`PlayerControllerSystem.cs:144-190` behavior) → `PhysicsComponent`, carrying `BASE_SPEED`,
     `DECELERATION`, jump handling. Pin `Jump` one-shot vs hold semantics.
