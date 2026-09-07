@@ -118,8 +118,6 @@ public class Injector : IDryIocInjector
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
 
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SpawnRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SpawnResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsRequest>>();

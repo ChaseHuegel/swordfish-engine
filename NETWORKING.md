@@ -87,18 +87,6 @@ message WorldSnapshot
     ulong[] RemovedEntities   = 3;
 }
 
-message SpawnRequest
-{
-    ulong CharacterId   = 0;
-    string LevelGuid    = 1;
-}
-
-message SpawnResponse
-{
-    ulong Entity    = 0;
-    bool  Accepted  = 1;
-}
-
 message TransformMessage { /* position, orientation, scale */ }
 message PhysicsMessage  { /* velocity, torque */ }
 ```

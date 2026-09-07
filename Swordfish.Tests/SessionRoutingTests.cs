@@ -7,6 +7,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
@@ -18,7 +19,7 @@ namespace Swordfish.Tests;
 
 /// <summary>
 /// Phase 3: multi-client sessions over the <see cref="ServerConnectionHub"/>. N synthetic clients
-/// (each a <see cref="LocalConnection"/> pair) connect to one server hub; spawn requests are routed back
+/// (each a <see cref="LocalConnection"/> pair) connect to one server hub; join requests are routed back
 /// to the requesting client, snapshots carry a per-client ack, and a disconnect frees the session's
 /// entity and replicates its despawn to the remaining clients.
 /// </summary>
@@ -56,8 +57,9 @@ public class SessionRoutingTests
 
     private static INetworkSerializer[] Serializers => new INetworkSerializer[]
     {
-        new NsdMessageSerializer<SpawnRequest>(),
-        new NsdMessageSerializer<SpawnResponse>(),
+        new NsdMessageSerializer<JoinRequest>(),
+        new NsdMessageSerializer<JoinAccept>(),
+        new NsdMessageSerializer<WorldStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
     };
 
@@ -83,38 +85,45 @@ public class SessionRoutingTests
     }
 
     [Fact]
-    public void ConcurrentSpawnsAreRoutedToTheirOwnClient()
+    public void ConcurrentJoinsAreRoutedToTheirOwnClient()
     {
         const int count = 3;
         Fixture fixture = new(count);
-        var system = new ServerSpawnSystem(
+        var system = new ServerJoinSystem(
             fixture.Hub,
             fixture.Sessions,
             new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException()),
-            NullLogger<ServerSpawnSystem>.Instance
+            NullLogger<ServerJoinSystem>.Instance
         );
 
         for (var i = 0; i < count; i++)
         {
-            fixture.Client(i).Send(new SpawnRequest { CharacterId = (ulong)(100 + i) });
+            ulong characterId = (ulong)(100 + i);
+            fixture.Client(i).Send(new JoinRequest
+            {
+                CharacterId = characterId,
+                PublicView = new PublicView { CharacterId = characterId, Name = "P", Body = 0 },
+            });
         }
 
         system.Tick(0f, fixture.Store);
 
-        //  Each client receives exactly one response and it is the entity bound to its own session.
+        //  Each client receives exactly one join accept (its own player entity) and one stream complete.
         var assigned = new List<(Uuid clientId, ulong entity)>();
         for (var i = 0; i < count; i++)
         {
-            Result<SpawnResponse> response = fixture.Client(i).Receive<SpawnResponse>();
-            Assert.True(response.Success, $"Client {i} should receive a spawn response.");
-            Assert.True(response.Value.Accepted);
-            assigned.Add((fixture.ClientIds[i], response.Value.Entity));
+            Result<JoinAccept> accept = fixture.Client(i).Receive<JoinAccept>();
+            Assert.True(accept.Success, $"Client {i} should receive a join accept.");
+            Assert.NotEqual((ulong)0, accept.Value.PlayerEntity);
+            assigned.Add((fixture.ClientIds[i], accept.Value.PlayerEntity));
+
+            Assert.True(fixture.Client(i).Receive<WorldStreamComplete>().Success, $"Client {i} should receive a world stream complete.");
         }
 
-        //  No client received another client's response.
+        //  No client received another client's join accept.
         for (var i = 0; i < count; i++)
         {
-            Assert.False(fixture.Client(i).Receive<SpawnResponse>().Success, $"Client {i} received a stray spawn response.");
+            Assert.False(fixture.Client(i).Receive<JoinAccept>().Success, $"Client {i} received a stray join accept.");
         }
 
         //  Distinct entities, each bound back to the client that requested it and carrying a session.

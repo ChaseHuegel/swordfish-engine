@@ -16,18 +16,6 @@ message WorldSnapshot
     ulong[] RemovedEntities   = 3;
 }
 
-message SpawnRequest
-{
-    ulong CharacterId   = 0;
-    string LevelGuid    = 1;
-}
-
-message SpawnResponse
-{
-    ulong Entity    = 0;
-    bool  Accepted  = 1;
-}
-
 message TransformMessage
 {
     float PositionX      = 0;

@@ -4,6 +4,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Components;
+using WaywardBeyond.Server.Core.Saves;
+using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -81,40 +84,47 @@ public class SpawnAndMirrorTests
     }
 
     [Fact]
-    public void ServerSpawnRepliesWithAuthoritativeUuidAndBody()
+    public void ServerJoinRepliesWithAuthoritativeUuidAndBody()
     {
         var connection = new LocalConnection(new INetworkSerializer[]
         {
-            new NsdMessageSerializer<SpawnRequest>(),
-            new NsdMessageSerializer<SpawnResponse>(),
+            new NsdMessageSerializer<JoinRequest>(),
+            new NsdMessageSerializer<JoinAccept>(),
+            new NsdMessageSerializer<WorldStreamComplete>(),
         });
         var hub = new ServerConnectionHub();
         hub.Add(connection.Server);
         var serverStore = new DataStore();
-        var system = new WaywardBeyond.Server.Core.Systems.ServerSpawnSystem(
+        var system = new WaywardBeyond.Server.Core.Systems.ServerJoinSystem(
             hub,
             new SessionManager(),
             new WaywardBeyond.Server.Core.Saves.WorldSaveService(
                 NullLogger<WaywardBeyond.Server.Core.Saves.WorldSaveService>.Instance,
                 () => throw new NotImplementedException()
             ),
-            NullLogger<WaywardBeyond.Server.Core.Systems.ServerSpawnSystem>.Instance
+            NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance
         );
 
-        var request = new SpawnRequest { CharacterId = 99 };
-        connection.Client.Send(request);
+        connection.Client.Send(new JoinRequest
+        {
+            CharacterId = 99,
+            PublicView = new PublicView { CharacterId = 99, Name = "P", Body = 2 },
+        });
 
         system.Tick(0f, serverStore);
 
-        Result<SpawnResponse> response = connection.Client.Receive<SpawnResponse>();
-        Assert.True(response.Success);
-        Assert.True(response.Value.Accepted);
+        Result<JoinAccept> accept = connection.Client.Receive<JoinAccept>();
+        Assert.True(accept.Success);
+        Assert.NotEqual((ulong)0, accept.Value.PlayerEntity);
+        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
 
-        Assert.True(serverStore.TryGet(Uuid.FromValue(response.Value.Entity), out int entity));
+        Assert.True(serverStore.TryGet(Uuid.FromValue(accept.Value.PlayerEntity), out int entity));
         Assert.True(serverStore.TryGet(entity, out NetworkComponent net));
         Assert.True(serverStore.TryGet<TransformComponent>(entity, out _));
         Assert.True(serverStore.TryGet<PhysicsComponent>(entity, out _));
         Assert.True(serverStore.TryGet<ColliderComponent>(entity, out _));
+        Assert.True(serverStore.TryGet(entity, out OwnedCharacterComponent owned));
+        Assert.Equal((ulong)99, owned.CharacterId);
     }
 
     [Fact]

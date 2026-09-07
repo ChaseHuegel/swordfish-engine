@@ -144,72 +144,67 @@ files (except a legacy disk-migration path retained in `GameSaveService`).
 ## Current-state snapshot (what the plan builds on)
 
 ### Networking wiring
-- Two worlds: client `ECSContext` (`Swordfish/ECS/ECSContext.cs`) on `"ECS"` thread; server
-  `ServerContext` (`Server.Core/ServerContext.cs`) on `"Server"` thread.
-- `ServerContext` adds only `NetworkReplicationSystem` + `ServerSpawnSystem` (`ServerContext.cs:31-32`).
-  **No simulation.**
-- Server hosted in-process: `Client.Core/Injector.cs:143` → `ServerComposition.Register(container)`
-  (`Server.Core/ServerComposition.cs:10`) → `RegisterMany<ServerContext>`. `Server.Core` has no
+- Two worlds: client `ECSContext` (`Swordfish/ECS/ECSContext.cs`) on the `"ECS"` thread; server
+  `ServerContext` (`Server.Core/ServerContext.cs`) on the `"Server"` thread. Both run their own
+  `JoltPhysicsSystem` + `SharedPlayerMotionStep` per fixed physics step, gravity zero.
+- Server hosted in-process: `Client.Core/Injector.cs` → `ServerComposition.Register(container)`
+  (`Server.Core/ServerComposition.cs`) → `RegisterMany<ServerContext>`. `Server.Core` has no
   `manifest.toml`.
-- Networking registrations (`Client.Core/Injector.cs:121-144`):
+- Networking registrations (`Client.Core/Injector.cs`):
   - `NetworkRegistry.Initialize([InputComponent assembly])`
   - `TransformComponent` uuid 2 / `PhysicsComponent` uuid 3, both ServerOwned, explicit codecs
-  - nsd serializers for `WorldSnapshot`, `SpawnRequest`, `SpawnResponse`
-  - `LocalConnection` singleton; `IClientConnection` → `.Client`, `IServerConnection` → `.Server`
-  - systems: `ClientInputSystem`, `ClientReplicationSystem`, `ClientReconcileSystem`,
-    `ClientPlayerSpawnSystem`; then `ServerComposition.Register(container)`.
-- `ServerPlayerOwnership` (`Server.Core/ServerPlayerOwnership.cs`) — single `Uuid?`, used to skip
-  echoing the owner's transform (`NetworkReplicationSystem.cs:181-186`).
-- `SessionManager` (`Server.Core/SessionManager.cs`) — session↔entity maps; **registered but not
-  wired** (`Injector.cs:134`).
-- `TcpTransport` (`Shared.Networking/Transport/TcpTransport.cs`) — single shared receive queue
-  (`:19`), no per-type demux; never exercised.
+  - nsd serializers for `WorldSnapshot`, `NewWorldRequest/Response`, `ListWorldsRequest/Response`,
+    `DeleteWorldRequest/Response`, `SaveWorldRequest/Response`, `JoinRequest`, `JoinAccept`,
+    `WorldEntityAdd`, `WorldStreamComplete`
+  - `LocalConnection` singleton; `IClientConnection` → `.Client`, the `ServerConnectionHub` adds
+    `.Server`; then `ServerComposition.Register(container)`.
+  - client systems: `ClientInputSystem`, `ClientReplicationSystem`, `ClientReconcileSystem`,
+    `ClientJoinSystem`, `ClientWorldServiceSystem`.
+- `ServerJoinSystem` (`Server.Core/Systems/`) handles `JoinRequest`; `SessionManager`
+  (`Server.Core/SessionManager.cs`) binds `clientId ↔ Session ↔ entity`, stamped on
+  `NetworkComponent.Session`.
+- `TcpTransport` (`Shared.Networking/Transport/TcpTransport.cs`) — single shared receive queue, no
+  per-type demux; never exercised (Phase 5).
 
 ### Message/component shapes
-- `Shared.Networking/CodeGen/network.nsd`: `ComponentSnapshot`, `WorldSnapshot`, `SpawnRequest`,
-  `SpawnResponse`, `TransformMessage`, `PhysicsMessage`.
+- `Shared.Networking/CodeGen/network.nsd`: `ComponentSnapshot`, `WorldSnapshot`, `TransformMessage`,
+  `PhysicsMessage`.
+- `Shared.Data/CodeGen/world.nsd`: `NewWorldRequest/Response`, `ListWorldsRequest/Response`,
+  `DeleteWorldRequest/Response`, `SaveWorldRequest/Response`, `JoinRequest`, `JoinAccept`,
+  `WorldEntityAdd`, `WorldStreamComplete`, `PublicView`.
 - `Shared.Networking/CodeGen/components.nsd`: `InputComponent`
-  (`MovementX/Y/Z`, `LookDeltaX/Y` = raw cursor px, `Jump`, `SequenceNumber`, `ServerTickAtSample`).
+  (`MovementX/Y/Z`, `LookPitch`/`LookYaw`/`LookRoll` = absolute radians, `SequenceNumber`,
+  `ServerTickAtSample`).
 - `NetworkComponent` (`Shared.Networking/Components/`): `Session`, `LastAckedInput`,
-  `LastAckedSnapshot`, `ServerTPS`.
-- `PendingInputComponent`: 256-entry ring buffer (`Push`, `AckUpTo`, `GetPending`).
+  `LastAckedSnapshot`, `ServerTPS`, `InputStageBuffer? StagedInputs` (server-side per-tick staging).
+- `PendingInputComponent`: 256-entry ring buffer (`Push`, `AckUpTo`, `GetPending`), sim-tick-keyed.
 
 ### Persistence (current)
-- `GameSaveService` (`Client.Core/Saves/`) — owns `levels` KV ops: `GetSaves`, `CreateSave`
-  (builds `Level` meta), `Load` (stages + world-gen-if-empty + legacy disk migration), `Save`
-  (queries client ECS for `VoxelComponent`/`CharacterComponent` entities), `Delete`.
-- `GameSaveManager` — active save, autosave timer, F5 quicksave, save-on-close/pause triggers,
-  `SaveAndExit`, ECS cleanup.
-- `CharacterSaveManager` + `NatsCharacterStorage` (`characters` bucket) — client-owned `Character`
-  identity/inventory; `GameSaveService.Save` also writes per-character world location under `levels`.
-- Load stages: `CharacterEntityLoadStage` (read `<guid>.character.<id>` or spawn point →
-  `ClientPlayerSpawnSystem.RequestSpawn`), `VoxelEntityLoadStage` (read `<guid>.entity.*` →
-  `VoxelEntityBuilder.Create`), `CharacterLoadStage`, plus new-game stages
-  `WorldGenNewGameStage` (`WorldGenerator`) and `StarterShipNewGameStage` — all client-side.
-- `PersistentNatsProcess` started from client `Entry.cs:74`; `KeyValueStore` registered at
-  `Injector.cs:94`.
+- `WorldSaveService` (`Server.Core/Saves/`) — **server-owned `levels` bucket**: `CreateWorld` (runs the
+  shared `WorldGenerator`, persists Level meta + one `<guid>.entity.<uuid>` per structure), `ListLevels`,
+  `DeleteLevel`, `LoadLevel` (builds authority bodies via `VoxelWorldEntityFactory`), `SaveLocation`
+  (`<guid>.character.<id>` sampled from the server-authoritative transform), `QueueWorldSave`/`Flush`
+  (autosave triggers + flush on server stop).
+- `GameSaveService` (`Client.Core/Saves/`) — thin client facade: a cached save listing from
+  `ListWorldsRequest`, with `CreateSave`/`Delete`/`TriggerServerSave` routed to the server via
+  `WorldsClient`. The old world-gen/load/save stages are gone.
+- `CharacterSaveManager` + `NatsCharacterStorage` (`characters` bucket) — client-owned `Character`;
+  only `PublicView` (Id/Name/Body) ever crosses the wire (never inventory/attributes/statistics).
+- Server world-gen is shared (`WaywardBeyond.Shared.Gameplay/Generation/`), deterministic and mesh-free;
+  the client never generates worlds.
+- `PersistentNatsProcess` started from client `Entry.cs`; `KeyValueStore` registered in `Injector.cs`.
 
 ### Current end-to-end (singleplayer)
-`ClientPlayerSpawnSystem.RequestSpawn` → `SpawnRequest` → server `ServerSpawnSystem` allocates mirror
-+ `NetworkComponent`, `ServerPlayerOwnership.SetOwnedPlayer`, replies `SpawnResponse` → client
-allocates entity at same uuid, decorates, sends initial `TransformComponent` placement → server
-`ApplyPlacement` seats+clears dirty. Per frame: `ClientInputSystem` samples → `PendingInputComponent`
-→ `ClientReplicationSystem` sends dirty `InputComponent` up → server applies to mirror and advances
-acks. `PlayerControllerSystem` (client-only) drives local motion — client-authoritative. Server
-publishes no authoritative state for the owned player; reconcile is inert.
-
-**Phase 2 deltas** (authoritative world, landed):
-- `SpawnRequest` now carries `LevelGuid`; `ServerSpawnSystem` routes through `ServerWorldService`
-  (`Server.Core/Saves/`), which loads the authoritative voxel world from the `levels` bucket on spawn
-  (unloading + disposing the previous world), resolves the spawn transform (persisted
-  `<level>.character.<id>` or `Level.Spawn`), and assigns it. No client-authored placement is accepted.
-- World/voxel structure bodies are replicated: they carry `NetworkComponent` server-side, so their
-  dirty `TransformComponent`/`PhysicsComponent` flow through the existing `WorldSnapshot` path each tick
-  (2.3). Client keeps local colliders for prediction and snaps authoritative drift.
-- Shared structure dynamics (`ThrusterComponent` + per-physics-step thruster evaluation) live in the
-  shared deterministic step (`WaywardBeyond.Shared.Gameplay`); the old client `ThrusterSystem` is gone.
-- `TransformCodec`/`PhysicsCodec` moved shared (usable by the server host and headless tests).
-- Client reconcile no-ops while `GameState < Loading`.
+`NewSavePage.CreateSave` → `NewWorldRequest` → server generates + persists the world. `SelectSavePage`
+lists worlds via `ListWorldsRequest`. On play, `ClientJoinSystem` sends
+`JoinRequest { LevelGuid, CharacterId, PublicView }` → server `WorldSaveService.LoadLevel` builds the
+authority world, `ServerJoinSystem` resolves the spawn, allocates the player mirror, replies
+`JoinAccept`, then streams per-entity `WorldEntityAdd` + `WorldStreamComplete`. The client builds view
+entities on the ECS thread and sets `Playing` only on `WorldStreamComplete`, which gates
+`ClientReconcileSystem` until the world is streamed. Per frame, `ClientInputSystem` samples → pushes to
+`PendingInputComponent` → `ClientReplicationSystem` sends dirty `InputComponent` up → the server applies
+it to the mirror per sim tick and advances acks; the shared step on both worlds integrates identically,
+and `ClientReconcileSystem` corrects prediction drift from server snapshots.
 
 ---
 
@@ -336,7 +331,7 @@ the `[G/S]` game commits consume them.
     tick.
 - **Server system order must be explicit** (registration order = tick order; the shared step executes
      inside `JoltPhysicsSystem`'s accumulated step via `FixedUpdate`):
-     1. `ServerSpawnSystem` (create sessions/entities + bodies)
+     1. `ServerWorldSystem`/`ServerJoinSystem` (world management + join: create sessions/entities + bodies)
      2. `NetworkReplicationSystem` **Apply stage** (drain + apply inbound, **staging inputs per sim
         tick**, `NetworkReplicationSystem.cs:41-81` — split it)
      3. `JoltPhysicsSystem` (accumulates; each fixed step fires `FixedUpdate` → shared player-motion step
@@ -471,7 +466,7 @@ peer, `TcpTransport.cs:40-47`). Model N clients explicitly:
 
 ### 3.1 [G] Sessions replace single ownership
 `[x]` Wire `SessionManager` (`Server.Core/SessionManager.cs`) + `Session`:
-- `ServerSpawnSystem` (`Server.Core/Systems/ServerSpawnSystem.cs`) allocates a session per
+- `ServerJoinSystem` (`Server.Core/Systems/ServerJoinSystem.cs`) allocates a session per
   connection and sets `NetworkComponent.Session` via `SessionManager.Register` (which binds
   clientId ↔ session ↔ entity) instead of single ownership.
 - Replication rules key off session → connection → entity (a remote LAN client *does* receive its own

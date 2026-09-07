@@ -33,7 +33,6 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
-    private readonly ServerSpawnSystem _spawn;
     private readonly ServerWorldSystem _world;
     private readonly ServerJoinSystem _join;
     private readonly NetworkReplicationSystem _replication;
@@ -57,7 +56,6 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore);
         _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
-        _spawn = new ServerSpawnSystem(hub, sessions, _worldService, loggerFactory.CreateLogger<ServerSpawnSystem>());
         _join = new ServerJoinSystem(hub, sessions, _worldService, loggerFactory.CreateLogger<ServerJoinSystem>());
         _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
 
@@ -101,7 +99,6 @@ public sealed class ServerContext : IEntryPoint, IDisposable
             HandleDisconnects(store);
 
             _world.Tick(delta, store);
-            _spawn.Tick(delta, store);
             _join.Tick(delta, store);
             _replication.ApplyStage(delta, store);
             _physics.Tick(delta, store);
