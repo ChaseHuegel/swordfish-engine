@@ -18,6 +18,15 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     private static readonly object _foundationLock = new();
     private static bool _foundationInitialized;
 
+    /// <summary>
+    /// Serializes the native solver across all physics worlds in this process. Jolt's convenience
+    /// <c>PhysicsSystem::Update(dt, steps, jobSystem)</c> overload uses a shared function-local temp
+    /// allocator, so two worlds simulating concurrently on two threads corrupt it and abort. Holding a
+    /// single lock around each fixed step keeps every native solve mutually exclusive (each world keeps
+    /// its own thread, store, and shared step; only the native update is serialized).
+    /// </summary>
+    private static readonly object _solverLock = new();
+
     private static class Layers
     {
         public static readonly ObjectLayer NonMoving = Physics.Layers.NON_MOVING;
@@ -127,16 +136,19 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             while (_accumulator >= physicsDelta)
             {
-                FixedUpdate?.Invoke(this, EventArgs.Empty);
-                _context.ProcessMessageQueue();
+                lock (_solverLock)
+                {
+                    FixedUpdate?.Invoke(this, EventArgs.Empty);
+                    _context.ProcessMessageQueue();
 
-                var syncJoltToEntity = new SyncJoltToEntityAction(this);
-                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
-                
-                System.Update(physicsDelta, steps, _jobSystem);
+                    var syncJoltToEntity = new SyncJoltToEntityAction(this);
+                    store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
+                    
+                    System.Update(physicsDelta, steps, _jobSystem);
 
-                var syncEntityToJolt = new SyncEntityToJoltAction(this);
-                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
+                    var syncEntityToJolt = new SyncEntityToJoltAction(this);
+                    store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
+                }
 
                 _accumulator -= physicsDelta;
             }
@@ -148,18 +160,21 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 return;
             }
 
-            FixedUpdate?.Invoke(this, EventArgs.Empty);
-            _context.ProcessMessageQueue();
+            lock (_solverLock)
+            {
+                FixedUpdate?.Invoke(this, EventArgs.Empty);
+                _context.ProcessMessageQueue();
 
-            var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
-            store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
-            
-            System.Update(physicsDelta, steps, _jobSystem);
-            
-            var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
-            store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
+                var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
+                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
+                
+                System.Update(physicsDelta, steps, _jobSystem);
+                
+                var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
+                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
 
-            _accumulator -= physicsDelta;
+                _accumulator -= physicsDelta;
+            }
         }
     }
 
