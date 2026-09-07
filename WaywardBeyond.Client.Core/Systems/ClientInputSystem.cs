@@ -11,8 +11,8 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 internal sealed class ClientInputSystem : IEntitySystem
 {
-    private const float MOUSE_SENSITIVITY = 0.01f;
-    private const float ROLL_RATE = 50f;
+    private const float MOUSE_SENSITIVITY = 0.001f;
+    private const float ROLL_RATE = 10f;
 
     private readonly ClientPlayerMotionProcessor _motionProcessor;
     private readonly IInputService _inputService;
@@ -114,6 +114,7 @@ internal sealed class ClientInputSystem : IEntitySystem
         {
             movement -= Vector3.UnitX;
         }
+        
         if (_inputService.IsKeyHeld(Key.Space))
         {
             movement += Vector3.UnitY;
