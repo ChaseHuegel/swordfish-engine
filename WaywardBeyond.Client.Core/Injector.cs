@@ -128,6 +128,12 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<SpawnRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<SpawnResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldResponse>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>

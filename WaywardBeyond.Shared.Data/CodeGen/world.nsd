@@ -1,0 +1,35 @@
+#version 1.0;
+#namespace WaywardBeyond.Shared.Data;
+
+message NewWorldRequest
+{
+    string Name = 0;
+    string Seed = 1;
+    int GameMode = 2;
+}
+
+message NewWorldResponse
+{
+    string LevelGuid = 1;
+    bool Success = 2;
+}
+
+message ListWorldsRequest
+{
+    uint Dummy = 0;
+}
+
+message ListWorldsResponse
+{
+    Level[] Levels = 50;
+}
+
+message DeleteWorldRequest
+{
+    string LevelGuid = 0;
+}
+
+message DeleteWorldResponse
+{
+    bool Success = 1;
+}

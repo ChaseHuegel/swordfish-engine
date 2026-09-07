@@ -94,8 +94,8 @@ public class SpawnAndMirrorTests
         var system = new WaywardBeyond.Server.Core.Systems.ServerSpawnSystem(
             hub,
             new SessionManager(),
-            new WaywardBeyond.Server.Core.Saves.ServerWorldService(
-                NullLogger<WaywardBeyond.Server.Core.Saves.ServerWorldService>.Instance,
+            new WaywardBeyond.Server.Core.Saves.WorldSaveService(
+                NullLogger<WaywardBeyond.Server.Core.Saves.WorldSaveService>.Instance,
                 () => throw new NotImplementedException()
             ),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerSpawnSystem>.Instance

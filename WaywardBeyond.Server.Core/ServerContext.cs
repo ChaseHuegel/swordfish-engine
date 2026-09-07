@@ -34,10 +34,11 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
     private readonly ServerSpawnSystem _spawn;
+    private readonly ServerWorldSystem _world;
     private readonly NetworkReplicationSystem _replication;
     private readonly JoltPhysicsSystem _physics;
     private readonly SharedPlayerMotionStep _motionStep;
-    private readonly ServerWorldService _worldService;
+    private readonly WorldSaveService _worldService;
 
     public ServerContext(
         in ServerConnectionHub hub,
@@ -53,7 +54,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _sessions = sessions;
         World = new World();
 
-        _worldService = new ServerWorldService(loggerFactory.CreateLogger<ServerWorldService>(), keyValueStore);
+        _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore);
+        _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
         _spawn = new ServerSpawnSystem(hub, sessions, _worldService, loggerFactory.CreateLogger<ServerSpawnSystem>());
         _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
 
@@ -92,6 +94,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
             HandleDisconnects(store);
 
+            _world.Tick(delta, store);
             _spawn.Tick(delta, store);
             _replication.ApplyStage(delta, store);
             _physics.Tick(delta, store);

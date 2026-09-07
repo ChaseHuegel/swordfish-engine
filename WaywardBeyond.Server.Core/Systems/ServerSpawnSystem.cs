@@ -22,7 +22,7 @@ public sealed class ServerSpawnSystem : IEntitySystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
-    private readonly ServerWorldService _worldService;
+    private readonly WorldSaveService _worldService;
     private readonly ILogger<ServerSpawnSystem> _logger;
 
     private uint _nextSessionId;
@@ -30,7 +30,7 @@ public sealed class ServerSpawnSystem : IEntitySystem
     public ServerSpawnSystem(
         in ServerConnectionHub hub,
         SessionManager sessions,
-        in ServerWorldService worldService,
+        in WorldSaveService worldService,
         in ILogger<ServerSpawnSystem> logger
     ) {
         _hub = hub;

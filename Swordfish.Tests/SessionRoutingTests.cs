@@ -90,7 +90,7 @@ public class SessionRoutingTests
         var system = new ServerSpawnSystem(
             fixture.Hub,
             fixture.Sessions,
-            new ServerWorldService(NullLogger<ServerWorldService>.Instance, () => throw new NotImplementedException()),
+            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException()),
             NullLogger<ServerSpawnSystem>.Instance
         );
 
