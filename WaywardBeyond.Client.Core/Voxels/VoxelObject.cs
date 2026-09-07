@@ -80,17 +80,17 @@ public sealed class VoxelObject : IDisposable
         
         if (x < 0)
         {
-            x += _chunkSize * Math.Abs(chunkX);
+            x += _chunkSize * Math.Abs((int)chunkX);
         }
 
         if (y < 0)
         {
-            y += _chunkSize * Math.Abs(chunkY);
+            y += _chunkSize * Math.Abs((int)chunkY);
         }
 
         if (z < 0)
         {
-            z += _chunkSize * Math.Abs(chunkZ);
+            z += _chunkSize * Math.Abs((int)chunkZ);
         }
         
         int localX = x & _chunkMask;
@@ -128,17 +128,17 @@ public sealed class VoxelObject : IDisposable
         
         if (x < 0)
         {
-            x += _chunkSize * Math.Abs(chunkX);
+            x += _chunkSize * Math.Abs((int)chunkX);
         }
 
         if (y < 0)
         {
-            y += _chunkSize * Math.Abs(chunkY);
+            y += _chunkSize * Math.Abs((int)chunkY);
         }
 
         if (z < 0)
         {
-            z += _chunkSize * Math.Abs(chunkZ);
+            z += _chunkSize * Math.Abs((int)chunkZ);
         }
         
         int localX = x & _chunkMask;

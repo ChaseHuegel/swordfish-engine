@@ -114,6 +114,21 @@ public class SharedWorldGenTests
         }
     }
 
+    [Fact]
+    public void VoxelChunkWriterToleratesBoundaryChunkOffset()
+    {
+        var writer = new VoxelChunkWriter(chunkSize: 16);
+
+        //  A voxel at x = -524288 maps to a chunk offset of exactly short.MinValue, which used to throw
+        //  OverflowException from Math.Abs(short). The writer must tolerate it (out-of-range structures,
+        //  e.g. a corrupted/legacy structure, must not crash voxel reconstruction).
+        Voxel voxel = WorldMaterialCatalog.Rock;
+        writer.Set(-524288, 0, 0, voxel);
+
+        ChunkInfo[] chunks = writer.GetChunkInfos();
+        Assert.Contains(chunks, c => c.OffsetX == short.MinValue);
+    }
+
     private static byte[] Serialize(in GeneratedVoxelEntity entity)
     {
         //  A fixed uuid keeps the comparison on transform + chunk data; generator-assigned uuids are

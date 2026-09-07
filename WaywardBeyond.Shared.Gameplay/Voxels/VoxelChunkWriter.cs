@@ -49,9 +49,9 @@ public sealed class VoxelChunkWriter
             _chunks[key] = chunk;
         }
 
-        int localX = x < 0 ? x + _chunkSize * Math.Abs(chunkX) : x;
-        int localY = y < 0 ? y + _chunkSize * Math.Abs(chunkY) : y;
-        int localZ = z < 0 ? z + _chunkSize * Math.Abs(chunkZ) : z;
+        int localX = x < 0 ? x + _chunkSize * Math.Abs((int)chunkX) : x;
+        int localY = y < 0 ? y + _chunkSize * Math.Abs((int)chunkY) : y;
+        int localZ = z < 0 ? z + _chunkSize * Math.Abs((int)chunkZ) : z;
 
         int index = (localX & _chunkMask) + ((localY & _chunkMask) << _chunkShift) + ((localZ & _chunkMask) << _chunkShift2);
         chunk.Voxels[index] = voxel;
