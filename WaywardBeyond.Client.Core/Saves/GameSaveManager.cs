@@ -4,11 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
-using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Client.Core.Systems;
@@ -34,10 +32,10 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly ILogger<GameSaveManager> _logger;
     private readonly GameSaveService _gameSaveService;
     private readonly IWindowContext _windowContext;
-    private readonly IECSContext _ecs;
     private readonly CharacterSaveManager _characterSaveManager;
     private readonly GameplaySettings _gameplaySettings;
     private readonly ClientJoinSystem _joinSystem;
+    private readonly ClientCleanupSystem _cleanupSystem;
 
     private readonly Lock _autosaveTimerLock = new();
     private Timer _autosaveTimer;
@@ -50,18 +48,18 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in GameSaveService gameSaveService,
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
-        in IECSContext ecs,
         in CharacterSaveManager characterSaveManager,
         in GameplaySettings gameplaySettings,
-        in ClientJoinSystem joinSystem
+        in ClientJoinSystem joinSystem,
+        in ClientCleanupSystem cleanupSystem
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
         _windowContext = windowContext;
-        _ecs = ecs;
         _characterSaveManager = characterSaveManager;
         _gameplaySettings = gameplaySettings;
         _joinSystem = joinSystem;
+        _cleanupSystem = cleanupSystem;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -169,10 +167,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             Save();
         }
 
-        //  Drop below Playing BEFORE freeing the world so reconciliation (gated on Playing) stops and
-        //  cannot resurrect freed entities from in-flight server snapshots during teardown.
+        //  Drop below Playing BEFORE the cleanup so reconciliation (gated on Playing) stops and cannot
+        //  resurrect freed entities from in-flight server snapshots during teardown. The teardown itself
+        //  runs on the ECS thread (via ClientCleanupSystem), never the caller's UI thread, so it does not
+        //  race the physics/render systems.
         WaywardBeyond.GameState.Set(GameState.MainMenu);
-        CleanupEcs();
+        _cleanupSystem.RequestCleanup();
 
         //  Ask the server to end this player's session and free its mirror.
         _gameSaveService.LeaveGame();
@@ -251,43 +251,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
         _autosaveTimer = new Timer(OnAutosave, state: null, intervalMs, intervalMs);
-    }
-
-    private void CleanupEcs()
-    {
-        //  TODO should create a new ECS world instead of trying to cleanup state
-        _ecs.World.DataStore.Query<IdentifierComponent>(0f, CleanupGameEntitiesQuery);
-        void CleanupGameEntitiesQuery(float delta, DataStore store, int entity, in IdentifierComponent identifier)
-        {
-            if (identifier.Tag != "game")
-            {
-                return;
-            }
-            
-            if (store.TryGet(entity, out MeshRendererComponent meshRendererComponent) && meshRendererComponent.MeshRenderer != null)
-            {
-                meshRendererComponent.MeshRenderer.Dispose();
-                meshRendererComponent.MeshRenderer.Mesh.Dispose();
-            }
-            
-            if (store.TryGet(entity, out PhysicsComponent physicsComponent))
-            {
-                physicsComponent.Dispose();
-            }
-            
-            store.Free(entity);
-        }
-        
-        _ecs.World.DataStore.Query<PlayerComponent>(0f, CleanupPlayerQuery);
-        void CleanupPlayerQuery(float delta, DataStore store, int entity, in PlayerComponent player)
-        {
-            if (store.TryGet(entity, out PhysicsComponent physicsComponent))
-            {
-                physicsComponent.Dispose();
-            }
-            
-            store.Free(entity);
-        }
     }
     
     private readonly struct GameLoadContext : IDisposable
