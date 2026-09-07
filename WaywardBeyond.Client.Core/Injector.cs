@@ -134,6 +134,8 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldResponse>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>

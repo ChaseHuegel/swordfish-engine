@@ -36,6 +36,7 @@ public static class VoxelWorldEntityFactory
         ));
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollition(data.Chunks)));
+        store.AddOrUpdate(entity, new VoxelEntityDataComponent(data.Chunks));
         store.AddOrUpdate(entity, new NetworkComponent());
 
         return new Entity(entity, store);

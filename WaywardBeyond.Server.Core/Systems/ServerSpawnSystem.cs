@@ -2,6 +2,7 @@ using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
@@ -73,6 +74,7 @@ public sealed class ServerSpawnSystem : IEntitySystem
         store.AddOrUpdate(entity, new TransformComponent(position, orientation, PlayerBodyConfig.PLAYER_SCALE));
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
+        store.AddOrUpdate(entity, new OwnedCharacterComponent(request.CharacterId));
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);

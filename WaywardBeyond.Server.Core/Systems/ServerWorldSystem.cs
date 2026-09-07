@@ -49,6 +49,14 @@ public sealed class ServerWorldSystem : IEntitySystem
             DeleteWorldRequest message = request;
             _ = Task.Run(() => HandleDeleteWorld(clientId, message));
         }
+
+        foreach ((Uuid clientId, _) in _hub.Receive<SaveWorldRequest>())
+        {
+            //  Capture on the server thread is required (the store is owned by it); the KV writes are
+            //  offloaded inside QueueWorldSave.
+            _worldService.QueueWorldSave(store);
+            _hub.Send(clientId, new SaveWorldResponse { Success = true });
+        }
     }
 
     private void HandleNewWorld(Uuid clientId, NewWorldRequest request)

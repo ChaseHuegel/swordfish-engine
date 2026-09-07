@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
@@ -294,6 +297,91 @@ public sealed class WorldSaveService
         return false;
     }
 
+    /// <summary>
+    /// Captures the authoritative world state on the caller (server) thread into a list of serialized KV
+    /// entries, then submits those to a worker for the blocking <c>KeyValueStore</c> writes. Reading the
+    /// store must stay on the server thread; the writes must not block the server tick loop, so they are
+    /// split. No-op when no level is loaded.
+    /// </summary>
+    public void QueueWorldSave(in DataStore store)
+    {
+        if (string.IsNullOrEmpty(CurrentLevelGuid))
+        {
+            return;
+        }
+
+        List<WorldEntry> entries = Capture(store);
+        if (entries.Count == 0)
+        {
+            return;
+        }
+
+        var entriesCopy = entries;
+        _ = Task.Run(() => Persist(entriesCopy));
+        _logger.LogInformation("Queued a server world save ({entries} entries) for level \"{level}\".", entries.Count, CurrentLevelGuid);
+    }
+
+    /// <summary>
+    /// Synchronously captures and persists the authoritative world state. Intended for shutdown: it must
+    /// run after the server thread has stopped (so the store is not concurrently mutated) and before the
+    /// local NATS / <c>KeyValueStore</c> backing is disposed - the sequencing point that guards the
+    /// shutdown cascade.
+    /// </summary>
+    public void Flush(in DataStore store)
+    {
+        if (string.IsNullOrEmpty(CurrentLevelGuid))
+        {
+            return;
+        }
+
+        List<WorldEntry> entries = Capture(store);
+        Persist(entries);
+        _logger.LogInformation("Flushed server world save for level \"{level}\".", CurrentLevelGuid);
+    }
+
+    /// <summary>
+    /// Samples structures and player locations from the authoritative server world into serialized KV
+    /// entries. Must be called on the server thread. Structure transforms reflect authoritative dynamics;
+    /// player locations are the server-side transform, never the client's.
+    /// </summary>
+    private List<WorldEntry> Capture(in DataStore store)
+    {
+        var entries = new List<WorldEntry>();
+        string levelGuid = CurrentLevelGuid!;
+
+        CaptureStructureAction structureAction = new()
+        {
+            LevelGuid = levelGuid,
+            Entries = entries,
+        };
+        store.Query<VoxelEntityDataComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
+
+        CaptureLocationAction locationAction = new()
+        {
+            LevelGuid = levelGuid,
+            Entries = entries,
+        };
+        store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
+
+        return entries;
+    }
+
+    private void Persist(in List<WorldEntry> entries)
+    {
+        KeyValueStore kv = _keyValueStore();
+        foreach (WorldEntry entry in entries)
+        {
+            try
+            {
+                kv.Put(BUCKET_NAME, entry.Key, entry.Value);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to persist world entry \"{key}\".", entry.Key);
+            }
+        }
+    }
+
     private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity)
     {
         return new VoxelEntityData(
@@ -310,6 +398,66 @@ public sealed class WorldSaveService
             _ScaleZ: 1,
             entity.Chunks
         );
+    }
+
+    private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
+    {
+        public string LevelGuid;
+        public List<WorldEntry> Entries;
+
+        public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
+        {
+            Uuid uuid = store.GetUuid(entity);
+            var voxel = new VoxelEntityData(
+                uuid.ToValue(),
+                transform.Position.X,
+                transform.Position.Y,
+                transform.Position.Z,
+                transform.Orientation.X,
+                transform.Orientation.Y,
+                transform.Orientation.Z,
+                transform.Orientation.W,
+                transform.Scale.X,
+                transform.Scale.Y,
+                transform.Scale.Z,
+                data.Chunks
+            );
+
+            Entries.Add(new WorldEntry($"{LevelGuid}.entity.{uuid}", voxel.Serialize()));
+        }
+    }
+
+    private struct CaptureLocationAction : IForEach<OwnedCharacterComponent, TransformComponent>
+    {
+        public string LevelGuid;
+        public List<WorldEntry> Entries;
+
+        public void Execute(float delta, DataStore store, int entity, in OwnedCharacterComponent owned, in TransformComponent transform)
+        {
+            Uuid uuid = store.GetUuid(entity);
+            var data = new CharacterEntityData(
+                uuid.ToValue(),
+                transform.Position.X,
+                transform.Position.Y,
+                transform.Position.Z,
+                transform.Orientation.X,
+                transform.Orientation.Y,
+                transform.Orientation.Z,
+                transform.Orientation.W,
+                _ScaleX: 1,
+                _ScaleY: 1,
+                _ScaleZ: 1,
+                _GameMode: 0
+            );
+
+            Entries.Add(new WorldEntry($"{LevelGuid}.character.{owned.CharacterId}", data.Serialize()));
+        }
+    }
+
+    private readonly struct WorldEntry(in string key, in byte[] value)
+    {
+        public readonly string Key = key;
+        public readonly byte[] Value = value;
     }
 
     private struct UnloadAction : IForEach<NetworkComponent>

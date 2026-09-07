@@ -76,6 +76,10 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     {
         _threadWorker.Stop();
 
+        //  The server thread owns the store; once stopped this disposing thread may safely capture and
+        //  persist the authoritative world synchronously before the local NATS backing is disposed.
+        _worldService.Flush(World.DataStore);
+
         //  Tear down any remaining sessions and their connections for the (in-process N=1) shutdown.
         foreach ((Uuid clientId, _) in _hub.Clients)
         {

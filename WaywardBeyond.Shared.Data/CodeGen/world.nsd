@@ -33,3 +33,13 @@ message DeleteWorldResponse
 {
     bool Success = 1;
 }
+
+message SaveWorldRequest
+{
+    uint Dummy = 0;
+}
+
+message SaveWorldResponse
+{
+    bool Success = 1;
+}
