@@ -114,6 +114,7 @@ public class Injector : IDryIocInjector
         NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
         NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
         NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
+        NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec());
 
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();

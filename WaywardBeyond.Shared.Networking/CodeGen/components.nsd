@@ -12,3 +12,14 @@ message InputComponent
     uint  SequenceNumber      = 6;
     uint  ServerTickAtSample  = 7;
 }
+
+message BodyViewComponent
+{
+    int Body = 0;
+}
+
+message IdentifierMessage
+{
+    string Name = 0;
+    string Tag  = 1;
+}
