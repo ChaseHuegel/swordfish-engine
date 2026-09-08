@@ -1,4 +1,5 @@
 using Swordfish.ECS;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -54,6 +55,50 @@ public class NetworkComponentCodecTests
         Assert.True(NetworkRegistry.TryGetInfo<InputComponent>(out NetworkComponentInfo info));
         Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
         Assert.IsType<NsdComponentCodec<InputComponent>>(info.Codec);
+
+        //  The server-authored appearance index auto-registers from the same assembly scan.
+        Assert.True(NetworkRegistry.TryGetInfo<BodyViewComponent>(out NetworkComponentInfo bodyInfo));
+        Assert.Equal(NetworkDirection.ServerOwned, bodyInfo.Direction);
+        Assert.IsType<NsdComponentCodec<BodyViewComponent>>(bodyInfo.Codec);
+    }
+
+    [Fact]
+    public void BodyViewComponentCodecRoundTrips()
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new BodyViewComponent { Body = 3 });
+
+        var codec = new NsdComponentCodec<BodyViewComponent>();
+        byte[] payload = codec.Serialize(store, entity);
+        Assert.NotEmpty(payload);
+
+        var output = new DataStore();
+        int outputEntity = output.Alloc();
+        codec.Apply(output, outputEntity, payload);
+
+        Assert.True(output.TryGet(outputEntity, out BodyViewComponent result));
+        Assert.Equal(3, result.Body);
+    }
+
+    [Fact]
+    public void IdentifierCodecRoundTripsNameAndTag()
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new IdentifierComponent("Ada", "player"));
+
+        var codec = new IdentifierCodec();
+        byte[] payload = codec.Serialize(store, entity);
+        Assert.NotEmpty(payload);
+
+        var output = new DataStore();
+        int outputEntity = output.Alloc();
+        codec.Apply(output, outputEntity, payload);
+
+        Assert.True(output.TryGet(outputEntity, out IdentifierComponent result));
+        Assert.Equal("Ada", result.Name);
+        Assert.Equal("player", result.Tag);
     }
 
     [Fact]
