@@ -299,7 +299,10 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, CleanupMeshRendererSystem>();
         container.Register<IEntitySystem, MainMenuAnimationSystem>();
         container.Register<IEntitySystem, ActiveSlotNotificationSystem>();
-        
+
+        container.Register<IEntitySystem, RemotePlayerVisualSystem>();
+        container.Register<IEntitySystem, BillboardSystem>();
+
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();
     }
