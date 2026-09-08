@@ -131,13 +131,23 @@ stable wire identity:
 - Reverse lookups: `TryGetInfo(Type)` / `TryGetInfo(Uuid)`; enumeration by direction via
   `GetComponents(NetworkDirection)`.
 
-Registered entries (wired in `Client.Core/Injector.cs:123-125`):
+Registered entries (wired in `Client.Core/Injector.cs`):
 
 | Component | Uuid | Direction | Codec |
 |---|---|---|---|
 | `InputComponent` | 1 (attribute) | ClientOwned | `NsdComponentCodec<InputComponent>` |
 | `TransformComponent` | 2 | ServerOwned | `TransformCodec` (hand-written nsd adapter) |
 | `PhysicsComponent` | 3 | ServerOwned | `PhysicsCodec` (hand-written nsd adapter) |
+| `BodyViewComponent` | 10 (attribute) | ServerOwned | `NsdComponentCodec<BodyViewComponent>` |
+| `IdentifierComponent` | 11 | ServerOwned | `IdentifierCodec` (hand-written nsd adapter) |
+
+`BodyViewComponent` (`int Body`) and the reused engine `IdentifierComponent` (its `Name`) carry the
+joining client's minimal public character view on the server player mirror — the appearance index that
+drives a remote player's billboard, plus their name. The client renders any remote player (an entity
+with `BodyViewComponent` but no `PlayerComponent`) through the general billboard path: `Body` resolves to
+a world-space material (`RemotePlayerVisualSystem`; the character texture reused under the world
+`textured` shader) attached as a `BillboardComponent`, which `BillboardSystem` renders as a camera-facing
+quad. Inventory/attributes/statistics are never transmitted.
 
 ### `NetworkDirection`
 

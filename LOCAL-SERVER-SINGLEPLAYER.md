@@ -401,22 +401,28 @@ The headless determinism + authority tests pass; the live loopback visual check 
 - **Acceptance:** server authority resolves movement against voxel structures (no longer arena-only).
 
 ### 2.2 [S/G] Remote player visuals (public character view)
-`[ ]` **Deferred** to a follow-up after Phase 2. There is no 3D character avatar or remote-player render
-path today (only 2D character portrait `Material`s selected by `Character.Body`), and the acceptance is
-inherently visual/Windows-only. It also belongs to the join request (Phase 3/4) for the public-view upload.
-Re-anchor its acceptance to the multi-client session (Phase 3) + join-streaming (Phase 4) work once those
-land; the server-side public view (stable uuid + ServerOwned nsd codec carrying
-`CharacterId`/`Name`/`Body`) is unchanged in intent.
-Relay a **minimal public character view** so clients can materialize remote players:
-- New replicated data on the server player entity carrying `CharacterId`, `Name`, `Body` (appearance
-  index). Add `PlayerViewComponent` (or similar) with a stable uuid + ServerOwned codec — payload is a
-  new/derived shared nsd message; goes through the existing dirty/snapshot path.
-- The public view originates from the joining client (characters are client-owned) and is uploaded in
-  the join request (Phase 3/4) then relayed server-side to all clients.
-- **Never** transmit inventory/attributes/statistics. Client builds the remote player's model from
+`[x]` Relay a **minimal public character view** so clients can materialize remote players. **Fully
+component-separated** rather than one fat `PlayerViewComponent`:
+- The server player mirror carries the joining client's public view split across focused components:
+  `BodyViewComponent` (`int Body`, nsd, uuid 10, ServerOwned, auto-registered) for the appearance index,
+  and the **reused engine `IdentifierComponent`** (`Name`/`Tag="player"`) for the character name
+  (registered ServerOwned via `IdentifierCodec`, uuid 11). No `CharacterId` component is networked — the
+  server keeps it server-local in `OwnedCharacterComponent`. `ServerJoinSystem.HandleJoin` stores both
+  from `JoinRequest.PublicView`; they replicate to all clients through the existing dirty/snapshot path
+  with zero new replication code.
+- **Client rendering is general, not player-specific.** `BillboardComponent`
+  (`{ Parent, Offset, Size, Material }`) + general `BillboardSystem` render any entity as a camera-facing
+  textured plane; `RemotePlayerVisualSystem` is thin player glue that resolves each remote player's
+  `BodyViewComponent.Body` into a world-space material (the character UI texture reused under the world
+  `textured` shader — the clip-space Reef UI material `ui_reef_textured` won't render in-world) and
+  attaches a `BillboardComponent`, so the same billboard path serves non-player entities too. Remote
+  players are identified as entities with `BodyViewComponent` but no `PlayerComponent` (the local player
+  has one, so never self-billboards).
+- **Never** transmit inventory/attributes/statistics. Client builds the remote player's billboard from
   `Body`.
-- **Acceptance:** two in-process clients see and render each other as correct models; no progression
-  data crosses the wire.
+- **Acceptance:** two in-process clients see and render each other as correct body billboards; no
+  progression data crosses the wire. Visual check is Windows-only (Reef/window runtime); the headless
+  suite covers nsd round-trips, registration, and the server-side public-view relay on the mirror.
 
 ### 2.3 [S/G] World-body replication + shared structure dynamics (decision 16)
 `[x]` World/voxel bodies are **Dynamic and server-authored** (`VoxelEntityBuilder.cs:66` already
