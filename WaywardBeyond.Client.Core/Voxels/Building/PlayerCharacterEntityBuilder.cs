@@ -16,7 +16,7 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
     {
         player.Add<PlayerComponent>();
         player.Add<EquipmentComponent>();
-        player.AddOrUpdate(new IdentifierComponent(character.Name, "player"));
+        player.AddOrUpdate(new IdentifierComponent(character.Name, PlayerBodyConfig.PLAYER_TAG));
         player.AddOrUpdate(new TransformComponent(
             PlayerBodyConfig.DEFAULT_SPAWN_POSITION,
             Quaternion.Identity,

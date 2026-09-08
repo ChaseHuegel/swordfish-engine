@@ -103,6 +103,13 @@ public sealed class ServerJoinSystem : IEntitySystem
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
         store.AddOrUpdate(entity, new OwnedCharacterComponent(request.CharacterId));
 
+        //  Relay the joining client's minimal public character view: the appearance index is replicated
+        //  so remote clients can materialize this player, and the name rides on the reused
+        //  IdentifierComponent (mirroring the client's local player). Inventory/attributes/statistics
+        //  never leave the client.
+        store.AddOrUpdate(entity, new BodyViewComponent { Body = request.PublicView.Body });
+        store.AddOrUpdate(entity, new IdentifierComponent(request.PublicView.Name, tag: PlayerBodyConfig.PLAYER_TAG));
+
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
 
