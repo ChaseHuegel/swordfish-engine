@@ -72,6 +72,19 @@ internal sealed class HomePage(
             }
         }
         
+        using (ui.TextButton(id: "Button_Multiplayer", text: _localization.GetString("ui.button.multiplayer")!, _buttonOptions, out Widgets.Interactions interactionsMultiplayer))
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            if (interactionsMultiplayer.Has(Widgets.Interactions.Click))
+            {
+                menu.GoToPage(MenuPage.Multiplayer);
+            }
+        }
+        
         using (ui.TextButton(id: "Button_Settings", text: _localization.GetString("ui.button.settings")!, _buttonOptions, out Widgets.Interactions interactions))
         {
             ui.Constraints = new Constraints

@@ -36,6 +36,8 @@
 
 "ui.button.selectSave" = "Continue"
 "ui.button.newSave" = "Create save"
+"ui.button.multiplayer" = "Multiplayer"
+"ui.button.connect" = "Connect"
 "ui.button.settings" = "Settings"
 "ui.button.quit" = "Quit game"
 
@@ -43,10 +45,16 @@
 "ui.button.saveAndExit" = "Save & exit"
 
 "ui.menu.createSave" = "Create Save"
+"ui.notification.connect.hostRequired" = "Enter a server address"
+"ui.notification.connect.portInvalid" = "Enter a valid port (1-65535)"
+"ui.notification.connect.failed" = "Failed to connect to the server"
 "ui.menu.saves" = "Game Saves"
+"ui.menu.multiplayer" = "Multiplayer"
 "ui.button.newGame" = "Create"
 "ui.field.saveName" = "Enter name..."
 "ui.field.saveSeed" = "[Random seed]"
+"ui.field.host" = "Server address"
+"ui.field.port" = "Port"
 
 "ui.button.loadSave" = "Embark"
 

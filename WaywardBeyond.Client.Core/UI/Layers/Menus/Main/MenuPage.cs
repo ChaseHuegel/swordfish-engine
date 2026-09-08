@@ -8,5 +8,6 @@ internal enum MenuPage
     Characters,
     SelectCharacter,
     NewCharacter,
+    Multiplayer,
     Settings,
 }

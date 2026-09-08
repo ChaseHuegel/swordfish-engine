@@ -1,6 +1,7 @@
 ﻿using System;
 using DryIoc;
 using Shoal.DependencyInjection;
+using Shoal.CommandLine;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
 using Swordfish.ECS;
@@ -131,7 +132,16 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
         container.Register<LocalConnection>(Reuse.Singleton);
-        container.RegisterDelegate<IClientConnection>(context => context.Resolve<LocalConnection>().Client, Reuse.Singleton);
+        container.Register<TransportManager>(Reuse.Singleton);
+        container.RegisterDelegate<IClientConnection>(context =>
+        {
+            TransportManager transport = context.Resolve<TransportManager>();
+            if (NetworkModeResolver.Resolve(context.Resolve<CommandLineArgs>()) == NetworkMode.Host)
+            {
+                transport.UseLocal(context.Resolve<LocalConnection>().Client);
+            }
+            return transport;
+        }, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>
         {
             ServerConnectionHub hub = new();
@@ -184,6 +194,7 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
         container.RegisterConfig<UISettings>(file: "ui.toml");
         container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
+        container.RegisterConfig<NetworkingSettings>(file: "network.toml");
     }
 
     private static void RegisterUI(IContainer container)
@@ -217,6 +228,7 @@ public class Injector : IDryIocInjector
         container.Register<IMenuPage<MenuPage>, CharactersPage>();
         container.Register<IMenuPage<MenuPage>, SelectCharacterPage>();
         container.Register<IMenuPage<MenuPage>, NewCharacterPage>();
+        container.Register<IMenuPage<MenuPage>, MultiplayerPage>();
         
         container.Register<PauseMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, PauseMenu>();

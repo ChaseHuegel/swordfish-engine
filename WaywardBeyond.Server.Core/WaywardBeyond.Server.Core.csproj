@@ -26,6 +26,7 @@
       <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Config\WaywardBeyond.Shared.Config.csproj" />
     </ItemGroup>
 
     <PropertyGroup>

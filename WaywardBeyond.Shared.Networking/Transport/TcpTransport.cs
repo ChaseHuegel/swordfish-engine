@@ -35,10 +35,32 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public bool IsConnected => _client?.Connected ?? false;
     public bool IsLocal => false;
 
+    /// <summary>
+    /// Raised once when the remote peer disconnects (receive loop reaches EOF/error) while the transport is
+    /// still running — i.e. not on an intentional <see cref="Disconnect"/>. Used by the server host to drop
+    /// a departed client from its connection hub.
+    /// </summary>
+    public Action? OnDisconnected { get; set; }
+
     public TcpTransport(IEnumerable<INetworkSerializer> serializers, ILoggerFactory? loggerFactory = null)
     {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
+    }
+
+    /// <summary>
+    /// Builds a transport that owns an already-accepted socket (used by the server host for each peer).
+    /// </summary>
+    public static TcpTransport Accepted(
+        IEnumerable<INetworkSerializer> serializers,
+        TcpClient client,
+        ILoggerFactory? loggerFactory = null
+    ) {
+        var transport = new TcpTransport(serializers, loggerFactory);
+        transport._client = client;
+        transport._stream = client.GetStream();
+        transport.StartReceiveLoop();
+        return transport;
     }
 
     /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
@@ -208,6 +230,21 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             catch
             {
                 break;
+            }
+        }
+
+        //  If we exited the loop due to a peer disconnect (not an intentional Disconnect, which already
+        //  cleared _isRunning), surface the disconnect so a host can drop the client from its hub.
+        if (_isRunning)
+        {
+            _isRunning = false;
+            try
+            {
+                OnDisconnected?.Invoke();
+            }
+            catch
+            {
+                //  A subscriber's exception must not kill the receive thread.
             }
         }
     }
