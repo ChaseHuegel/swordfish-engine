@@ -14,8 +14,9 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// client camera every frame, and is textured with the owner's billboard material. The companion is
 /// disposed and freed when the owner stops carrying the component or is removed.
 /// </summary>
-public sealed class BillboardSystem : IEntitySystem
+public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySystem
 {
+    private readonly IRenderContext _renderContext = renderContext;
     private readonly Dictionary<Uuid, Slot> _slots = [];
     private readonly HashSet<Uuid> _seen = [];
     private Billboard? _mesh;
@@ -25,17 +26,18 @@ public sealed class BillboardSystem : IEntitySystem
         _mesh ??= new Billboard();
         _seen.Clear();
 
-        //  Camera position drives the billboard orientation.
-        ReadCameraAction readCamera = default;
-        store.QueryRef<CameraComponent, TransformComponent, ReadCameraAction>(0f, ref readCamera);
-
-        //  Collect owners first; creating companion entities during a Store query iteration is unsafe.
-        CollectAction collect = new() { Records = [], CameraPosition = readCamera.CameraPosition };
+        CollectAction collect = new()
+        {
+            Records = []
+        };
+        
         store.Query<BillboardComponent, TransformComponent, CollectAction>(delta, ref collect);
 
+        CameraEntity camera = _renderContext.MainCamera.Get();
+        Quaternion orientation = camera.Transform.Orientation;
         foreach (BillboardRecord record in collect.Records)
         {
-            EnsureBillboard(store, record, readCamera.CameraPosition);
+            EnsureBillboard(store, record, orientation);
         }
 
         //  Clean up companions whose owner no longer renders a billboard.
@@ -53,7 +55,7 @@ public sealed class BillboardSystem : IEntitySystem
         }
     }
 
-    private void EnsureBillboard(DataStore store, BillboardRecord record, Vector3 cameraPosition)
+    private void EnsureBillboard(DataStore store, BillboardRecord record, Quaternion orientation)
     {
         _seen.Add(record.Owner);
 
@@ -63,7 +65,7 @@ public sealed class BillboardSystem : IEntitySystem
         {
             var meshRenderer = new MeshRenderer(_mesh!, record.Material, new RenderOptions { DoubleFaced = true });
             int entity = store.Alloc();
-            store.AddOrUpdate(entity, new TransformComponent(position, FaceCamera(position, cameraPosition), new Vector3(record.Size.X, record.Size.Y, 1f)));
+            store.AddOrUpdate(entity, new TransformComponent(position, orientation, new Vector3(record.Size.X, record.Size.Y, 1f)));
             store.AddOrUpdate(entity, new MeshRendererComponent(meshRenderer));
             _slots[record.Owner] = new Slot(entity, meshRenderer, record.Material);
             return;
@@ -79,7 +81,7 @@ public sealed class BillboardSystem : IEntitySystem
 
         store.AddOrUpdate(slot.Entity, new TransformComponent(
             position,
-            FaceCamera(position, cameraPosition),
+            orientation,
             new Vector3(record.Size.X, record.Size.Y, 1f)
         ));
     }
@@ -141,20 +143,9 @@ public sealed class BillboardSystem : IEntitySystem
         }
     }
 
-    private struct ReadCameraAction : IForEachRef<CameraComponent, TransformComponent>
-    {
-        public Vector3 CameraPosition;
-
-        public void Execute(float delta, DataStore store, int entity, ref Ref<CameraComponent> camera, ref Ref<TransformComponent> transform)
-        {
-            CameraPosition = transform.Read.Position;
-        }
-    }
-
     private struct CollectAction : IForEach<BillboardComponent, TransformComponent>
     {
         public List<BillboardRecord> Records;
-        public Vector3 CameraPosition;
 
         public void Execute(float delta, DataStore store, int entity, in BillboardComponent billboard, in TransformComponent transform)
         {
