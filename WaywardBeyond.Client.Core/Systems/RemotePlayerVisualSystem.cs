@@ -80,7 +80,6 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         store.AddOrUpdate(entity, new BillboardComponent
         {
-            Parent = store.GetUuid(entity),
             Offset = new Vector3(0f, StandingHeight * 0.5f, 0f),
             Size = new Vector2(width, height),
             Material = material,

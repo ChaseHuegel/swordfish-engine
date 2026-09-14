@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
@@ -16,38 +17,40 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// </summary>
 public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySystem
 {
-    private readonly IRenderContext _renderContext = renderContext;
     private readonly Dictionary<Uuid, Slot> _slots = [];
     private readonly HashSet<Uuid> _seen = [];
-    private Billboard? _mesh;
+    private readonly List<Uuid> _stale = [];
+    private readonly List<BillboardRecord> _records = [];
+    private readonly Billboard _mesh = new();
 
     public void Tick(float delta, DataStore store)
     {
-        _mesh ??= new Billboard();
         _seen.Clear();
+        _records.Clear();
 
-        CollectAction collect = new()
-        {
-            Records = []
-        };
-        
+        CollectAction collect = new() { Records = _records };
+
         store.Query<BillboardComponent, TransformComponent, CollectAction>(delta, ref collect);
 
-        CameraEntity camera = _renderContext.MainCamera.Get();
-        Quaternion orientation = camera.Transform.Orientation;
-        foreach (BillboardRecord record in collect.Records)
+        CameraEntity camera = renderContext.MainCamera.Get();
+        Vector3 cameraPosition = camera.Transform.Position;
+        foreach (BillboardRecord record in _records)
         {
-            EnsureBillboard(store, record, orientation);
+            EnsureBillboard(store, record, cameraPosition);
         }
 
         //  Clean up companions whose owner no longer renders a billboard.
-        foreach (Uuid owner in new List<Uuid>(_slots.Keys))
+        _stale.Clear();
+        foreach (Uuid owner in _slots.Keys)
         {
-            if (_seen.Contains(owner))
+            if (!_seen.Contains(owner))
             {
-                continue;
+                _stale.Add(owner);
             }
+        }
 
+        foreach (Uuid owner in _stale)
+        {
             Slot slot = _slots[owner];
             slot.Renderer.Dispose();
             store.Free(slot.Entity);
@@ -55,17 +58,18 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         }
     }
 
-    private void EnsureBillboard(DataStore store, BillboardRecord record, Quaternion orientation)
+    private void EnsureBillboard(DataStore store, BillboardRecord record, Vector3 cameraPosition)
     {
         _seen.Add(record.Owner);
 
         Vector3 position = record.Position + record.Offset;
+        Quaternion billboardOrientation = GetAxialLookAtRotation(position, cameraPosition, record.Orientation);
 
         if (!_slots.TryGetValue(record.Owner, out Slot? slot))
         {
-            var meshRenderer = new MeshRenderer(_mesh!, record.Material, new RenderOptions { DoubleFaced = true });
+            var meshRenderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
             int entity = store.Alloc();
-            store.AddOrUpdate(entity, new TransformComponent(position, orientation, new Vector3(record.Size.X, record.Size.Y, 1f)));
+            store.AddOrUpdate(entity, new TransformComponent(position, billboardOrientation, new Vector3(record.Size.X, record.Size.Y, 1f)));
             store.AddOrUpdate(entity, new MeshRendererComponent(meshRenderer));
             _slots[record.Owner] = new Slot(entity, meshRenderer, record.Material);
             return;
@@ -74,55 +78,32 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         if (!ReferenceEquals(record.Material, slot.Material))
         {
             slot.Renderer.Dispose();
-            slot.Renderer = new MeshRenderer(_mesh!, record.Material, new RenderOptions { DoubleFaced = true });
+            slot.Renderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
             slot.Material = record.Material;
             store.AddOrUpdate(slot.Entity, new MeshRendererComponent(slot.Renderer));
         }
 
         store.AddOrUpdate(slot.Entity, new TransformComponent(
             position,
-            orientation,
+            billboardOrientation,
             new Vector3(record.Size.X, record.Size.Y, 1f)
         ));
-    }
-
-    private static Quaternion FaceCamera(Vector3 position, Vector3 cameraPosition)
-    {
-        Vector3 toCamera = cameraPosition - position;
-        if (toCamera.LengthSquared() < 1e-6f)
-        {
-            return Quaternion.Identity;
-        }
-
-        Vector3 forward = Vector3.Normalize(toCamera);
-        Vector3 right = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, forward));
-        if (right.LengthSquared() < 1e-6f)
-        {
-            right = Vector3.UnitX;
-        }
-
-        Vector3 up = Vector3.Cross(forward, right);
-        var basis = new Matrix4x4(
-            right.X, up.X, forward.X, 0f,
-            right.Y, up.Y, forward.Y, 0f,
-            right.Z, up.Z, forward.Z, 0f,
-            0f, 0f, 0f, 1f
-        );
-        return Quaternion.CreateFromRotationMatrix(basis);
     }
 
     private struct BillboardRecord
     {
         public Uuid Owner;
         public Vector3 Position;
+        public Quaternion Orientation;
         public Vector3 Offset;
         public Vector2 Size;
         public Material Material;
 
-        public BillboardRecord(Uuid owner, Vector3 position, Vector3 offset, Vector2 size, Material material)
+        public BillboardRecord(Uuid owner, Vector3 position, Quaternion orientation, Vector3 offset, Vector2 size, Material material)
         {
             Owner = owner;
             Position = position;
+            Orientation = orientation;
             Offset = offset;
             Size = size;
             Material = material;
@@ -149,7 +130,70 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
 
         public void Execute(float delta, DataStore store, int entity, in BillboardComponent billboard, in TransformComponent transform)
         {
-            Records.Add(new BillboardRecord(store.GetUuid(entity), transform.Position, billboard.Offset, billboard.Size, billboard.Material));
+            Records.Add(new BillboardRecord(store.GetUuid(entity), transform.Position, transform.Orientation, billboard.Offset, billboard.Size, billboard.Material));
         }
+    }
+    
+    /// <summary>
+    /// Computes a cylindrical "look at" orientation that keeps the entity's local "up"
+    /// while rotating around that axis to face the camera position.
+    /// </summary>
+    /// <param name="position">World-space position of the billboard.</param>
+    /// <param name="cameraPosition">World-space position of the camera.</param>
+    /// <param name="entityRotation">Current entity orientation (defines local up).</param>
+    /// <returns>Updated rotation for the entity's billboard quad.</returns>
+    private static Quaternion GetAxialLookAtRotation(Vector3 position, Vector3 cameraPosition, Quaternion entityRotation)
+    {
+        const float epsilonSq = 1e-6f;
+
+        // 1. Determine entity's local UP axis
+        Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, entityRotation));
+
+        // 2. Facing direction toward the camera, projected onto the plane defined by localUp
+        // proj = V - (V . N) * N
+        Vector3 desiredFacing = cameraPosition - position;
+        Vector3 projectedFacing = desiredFacing - Vector3.Dot(desiredFacing, localUp) * localUp;
+
+        // Fallback: camera is on (or at zero offset from) the entity's local up/down axis
+        if (projectedFacing.LengthSquared() < epsilonSq)
+        {
+            return BuildAxialBasis(localUp, PickFallbackFacing(localUp));
+        }
+
+        projectedFacing = Vector3.Normalize(projectedFacing);
+        return BuildAxialBasis(localUp, projectedFacing);
+    }
+
+    /// <summary>
+    /// Picks a deterministic direction on the plane orthogonal to <paramref name="localUp"/>,
+    /// guaranteed non-parallel to it, so an axial orientation can be built when the camera
+    /// aligns with the up axis. Never leaks the entity's raw roll.
+    /// </summary>
+    private static Vector3 PickFallbackFacing(Vector3 localUp)
+    {
+        Vector3 reference = MathF.Abs(Vector3.Dot(Vector3.UnitY, localUp)) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
+        Vector3 facing = reference - Vector3.Dot(reference, localUp) * localUp;
+        return Vector3.Normalize(facing);
+    }
+
+    /// <summary>
+    /// Constructs an orthonormal basis whose Y is <paramref name="localUp"/> and whose Z
+    /// (forward) is <paramref name="facing"/>, then returns it as a rotation.
+    /// </summary>
+    private static Quaternion BuildAxialBasis(Vector3 localUp, Vector3 facing)
+    {
+        // Right = Up x Forward, RealForward = Right x Up
+        Vector3 right = Vector3.Cross(localUp, facing);
+        Vector3 forward = Vector3.Cross(right, localUp);
+
+        // Convert 3x3 orthonormal basis directly to Quaternion
+        Matrix4x4 basisMatrix = new Matrix4x4(
+            right.X, right.Y, right.Z, 0f,
+            localUp.X, localUp.Y, localUp.Z, 0f,
+            forward.X, forward.Y, forward.Z, 0f,
+            0f, 0f, 0f, 1f
+        );
+
+        return Quaternion.CreateFromRotationMatrix(basisMatrix);
     }
 }
