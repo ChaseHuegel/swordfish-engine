@@ -15,10 +15,10 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// Player-specific glue between the replicated <see cref="BodyViewComponent"/> (an appearance index) and
 /// the general client billboard path. For every remote player entity (an entity carrying a
 /// <see cref="BodyViewComponent"/> but no local <see cref="PlayerComponent"/>), it resolves the Body index
-/// into a world-space material (the same character texture the character UI uses, driven by the same
-/// <see cref="BodyViewComponent.Body"/> index) and attaches a <see cref="BillboardComponent"/>, which the
-/// general <see cref="BillboardSystem"/> renders. Caches one material per Body so remote players share
-/// textures; leaves the local player untouched.
+/// into a world-space material using the floating character texture (the UI keeps the standing pose; remote
+/// players billboard hovering, driven by the same <see cref="BodyViewComponent.Body"/> index) and attaches a
+/// <see cref="BillboardComponent"/>, which the general <see cref="BillboardSystem"/> renders. Caches one
+/// material per Body so remote players share textures; leaves the local player untouched.
 /// </summary>
 internal sealed class RemotePlayerVisualSystem : IEntitySystem
 {
@@ -50,7 +50,7 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         //  The character UI material carries the texture but renders through a clip-space Reef UI shader
         //  that cannot be drawn in-world, so reuse its texture under the world texture shader.
-        Material appearance = _characterAssetService.GetAppearanceMaterial(body);
+        Material appearance = _characterAssetService.GetAppearanceMaterial(body, CharacterAssetVariant.Floating);
         Texture texture = appearance.Textures[0];
         var material = new Material(_texturedShader, texture) { Transparent = appearance.Transparent };
         _materials[body] = material;
@@ -67,7 +67,7 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         Material material = ResolveMaterial(body.Body);
 
-        //  Scale the quad to the texture's aspect so the sprite is not squashed, sized as a standing figure.
+        //  Scale the quad to the texture's aspect so the sprite is not squashed, sized to the player's body height.
         Texture texture = material.Textures[0];
         float height = PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y;
         float width = texture.Width > 0 ? height * (texture.Width / (float)texture.Height) : height;
