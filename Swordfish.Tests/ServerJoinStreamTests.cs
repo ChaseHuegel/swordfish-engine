@@ -80,7 +80,8 @@ public class ServerJoinStreamTests : IDisposable
         hub.Add(connection.Server);
 
         var serverStore = new DataStore();
-        ServerJoinSystem join = new(hub, new SessionManager(), world, NullLogger<ServerJoinSystem>.Instance);
+        var sessions = new SessionManager();
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), NullLogger<ServerJoinSystem>.Instance);
 
         connection.Client.Send(new JoinRequest
         {
@@ -130,7 +131,8 @@ public class ServerJoinStreamTests : IDisposable
         hub.Add(connection.Server);
 
         var serverStore = new DataStore();
-        ServerJoinSystem join = new(hub, new SessionManager(), world, NullLogger<ServerJoinSystem>.Instance);
+        var sessions = new SessionManager();
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), NullLogger<ServerJoinSystem>.Instance);
 
         int DrainWorld()
         {

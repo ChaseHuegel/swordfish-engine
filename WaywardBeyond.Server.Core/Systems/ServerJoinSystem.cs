@@ -6,7 +6,6 @@ using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -26,6 +25,7 @@ public sealed class ServerJoinSystem : IEntitySystem
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
     private readonly WorldSaveService _worldService;
+    private readonly NetworkReplicationSystem _replication;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -34,11 +34,13 @@ public sealed class ServerJoinSystem : IEntitySystem
         in ServerConnectionHub hub,
         SessionManager sessions,
         in WorldSaveService worldService,
+        in NetworkReplicationSystem replication,
         in ILogger<ServerJoinSystem> logger
     ) {
         _hub = hub;
         _sessions = sessions;
         _worldService = worldService;
+        _replication = replication;
         _logger = logger;
     }
 
@@ -112,6 +114,11 @@ public sealed class ServerJoinSystem : IEntitySystem
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
+
+        //  Existing networked players (e.g. the host) were last published before this client connected,
+        //  so their dirty flags are already consumed; request a one-shot full-state snapshot so they
+        //  materialize as remote players on the joining client.
+        _replication.RequestFullSync(clientId);
 
         _hub.Send(clientId, new JoinAccept
         {

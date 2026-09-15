@@ -95,12 +95,18 @@ public class SpawnAndMirrorTests
         var hub = new ServerConnectionHub();
         hub.Add(connection.Server);
         var serverStore = new DataStore();
+        var sessions = new SessionManager();
         var system = new WaywardBeyond.Server.Core.Systems.ServerJoinSystem(
             hub,
-            new SessionManager(),
+            sessions,
             new WaywardBeyond.Server.Core.Saves.WorldSaveService(
                 NullLogger<WaywardBeyond.Server.Core.Saves.WorldSaveService>.Instance,
                 () => throw new NotImplementedException()
+            ),
+            new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
+                hub,
+                sessions,
+                NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
             ),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance
         );

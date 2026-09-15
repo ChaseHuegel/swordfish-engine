@@ -56,8 +56,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore);
         _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
-        _join = new ServerJoinSystem(hub, sessions, _worldService, loggerFactory.CreateLogger<ServerJoinSystem>());
         _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
+        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, loggerFactory.CreateLogger<ServerJoinSystem>());
 
         _physics = new JoltPhysicsSystem(loggerFactory.CreateLogger<JoltPhysicsSystem>(), physicsSettings);
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).

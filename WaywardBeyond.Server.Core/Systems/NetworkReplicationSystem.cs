@@ -29,6 +29,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private readonly List<ComponentSnapshot> _pending = [];
     private readonly Queue<ulong> _removed = [];
 
+    //  Clients awaiting a one-shot full-state snapshot (full server-owned state of every networked
+    //  entity) on their next publish, in place of that tick's delta. Newly joined clients request it so
+    //  pre-existing players - whose dirty markings were already published-and-cleared before the client
+    //  connected - still materialize as remote players.
+    private readonly HashSet<Uuid> _fullSync = [];
+
     public uint SimTick { get; set; }
 
     public NetworkReplicationSystem(
@@ -49,6 +55,17 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     public void RequestDespawn(ulong entityUuid)
     {
         _removed.Enqueue(entityUuid);
+    }
+
+    /// <summary>
+    ///     Records a client to receive a one-shot full-state snapshot (every server-owned component of
+    ///     every currently networked entity) on the next publish, in place of that tick's delta. The full
+    ///     state is delivered regardless of dirty markings, which the delta stream would otherwise have
+    ///     consumed before a late-joining client connected.
+    /// </summary>
+    public void RequestFullSync(Uuid clientId)
+    {
+        _fullSync.Add(clientId);
     }
 
     public void Tick(float delta, DataStore store)
@@ -82,7 +99,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         OnTickAction onTick = new() { Owner = this };
         store.Query<NetworkComponent, OnTickAction>(delta, ref onTick);
 
-        if (_pending.Count == 0 && _removed.Count == 0)
+        if (_pending.Count == 0 && _removed.Count == 0 && _fullSync.Count == 0)
         {
             return;
         }
@@ -90,6 +107,16 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         ComponentSnapshot[] components = _pending.ToArray();
         ulong[] removed = _removed.ToArray();
         _removed.Clear();
+
+        ComponentSnapshot[]? fullState = null;
+        if (_fullSync.Count > 0)
+        {
+            //  Read-only snapshot of every server-owned component on every networked entity, regardless
+            //  of dirty, for clients that joined after those components were last published.
+            CollectFullStateAction collect = new();
+            store.Query<NetworkComponent, CollectFullStateAction>(delta, ref collect);
+            fullState = collect.Components.ToArray();
+        }
 
         foreach ((Uuid clientId, _) in _hub.Clients)
         {
@@ -100,6 +127,18 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 lastProcessedInput = net.LastAckedInput;
             }
 
+            if (_fullSync.Remove(clientId))
+            {
+                _hub.Send(clientId, new WorldSnapshot
+                {
+                    TickNumber = SimTick,
+                    LastProcessedInput = lastProcessedInput,
+                    Components = fullState ?? [],
+                    RemovedEntities = removed,
+                });
+                continue;
+            }
+
             _hub.Send(clientId, new WorldSnapshot
             {
                 TickNumber = SimTick,
@@ -108,6 +147,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 RemovedEntities = removed,
             });
         }
+
+        //  Drop full-sync requests whose client disconnected before the publish.
+        _fullSync.Clear();
     }
 
     private void ApplyComponent(DataStore store, ComponentSnapshot snapshot)
@@ -176,6 +218,52 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
                 store.ClearDirty(info.Type, entity);
             }
+        }
+    }
+
+    /// <summary>
+    ///     Collects the full server-owned state of every <see cref="NetworkComponent"/> entity, ignoring
+    ///     dirty markings. Serializes only components the entity actually carries (the runtime-type checks
+    ///     so a shared registry never emits empty-payload snapshots for absent component kinds). Read-only:
+    ///     dirty flags stay untouched and are cleared solely by the delta stage.
+    /// </summary>
+    private struct CollectFullStateAction : IForEach<NetworkComponent>
+    {
+        public readonly List<ComponentSnapshot> Components;
+
+        public CollectFullStateAction()
+        {
+            Components = [];
+        }
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
+        {
+            Uuid entityUuid = store.GetUuid(entity);
+            Span<IDataComponent> present = store.Get(entity);
+
+            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ServerOwned))
+            {
+                if (!Contains(present, info.Type))
+                {
+                    continue;
+                }
+
+                byte[] payload = info.Codec.Serialize(store, entity);
+                Components.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
+            }
+        }
+
+        private static bool Contains(ReadOnlySpan<IDataComponent> components, Type type)
+        {
+            for (var i = 0; i < components.Length; i++)
+            {
+                if (components[i].GetType() == type)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

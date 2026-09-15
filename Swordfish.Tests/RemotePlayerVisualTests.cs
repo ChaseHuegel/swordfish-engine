@@ -71,6 +71,7 @@ public class RemotePlayerVisualTests
             fixture.Hub,
             fixture.Sessions,
             new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException()),
+            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
             NullLogger<ServerJoinSystem>.Instance
         );
 
