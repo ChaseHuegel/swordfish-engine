@@ -84,7 +84,7 @@ internal sealed class NameplateSystem(
             return;
         }
 
-        Vector3 head = transform.Position + new Vector3(0f, PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y, 0f);
+        Vector3 head = transform.Position + transform.GetUp() * (PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y);
 
         float depth = Vector3.Distance(cameraPosition, head);
         if (depth > MAX_RENDER_DISTANCE)
