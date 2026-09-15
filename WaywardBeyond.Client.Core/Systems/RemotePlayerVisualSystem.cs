@@ -6,6 +6,7 @@ using Swordfish.IO;
 using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
@@ -21,8 +22,6 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// </summary>
 internal sealed class RemotePlayerVisualSystem : IEntitySystem
 {
-    private static readonly float StandingHeight = 1.8f;
-
     private readonly CharacterAssetService _characterAssetService;
     private readonly Shader _texturedShader;
 
@@ -58,15 +57,10 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
         return material;
     }
 
-    private void Attach(DataStore store, int entity, in BodyViewComponent body)
+    private void Attach(DataStore store, int entity, in BodyViewComponent body, in TransformComponent transform)
     {
         //  Never billboard the local player: it has PlayerComponent and is rendered from first person.
         if (store.TryGet(entity, out PlayerComponent _))
-        {
-            return;
-        }
-
-        if (!store.TryGet(entity, out TransformComponent _))
         {
             return;
         }
@@ -75,12 +69,12 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         //  Scale the quad to the texture's aspect so the sprite is not squashed, sized as a standing figure.
         Texture texture = material.Textures[0];
-        float height = StandingHeight;
+        float height = PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y;
         float width = texture.Width > 0 ? height * (texture.Width / (float)texture.Height) : height;
 
         store.AddOrUpdate(entity, new BillboardComponent
         {
-            Offset = new Vector3(0f, StandingHeight * 0.5f, 0f),
+            Offset = new Vector3(0f, height * 0.5f, 0f),
             Size = new Vector2(width, height),
             Material = material,
         });
@@ -93,8 +87,7 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         public void Execute(float delta, DataStore store, int entity, in BodyViewComponent body, in TransformComponent transform)
         {
-            Owner.Attach(store, entity, body);
-            _ = transform;
+            Owner.Attach(store, entity, body, transform);
         }
     }
 }

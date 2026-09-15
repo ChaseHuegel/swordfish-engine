@@ -5,6 +5,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
@@ -18,7 +19,6 @@ internal sealed class NameplateSystem(
     IWindowContext windowContext
 ) : IEntitySystem
 {
-    private const float NAMEPLATE_HEIGHT = 1.8f;
     private const float MAX_RENDER_DISTANCE = 12;
     private const int BASE_FONT_SIZE = 12;
     private const float REFERENCE_DISTANCE = 4f;
@@ -84,7 +84,7 @@ internal sealed class NameplateSystem(
             return;
         }
 
-        Vector3 head = transform.Position + new Vector3(0f, NAMEPLATE_HEIGHT, 0f);
+        Vector3 head = transform.Position + new Vector3(0f, PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y, 0f);
 
         float depth = Vector3.Distance(cameraPosition, head);
         if (depth > MAX_RENDER_DISTANCE)
