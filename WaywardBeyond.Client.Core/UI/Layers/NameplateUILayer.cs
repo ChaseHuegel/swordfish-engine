@@ -13,7 +13,7 @@ namespace WaywardBeyond.Client.Core.UI.Layers;
 /// one text element per remote player, bottom-centered over the projected head position and font-sized by
 /// distance. Pure presentation: all projection happens on the ECS thread; this layer only renders the buffer.
 /// </summary>
-internal class NameplateUILayer(in NameplateSnapshot snapshot) : IUILayer
+internal sealed class NameplateUILayer(in NameplateSnapshot snapshot) : IUILayer
 {
     private readonly NameplateSnapshot _snapshot = snapshot;
     private readonly List<NameplateInfo> _nameplates = [];
@@ -32,8 +32,8 @@ internal class NameplateUILayer(in NameplateSnapshot snapshot) : IUILayer
             NameplateInfo nameplate = _nameplates[i];
             using (ui.Text(nameplate.Name, nameplate.FontSize))
             {
-                ui.ID = $"nameplate://{nameplate.Entity}";
-                ui.Color = Vector4.One;
+                ui.ID = $"nameplate_{nameplate.Entity}";
+                ui.BackgroundColor = new Vector4(0f, 0f, 0f, 0.5f);
                 ui.Constraints = new Constraints
                 {
                     Anchors = Anchors.Local | Anchors.Bottom | Anchors.Center,

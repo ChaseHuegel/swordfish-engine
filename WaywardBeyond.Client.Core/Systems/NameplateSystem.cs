@@ -10,28 +10,32 @@ using WaywardBeyond.Shared.Networking.Components;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Projects the head position of every remote player (an entity carrying a <see cref="BodyViewComponent"/>
-/// but no local <see cref="PlayerComponent"/>) into screen space and scales a nameplate font size by
-/// distance, writing the results into a cross-thread <see cref="NameplateSnapshot"/> that the window-thread
-/// <see cref="UI.Layers.NameplateUILayer"/> reads to draw Reef text. The local player is never nameplated.
+/// Projects remote players' head positions to screen space for the nameplate UI layer.
 /// </summary>
-public sealed class NameplateSystem(
+internal sealed class NameplateSystem(
     NameplateSnapshot snapshot,
     IRenderContext renderContext,
     IWindowContext windowContext
 ) : IEntitySystem
 {
-    private const float NameplateHeight = 1.8f;
-    private const int BaseFontSize = 12;
-    private const float ReferenceDistance = 4f;
-    private const int MinFontSize = 8;
-    private const int MaxFontSize = 40;
+    private const float NAMEPLATE_HEIGHT = 1.8f;
+    private const float MAX_RENDER_DISTANCE = 12;
+    private const int BASE_FONT_SIZE = 12;
+    private const float REFERENCE_DISTANCE = 4f;
+    private const int MIN_FONT_SIZE = 9;
+    private const int MAX_FONT_SIZE = 40;
 
     private readonly List<NameplateInfo> _nameplates = [];
 
     public void Tick(float delta, DataStore store)
     {
         _nameplates.Clear();
+
+        if (WaywardBeyond.GameState != GameState.Playing)
+        {
+            snapshot.Update(_nameplates);
+            return;
+        }
 
         Vector2 resolution = windowContext.Resolution;
         if (resolution.X <= 0f || resolution.Y <= 0f)
@@ -80,7 +84,13 @@ public sealed class NameplateSystem(
             return;
         }
 
-        Vector3 head = transform.Position + new Vector3(0f, NameplateHeight, 0f);
+        Vector3 head = transform.Position + new Vector3(0f, NAMEPLATE_HEIGHT, 0f);
+
+        float depth = Vector3.Distance(cameraPosition, head);
+        if (depth > MAX_RENDER_DISTANCE)
+        {
+            return;
+        }
 
         Vector4 clip = Vector4.Transform(Vector4.Transform(new Vector4(head, 1f), view), projection);
         if (clip.W <= 0f)
@@ -95,13 +105,11 @@ public sealed class NameplateSystem(
             return;
         }
 
-        float depth = Vector3.Distance(cameraPosition, head);
-
         nameplates.Add(new NameplateInfo(
             store.GetUuid(entity),
             name,
-            X: (int)((ndcX * 0.5f + 0.5f) * resolution.X),
-            Y: (int)((1f - (ndcY * 0.5f + 0.5f)) * resolution.Y),
+            x: (int)((ndcX * 0.5f + 0.5f) * resolution.X),
+            y: (int)((1f - (ndcY * 0.5f + 0.5f)) * resolution.Y),
             ComputeFontSize(depth)
         ));
     }
@@ -110,11 +118,11 @@ public sealed class NameplateSystem(
     {
         if (depth <= 0f)
         {
-            return MaxFontSize;
+            return MAX_FONT_SIZE;
         }
 
-        int size = (int)(BaseFontSize * ReferenceDistance / depth);
-        return Math.Clamp(size, MinFontSize, MaxFontSize);
+        int size = (int)(BASE_FONT_SIZE * REFERENCE_DISTANCE / depth);
+        return Math.Clamp(size, MIN_FONT_SIZE, MAX_FONT_SIZE);
     }
 
     private struct CollectAction : IForEach<BodyViewComponent, TransformComponent>
