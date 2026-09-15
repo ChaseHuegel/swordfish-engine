@@ -134,27 +134,19 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         }
     }
     
-    /// <summary>
-    /// Computes a cylindrical "look at" orientation that keeps the entity's local "up"
-    /// while rotating around that axis to face the camera position.
-    /// </summary>
-    /// <param name="position">World-space position of the billboard.</param>
-    /// <param name="cameraPosition">World-space position of the camera.</param>
-    /// <param name="entityRotation">Current entity orientation (defines local up).</param>
-    /// <returns>Updated rotation for the entity's billboard quad.</returns>
+    /// <summary>Rotates around the entity's local up axis to face the camera, keeping local up fixed.</summary>
     private static Quaternion GetAxialLookAtRotation(Vector3 position, Vector3 cameraPosition, Quaternion entityRotation)
     {
         const float epsilonSq = 1e-6f;
 
-        // 1. Determine entity's local UP axis
+        //  Local up drives the axis the billboard spins about.
         Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, entityRotation));
 
-        // 2. Facing direction toward the camera, projected onto the plane defined by localUp
-        // proj = V - (V . N) * N
+        //  Facing toward the camera, projected onto the plane orthogonal to localUp.
         Vector3 desiredFacing = cameraPosition - position;
         Vector3 projectedFacing = desiredFacing - Vector3.Dot(desiredFacing, localUp) * localUp;
 
-        // Fallback: camera is on (or at zero offset from) the entity's local up/down axis
+        //  Camera on the local up axis: pick a deterministic perpendicular facing.
         if (projectedFacing.LengthSquared() < epsilonSq)
         {
             return BuildAxialBasis(localUp, PickFallbackFacing(localUp));
@@ -164,11 +156,8 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         return BuildAxialBasis(localUp, projectedFacing);
     }
 
-    /// <summary>
-    /// Picks a deterministic direction on the plane orthogonal to <paramref name="localUp"/>,
-    /// guaranteed non-parallel to it, so an axial orientation can be built when the camera
-    /// aligns with the up axis. Never leaks the entity's raw roll.
-    /// </summary>
+    //  Deterministic facing perpendicular to localUp for when the camera aligns with the up axis, so the
+    //  result never depends on the raw roll.
     private static Vector3 PickFallbackFacing(Vector3 localUp)
     {
         Vector3 reference = MathF.Abs(Vector3.Dot(Vector3.UnitY, localUp)) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
@@ -176,17 +165,12 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         return Vector3.Normalize(facing);
     }
 
-    /// <summary>
-    /// Constructs an orthonormal basis whose Y is <paramref name="localUp"/> and whose Z
-    /// (forward) is <paramref name="facing"/>, then returns it as a rotation.
-    /// </summary>
+    //  Builds an orthonormal basis from up and facing and returns it as a rotation.
     private static Quaternion BuildAxialBasis(Vector3 localUp, Vector3 facing)
     {
-        // Right = Up x Forward, RealForward = Right x Up
         Vector3 right = Vector3.Cross(localUp, facing);
         Vector3 forward = Vector3.Cross(right, localUp);
 
-        // Convert 3x3 orthonormal basis directly to Quaternion
         Matrix4x4 basisMatrix = new Matrix4x4(
             right.X, right.Y, right.Z, 0f,
             localUp.X, localUp.Y, localUp.Z, 0f,
