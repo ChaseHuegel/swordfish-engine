@@ -254,6 +254,10 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
         
+        container.Register<NameplateSnapshot>(Reuse.Singleton);
+        container.Register<NameplateUILayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, NameplateUILayer>();
+
         container.Register<ModalMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ModalMenu>();
         container.Register<IMenuPage<Modal>, EmptyModal>();
@@ -314,6 +318,7 @@ public class Injector : IDryIocInjector
 
         container.Register<IEntitySystem, RemotePlayerVisualSystem>();
         container.Register<IEntitySystem, BillboardSystem>();
+        container.Register<IEntitySystem, NameplateSystem>();
 
         container.Register<AudioChannelSystem>(reuse: Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, AudioChannelSystem>();
