@@ -18,6 +18,8 @@ Extracted from the codebase. These are observed conventions, not aspirational ru
 | Locals | camelCase, `var` when type is obvious | `var options`, explicit for clarity |
 | Enums | PascalCase for type and members | `LayoutDirection.Vertical` |
 
+Prefer domain-meaningful names for backing stores over generic ones: `_billboards` / `_seenOwners`, not `_slots` / `_seen`. Pure computations use `Get*` (e.g. `GetFallbackFacing`); create-or-update orchestrators use `AddOrUpdate*` (e.g. `AddOrUpdateBillboard`).
+
 Keep-as-is abbreviations (registered in JetBrains `.DotSettings`): `API`, `ECS`, `GL`, `ID`, `IO`, `IP`, `ISO`, `KVP`, `UI`, `UID`.
 
 One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
@@ -38,8 +40,9 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **`in` parameter modifier** — on value types passed to constructors and methods (performance convention).
 - **`internal` access** — prefer on types by default. Only make types public when there is a specific need for the API to be available to other assemblies or projects.
 - **Nullable reference types** — enabled by default; all new code is nullable-aware. `Swordfish.Library` still has it disabled (`<Nullable>disable</Nullable>`) but this is a legacy maintenance exception, not the convention — new/edited code there should add `#nullable enable` until it can be migrated.
-- **Primary constructors** — promoted to fields when captured, e.g. `BehaviorTree<TTarget>(in BehaviorNode root)` declaring `public readonly BehaviorNode Root = root;`.
+- **Primary constructors** — preferred for small value/state types. Parameters referenced only in member bodies are auto-captured; parameters exposed as fields are promoted explicitly, e.g. `public readonly Uuid Owner = owner;`. `readonly` is the default — on fields and on `readonly struct` value types; make a member mutable only when something must change it (e.g. a renderer slot).
 - **Collection expressions** (C# 12 `[]`) preferred for initialization over `new List<T>()`.
+- Use named arguments when a value's meaning isn't self-evident from its position (e.g. passing `this` as an owner: `new BillboardAction(camera, system: this)`).
 
 ## Null Handling
 
@@ -90,8 +93,9 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 
 ## Comments & Docs
 
-- XML doc comments are rare — add them only on public API surfaces where the behavior isn't obvious from the signature.
+- XML doc comments are rare; add them on public API or on non-obvious private helpers as a terse one-line summary. Content indented four spaces (`///     text`); omit `<param>`/`<returns>` when the body is self-evident.
 - Inline comments use `//` with two spaces (`//  text`) or with a tab (`//\ttext`).
+- Single-line action comments lead with an imperative verb and omit the trailing period.
 - `// ReSharper disable` / `// ReSharper restore` for targeted warning suppression.
 
 ## ECS
@@ -101,6 +105,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Systems inherit `EntitySystem` and override `Tick()`.
 - Prefer `TryGet<T>()` / `out _` pattern over `Has<T>()` + separate `Get<T>()`.
 - Query access modes: read-only `Query` (`in T`) vs read-write `QueryRef` (`ref Ref<T>`), mirroring the `Ref<T>` accessor and the `ForEachRef` delegate.
+- A system's `IForEach` action, data record, and mutable state type are nested inside the owning system, not in their own files.
 
 ## Needlefish / CodeGen
 
