@@ -9,163 +9,111 @@ using WaywardBeyond.Client.Core.Graphics;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Renders any entity carrying a <see cref="BillboardComponent"/> as a camera-facing textured plane.
-/// General and reusable — not player-specific. For each such entity it maintains a standalone quad
-/// companion entity that tracks the owner's position (plus the billboard offset), is oriented toward the
-/// client camera every frame, and is textured with the owner's billboard material. The companion is
-/// disposed and freed when the owner stops carrying the component or is removed.
+///     Renders a camera-facing textured plane for any entity carrying a <see cref="BillboardComponent"/>.
 /// </summary>
 public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySystem
 {
-    private readonly Dictionary<Uuid, Slot> _slots = [];
-    private readonly HashSet<Uuid> _seen = [];
-    private readonly List<Uuid> _stale = [];
-    private readonly List<BillboardRecord> _records = [];
+    private readonly Dictionary<Uuid, BillboardState> _billboards = [];
+    private readonly HashSet<Uuid> _seenOwners = [];
+    private readonly List<Uuid> _staleOwners = [];
     private readonly Billboard _mesh = new();
 
     public void Tick(float delta, DataStore store)
     {
-        _seen.Clear();
-        _records.Clear();
-
-        CollectAction collect = new() { Records = _records };
-
-        store.Query<BillboardComponent, TransformComponent, CollectAction>(delta, ref collect);
+        _seenOwners.Clear();
 
         CameraEntity camera = renderContext.MainCamera.Get();
-        Vector3 cameraPosition = camera.Transform.Position;
-        foreach (BillboardRecord record in _records)
-        {
-            EnsureBillboard(store, record, cameraPosition);
-        }
+        BillboardAction action = new(camera, system: this);
+        store.Query<BillboardComponent, TransformComponent, BillboardAction>(delta, ref action);
 
-        //  Clean up companions whose owner no longer renders a billboard.
-        _stale.Clear();
-        foreach (Uuid owner in _slots.Keys)
+        //  Clean up billboards whose owner no longer has a billboard
+        _staleOwners.Clear();
+        foreach (Uuid owner in _billboards.Keys)
         {
-            if (!_seen.Contains(owner))
+            if (!_seenOwners.Contains(owner))
             {
-                _stale.Add(owner);
+                _staleOwners.Add(owner);
             }
         }
 
-        foreach (Uuid owner in _stale)
+        foreach (Uuid owner in _staleOwners)
         {
-            Slot slot = _slots[owner];
-            slot.Renderer.Dispose();
-            store.Free(slot.Entity);
-            _slots.Remove(owner);
+            BillboardState billboardState = _billboards[owner];
+            billboardState.Renderer.Dispose();
+            store.Free(billboardState.Entity);
+            _billboards.Remove(owner);
         }
     }
 
-    private void EnsureBillboard(DataStore store, BillboardRecord record, Vector3 cameraPosition)
+    private void AddOrUpdateBillboard(DataStore store, BillboardRecord record, Vector3 cameraPosition)
     {
-        _seen.Add(record.Owner);
+        _seenOwners.Add(record.Owner);
 
         Vector3 position = record.Position + record.Offset;
-        Quaternion billboardOrientation = GetAxialLookAtRotation(position, cameraPosition, record.Orientation);
+        Quaternion orientation = GetAxialLookAt(cameraPosition, position, record.Orientation);
+        var scale = new Vector3(record.Size.X, record.Size.Y, 1f);
+        var transform = new TransformComponent(position, orientation, scale);
 
-        if (!_slots.TryGetValue(record.Owner, out Slot? slot))
+        if (!_billboards.TryGetValue(record.Owner, out BillboardState? state))
         {
-            var meshRenderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
+            //  Create a billboard entity if it doesn't exist
             int entity = store.Alloc();
-            store.AddOrUpdate(entity, new TransformComponent(position, billboardOrientation, new Vector3(record.Size.X, record.Size.Y, 1f)));
+            var meshRenderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
             store.AddOrUpdate(entity, new MeshRendererComponent(meshRenderer));
-            _slots[record.Owner] = new Slot(entity, meshRenderer, record.Material);
-            return;
+            
+            state = new BillboardState(entity, meshRenderer, record.Material);
+            _billboards[record.Owner] = state;
         }
-
-        if (!ReferenceEquals(record.Material, slot.Material))
+        else if (!ReferenceEquals(state.Material, record.Material))
         {
-            slot.Renderer.Dispose();
-            slot.Renderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
-            slot.Material = record.Material;
-            store.AddOrUpdate(slot.Entity, new MeshRendererComponent(slot.Renderer));
+            //  Update the billboard's renderer if its material changed
+            state.Renderer.Dispose();
+            state.Renderer = new MeshRenderer(_mesh, record.Material, new RenderOptions { DoubleFaced = true });
+            state.Material = record.Material;
+            store.AddOrUpdate(state.Entity, new MeshRendererComponent(state.Renderer));
         }
 
-        store.AddOrUpdate(slot.Entity, new TransformComponent(
-            position,
-            billboardOrientation,
-            new Vector3(record.Size.X, record.Size.Y, 1f)
-        ));
-    }
-
-    private struct BillboardRecord
-    {
-        public Uuid Owner;
-        public Vector3 Position;
-        public Quaternion Orientation;
-        public Vector3 Offset;
-        public Vector2 Size;
-        public Material Material;
-
-        public BillboardRecord(Uuid owner, Vector3 position, Quaternion orientation, Vector3 offset, Vector2 size, Material material)
-        {
-            Owner = owner;
-            Position = position;
-            Orientation = orientation;
-            Offset = offset;
-            Size = size;
-            Material = material;
-        }
-    }
-
-    private sealed class Slot
-    {
-        public int Entity;
-        public MeshRenderer Renderer;
-        public Material Material;
-
-        public Slot(int entity, MeshRenderer renderer, Material material)
-        {
-            Entity = entity;
-            Renderer = renderer;
-            Material = material;
-        }
-    }
-
-    private struct CollectAction : IForEach<BillboardComponent, TransformComponent>
-    {
-        public List<BillboardRecord> Records;
-
-        public void Execute(float delta, DataStore store, int entity, in BillboardComponent billboard, in TransformComponent transform)
-        {
-            Records.Add(new BillboardRecord(store.GetUuid(entity), transform.Position, transform.Orientation, billboard.Offset, billboard.Size, billboard.Material));
-        }
+        store.AddOrUpdate(state.Entity, transform);
     }
     
-    /// <summary>Rotates around the entity's local up axis to face the camera, keeping local up fixed.</summary>
-    private static Quaternion GetAxialLookAtRotation(Vector3 position, Vector3 cameraPosition, Quaternion entityRotation)
+    /// <summary>
+    ///     Rotates around the entity's local up axis to face the camera, keeping local up fixed.
+    /// </summary>
+    private static Quaternion GetAxialLookAt(Vector3 target, Vector3 position, Quaternion orientation)
     {
         const float epsilonSq = 1e-6f;
 
         //  Local up drives the axis the billboard spins about.
-        Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, entityRotation));
+        Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, orientation));
 
-        //  Facing toward the camera, projected onto the plane orthogonal to localUp.
-        Vector3 desiredFacing = cameraPosition - position;
+        //  Facing toward the target, projected onto the plane orthogonal to localUp.
+        Vector3 desiredFacing = target - position;
         Vector3 projectedFacing = desiredFacing - Vector3.Dot(desiredFacing, localUp) * localUp;
 
-        //  Camera on the local up axis: pick a deterministic perpendicular facing.
         if (projectedFacing.LengthSquared() < epsilonSq)
         {
-            return BuildAxialBasis(localUp, PickFallbackFacing(localUp));
+            //  Target is on the local up axis. Pick a deterministic perpendicular facing.
+            return BuildAxialBasis(localUp, GetFallbackFacing(localUp));
         }
 
         projectedFacing = Vector3.Normalize(projectedFacing);
         return BuildAxialBasis(localUp, projectedFacing);
     }
 
-    //  Deterministic facing perpendicular to localUp for when the camera aligns with the up axis, so the
-    //  result never depends on the raw roll.
-    private static Vector3 PickFallbackFacing(Vector3 localUp)
+    /// <summary>
+    ///     Deterministic facing perpendicular to localUp for when the target aligns with the up axis,
+    ///     so the result never depends on the raw roll.
+    /// </summary>
+    private static Vector3 GetFallbackFacing(Vector3 localUp)
     {
         Vector3 reference = MathF.Abs(Vector3.Dot(Vector3.UnitY, localUp)) > 0.99f ? Vector3.UnitZ : Vector3.UnitY;
         Vector3 facing = reference - Vector3.Dot(reference, localUp) * localUp;
         return Vector3.Normalize(facing);
     }
 
-    //  Builds an orthonormal basis from up and facing and returns it as a rotation.
+    /// <summary>
+    ///     Builds an orthonormal basis from up and facing and returns it as an orientation.
+    /// </summary>
     private static Quaternion BuildAxialBasis(Vector3 localUp, Vector3 facing)
     {
         Vector3 right = Vector3.Cross(localUp, facing);
@@ -179,5 +127,37 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         );
 
         return Quaternion.CreateFromRotationMatrix(basisMatrix);
+    }
+    
+    private readonly struct BillboardAction(CameraEntity camera, BillboardSystem system) : IForEach<BillboardComponent, TransformComponent>
+    {
+        public void Execute(float delta, DataStore store, int entity, in BillboardComponent billboard, in TransformComponent transform)
+        {
+            var record = new BillboardRecord(owner: store.GetUuid(entity), transform.Position, transform.Orientation, billboard.Offset, billboard.Size, billboard.Material);
+            system.AddOrUpdateBillboard(store, record, camera.Transform.Position);
+        }
+    }
+
+    private struct BillboardRecord(
+        Uuid owner,
+        Vector3 position,
+        Quaternion orientation,
+        Vector3 offset,
+        Vector2 size,
+        Material material
+    ) {
+        public readonly Uuid Owner = owner;
+        public readonly Vector3 Position = position;
+        public readonly Quaternion Orientation = orientation;
+        public readonly Vector3 Offset = offset;
+        public readonly Vector2 Size = size;
+        public readonly Material Material = material;
+    }
+
+    private sealed class BillboardState(int entity, MeshRenderer renderer, Material material)
+    {
+        public readonly int Entity = entity;
+        public MeshRenderer Renderer = renderer;
+        public Material Material = material;
     }
 }
