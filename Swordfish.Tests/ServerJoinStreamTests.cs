@@ -167,6 +167,59 @@ public class ServerJoinStreamTests : IDisposable
         Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
     }
 
+    [Fact]
+    public void JoiningClientPreservesPreExistingPlayersOnTheSameLevel()
+    {
+        using KeyValueStore kv = new(_nats.Configuration);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+
+        Assert.True(world.CreateWorld("Multi Join World", seed: "99", GameMode.Creative, out string levelGuid));
+
+        INetworkSerializer[] serializers =
+        [
+            new NsdMessageSerializer<JoinRequest>(),
+            new NsdMessageSerializer<JoinAccept>(),
+            new NsdMessageSerializer<WorldEntityAdd>(),
+            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<WorldSnapshot>(),
+            new NsdMessageSerializer<LeaveGameRequest>(),
+        ];
+
+        var hub = new ServerConnectionHub();
+        var sessions = new SessionManager();
+        var serverStore = new DataStore();
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var join = new ServerJoinSystem(hub, sessions, world, replication, NullLogger<ServerJoinSystem>.Instance);
+
+        //  The host joins the level first and plays.
+        var hostConnection = new LocalConnection(serializers);
+        Uuid hostClient = hub.Add(hostConnection.Server);
+        hostConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = 1 } });
+        join.Tick(0f, serverStore);
+        replication.PublishStage(0f, serverStore);
+
+        Assert.True(sessions.TryGetEntity(hostClient, out int hostEntity));
+        Uuid hostUuid = serverStore.GetUuid(hostEntity);
+
+        //  A joiner connects to the already-loaded level. Joining must not unload and reload the world,
+        //  which would free the host's mirror along with every world entity.
+        var guestConnection = new LocalConnection(serializers);
+        hub.Add(guestConnection.Server);
+        guestConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 2, PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = 0 } });
+        join.Tick(0f, serverStore);
+
+        Assert.True(sessions.TryGetEntity(hostClient, out int hostAfter));
+        Assert.Equal(hostEntity, hostAfter);
+        Assert.True(serverStore.TryGet(hostUuid, out _), "The host's mirror must survive a joiner joining the same level.");
+
+        replication.PublishStage(0f, serverStore);
+
+        //  The joiner still completes the handshake and receives the full-state sync.
+        Assert.True(guestConnection.Client.Receive<JoinAccept>().Success, "The joiner should receive its join accept.");
+        Assert.True(guestConnection.Client.Receive<WorldStreamComplete>().Success, "The joiner should receive the world stream complete.");
+        Assert.True(guestConnection.Client.Receive<WorldSnapshot>().Success, "The joiner should receive a full-state snapshot.");
+    }
+
     private struct CollectCountAction : IForEach<VoxelEntityDataComponent>
     {
         public int Count;

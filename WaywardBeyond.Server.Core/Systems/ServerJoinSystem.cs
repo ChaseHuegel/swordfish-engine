@@ -80,12 +80,21 @@ public sealed class ServerJoinSystem : IEntitySystem
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
     {
+        if (_sessions.TryGetEntity(clientId, out int existing))
+        {
+            if (store.TryGet(existing, out PhysicsComponent physics))
+            {
+                physics.Dispose();
+            }
+
+            store.Free(existing);
+            _sessions.EndSession(clientId);
+        }
+
         string levelGuid = request.LevelGuid ?? string.Empty;
         bool levelLoaded = !string.IsNullOrEmpty(levelGuid) && _worldService.LoadLevel(levelGuid, store);
 
-        Vector3 position;
-        Quaternion orientation;
-        if (levelLoaded && _worldService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out position, out orientation))
+        if (levelLoaded && _worldService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out Vector3 position, out Quaternion orientation))
         {
             //  Restored per-character location (or the level spawn point).
         }

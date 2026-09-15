@@ -58,8 +58,14 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                 }
 
                 byte[] payload = info.Codec.Serialize(store, entity);
-                Owner._pending.Add(new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), payload));
                 store.ClearDirty(info.Type, entity);
+
+                if (payload.Length == 0)
+                {
+                    continue;
+                }
+
+                Owner._pending.Add(new ComponentSnapshot(store.GetUuid(entity).ToValue(), info.Uuid.ToValue(), payload));
             }
         }
     }

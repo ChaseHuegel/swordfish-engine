@@ -7,8 +7,10 @@ using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
+using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
@@ -47,9 +49,14 @@ public class FullStateSyncTests
     //  other tests' ad hoc registrations in the shared NetworkRegistry.
     private const ulong PRESENCE_UUID = 0xE020;
 
+    //  The real networked BodyView identity (matches its [NetworkComponent] attribute), used to prove a
+    //  stale-dirty slot never publishes an empty BodyView snapshot.
+    private const ulong BODY_VIEW_UUID = 10;
+
     public FullStateSyncTests()
     {
         NetworkRegistry.Register<PresenceComponent>(Uuid.FromValue(PRESENCE_UUID), NetworkDirection.ServerOwned, new PresenceCodec());
+        NetworkRegistry.Register<BodyViewComponent>(Uuid.FromValue(BODY_VIEW_UUID), NetworkDirection.ServerOwned, new NsdComponentCodec<BodyViewComponent>());
     }
 
     private static INetworkSerializer[] Serializers => new INetworkSerializer[]
@@ -121,5 +128,48 @@ public class FullStateSyncTests
 
         //  The full-state flag is one-shot; nothing further is sent until the delta stream finds dirt.
         Assert.False(guestConnection.Client.Receive<WorldSnapshot>().Success);
+    }
+
+    [Fact]
+    public void FreedSlotReuseDoesNotPublishEmptyComponentSnapshots()
+    {
+        //  Freeing an entity re-arms DIRTY on its component slots (so QueryRemoved can read the last
+        //  known value). A rebuilt entity reusing that slot therefore reports dirty for component kinds
+        //  it no longer carries; publishing the empty payload would let clients materialize phantom
+        //  state - the ghost BodyView billboard that once appeared on every voxel world entity.
+        var hub = new ServerConnectionHub();
+        var sessions = new SessionManager();
+        var store = new DataStore();
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+
+        var connection = new LocalConnection(Serializers);
+        Uuid clientId = hub.Add(connection.Server);
+
+        //  A player mirror that carried a BodyView.
+        int mirror = store.Alloc();
+        store.AddOrUpdate(mirror, new NetworkComponent());
+        store.AddOrUpdate(mirror, new BodyViewComponent { Body = 3 });
+        sessions.Register(store, mirror, clientId, new Session(1u));
+
+        //  Publish once so the mirror's dirty BodyView is consumed and cleared.
+        replication.PublishStage(0f, store);
+        Assert.True(connection.Client.Receive<WorldSnapshot>().Success);
+
+        //  An unload frees the mirror, leaving its slot with a stale BodyView DIRTY flag.
+        store.Free(mirror);
+
+        //  A rebuilt world entity reuses the same slot but carries no BodyView.
+        int world = store.Alloc();
+        Assert.Equal(mirror, world);
+        store.AddOrUpdate(world, new NetworkComponent());
+        store.AddOrUpdate(world, new PresenceComponent { Value = 5 });
+
+        replication.PublishStage(0f, store);
+
+        Result<WorldSnapshot> snapshot = connection.Client.Receive<WorldSnapshot>();
+        Assert.True(snapshot.Success, "The rebuilt entity's own dirty marker should still publish.");
+
+        Assert.All(snapshot.Value.Components, component => Assert.NotEmpty(component.Payload));
+        Assert.DoesNotContain(snapshot.Value.Components, component => component.TypeUuid == BODY_VIEW_UUID);
     }
 }

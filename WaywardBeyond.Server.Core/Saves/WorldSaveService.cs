@@ -208,12 +208,19 @@ public sealed class WorldSaveService
     }
 
     /// <summary>
-    /// Unloads the current world (if any) and loads <paramref name="levelGuid"/> from the <c>levels</c>
-    /// bucket. Always rebuilds the world so a repeated join for the same level does not leak duplicate
-    /// player mirrors from the previous session.
+    ///     Unloads the current world (if any) and loads <paramref name="levelGuid"/> from the <c>levels</c>
+    ///     bucket. Loading the same level that is already loaded is a no-op: rebuilding would free every
+    ///     existing <see cref="NetworkComponent"/> entity, which with multiple clients also destroys the
+    ///     player mirrors of everyone already in the world. A repeated single-player join instead relies on
+    ///     the session being cleared, and multiplayer shares the loaded world.
     /// </summary>
     public bool LoadLevel(string levelGuid, in DataStore store)
     {
+        if (CurrentLevelGuid == levelGuid)
+        {
+            return true;
+        }
+
         Unload(store);
 
         KeyValueStore kv = _keyValueStore();

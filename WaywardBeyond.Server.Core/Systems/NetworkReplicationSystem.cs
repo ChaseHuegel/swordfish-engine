@@ -215,8 +215,14 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 }
 
                 byte[] payload = info.Codec.Serialize(store, entity);
-                Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
                 store.ClearDirty(info.Type, entity);
+
+                if (payload.Length == 0)
+                {
+                    continue;
+                }
+
+                Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
             }
         }
     }
