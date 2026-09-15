@@ -72,7 +72,7 @@ internal sealed class NameplateSystem(
         List<NameplateInfo> nameplates,
         DataStore store,
         int entity,
-        in TransformComponent transform,
+        in Vector3 head,
         string? name,
         in Matrix4x4 view,
         in Matrix4x4 projection,
@@ -83,8 +83,6 @@ internal sealed class NameplateSystem(
         {
             return;
         }
-
-        Vector3 head = transform.Position + transform.GetUp() * (PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y);
 
         float depth = Vector3.Distance(cameraPosition, head);
         if (depth > MAX_RENDER_DISTANCE)
@@ -145,10 +143,17 @@ internal sealed class NameplateSystem(
             {
                 return;
             }
+            
+            if (!store.TryGet(entity, out BillboardComponent billboard))
+            {
+                return;
+            }
 
+            //  Sit the label on the rendered body's top, using the billboard's own axial orientation.
+            Vector3 head = transform.Position + billboard.Offset + transform.GetUp() * (billboard.Size.Y * 0.5f);
             string? name = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name : null;
-            Project(Owner._nameplates, store, entity, transform, name, View, Projection, CameraPosition, Resolution);
-            _ = body;
+            
+            Project(Owner._nameplates, store, entity, head, name, View, Projection, CameraPosition, Resolution);
         }
     }
 }
