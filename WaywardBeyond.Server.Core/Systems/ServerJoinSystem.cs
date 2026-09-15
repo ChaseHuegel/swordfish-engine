@@ -58,9 +58,9 @@ public sealed class ServerJoinSystem : IEntitySystem
     }
 
     /// <summary>
-    /// Ends a player's server session when they return to the menu: disposes and frees the player mirror
-    /// and clears the session mapping. The connection is deliberately left registered on the hub so the
-    /// client can join again. No despawn is broadcast (single-player N=1; a LAN follow-up can route it).
+    /// Ends a player's server session when they return to the menu: disposes and frees the player mirror,
+    /// publishes its despawn to remaining clients, and clears the session mapping. The connection is
+    /// deliberately left registered on the hub so the client can join again.
     /// </summary>
     private void HandleLeave(Uuid clientId, DataStore store)
     {
@@ -71,6 +71,8 @@ public sealed class ServerJoinSystem : IEntitySystem
                 physics.Dispose();
             }
 
+            //  Capture the uuid before Free (which clears it) so the despawn can replicate.
+            _replication.RequestDespawn(store.GetUuid(entity).ToValue());
             store.Free(entity);
             _logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
@@ -87,6 +89,8 @@ public sealed class ServerJoinSystem : IEntitySystem
                 physics.Dispose();
             }
 
+            //  Capture the uuid before Free (which clears it) so the old mirror despawns to peers.
+            _replication.RequestDespawn(store.GetUuid(existing).ToValue());
             store.Free(existing);
             _sessions.EndSession(clientId);
         }
