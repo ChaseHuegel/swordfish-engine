@@ -42,18 +42,22 @@ internal sealed class ClientInputSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
-        Vector3 movement = GetMovementInput();
+        bool inputEnabled = _motionProcessor.IsInputEnabled;
+        Vector3 movement = inputEnabled ? GetMovementInput() : Vector3.Zero;
 
-        //  Mouse sensitivity is a client-local setting. Resolve the captured cursor deltas (window path)
-        //  and Q/E roll into accumulated radians here so the wire only ever carries resolved look totals.
         float sensitivityModifier = _controlSettings.LookSensitivity / 5f;
         while (_motionProcessor.CursorUpdates.TryDequeue(out Vector2 cursorDelta))
         {
+            if (!inputEnabled)
+            {
+                continue;
+            }
+
             _lookYaw += -cursorDelta.X * MOUSE_SENSITIVITY * sensitivityModifier;
             _lookPitch += -cursorDelta.Y * MOUSE_SENSITIVITY * sensitivityModifier;
         }
 
-        float rollDirection = (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f);
+        float rollDirection = inputEnabled ? (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f) : 0f;
         _lookRoll += rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
 
         var input = new InputComponent

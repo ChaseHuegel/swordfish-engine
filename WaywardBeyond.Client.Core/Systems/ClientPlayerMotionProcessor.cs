@@ -39,6 +39,9 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
 
     public SharedPlayerMotionStep? Step => _step;
 
+    /// <summary>Whether gameplay input is currently live. False while interaction is blocked (e.g. inventory open) or the window is unfocused.</summary>
+    public bool IsInputEnabled => _inputEnabled;
+
     public ClientPlayerMotionProcessor(
         in IInputService inputService,
         in IWindowContext windowContext,
