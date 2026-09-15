@@ -42,6 +42,7 @@ using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Commands;
 using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Discovery;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -150,6 +151,7 @@ public class Injector : IDryIocInjector
         }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
+        container.Register<LanHostInfo>(Reuse.Singleton);
 
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
@@ -162,6 +164,7 @@ public class Injector : IDryIocInjector
 
         container.Register<WorldsClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientWorldServiceSystem>();
+        container.Register<LanDiscoveryService>(Reuse.Singleton);
     }
 
     private void RegisterShortcuts(IContainer container)

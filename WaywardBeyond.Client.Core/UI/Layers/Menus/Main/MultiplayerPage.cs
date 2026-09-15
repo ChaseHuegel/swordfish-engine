@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Numerics;
 using Reef;
@@ -22,6 +23,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly TransportManager _transportManager;
     private readonly GameSaveService _gameSaveService;
     private readonly NetworkingSettings _networkingSettings;
+    private readonly LanDiscoveryService _discovery;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
     private readonly ILocalization _localization;
@@ -32,11 +34,16 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private TextBoxState _hostTextBox;
     private TextBoxState _portTextBox;
     private string? _errorMessage;
+    private bool _scanning;
+    private string? _discoverMessage;
+    private readonly List<DiscoveredServer> _foundServers = [];
+    private IReadOnlyList<DiscoveredServer> _discoveredServers = [];
 
     public MultiplayerPage(
         in TransportManager transportManager,
         in GameSaveService gameSaveService,
         in NetworkingSettings networkingSettings,
+        in LanDiscoveryService discovery,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
         in ILocalization localization
@@ -44,6 +51,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _transportManager = transportManager;
         _gameSaveService = gameSaveService;
         _networkingSettings = networkingSettings;
+        _discovery = discovery;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
         _localization = localization;
@@ -118,6 +126,49 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     TryConnect(menu);
                 }
             }
+
+            using (ui.TextButton(id: "Button_Scan", text: _localization.GetString("ui.button.scan")!, _buttonOptions, out Widgets.Interactions scanInteractions))
+            {
+                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                if (scanInteractions.Has(Widgets.Interactions.Click) && !_scanning)
+                {
+                    _scanning = true;
+                    _discoverMessage = null;
+                    _foundServers.Clear();
+                    _discoveredServers = [];
+                    _ = ScanServersAsync();
+                }
+            }
+
+            if (_scanning)
+            {
+                using (ui.Text(_localization.GetString("ui.notification.discover.scanning")!))
+                {
+                    ui.FontSize = 16;
+                }
+            }
+
+            foreach (DiscoveredServer server in _discoveredServers)
+            {
+                using (ui.TextButton(id: $"Server_{server.Host}:{server.Port}", text: $"{server.Name} ({server.Host}:{server.Port}) — {server.Players} players", _buttonOptions, out Widgets.Interactions serverInteractions))
+                {
+                    ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                    if (serverInteractions.Has(Widgets.Interactions.Click))
+                    {
+                        PickServer(in server);
+                    }
+                }
+            }
+
+            if (_discoverMessage != null)
+            {
+                using (ui.Text(_discoverMessage))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+            }
         }
 
         using (ui.Element())
@@ -141,6 +192,38 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
 
         return Result.FromSuccess();
+    }
+
+    private async Task ScanServersAsync()
+    {
+        try
+        {
+            await foreach (DiscoveredServer server in _discovery.ScanAsync())
+            {
+                _foundServers.Add(server);
+                _discoveredServers = _foundServers.ToArray();
+                _discoverMessage = null;
+            }
+        }
+        catch (Exception)
+        {
+            //  Discovery ended badly; keep whatever was already found.
+        }
+        finally
+        {
+            _scanning = false;
+            if (_foundServers.Count == 0)
+            {
+                _discoverMessage = _localization.GetString("ui.notification.discover.none");
+            }
+        }
+    }
+
+    private void PickServer(in DiscoveredServer server)
+    {
+        _hostTextBox.Text.Clear().Append(server.Host);
+        _portTextBox.Text.Clear().Append(server.Port.ToString());
+        _discoverMessage = null;
     }
 
     private void TryConnect(Menu<MenuPage> menu)

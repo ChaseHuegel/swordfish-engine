@@ -41,6 +41,8 @@
 "ui.button.settings" = "Settings"
 "ui.button.quit" = "Quit game"
 
+"ui.button.scan" = "Scan for LAN servers"
+
 "ui.button.continue" = "Continue"
 "ui.button.saveAndExit" = "Save & exit"
 
@@ -55,6 +57,9 @@
 "ui.field.saveSeed" = "[Random seed]"
 "ui.field.host" = "Server address"
 "ui.field.port" = "Port"
+
+"ui.notification.discover.scanning" = "Scanning for LAN servers..."
+"ui.notification.discover.none" = "No LAN servers found"
 
 "ui.button.loadSave" = "Embark"
 

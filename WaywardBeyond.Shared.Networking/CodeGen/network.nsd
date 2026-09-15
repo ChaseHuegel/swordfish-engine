@@ -39,3 +39,11 @@ message PhysicsMessage
     float AngularVelocityY   = 4;
     float AngularVelocityZ   = 5;
 }
+
+message LanBeacon
+{
+    string ServerName    = 0;
+    int    TcpPort       = 1;
+    int    ProtocolVersion = 2;
+    int    PlayerCount   = 3;
+}

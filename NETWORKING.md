@@ -40,6 +40,7 @@ there is no separate singleplayer simulation path.
 | Authoritative server simulation (physics/movement) | Implemented (shared deterministic step on the server world) |
 | Multi-client sessions & disconnect | Implemented (`ServerConnectionHub` + `SessionManager`) |
 | Peer transport (`TcpTransport`) | Exists, unexercised, no per-type demux (Phase 5) |
+| LAN server discovery (UDP beacon) | Implemented (`LanBeacon`, `LanHost` broadcaster, `LanDiscoveryService`) |
 
 See [Current gaps](#current-gaps--known-issues) for the full list.
 
@@ -220,6 +221,33 @@ side sees a hub.
 client's per-entity acked input. Disconnect teardown (`ServerContext.HandleDisconnects`) disposes the
 mirror's physics body, captures its uuid, frees the entity, and clears the mapping — the despawn is
 then broadcast to remaining clients in `RemovedEntities`.
+
+## LAN server discovery
+
+Hosts in `NetworkMode.Host` (see `NetworkModeResolver`) advertise an open server over **UDP broadcast**
+so any LAN client can auto-populate the multiplayer page instead of typing a host/port. This is the one
+permitted UDP exception to the TCP-only transport rule (locked decision 14): the beacon is a pure
+control plane and never carries game state or a join.
+
+- **Server broadcast.** `LanHost` (`Server.Core/LanHost.cs`) starts a `"LAN BEACON"` thread on the
+  discovery port that sends an nsd `LanBeacon { ServerName, TcpPort, ProtocolVersion, PlayerCount }`
+  (`Shared.Networking/CodeGen/network.nsd`) to `255.255.255.255` every
+  `NetworkingSettings.DiscoveryBroadcastSeconds`. `PlayerCount` is read live from
+  `ServerConnectionHub.Clients`. A `SocketException` (broadcast blocked) kills the loop permanently —
+  discovery is disabled rather than retried.
+- **Client scan.** `LanDiscoveryService` (`Client.Core/Networking/`) opens a `UdpClient` on the same
+  discovery port and **streams** each newly discovered server as an `IAsyncEnumerable<DiscoveredServer>`
+  while it listens for `NetworkingSettings.DiscoveryScanSeconds`, so `MultiplayerPage` can list servers
+  as they appear instead of after the whole window. It drops non-matching protocol versions, dedupes by
+  endpoint, and reads off the UI thread.
+  In host mode it ignores a beacon it received from its own in-process server — identified by a
+  source address local to this machine **and** the advertised TCP port that server is listening on —
+  so that server is not offered as a join option while other hosts sharing the machine stay
+  discoverable.
+  `MultiplayerPage` surfaces the result and pre-fills the host/port fields so the normal
+  `TransportManager.ConnectRemote` join path is reused unchanged.
+- **Configuration** (`NetworkingSettings`, `network.toml`): `ServerName`, `DiscoveryPort` (default
+  `47777`), `LanDiscovery` (default `true`), `DiscoveryBroadcastSeconds` (5), `DiscoveryScanSeconds` (3).
 
 ## Join handshake & full-world stream
 

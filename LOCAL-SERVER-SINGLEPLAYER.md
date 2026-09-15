@@ -66,6 +66,10 @@ simulation path.
 14. **No UDP/reliability/envelope layer.** No `GamePacket`, `FrameStream`, `IDataSender`/
     `IDataReceiver`, or packet-level sequence/ack. TCP for any socket transport. The gameplay
     `SequenceNumber`/`LastAckedInput`/`LastAckedSnapshot` fields are prediction acks and are kept.
+    **Exception — LAN discovery beacon.** A UDP broadcast beacon (an nsd `LanBeacon`: server name, TCP
+    port, protocol version, player count) is permitted on a dedicated discovery port. It is a control
+    plane only: it never carries game state, never covers a join, and is fire-and-forget (the client
+    drops packets whose protocol version or signature does not match).
 15. **Engine-change policy.** Engine code is anything **except `WaywardBeyond.*`** (`Swordfish`,
     `Swordfish.ECS`, `Swordfish.Library`, `Swordfish.Integrations`, `Swordfish.Compilation`, `Shoal`,
     `Reef`, `Shoal.Extensions.Swordfish`, launchers, demo/editor). **Any engine changes commit

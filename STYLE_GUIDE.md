@@ -58,7 +58,10 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - **`readonly struct`** for immutable value types (ECS components, result types).
 - **`readonly ref struct`** for accessor / stack-only types (`Ref<T>`).
 - **`partial`** where generated or source-extended code augments a type (`Entity` uses `readonly partial struct`).
-- **No record types** (record declarations don't work across the netstandard2.0/2.1 shared-library targets).
+- **Records** allowed in projects targeting frameworks that support them (net8.0+). Forbidden only in
+  the netstandard2.0/2.1 targets where they are unsupported: `Swordfish.Library` (netstandard2.1) and
+  `Swordfish.Compilation` (netstandard2.0). For immutable value data prefer `readonly record struct`;
+  reach for a plain struct/class when the project target forbids records.
 - Type should be separated into their own files unless they are nested within another type
 
 ## DI & Architecture
@@ -119,7 +122,7 @@ One exception: `BehaviorState` uses all-caps members (`RUNNING`, `SUCCESS`, `FAI
 - Do not use block-scoped namespaces (`namespace X { }`).
 - Do not qualify `this.` — ever.
 - Do not use `is null` / `is not null` / `is { } foo` / `is not { } foo` — use `== null` / `!= null`.
-- Do not use records (incompatible with netstandard2.0 csproj targets).
+- Do not use records in the netstandard2.0/2.1 projects (`Swordfish.Library`, `Swordfish.Compilation`).
 - Do not disable Nullable in new projects — `Swordfish.Library` is a legacy exception; default to nullable-aware code.
 - Do not introduce new test frameworks — stick with xunit for engine tests, NUnit for WaywardBeyond.
 - Do not remove `CopyToOutputDirectory=Always` from manifest files.
