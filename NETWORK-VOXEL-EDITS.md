@@ -319,7 +319,7 @@ stage `InteractionEvent`s into a new `InteractionStageBuffer` on `NetworkCompone
 **Goal:** one shared resolver; the server is the sole author of voxel edits.
 
 ### 4.1 [S] Shared interaction resolver
-`[ ]` New `SharedInteractionResolver` in `WaywardBeyond.Shared.Gameplay`:
+`[x]` New `SharedInteractionResolver` in `WaywardBeyond.Shared.Gameplay`:
 ```
 input: ray, target cell hint, held item, game mode, reach
 output: { Action None | Break | Place, coordinate, voxel }
@@ -333,6 +333,17 @@ output: { Action None | Break | Place, coordinate, voxel }
   present.
 - **Acceptance:** resolver parity unit tests — identical (ray, hint, item, mode) → identical action on
   both sides; a hint-less/empty-target interaction resolves to `Action.None`.
+- **Done note:** `SharedInteractionResolver` + `InteractionRequest`, `InteractionResolution`,
+  `InteractionAction`, `PlaceableBrick` (a headless mirror of `BrickInfo.ToVoxel`/`IsOrientable`),
+  `IVoxelInteractionWorld` all added to `Shared.Gameplay/Interactions`. The resolver takes a ready world
+  ray + optional `BrickInteraction` hint; a hint-less event (or a hint that fails reach/occupancy/
+  plausibility, including one that disagrees with the ray-derived cell) resolves to `Action.None`. The
+  client targeting was ported as a deterministic-from-ray routine (surface bias ±0.1, reach-around probe
+  rays, offset march-back up to 10 steps) on top of the world abstraction, so both prediction and
+  authority call the same code against the same shared colliders/voxel data. 10 new `Swordfish.Tests` in
+  `SharedInteractionResolverTests` pin parity (deterministic identical input → identical output), break
+  on occupied/empty, place on empty/occupied, missing placeable, solid-wall march-back dead end,
+  out-of-reach, and hint-mismatch rejection.
 
 ### 4.2 [S/G] Server interaction system
 `[ ]` New `ServerInteractionSystem` (server tick between `ApplyStage` and `PublishStage` in
