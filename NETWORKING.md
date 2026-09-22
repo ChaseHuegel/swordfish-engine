@@ -2,7 +2,9 @@
 
 This document describes the networking architecture for the game: a message-based, ECS-driven
 client-server model where **singleplayer is a local server in the same process**. Detailed task
-tracking for the current initiative lives in [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
+tracking for the current initiative lives in [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md),
+and tracking for the server-authoritative interaction / voxel-edit initiative lives in
+[`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md).
 
 ## Overview
 
@@ -105,6 +107,43 @@ message InputComponent
     float LookRoll           = 5;
     uint  SequenceNumber     = 6;
     uint  ServerTickAtSample = 7;
+    uint  HeldSlot           = 8;    // active inventory slot
+    bool  PrimaryHeld        = 9;    // continuous held state
+    bool  SecondaryHeld      = 10;   // continuous held state
+}
+```
+
+Discrete interaction actions ride a separate `ClientOwned` message as an **extensible pseudo-union** of
+nullable hint sub-messages. Common edge metadata sits at the root; per-interaction hints are nullable
+sub-messages (`Kind` is the button/edge and is **not** the union discriminator — *hint presence* is; a
+wholly hint-less event is valid, e.g. right-click empty space):
+
+```nsd
+message InteractionEvent
+{
+    ulong Entity;            // player mirror address (dedupe/routing)
+    uint  SequenceNumber;
+    uint  ServerTickAtSample;
+    byte  Kind;              // PrimaryPressed / PrimaryReleased / SecondaryPressed / SecondaryReleased
+    BrickInteraction? Brick; // hint payload; future interactions add their own nullable sub-message
+}
+
+message BrickInteraction
+{
+    int  TargetX, TargetY, TargetZ;  // client hint target cell
+    byte HintShape;         // place only
+    byte HintOrientation;   // place only
+}
+```
+
+Authoritative voxel edits flow **downstream** as a broadcast delta:
+
+```nsd
+message VoxelEditMessage
+{
+    ulong EntityUuid;   // target structure
+    int   X, Y, Z;      // cell coordinate
+    Voxel Voxel;        // resulting voxel
 }
 ```
 
@@ -115,9 +154,9 @@ generic `ISerializer<T>` used by the transports, by reflection-driving the gener
 > **No envelope.** The wire is plain serialized nsd messages with a raw transports-only framing
 > (TCP uses a 4-byte length prefix). There is **no** `GamePacket` envelope, no `IDataSender`/
 > `IDataReceiver` byte pipeline, no per-message sequence/ack/RTT layer. Reliability/ordering is left
-> to the transport (TCP today). The `SequenceNumber`/`LastAckedInput`/`LastAckedSnapshot` fields are
-> **gameplay-level prediction acks**, not transport reliability — see [Prediction
-> acks](#prediction-acks).
+> to the transport (TCP today). The `SequenceNumber`/`LastAckedInput`/`LastAckedSnapshot` fields — and
+> `InteractionEvent.SequenceNumber`/`ServerTickAtSample` — are **gameplay-level prediction acks**, not
+> transport reliability — see [Prediction acks](#prediction-acks).
 
 ## `NetworkRegistry` — stable component identity
 
@@ -141,6 +180,10 @@ Registered entries (wired in `Client.Core/Injector.cs`):
 | `PhysicsComponent` | 3 | ServerOwned | `PhysicsCodec` (hand-written nsd adapter) |
 | `BodyViewComponent` | 10 (attribute) | ServerOwned | `NsdComponentCodec<BodyViewComponent>` |
 | `IdentifierComponent` | 11 | ServerOwned | `IdentifierCodec` (hand-written nsd adapter) |
+| `EquipmentComponent` | 12 (attribute) | ServerOwned | `NsdComponentCodec<EquipmentComponent>` |
+| `InventoryComponent` | 13 (attribute) | ServerOwned | `NsdComponentCodec<InventoryComponent>` |
+| `GameModeComponent` | 14 (attribute) | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
+| `InteractionEvent` | 15 (attribute) | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
 
 `BodyViewComponent` (`int Body`) and the reused engine `IdentifierComponent` (its `Name`) carry the
 joining client's minimal public character view on the server player mirror — the appearance index that
@@ -148,7 +191,14 @@ drives a remote player's billboard, plus their name. The client renders any remo
 with `BodyViewComponent` but no `PlayerComponent`) through the general billboard path: `Body` resolves to
 a world-space material (`RemotePlayerVisualSystem`; the character texture reused under the world
 `textured` shader) attached as a `BillboardComponent`, which `BillboardSystem` renders as a camera-facing
-quad. Inventory/attributes/statistics are never transmitted.
+quad.
+
+Alongside this minimal remote-player relay, the **interaction context** (`EquipmentComponent`,
+`InventoryComponent`, `GameModeComponent`, all `ServerOwned`) is seeded from the client's local
+character save at join (see [Join handshake](#join-handshake--full-world-stream) / `CharacterSeed`) and
+is **server-owned thereafter**. These are the server's authoritative hold over what a player interaction
+resolves against; the client predicts presentably against them but does not author them post-join. See
+`NETWORK-VOXEL-EDITS.md`.
 
 ### `NetworkDirection`
 
@@ -254,30 +304,41 @@ control plane and never carries game state or a join.
 The client no longer loads or generates world state. `GameSaveService`/its load stages were retired in
 favor of a server-driven join that streams the entire world per entity.
 
-1. `ClientJoinSystem` (`Client.Core/Systems/`) submits a `JoinRequest { LevelGuid, CharacterId, PublicView }`
-   where `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`) — **never** inventory,
-   attributes, or statistics. It drives `MainMenu → Loading → Playing` and is queued from the menu so view
-   building runs on the client ECS thread.
+1. `ClientJoinSystem` (`Client.Core/Systems/`) submits a `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed }`
+   where `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`) used for remote
+   rendering, and the separate optional `CharacterSeed` carries the client's authoritative **initial**
+   character context (inventory, equipment/active slot, game mode) from its local save. It drives
+   `MainMenu → Loading → Playing` and is queued from the menu so view building runs on the client ECS thread.
 2. `ServerJoinSystem` (`Server.Core/Systems/`) - via `WorldSaveService` (`Server.Core/Saves/`) - loads the
    authoritative voxel world for `LevelGuid` from the server-owned `levels` bucket (unloading any previous
    world, disposing its physics bodies), resolves the spawn transform (the persisted
-   `<level>.character.<id>` location, else `Level.Spawn`), allocates the server mirror, binds it to a fresh
-   `Session`, and replies `JoinAccept { Level, SpawnTransform, PlayerEntity }`.
+   `<level>.character.<id>` location, else `Level.Spawn`), allocates the server mirror, seeds the server's
+   interaction context from `CharacterSeed`, binds it to a fresh `Session`, and replies
+   `JoinAccept { Level, SpawnTransform, PlayerEntity }`.
 3. It then streams the world as one `WorldEntityAdd { VoxelEntityData }` per structure (bounded per-entity,
    so no unbounded batch), followed by a `WorldStreamComplete`. The client builds a view entity for each
    arrival (mesh + a local prediction collider) on the ECS thread, and **only** transitions to `Playing` on
    `WorldStreamComplete` — which is what keeps `ClientReconcileSystem` (gated on `Playing`) inert until the
    world is fully streamed.
 4. The player is seated at the server-assigned spawn; the first authoritative transform snapshot seats it
-   and reconcile corrects from there. The client never authors `ServerOwned` state.
+   and reconcile corrects from there. The client never authors `ServerOwned` state. Because the context
+   components are `ServerOwned`, remote and late-joining clients receive the seeded
+   inventory/equipment/game-mode through the existing dirty + full-sync snapshot path.
 
 Alongside join, the save-listing menu is served by the server: `NewWorldRequest`, `ListWorldsRequest`,
 `DeleteWorldRequest`, and `SaveWorldRequest` (flush authoritative world) map to `WorldSaveService`
-operations, driven by a client `WorldsClient` that awaits responses the ECS thread completes. Characters
-remain client-owned (`characters` bucket, unchanged).
+operations, driven by a client `WorldsClient` that awaits responses the ECS thread completes.
 
-The server owns body construction, the initial transform, and world persistence. See
-[`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
+**Character ownership nuance:** the client's local `characters` bucket remains the client-owned
+**storage** (the source of the join-time seed), but the interaction-relevant context — inventory counts,
+equipment/active slot, game mode — is **server-owned after join** and replicated downstream. The client
+is authoritative only for its initial save; thereafter the server owns those components. This supersedes
+the earlier "inventory never leaves the client" claim and is part of the server-authoritative interaction
+initiative (see `NETWORK-VOXEL-EDITS.md`).
+
+The server owns body construction, the initial transform, world persistence, and interaction outcomes. See
+[`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md) and
+[`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md).
 
 ## Replication (dirty-driven)
 
@@ -299,11 +360,19 @@ The server owns body construction, the initial transform, and world persistence.
   `NetworkComponent`) flow through this same path each tick: their `TransformComponent` and
   `PhysicsComponent` are dirtied by the physics sync cycle, so the client snaps any drift in its own
   local prediction colliders against the authoritative structure state.
+- **Authoritative voxel edits.** The server is the sole author of voxel *content*. A validated
+  interaction is applied to the structure's voxel state server-side and broadcast to **all** clients as
+  a `VoxelEditMessage` delta (order preserved by the transport; see `NETWORK-VOXEL-EDITS.md`). The
+  origin client reconciles its presentation prediction against the broadcast; remote clients apply it
+  directly. Structures are marked dirty so the edit persists.
 
 ### Client → server
 
-`ClientReplicationSystem` (`Client.Core/Systems/`) iterates **dirty `ClientOwned`** components — today
-only `InputComponent` — and sends them up in a `WorldSnapshot`.
+`ClientReplicationSystem` (`Client.Core/Systems/`) iterates **dirty `ClientOwned`** components —
+`InputComponent` (continuous state) and `InteractionEvent` (discrete edges) — and sends them up in a
+`WorldSnapshot`. Discrete interaction taps are **latched** into a coalesced edge queue (mirroring the
+`PendingInputComponent` ring buffer) so a tap falling entirely in a send gap is still delivered on the
+next packet — lossless, only latency trades.
 
 ## Client prediction & reconciliation
 
@@ -330,8 +399,9 @@ These are gameplay-level bookkeeping for prediction. They are **not** a transpor
 
 ## Current gaps / known issues
 
-- **No voxel content mutation replication.** World/voxel **motion** is replicated, but editing
-  blocks across clients is out of scope.
+- **Non-interaction voxel content / AOI streaming.** Voxel **motion** replicates, and interaction-driven
+  voxel **content** edits replicate as `VoxelEditMessage` deltas (see `NETWORK-VOXEL-EDITS.md`); but
+  **chunked/AOI interest streaming and non-interaction world-content mutation remain out of scope**.
 - **Despawn uuids must be captured before `store.Free`.** Because `DataStore.Free` clears an entity's
   uuid, despawns are recorded explicitly (`NetworkReplicationSystem.RequestDespawn`) rather than read
   back after freeing. Wiring the disconnect path is done; world-switch despawns reuse this.
@@ -345,7 +415,7 @@ These are gameplay-level bookkeeping for prediction. They are **not** a transpor
 
 ## Direction
 
-The current initiative targets:
+The current initiatives target:
 
 1. Server-authoritative simulation (physics + movement) on the server world, with client prediction
    and reconciliation driven **per physics step**: the solver already fixed-steps at 0.016s
@@ -366,8 +436,16 @@ The current initiative targets:
    `characters` KV and build their view world from the stream.
 5. Per-type transport demux and transport selection as a DI decision; a dedicated executable stays a
    clean seam (server boot via module discovery), not a shipped launcher.
+6. **Server-authoritative interactions** (tracked in `NETWORK-VOXEL-EDITS.md`): the server is the sole
+   authority for player-interaction outcome. The interaction **context** (inventory, equipment, game
+   mode) is seeded to the server at join and server-owned thereafter; a **shared resolver** picks the
+   same interaction outcome on both sides; the client sends intent (`InteractionEvent`, an extensible
+   nullable-hint union) and predicts presentably while the server validates and applies; authoritative
+   voxel edits broadcast downstream as `VoxelEditMessage` and the client reconciles. Mods can
+   introduce/customize interactions **server-side only**.
 
-The plan is tracked in detail in [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md).
+The plans are tracked in detail in [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md) and
+[`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md).
 
 ## Persistence (adjacent, not transport)
 

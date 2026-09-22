@@ -167,8 +167,17 @@ numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Game
 `GameModeComponent` (`GameMode`) into `WaywardBeyond.Shared.Networking.Components`.
 - Convert to `public partial struct` + nsd messages in `Shared.Networking/CodeGen/components.nsd` with
   `[NetworkComponent(uuid, ServerOwned)]` → auto-registered (no `Injector` change).
-- Save the existing uuids for `InputComponent` (1) / `TransformComponent` (2) / `PhysicsComponent` (3)
-  / `BodyViewComponent` (10) / `IdentifierComponent` (11); assign new uuids for the three new ones.
+- **Reserved uuids** (continuing the existing allocation in `NETWORKING.md`; the sequence-gap at 4-9 and
+  grouping of 10-15 is intentional and stable):
+  - `InputComponent` = 1 (ClientOwned, existing)
+  - `TransformComponent` = 2 (ServerOwned, existing)
+  - `PhysicsComponent` = 3 (ServerOwned, existing)
+  - `BodyViewComponent` = 10 (ServerOwned, existing)
+  - `IdentifierComponent` = 11 (ServerOwned, existing)
+  - `EquipmentComponent` = **12** (ServerOwned, new)
+  - `InventoryComponent` = **13** (ServerOwned, new)
+  - `GameModeComponent` = **14** (ServerOwned, new)
+  - `InteractionEvent` = **15** (ClientOwned, Phase 3.2, new)
 - `ItemStack` ↔ nsd `ItemData` (ID/Count/MaxSize) mapping handled by the component codecs. `GameMode`
   enum already lives in `Shared.Data/CodeGen/saves.nsd`.
 - The moved structs must become `public` (the current `EquipmentComponent`/`InventoryComponent` are
@@ -218,7 +227,7 @@ Keep existing `PublicView` (Id/Name/Body) for remote rendering.
   negligible marginal bandwidth.
 
 ### 3.2 [S] Discrete edge message (extensible hint union)
-`[ ]` Add a new `ClientOwned` nsd message in components.nsd:
+`[ ]` Add a new `ClientOwned` nsd message (`InteractionEvent`, **uuid 15**) in components.nsd:
 ```
 message InteractionEvent
 {
