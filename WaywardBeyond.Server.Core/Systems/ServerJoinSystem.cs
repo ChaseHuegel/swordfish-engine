@@ -121,9 +121,13 @@ public sealed class ServerJoinSystem : IEntitySystem
         //  Relay the joining client's minimal public character view: the appearance index is replicated
         //  so remote clients can materialize this player, and the name rides on the reused
         //  IdentifierComponent (mirroring the client's local player). Inventory/attributes/statistics
-        //  never leave the client.
+        //  are not relayed for remote rendering.
         store.AddOrUpdate(entity, new BodyViewComponent { Body = request.PublicView.Body });
         store.AddOrUpdate(entity, new IdentifierComponent(request.PublicView.Name, tag: PlayerBodyConfig.PLAYER_TAG));
+
+        //  Seed the server-authoritative interaction context from the joining client's local save. The
+        //  client owns its initial save; from here the server owns these components and replicates them.
+        SeedInteractionContext(store, entity, request.Seed);
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
@@ -150,6 +154,19 @@ public sealed class ServerJoinSystem : IEntitySystem
         _hub.Send(clientId, new WorldStreamComplete { Dummy = 0 });
 
         _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterId, levelGuid, session.ID);
+    }
+
+    /// <summary>
+    /// Seeds the server-authoritative interaction context (inventory, active slot, game mode) from the
+    /// joining client's local save. The client owns its initial save; once seeded these are server-owned
+    /// and replicated to all clients. An older client omitting the seed yields the struct default, which
+    /// is a sane (empty/creative) context.
+    /// </summary>
+    private static void SeedInteractionContext(DataStore store, int entity, in CharacterSeed seed)
+    {
+        store.AddOrUpdate(entity, new InventoryComponent(seed.InventoryContents ?? []));
+        store.AddOrUpdate(entity, new EquipmentComponent(seed.ActiveInventorySlot));
+        store.AddOrUpdate(entity, new GameModeComponent((GameMode)seed.GameMode));
     }
 
     private void StreamWorld(Uuid clientId, DataStore store)

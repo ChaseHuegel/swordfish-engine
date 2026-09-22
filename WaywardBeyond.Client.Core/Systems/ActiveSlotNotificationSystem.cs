@@ -4,6 +4,8 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI;
+using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -37,7 +39,7 @@ internal class ActiveSlotNotificationSystem(
                 return;
             }
 
-            ItemStack activeStack = inventory.Contents.Length > Owner._lastActiveSlot ? inventory.Contents[Owner._lastActiveSlot] : ItemStack.Empty;
+            ItemData activeStack = Owner._lastActiveSlot < inventory.Contents.Length ? inventory.Contents[Owner._lastActiveSlot] : default;
             Result<Item> activeItemResult = Owner._itemDatabase.Get(activeStack.ID);
             if (activeItemResult.Success)
             {

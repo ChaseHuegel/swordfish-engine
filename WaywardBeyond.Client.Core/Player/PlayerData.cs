@@ -3,6 +3,8 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
+using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Player;
 
@@ -77,7 +79,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
             return Result<ItemSlot>.FromFailure($"No equipment found for player entity: {entity}");
         }
         
-        ItemStack itemStack = inventory.Contents[equipment.ActiveInventorySlot];
+        ItemData itemStack = inventory.Contents[equipment.ActiveInventorySlot];
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {

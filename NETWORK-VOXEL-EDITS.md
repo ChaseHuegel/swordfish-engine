@@ -146,7 +146,7 @@ This initiative replaces that with a model in which:
 **Goal:** one canonical, parity-guarded voxel container both sides can use.
 
 ### 1.1 [S] Relocate voxel container types
-`[ ]` Move `VoxelObject`, `ChunkData`, `ChunkVoxel`, `VoxelPalette`, `VoxelSample`, and `Short3`
+`[x]` Move `VoxelObject`, `ChunkData`, `ChunkVoxel`, `VoxelPalette`, `VoxelSample`, and `Short3`
 numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Gameplay`.
 - Re-point consumers: `VoxelEntityBuilder`, `VoxelObjectProcessor` (render passes), and the tests.
 - Keep `VoxelColliderParityTests`/`VoxelObjectTests` compiling against the moved type — they guard the
@@ -155,6 +155,10 @@ numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Game
   `VoxelEntityDataComponent.Chunks`.
 - **Acceptance:** `dotnet build` + `dotnet test WaywardBeyond.Client.Core.Tests` green with the shared
   container; no client-vs-server fork of voxel math.
+- **Done note:** the transitive closure required moving 11 types (also `VoxelExtensions`, `Orientation`,
+  `ShapeLight`, `Int3`, `BrickShape`). Namespaces were preserved to avoid consumer churn. Added
+  `VoxelObject.ChunkCount` for the client render processor's chunk-list capacity hint. Build + 8 voxel
+  tests green. Follow-up (out of phase): relocate namespaces out of `Client.Core.*` now reused in shared.
 
 ---
 
@@ -163,7 +167,7 @@ numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Game
 **Goal:** the server owns the interaction context as replicated, server-authored components.
 
 ### 2.1 [S] Move context components into Shared.Networking as nsd components
-`[ ]` Move `EquipmentComponent` (active slot), `InventoryComponent` (`ItemStack[]`),
+`[x]` Move `EquipmentComponent` (active slot), `InventoryComponent` (`ItemStack[]`),
 `GameModeComponent` (`GameMode`) into `WaywardBeyond.Shared.Networking.Components`.
 - Convert to `public partial struct` + nsd messages in `Shared.Networking/CodeGen/components.nsd` with
   `[NetworkComponent(uuid, ServerOwned)]` → auto-registered (no `Injector` change).
@@ -184,34 +188,53 @@ numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Game
   `internal`) so the server can author them.
 - **Acceptance:** build passes; client UI (hotbar, inventory, `PlayerViewModelSystem`,
   `ActiveSlotNotificationSystem`) reads the *migrated shared* components unchanged in behavior.
+- **Done note:** client `ItemStack` was replaced by shared `ItemData`; the inventory
+  `Add`/`Remove`/`Swap` logic relocated into the shared `InventoryComponent` partial (`+Stack` factory,
+  `+ItemData` handling). `GameModeComponent` carries an `int` on the wire (cross-namespace enum refs
+  don't serialize as enums in nsd codegen) and exposes `Mode` via the partial. `Shared.Networking` now
+  references `Shared.Data`. All consumers updated; full build + 8 Client.Core tests green.
 
 ### 2.2 [G] Extend character save with interaction-relevant fields
-`[ ]` Extend `Character` in `Shared.Data/CodeGen/saves.nsd` with `ActiveInventorySlot` and `GameMode`
+`[x]` Extend `Character` in `Shared.Data/CodeGen/saves.nsd` with `ActiveInventorySlot` and `GameMode`
 (optional, defaults for backward-compat saved characters).
 - Persist/load these in `CharacterSaveManager` + `NatsCharacterStorage` (`characters` bucket).
 - Replace the hardcoded `GameMode.Creative` at `PlayerCharacterEntityBuilder.cs:29` with the loaded
   value.
 - **Acceptance:** active slot and game mode round-trip through the client's character save; new
   characters default sanely.
+- **Done note:** absent-field defaults give backward-compat (old saves → slot 0 / Creative). New-character
+  creation and save both wired; `PlayerCharacterEntityBuilder` seeds `EquipmentComponent`/`GameModeComponent`
+  from the loaded character.
 
 ### 2.3 [S/G] Character seed sync at join (broaden appearance sync)
-`[ ]` Add a separate optional field to `JoinRequest` in `Shared.Data/CodeGen/world.nsd`:
+`[x]` Add a separate optional field to `JoinRequest` in `Shared.Data/CodeGen/world.nsd`:
 ```
-CharacterSeed CharacterSeed = <field#>;
+CharacterSeed Seed = 3;
 ```
 carrying the full authority seed (CharacterId, Name, Body, InventoryContents, ActiveSlot, GameMode).
-Keep existing `PublicView` (Id/Name/Body) for remote rendering.
+Keep existing `PublicView` (Id/Name/Body) for remote rendering. `CharacterSeed` also declares
+`ItemData[] InventoryContents` etc. Note: the seed is **non-nullable** — an older client omitting field
+ID 3 receives the struct default (empty inventory, slot 0, creative), which is exactly the desired
+backward-compat behavior, and it sidesteps an `nsdc` codegen defect (see below).
 - **Client** (`ClientJoinSystem.RequestJoin`): attach the seed from the loaded `Character`.
-- **Server** (`ServerJoinSystem.HandleJoin`, line 83-153): seed the context on the mirror —
-  `Server InventoryComponent`, `EquipmentComponent`, `GameModeComponent` — alongside the existing
-  `OwnedCharacterComponent` + `BodyViewComponent` + `IdentifierComponent`. Because all are
-  `ServerOwned`, remote clients receive full state via the existing dirty + full-sync
+- **Server** (`ServerJoinSystem.HandleJoin`): seed the context on the mirror via
+  `SeedInteractionContext` — `Server InventoryComponent`, `EquipmentComponent`, `GameModeComponent` —
+  alongside the existing `OwnedCharacterComponent` + `BodyViewComponent` + `IdentifierComponent`. Because
+  all are `ServerOwned`, remote clients receive full state via the existing dirty + full-sync
   (`CollectFullStateAction`) paths — **no replication-system edits**.
 - **Client reconcile** (`ClientReconcileSystem`): add the 3 new comps to the local-player
   authority-echo handling so the authority overwrites the seeded local state (client is not
-  authoritative post-join).
+  authoritative post-join). The generic ServerOwned apply already covers this once `Playing`.
 - **Acceptance:** a joining client seeds the server; remote/late-joining witnesses materialize the
   player with full equipment/inventory/game-mode through the standard snapshot path.
+- **Done note:** implemented + 6 new `Swordfish.Tests` codec/seed tests green. **`nsdc` codegen defect
+  discovered:** nullable **scalar** sub-messages emit a `Sub.Deserialize(buffer, start, len)` call from the
+  `Span<byte>`/`ReadOnlySpan<byte>` Unpack overloads that won't compile (`Span` → `byte[]`).
+  **Resolution (user decision):** do **not** work around it in the schema design — **nsdc will be upgraded
+  to a build where nullable scalar submessages compile**, and the Phase 3.2 `InteractionEvent` nullable-hint
+  union (locked decision 10) will be built as designed on top of it. `CharacterSeed` remains **non-nullable**
+  (not a workaround — a sensible design since the client always sends a seed; an older client omitting the
+  field yields the struct default, i.e. empty/creative seed).
 
 ---
 

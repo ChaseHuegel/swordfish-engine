@@ -6,6 +6,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
 

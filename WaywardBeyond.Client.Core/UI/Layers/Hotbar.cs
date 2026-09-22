@@ -18,6 +18,8 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
@@ -105,7 +107,7 @@ internal class Hotbar
 
             for (var slotIndex = 0; slotIndex < SLOT_COUNT; slotIndex++)
             {
-                ItemStack itemStack = inventory.Contents?.Length > slotIndex ? inventory.Contents[slotIndex] : default;
+                ItemData itemStack = inventory.Contents?.Length > slotIndex ? inventory.Contents[slotIndex] : default;
                 
                 //  Slot
                 using (ui.Element())

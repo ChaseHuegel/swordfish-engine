@@ -27,6 +27,7 @@ using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -228,13 +229,13 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
         {
-            if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent) && gameModeComponent.GameMode == GameMode.Creative)
+            if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent) && gameModeComponent.Mode == GameMode.Creative)
             {
                 //  If the player is in creative mode, don't give any resources
                 return;
             }
             
-            inventory.Write.Add(new ItemStack(brickInfoResult.Value.ID, maxSize: 100));
+            inventory.Write.Add(InventoryComponent.Stack(brickInfoResult.Value.ID, maxSize: 100));
         }
     }
 
@@ -269,7 +270,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
                 return;
             }
             
-            if (!store.TryGet(playerEntity, out GameModeComponent gameModeComponent) || gameModeComponent.GameMode != GameMode.Creative)
+            if (!store.TryGet(playerEntity, out GameModeComponent gameModeComponent) || gameModeComponent.Mode != GameMode.Creative)
             {
                 //  If the player isn't in creative mode, attempt to remove the resource
                 if (!inventory.Write.Remove(mainHand.Slot, 1))

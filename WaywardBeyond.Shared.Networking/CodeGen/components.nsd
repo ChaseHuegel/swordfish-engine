@@ -23,3 +23,18 @@ message IdentifierMessage
     string Name = 0;
     string Tag  = 1;
 }
+
+message EquipmentComponent
+{
+    int ActiveInventorySlot = 0;
+}
+
+message InventoryComponent
+{
+    WaywardBeyond.Shared.Data.ItemData[] Contents = 0;
+}
+
+message GameModeComponent
+{
+    int Value = 0;
+}

@@ -538,6 +538,8 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _education,
                     _resolve,
                     _Body: _characterMaterialIndex,
+                    _ActiveInventorySlot: 0,
+                    _GameMode: GameMode.Creative,
                     _Statistics: null,
                     _Inventory: null
                 );

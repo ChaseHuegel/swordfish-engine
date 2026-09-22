@@ -15,6 +15,8 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
@@ -135,8 +137,8 @@ internal class Inventory : IUILayer
         Material? draggedSlotIcon = null;
         string? draggedSlotText = null;
         
-        ItemStack dragItemStack = inventory.Contents[_draggingSlot];
-        ItemStack selectedItemStack = _selectedSlot != -1 ? inventory.Contents[_selectedSlot] : ItemStack.Empty;
+        ItemData dragItemStack = inventory.Contents[_draggingSlot];
+        ItemData selectedItemStack = _selectedSlot != -1 ? inventory.Contents[_selectedSlot] : default;
         bool isDragSlotEmpty = dragItemStack.Count <= 0;
         
         if (_dragging && (!leftHeld || isDragSlotEmpty))
@@ -153,7 +155,7 @@ internal class Inventory : IUILayer
                     if (dragItemStack.ID == selectedItemStack.ID)
                     {
                         int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-                        Result<ItemStack> content = inventory.Remove(_draggingSlot, available);
+                        Result<ItemData> content = inventory.Remove(_draggingSlot, available);
                         if (content.Success)
                         {
                             if (!inventory.Add(_selectedSlot, content))
@@ -198,7 +200,7 @@ internal class Inventory : IUILayer
                     for (var slotIndex = 0; slotIndex < SLOTS_PER_ROW; slotIndex++)
                     {
                         int inventorySlot = rowIndex * SLOTS_PER_ROW + slotIndex;
-                        ItemStack itemStack = inventory.Contents?.Length > inventorySlot ? inventory.Contents[inventorySlot] : default;
+                        ItemData itemStack = inventory.Contents?.Length > inventorySlot ? inventory.Contents[inventorySlot] : default;
 
                         //  Slot
                         using (ui.Element())
@@ -258,7 +260,7 @@ internal class Inventory : IUILayer
                                 {
                                     _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                     {
-                                        Result<ItemStack> content = inventory.Remove(_draggingSlot, 1);
+                                        Result<ItemData> content = inventory.Remove(_draggingSlot, 1);
                                         if (content.Success)
                                         {
                                             if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
@@ -279,7 +281,7 @@ internal class Inventory : IUILayer
                                     
                                     _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                     {
-                                        Result<ItemStack> content = inventory.Remove(sourceSlot, amount);
+                                        Result<ItemData> content = inventory.Remove(sourceSlot, amount);
                                         if (content.Success)
                                         {
                                             if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
@@ -337,7 +339,7 @@ internal class Inventory : IUILayer
                                     {
                                         _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                         {
-                                            Result<ItemStack> content = inventory.Remove(inventorySlot);
+                                            Result<ItemData> content = inventory.Remove(inventorySlot);
                                             if (content.Success)
                                             {
                                                 int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
@@ -353,7 +355,7 @@ internal class Inventory : IUILayer
                                     {
                                         _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
                                         {
-                                            Result<ItemStack> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
+                                            Result<ItemData> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
                                             if (content.Success)
                                             {
                                                 if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))

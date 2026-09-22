@@ -6,6 +6,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
@@ -91,8 +92,17 @@ internal sealed class CharacterSaveManager
             character.Inventory = new ItemData[inventoryComponent.Contents.Length];
             for (var i = 0; i < inventoryComponent.Contents.Length; i++)
             {
-                ItemStack itemStack = inventoryComponent.Contents[i];
-                character.Inventory[i] = new ItemData { ID = itemStack.ID, Count = itemStack.Count, MaxSize = itemStack.MaxSize };
+                character.Inventory[i] = inventoryComponent.Contents[i];
+            }
+
+            if (store.TryGet(entity, out EquipmentComponent equipment))
+            {
+                character.ActiveInventorySlot = equipment.ActiveInventorySlot;
+            }
+
+            if (store.TryGet(entity, out GameModeComponent gameMode))
+            {
+                character.GameMode = gameMode.Mode;
             }
         }
 

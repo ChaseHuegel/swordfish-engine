@@ -69,15 +69,25 @@ internal sealed class ClientJoinSystem : IEntitySystem
         if (_request != null && !_sent)
         {
             JoinRequestData pending = _request.Value;
+            Character character = pending.Character;
             _transport.Send(new JoinRequest
             {
                 LevelGuid = pending.LevelGuid,
-                CharacterId = pending.Character.Id,
+                CharacterId = character.Id,
                 PublicView = new PublicView
                 {
-                    CharacterId = pending.Character.Id,
-                    Name = pending.Character.Name,
-                    Body = pending.Character.Body,
+                    CharacterId = character.Id,
+                    Name = character.Name,
+                    Body = character.Body,
+                },
+                Seed = new CharacterSeed
+                {
+                    CharacterId = character.Id,
+                    Name = character.Name,
+                    Body = character.Body,
+                    InventoryContents = character.Inventory ?? [],
+                    ActiveInventorySlot = character.ActiveInventorySlot,
+                    GameMode = (int)character.GameMode,
                 },
             });
             _sent = true;
