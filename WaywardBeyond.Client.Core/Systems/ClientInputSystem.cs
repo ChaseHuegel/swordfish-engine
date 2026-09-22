@@ -20,6 +20,7 @@ internal sealed class ClientInputSystem : IEntitySystem
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _sequenceNumber;
+    private uint _interactionSequence;
 
     //  Running absolute look totals in radians. The wire carries these totals and the shared step applies
     //  the per-sim-tick difference, so no input is dropped regardless of sampling vs physics cadence.
@@ -82,6 +83,47 @@ internal sealed class ClientInputSystem : IEntitySystem
 
         CollectInputAction collectInput = new() { Input = input };
         store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
+
+        InteractionKind edge = GetInteractionEdge(inputEnabled);
+        if (edge != InteractionKind.None)
+        {
+            var interaction = new InteractionEvent
+            {
+                SequenceNumber = ++_interactionSequence,
+                ServerTickAtSample = input.ServerTickAtSample,
+                Kind = (byte)edge,
+                Brick = null,
+            };
+            CollectInteractionAction collectInteraction = new() { Interaction = interaction };
+            store.Query<PlayerComponent, CollectInteractionAction>(0f, ref collectInteraction);
+        }
+    }
+
+    private InteractionKind GetInteractionEdge(bool inputEnabled)
+    {
+        if (!inputEnabled)
+        {
+            return InteractionKind.None;
+        }
+
+        //  Press edges win over released edges of the same gap so a quick click forwards as the action.
+        if (_inputService.IsMousePressed(MouseButton.Left))
+        {
+            return InteractionKind.PrimaryPressed;
+        }
+        if (_inputService.IsMousePressed(MouseButton.Right))
+        {
+            return InteractionKind.SecondaryPressed;
+        }
+        if (_inputService.IsMouseReleased(MouseButton.Left))
+        {
+            return InteractionKind.PrimaryReleased;
+        }
+        if (_inputService.IsMouseReleased(MouseButton.Right))
+        {
+            return InteractionKind.SecondaryReleased;
+        }
+        return InteractionKind.None;
     }
 
     private struct CollectContextAction : IForEach<PlayerComponent, EquipmentComponent>
@@ -96,6 +138,23 @@ internal sealed class ClientInputSystem : IEntitySystem
             {
                 HeldSlot = (uint)equipment.ActiveInventorySlot;
             }
+        }
+    }
+
+    /// <summary>
+    /// Latch a discrete interaction edge onto the local player entity. The component stays dirty until
+    /// <see cref="ClientReplicationSystem"/> publishes it, so a tap landing in a throttled send gap is
+    /// still delivered on the next packet — lossless, latency only.
+    /// </summary>
+    private struct CollectInteractionAction : IForEach<PlayerComponent>
+    {
+        public InteractionEvent Interaction;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
+        {
+            InteractionEvent interaction = Interaction;
+            interaction.Entity = store.GetUuid(entity).ToValue();
+            store.AddOrUpdate(entity, interaction);
         }
     }
 

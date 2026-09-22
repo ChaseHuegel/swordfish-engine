@@ -102,6 +102,76 @@ public class NetworkComponentCodecTests
     }
 
     [Fact]
+    public void InitializeRegistersInteractionEventComponent()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
+        Assert.True(NetworkRegistry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info));
+        Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
+    }
+
+    [Fact]
+    public void InteractionEventCodecRoundTripsHint()
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new InteractionEvent
+        {
+            Entity = 0x1234,
+            SequenceNumber = 11,
+            ServerTickAtSample = 9,
+            Kind = (byte)InteractionKind.SecondaryPressed,
+            Brick = new BrickInteraction { TargetX = -2, TargetY = 5, TargetZ = 1, HintShape = 3, HintOrientation = 4 },
+        });
+
+        var codec = new NsdComponentCodec<InteractionEvent>();
+        byte[] payload = codec.Serialize(store, entity);
+        Assert.NotEmpty(payload);
+
+        var output = new DataStore();
+        int outputEntity = output.Alloc();
+        codec.Apply(output, outputEntity, payload);
+
+        Assert.True(output.TryGet(outputEntity, out InteractionEvent result));
+        Assert.Equal(0x1234UL, result.Entity);
+        Assert.Equal(11u, result.SequenceNumber);
+        Assert.Equal(9u, result.ServerTickAtSample);
+        Assert.Equal((byte)InteractionKind.SecondaryPressed, result.Kind);
+        Assert.NotNull(result.Brick);
+        Assert.Equal(-2, result.Brick.Value.TargetX);
+        Assert.Equal(5, result.Brick.Value.TargetY);
+        Assert.Equal(1, result.Brick.Value.TargetZ);
+        Assert.Equal(3, result.Brick.Value.HintShape);
+        Assert.Equal(4, result.Brick.Value.HintOrientation);
+    }
+
+    [Fact]
+    public void InteractionEventCodecRoundTripsHintless()
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new InteractionEvent
+        {
+            Entity = 0x1111,
+            SequenceNumber = 12,
+            ServerTickAtSample = 10,
+            Kind = (byte)InteractionKind.PrimaryReleased,
+            Brick = null,
+        });
+
+        var codec = new NsdComponentCodec<InteractionEvent>();
+        byte[] payload = codec.Serialize(store, entity);
+
+        var output = new DataStore();
+        int outputEntity = output.Alloc();
+        codec.Apply(output, outputEntity, payload);
+
+        Assert.True(output.TryGet(outputEntity, out InteractionEvent result));
+        Assert.False(result.Brick.HasValue);
+        Assert.Equal((byte)InteractionKind.PrimaryReleased, result.Kind);
+    }
+
+    [Fact]
     public void WorldSnapshotRoundTripsComponentSnapshots()
     {
         var snapshot = new WorldSnapshot

@@ -41,3 +41,21 @@ message GameModeComponent
 {
     int Value = 0;
 }
+
+message InteractionEvent
+{
+    ulong Entity              = 0;
+    uint  SequenceNumber      = 1;
+    uint  ServerTickAtSample  = 2;
+    byte  Kind                = 3;
+    BrickInteraction? Brick   = 4;
+}
+
+message BrickInteraction
+{
+    int  TargetX = 0;
+    int  TargetY = 1;
+    int  TargetZ = 2;
+    byte HintShape = 3;
+    byte HintOrientation = 4;
+}

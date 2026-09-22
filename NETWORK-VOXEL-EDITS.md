@@ -255,7 +255,7 @@ backward-compat behavior, and it sidesteps an `nsdc` codegen defect (see below).
   failing `VirtualFileSystemTests` are pre-existing/environmental).
 
 ### 3.2 [S] Discrete edge message (extensible hint union)
-`[ ]` Add a new `ClientOwned` nsd message (`InteractionEvent`, **uuid 15**) in components.nsd:
+`[x]` Add a new `ClientOwned` nsd message (`InteractionEvent`, **uuid 15**) in components.nsd:
 ```
 message InteractionEvent
 {
@@ -288,6 +288,15 @@ message BrickInteraction
 - Because it is a `ClientOwned` component, `ClientReplicationSystem` (lines 53-69) auto-publishes it.
 - **Acceptance:** discrete press/release edges are lossless across a dropped frame; deduplicated by
   `SequenceNumber`; a hint-less event round-trips and resolves to `Action.None`.
+- **Done note:** `InteractionEvent` (uuid 15, `ClientOwned`) + `BrickInteraction` added to components.nsd
+  with the exact locked schema — nullable-hint pseudo-union, `Kind` (byte, via `InteractionKind` enum)
+  at root. **`nsdc` upgraded to 1.3.2**, which emits compileable `Span`/`ReadOnlySpan` overloads for
+  nullable scalar sub-messages (the Phase 2.3 defect is now fixed, enabling locked decision 10). Client
+  `ClientInputSystem` latches a coalesced edge per frame into the player's dirty `InteractionEvent`
+  component (press edges win over released edges of the same gap) so `ClientReplicationSystem`
+  auto-publishes it; the latch keeps a tap in a throttled send gap lossless. 3 new
+  `Swordfish.Tests` codec tests (register + hint-ful + hint-less round-trip) green; 8 Client.Core tests
+  green.
 
 ### 3.3 [S] Server staging of interaction events
 `[ ]` Extend `NetworkReplicationSystem.ApplyComponent` (the `InputComponent` branch, lines 177-199) to
