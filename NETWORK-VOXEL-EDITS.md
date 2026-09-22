@@ -445,11 +445,24 @@ apply path** as the server (`VoxelObject.Set` + `VoxelEntityBuilder.Rebuild`):
 ## Phase 6 — Server modding API (the payoff)
 
 ### 6.1 [G] Expose the interaction resolution hook
-`[ ]` Wrap `ServerInteractionSystem`'s resolution as a **public, server-side mod API**: mods register
+`[x]` Wrap `ServerInteractionSystem`'s resolution as a **public, server-side mod API**: mods register
 handlers keyed on `(interaction kind, held item, game mode, cell context)` that run after base
 validation and may reject/augment/override the action — entirely server-side, no client mod.
 - **Acceptance:** a server-only mod can add/customize an interaction without any client-side change;
   documented example in-tree.
+- **Done note:** added the shared mod API in `Shared.Gameplay/Interactions`:
+  `IInteractionHandler` (+ `InteractionHandlerFilter`, a key on `InteractionKind?`/`HeldItemID?`/`GameMode?`,
+  null = match-any), `InteractionContext` (the immutable cell/request/base-resolution facts handed to a
+  handler), and `IInteractionHandlerRegistry`/`InteractionHandlerRegistry` (mods `Register` handlers; the
+  server resolves through it). A handler returns `InteractionResolution.None` to **reject**, the context's
+  base resolution to **allow**, or a different resolution to **override/augment**; matching handlers run
+  in registration order and the last non-reject wins. `ServerInteractionSystem` builds the shared
+  `InteractionRequest`, resolves the base outcome as before, then routes it through the registry before
+  applying (rebuild collider/re-derive chunks/broadcast). The registry is a DI singleton registered in
+  `ServerComposition` and injected via `ServerContext`, so any server mod can register handlers. 8 new
+  `Swordfish.Tests`: 6 registry (reject, override, filter kind/item/mode, registration-order override,
+  cell context), 2 server-integration (handler rejects an applied break leaving the world untouched;
+  handler rewrites a break into a place). Full build + 13 Client.Core tests green.
 
 ---
 
