@@ -98,6 +98,31 @@ public static class SharedInteractionResolver
     }
 
     /// <summary>
+    /// Resolves the target cell a given ray points at, using the same targeting the resolver internally
+    /// applies. The client calls this to build its <see cref="BrickInteraction"/> hint from the shared
+    /// code (so prediction and authority derive the same cell from the same ray); the resolver's
+    /// validation then re-derives the cell and checks it matches the hint. Returns the brick-space cell
+    /// without validating reach/occupancy — that is the resolver's job.
+    /// </summary>
+    public static bool TryResolveTargetCell(
+        in Ray ray,
+        bool offset,
+        bool reachAround,
+        float reach,
+        in IVoxelInteractionWorld world,
+        out Int3 coordinate
+    ) {
+        if (!TryResolveTarget(ray, offset, reachAround, reach, world, out InteractionTarget target))
+        {
+            coordinate = default;
+            return false;
+        }
+
+        coordinate = target.Coordinate;
+        return true;
+    }
+
+    /// <summary>
     /// Ports the client's screen-space brick targeting onto a raw world ray: raycast against the world,
     /// map the hit point into the structure's brick space, bias toward the surface (or, for placement,
     /// the adjacent empty cell), reach-around when the center ray misses, and march back along the normal

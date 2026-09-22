@@ -14,6 +14,7 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Debug;
@@ -26,7 +27,9 @@ using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
+using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;
@@ -66,6 +69,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly SoundEffectService _soundEffectService;
     private readonly EventInvoker<PlaceEvent> _placeEvent;
     private readonly EventInvoker<BreakEvent> _breakEvent;
+    private readonly IInteractionContent _content;
+    private readonly SnapshotAckTracker _snapshotAck;
+
+    private uint _interactionSequence;
 
     private DebugInfo _debugInfo;
 
@@ -86,7 +93,9 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         in IShortcutService shortcutService,
         in SoundEffectService soundEffectService,
         in EventInvoker<PlaceEvent> placeEvent,
-        in EventInvoker<BreakEvent> breakEvent
+        in EventInvoker<BreakEvent> breakEvent,
+        in IInteractionContent content,
+        in SnapshotAckTracker snapshotAck
     ) {
         _interactionState = interactionState;
         _inputService = inputService;
@@ -103,6 +112,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
         _soundEffectService = soundEffectService;
         _placeEvent = placeEvent;
         _breakEvent = breakEvent;
+        _content = content;
+        _snapshotAck = snapshotAck;
 
         Mesh slope = meshDatabase.Get("slope.obj").Value;
         Mesh stair = meshDatabase.Get("stair.obj").Value;
@@ -193,110 +204,154 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
 
     private void OnLeftClick()
     {
-        if (!TryGetBrickFromScreenSpace(false, true, out Entity clickedEntity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent))
-        {
-            return;
-        }
-        
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
-        if (!brickInfoResult.Success)
-        {
-            return;
-        }
-        
-        var breakEvent = new BreakEvent(brickInfoResult.Value);
-        Result breakEventResult = _breakEvent.Invoke(breakEvent);
-        if (!breakEventResult.Success)
-        {
-            //  Break was canceled
-            return;
-        }
-        
-        voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, new Voxel());
-        _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
-        
-        if (brickInfoResult.Value.Tags.Contains("environment"))
-        {
-            _soundEffectService.PlayRemoveRock();
-        }
-        else
-        {
-            _soundEffectService.PlayRemoveMetal();
-        }
-        
-        _ecsContext.World.DataStore.QueryRef<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
-        return;
-
-        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
-        {
-            if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent) && gameModeComponent.Mode == GameMode.Creative)
-            {
-                //  If the player is in creative mode, don't give any resources
-                return;
-            }
-            
-            inventory.Write.Add(InventoryComponent.Stack(brickInfoResult.Value.ID, maxSize: 100));
-        }
+        AttemptVoxelInteraction(InteractionKind.PrimaryPressed);
     }
 
     private void OnRightClick()
     {
-        if (!TryGetBrickFromScreenSpace(offset: true, reachAround: true, out Entity clickedEntity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint))
+        AttemptVoxelInteraction(InteractionKind.SecondaryPressed);
+    }
+
+    /// <summary>
+    /// Refactors the old client-authoritative interaction into intent + prediction: the client derives the
+    /// target cell with the same shared resolver the server uses, predicts the outcome onto its
+    /// presentation-only voxel container, records the prediction for reconcile, and sends the edge event
+    /// (with its hint) upstream for the server to validate and author. The server owns inventory
+    /// consumption/loot, so nothing here mutates the client inventory.
+    /// </summary>
+    private void AttemptVoxelInteraction(InteractionKind kind)
+    {
+        if (WaywardBeyond.GameState != GameState.Playing || _interactionState.IsInteractionBlocked())
         {
             return;
         }
 
-        _ecsContext.World.DataStore.QueryRef<PlayerComponent, InventoryComponent>(0f, TryConsumeItemQuery);
-        void TryConsumeItemQuery(float delta, DataStore store, int playerEntity, ref Ref<PlayerComponent> player, ref Ref<InventoryComponent> inventory)
+        DataStore store = _ecsContext.World.DataStore;
+        bool isPlace = kind == InteractionKind.SecondaryPressed;
+
+        int playerEntity = -1;
+        store.Query<PlayerComponent>(0f, (float _, DataStore s, int e, in PlayerComponent playerComponent) => playerEntity = e);
+        if (playerEntity < 0)
         {
-            Result<ItemSlot> mainHandResult = _playerData.GetMainHand(store, playerEntity, inventory.Read);
-            if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
+            return;
+        }
+
+        GameMode mode = GameMode.Creative;
+        if (store.TryGet(playerEntity, out GameModeComponent gameModeComponent))
+        {
+            mode = gameModeComponent.Mode;
+        }
+
+        string? heldItemID = GetHeldItemID(store, playerEntity);
+        PlaceableBrick? placeable = null;
+        if (isPlace && heldItemID != null && _content.TryGetPlaceable(heldItemID, out PlaceableBrick contentPlaceable))
+        {
+            placeable = contentPlaceable;
+        }
+
+        if (!TryBuildCenterRay(out Ray centerRay))
+        {
+            return;
+        }
+
+        var world = new ClientVoxelInteractionWorld(store, _physics);
+        if (!SharedInteractionResolver.TryResolveTargetCell(centerRay, offset: isPlace, reachAround: true, SharedInteractionResolver.DEFAULT_REACH, world, out Int3 coordinate))
+        {
+            return;
+        }
+
+        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, centerRay, store, coordinate);
+
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(centerRay, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        if (resolution.Action == InteractionAction.None)
+        {
+            return;
+        }
+
+        //  Presentation hooks (ghost/SFX) fire before the prediction; a cancel skips the local prediction
+        //  (the server still validates the sent intent). Unconsumed inventory is the server's job.
+        if (!FirePresentationHook(in resolution, kind))
+        {
+            return;
+        }
+
+        ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
+    }
+
+    private bool TryBuildCenterRay(out Ray centerRay)
+    {
+        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
+        centerRay = cameraEntity.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
+        return true;
+    }
+
+    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, in Ray ray, DataStore store, Int3 coordinate)
+    {
+        byte hintShape = 0;
+        byte hintOrientation = 0;
+
+        if (isPlace && placeable != null)
+        {
+            BrickShape shape = placeable.Value.Shapeable ? _interactionState.SelectedShape.Get() : placeable.Value.Shape;
+            hintShape = (byte)shape;
+            hintOrientation = TryResolvePlacementOrientation(store, ray, coordinate);
+        }
+
+        return new BrickInteraction
+        {
+            TargetX = coordinate.X,
+            TargetY = coordinate.Y,
+            TargetZ = coordinate.Z,
+            HintShape = hintShape,
+            HintOrientation = hintOrientation,
+        };
+    }
+
+    private byte TryResolvePlacementOrientation(DataStore store, in Ray ray, Int3 brickCoordinate)
+    {
+        RaycastResult raycast = _physics.Raycast(ray);
+        if (!raycast.Hit || !store.TryGet(raycast.Entity.Ptr, out TransformComponent transform))
+        {
+            return 0;
+        }
+
+        Vector3 worldPos = SharedInteractionResolver.BrickToWorldSpace(brickCoordinate, transform.Position, transform.Orientation);
+        Orientation orientation = GetPlacementLocalOrientation(transform, raycast.Point, worldPos);
+        return orientation.ToByte();
+    }
+
+    private bool FirePresentationHook(in InteractionResolution resolution, InteractionKind kind)
+    {
+        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(resolution.Voxel.ID);
+        if (!brickInfoResult.Success)
+        {
+            return true;
+        }
+
+        if (kind == InteractionKind.PrimaryPressed)
+        {
+            if (!_breakEvent.Invoke(new BreakEvent(brickInfoResult.Value)).Success)
             {
-                return;
+                return false;
             }
 
-            ItemSlot mainHand = mainHandResult.Value;
-            Item item = mainHand.Item;
-            PlaceableDefinition placeable = item.Placeable.Value;
-
-            if (placeable.Type != PlaceableType.Brick)
+            if (brickInfoResult.Value.Tags.Contains("environment"))
             {
-                return;
+                _soundEffectService.PlayRemoveRock();
+            }
+            else
+            {
+                _soundEffectService.PlayRemoveMetal();
+            }
+        }
+        else
+        {
+            if (!_placeEvent.Invoke(new PlaceEvent(brickInfoResult.Value)).Success)
+            {
+                return false;
             }
 
-            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
-            if (!brickInfoResult.Success)
-            {
-                return;
-            }
-            
-            if (!store.TryGet(playerEntity, out GameModeComponent gameModeComponent) || gameModeComponent.Mode != GameMode.Creative)
-            {
-                //  If the player isn't in creative mode, attempt to remove the resource
-                if (!inventory.Write.Remove(mainHand.Slot, 1))
-                {
-                    return;
-                }
-            }
-
-            BrickInfo brickInfo = brickInfoResult.Value;
-
-            var placeEvent = new PlaceEvent(brickInfo);
-            Result placeEventResult = _placeEvent.Invoke(placeEvent);
-            if (!placeEventResult.Success)
-            {
-                //  Place was canceled
-                return;
-            }
-            
-            //  If this brick is shapeable, use the selected shape.
-            BrickShape shape = brickInfo.Shapeable ? _interactionState.SelectedShape.Get() : brickInfo.Shape;
-            
-            //  If the selected shape is orientable for the brick, apply orientation.
-            Vector3 worldPos = BrickToWorldSpace(brickPos, transformComponent.Position, transformComponent.Orientation);
-            Orientation orientation = brickInfo.IsOrientable(shape) ? GetPlacementLocalOrientation(transformComponent, clickedPoint, worldPos) : Orientation.Identity;
-
-            if (brickInfo.Tags.Contains("environment"))
+            if (brickInfoResult.Value.Tags.Contains("environment"))
             {
                 _soundEffectService.PlayPlaceRock();
             }
@@ -304,13 +359,74 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             {
                 _soundEffectService.PlayPlaceMetal();
             }
-            
-            var voxel = brickInfo.ToVoxel(shape, orientation);
-            voxelComponent.VoxelObject.Set(brickPos.X, brickPos.Y, brickPos.Z, voxel);
-            _ecsContext.World.DataStore.MarkDirty<VoxelComponent>(clickedEntity.Ptr);
-            
-            _voxelEntityBuilder.Rebuild(clickedEntity.Ptr);
         }
+
+        return true;
+    }
+
+    private void ApplyVoxelPrediction(DataStore store, int playerEntity, InteractionKind kind, in InteractionResolution resolution, in BrickInteraction hint)
+    {
+        if (!store.TryGet(resolution.Entity, out VoxelComponent voxelComponent))
+        {
+            return;
+        }
+
+        VoxelObject voxelObject = voxelComponent.VoxelObject;
+        Int3 coordinate = resolution.Coordinate;
+        Voxel original = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+
+        //  Breaking writes an empty voxel; placing writes the resolved placed brick - the same voxel the
+        //  server authoritatively writes, so a confirm-match reconciles to a no-op.
+        Voxel predicted = kind == InteractionKind.PrimaryPressed ? new Voxel() : resolution.Voxel;
+
+        //  Predict the authoritative outcome onto the presentation-only voxel container. The reconcile
+        //  system confirms, snaps, or reverts this against the server's authoritative VoxelEditMessage.
+        voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, predicted);
+        store.MarkDirty<VoxelComponent>(resolution.Entity);
+        _voxelEntityBuilder.Rebuild(resolution.Entity);
+
+        PendingInteractionComponent pending = GetOrCreatePending(store, playerEntity);
+        uint sequence = ++_interactionSequence;
+        uint serverTickAtSample = _snapshotAck.LastAppliedSnapshotTick;
+        pending.Queue.Register(resolution.Entity, coordinate, original, predicted, sequence, serverTickAtSample);
+        store.AddOrUpdate(playerEntity, pending);
+
+        var interaction = new InteractionEvent
+        {
+            Entity = store.GetUuid(playerEntity).ToValue(),
+            SequenceNumber = sequence,
+            ServerTickAtSample = serverTickAtSample,
+            Kind = (byte)kind,
+            Brick = hint,
+        };
+        store.AddOrUpdate(playerEntity, interaction);
+    }
+
+    private static PendingInteractionComponent GetOrCreatePending(DataStore store, int playerEntity)
+    {
+        if (store.TryGet(playerEntity, out PendingInteractionComponent existing) && existing.Queue != null)
+        {
+            return existing;
+        }
+
+        return new PendingInteractionComponent(new PendingInteractionQueue());
+    }
+
+    private static string? GetHeldItemID(DataStore store, int playerEntity)
+    {
+        if (!store.TryGet(playerEntity, out EquipmentComponent equipment) ||
+            !store.TryGet(playerEntity, out InventoryComponent inventory))
+        {
+            return null;
+        }
+
+        int slot = equipment.ActiveInventorySlot;
+        if (slot < 0 || slot >= inventory.Contents.Length)
+        {
+            return null;
+        }
+
+        return inventory.Contents[slot].ID;
     }
     
     private void OnMiddleClick()
