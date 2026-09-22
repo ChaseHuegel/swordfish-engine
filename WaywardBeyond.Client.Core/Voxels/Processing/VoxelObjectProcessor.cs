@@ -67,7 +67,7 @@ internal sealed class VoxelObjectProcessor
     private int PrePass(VoxelObject voxelObject)
     {
         var passes = 0;
-        var chunksToProcess = new List<ChunkData>(voxelObject._chunks.Count);
+        var chunksToProcess = new List<ChunkData>(voxelObject.ChunkCount);
         
         //  Run voxel pre-pass
         if (_voxelPasses.TryGetValue(Stage.PrePass, out List<IVoxelPass>? voxelPasses))
@@ -146,7 +146,7 @@ internal sealed class VoxelObjectProcessor
     private int PostPass(VoxelObject voxelObject)
     {
         var passes = 0;
-        var chunksToProcess = new List<ChunkData>(voxelObject._chunks.Count);
+        var chunksToProcess = new List<ChunkData>(voxelObject.ChunkCount);
         
         //  Run voxel post-pass
         if (_voxelPasses.TryGetValue(Stage.PostPass, out List<IVoxelPass>? voxelPasses))

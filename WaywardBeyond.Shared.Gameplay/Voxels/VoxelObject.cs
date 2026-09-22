@@ -62,6 +62,9 @@ public sealed class VoxelObject : IDisposable
         _lock.Dispose();
     }
     
+    /// <summary>Number of resident chunks, for sizing containers without touching internals.</summary>
+    public int ChunkCount => _chunks.Count;
+    
     public void Set(int x, int y, int z, Voxel voxel)
     {
         _lock.EnterWriteLock();
