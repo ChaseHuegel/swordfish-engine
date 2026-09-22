@@ -375,11 +375,23 @@ output: { Action None | Break | Place, coordinate, voxel }
   (item consumed, voxel written), creative free on both, and hint-less/rejected no-op + consumed-once.
 
 ### 4.3 [S/G] Authoritative voxel edit replication
-`[ ]` New nsd message `VoxelEditMessage { ulong EntityUuid; int X, Y, Z; Voxel Voxel }` broadcast by
+`[x]` New nsd message `VoxelEditMessage { ulong EntityUuid; int X, Y, Z; Voxel Voxel }` broadcast by
 the server to **all** clients when an edit is applied.
 - Applyed by both the origin client and remote clients.
 - **Acceptance:** server edit → all clients receive the delta and apply it; structure save reflects the
   edit.
+- **Done note:** `VoxelEditMessage` added to `Shared.Networking/CodeGen/network.nsd` (cross-namespace
+  `WaywardBeyond.Shared.Data.Voxel`, like `InventoryComponent.Contents`), serializer registered in the
+  client injector so the shared in-process transport sends/receives it. `ServerInteractionSystem` now
+  takes the `ServerConnectionHub` and broadcasts every applied edit to all connected clients after the
+  authority apply (voxel set + collider rebuild + chunks re-derived). New `ClientVoxelEditSystem`
+  (registered as an `IEntitySystem`) receives `VoxelEditMessage`s on the ECS thread and applies them
+  through the shared `VoxelObject.Set` + `VoxelEntityBuilder.Rebuild` path, gated on
+  `GameState.Playing` (builder resolved lazily on the ECS thread to avoid the client-store recursing
+  during container build). Tests: `AppliedEditIsBroadcastToEveryClient` proves the server broadcast →
+  `LocalConnection` client receive round-trip over the wire; `ClientVoxelEditSystemTests` (NUnit, in
+  `WaywardBeyond.Client.Core.Tests`) proves the client applies the delta to its view voxel container and
+  that edits are ignored until `Playing` (then the queued envelope applies).
 
 ---
 

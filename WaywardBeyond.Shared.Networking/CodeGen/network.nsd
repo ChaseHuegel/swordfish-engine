@@ -40,6 +40,15 @@ message PhysicsMessage
     float AngularVelocityZ   = 5;
 }
 
+message VoxelEditMessage
+{
+    ulong EntityUuid = 0;
+    int X = 1;
+    int Y = 2;
+    int Z = 3;
+    WaywardBeyond.Shared.Data.Voxel Voxel = 4;
+}
+
 message LanBeacon
 {
     string ServerName    = 0;

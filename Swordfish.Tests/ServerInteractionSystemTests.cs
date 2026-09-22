@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
@@ -9,7 +10,10 @@ using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Serialization;
+using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -35,7 +39,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
         var physics = new StubPhysics();
-        ServerInteractionSystem system = new(physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -67,7 +71,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
 
         var physics = new StubPhysics();
-        ServerInteractionSystem system = new(physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -91,7 +95,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
         var physics = new StubPhysics();
-        ServerInteractionSystem system = new(physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         //  Tick once for each interaction (they share a sequence space; stagger sequences).
         system.Tick(0f, store, simTick: 100);
@@ -114,7 +118,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: null);
 
         var physics = new StubPhysics();
-        ServerInteractionSystem system = new(physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -124,6 +128,36 @@ public class ServerInteractionSystemTests
         //  The interaction was marked consumed so it won't re-fire next tick.
         Assert.True(store.TryGet(player, out NetworkComponent net));
         Assert.False(net.StagedInteractions!.TryConsume(100, lastSequenceNumber: 1, out _));
+    }
+
+    [Fact]
+    public void AppliedEditIsBroadcastToEveryClient()
+    {
+        DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
+
+        //  The structure's entity id is uuid-addressed; use an explicit uuid so the client message matches.
+        Uuid structureUuid = store.GetUuid(structure);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        var hub = new ServerConnectionHub();
+        hub.Add(connection.Server);
+
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
+        StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
+
+        var physics = new StubPhysics();
+        ServerInteractionSystem system = new(hub, physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+
+        system.Tick(0f, store, simTick: 100);
+
+        //  The authoritative edit was broadcast to the connected client as a delta message.
+        Result<VoxelEditMessage> broadcast = connection.Client.Receive<VoxelEditMessage>();
+        Assert.True(broadcast.Success, "The server should broadcast the applied voxel edit.");
+        Assert.Equal(structureUuid.ToValue(), broadcast.Value.EntityUuid);
+        Assert.Equal(0, broadcast.Value.X);
+        Assert.Equal(0, broadcast.Value.Y);
+        Assert.Equal(0, broadcast.Value.Z);
+        Assert.Equal((ushort)0, broadcast.Value.Voxel.ID);
     }
 
     private DataStore BuildWorld(out int structure, out VoxelObject voxelObject)

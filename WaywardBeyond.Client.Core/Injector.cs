@@ -131,6 +131,7 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<JoinAccept>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldEntityAdd>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<VoxelEditMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.Register<TransportManager>(Reuse.Singleton);
@@ -156,6 +157,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
+        container.Register<IEntitySystem, ClientVoxelEditSystem>();
 
         container.Register<ClientJoinSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientJoinSystem>();

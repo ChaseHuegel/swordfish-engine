@@ -67,7 +67,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _motionStep = new SharedPlayerMotionStep(World.DataStore, _physics, ResolveCommand);
 
-        _interaction = new ServerInteractionSystem(_physics, interactionContent, loggerFactory.CreateLogger<ServerInteractionSystem>());
+        _interaction = new ServerInteractionSystem(hub, _physics, interactionContent, loggerFactory.CreateLogger<ServerInteractionSystem>());
     }
 
     public void Run()

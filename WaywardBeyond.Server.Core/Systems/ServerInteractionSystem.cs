@@ -8,7 +8,9 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Transport;
 
 namespace WaywardBeyond.Server.Core.Systems;
 
@@ -26,6 +28,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 public sealed class ServerInteractionSystem
 {
     private readonly ILogger<ServerInteractionSystem> _logger;
+    private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
     private readonly IPhysics _physics;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
@@ -33,17 +36,20 @@ public sealed class ServerInteractionSystem
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
 
     public ServerInteractionSystem(
+        in ServerConnectionHub hub,
         in IPhysics physics,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger
-    ) : this(physics, content, logger, CreateWorldFactory(in physics)) { }
+    ) : this(hub, physics, content, logger, CreateWorldFactory(in physics)) { }
 
     public ServerInteractionSystem(
+        in ServerConnectionHub hub,
         in IPhysics physics,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         Func<DataStore, IVoxelInteractionWorld> worldFactory
     ) {
+        _hub = hub;
         _physics = physics;
         _content = content;
         _logger = logger;
@@ -140,7 +146,31 @@ public sealed class ServerInteractionSystem
         store.AddOrUpdate(resolution.Entity, new VoxelEntityDataComponent(voxelObject.GetChunkInfos()));
         store.MarkDirty<VoxelEntityDataComponent>(resolution.Entity);
 
+        Voxel newVoxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        BroadcastEdit(store, resolution.Entity, coordinate, newVoxel);
+
         _logger.LogDebug("Applied {action} on entity {entity} at {coordinate} for player {player}.", resolution.Action, resolution.Entity, coordinate, player);
+    }
+
+    /// <summary>
+    /// Broadcasts an authoritative voxel edit to every connected client so both the origin client and
+    /// remote witnesses apply the delta via the same shared voxel container.
+    /// </summary>
+    private void BroadcastEdit(DataStore store, int entity, Int3 coordinate, in Voxel voxel)
+    {
+        var message = new VoxelEditMessage
+        {
+            EntityUuid = store.GetUuid(entity).ToValue(),
+            X = coordinate.X,
+            Y = coordinate.Y,
+            Z = coordinate.Z,
+            Voxel = voxel,
+        };
+
+        foreach ((Uuid clientId, _) in _hub.Clients)
+        {
+            _hub.Send(clientId, message);
+        }
     }
 
     private string? GetHeldItemID(DataStore store, int player)
