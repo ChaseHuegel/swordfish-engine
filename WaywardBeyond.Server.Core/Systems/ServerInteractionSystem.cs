@@ -30,6 +30,7 @@ public sealed class ServerInteractionSystem
     private readonly ILogger<ServerInteractionSystem> _logger;
     private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
+    private readonly IInteractionHandlerRegistry _handlerRegistry;
     private readonly IPhysics _physics;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
@@ -48,10 +49,20 @@ public sealed class ServerInteractionSystem
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         Func<DataStore, IVoxelInteractionWorld> worldFactory
+    ) : this(hub, physics, content, logger, new InteractionHandlerRegistry(), worldFactory) { }
+
+    public ServerInteractionSystem(
+        in ServerConnectionHub hub,
+        in IPhysics physics,
+        in IInteractionContent content,
+        ILogger<ServerInteractionSystem> logger,
+        IInteractionHandlerRegistry handlerRegistry,
+        Func<DataStore, IVoxelInteractionWorld> worldFactory
     ) {
         _hub = hub;
         _physics = physics;
         _content = content;
+        _handlerRegistry = handlerRegistry;
         _logger = logger;
         _worldFactory = worldFactory;
     }
@@ -112,7 +123,15 @@ public sealed class ServerInteractionSystem
         Ray ray = new(mirror.Position, mirror.GetForward());
         IVoxelInteractionWorld world = _worldFactory(store);
 
+        InteractionRequest request = new(ray, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
         InteractionResolution resolution = SharedInteractionResolver.Resolve(ray, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        if (resolution.Action == InteractionAction.None)
+        {
+            return;
+        }
+
+        //  Server-side mod hook: registered handlers run after base validation and may reject/override.
+        resolution = _handlerRegistry.Apply(request, resolution, heldItemID);
         if (resolution.Action == InteractionAction.None)
         {
             return;

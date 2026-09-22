@@ -47,6 +47,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         in PhysicsSettings physicsSettings,
         in Func<KeyValueStore> keyValueStore,
         in IInteractionContent interactionContent,
+        IInteractionHandlerRegistry handlerRegistry,
         ILoggerFactory loggerFactory
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
@@ -67,7 +68,15 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _motionStep = new SharedPlayerMotionStep(World.DataStore, _physics, ResolveCommand);
 
-        _interaction = new ServerInteractionSystem(hub, _physics, interactionContent, loggerFactory.CreateLogger<ServerInteractionSystem>());
+        var capturedPhysics = _physics;
+        _interaction = new ServerInteractionSystem(
+            hub,
+            _physics,
+            interactionContent,
+            loggerFactory.CreateLogger<ServerInteractionSystem>(),
+            handlerRegistry,
+            store => new ServerVoxelInteractionWorld(store, capturedPhysics)
+        );
     }
 
     public void Run()

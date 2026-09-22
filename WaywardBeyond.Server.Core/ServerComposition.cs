@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using DryIoc;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 
 namespace WaywardBeyond.Server.Core;
 
@@ -27,5 +28,9 @@ public static class ServerComposition
         });
 
         container.RegisterMany<ServerContext>(Reuse.Singleton);
+
+        //  Server-side interaction mod hooks: a single shared registry that server mods register their
+        //  interaction handlers into, resolved by the authoritative ServerInteractionSystem.
+        container.Register<IInteractionHandlerRegistry, InteractionHandlerRegistry>(Reuse.Singleton);
     }
 }
