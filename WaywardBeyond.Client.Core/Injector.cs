@@ -157,7 +157,7 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
-        container.Register<IEntitySystem, ClientVoxelEditSystem>();
+        container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
 
         container.Register<ClientJoinSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientJoinSystem>();
