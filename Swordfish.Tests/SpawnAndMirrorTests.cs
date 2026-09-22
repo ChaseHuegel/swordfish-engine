@@ -108,6 +108,7 @@ public class SpawnAndMirrorTests
                 sessions,
                 NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
             ),
+            TestInteractionSystem.Create(hub),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance
         );
 

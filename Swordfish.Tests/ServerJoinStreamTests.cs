@@ -81,7 +81,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), NullLogger<ServerJoinSystem>.Instance);
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
 
         connection.Client.Send(new JoinRequest
         {
@@ -132,7 +132,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), NullLogger<ServerJoinSystem>.Instance);
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
 
         int DrainWorld()
         {
@@ -189,7 +189,7 @@ public class ServerJoinStreamTests : IDisposable
         var sessions = new SessionManager();
         var serverStore = new DataStore();
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
-        var join = new ServerJoinSystem(hub, sessions, world, replication, NullLogger<ServerJoinSystem>.Instance);
+        var join = new ServerJoinSystem(hub, sessions, world, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
 
         //  The host joins the level first and plays.
         var hostConnection = new LocalConnection(serializers);

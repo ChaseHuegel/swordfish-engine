@@ -99,6 +99,16 @@ public sealed class ServerInteractionSystem
         _lastConsumedSequences[entity] = lastSequence;
     }
 
+    /// <summary>
+    /// Clears the per-entity sequence watermark so a reused mirror index from a prior session does not
+    /// cause <see cref="InteractionStageBuffer.TryConsume"/> to skip a fresh session's low sequence numbers.
+    /// Called by the server when a player mirror is freed or reallocated (leave, rejoin, disconnect).
+    /// </summary>
+    public void ResetPlayerSequence(int entity)
+    {
+        _lastConsumedSequences.Remove(entity);
+    }
+
     private void ProcessInteraction(DataStore store, int player, in InteractionEvent interaction, in TransformComponent mirror)
     {
         var kind = (InteractionKind)interaction.Kind;

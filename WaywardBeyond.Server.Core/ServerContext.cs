@@ -60,7 +60,6 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore);
         _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
         _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
-        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, loggerFactory.CreateLogger<ServerJoinSystem>());
 
         _physics = new JoltPhysicsSystem(loggerFactory.CreateLogger<JoltPhysicsSystem>(), physicsSettings);
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).
@@ -77,6 +76,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
             handlerRegistry,
             store => new ServerVoxelInteractionWorld(store, capturedPhysics)
         );
+
+        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>());
     }
 
     public void Run()
@@ -144,6 +145,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
                 //  Capture the uuid before Free (which clears it) so the despawn can replicate.
                 _replication.RequestDespawn(store.GetUuid(entity).ToValue());
+                _interaction.ResetPlayerSequence(entity);
                 store.Free(entity);
             }
 

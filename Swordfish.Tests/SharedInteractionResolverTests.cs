@@ -73,14 +73,33 @@ public class SharedInteractionResolverTests
     }
 
     [Fact]
-    public void HintMismatchWithRayResolvesToNone()
+    public void ServerAcceptsValidHintCellAwayFromServerRayCell()
     {
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld(hitPoint: new Vector3(0.5f, 0f, 0f), normal: Vector3.UnitX);
+        //  The client aims at (1,0,0) through its camera ray; the server's (different) body ray happens
+        //  to land on (0,0,0). Both cells are on the same structure; the hint cell is occupied, so the
+        //  server must accept the break rather than reject on ray-parity.
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
+        voxelObject.Set(1, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
         var ray = new Ray(new Vector3(-1f, 0f, 0f), Vector3.UnitX);
 
-        //  The ray derives (0,0,0) but the client hint claims (1,0,0): plausibility fails.
         InteractionResolution result = SharedInteractionResolver.Resolve(ray, Hint(1, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world);
+
+        Assert.Equal(InteractionAction.Break, result.Action);
+        Assert.Equal(new Int3(1, 0, 0), result.Coordinate);
+        Assert.Equal(BREAK_BRICK_ID, result.Voxel.ID);
+    }
+
+    [Fact]
+    public void ServerRejectsHintCellBeyondReach()
+    {
+        (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld(hitPoint: new Vector3(0.5f, 0f, 0f), normal: Vector3.UnitX);
+        voxelObject.Set(500, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
+        //  The hint claims a cell far outside reach even though the ray hits the structure nearby; the
+        //  server must reject it (prevents teleport-breaking far from the player).
+        var ray = new Ray(new Vector3(-1f, 0f, 0f), Vector3.UnitX);
+
+        InteractionResolution result = SharedInteractionResolver.Resolve(ray, Hint(500, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }

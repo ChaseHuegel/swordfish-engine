@@ -80,7 +80,7 @@ public class FullStateSyncTests
         var sessions = new SessionManager();
         var store = new DataStore();
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
-        var join = new ServerJoinSystem(hub, sessions, FailingWorldService(), replication, NullLogger<ServerJoinSystem>.Instance);
+        var join = new ServerJoinSystem(hub, sessions, FailingWorldService(), replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
 
         //  The host connects and joins while it is the only client, then its server-owned state is
         //  published and its dirty flag consumed.

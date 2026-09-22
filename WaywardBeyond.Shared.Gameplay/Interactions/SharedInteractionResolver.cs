@@ -56,53 +56,57 @@ public static class SharedInteractionResolver
             return InteractionResolution.None;
         }
 
-        if (!TryResolveTarget(ray, offset: isPlace, reachAround: true, reach, world, out InteractionTarget target))
+        //  Resolve the targeted structure (with reach-around) from the world ray.
+        if (!TryResolveTarget(ray, offset: isPlace, reachAround: true, reach, world, out InteractionTarget target) ||
+            target.VoxelObject == null)
         {
             return InteractionResolution.None;
         }
 
+        //  Plausibility: validate the client-sent hint cell against the structure's authoritative voxel
+        //  container rather than demanding the authority's own ray derive the identical cell. The client
+        //  aims with a screen-center camera ray while the authority aims with the body transform ray, so
+        //  the two may legitimately land a cell apart at voxel boundaries; the hint cell is the intended
+        //  target and is independently validated here for reach and occupancy.
         Int3 hintCell = new(hint.Value.TargetX, hint.Value.TargetY, hint.Value.TargetZ);
 
-        //  Plausibility: the authority must resolve the same cell from the same ray as the hint.
-        if (target.Coordinate != hintCell)
-        {
-            return InteractionResolution.None;
-        }
-
         //  Reach: the cell must be within reach of the interaction origin.
-        Vector3 cellWorld = BrickToWorldSpace(target.Coordinate, target.Transform.Position, target.Transform.Orientation);
+        Vector3 cellWorld = BrickToWorldSpace(hintCell, target.Transform.Position, target.Transform.Orientation);
         if (Vector3.Distance(ray.Origin, cellWorld) > reach)
         {
             return InteractionResolution.None;
         }
 
+        Voxel hintVoxel = target.VoxelObject.Get(hintCell.X, hintCell.Y, hintCell.Z);
+
         if (isBreak)
         {
-            //  Break requires an occupied cell (or a reach-around target cell, which is occupied by construction).
-            if (target.Voxel.ID == 0)
+            //  Break requires an occupied cell.
+            if (hintVoxel.ID == 0)
             {
                 return InteractionResolution.None;
             }
 
-            return new InteractionResolution(InteractionAction.Break, target.Entity, target.Coordinate, target.Voxel);
+            return new InteractionResolution(InteractionAction.Break, target.Entity, hintCell, hintVoxel);
         }
 
         //  Place requires an empty destination cell and a held placeable brick.
-        if (target.Voxel.ID != 0 || placeable == null)
+        if (hintVoxel.ID != 0 || placeable == null)
         {
             return InteractionResolution.None;
         }
 
         Voxel voxel = placeable.Value.ToVoxel((BrickShape)hint.Value.HintShape, new Orientation(hint.Value.HintOrientation));
-        return new InteractionResolution(InteractionAction.Place, target.Entity, target.Coordinate, voxel);
+        return new InteractionResolution(InteractionAction.Place, target.Entity, hintCell, voxel);
     }
 
     /// <summary>
     /// Resolves the target cell a given ray points at, using the same targeting the resolver internally
     /// applies. The client calls this to build its <see cref="BrickInteraction"/> hint from the shared
-    /// code (so prediction and authority derive the same cell from the same ray); the resolver's
-    /// validation then re-derives the cell and checks it matches the hint. Returns the brick-space cell
-    /// without validating reach/occupancy — that is the resolver's job.
+    /// code; the resolver's validation then validates that hint cell against the authoritative voxel
+    /// container (reach + occupancy) rather than requiring the authority's own ray to re-derive the
+    /// identical cell. Returns the brick-space cell without validating reach/occupancy — that is the
+    /// resolver's job.
     /// </summary>
     public static bool TryResolveTargetCell(
         in Ray ray,
@@ -180,7 +184,7 @@ public static class SharedInteractionResolver
             voxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         }
 
-        target = new InteractionTarget(raycast.Entity.Ptr, transform, coordinate, voxel);
+        target = new InteractionTarget(raycast.Entity.Ptr, transform, voxelObject, coordinate);
         return true;
     }
 
@@ -291,15 +295,15 @@ public static class SharedInteractionResolver
     {
         public readonly int Entity;
         public readonly TransformComponent Transform;
+        public readonly VoxelObject? VoxelObject;
         public readonly Int3 Coordinate;
-        public readonly Voxel Voxel;
 
-        public InteractionTarget(int entity, TransformComponent transform, Int3 coordinate, Voxel voxel)
+        public InteractionTarget(int entity, TransformComponent transform, VoxelObject? voxelObject, Int3 coordinate)
         {
             Entity = entity;
             Transform = transform;
+            VoxelObject = voxelObject;
             Coordinate = coordinate;
-            Voxel = voxel;
         }
     }
 }

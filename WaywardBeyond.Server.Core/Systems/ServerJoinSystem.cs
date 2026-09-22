@@ -26,6 +26,7 @@ public sealed class ServerJoinSystem : IEntitySystem
     private readonly SessionManager _sessions;
     private readonly WorldSaveService _worldService;
     private readonly NetworkReplicationSystem _replication;
+    private readonly ServerInteractionSystem _interaction;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -35,12 +36,14 @@ public sealed class ServerJoinSystem : IEntitySystem
         SessionManager sessions,
         in WorldSaveService worldService,
         in NetworkReplicationSystem replication,
+        in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger
     ) {
         _hub = hub;
         _sessions = sessions;
         _worldService = worldService;
         _replication = replication;
+        _interaction = interaction;
         _logger = logger;
     }
 
@@ -73,6 +76,7 @@ public sealed class ServerJoinSystem : IEntitySystem
 
             //  Capture the uuid before Free (which clears it) so the despawn can replicate.
             _replication.RequestDespawn(store.GetUuid(entity).ToValue());
+            _interaction.ResetPlayerSequence(entity);
             store.Free(entity);
             _logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
@@ -91,6 +95,7 @@ public sealed class ServerJoinSystem : IEntitySystem
 
             //  Capture the uuid before Free (which clears it) so the old mirror despawns to peers.
             _replication.RequestDespawn(store.GetUuid(existing).ToValue());
+            _interaction.ResetPlayerSequence(existing);
             store.Free(existing);
             _sessions.EndSession(clientId);
         }
@@ -110,6 +115,7 @@ public sealed class ServerJoinSystem : IEntitySystem
 
         int entity = store.Alloc();
         Uuid uuid = store.GetUuid(entity);
+        _interaction.ResetPlayerSequence(entity);
 
         store.AddOrUpdate(entity, new NetworkComponent());
         store.AddOrUpdate(entity, new InputComponent());
