@@ -400,7 +400,7 @@ the server to **all** clients when an edit is applied.
 **Goal:** instant feel through prediction using the exact same resolve/apply code as the server.
 
 ### 5.1 [G] Refactor PlayerInteractionService to network intent
-`[ ]` `PlayerInteractionService` stops mutating authority state. Instead:
+`[x]` `PlayerInteractionService` stops mutating authority state. Instead:
 - Read the (shared) equipment/inventory → produce interaction intent.
 - **Predict** via the same `SharedInteractionResolver`, write a **presentation-only** local voxel edit,
   record the target in a `PendingInteractionQueue` keyed by `(entity, coordinate, sequence)`.
@@ -408,9 +408,21 @@ the server to **all** clients when an edit is applied.
 - Keep `PlaceEvent`/`BreakEvent` as **presentation hooks** (ghost/SFX) — never authority mutation.
 - **Acceptance:** player interacts through the intent + prediction path; no direct authority
   `VoxelObject.Set` remains in interaction handlers.
+- **Done note:** `PlayerInteractionService.OnLeftClick`/`OnRightClick` now route through a shared
+  `AttemptVoxelInteraction`: they resolve the target cell with the same
+  `SharedInteractionResolver.TryResolveTargetCell` used to validate (exposed publicly so prediction and
+  authority derive identical cells), resolve the action with `SharedInteractionResolver.Resolve`, fire the
+  `PlaceEvent`/`BreakEvent` presentation hooks before predicting, apply the prediction onto the
+  presentation-only `VoxelObject` (`Set` + `Rebuild`), register it in a new
+  `PendingInteractionComponent.Queue`, and latch a populated-hint `InteractionEvent` (uuid 15) onto the
+  local player so `ClientReplicationSystem` sends it. Client inventory survival consumption/loot is
+  removed — the server owns it. `ClientInputSystem` no longer latches `InteractionEvent` (it keeps
+  `InputComponent` continuous held-state); the discrete edge, its hint, and the prediction now live in
+  one place. New `ClientVoxelInteractionWorld` implements `IVoxelInteractionWorld` over the client store +
+  physics for the prediction raycast. 8 Client.Core tests green.
 
 ### 5.2 [G] Client voxel reconcile system
-`[ ]` New `ClientVoxelReconcileSystem` applies authoritative `VoxelEditMessage`s via the **same shared
+`[x]` New `ClientVoxelReconcileSystem` applies authoritative `VoxelEditMessage`s via the **same shared
 apply path** as the server (`VoxelObject.Set` + `VoxelEntityBuilder.Rebuild`):
 - confirm-match → no-op (already predicted);
 - edit missing for a pending entry within a bound → **revert** prediction (server rejected);
@@ -419,6 +431,14 @@ apply path** as the server (`VoxelObject.Set` + `VoxelEntityBuilder.Rebuild`):
 - Wire into `ClientReconcileSystem`'s gate (apply only once `Playing`).
 - **Acceptance:** round-trip works with and without prediction; no drift under rapid/rapidly-rejected
   edits.
+- **Done note:** `ClientVoxelReconcileSystem` (registered as `IEntitySystem`, replacing the Phase 4.3
+  `ClientVoxelEditSystem`) drains authoritative `VoxelEditMessage`s and correlates each against the local
+  player's `PendingInteractionComponent.Queue` by `(entity, coordinate)`: a voxel-matching echo confirms
+  (no-op + resolve), a differing echo snaps to authority, and a prediction still pending
+  `REVERT_BOUND_SIM_TICKS` (40) past its sample tick with no echo is reverted to the pre-prediction voxel
+  (the server rejected it). The generic apply for unpredicted edits (remote witnesses) is preserved.
+  Gated on `GameState.Playing`. `ClientVoxelReconcileSystemTests` (NUnit) cover apply, the Playing gate,
+  confirm-as-no-op, snap-to-authority, and expired-revert. 5 new Client.Core tests green; full build green.
 
 ---
 
