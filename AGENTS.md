@@ -95,6 +95,23 @@ the world is streamed. Save listing/create/delete and world-save flush are serve
 `WorldsClient` whose responses the ECS thread completes. The old `ClientPlayerSpawnSystem`/`ServerSpawnSystem`
 spawn path and client load stages were removed in favor of join. See `LOCAL-SERVER-SINGLEPLAYER.md` Phase 4.
 
+### Server-authoritative interactions / voxel edits (NETWORK-VOXEL-EDITS Phase 3-6)
+The server is the sole authority for player-interaction *outcome*; the client only predicts presentably.
+The interaction context (`EquipmentComponent`/`InventoryComponent`/`GameModeComponent`, all `ServerOwned`)
+is seeded at join from the client save via `JoinRequest.CharacterSeed` and is server-owned thereafter. The
+continuous held state rides `InputComponent` (`HeldSlot`/`PrimaryHeld`/`SecondaryHeld`); discrete button
+edges are a `ClientOwned` `InteractionEvent` (uuid 15, an extensible nullable-hint union) staged server-side
+into `NetworkComponent.StagedInteractions`. Targeting/outcome logic lives in the shared
+`SharedInteractionResolver` (`Shared.Gameplay/Interactions`), called identically by client prediction and
+`ServerInteractionSystem` authority against the shared `VoxelObject`; applied edits rebuild the structure
+collider, re-derive `VoxelEntityDataComponent.Chunks`, and broadcast to all clients as `VoxelEditMessage`
+(ordered/lossless by the transport). `ClientVoxelReconcileSystem` confirms/snaps/reverts predictions against
+those echoes (gated on `Playing`). Mods customize interactions **server-side only** by registering
+`IInteractionHandler`s against `InteractionHandlerFilter` keys into the DI-singleton
+`IInteractionHandlerRegistry` (registered in `ServerComposition`) — a handler may reject (return
+`InteractionResolution.None`), allow, or override a resolved interaction. See `NETWORKING.md`
+"Server-authoritative interactions" and `NETWORK-VOXEL-EDITS.md`.
+
 ## Test Quirks
 
 - `Swordfish.Tests` uses xunit + `TestBase` abstract class with DryIoc `Container` setup/teardown. Test files like `TestFiles/` are copied to output.

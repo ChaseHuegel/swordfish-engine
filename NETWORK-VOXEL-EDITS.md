@@ -469,10 +469,17 @@ validation and may reject/augment/override the action — entirely server-side, 
 ## Phase 7 — Docs, tests, and validation
 
 ### 7.1 [G] Documentation
-`[ ]` Update `NETWORKING.md` (and `AGENTS.md` networking section) for: interaction context components,
+`[x]` Update `NETWORKING.md` (and `AGENTS.md` networking section) for: interaction context components,
 `CharacterSeed` join sync, `InputComponent` held-state, `InteractionEvent`, `VoxelEditMessage`,
 `SharedInteractionResolver`, the new systems, and the modding hook.
 Keep the transport assumption (ordered/lossless) documented.
+- **Done note:** added a `## Server-authoritative interactions (voxel edits)` section to `NETWORKING.md`
+  covering the intent-upstream → shared-resolve/authority-apply → downstream-replicate pipeline, naming
+  `ServerInteractionSystem`/`ClientVoxelReconcileSystem`/`SharedInteractionResolver`, and documenting the
+  `IInteractionHandler`/`IInteractionHandlerRegistry` mod hook and its reject/allow/override semantics;
+  refreshed Direction bullet 6 to name the systems and mod hook (the transport's ordered/lossless framing
+  was already captured in the "No envelope" note). Added a matching "Server-authoritative interactions /
+  voxel edits" subsection to `AGENTS.md` pointing at the above. No code changes.
 
 ### 7.2 [G] Integration tests
 `[ ]` Headless, cross-platform (no window; Linux-safe) over `LocalConnection`:

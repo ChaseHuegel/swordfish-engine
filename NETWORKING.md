@@ -397,6 +397,37 @@ player and reconciliation is structurally present but inert.
 
 These are gameplay-level bookkeeping for prediction. They are **not** a transport reliability layer.
 
+## Server-authoritative interactions (voxel edits)
+
+The server is the **sole authority** for player interaction *outcome*; the client only predicts
+presentably. This is tracked in detail in [`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md). Pipeline:
+
+1. **Intent upstream.** The continuous held state (`HeldSlot`/`PrimaryHeld`/`SecondaryHeld`) rides the
+   per-frame `InputComponent` packet. Discrete button edges are delivered as a `ClientOwned`
+   `InteractionEvent` (uuid 15) — an extensible pseudo-union of nullable hint sub-messages; the server
+   stages them into each player mirror's `InteractionStageBuffer` (`NetworkComponent.StagedInteractions`,
+   keyed by `ServerTickAtSample`, newest-per-tick, deduped by `SequenceNumber`).
+2. **Shared resolve + authority apply.** `ServerInteractionSystem` (server tick, between the replication
+   apply and publish stages) builds an authority ray from the mirror transform + look, resolves it with
+   the shared `SharedInteractionResolver` (the same code the client uses to predict), applies the outcome
+   on the structure's shared `VoxelObject`, rebuilds the collider, re-derives the persisted
+   `VoxelEntityDataComponent.Chunks`, and applies survival consumption/loot against the server-owned
+   `InventoryComponent` (creative is free).
+3. **Downstream replication.** Every applied edit broadcasts to **all** clients as a `VoxelEditMessage`
+   delta. `ClientVoxelReconcileSystem` (gated on `Playing`) correlates each echo against the local
+   `PendingInteractionComponent.Queue` by `(entity, coordinate)`: a matching echo confirms (no-op), a
+   differing echo snaps to authority, and a prediction still pending past its bounded revert window with
+   no echo is reverted (the server rejected it). Unpredicted edits (remote witnesses) are applied directly.
+4. **Server modding hook.** Because every outcome is resolved server-side, mods customize interactions
+   **server-side only**, no client mod. Mods register `IInteractionHandler`s into the shared, DI-singleton
+   `IInteractionHandlerRegistry` (registered in `ServerComposition`), keyed on an `InteractionHandlerFilter`
+   (`InteractionKind?`/`HeldItemID?`/`GameMode?`, null = match-any). After base validation,
+   `ServerInteractionSystem` routes each resolution through the registry; a handler returning
+   `InteractionResolution.None` **rejects** the interaction, returning the context's base resolution
+   **allows** it, and returning a different resolution **overrides/augments** it (matching handlers run in
+   registration order; the last non-reject wins). The client remains a dumb renderer — it sends intent and
+   predicts against the same shared `SharedInteractionResolver` but never authors authority voxel state.
+
 ## Current gaps / known issues
 
 - **Non-interaction voxel content / AOI streaming.** Voxel **motion** replicates, and interaction-driven
@@ -438,11 +469,12 @@ The current initiatives target:
    clean seam (server boot via module discovery), not a shipped launcher.
 6. **Server-authoritative interactions** (tracked in `NETWORK-VOXEL-EDITS.md`): the server is the sole
    authority for player-interaction outcome. The interaction **context** (inventory, equipment, game
-   mode) is seeded to the server at join and server-owned thereafter; a **shared resolver** picks the
-   same interaction outcome on both sides; the client sends intent (`InteractionEvent`, an extensible
-   nullable-hint union) and predicts presentably while the server validates and applies; authoritative
-   voxel edits broadcast downstream as `VoxelEditMessage` and the client reconciles. Mods can
-   introduce/customize interactions **server-side only**.
+   mode) is seeded to the server at join and server-owned thereafter; the shared `SharedInteractionResolver`
+   picks the same interaction outcome on both sides; the client sends intent (`InteractionEvent`, an
+   extensible nullable-hint union) and predicts presentably while `ServerInteractionSystem` validates and
+   applies; authoritative voxel edits broadcast downstream as `VoxelEditMessage` and are reconciled by
+   `ClientVoxelReconcileSystem`. Mods customize interactions **server-side only** via the
+   `IInteractionHandler`/`IInteractionHandlerRegistry` mod hook.
 
 The plans are tracked in detail in [`LOCAL-SERVER-SINGLEPLAYER.md`](./LOCAL-SERVER-SINGLEPLAYER.md) and
 [`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md).
