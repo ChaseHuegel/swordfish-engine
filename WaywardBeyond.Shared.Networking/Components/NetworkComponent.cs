@@ -12,4 +12,7 @@ public struct NetworkComponent : IDataComponent
 
     /// <summary>Sim-tick-keyed inbound command staging, populated server-side.</summary>
     public InputStageBuffer? StagedInputs;
+
+    /// <summary>Sim-tick-keyed inbound interaction-edge staging, populated server-side.</summary>
+    public InteractionStageBuffer? StagedInteractions;
 }

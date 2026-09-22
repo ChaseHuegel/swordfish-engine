@@ -197,6 +197,23 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 net.Write.LastAckedSnapshot = input.ServerTickAtSample;
             });
         }
+
+        if (info.Type == typeof(InteractionEvent))
+        {
+            if (!store.TryGet<NetworkComponent>(entity, out _))
+            {
+                return;
+            }
+
+            store.QueryRef<NetworkComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            {
+                net.Write.StagedInteractions ??= new InteractionStageBuffer();
+                if (s.TryGet(e, out InteractionEvent interaction))
+                {
+                    net.Write.StagedInteractions.Stage(interaction);
+                }
+            });
+        }
     }
 
     private struct OnTickAction : IForEach<NetworkComponent>

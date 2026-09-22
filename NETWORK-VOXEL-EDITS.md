@@ -299,12 +299,18 @@ message BrickInteraction
   green.
 
 ### 3.3 [S] Server staging of interaction events
-`[ ]` Extend `NetworkReplicationSystem.ApplyComponent` (the `InputComponent` branch, lines 177-199) to
+`[x]` Extend `NetworkReplicationSystem.ApplyComponent` (the `InputComponent` branch, lines 177-199) to
 stage `InteractionEvent`s into a new `InteractionStageBuffer` on `NetworkComponent`
 (`StagedInteractions`), keyed by `ServerTickAtSample`, collapse newest-per-tick, dedupe by
 `SequenceNumber`. Mirror the `InputStageBuffer` implementation.
 - **Acceptance:** staged interaction events are consumed exactly once per sim tick, newest-for-tick on
   collision, in a unit test (like `SocketReplayTests`-style).
+- **Done note:** `InteractionStageBuffer` mirrors `InputStageBuffer` (ring buffer, newest-at-or-below
+  `TryGet`, late tags still consumed) with in-place **sequence dedupe** (retransmits overwrite their
+  slot, never double-count) and **newest-per-tick collapse** (highest sequence wins the tick). Wired
+  into `NetworkComponent.StagedInteractions` and the `InteractionEvent` branch of
+  `NetworkReplicationSystem.ApplyComponent`. 5 new `Swordfish.Tests` cover consume-per-sim-tick,
+  newest-per-tick collapse, sequence dedupe, at-or-below selection, and late-tagged consumption.
 
 ---
 
