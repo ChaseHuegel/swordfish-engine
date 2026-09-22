@@ -16,10 +16,37 @@ namespace WaywardBeyond.Shared.Networking.Components;
 [NetworkComponent(13, NetworkDirection.ServerOwned)]
 public partial struct InventoryComponent : IDataComponent
 {
+    /// <summary>Canonical inventory slot count for players. Client build and server seed agree on this.</summary>
+    public const int DefaultSlotCount = 45;
+
     private readonly object _lock = new();
+
+    /// <summary>Creates an empty inventory with the canonical <see cref="DefaultSlotCount"/> slots.</summary>
+    public InventoryComponent() : this(DefaultSlotCount) { }
 
     /// <summary>Creates an empty inventory with <paramref name="size"/> slots.</summary>
     public InventoryComponent(int size) : this(new ItemData[size]) { }
+
+    /// <summary>Copies <paramref name="contents"/> into this inventory's slots, bounded to capacity.</summary>
+    public void CopyFrom(ItemData[]? contents)
+    {
+        if (contents == null)
+        {
+            return;
+        }
+
+        int count = Math.Min(contents.Length, Contents.Length);
+        for (var i = 0; i < count; i++)
+        {
+            Contents[i] = contents[i];
+        }
+    }
+
+    /// <summary>Clamps an inventory slot index into valid bounds.</summary>
+    public static int ClampSlot(int slot)
+    {
+        return Math.Clamp(slot, 0, DefaultSlotCount - 1);
+    }
 
     /// <summary>Creates a <see cref="ItemData"/> stack.</summary>
     public static ItemData Stack(string id, int count, int maxSize)

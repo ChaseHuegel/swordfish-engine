@@ -43,7 +43,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         store.QueryRef<PlayerComponent, EquipmentComponent>(0f, EquipmentQuery);
         void EquipmentQuery(float delta, DataStore _, int entity, ref Ref<PlayerComponent> player, ref Ref<EquipmentComponent> equipment)
         {
-            equipment.Write.ActiveInventorySlot = slot;
+            equipment.Write.ActiveInventorySlot = InventoryComponent.ClampSlot(slot);
         }
         
         return Result.FromSuccess();
@@ -79,7 +79,9 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
             return Result<ItemSlot>.FromFailure($"No equipment found for player entity: {entity}");
         }
         
-        ItemData itemStack = inventory.Contents[equipment.ActiveInventorySlot];
+        ItemData itemStack = equipment.ActiveInventorySlot >= 0 && equipment.ActiveInventorySlot < inventory.Contents.Length
+            ? inventory.Contents[equipment.ActiveInventorySlot]
+            : default;
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {

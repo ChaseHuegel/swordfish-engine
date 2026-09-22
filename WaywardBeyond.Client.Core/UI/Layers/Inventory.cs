@@ -137,8 +137,8 @@ internal class Inventory : IUILayer
         Material? draggedSlotIcon = null;
         string? draggedSlotText = null;
         
-        ItemData dragItemStack = inventory.Contents[_draggingSlot];
-        ItemData selectedItemStack = _selectedSlot != -1 ? inventory.Contents[_selectedSlot] : default;
+        ItemData dragItemStack = _draggingSlot >= 0 && _draggingSlot < inventory.Contents.Length ? inventory.Contents[_draggingSlot] : default;
+        ItemData selectedItemStack = _selectedSlot != -1 && _selectedSlot < inventory.Contents.Length ? inventory.Contents[_selectedSlot] : default;
         bool isDragSlotEmpty = dragItemStack.Count <= 0;
         
         if (_dragging && (!leftHeld || isDragSlotEmpty))

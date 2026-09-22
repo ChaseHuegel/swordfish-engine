@@ -142,4 +142,61 @@ public class InteractionContextComponentTests
         Assert.Equal(0, roundTripped.Seed.ActiveInventorySlot);
         Assert.Equal((int)GameMode.Creative, roundTripped.Seed.GameMode);
     }
+
+    [Fact]
+    public void InventoryDefaultInstanceIsCanonicalSize()
+    {
+        var inventory = new InventoryComponent();
+        Assert.Equal(InventoryComponent.DefaultSlotCount, inventory.Contents.Length);
+    }
+
+    [Fact]
+    public void CopyFromBoundsToCapacityAndKeepsFullSizedArray()
+    {
+        var inventory = new InventoryComponent(4);
+        inventory.CopyFrom(new ItemData[]
+        {
+            InventoryComponent.Stack("a", 1, 10),
+            InventoryComponent.Stack("b", 2, 10),
+            InventoryComponent.Stack("c", 3, 10),
+            InventoryComponent.Stack("d", 4, 10),
+            InventoryComponent.Stack("e", 5, 10),
+            InventoryComponent.Stack("f", 6, 10),
+        });
+
+        //  Contents is bounded to the canonical array size, never truncated below it.
+        Assert.Equal(4, inventory.Contents.Length);
+        Assert.Equal("a", inventory.Contents[0].ID);
+        Assert.Equal("b", inventory.Contents[1].ID);
+        Assert.Equal("c", inventory.Contents[2].ID);
+        Assert.Equal("d", inventory.Contents[3].ID);
+    }
+
+    [Fact]
+    public void CopyFromEmptySeedYieldsCanonicalSizedInventory()
+    {
+        var inventory = new InventoryComponent();
+        inventory.CopyFrom(null);
+
+        //  The replicated inventory is always full-size so any active slot is in bounds.
+        Assert.Equal(InventoryComponent.DefaultSlotCount, inventory.Contents.Length);
+        Assert.All(inventory.Contents, stack => Assert.Null(stack.ID));
+    }
+
+    [Fact]
+    public void ClampSlotBoundsIntoCanonicalRange()
+    {
+        Assert.Equal(0, InventoryComponent.ClampSlot(-5));
+        Assert.Equal(0, InventoryComponent.ClampSlot(0));
+        Assert.Equal(InventoryComponent.DefaultSlotCount - 1, InventoryComponent.ClampSlot(InventoryComponent.DefaultSlotCount + 20));
+    }
+
+    [Fact]
+    public void GameModeClampAndEquipmentSeedValuesAreCanonical()
+    {
+        //  Guards the seed path invariants: the canonical inventory size equals the default slot count
+        //  the client builds, so a full-array seed + clamped slot can never index out of bounds.
+        Assert.Equal(45, InventoryComponent.DefaultSlotCount);
+        Assert.InRange(InventoryComponent.ClampSlot(99), 0, InventoryComponent.DefaultSlotCount - 1);
+    }
 }

@@ -29,7 +29,7 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         player.AddOrUpdate(new CharacterComponent(character));
         player.AddOrUpdate(new GameModeComponent(character.GameMode));
         
-        var inventory = new InventoryComponent(size: 45);
+        var inventory = new InventoryComponent();
         if (character.Inventory == null)
         {
             inventory.Add(InventoryComponent.Stack("laser", 1, 1));
