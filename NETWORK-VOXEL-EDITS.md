@@ -346,7 +346,7 @@ output: { Action None | Break | Place, coordinate, voxel }
   out-of-reach, and hint-mismatch rejection.
 
 ### 4.2 [S/G] Server interaction system
-`[ ]` New `ServerInteractionSystem` (server tick between `ApplyStage` and `PublishStage` in
+`[x]` New `ServerInteractionSystem` (server tick between `ApplyStage` and `PublishStage` in
 `ServerContext.Update`):
 - Build authority ray from the mirror's authoritative `TransformComponent` + the `Look` from the
   shared step (already applied server-side).
@@ -360,6 +360,19 @@ output: { Action None | Break | Place, coordinate, voxel }
   (`WorldSaveService`).
 - **Acceptance:** survival consumption correct; creative is free; collider updates after an edit;
   resolver + inventory paths are unit-testable headlessly.
+- **Done note:** `ServerInteractionSystem` consumes staged interactions via a new
+  `InteractionStageBuffer.TryConsume` (exactly-once, oldest unconsumed at-or-below sim tick) alongside
+  the input consumption; it builds the authority ray from the mirror transform + look, resolves with
+  `SharedInteractionResolver`, and applies on the structure's `VoxelWorldComponent.VoxelObject`
+  (`CreateAuthority` now builds a live shared voxel container per authority structure), then rebuilds
+  `ColliderComponent` via `VoxelColliderBuilder` and re-derives `VoxelEntityDataComponent.Chunks`
+  (+ `MarkDirty`) so saves and future raycasts track edits. Survival consumes a held item on place and
+  grants the broken brick's loot via a new shared `IInteractionContent`
+  (`ClientInteractionContent` implements it over `ItemDatabase`/`BrickDatabase`, registered in the
+  shared container so the in-process server resolves it); creative is free on both paths. 4 new
+  `Swordfish.Tests` (`ServerInteractionSystemTests`, headless with a deterministic `IVoxelInteractionWorld`)
+  cover survival break (voxel removed, loot granted, collider rebuilt, chunks re-derived), survival place
+  (item consumed, voxel written), creative free on both, and hint-less/rejected no-op + consumed-once.
 
 ### 4.3 [S/G] Authoritative voxel edit replication
 `[ ]` New nsd message `VoxelEditMessage { ulong EntityUuid; int X, Y, Z; Voxel Voxel }` broadcast by

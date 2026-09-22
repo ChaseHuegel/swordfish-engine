@@ -68,4 +68,51 @@ public sealed class InteractionStageBuffer
         interaction = default;
         return false;
     }
+
+    /// <summary>
+    /// Drains the oldest staged interaction whose target sim tick is at or below <paramref name="simTick"/>
+    /// and whose sequence is newer than <paramref name="lastSequenceNumber"/> - an edge the caller has not
+    /// consumed yet. Unlike <see cref="TryGet"/>, distinct events for different ticks are each returned once
+    /// (in tick order), so discrete interaction edges are never skipped by newer arrivals. The caller tracks
+    /// the last consumed sequence per entity and calls this in a loop until it returns false.
+    /// </summary>
+    public bool TryConsume(uint simTick, uint lastSequenceNumber, out InteractionEvent interaction)
+    {
+        uint? bestIndex = null;
+        uint bestTick = uint.MaxValue;
+        uint bestSequence = uint.MaxValue;
+
+        for (uint i = _head; i > _tail; i--)
+        {
+            uint index = (i - 1) % CAPACITY;
+            InteractionEvent entry = _entries[index];
+            if (entry.ServerTickAtSample > simTick)
+            {
+                continue;
+            }
+
+            if (entry.SequenceNumber <= lastSequenceNumber)
+            {
+                continue;
+            }
+
+            //  Prefer the earliest unconsumed event so overlapping edges preserve their order.
+            if (entry.ServerTickAtSample < bestTick ||
+                (entry.ServerTickAtSample == bestTick && entry.SequenceNumber < bestSequence))
+            {
+                bestIndex = index;
+                bestTick = entry.ServerTickAtSample;
+                bestSequence = entry.SequenceNumber;
+            }
+        }
+
+        if (bestIndex == null)
+        {
+            interaction = default;
+            return false;
+        }
+
+        interaction = _entries[bestIndex.Value];
+        return true;
+    }
 }

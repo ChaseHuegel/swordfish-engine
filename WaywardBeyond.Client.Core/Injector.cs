@@ -290,6 +290,9 @@ public class Injector : IDryIocInjector
         container.Register<BrickDatabase>(Reuse.Singleton);
         container.RegisterMapping<IBrickDatabase, BrickDatabase>();
         container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
+
+        //  Shared interaction-content resolution used by the in-process server to author placeable/loot.
+        container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton);
         
         container.Register<LocalizedTagsDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<LocalizedTags>, LocalizedTagsDatabase>();

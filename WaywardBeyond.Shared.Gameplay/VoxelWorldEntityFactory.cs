@@ -1,5 +1,6 @@
 using System.Numerics;
 using Swordfish.ECS;
+using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Components;
 
@@ -37,10 +38,24 @@ public static class VoxelWorldEntityFactory
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, new ColliderComponent(VoxelColliderBuilder.BuildCollition(data.Chunks)));
         store.AddOrUpdate(entity, new VoxelEntityDataComponent(data.Chunks));
+
+        //  A live, mutable voxel container so the server can apply authoritative edits on its own copy
+        //  of the structure. Chunk sizes are uniform across a structure (the shared generator emits
+        //  power-of-two chunk sizes); use the first chunk's size (with the same fallback the client's
+        //  view-world builder uses) to recreate the container.
+        byte chunkSize = data.Chunks.Length > 0 ? data.Chunks[0].Chunk.Size : (byte)0;
+        if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
+        {
+            chunkSize = DEFAULT_CHUNK_SIZE;
+        }
+        store.AddOrUpdate(entity, new VoxelWorldComponent(new VoxelObject(chunkSize, data.Chunks)));
+
         store.AddOrUpdate(entity, new NetworkComponent());
 
         return new Entity(entity, store);
     }
+
+    private const byte DEFAULT_CHUNK_SIZE = 16;
 
     /// <summary>
     /// Serializes a live authority structure entity back to its <see cref="VoxelEntityData"/> form, using

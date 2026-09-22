@@ -36,6 +36,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ServerWorldSystem _world;
     private readonly ServerJoinSystem _join;
     private readonly NetworkReplicationSystem _replication;
+    private readonly ServerInteractionSystem _interaction;
     private readonly JoltPhysicsSystem _physics;
     private readonly SharedPlayerMotionStep _motionStep;
     private readonly WorldSaveService _worldService;
@@ -45,6 +46,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         SessionManager sessions,
         in PhysicsSettings physicsSettings,
         in Func<KeyValueStore> keyValueStore,
+        in IInteractionContent interactionContent,
         ILoggerFactory loggerFactory
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
@@ -64,6 +66,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _physics.SetGravity(Vector3.Zero);
 
         _motionStep = new SharedPlayerMotionStep(World.DataStore, _physics, ResolveCommand);
+
+        _interaction = new ServerInteractionSystem(_physics, interactionContent, loggerFactory.CreateLogger<ServerInteractionSystem>());
     }
 
     public void Run()
@@ -104,6 +108,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
             _physics.Tick(delta, store);
 
             _replication.SimTick = _motionStep.CurrentSimTick;
+            _interaction.Tick(delta, store, _motionStep.CurrentSimTick);
             _replication.PublishStage(delta, store);
         }
         catch (Exception ex)
