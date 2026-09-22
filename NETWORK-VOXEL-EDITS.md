@@ -243,11 +243,16 @@ backward-compat behavior, and it sidesteps an `nsdc` codegen defect (see below).
 **Goal:** intent flows upstream losslessly, riding the existing input machinery.
 
 ### 3.1 [S] Continuous state on InputComponent
-`[ ]` Extend `InputComponent` (components.nsd) with `HeldSlot` (uint), `PrimaryHeld` (bool),
+`[x]` Extend `InputComponent` (components.nsd) with `HeldSlot` (uint), `PrimaryHeld` (bool),
 `SecondaryHeld` (bool) — ~+3B/frame riding the existing per-frame packet.
 - Populate in `ClientInputSystem` from the (now shared) equipment/inventory.
 - **Acceptance:** held slot + primary/secondary held state replicate with the existing input packet at
   negligible marginal bandwidth.
+- **Done note:** `HeldSlot` populated from `EquipmentComponent.ActiveInventorySlot` (via a shared
+  `PlayerComponent`/`EquipmentComponent` read action); `PrimaryHeld`/`SecondaryHeld` from
+  `IInputService.IsMouseHeld(Left/Right)`. All three zeroed when input is disabled so a locked cursor
+  never asserts a held action. Build green; 8 Client.Core tests + 145 Swordfish.Tests green (the 4
+  failing `VirtualFileSystemTests` are pre-existing/environmental).
 
 ### 3.2 [S] Discrete edge message (extensible hint union)
 `[ ]` Add a new `ClientOwned` nsd message (`InteractionEvent`, **uuid 15**) in components.nsd:

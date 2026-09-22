@@ -60,6 +60,11 @@ internal sealed class ClientInputSystem : IEntitySystem
         float rollDirection = inputEnabled ? (_inputService.IsKeyHeld(Key.Q) ? 1f : 0f) - (_inputService.IsKeyHeld(Key.E) ? 1f : 0f) : 0f;
         _lookRoll += rollDirection * ROLL_RATE * MathS.DEGREES_TO_RADIANS * delta;
 
+        bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
+        bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
+        CollectContextAction collectContext = new() { Enabled = inputEnabled };
+        store.Query<PlayerComponent, EquipmentComponent, CollectContextAction>(0f, ref collectContext);
+
         var input = new InputComponent
         {
             MovementX = movement.X,
@@ -70,10 +75,28 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookRoll = _lookRoll,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
+            HeldSlot = inputEnabled ? collectContext.HeldSlot : 0,
+            PrimaryHeld = inputEnabled && primaryHeld,
+            SecondaryHeld = inputEnabled && secondaryHeld,
         };
 
         CollectInputAction collectInput = new() { Input = input };
         store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
+    }
+
+    private struct CollectContextAction : IForEach<PlayerComponent, EquipmentComponent>
+    {
+        public bool Enabled;
+
+        public uint HeldSlot;
+
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in EquipmentComponent equipment)
+        {
+            if (Enabled)
+            {
+                HeldSlot = (uint)equipment.ActiveInventorySlot;
+            }
+        }
     }
 
     private struct CollectInputAction : IForEach<PlayerComponent>
