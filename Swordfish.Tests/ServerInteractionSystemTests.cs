@@ -160,6 +160,52 @@ public class ServerInteractionSystemTests
         Assert.Equal((ushort)0, broadcast.Value.Voxel.ID);
     }
 
+    [Fact]
+    public void ModHandlerCanRejectAnAppliedEdit()
+    {
+        DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
+
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
+        StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
+
+        var registry = new InteractionHandlerRegistry();
+        registry.Register(new ModHandler(new InteractionHandlerFilter(), static _ => InteractionResolution.None));
+
+        var physics = new StubPhysics();
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+
+        system.Tick(0f, store, simTick: 100);
+
+        //  The mod handler rejected the break: the seeded voxel is untouched and nothing was broadcast.
+        Assert.Equal(BRICK_DATA_ID, voxelObject.Get(0, 0, 0).ID);
+    }
+
+    [Fact]
+    public void ModHandlerCanOverrideAnAppliedEdit()
+    {
+        DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
+
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
+        StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
+
+        //  Override the break into a place at an adjacent cell (1,0,0) with a custom brick.
+        const ushort OVERRIDE_BRICK = 99;
+        var registry = new InteractionHandlerRegistry();
+        registry.Register(new ModHandler(
+            new InteractionHandlerFilter(),
+            static context => new InteractionResolution(InteractionAction.Place, context.Entity, new Int3(1, 0, 0), new Voxel(OVERRIDE_BRICK, 0, 0))
+        ));
+
+        var physics = new StubPhysics();
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+
+        system.Tick(0f, store, simTick: 100);
+
+        //  The mod handler rewrote the base break into a place: (0,0,0) untouched, (1,0,0) written.
+        Assert.Equal(BRICK_DATA_ID, voxelObject.Get(0, 0, 0).ID);
+        Assert.Equal(OVERRIDE_BRICK, voxelObject.Get(1, 0, 0).ID);
+    }
+
     private DataStore BuildWorld(out int structure, out VoxelObject voxelObject)
     {
         var store = new DataStore();
@@ -270,6 +316,16 @@ public class ServerInteractionSystemTests
         {
             loot = new ItemData { ID = "rock", Count = 1, MaxSize = 100 };
             return true;
+        }
+    }
+
+    private sealed class ModHandler(InteractionHandlerFilter filter, Func<InteractionContext, InteractionResolution> handle) : IInteractionHandler
+    {
+        public InteractionHandlerFilter Filter { get; } = filter;
+
+        public InteractionResolution Handle(in InteractionContext context)
+        {
+            return handle(context);
         }
     }
 }
