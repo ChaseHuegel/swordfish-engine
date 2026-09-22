@@ -85,7 +85,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
                     CharacterId = character.Id,
                     Name = character.Name,
                     Body = character.Body,
-                    InventoryContents = character.Inventory ?? [],
+                    //  Null for a client-authored new character: the server grants the starter loadout.
+                    //  A saved inventory is sent as-is and is never restocked server-side.
+                    InventoryContents = character.Inventory,
                     ActiveInventorySlot = character.ActiveInventorySlot,
                     GameMode = (int)character.GameMode,
                 },

@@ -138,7 +138,7 @@ public class InteractionContextComponentTests
         JoinRequest roundTripped = JoinRequest.Deserialize(bytes);
 
         Assert.NotNull(roundTripped.Seed);
-        Assert.Empty(roundTripped.Seed.InventoryContents);
+        Assert.Null(roundTripped.Seed.InventoryContents);
         Assert.Equal(0, roundTripped.Seed.ActiveInventorySlot);
         Assert.Equal((int)GameMode.Creative, roundTripped.Seed.GameMode);
     }

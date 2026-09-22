@@ -64,7 +64,7 @@ message CharacterSeed
     ulong CharacterId = 0;
     string Name = 1;
     int Body = 2;
-    ItemData[] InventoryContents = 3;
+    ItemData[]? InventoryContents = 3;
     int ActiveInventorySlot = 4;
     int GameMode = 5;
 }

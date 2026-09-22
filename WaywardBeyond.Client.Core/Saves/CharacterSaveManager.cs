@@ -79,7 +79,9 @@ internal sealed class CharacterSaveManager
         _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
         void UpdateInventory(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
-            if (store.GetUuid(entity).ToValue() != character.Id)
+            //  The local player entity carries the server mirror uuid, not the character's own id, so
+            //  match through the Character the component holds rather than the entity uuid.
+            if (characterComponent.Character.Id != character.Id)
             {
                 return;
             }

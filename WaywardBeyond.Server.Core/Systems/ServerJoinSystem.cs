@@ -157,16 +157,17 @@ public sealed class ServerJoinSystem : IEntitySystem
     }
 
     /// <summary>
-    /// Seeds the server-authoritative interaction context (inventory, active slot, game mode) from the
-    /// joining client's local save. The client owns its initial save; once seeded these are server-owned
-    /// and replicated to all clients. An older client omitting the seed yields the struct default, which
-    /// is a sane (empty/creative) context. The inventory is normalized to the canonical slot count so
-    /// the replicated array is always full-size and the active slot is always in bounds.
+    /// Seeds the server-authoritative interaction context from the joining client's local save. The
+    /// client owns its initial save; once seeded these are server-owned and replicated to all clients.
+    /// Starter inventory is a server-side grant: a client-authored new character seeds <c>null</c>
+    /// contents and the server resolves the starter loadout, while a saved inventory is used as-is (and
+    /// is never restocked). The inventory is normalized to the canonical slot count so the replicated
+    /// array is always full-size and the active slot is always in bounds.
     /// </summary>
     private static void SeedInteractionContext(DataStore store, int entity, in CharacterSeed seed)
     {
         var inventory = new InventoryComponent();
-        inventory.CopyFrom(seed.InventoryContents);
+        inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.InventoryContents));
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
         store.AddOrUpdate(entity, new GameModeComponent((GameMode)seed.GameMode));

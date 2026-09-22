@@ -28,37 +28,18 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         
         player.AddOrUpdate(new CharacterComponent(character));
         player.AddOrUpdate(new GameModeComponent(character.GameMode));
-        
+
+        //  The client is not the authority for starter inventory; the server grants the starter
+        //  loadout as part of the seeded interaction context and echoes it down through reconcile.
+        //  The local build carries only what the saved character had (if anything) so the pre-echo
+        //  presentation matches the seed, and the authoritative component replaces it once Playing.
         var inventory = new InventoryComponent();
-        if (character.Inventory == null)
-        {
-            inventory.Add(InventoryComponent.Stack("laser", 1, 1));
-            inventory.Add(InventoryComponent.Stack("panel", 100, 100));
-            inventory.Add(InventoryComponent.Stack("thruster", 100, 100));
-            inventory.Add(InventoryComponent.Stack("display_control", 100, 100));
-            inventory.Add(InventoryComponent.Stack("caution_panel", 100, 100));
-            inventory.Add(InventoryComponent.Stack("glass", 100, 100));
-            inventory.Add(InventoryComponent.Stack("display_monitor", 100, 100));
-            inventory.Add(InventoryComponent.Stack("storage", 100, 100));
-            inventory.Add(InventoryComponent.Stack("truss", 100, 100));
-            inventory.Add(InventoryComponent.Stack("small_light", 100, 100));
-            inventory.Add(InventoryComponent.Stack("light", 100, 100));
-            inventory.Add(InventoryComponent.Stack("display_console", 100, 100));
-            inventory.Add(InventoryComponent.Stack("ice", 100, 100));
-            inventory.Add(InventoryComponent.Stack("rock", 100, 100));
-            inventory.Add(InventoryComponent.Stack("control_buttons", 100, 100));
-            inventory.Add(InventoryComponent.Stack("grate", 100, 100));
-            inventory.Add(InventoryComponent.Stack("core", 100, 100));
-            inventory.Add(InventoryComponent.Stack("porthole", 100, 100));
-            inventory.Add(InventoryComponent.Stack("vent", 100, 100));
-            inventory.Add(InventoryComponent.Stack("control_panel", 100, 100));
-        }
-        else
+        if (character.Inventory != null)
         {
             for (var i = 0; i < character.Inventory.Length; i++)
             {
                 ItemData itemData = character.Inventory[i];
-                
+
                 if (i < inventory.Contents.Length)
                 {
                     //  In-place array write; the AddOrUpdate below auto-marks the component dirty
