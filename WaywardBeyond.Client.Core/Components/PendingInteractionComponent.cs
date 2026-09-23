@@ -2,19 +2,24 @@ using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Components;
 
 /// <summary>
-/// Client-side record of a predicted voxel edit awaiting its authoritative <see cref="VoxelEditMessage"/>
-/// echo. The reconcile system correlates by (entity, coordinate): a matching echo confirms and removes the
-/// prediction, a differing echo snaps it to authority, and a prediction that ages past its bound with no
-/// echo is reverted to the pre-prediction voxel (the server rejected it). This is presentation-only state —
-/// the server is never consulted for it.
+/// Client-side bookkeeping for the local player's voxel interactions: <see cref="Queue"/> tracks the
+/// outstanding predictions awaiting their authoritative <see cref="VoxelEditMessage"/> echo (see
+/// <see cref="PendingInteractionQueue"/>), and <see cref="Outbound"/> buffers the discrete interaction
+/// edges not yet transmitted upstream. Unlike a single <c>InteractionEvent</c> component slot, the
+/// outbound buffer retains every click, so rapid placements that land between replication sends are not
+/// silently overwritten and dropped.
 /// </summary>
 public struct PendingInteractionComponent(in PendingInteractionQueue queue) : IDataComponent
 {
     public readonly PendingInteractionQueue Queue = queue;
+
+    /// <summary>Edges authored by <c>PlayerInteractionService</c> awaiting replication to the server.</summary>
+    public readonly InteractionStageBuffer Outbound = new();
 }
 
 /// <summary>

@@ -106,4 +106,29 @@ public sealed class InteractionStageBuffer
         interaction = _entries[bestIndex.Value];
         return true;
     }
+
+    /// <summary>Returns a copy of every staged interaction in staged order, oldest first.</summary>
+    public InteractionEvent[] Snapshot()
+    {
+        int count = (int)(_head - _tail);
+        if (count <= 0)
+        {
+            return [];
+        }
+
+        var result = new InteractionEvent[count];
+        for (var i = 0; i < count; i++)
+        {
+            result[i] = _entries[(_tail + i) % CAPACITY];
+        }
+
+        return result;
+    }
+
+    /// <summary>Discards every staged interaction.</summary>
+    public void Clear()
+    {
+        _head = 0;
+        _tail = 0;
+    }
 }

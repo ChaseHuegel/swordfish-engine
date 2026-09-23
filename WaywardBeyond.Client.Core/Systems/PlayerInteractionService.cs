@@ -411,7 +411,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         uint sequence = ++_interactionSequence;
         uint serverTickAtSample = _snapshotAck.LastAppliedSnapshotTick;
         pending.Queue.Register(resolution.Entity, coordinate, original, predicted, sequence, serverTickAtSample);
-        store.AddOrUpdate(playerEntity, pending);
 
         var interaction = new InteractionEvent
         {
@@ -421,7 +420,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             Kind = (byte)kind,
             Brick = hint,
         };
-        store.AddOrUpdate(playerEntity, interaction);
+
+        //  Buffer the discrete edge for replication rather than overwriting a single InteractionEvent
+        //  component slot - every click is retained, so rapid placements between sends are not dropped.
+        pending.Outbound.Stage(interaction);
+
+        store.AddOrUpdate(playerEntity, pending);
     }
 
     private static PendingInteractionComponent GetOrCreatePending(DataStore store, int playerEntity)

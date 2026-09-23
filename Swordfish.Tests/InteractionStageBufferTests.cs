@@ -91,4 +91,23 @@ public class InteractionStageBufferTests
         Assert.True(buffer.TryGet(12, out InteractionEvent result));
         Assert.Equal(1u, result.SequenceNumber);
     }
+
+    [Fact]
+    public void SnapshotPreservesEveryDistinctEdgeAndClearEmpties()
+    {
+        var buffer = new InteractionStageBuffer();
+        buffer.Stage(Event(1, 10));
+        buffer.Stage(Event(2, 10));
+        buffer.Stage(Event(3, 12));
+
+        InteractionEvent[] snapshot = buffer.Snapshot();
+        Assert.Equal(3, snapshot.Length);
+        Assert.Equal(1u, snapshot[0].SequenceNumber);
+        Assert.Equal(2u, snapshot[1].SequenceNumber);
+        Assert.Equal(3u, snapshot[2].SequenceNumber);
+
+        buffer.Clear();
+        Assert.Equal(0, buffer.Snapshot().Length);
+        Assert.False(buffer.TryGet(12, out _));
+    }
 }
