@@ -57,7 +57,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
     private readonly VoxelEntityBuilder _voxelEntityBuilder;
-    private readonly IECSContext _ecsContext;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
@@ -79,6 +78,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     //  must run on the ECS thread, never off-thread.
     private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
 
+    //  The client world store, captured on the ECS thread at the first tick. Mutations and queries must
+    //  not reach back through IECSContext (that would reintroduce a container cycle now that this type
+    //  is itself an IEntitySystem), so Tick stashes the store it is handed.
+    private DataStore? _store;
+
     private DebugInfo _debugInfo;
 
     public PlayerInteractionService(
@@ -89,7 +93,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in IRenderContext renderContext,
         in IWindowContext windowContext,
         in VoxelEntityBuilder voxelEntityBuilder,
-        in IECSContext ecsContext,
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
@@ -109,7 +112,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _renderContext = renderContext;
         _windowContext = windowContext;
         _voxelEntityBuilder = voxelEntityBuilder;
-        _ecsContext = ecsContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
@@ -198,6 +200,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     /// </summary>
     public void Tick(float delta, DataStore store)
     {
+        _store = store;
         while (_pendingClicks.TryDequeue(out MouseButton button))
         {
             DispatchButton(button);
@@ -246,7 +249,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
             return;
         }
 
-        DataStore store = _ecsContext.World.DataStore;
+        DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
         bool isPlace = kind == InteractionKind.SecondaryPressed;
 
         int playerEntity = -1;
@@ -461,7 +464,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _interactionState.SelectedShape.Set(shapeLight.Shape);
         
         //  If the player has a valid item, select it
-        _ecsContext.World.DataStore.Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
+        (_store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.")).Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
         void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, in PlayerComponent player, in InventoryComponent inventory)
         {
             Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
@@ -977,7 +980,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     
     private Result<BrickInfo> TryGetPlaceableBrickInfo()
     {
-        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_ecsContext.World.DataStore);
+        Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available."));
         if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
         {
             return new Result<BrickInfo>(success: false, null!, mainHandResult.Message, mainHandResult.Exception);
