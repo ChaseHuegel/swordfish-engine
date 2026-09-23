@@ -1,6 +1,5 @@
 using System.Collections.Concurrent;
 using System.Numerics;
-using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -25,14 +24,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
 {
     private readonly IClientConnection _transport;
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
-    private readonly IContainer _container;
+    private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly ILogger<ClientJoinSystem> _logger;
-
-    //  VoxelEntityBuilder is render-coupled and transitively depends on the client DataStore, which is
-    //  resolved from the ECSContext being constructed during boot. Injecting it here would recurse
-    //  through DataStore -> IECSContext -> IEntitySystem[] during container build. It is resolved lazily
-    //  on the ECS thread at the first WorldEntityAdd, by which point the ECS world is fully constructed.
-    private VoxelEntityBuilder? _voxelBuilder;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
 
@@ -43,12 +36,12 @@ internal sealed class ClientJoinSystem : IEntitySystem
     public ClientJoinSystem(
         in IClientConnection transport,
         in PlayerCharacterEntityBuilder playerBuilder,
-        in IContainer container,
+        in VoxelEntityBuilder voxelBuilder,
         ILogger<ClientJoinSystem> logger
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
-        _container = container;
+        _voxelBuilder = voxelBuilder;
         _logger = logger;
     }
 
@@ -151,8 +144,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
         }
 
         var voxelObject = new VoxelObject(chunkSize, data.Chunks);
-        VoxelEntityBuilder voxelBuilder = _voxelBuilder ??= _container.Resolve<VoxelEntityBuilder>();
-        voxelBuilder.Create(
+        _voxelBuilder.Create(
+            store,
             Uuid.FromValue(data.Uuid),
             voxelObject,
             new Vector3((float)data.X, (float)data.Y, (float)data.Z),

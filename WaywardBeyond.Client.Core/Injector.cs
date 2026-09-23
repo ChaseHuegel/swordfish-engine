@@ -158,6 +158,9 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
+        //  Runs after the voxel-edit producers (PlayerInteractionService, ClientVoxelReconcileSystem) so
+        //  the dirty VoxelComponent flags it consumes reflect the current prediction/reconcile.
+        container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
 
         container.Register<ClientJoinSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientJoinSystem>();

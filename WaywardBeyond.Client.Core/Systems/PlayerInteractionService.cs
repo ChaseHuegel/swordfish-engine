@@ -56,7 +56,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly ILineRenderer _lineRenderer;
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
-    private readonly VoxelEntityBuilder _voxelEntityBuilder;
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
@@ -92,7 +91,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in ILineRenderer lineRenderer,
         in IRenderContext renderContext,
         in IWindowContext windowContext,
-        in VoxelEntityBuilder voxelEntityBuilder,
         in PlayerData playerData,
         in BrickDatabase brickDatabase,
         in ItemDatabase itemDatabase,
@@ -111,7 +109,6 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         _lineRenderer = lineRenderer;
         _renderContext = renderContext;
         _windowContext = windowContext;
-        _voxelEntityBuilder = voxelEntityBuilder;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
@@ -405,8 +402,10 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         //  Predict the authoritative outcome onto the presentation-only voxel container. The reconcile
         //  system confirms, snaps, or reverts this against the server's authoritative VoxelEditMessage.
         voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, predicted);
+
+        //  Publish the edit by marking the voxel component dirty; the VoxelEntityRebuildSystem observes
+        //  this flag and fulfills the mesh/collider rebuild on the ECS thread.
         store.MarkDirty<VoxelComponent>(resolution.Entity);
-        _voxelEntityBuilder.Rebuild(resolution.Entity);
 
         PendingInteractionComponent pending = GetOrCreatePending(store, playerEntity);
         uint sequence = ++_interactionSequence;

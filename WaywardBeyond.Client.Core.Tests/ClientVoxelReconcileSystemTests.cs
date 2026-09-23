@@ -41,7 +41,7 @@ public class ClientVoxelReconcileSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject world);
 
         var snapshotAck = new SnapshotAckTracker();
-        var system = new ClientVoxelReconcileSystem(connection.Client, () => null!, snapshotAck);
+        var system = new ClientVoxelReconcileSystem(connection.Client, snapshotAck);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -57,7 +57,7 @@ public class ClientVoxelReconcileSystemTests
         var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
         DataStore store = BuildWorld(out _, out VoxelObject world);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, () => null!, new SnapshotAckTracker());
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker());
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -84,7 +84,7 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, () => null!, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
 
         //  The server broadcast agrees with the prediction (break -> empty).
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
@@ -109,7 +109,7 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(BRICK_ID, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, () => null!, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -135,7 +135,7 @@ public class ClientVoxelReconcileSystemTests
         AddPlayer(store, queue);
 
         //  No authoritative edit is sent; the ack advances far past the sample tick.
-        var system = new ClientVoxelReconcileSystem(connection.Client, () => null!, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 });
 
         system.Tick(0f, store);
 

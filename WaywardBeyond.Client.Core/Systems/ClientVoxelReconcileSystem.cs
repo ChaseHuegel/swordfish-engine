@@ -4,7 +4,6 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Numerics;
-using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -13,12 +12,13 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
 /// Reconciles the client's predicted voxel edits against the server's authoritative
-/// <see cref="VoxelEditMessage"/>s, using the same shared apply path the server authored with
-/// (<c>VoxelObject.Set</c> + a mesh rebuild). Each edit is correlated with the local player's
+/// <see cref="VoxelEditMessage"/>s. Each edit is correlated with the local player's
 /// <see cref="PendingInteractionQueue"/> by (entity, coordinate): a matching echo confirms the prediction
 /// (no-op, already applied), a differing echo snaps it to authority, and a prediction that ages past a
-/// bound with no echo (the server rejected it) is reverted to the pre-prediction voxel. Gated on
-/// <see cref="GameState.Playing"/> so it never races the load-thread world build.
+/// bound with no echo (the server rejected it) is reverted to the pre-prediction voxel. Applied edits
+/// publish via the voxel component's dirty flag, which the <see cref="VoxelEntityRebuildSystem"/>
+/// consumes to rebuild the mesh/collider. Gated on <see cref="GameState.Playing"/> so it never races the
+/// load-thread world build.
 /// </summary>
 internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 {
@@ -26,18 +26,13 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private const int REVERT_BOUND_SIM_TICKS = 40;
 
     private readonly IClientConnection _transport;
-    private readonly Func<VoxelEntityBuilder> _voxelBuilder;
     private readonly SnapshotAckTracker _snapshotAck;
-
-    private VoxelEntityBuilder? _resolvedBuilder;
 
     public ClientVoxelReconcileSystem(
         in IClientConnection transport,
-        in Func<VoxelEntityBuilder> voxelBuilder,
         in SnapshotAckTracker snapshotAck
     ) {
         _transport = transport;
-        _voxelBuilder = voxelBuilder;
         _snapshotAck = snapshotAck;
     }
 
@@ -49,9 +44,6 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         {
             return;
         }
-
-        //  Lazily resolve the render-coupled builder on the ECS thread (DryIoc provides the Func<T>).
-        _resolvedBuilder ??= _voxelBuilder();
 
         int localPlayer = -1;
         store.Query<PlayerComponent>(0f, (float _, DataStore s, int e, in PlayerComponent playerComponent) => localPlayer = e);
@@ -139,8 +131,10 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         }
 
         voxelComponent.VoxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, voxel);
+
+        //  Publish the edit by marking the voxel component dirty; the VoxelEntityRebuildSystem observes
+        //  this flag and fulfills the mesh/collider rebuild on the ECS thread.
         store.MarkDirty<VoxelComponent>(entity);
-        _resolvedBuilder?.Rebuild(entity);
     }
 
     private static bool VoxelEquals(in Voxel a, in Voxel b)
