@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
+using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
@@ -36,6 +37,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly GameplaySettings _gameplaySettings;
     private readonly ClientJoinSystem _joinSystem;
     private readonly ClientCleanupSystem _cleanupSystem;
+    private readonly DataStore _dataStore;
 
     private readonly Lock _autosaveTimerLock = new();
     private Timer _autosaveTimer;
@@ -51,7 +53,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in CharacterSaveManager characterSaveManager,
         in GameplaySettings gameplaySettings,
         in ClientJoinSystem joinSystem,
-        in ClientCleanupSystem cleanupSystem
+        in ClientCleanupSystem cleanupSystem,
+        in DataStore dataStore
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
@@ -60,6 +63,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameplaySettings = gameplaySettings;
         _joinSystem = joinSystem;
         _cleanupSystem = cleanupSystem;
+        _dataStore = dataStore;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -155,7 +159,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         save = new GameSave(save.Name, level);
         
-        _characterSaveManager.Save();
+        _characterSaveManager.Save(_dataStore);
         _ = _gameSaveService.TriggerServerSave();
         return Task.CompletedTask;
     }

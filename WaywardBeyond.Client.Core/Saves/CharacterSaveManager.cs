@@ -21,18 +21,15 @@ internal sealed class CharacterSaveManager
     private readonly ILogger<CharacterSaveManager> _logger;
     private readonly ICharacterStorage _characterStorage;
     private readonly ActiveCharacterSave _activeCharacterSave;
-    private readonly IECSContext _ecs;
 
     public CharacterSaveManager(
         ILogger<CharacterSaveManager> logger,
         ICharacterStorage characterStorage,
-        ActiveCharacterSave activeCharacterSave,
-        IECSContext ecs
+        ActiveCharacterSave activeCharacterSave
     ) {
         _logger = logger;
         _characterStorage = characterStorage;
         _activeCharacterSave = activeCharacterSave;
-        _ecs = ecs;
 
         //  Default to the most recent character save, if there is one
         ActiveSave = GetMostRecentSave();
@@ -56,7 +53,7 @@ internal sealed class CharacterSaveManager
         return Result<Character>.FromSuccess(character);
     }
 
-    public void Save()
+    public void Save(DataStore store)
     {
         if (WaywardBeyond.GameState < GameState.Playing)
         {
@@ -76,7 +73,7 @@ internal sealed class CharacterSaveManager
         };
 
         //  Fetch the character's inventory data
-        _ecs.World.DataStore.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
+        store.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
         void UpdateInventory(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
             //  The local player entity carries the server mirror uuid, not the character's own id, so
