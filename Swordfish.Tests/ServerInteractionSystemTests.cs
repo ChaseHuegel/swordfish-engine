@@ -100,9 +100,10 @@ public class ServerInteractionSystemTests
         //  Tick once for each interaction (they share a sequence space; stagger sequences).
         system.Tick(0f, store, simTick: 100);
 
-        //  Place happened (creative consumes nothing) and break cleared a fresh voxel.
+        //  The place wrote the brick at the adjacent cell and the break cleared the occupied cell - both
+        //  discrete edges are consumed even though they share the same staged sim tick.
         Assert.Equal(BRICK_DATA_ID, voxelObject.Get(1, 0, 0).ID);
-        Assert.Equal(BRICK_DATA_ID, voxelObject.Get(0, 0, 0).ID);
+        Assert.Equal((ushort)0, voxelObject.Get(0, 0, 0).ID);
 
         //  The inventory was untouched by creative interactions.
         Assert.True(store.TryGet(player, out InventoryComponent inventory));
