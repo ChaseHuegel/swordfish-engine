@@ -176,9 +176,15 @@ internal class Hotbar
         }
         
         double scrollDelta = Math.Round(e.Delta, MidpointRounding.AwayFromZero);
+        scrollDelta = Math.Clamp(scrollDelta, -1f, 1f);
+        int steps = (int)scrollDelta;
+        if (steps == 0)
+        {
+            return;
+        }
         
         int activeSlot = _playerData.GetActiveSlot(_ecsContext.World.DataStore);
-        activeSlot -= (int)scrollDelta;
+        activeSlot -= steps;
         activeSlot = MathS.WrapInt(activeSlot, 0, SLOT_COUNT - 1);
         
         SetActiveSlot(activeSlot);
