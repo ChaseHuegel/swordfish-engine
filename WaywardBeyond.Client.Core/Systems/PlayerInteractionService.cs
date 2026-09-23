@@ -1,8 +1,8 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
-using System.Threading.Tasks;
 using Reef;
 using Shoal.Modularity;
 using Swordfish.ECS;
@@ -45,7 +45,7 @@ using DebugInfo = (
     bool AlignmentFloor
 );
 
-internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
+internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDebugOverlay
 {
     private static readonly Vector4 _gizmoColor = new(0.5f, 0.5f, 0.5f, 1f);
     private static readonly Vector3[] _worldAxes = [Vector3.UnitX, -Vector3.UnitX, Vector3.UnitY, -Vector3.UnitY, Vector3.UnitZ, -Vector3.UnitZ];
@@ -73,6 +73,11 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
     private readonly SnapshotAckTracker _snapshotAck;
 
     private uint _interactionSequence;
+
+    //  Click edges are pushed here from the window/input thread and drained on the ECS thread in Tick,
+    //  because every interaction path (resolution + store mutation + VoxelObject/Rebuild + SFX hooks)
+    //  must run on the ECS thread, never off-thread.
+    private readonly ConcurrentQueue<MouseButton> _pendingClicks = new();
 
     private DebugInfo _debugInfo;
 
@@ -183,23 +188,38 @@ internal sealed class PlayerInteractionService : IEntryPoint, IDebugOverlay
             return;
         }
 
-        Task.Run(() =>
+        _pendingClicks.Enqueue(e.MouseButton);
+    }
+
+    /// <summary>
+    /// Drains click edges on the ECS thread. The interaction resolution and its store mutations, voxel
+    /// prediction/rebuild, and presentation hooks all mutate ECS-owned state, so they must never run on
+    /// the window/input thread.
+    /// </summary>
+    public void Tick(float delta, DataStore store)
+    {
+        while (_pendingClicks.TryDequeue(out MouseButton button))
         {
-            if (e.MouseButton == MouseButton.Left)
-            {
-                OnLeftClick();
-            }
-        
-            if (e.MouseButton == MouseButton.Right)
-            {
-                OnRightClick();
-            }
-        
-            if (e.MouseButton == MouseButton.Middle)
-            {
-                OnMiddleClick();
-            } 
-        });
+            DispatchButton(button);
+        }
+    }
+
+    private void DispatchButton(MouseButton button)
+    {
+        if (button == MouseButton.Left)
+        {
+            OnLeftClick();
+        }
+
+        if (button == MouseButton.Right)
+        {
+            OnRightClick();
+        }
+
+        if (button == MouseButton.Middle)
+        {
+            OnMiddleClick();
+        }
     }
 
     private void OnLeftClick()

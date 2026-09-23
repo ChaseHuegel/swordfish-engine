@@ -278,6 +278,7 @@ public class Injector : IDryIocInjector
         
         container.Register<PlayerInteractionService>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, PlayerInteractionService>();
+        container.RegisterMapping<IEntitySystem, PlayerInteractionService>();
         container.RegisterMapping<IDebugOverlay, PlayerInteractionService>();
 
         container.Register<ClientPlayerMotionProcessor>(Reuse.Singleton);
