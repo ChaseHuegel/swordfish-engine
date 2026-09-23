@@ -36,7 +36,7 @@ public class InteractionStageBufferTests
     }
 
     [Fact]
-    public void CollapsesNewestPerTick()
+    public void KeepsDistinctEventsSharingASimTick()
     {
         var buffer = new InteractionStageBuffer();
         buffer.Stage(Event(1, 10));
@@ -45,6 +45,14 @@ public class InteractionStageBufferTests
 
         Assert.True(buffer.TryGet(10, out InteractionEvent result));
         Assert.Equal(3u, result.SequenceNumber);
+
+        //  Each discrete edge targets the same tick but is a distinct edit; none may be collapsed.
+        Assert.True(buffer.TryConsume(10, lastSequenceNumber: 0, out InteractionEvent e1));
+        Assert.Equal(1u, e1.SequenceNumber);
+        Assert.True(buffer.TryConsume(10, lastSequenceNumber: 1, out InteractionEvent e2));
+        Assert.Equal(2u, e2.SequenceNumber);
+        Assert.True(buffer.TryConsume(10, lastSequenceNumber: 2, out InteractionEvent e3));
+        Assert.Equal(3u, e3.SequenceNumber);
     }
 
     [Fact]
