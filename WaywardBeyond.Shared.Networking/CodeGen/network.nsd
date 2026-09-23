@@ -47,6 +47,7 @@ message VoxelEditMessage
     int Y = 2;
     int Z = 3;
     WaywardBeyond.Shared.Data.Voxel Voxel = 4;
+    uint Sequence = 5;
 }
 
 message LanBeacon

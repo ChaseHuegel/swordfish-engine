@@ -87,7 +87,7 @@ public class ClientVoxelReconcileSystemTests
         var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
 
         //  The server broadcast agrees with the prediction (break -> empty).
-        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
 
         system.Tick(0f, store);
 
@@ -111,12 +111,43 @@ public class ClientVoxelReconcileSystemTests
 
         var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
 
-        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
 
         system.Tick(0f, store);
 
         Assert.That(queue.TryFind(structure, new Int3(0, 0, 0), out _), Is.False, "The snapped prediction should be resolved.");
         Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo((ushort)0), "The view should snap to the authoritative empty voxel.");
+    }
+
+    [Test]
+    public void EchoResolvesPendingBySequenceAcrossCells()
+    {
+        Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        DataStore store = BuildWorld(out int structure, out VoxelObject world);
+
+        //  Two distinct placements on different cells: seq 1 (break (0,0,0) -> empty) and seq 2 (break
+        //  (1,0,0) -> empty). Correlating by sequence resolves each echo to the exact prediction.
+        world.Set(0, 0, 0, new Voxel(0, 0, 0));
+        world.Set(1, 0, 0, new Voxel(0, 0, 0));
+        var queue = new PendingInteractionQueue();
+        queue.Register(structure, new Int3(0, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 1, serverTickAtSample: 10);
+        queue.Register(structure, new Int3(1, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 2, serverTickAtSample: 10);
+        AddPlayer(store, queue);
+
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+
+        //  The echo for seq 2 arrives first, then seq 1; each confirms its own pending prediction.
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 1, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 2 });
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
+
+        system.Tick(0f, store);
+
+        Assert.That(queue.TryFindBySequence(1, out _), Is.False, "The sequence-1 prediction should be resolved by its echo.");
+        Assert.That(queue.TryFindBySequence(2, out _), Is.False, "The sequence-2 prediction should be resolved by its echo.");
+        Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo((ushort)0), "The (0,0,0) break should hold.");
+        Assert.That(world.Get(1, 0, 0).ID, Is.EqualTo((ushort)0), "The (1,0,0) break should hold.");
     }
 
     [Test]

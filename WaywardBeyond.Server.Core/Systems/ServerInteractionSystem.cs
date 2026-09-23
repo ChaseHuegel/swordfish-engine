@@ -176,16 +176,18 @@ public sealed class ServerInteractionSystem
         store.MarkDirty<VoxelEntityDataComponent>(resolution.Entity);
 
         Voxel newVoxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
-        BroadcastEdit(store, resolution.Entity, coordinate, newVoxel);
+        BroadcastEdit(store, resolution.Entity, coordinate, newVoxel, interaction.SequenceNumber);
 
         _logger.LogDebug("Applied {action} on entity {entity} at {coordinate} for player {player}.", resolution.Action, resolution.Entity, coordinate, player);
     }
 
     /// <summary>
     /// Broadcasts an authoritative voxel edit to every connected client so both the origin client and
-    /// remote witnesses apply the delta via the same shared voxel container.
+    /// remote witnesses apply the delta via the same shared voxel container. Carries the originating
+    /// interaction's <paramref name="sequence"/> so the origin client can resolve the exact prediction
+    /// it echoed, instead of correlating by (entity, coordinate).
     /// </summary>
-    private void BroadcastEdit(DataStore store, int entity, Int3 coordinate, in Voxel voxel)
+    private void BroadcastEdit(DataStore store, int entity, Int3 coordinate, in Voxel voxel, uint sequence)
     {
         var message = new VoxelEditMessage
         {
@@ -194,6 +196,7 @@ public sealed class ServerInteractionSystem
             Y = coordinate.Y,
             Z = coordinate.Z,
             Voxel = voxel,
+            Sequence = sequence,
         };
 
         foreach ((Uuid clientId, _) in _hub.Clients)

@@ -81,20 +81,50 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
         Int3 coordinate = new(message.X, message.Y, message.Z);
 
-        if (queue != null && queue.TryFind(entity, coordinate, out PendingEdit pending))
+        //  Correlate the echo to the exact prediction by its interaction sequence: a discrete edge is
+        //  uniquely addressed, so a late echo resolves the right pending entry even if another edit has
+        //  since touched the same cell. Falls back to (entity, coordinate) when the echo carries no
+        //  sequence (retransmitted/stale edit from before this field existed).
+        PendingEdit? pending = FindPending(queue, message.Sequence, entity, in coordinate);
+        if (pending != null)
         {
-            if (VoxelEquals(in pending.Predicted, in message.Voxel))
+            PendingEdit edit = pending.Value;
+            if (VoxelEquals(in edit.Predicted, in message.Voxel))
             {
                 //  The server agreed with the prediction - already applied. Resolve the pending entry.
-                queue.Remove(entity, coordinate);
+                queue!.Remove(edit.Entity, edit.Coordinate);
                 return;
             }
 
             //  The server's authoritative voxel differs from the prediction - snap to authority.
-            queue.Remove(entity, coordinate);
+            queue!.Remove(edit.Entity, edit.Coordinate);
         }
 
         WriteVoxel(store, entity, in coordinate, in message.Voxel);
+    }
+
+    private static PendingEdit? FindPending(
+        PendingInteractionQueue? queue,
+        uint sequence,
+        int entity,
+        in Int3 coordinate
+    ) {
+        if (queue == null)
+        {
+            return null;
+        }
+
+        if (sequence != 0 && queue.TryFindBySequence(sequence, out PendingEdit bySequence))
+        {
+            return bySequence;
+        }
+
+        if (queue.TryFind(entity, coordinate, out PendingEdit byCoordinate))
+        {
+            return byCoordinate;
+        }
+
+        return null;
     }
 
     private void RevertExpiredPredictions(DataStore store, PendingInteractionQueue queue)

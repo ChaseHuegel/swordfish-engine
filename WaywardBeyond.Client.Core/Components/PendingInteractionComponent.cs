@@ -63,6 +63,25 @@ public sealed class PendingInteractionQueue
         }
     }
 
+    /// <summary>Looks up the outstanding prediction echoed by the given interaction sequence, if any.</summary>
+    public bool TryFindBySequence(uint sequence, out PendingEdit edit)
+    {
+        lock (_gate)
+        {
+            for (var i = 0; i < _edits.Count; i++)
+            {
+                if (_edits[i].Sequence == sequence)
+                {
+                    edit = _edits[i];
+                    return true;
+                }
+            }
+
+            edit = default;
+            return false;
+        }
+    }
+
     /// <summary>Removes the prediction for the given cell, reporting whether one was present.</summary>
     public bool Remove(int entity, Int3 coordinate)
     {
