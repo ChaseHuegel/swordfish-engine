@@ -12,8 +12,6 @@ namespace WaywardBeyond.Client.Core.Services;
 internal sealed class SoundEffectService
 {
     private readonly AudioChannelSystem _audioChannelSystem;
-    private readonly IECSContext _ecsContext;
-
     private readonly Randomizer _randomizer;
     
     private readonly string[] _placeMetalSounds;
@@ -22,10 +20,9 @@ internal sealed class SoundEffectService
     private readonly string[] _placeRockSounds;
     private readonly string[] _removeRockSounds;
 
-    public SoundEffectService(in AudioChannelSystem audioChannelSystem, in IECSContext ecsContext, in VirtualFileSystem vfs)
+    public SoundEffectService(in AudioChannelSystem audioChannelSystem, in VirtualFileSystem vfs)
     {
         _audioChannelSystem = audioChannelSystem;
-        _ecsContext = ecsContext;
         _randomizer = new Randomizer();
         
         PathInfo placeMetalFolder = AssetPaths.Audio.At("sounds/place/metal/");
@@ -102,6 +99,6 @@ internal sealed class SoundEffectService
             State = PlayerState.Play,
             ChannelEntity = channelEntity,
         };
-        _ecsContext.World.DataStore.Alloc(audioSource, audioPlayer);
+        _audioChannelSystem.EnqueuePlay(audioSource, audioPlayer);
     }
 }

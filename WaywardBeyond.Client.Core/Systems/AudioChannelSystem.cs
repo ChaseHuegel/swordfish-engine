@@ -16,9 +16,18 @@ internal sealed class AudioChannelSystem(in VolumeSettings volumeSettings) : IEn
 
     private readonly ConcurrentDictionary<string, Uuid> _channelEntities = [];
 
+    //  Pending audio plays enqueued off the ECS thread (e.g. UI/menu sounds) and allocated into the store
+    //  here on the ECS thread, so store mutations never happen off-thread.
+    private readonly ConcurrentQueue<AudioPlay> _pendingPlays = new();
+
     public bool TryGetChannelEntity(string name, out Uuid channel)
     {
         return _channelEntities.TryGetValue(name, out channel);
+    }
+
+    public void EnqueuePlay(in AudioSource audioSource, in AudioPlayer audioPlayer)
+    {
+        _pendingPlays.Enqueue(new AudioPlay(audioSource, audioPlayer));
     }
     
     public void Tick(float delta, DataStore store)
@@ -54,5 +63,17 @@ internal sealed class AudioChannelSystem(in VolumeSettings volumeSettings) : IEn
         store.AddOrUpdate(_effectsChannel.Value, new AudioChannel(_volumeSettings.Effects.Get() * masterVolume));
         store.AddOrUpdate(_interfaceChannel.Value, new AudioChannel(_volumeSettings.Interface.Get() * masterVolume));
         store.AddOrUpdate(_musicChannel.Value, new AudioChannel(_volumeSettings.Music.Get() * masterVolume));
+
+        //  Allocate queued audio plays on the ECS thread
+        while (_pendingPlays.TryDequeue(out AudioPlay play))
+        {
+            store.Alloc(play.AudioSource, play.AudioPlayer);
+        }
+    }
+
+    private readonly struct AudioPlay(in AudioSource audioSource, in AudioPlayer audioPlayer)
+    {
+        public readonly AudioSource AudioSource = audioSource;
+        public readonly AudioPlayer AudioPlayer = audioPlayer;
     }
 }
