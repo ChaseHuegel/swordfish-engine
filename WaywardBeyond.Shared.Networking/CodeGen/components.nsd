@@ -53,9 +53,10 @@ message InteractionEvent
 
 message BrickInteraction
 {
-    int  TargetX = 0;
-    int  TargetY = 1;
-    int  TargetZ = 2;
-    byte HintShape = 3;
-    byte HintOrientation = 4;
+    ulong TargetEntity = 0;
+    int  TargetX = 1;
+    int  TargetY = 2;
+    int  TargetZ = 3;
+    byte HintShape = 4;
+    byte HintOrientation = 5;
 }
