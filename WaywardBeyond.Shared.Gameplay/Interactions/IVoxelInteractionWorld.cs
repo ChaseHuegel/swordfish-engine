@@ -7,16 +7,20 @@ namespace WaywardBeyond.Shared.Gameplay;
 
 /// <summary>
 /// Abstraction over the caller's world (client prediction store or server authority store) that the
-/// shared interaction targeting ports its raycasts against. Both sides build colliders from the same
-/// shared voxel data, so raycasting through this abstraction yields the same hit on both sides and the
-/// resolver picks the same cell from the same ray. Implemented per-world; a structure hit is resolved to
-/// its mutable voxel container and transform so the resolver can read occupancy.
+/// shared interaction validation reads structure occupancy and position from. A structure is addressed by
+/// its stable <see cref="Uuid"/> (the identity carried on the wire in the target hint), and resolved to its
+/// mutable voxel container + transform so the resolver can validate reach and occupancy. The ray-based
+/// <see cref="TryRaycast"/>/int-lookup pair remains only for the client's screen-aim targeting; server
+/// validation never raycasts.
 /// </summary>
 public interface IVoxelInteractionWorld
 {
-    /// <summary>Raycasts the world's physics, returning the raw hit (entity, point, normal).</summary>
+    /// <summary>Raycasts the world's physics. Retained for client aim targeting; not used by validation.</summary>
     bool TryRaycast(in Ray ray, out RaycastResult result);
 
-    /// <summary>Reads a hit structure's live voxel container and world transform, if it has them.</summary>
+    /// <summary>Reads a raycast-hit structure's live voxel container and world transform, if it has them.</summary>
     bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform);
+
+    /// <summary>Reads a structure by its stable identity into its live voxel container and world transform.</summary>
+    bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform);
 }

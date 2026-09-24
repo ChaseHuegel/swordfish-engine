@@ -29,6 +29,7 @@ namespace Swordfish.Tests;
 public class ServerInteractionSystemTests
 {
     private const ushort BRICK_DATA_ID = 7;
+    private const ulong STRUCTURE_UUID = 0xBEEF;
 
     [Fact]
     public void SurvivalBreakRemovesVoxelGrantsLootAndRebuildsCollider()
@@ -231,6 +232,30 @@ public class ServerInteractionSystemTests
     }
 
     [Fact]
+    public void EditAppliesWhenStructureIsNotAlongAnyServerRay()
+    {
+        //  Server validation is ray-free: the hint (structure uuid + cell) is resolved purely by identity,
+        //  reach, and occupancy. A structure the server ray never touches still resolves within reach.
+        DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
+        //  Empty (0,0,0) and seed (1,0,0) occupied, so the break targets the hinted occupied cell.
+        StoreInitialVoxel(voxelObject, 0, 0, 0);
+        StoreInitialVoxel(voxelObject, 1, 0, 0);
+
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
+        StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(1, 0, 0));
+
+        //  A world whose raycast always misses - nothing the server "sees" is targetable, yet the hint
+        //  resolves because validation reads the structure by uuid, not by any ray.
+        var physics = new StubPhysics();
+        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ =>
+            new RaylessWorld(structure, voxelObject));
+
+        system.Tick(0f, store, simTick: 100);
+
+        Assert.Equal((ushort)0, voxelObject.Get(1, 0, 0).ID);
+    }
+
+    [Fact]
     public void ModHandlerCanRejectAnAppliedEdit()
     {
         DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
@@ -281,7 +306,7 @@ public class ServerInteractionSystemTests
         var store = new DataStore();
         voxelObject = new VoxelObject(chunkSize: 16);
         StoreInitialVoxel(voxelObject, BRICK_DATA_ID, x: 0, y: 0, z: 0);
-        store.AddOrUpdate(structure = store.Alloc(), new VoxelWorldComponent(voxelObject));
+        store.AddOrUpdate(structure = store.Alloc(Uuid.FromValue(STRUCTURE_UUID)), new VoxelWorldComponent(voxelObject));
         store.AddOrUpdate(structure, new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One));
         store.AddOrUpdate(structure, new ColliderComponent(VoxelColliderBuilder.BuildCollition(voxelObject.GetChunkInfos())));
         store.AddOrUpdate(structure, new VoxelEntityDataComponent(voxelObject.GetChunkInfos()));
@@ -322,6 +347,7 @@ public class ServerInteractionSystemTests
     {
         return new BrickInteraction
         {
+            TargetEntity = STRUCTURE_UUID,
             TargetX = x,
             TargetY = y,
             TargetZ = z,
@@ -365,6 +391,22 @@ public class ServerInteractionSystemTests
             transform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
             return true;
         }
+
+        public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxel, out TransformComponent transform)
+        {
+            if (entityUuid != Uuid.FromValue(STRUCTURE_UUID))
+            {
+                entity = default;
+                voxel = null;
+                transform = default;
+                return false;
+            }
+
+            entity = structure;
+            voxel = voxelObject;
+            transform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
+            return true;
+        }
     }
 
     private sealed class StubPhysics : IPhysics
@@ -372,6 +414,49 @@ public class ServerInteractionSystemTests
         public event EventHandler<EventArgs>? FixedUpdate;
         public RaycastResult Raycast(in Ray ray) => default;
         public void SetGravity(Vector3 gravity) { }
+    }
+
+    /// <summary>
+    /// A world whose raycast always misses, so nothing the server "sees" down a ray is targetable. Server
+    /// validation is ray-free, so a hint (structure identity + cell) still resolves by uuid within reach.
+    /// </summary>
+    private sealed class RaylessWorld(int structure, VoxelObject voxelObject) : IVoxelInteractionWorld
+    {
+        public bool TryRaycast(in Ray ray, out RaycastResult result)
+        {
+            result = default;
+            return false;
+        }
+
+        public bool TryGetVoxelTarget(int entity, out VoxelObject? voxel, out TransformComponent transform)
+        {
+            if (entity != structure)
+            {
+                voxel = null;
+                transform = default;
+                return false;
+            }
+
+            voxel = voxelObject;
+            transform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
+            return true;
+        }
+
+        public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxel, out TransformComponent transform)
+        {
+            if (entityUuid != Uuid.FromValue(STRUCTURE_UUID))
+            {
+                entity = default;
+                voxel = null;
+                transform = default;
+                return false;
+            }
+
+            entity = structure;
+            voxel = voxelObject;
+            transform = new TransformComponent(Vector3.Zero, Quaternion.Identity, Vector3.One);
+            return true;
+        }
     }
 
     private sealed class StubContent : IInteractionContent

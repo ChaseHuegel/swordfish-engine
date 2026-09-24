@@ -137,7 +137,7 @@ public class InteractionHandlerRegistryTests
         GameMode gameMode = GameMode.Adventure
     ) {
         _ = heldItemID;
-        return new InteractionRequest(new Ray(Vector3.Zero, Vector3.UnitX), null, kind, null, gameMode, 9.5f);
+        return new InteractionRequest(Vector3.Zero, null, kind, null, gameMode, 9.5f);
     }
 
     private static InteractionResolution BreakResolution()

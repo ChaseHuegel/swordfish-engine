@@ -9,8 +9,9 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// <summary>
 /// Client-side <see cref="IVoxelInteractionWorld"/> for prediction. Raycasts the client's physics world
 /// (whose structure colliders are built from the same shared <see cref="VoxelColliderBuilder"/> as the
-/// server's) and reads a hit structure's live voxel container + transform from the client store, so the
-/// shared interaction targeting derives the same cell from the same ray on both sides.
+/// server's) for the client's screen-aim targeting, and reads a structure's live voxel container +
+/// transform from the client store - by raycast-hit entity for aim, or by the structure's stable
+/// <see cref="Uuid"/> for ray-free validation.
 /// </summary>
 public sealed class ClientVoxelInteractionWorld(DataStore store, IPhysics physics) : IVoxelInteractionWorld
 {
@@ -29,6 +30,21 @@ public sealed class ClientVoxelInteractionWorld(DataStore store, IPhysics physic
             return true;
         }
 
+        voxelObject = null;
+        transform = default;
+        return false;
+    }
+
+    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    {
+        if (store.TryGet(entityUuid, out entity) && store.TryGet(entity, out VoxelComponent voxelComponent) && store.TryGet(entity, out TransformComponent transformComponent))
+        {
+            voxelObject = voxelComponent.VoxelObject;
+            transform = transformComponent;
+            return true;
+        }
+
+        entity = default;
         voxelObject = null;
         transform = default;
         return false;

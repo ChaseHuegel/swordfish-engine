@@ -6,9 +6,9 @@ namespace WaywardBeyond.Shared.Gameplay;
 /// <summary>
 /// The immutable facts handed to an interaction handler after base validation has resolved a legal
 /// interaction. Carries the original <see cref="InteractionRequest"/> (kind, hint, held placeable, game
-/// mode, reach, ray), the <see cref="Resolution"/> the shared resolver produced, the target structure and
-/// cell context (<see cref="Entity"/>, <see cref="Coordinate"/>, <see cref="CurrentVoxel"/> - the voxel
-/// currently occupying the target cell before the edit), and the held item id. A handler passes a
+/// mode, reach, origin), the <see cref="Resolution"/> the shared resolver produced, the target structure
+/// and cell context (<see cref="Entity"/>, <see cref="Coordinate"/>, <see cref="CurrentVoxel"/> - the
+/// voxel currently occupying the target cell before the edit), and the held item id. A handler passes a
 /// resolution through unchanged by returning <see cref="Resolution"/>.
 /// </summary>
 public readonly struct InteractionContext

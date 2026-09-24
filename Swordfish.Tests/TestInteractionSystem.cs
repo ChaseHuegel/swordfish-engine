@@ -44,6 +44,14 @@ internal static class TestInteractionSystem
             transform = default;
             return false;
         }
+
+        public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+        {
+            entity = default;
+            voxelObject = null;
+            transform = default;
+            return false;
+        }
     }
 
     private sealed class StubPhysics : IPhysics

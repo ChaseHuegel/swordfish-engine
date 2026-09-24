@@ -100,8 +100,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in SoundEffectService soundEffectService,
         in EventInvoker<PlaceEvent> placeEvent,
         in EventInvoker<BreakEvent> breakEvent,
-        in IInteractionContent content,
-        in SnapshotAckTracker snapshotAck
+in IInteractionContent content,
+    in SnapshotAckTracker snapshotAck
     ) {
         _interactionState = interactionState;
         _inputService = inputService;
@@ -275,14 +275,15 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         }
 
         var world = new ClientVoxelInteractionWorld(store, _physics);
-        if (!SharedInteractionResolver.TryResolveTargetCell(centerRay, offset: isPlace, reachAround: true, SharedInteractionResolver.DEFAULT_REACH, world, out Int3 coordinate))
+        if (!SharedInteractionResolver.TryResolveTargetCell(centerRay, offset: isPlace, reachAround: true, SharedInteractionResolver.DEFAULT_REACH, world, out Int3 coordinate, out int targetEntity))
         {
             return;
         }
 
-        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, centerRay, store, coordinate);
+        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, centerRay, store, coordinate, targetEntity);
 
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(centerRay, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -305,7 +306,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         return true;
     }
 
-    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, in Ray ray, DataStore store, Int3 coordinate)
+    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, in Ray ray, DataStore store, Int3 coordinate, int targetEntity)
     {
         byte hintShape = 0;
         byte hintOrientation = 0;
@@ -319,6 +320,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
         return new BrickInteraction
         {
+            TargetEntity = store.GetUuid(targetEntity).ToValue(),
             TargetX = coordinate.X,
             TargetY = coordinate.Y,
             TargetZ = coordinate.Z,
@@ -961,24 +963,12 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
 
     private static Int3 WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
     {
-        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);
-        
-        var x = (int)Math.Floor(localPos.X);
-        var y = (int)Math.Floor(localPos.Y);
-        var z = (int)Math.Floor(localPos.Z);
-
-        return new Int3(x, y, z);
+        return SharedInteractionResolver.WorldToBrickSpace(position, origin, orientation);
     }
 
     private static Vector3 BrickToWorldSpace(Int3 coordinate, Vector3 origin, Quaternion orientation)
     {
-        var localCenter = new Vector3(
-            coordinate.X,
-            coordinate.Y,
-            coordinate.Z
-        );
-
-        return Vector3.Transform(localCenter, orientation) + origin;
+        return SharedInteractionResolver.BrickToWorldSpace(coordinate, origin, orientation);
     }
     
     private Result<BrickInfo> TryGetPlaceableBrickInfo()

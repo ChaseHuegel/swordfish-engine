@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Physics;
@@ -128,13 +129,13 @@ public sealed class ServerInteractionSystem
             mode = gameMode.Mode;
         }
 
-        //  Authority ray from the settled mirror transform + look (already applied server-side by the
-        //  shared step during the physics tick that precedes us in the server tick loop).
-        Ray ray = new(mirror.Position, mirror.GetForward());
+        //  Validate the hinted structure + cell against the authority store purely by identity and reach;
+        //  no raycasting is needed (the client's screen-aim targeting produced the hint).
+        Vector3 origin = mirror.Position;
         IVoxelInteractionWorld world = _worldFactory(store);
 
-        InteractionRequest request = new(ray, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(ray, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -291,9 +292,10 @@ public sealed class ServerInteractionSystem
 }
 
 /// <summary>
-/// Server-side <see cref="IVoxelInteractionWorld"/>: raycasts the server's Jolt world (whose structure
-/// colliders are built from the shared <see cref="VoxelColliderBuilder"/>) and reads a structure's live
-/// voxel container + transform from the authority store.
+/// Server-side <see cref="IVoxelInteractionWorld"/>: reads a structure's live voxel container + transform
+/// from the authority store by its stable identity. Validation never raycasts (the client's screen-aim
+/// targeting is the only ray user); <see cref="TryRaycast"/>/int lookup are retained for interface parity
+/// but unused by server validation.
 /// </summary>
 public sealed class ServerVoxelInteractionWorld(DataStore store, IPhysics physics) : IVoxelInteractionWorld
 {
@@ -312,6 +314,23 @@ public sealed class ServerVoxelInteractionWorld(DataStore store, IPhysics physic
             return true;
         }
 
+        voxelObject = null;
+        transform = default;
+        return false;
+    }
+
+    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    {
+        if (store.TryGet(entityUuid, out entity) &&
+            store.TryGet(entity, out VoxelWorldComponent world) &&
+            store.TryGet(entity, out TransformComponent transformComponent))
+        {
+            voxelObject = world.VoxelObject;
+            transform = transformComponent;
+            return true;
+        }
+
+        entity = default;
         voxelObject = null;
         transform = default;
         return false;

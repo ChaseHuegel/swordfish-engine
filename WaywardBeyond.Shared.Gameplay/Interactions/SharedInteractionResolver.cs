@@ -13,11 +13,11 @@ namespace WaywardBeyond.Shared.Gameplay;
 
 /// <summary>
 /// The shared, single-location interaction resolver. Client prediction and server authority both call it
-/// with their own world ray (client: screen-center camera ray; server: mirror transform + look) and their
-/// own <see cref="IVoxelInteractionWorld"/>; both build colliders from the same shared voxel data, so the
-/// ported targeting here picks the same cell from the same ray on both sides. The client's resolved cell
-/// arrives as an optional <see cref="BrickInteraction"/> hint; presence of a hint governs whether a brick
-/// interaction is attempted at all, and it is validated against the independently-derived cell.
+/// to validate a client-sent <see cref="BrickInteraction"/> hint (structure identity + target cell) purely
+/// against the world: the hint structure must resolve within reach and satisfy occupancy/held-item rules.
+/// Server validation never raycasts - the client's screen-aim targeting is the only place a world ray is
+/// used, and its result (structure + cell) is what arrives as the hint. An absent or invalid hint resolves
+/// to <see cref="InteractionAction.None"/>.
 /// </summary>
 public static class SharedInteractionResolver
 {
@@ -31,12 +31,14 @@ public static class SharedInteractionResolver
     private const float REACH_AROUND_RAY_LENGTH = 0.9f;
 
     /// <summary>
-    /// Resolves a pressed interaction edge + optional target hint into an action against the world. A
-    /// hint-less event (or an event whose hint does not resolve to a legal target) yields
-    /// <see cref="InteractionAction.None"/> - it never throws or assumes a hint is present.
+    /// Validates a pressed interaction edge + target hint into an action against the world without
+    /// raycasting: resolves the hinted structure by identity, checks reach (squared) from the interaction
+    /// origin to the cell center, and applies occupancy/held-item rules. A hint-less event (or one whose
+    /// hint does not resolve to a legal target) yields <see cref="InteractionAction.None"/> - it never
+    /// throws or assumes a hint is present.
     /// </summary>
     public static InteractionResolution Resolve(
-        in Ray ray,
+        in Vector3 origin,
         BrickInteraction? hint,
         InteractionKind kind,
         PlaceableBrick? placeable,
@@ -56,28 +58,26 @@ public static class SharedInteractionResolver
             return InteractionResolution.None;
         }
 
-        //  Resolve the targeted structure (with reach-around) from the world ray.
-        if (!TryResolveTarget(ray, offset: isPlace, reachAround: true, reach, world, out InteractionTarget target) ||
-            target.VoxelObject == null)
+        //  Resolve the hinted structure by its stable identity. It must carry a voxel container and
+        //  transform for reach + occupancy validation.
+        if (!world.TryGetVoxelTarget(Uuid.FromValue(hint.Value.TargetEntity), out int entity, out VoxelObject? voxelObject, out TransformComponent transform) ||
+            voxelObject == null)
         {
             return InteractionResolution.None;
         }
 
-        //  Plausibility: validate the client-sent hint cell against the structure's authoritative voxel
-        //  container rather than demanding the authority's own ray derive the identical cell. The client
-        //  aims with a screen-center camera ray while the authority aims with the body transform ray, so
-        //  the two may legitimately land a cell apart at voxel boundaries; the hint cell is the intended
-        //  target and is independently validated here for reach and occupancy.
         Int3 hintCell = new(hint.Value.TargetX, hint.Value.TargetY, hint.Value.TargetZ);
+        float reachSquared = reach * reach;
 
-        //  Reach: the cell must be within reach of the interaction origin.
-        Vector3 cellWorld = BrickToWorldSpace(hintCell, target.Transform.Position, target.Transform.Orientation);
-        if (Vector3.Distance(ray.Origin, cellWorld) > reach)
+        //  Reach: the cell center must be within the player's reach of the interaction origin. A squared
+        //  distance check keeps validation cheap.
+        Vector3 cellWorld = BrickToWorldSpace(hintCell, transform.Position, transform.Orientation);
+        if (Vector3.DistanceSquared(origin, cellWorld) > reachSquared)
         {
             return InteractionResolution.None;
         }
 
-        Voxel hintVoxel = target.VoxelObject.Get(hintCell.X, hintCell.Y, hintCell.Z);
+        Voxel hintVoxel = voxelObject.Get(hintCell.X, hintCell.Y, hintCell.Z);
 
         if (isBreak)
         {
@@ -87,7 +87,7 @@ public static class SharedInteractionResolver
                 return InteractionResolution.None;
             }
 
-            return new InteractionResolution(InteractionAction.Break, target.Entity, hintCell, hintVoxel);
+            return new InteractionResolution(InteractionAction.Break, entity, hintCell, hintVoxel);
         }
 
         //  Place requires an empty destination cell and a held placeable brick.
@@ -97,16 +97,14 @@ public static class SharedInteractionResolver
         }
 
         Voxel voxel = placeable.Value.ToVoxel((BrickShape)hint.Value.HintShape, new Orientation(hint.Value.HintOrientation));
-        return new InteractionResolution(InteractionAction.Place, target.Entity, hintCell, voxel);
+        return new InteractionResolution(InteractionAction.Place, entity, hintCell, voxel);
     }
 
     /// <summary>
-    /// Resolves the target cell a given ray points at, using the same targeting the resolver internally
-    /// applies. The client calls this to build its <see cref="BrickInteraction"/> hint from the shared
-    /// code; the resolver's validation then validates that hint cell against the authoritative voxel
-    /// container (reach + occupancy) rather than requiring the authority's own ray to re-derive the
-    /// identical cell. Returns the brick-space cell without validating reach/occupancy — that is the
-    /// resolver's job.
+    /// Resolves the target cell + structure a given ray points at, using the client's screen-aim targeting.
+    /// This is the only ray-based path in the resolver; the server never calls it - it validates the
+    /// resulting hint via <see cref="Resolve"/>. Returns the brick-space cell and the target structure
+    /// entity without validating reach/occupancy - that is the resolver's job.
     /// </summary>
     public static bool TryResolveTargetCell(
         in Ray ray,
@@ -114,15 +112,18 @@ public static class SharedInteractionResolver
         bool reachAround,
         float reach,
         in IVoxelInteractionWorld world,
-        out Int3 coordinate
+        out Int3 coordinate,
+        out int entity
     ) {
         if (!TryResolveTarget(ray, offset, reachAround, reach, world, out InteractionTarget target))
         {
             coordinate = default;
+            entity = default;
             return false;
         }
 
         coordinate = target.Coordinate;
+        entity = target.Entity;
         return true;
     }
 
@@ -130,7 +131,7 @@ public static class SharedInteractionResolver
     /// Ports the client's screen-space brick targeting onto a raw world ray: raycast against the world,
     /// map the hit point into the structure's brick space, bias toward the surface (or, for placement,
     /// the adjacent empty cell), reach-around when the center ray misses, and march back along the normal
-    /// to an empty destination. Both prediction and authority run this with their own ray + world.
+    /// to an empty destination. Used only to build a client hint cell + structure for <see cref="Resolve"/>.
     /// </summary>
     private static bool TryResolveTarget(
         in Ray ray,
@@ -276,7 +277,8 @@ public static class SharedInteractionResolver
 
     public static Int3 WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
     {
-        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);
+        //  A voxel at integer coordinate c spans [c, c+1); floor maps any point in that span to c.
+        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation));
 
         var x = (int)Math.Floor(localPos.X);
         var y = (int)Math.Floor(localPos.Y);
@@ -287,7 +289,13 @@ public static class SharedInteractionResolver
 
     public static Vector3 BrickToWorldSpace(Int3 coordinate, Vector3 origin, Quaternion orientation)
     {
-        var localCenter = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
+        //  Measure to the voxel's center (c + 0.5), the exact inverse of WorldToBrickSpace.
+        var localCenter = new Vector3(
+            coordinate.X + 0.5f,
+            coordinate.Y + 0.5f,
+            coordinate.Z + 0.5f
+        );
+
         return Vector3.Transform(localCenter, orientation) + origin;
     }
 
