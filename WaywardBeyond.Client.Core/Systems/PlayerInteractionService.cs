@@ -269,18 +269,16 @@ in IInteractionContent content,
             placeable = contentPlaceable;
         }
 
-        if (!TryBuildCenterRay(out Ray centerRay))
-        {
-            return;
-        }
-
         var world = new ClientVoxelInteractionWorld(store, _physics);
-        if (!SharedInteractionResolver.TryResolveTargetCell(centerRay, offset: isPlace, reachAround: true, SharedInteractionResolver.DEFAULT_REACH, world, out Int3 coordinate, out int targetEntity))
+
+        //  Resolve the target structure + cell and the placement orientation from the same screen-space
+        //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.
+        if (!TryGetBrickFromScreenSpace(isPlace, reachAround: true, out Entity entity, out _, out Int3 coordinate, out _, out TransformComponent targetTransform, out Vector3 clickedPoint))
         {
             return;
         }
 
-        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, centerRay, store, coordinate, targetEntity);
+        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
         InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
@@ -299,14 +297,7 @@ in IInteractionContent content,
         ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
     }
 
-    private bool TryBuildCenterRay(out Ray centerRay)
-    {
-        CameraEntity cameraEntity = _renderContext.MainCamera.Get();
-        centerRay = cameraEntity.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
-        return true;
-    }
-
-    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, in Ray ray, DataStore store, Int3 coordinate, int targetEntity)
+    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, DataStore store, Int3 coordinate, int targetEntity, in TransformComponent targetTransform, Vector3 clickedPoint)
     {
         byte hintShape = 0;
         byte hintOrientation = 0;
@@ -315,7 +306,7 @@ in IInteractionContent content,
         {
             BrickShape shape = placeable.Value.Shapeable ? _interactionState.SelectedShape.Get() : placeable.Value.Shape;
             hintShape = (byte)shape;
-            hintOrientation = TryResolvePlacementOrientation(store, ray, coordinate);
+            hintOrientation = ResolvePlacementOrientation(in targetTransform, clickedPoint, coordinate);
         }
 
         return new BrickInteraction
@@ -329,16 +320,14 @@ in IInteractionContent content,
         };
     }
 
-    private byte TryResolvePlacementOrientation(DataStore store, in Ray ray, Int3 brickCoordinate)
+    /// <summary>
+    /// Resolves the placement orientation from the same hit the ghost preview uses: the target structure's
+    /// click point + cell, so the placed brick matches the previewed orientation. No separate raycast.
+    /// </summary>
+    private byte ResolvePlacementOrientation(in TransformComponent transform, Vector3 clickedPos, Int3 brickCoordinate)
     {
-        RaycastResult raycast = _physics.Raycast(ray);
-        if (!raycast.Hit || !store.TryGet(raycast.Entity.Ptr, out TransformComponent transform))
-        {
-            return 0;
-        }
-
-        Vector3 worldPos = SharedInteractionResolver.BrickToWorldSpace(brickCoordinate, transform.Position, transform.Orientation);
-        Orientation orientation = GetPlacementLocalOrientation(transform, raycast.Point, worldPos);
+        Vector3 worldPos = BrickToWorldSpace(brickCoordinate, transform.Position, transform.Orientation);
+        Orientation orientation = GetPlacementLocalOrientation(transform, clickedPos, worldPos);
         return orientation.ToByte();
     }
 
