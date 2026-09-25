@@ -277,9 +277,9 @@ public static class SharedInteractionResolver
 
     public static Int3 WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
     {
-        //  A voxel at integer coordinate c spans [c, c+1); floor maps any point in that span to c.
-        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation));
+        Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);
 
+        //  A voxel at integer coordinate c spans [c, c+1); floor maps any point in that span to c.
         var x = (int)Math.Floor(localPos.X);
         var y = (int)Math.Floor(localPos.Y);
         var z = (int)Math.Floor(localPos.Z);
@@ -289,13 +289,7 @@ public static class SharedInteractionResolver
 
     public static Vector3 BrickToWorldSpace(Int3 coordinate, Vector3 origin, Quaternion orientation)
     {
-        //  Measure to the voxel's center (c + 0.5), the exact inverse of WorldToBrickSpace.
-        var localCenter = new Vector3(
-            coordinate.X + 0.5f,
-            coordinate.Y + 0.5f,
-            coordinate.Z + 0.5f
-        );
-
+        var localCenter = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
         return Vector3.Transform(localCenter, orientation) + origin;
     }
 
