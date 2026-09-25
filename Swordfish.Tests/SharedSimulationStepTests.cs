@@ -71,8 +71,8 @@ public class SharedMotionStepTests
 
         var serverPhysics = new TestPhysics();
         var clientPhysics = new TestPhysics();
-        using var serverStep = new SharedPlayerMotionStep(serverStore, serverPhysics, (int _, uint simTick, out InputComponent c) => serverInputs.TryGet(simTick, out c));
-        using var clientStep = new SharedPlayerMotionStep(clientStore, clientPhysics, (int _, uint simTick, out InputComponent c) => clientInputs.TryGet(simTick, out c));
+        using var serverStep = new SharedSimulationStep(serverStore, serverPhysics, (int _, uint simTick, out InputComponent c) => serverInputs.TryGet(simTick, out c));
+        using var clientStep = new SharedSimulationStep(clientStore, clientPhysics, (int _, uint simTick, out InputComponent c) => clientInputs.TryGet(simTick, out c));
 
         for (var i = 0; i < 40; i++)
         {
@@ -125,8 +125,8 @@ public class SharedMotionStepTests
             serverInputs.Stage(command);
         }
 
-        using var clientStep = new SharedPlayerMotionStep(clientStore, clientPhysics, (int _, uint simTick, out InputComponent c) => clientInputs.TryGet(simTick, out c));
-        using var serverStep = new SharedPlayerMotionStep(serverStore, serverPhysics, (int _, uint simTick, out InputComponent c) => serverInputs.TryGet(simTick, out c));
+        using var clientStep = new SharedSimulationStep(clientStore, clientPhysics, (int _, uint simTick, out InputComponent c) => clientInputs.TryGet(simTick, out c));
+        using var serverStep = new SharedSimulationStep(serverStore, serverPhysics, (int _, uint simTick, out InputComponent c) => serverInputs.TryGet(simTick, out c));
 
         for (var i = 0; i < 60; i++)
         {
@@ -167,7 +167,7 @@ public class SharedMotionStepTests
         inputs.Stage(new InputComponent { MovementX = mx, MovementY = my, MovementZ = mz, SequenceNumber = 1, ServerTickAtSample = 1 });
 
         var physics = new TestPhysics();
-        using var step = new SharedPlayerMotionStep(store, physics, (int _, uint simTick, out InputComponent c) => inputs.TryGet(simTick, out c));
+        using var step = new SharedSimulationStep(store, physics, (int _, uint simTick, out InputComponent c) => inputs.TryGet(simTick, out c));
         step.Step();
 
         Assert.True(store.TryGet<PhysicsComponent>(entity, out PhysicsComponent physicsState));

@@ -97,9 +97,11 @@ spawn path and client load stages were removed in favor of join. See `LOCAL-SERV
 
 ### Server-authoritative interactions / voxel edits (NETWORK-VOXEL-EDITS Phase 3-6)
 The server is the sole authority for player-interaction *outcome*; the client only predicts presentably.
-The interaction context (`EquipmentComponent`/`InventoryComponent`/`GameModeComponent`, all `ServerOwned`)
-is seeded at join from the client save via `JoinRequest.CharacterSeed` and is server-owned thereafter. The
-continuous held state rides `InputComponent` (`HeldSlot`/`PrimaryHeld`/`SecondaryHeld`); discrete button
+The interaction context (`InventoryComponent`/`GameModeComponent` are `ServerOwned`; the active slot rides
+`ClientOwned` `EquipmentComponent`) is seeded at join from the client save via
+`JoinRequest.CharacterSeed`. Inventory counts and game mode are server-owned thereafter, but the active
+slot stays client-authoritative and replicates upstream. The continuous held state rides `InputComponent`
+(`PrimaryHeld`/`SecondaryHeld`); discrete button
 edges are a `ClientOwned` `InteractionEvent` (uuid 15, an extensible nullable-hint union) staged server-side
 into `NetworkComponent.StagedInteractions`. Targeting/outcome logic lives in the shared
 `SharedInteractionResolver` (`Shared.Gameplay/Interactions`), called identically by client prediction and

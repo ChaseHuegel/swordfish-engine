@@ -47,11 +47,11 @@ public class SharedStructureDynamicsTests
     {
         var physicsA = new JoltPhysicsSystem(NullLogger<JoltPhysicsSystem>.Instance, new PhysicsSettings());
         physicsA.SetGravity(Vector3.Zero);
-        var stepA = new SharedPlayerMotionStep(first, physicsA, Resolver);
+        var stepA = new SharedSimulationStep(first, physicsA, Resolver);
 
         var physicsB = new JoltPhysicsSystem(NullLogger<JoltPhysicsSystem>.Instance, new PhysicsSettings());
         physicsB.SetGravity(Vector3.Zero);
-        var stepB = new SharedPlayerMotionStep(second, physicsB, Resolver);
+        var stepB = new SharedSimulationStep(second, physicsB, Resolver);
 
         for (var i = 0; i < steps; i++)
         {

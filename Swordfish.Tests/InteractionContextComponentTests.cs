@@ -9,13 +9,13 @@ namespace Swordfish.Tests;
 public class InteractionContextComponentTests
 {
     [Fact]
-    public void ContextComponentsAutoRegisterAsServerOwned()
+    public void ContextComponentsAutoRegisterInConfiguredDirection()
     {
         NetworkRegistry.Initialize([typeof(EquipmentComponent).Assembly]);
 
         Assert.True(NetworkRegistry.TryGetInfo<EquipmentComponent>(out NetworkComponentInfo equipment));
         Assert.Equal(12u, equipment.Uuid.ToValue());
-        Assert.Equal(NetworkDirection.ServerOwned, equipment.Direction);
+        Assert.Equal(NetworkDirection.ClientOwned, equipment.Direction);
         Assert.IsType<NsdComponentCodec<EquipmentComponent>>(equipment.Codec);
 
         Assert.True(NetworkRegistry.TryGetInfo<InventoryComponent>(out NetworkComponentInfo inventory));

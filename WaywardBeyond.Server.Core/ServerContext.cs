@@ -38,7 +38,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly JoltPhysicsSystem _physics;
-    private readonly SharedPlayerMotionStep _motionStep;
+    private readonly SharedSimulationStep _simulationStep;
     private readonly WorldSaveService _worldService;
 
     public ServerContext(
@@ -65,7 +65,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).
         _physics.SetGravity(Vector3.Zero);
 
-        _motionStep = new SharedPlayerMotionStep(World.DataStore, _physics, ResolveCommand);
+        _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCommand);
 
         var capturedPhysics = _physics;
         _interaction = new ServerInteractionSystem(
@@ -117,8 +117,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
             _replication.ApplyStage(delta, store);
             _physics.Tick(delta, store);
 
-            _replication.SimTick = _motionStep.CurrentSimTick;
-            _interaction.Tick(delta, store, _motionStep.CurrentSimTick);
+            _replication.SimTick = _simulationStep.CurrentSimTick;
+            _interaction.Tick(delta, store, _simulationStep.CurrentSimTick);
             _replication.PublishStage(delta, store);
         }
         catch (Exception ex)

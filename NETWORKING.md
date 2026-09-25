@@ -107,7 +107,6 @@ message InputComponent
     float LookRoll           = 5;
     uint  SequenceNumber     = 6;
     uint  ServerTickAtSample = 7;
-    uint  HeldSlot           = 8;    // active inventory slot
     bool  PrimaryHeld        = 9;    // continuous held state
     bool  SecondaryHeld      = 10;   // continuous held state
 }
@@ -330,9 +329,10 @@ Alongside join, the save-listing menu is served by the server: `NewWorldRequest`
 operations, driven by a client `WorldsClient` that awaits responses the ECS thread completes.
 
 **Character ownership nuance:** the client's local `characters` bucket remains the client-owned
-**storage** (the source of the join-time seed), but the interaction-relevant context — inventory counts,
-equipment/active slot, game mode — is **server-owned after join** and replicated downstream. The client
-is authoritative only for its initial save; thereafter the server owns those components. This supersedes
+**storage** (the source of the join-time seed). The interaction-relevant inventory counts and game mode
+are **server-owned after join** and replicated downstream; the **active slot** stays **client-owned**
+(authoritative) and is replicated upstream for the server to validate against. The client is authoritative
+for its initial save; inventory counts and game mode are thereafter server-owned. This supersedes
 the earlier "inventory never leaves the client" claim and is part of the server-authoritative interaction
 initiative (see `NETWORK-VOXEL-EDITS.md`).
 
@@ -402,8 +402,9 @@ These are gameplay-level bookkeeping for prediction. They are **not** a transpor
 The server is the **sole authority** for player interaction *outcome*; the client only predicts
 presentably. This is tracked in detail in [`NETWORK-VOXEL-EDITS.md`](./NETWORK-VOXEL-EDITS.md). Pipeline:
 
-1. **Intent upstream.** The continuous held state (`HeldSlot`/`PrimaryHeld`/`SecondaryHeld`) rides the
-   per-frame `InputComponent` packet. Discrete button edges are delivered as a `ClientOwned`
+1. **Intent upstream.** The continuous held state (`PrimaryHeld`/`SecondaryHeld`) rides the per-frame
+   `InputComponent` packet, and the client-authoritative active slot rides `ClientOwned`
+   `EquipmentComponent`. Discrete button edges are delivered as a `ClientOwned`
    `InteractionEvent` (uuid 15) — an extensible pseudo-union of nullable hint sub-messages; the server
    stages them into each player mirror's `InteractionStageBuffer` (`NetworkComponent.StagedInteractions`,
    keyed by `ServerTickAtSample`, newest-per-tick, deduped by `SequenceNumber`).

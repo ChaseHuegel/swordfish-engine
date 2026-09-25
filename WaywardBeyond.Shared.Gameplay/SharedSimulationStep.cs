@@ -8,15 +8,14 @@ using WaywardBeyond.Shared.Networking.Components;
 namespace WaywardBeyond.Shared.Gameplay;
 
 /// <summary>
-/// The shared, deterministic player-motion step. There is one instance per world - never a shared
-/// singleton - because each world keeps its own sim-tick counter and input staging. It subscribes to the
-/// world's <see cref="IPhysics.FixedUpdate"/> so it runs exactly once per fixed physics step (0.016s),
-/// applying the tick-tagged input command for the current sim tick. Look sets the entity orientation
-/// from the absolute yaw/pitch (clamped per step); movement derives world-space velocity from the
-/// command's Movement vector and the current orientation. It never writes Torque - the player look is
-/// kinematic and rides the entity-wins sync cycle.
+/// The shared, deterministic simulation step for a world. There is one instance per world - never a
+/// shared singleton - because each world keeps its own sim-tick counter and input staging. It subscribes
+/// to the world's <see cref="IPhysics.FixedUpdate"/> so it runs exactly once per fixed physics step
+/// (0.016s), applying the tick-tagged input command for the current sim tick. It drives player motion
+/// (look via torque, movement from the command's vector) and applies shared structure dynamics
+/// (thrusters). Both the server authority and the client prediction run the same step for determinism.
 /// </summary>
-public sealed class SharedPlayerMotionStep : IDisposable
+public sealed class SharedSimulationStep : IDisposable
 {
     /// <summary>Resolves the input command to apply for a given sim tick on a given entity.</summary>
     public delegate bool CommandResolver(int entity, uint simTick, out InputComponent command);
@@ -35,7 +34,7 @@ public sealed class SharedPlayerMotionStep : IDisposable
         CurrentSimTick = simTick;
     }
 
-    public SharedPlayerMotionStep(
+    public SharedSimulationStep(
         DataStore store,
         in IPhysics physics,
         CommandResolver resolveCommand

@@ -62,8 +62,6 @@ internal sealed class ClientInputSystem : IEntitySystem
 
         bool primaryHeld = _inputService.IsMouseHeld(MouseButton.Left);
         bool secondaryHeld = _inputService.IsMouseHeld(MouseButton.Right);
-        CollectContextAction collectContext = new() { Enabled = inputEnabled };
-        store.Query<PlayerComponent, EquipmentComponent, CollectContextAction>(0f, ref collectContext);
 
         var input = new InputComponent
         {
@@ -75,28 +73,12 @@ internal sealed class ClientInputSystem : IEntitySystem
             LookRoll = _lookRoll,
             SequenceNumber = ++_sequenceNumber,
             ServerTickAtSample = _snapshotAck.LastAppliedSnapshotTick,
-            HeldSlot = inputEnabled ? collectContext.HeldSlot : 0,
             PrimaryHeld = inputEnabled && primaryHeld,
             SecondaryHeld = inputEnabled && secondaryHeld,
         };
 
         CollectInputAction collectInput = new() { Input = input };
         store.Query<PlayerComponent, CollectInputAction>(0f, ref collectInput);
-    }
-
-    private struct CollectContextAction : IForEach<PlayerComponent, EquipmentComponent>
-    {
-        public bool Enabled;
-
-        public uint HeldSlot;
-
-        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player, in EquipmentComponent equipment)
-        {
-            if (Enabled)
-            {
-                HeldSlot = (uint)equipment.ActiveInventorySlot;
-            }
-        }
     }
 
     /// <summary>

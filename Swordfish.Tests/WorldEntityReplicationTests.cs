@@ -42,7 +42,7 @@ public class WorldEntityReplicationTests
         serverStore.AddOrUpdate(serverStruct, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
         serverStore.AddOrUpdate(serverStruct, new ThrusterComponent(power: 2));
 
-        var step = new SharedPlayerMotionStep(serverStore, serverPhysics, Resolver);
+        var step = new SharedSimulationStep(serverStore, serverPhysics, Resolver);
 
         //  Client view copy at the same uuid, deliberately drifted far from the authoritative pose.
         var clientStore = new DataStore();

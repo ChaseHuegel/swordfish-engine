@@ -150,7 +150,7 @@ files (except a legacy disk-migration path retained in `GameSaveService`).
 ### Networking wiring
 - Two worlds: client `ECSContext` (`Swordfish/ECS/ECSContext.cs`) on the `"ECS"` thread; server
   `ServerContext` (`Server.Core/ServerContext.cs`) on the `"Server"` thread. Both run their own
-  `JoltPhysicsSystem` + `SharedPlayerMotionStep` per fixed physics step, gravity zero.
+  `JoltPhysicsSystem` + `SharedSimulationStep` per fixed physics step, gravity zero.
 - Server hosted in-process: `Client.Core/Injector.cs` → `ServerComposition.Register(container)`
   (`Server.Core/ServerComposition.cs`) → `RegisterMany<ServerContext>`. `Server.Core` has no
   `manifest.toml`.

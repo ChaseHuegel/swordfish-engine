@@ -31,11 +31,13 @@ This initiative replaces that with a model in which:
 1. **Server-authoritative outcome with client presentation prediction** (the A+B layered model).
    The server re-derives/validates every interaction; the client predicts presentably and reconciles.
 
-2. **Full server-thin-client over the interaction *context*.** The server owns the held item,
-   equipment/active slot, game mode, and interaction-relevant inventory counts **after join**.
-   The client remains authoritative only for its **initial** save: it seeds the server at join (exactly
-   the way appearance sync works today), and from that point the server owns the state.
-   - Rationale: this is what makes interactions single-location, server-moddable, and anti-cheatable.
+2. **Full server-thin-client over the interaction *context*.** The server owns the held item, game mode,
+   and interaction-relevant inventory counts **after join**. The **active slot stays client-authoritative**
+   (it rides `ClientOwned` `EquipmentComponent`), while the rest of the context is server-owned.
+   The client remains authoritative only for its **initial** save of the server-owned context: it seeds the
+   server at join (exactly the way appearance sync works today), and from that point the server owns that state.
+   - Rationale: this is what makes interactions single-location, server-moddable, and anti-cheatable, while
+     the active slot remains a pure client-selection that must replicate upstream without server echo.
 
 3. **Components are migrated, not mirrored.** `EquipmentComponent`, `InventoryComponent`, and
    `GameModeComponent` move into `WaywardBeyond.Shared.Networking` as the single source of truth
@@ -125,7 +127,7 @@ This initiative replaces that with a model in which:
 - **Input pipeline.** Client samples `InputComponent` per ECS frame (absolute look totals, tick-tagged
   `ServerTickAtSample`) → `PendingInputComponent` ring buffer → `ClientReplicationSystem` publishes
   dirty client-owned → server `ApplyComponent` stages per sim tick in `NetworkComponent.StagedInputs`
-  (`InputStageBuffer`) → shared `SharedPlayerMotionStep` consumes one command per sim tick →
+  (`InputStageBuffer`) → shared `SharedSimulationStep` consumes one command per sim tick →
   `ClientReconcileSystem` applies authoritative `Transform`/`Physics` and trims/replays pending input.
 
 ---
@@ -178,7 +180,7 @@ numerics from `WaywardBeyond.Client.Core/Voxels` into `WaywardBeyond.Shared.Game
   - `PhysicsComponent` = 3 (ServerOwned, existing)
   - `BodyViewComponent` = 10 (ServerOwned, existing)
   - `IdentifierComponent` = 11 (ServerOwned, existing)
-  - `EquipmentComponent` = **12** (ServerOwned, new)
+  - `EquipmentComponent` = **12** (ClientOwned, new; the client is authoritative over its active slot)
   - `InventoryComponent` = **13** (ServerOwned, new)
   - `GameModeComponent` = **14** (ServerOwned, new)
   - `InteractionEvent` = **15** (ClientOwned, Phase 3.2, new)
@@ -243,16 +245,16 @@ backward-compat behavior, and it sidesteps an `nsdc` codegen defect (see below).
 **Goal:** intent flows upstream losslessly, riding the existing input machinery.
 
 ### 3.1 [S] Continuous state on InputComponent
-`[x]` Extend `InputComponent` (components.nsd) with `HeldSlot` (uint), `PrimaryHeld` (bool),
-`SecondaryHeld` (bool) — ~+3B/frame riding the existing per-frame packet.
-- Populate in `ClientInputSystem` from the (now shared) equipment/inventory.
-- **Acceptance:** held slot + primary/secondary held state replicate with the existing input packet at
-  negligible marginal bandwidth.
-- **Done note:** `HeldSlot` populated from `EquipmentComponent.ActiveInventorySlot` (via a shared
-  `PlayerComponent`/`EquipmentComponent` read action); `PrimaryHeld`/`SecondaryHeld` from
-  `IInputService.IsMouseHeld(Left/Right)`. All three zeroed when input is disabled so a locked cursor
-  never asserts a held action. Build green; 8 Client.Core tests + 145 Swordfish.Tests green (the 4
-  failing `VirtualFileSystemTests` are pre-existing/environmental).
+`[x]` Extend `InputComponent` (components.nsd) with `PrimaryHeld` (bool), `SecondaryHeld` (bool) —
+~+2B/frame riding the existing per-frame packet.
+- Populate in `ClientInputSystem` from `IInputService.IsMouseHeld(Left/Right)`.
+- **Acceptance:** primary/secondary held state replicate with the existing input packet at negligible
+  marginal bandwidth.
+- **Done note:** the active slot is **not** carried on `InputComponent`; it rides the `ClientOwned`
+  `EquipmentComponent.ActiveInventorySlot` (the client is authoritative over it). `PrimaryHeld`/
+  `SecondaryHeld` come from `IInputService.IsMouseHeld(Left/Right)`. Held state is zeroed when input is
+  disabled so a locked cursor never asserts a held action. Build green; 8 Client.Core tests + 145
+  Swordfish.Tests green (the 4 failing `VirtualFileSystemTests` are pre-existing/environmental).
 
 ### 3.2 [S] Discrete edge message (extensible hint union)
 `[x]` Add a new `ClientOwned` nsd message (`InteractionEvent`, **uuid 15**) in components.nsd:
