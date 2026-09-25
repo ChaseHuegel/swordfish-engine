@@ -3,7 +3,6 @@ using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
@@ -23,8 +22,8 @@ namespace Swordfish.Tests;
 /// is the sole author of voxel edits: it consumes a staged interaction for the current sim tick, resolves
 /// the shared resolver against the authority world, mutates the structure's live VoxelWorldComponent,
 /// rebuilds the collider + re-derives the persisted chunks, and applies survival consumption/loot against
-/// the server-owned inventory (creative is free). A deterministic <see cref="IVoxelInteractionWorld"/>
-/// supplies the raycast so the resolver paths run without a live physics world.
+/// the server-owned inventory (creative is free). A deterministic <see cref="IVoxelInteractionWorld"/> resolves
+/// the hinted structure by identity so the resolver's ray-free validation runs headlessly.
 /// </summary>
 public class ServerInteractionSystemTests
 {
@@ -39,8 +38,8 @@ public class ServerInteractionSystemTests
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -71,8 +70,8 @@ public class ServerInteractionSystemTests
         StoreInitialVoxel(voxelObject, 0, 0, 0);
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -95,8 +94,8 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         //  Tick once for each interaction (they share a sequence space; stagger sequences).
         system.Tick(0f, store, simTick: 100);
@@ -117,8 +116,8 @@ public class ServerInteractionSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
 
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         //  First session consumes a high sequence (5) on this mirror index, raising the watermark.
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0), sequence: 5);
@@ -146,8 +145,8 @@ public class ServerInteractionSystemTests
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "rock");
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: null);
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -174,8 +173,8 @@ public class ServerInteractionSystemTests
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(hub, physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -201,8 +200,8 @@ public class ServerInteractionSystemTests
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(1, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -222,8 +221,8 @@ public class ServerInteractionSystemTests
         //  The client hints a cell far beyond reach; the server must refuse to apply it.
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(500, 0, 0));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -246,8 +245,8 @@ public class ServerInteractionSystemTests
 
         //  A world whose raycast always misses - nothing the server "sees" is targetable, yet the hint
         //  resolves because validation reads the structure by uuid, not by any ray.
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ =>
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ =>
             new RaylessWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
@@ -266,8 +265,8 @@ public class ServerInteractionSystemTests
         var registry = new InteractionHandlerRegistry();
         registry.Register(new ModHandler(new InteractionHandlerFilter(), static _ => InteractionResolution.None));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -291,8 +290,8 @@ public class ServerInteractionSystemTests
             static context => new InteractionResolution(InteractionAction.Place, context.Entity, new Int3(1, 0, 0), new Voxel(OVERRIDE_BRICK, 0, 0))
         ));
 
-        var physics = new StubPhysics();
-        ServerInteractionSystem system = new(new ServerConnectionHub(), physics, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+        
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
 
         system.Tick(0f, store, simTick: 100);
 
@@ -367,17 +366,11 @@ public class ServerInteractionSystemTests
     }
 
     /// <summary>
-    /// Canned world: any ray hits the single occupied cell at (0,0,0) on its +X face, so the resolver
+    /// Canned world: the single occupied cell sits at (0,0,0) with identity transform, so the resolver
     /// derives cell (0,0,0) for a break and the adjacent (1,0,0) for a place - deterministic headlessly.
     /// </summary>
     private sealed class StubWorld(int structure, VoxelObject voxelObject) : IVoxelInteractionWorld
     {
-        public bool TryRaycast(in Ray ray, out RaycastResult result)
-        {
-            result = new RaycastResult(true, new Entity(structure, null!), new Vector3(0.5f, 0f, 0f), Vector3.UnitX);
-            return true;
-        }
-
         public bool TryGetVoxelTarget(int entity, out VoxelObject? voxel, out TransformComponent transform)
         {
             if (entity != structure)
@@ -409,25 +402,12 @@ public class ServerInteractionSystemTests
         }
     }
 
-    private sealed class StubPhysics : IPhysics
-    {
-        public event EventHandler<EventArgs>? FixedUpdate;
-        public RaycastResult Raycast(in Ray ray) => default;
-        public void SetGravity(Vector3 gravity) { }
-    }
-
     /// <summary>
-    /// A world whose raycast always misses, so nothing the server "sees" down a ray is targetable. Server
-    /// validation is ray-free, so a hint (structure identity + cell) still resolves by uuid within reach.
+    /// A minimal world whose structure is still targetable by uuid: server validation is ray-free, so a
+    /// hint (structure identity + cell) resolves by identity within reach.
     /// </summary>
     private sealed class RaylessWorld(int structure, VoxelObject voxelObject) : IVoxelInteractionWorld
     {
-        public bool TryRaycast(in Ray ray, out RaycastResult result)
-        {
-            result = default;
-            return false;
-        }
-
         public bool TryGetVoxelTarget(int entity, out VoxelObject? voxel, out TransformComponent transform)
         {
             if (entity != structure)

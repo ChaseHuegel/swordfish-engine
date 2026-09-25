@@ -269,7 +269,7 @@ in IInteractionContent content,
             placeable = contentPlaceable;
         }
 
-        var world = new ClientVoxelInteractionWorld(store, _physics);
+        var world = new ClientVoxelInteractionWorld(store);
 
         //  Resolve the target structure + cell and the placement orientation from the same screen-space
         //  raycast the ghost preview uses, so the placed brick always matches the previewed orientation.

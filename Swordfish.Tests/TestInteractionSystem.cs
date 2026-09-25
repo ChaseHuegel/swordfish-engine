@@ -1,8 +1,5 @@
-using System;
-using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Shared.Data;
@@ -15,7 +12,7 @@ namespace Swordfish.Tests;
 /// <summary>
 /// Creates a headless <see cref="ServerInteractionSystem"/> for tests that construct a
 /// <see cref="ServerJoinSystem"/> but never exercise the interaction path (the join system only needs
-/// it for per-entity sequence-watermark resets). The physics/content stubs are inert.
+/// it for per-entity sequence-watermark resets). The content stub is inert.
 /// </summary>
 internal static class TestInteractionSystem
 {
@@ -23,7 +20,6 @@ internal static class TestInteractionSystem
     {
         return new ServerInteractionSystem(
             hub,
-            new StubPhysics(),
             new StubContent(),
             NullLogger<ServerInteractionSystem>.Instance,
             _ => new StubWorld()
@@ -32,12 +28,6 @@ internal static class TestInteractionSystem
 
     private sealed class StubWorld : IVoxelInteractionWorld
     {
-        public bool TryRaycast(in Ray ray, out RaycastResult result)
-        {
-            result = default;
-            return false;
-        }
-
         public bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform)
         {
             voxelObject = null;
@@ -52,13 +42,6 @@ internal static class TestInteractionSystem
             transform = default;
             return false;
         }
-    }
-
-    private sealed class StubPhysics : IPhysics
-    {
-        public event EventHandler<EventArgs>? FixedUpdate;
-        public RaycastResult Raycast(in Ray ray) => default;
-        public void SetGravity(Vector3 gravity) { }
     }
 
     private sealed class StubContent : IInteractionContent

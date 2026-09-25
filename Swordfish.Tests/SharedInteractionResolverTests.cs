@@ -1,6 +1,5 @@
 using System.Numerics;
 using Swordfish.ECS;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Bricks;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
@@ -206,12 +205,6 @@ public class SharedInteractionResolverTests
             _structureUuid = structureUuid;
             _voxelObject = voxelObject;
             _transform = transform;
-        }
-
-        public bool TryRaycast(in Ray ray, out RaycastResult result)
-        {
-            result = default;
-            return false;
         }
 
         public bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform)

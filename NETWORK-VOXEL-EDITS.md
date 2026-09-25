@@ -326,8 +326,9 @@ stage `InteractionEvent`s into a new `InteractionStageBuffer` on `NetworkCompone
 input: ray, target cell hint, held item, game mode, reach
 output: { Action None | Break | Place, coordinate, voxel }
 ```
-- Port the target-selection heuristics (`TryGetBrickFromScreenSpace`, reach-around, offset/march-back)
-  into shared code so client prediction and server authority pick the same cell from the same ray.
+- Target selection stays client-side: `TryGetBrickFromScreenSpace` (reach-around, offset/march-back)
+  resolves the target cell + placement orientation from the same ray as the ghost preview. Server
+  validation never raycasts - it validates the hinted structure + cell by identity (see 4.2).
 - Rules: within reach; break requires occupied cell (or reach-around); place requires destination cell
   empty.
 - **Hint-less events are first-class:** the resolver consumes a valid event with no hint (and one where
@@ -411,17 +412,17 @@ the server to **all** clients when an edit is applied.
 - **Acceptance:** player interacts through the intent + prediction path; no direct authority
   `VoxelObject.Set` remains in interaction handlers.
 - **Done note:** `PlayerInteractionService.OnLeftClick`/`OnRightClick` now route through a shared
-  `AttemptVoxelInteraction`: they resolve the target cell with the same
-  `SharedInteractionResolver.TryResolveTargetCell` used to validate (exposed publicly so prediction and
-  authority derive identical cells), resolve the action with `SharedInteractionResolver.Resolve`, fire the
+  `AttemptVoxelInteraction`: it resolves the target cell + placement orientation with the same
+  `TryGetBrickFromScreenSpace` hit used by the ghost preview (so the placed brick matches what's shown),
+  resolves the action with `SharedInteractionResolver.Resolve`, fire the
   `PlaceEvent`/`BreakEvent` presentation hooks before predicting, apply the prediction onto the
   presentation-only `VoxelObject` (`Set` + `Rebuild`), register it in a new
   `PendingInteractionComponent.Queue`, and latch a populated-hint `InteractionEvent` (uuid 15) onto the
   local player so `ClientReplicationSystem` sends it. Client inventory survival consumption/loot is
   removed — the server owns it. `ClientInputSystem` no longer latches `InteractionEvent` (it keeps
   `InputComponent` continuous held-state); the discrete edge, its hint, and the prediction now live in
-  one place. New `ClientVoxelInteractionWorld` implements `IVoxelInteractionWorld` over the client store +
-  physics for the prediction raycast. 8 Client.Core tests green.
+one place. New `ClientVoxelInteractionWorld` implements `IVoxelInteractionWorld` over the client store for
+the prediction's ray-free validation. 8 Client.Core tests green.
 
 ### 5.2 [G] Client voxel reconcile system
 `[x]` New `ClientVoxelReconcileSystem` applies authoritative `VoxelEditMessage`s via the **same shared

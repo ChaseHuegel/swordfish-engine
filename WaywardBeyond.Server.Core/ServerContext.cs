@@ -67,14 +67,12 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCommand);
 
-        var capturedPhysics = _physics;
         _interaction = new ServerInteractionSystem(
             hub,
-            _physics,
             interactionContent,
             loggerFactory.CreateLogger<ServerInteractionSystem>(),
             handlerRegistry,
-            store => new ServerVoxelInteractionWorld(store, capturedPhysics)
+            store => new ServerVoxelInteractionWorld(store)
         );
 
         _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>());

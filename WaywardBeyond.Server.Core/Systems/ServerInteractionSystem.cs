@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Physics;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
@@ -32,46 +31,40 @@ public sealed class ServerInteractionSystem
     private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
-    private readonly IPhysics _physics;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
-        in IPhysics physics,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger
-    ) : this(hub, physics, content, logger, CreateWorldFactory(in physics)) { }
+    ) : this(hub, content, logger, CreateWorldFactory()) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
-        in IPhysics physics,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         Func<DataStore, IVoxelInteractionWorld> worldFactory
-    ) : this(hub, physics, content, logger, new InteractionHandlerRegistry(), worldFactory) { }
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
-        in IPhysics physics,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory
     ) {
         _hub = hub;
-        _physics = physics;
         _content = content;
         _handlerRegistry = handlerRegistry;
         _logger = logger;
         _worldFactory = worldFactory;
     }
 
-    private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory(in IPhysics physics)
+    private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()
     {
-        IPhysics captured = physics;
-        return store => new ServerVoxelInteractionWorld(store, captured);
+        return store => new ServerVoxelInteractionWorld(store);
     }
 
     /// <summary>Processes staged interactions for the given sim tick on the authoritative server world.</summary>
@@ -293,18 +286,11 @@ public sealed class ServerInteractionSystem
 
 /// <summary>
 /// Server-side <see cref="IVoxelInteractionWorld"/>: reads a structure's live voxel container + transform
-/// from the authority store by its stable identity. Validation never raycasts (the client's screen-aim
-/// targeting is the only ray user); <see cref="TryRaycast"/>/int lookup are retained for interface parity
-/// but unused by server validation.
+/// from the authority store by its stable identity or local entity index. Validation never raycasts - the
+/// client's screen-aim targeting produced the hint.
 /// </summary>
-public sealed class ServerVoxelInteractionWorld(DataStore store, IPhysics physics) : IVoxelInteractionWorld
+public sealed class ServerVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
 {
-    public bool TryRaycast(in Ray ray, out RaycastResult result)
-    {
-        result = physics.Raycast(ray);
-        return result.Hit;
-    }
-
     public bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform)
     {
         if (store.TryGet(entity, out VoxelWorldComponent world) && store.TryGet(entity, out TransformComponent transformComponent))
