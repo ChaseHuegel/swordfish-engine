@@ -14,13 +14,16 @@ save worlds. World data is streamed to the client during join.
    `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed }`.
    - `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`)
      used for remote rendering.
-   - `CharacterSeed` is a separate optional field carrying the client's
-     authoritative **initial** interaction context (inventory, equipment/active
-     slot, game mode) from its local save. It is **non-nullable**; an older
-     client omitting it receives the struct default (empty/creative), which is
-     the desired backward-compat behavior.
+- `CharacterSeed` is a separate optional field carrying the client's
+      authoritative **initial** interaction context (inventory, equipment/active
+      slot, game mode) from its local save. It is **non-nullable**; an older
+      client omitting it receives the struct default (empty/creative), which is
+      the desired backward-compat behavior.
+   - `CharacterSeed.Statistics` carries the client's saved skill XP; the server
+      keeps only statistics that name a known skill (see
+      [skills](skills.md)).
    - It drives `MainMenu → Loading → Playing` and is queued from the menu so
-     view building runs on the client ECS thread.
+      view building runs on the client ECS thread.
 
 2. **`ServerJoinSystem`** (`Server.Core/Systems/`) — via `WorldSaveService`
    (`Server.Core/Saves/`) — loads the authoritative voxel world for `LevelGuid`
@@ -52,6 +55,9 @@ is a join-time event, not ongoing AOI.
   join** and replicated downstream.
 - The **active slot** stays **client-owned** (authoritative on
   `EquipmentComponent`) and replicates upstream for the server to validate against.
+- Skill XP is seeded from the client's statistics at join into a transient
+  server-side `SkillStateComponent`, then server-owned for the session. See
+  [skills](skills.md).
 
 ## Save-listing menu
 

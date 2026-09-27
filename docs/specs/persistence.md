@@ -35,6 +35,11 @@ serialized `Character` (via `Character.Serialize()`).
 Owned by the client. It is the source of the join-time seed — see
 [join](networking-join.md). `ICharacterStorage` is the interface contract.
 
+Skill XP persists only here, as `Character.Statistics` entries (skill id → total
+XP). The client writes the server-authoritative totals from each
+`SkillStateUpdateMessage` (see [skills](skills.md)); the server stores no skill
+data of its own.
+
 ## `levels` bucket
 
 `WorldSaveService` (`Server.Core/Saves/WorldSaveService.cs`,

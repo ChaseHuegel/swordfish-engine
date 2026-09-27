@@ -1,10 +1,14 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, skills). These live under `WaywardBeyond.Client.Core/assets/`.
+materials, skills). Item and brick definitions live under
+`WaywardBeyond.Client.Core/assets/`; skills moved to the shared
+`WaywardBeyond.Shared.Skills/assets/` module, while brick/item localization stays
+client-owned.
 
 Parser registration: `WaywardBeyond.Client.Core/Injector.cs:315-317`
-(`RegisterTomlParser<BrickDefinitions/ItemDefinitions/SkillDefinitions>`).
+(`RegisterTomlParser<BrickDefinitions/ItemDefinitions>`) and
+`WaywardBeyond.Shared.Skills/Injector.cs` (`RegisterTomlParser<SkillDefinitions/>`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -100,7 +104,9 @@ definitions, not game content tables.
 
 ## Skills (`assets/skills/*.toml`)
 
-Schema: `WaywardBeyond.Client.Core/Skills/SkillDefinitions.cs` (collection),
+Skills moved to the shared `WaywardBeyond.Shared.Skills` module; the client no
+longer owns skill definitions or runs any skill logic. Schema:
+`WaywardBeyond.Shared.Skills/Skills/SkillDefinitions.cs` (collection),
 `SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
 
 Each row is a `[[Skills]]` table:
@@ -109,26 +115,14 @@ Each row is a `[[Skills]]` table:
 |---|---|---|
 | `ID` | string | |
 | `Name` | string (localization key) | |
-| `Category` | string | |
+| `Category` | string (localization key) | |
 | `Icon` | string? | |
-| `[Skills.Sources.<Source>]` | map: tag → XP | keyed by `XPSource` (Place/Break) |
+| `[Skills.Sources.<Source>]` | map: brick id or `tag:X` → XP | keyed by `XPSource` (Place/Break) |
 | `[Skills.Levels]` | map: level → cumulative XP | |
 
-Example structure:
-
-```toml
-[[Skills]]
-ID       = "mining"
-Name     = "skill.mining"
-Category = "..."
-[Skills.Sources.Break]
-"stone"  = 5
-[Skills.Levels]
-2 = 100
-3 = 250
-```
-
-A skill `Levels` table maps a level number to its cumulative XP threshold.
+Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
+on load. `Name` and `Category` are localization keys resolved client-side (see
+[skills](skills.md) for the authoritative model).
 
 ## Localization
 
@@ -140,10 +134,11 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 
 - `WaywardBeyond.Client.Core/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
 - `WaywardBeyond.Client.Core/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
-- `WaywardBeyond.Client.Core/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
+- `WaywardBeyond.Shared.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
 - `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
-- Parser registration: `WaywardBeyond.Client.Core/Injector.cs:315-317`
+- Parser registration: `WaywardBeyond.Shared.Skills/Injector.cs`,
+  `WaywardBeyond.Client.Core/Injector.cs`
 
 ## Tests that pin this
 

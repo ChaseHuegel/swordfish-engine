@@ -166,6 +166,52 @@ rules, the log line, and the client behavior.
 (`NewWorldRequest`/`Response`, `ListWorlds*`, `DeleteWorld*`, `SaveWorld*`).
 See [join](networking-join.md) and [persistence](persistence.md).
 
+`CharacterSeed` carries the client's authoritative **initial** character
+context, including its saved skill statistics:
+
+```nsd
+message CharacterSeed
+{
+    ulong CharacterId = 0;
+    string Name = 1;
+    int Body = 2;
+    ItemData[]? InventoryContents = 3;
+    int ActiveInventorySlot = 4;
+    int GameMode = 5;
+    Statistic[]? Statistics = 6;   // skill XP seed; server keeps only what matches a skill id
+}
+```
+
+## Notifications and skill state
+
+Server-to-client gameplay signaling in `network.nsd`. Servers never localize:
+the client resolves keys against its own locale files.
+
+```nsd
+message NotificationMessage
+{
+    byte Type = 0;        // NotificationType: Toast/Action/Interaction/Bar
+    string Key = 1;       // localization key for the template
+    string[] Args = 2;    // positional args; text values are localization keys
+    string? ID = 3;       // Bar only: dedupe id (e.g. skill id)
+    float? Amount = 4;    // Bar only: progress 0..1
+}
+
+message SkillStateUpdateMessage
+{
+    string SkillId = 0;
+    long TotalXP = 1;
+    int Level = 2;
+    long XPIntoLevel = 3;
+    long GainedXP = 4;
+}
+```
+
+`NotificationType` is a shared enum (`WaywardBeyond.Shared.Networking/
+NotificationType.cs`); its byte values are a wire contract. `ClientNotificationSystem`
+writes each `SkillStateUpdateMessage` total into the client-owned character save.
+See [skills](skills.md) for the authority model.
+
 ## LAN beacon
 
 ```nsd
