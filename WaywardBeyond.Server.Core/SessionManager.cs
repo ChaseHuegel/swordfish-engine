@@ -16,6 +16,7 @@ public sealed class SessionManager
     private readonly ConcurrentDictionary<Uuid, int> _clientToEntity = new();
     private readonly ConcurrentDictionary<Uuid, Session> _clientToSession = new();
     private readonly ConcurrentDictionary<Session, int> _sessionToEntity = new();
+    private readonly ConcurrentDictionary<int, Uuid> _entityToClient = new();
 
     /// <summary>
     /// Binds a client connection to a fresh session and its spawned player entity, also stamping
@@ -31,6 +32,7 @@ public sealed class SessionManager
         _clientToEntity[clientId] = entity;
         _clientToSession[clientId] = session;
         _sessionToEntity[session] = entity;
+        _entityToClient[entity] = clientId;
     }
 
     public bool TryGetEntity(Uuid clientId, out int entity)
@@ -48,6 +50,12 @@ public sealed class SessionManager
         return _sessionToEntity.TryGetValue(session, out entity);
     }
 
+    /// <summary>Returns the client connection bound to a player entity, if any (reverse of <see cref="TryGetEntity(Uuid, out int)"/>).</summary>
+    public bool TryGetClient(int entity, out Uuid clientId)
+    {
+        return _entityToClient.TryGetValue(entity, out clientId);
+    }
+
     /// <summary>Removes every mapping bound to a client id (disconnect teardown).</summary>
     public void EndSession(Uuid clientId)
     {
@@ -56,6 +64,9 @@ public sealed class SessionManager
             _sessionToEntity.TryRemove(session, out _);
         }
 
-        _clientToEntity.TryRemove(clientId, out _);
+        if (_clientToEntity.TryRemove(clientId, out int entity))
+        {
+            _entityToClient.TryRemove(entity, out _);
+        }
     }
 }

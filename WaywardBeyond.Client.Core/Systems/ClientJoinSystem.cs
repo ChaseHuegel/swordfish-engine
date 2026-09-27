@@ -83,6 +83,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
                     InventoryContents = character.Inventory,
                     ActiveInventorySlot = character.ActiveInventorySlot,
                     GameMode = (int)character.GameMode,
+                    //  The client owns the initial skill seed: its saved statistics seed the server's
+                    //  transient per-session skill state, which the server then owns for the session.
+                    Statistics = character.Statistics,
                 },
             });
             _sent = true;

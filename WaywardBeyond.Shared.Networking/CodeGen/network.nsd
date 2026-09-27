@@ -50,6 +50,24 @@ message VoxelEditMessage
     uint Sequence = 5;
 }
 
+message NotificationMessage
+{
+    byte Type = 0;
+    string Key = 1;
+    string[] Args = 2;
+    string? ID = 3;
+    float? Amount = 4;
+}
+
+message SkillStateUpdateMessage
+{
+    string SkillId = 0;
+    long TotalXP = 1;
+    int Level = 2;
+    long XPIntoLevel = 3;
+    long GainedXP = 4;
+}
+
 message ChatMessage
 {
     ulong CharacterId = 0;

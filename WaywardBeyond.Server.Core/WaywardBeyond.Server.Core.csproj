@@ -27,6 +27,7 @@
       <ProjectReference Include="..\WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Config\WaywardBeyond.Shared.Config.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Skills\WaywardBeyond.Shared.Skills.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
     </ItemGroup>
 
     <PropertyGroup>

@@ -67,6 +67,7 @@ message CharacterSeed
     ItemData[]? InventoryContents = 3;
     int ActiveInventorySlot = 4;
     int GameMode = 5;
+    Statistic[]? Statistics = 6;
 }
 
 message JoinAccept

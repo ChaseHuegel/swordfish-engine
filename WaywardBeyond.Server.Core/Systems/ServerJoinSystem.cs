@@ -9,6 +9,7 @@ using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Skills;
 
 namespace WaywardBeyond.Server.Core.Systems;
 
@@ -27,6 +28,7 @@ public sealed class ServerJoinSystem : IEntitySystem
     private readonly WorldSaveService _worldService;
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
+    private readonly SkillDatabase? _skillDatabase;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -37,13 +39,15 @@ public sealed class ServerJoinSystem : IEntitySystem
         in WorldSaveService worldService,
         in NetworkReplicationSystem replication,
         in ServerInteractionSystem interaction,
-        in ILogger<ServerJoinSystem> logger
+        in ILogger<ServerJoinSystem> logger,
+        in SkillDatabase? skillDatabase = null
     ) {
         _hub = hub;
         _sessions = sessions;
         _worldService = worldService;
         _replication = replication;
         _interaction = interaction;
+        _skillDatabase = skillDatabase;
         _logger = logger;
     }
 
@@ -134,6 +138,7 @@ public sealed class ServerJoinSystem : IEntitySystem
         //  Seed the server-authoritative interaction context from the joining client's local save. The
         //  client owns its initial save; from here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.Seed);
+        SeedSkillState(store, entity, request.Seed, _skillDatabase);
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
@@ -177,6 +182,29 @@ public sealed class ServerJoinSystem : IEntitySystem
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
         store.AddOrUpdate(entity, new GameModeComponent((GameMode)seed.GameMode));
+    }
+
+    /// <summary>
+    /// Seeds the player's transient, server-authoritative skill state from the joining client's saved
+    /// statistics. The client owns the initial seed; only statistics whose id names a known skill are
+    /// carried, and the whole component lives in memory for the session and is freed with the player
+    /// mirror. The server never persists character skill data.
+    /// </summary>
+    private static void SeedSkillState(DataStore store, int entity, in CharacterSeed seed, in SkillDatabase? skillDatabase)
+    {
+        var xpBySkillId = new Dictionary<string, long>();
+        if (skillDatabase != null && seed.Statistics != null)
+        {
+            foreach (Statistic statistic in seed.Statistics)
+            {
+                if (statistic.ID != null && skillDatabase.HasSkill(statistic.ID))
+                {
+                    xpBySkillId[statistic.ID] = statistic.Value;
+                }
+            }
+        }
+
+        store.AddOrUpdate(entity, new SkillStateComponent(xpBySkillId));
     }
 
     private void StreamWorld(Uuid clientId, DataStore store)

@@ -11,6 +11,7 @@ using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Skills;
 
 namespace WaywardBeyond.Server.Core.Systems;
 
@@ -31,6 +32,7 @@ public sealed class ServerInteractionSystem
     private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
+    private readonly ServerSkillSystem? _skills;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
@@ -53,13 +55,15 @@ public sealed class ServerInteractionSystem
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
-        Func<DataStore, IVoxelInteractionWorld> worldFactory
+        Func<DataStore, IVoxelInteractionWorld> worldFactory,
+        ServerSkillSystem? skills = null
     ) {
         _hub = hub;
         _content = content;
         _handlerRegistry = handlerRegistry;
         _logger = logger;
         _worldFactory = worldFactory;
+        _skills = skills;
     }
 
     private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()
@@ -155,11 +159,13 @@ public sealed class ServerInteractionSystem
             case InteractionAction.Break:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, new Voxel());
                 GrantLoot(store, player, mode, resolution.Voxel.ID);
+                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
                 break;
 
             case InteractionAction.Place:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, resolution.Voxel);
                 ConsumeHeldItem(store, player, mode);
+                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
                 break;
         }
 

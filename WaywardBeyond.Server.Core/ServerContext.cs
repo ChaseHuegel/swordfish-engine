@@ -12,6 +12,7 @@ using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Skills;
 
 namespace WaywardBeyond.Server.Core;
 
@@ -49,6 +50,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         in Func<KeyValueStore> keyValueStore,
         in IInteractionContent interactionContent,
         IInteractionHandlerRegistry handlerRegistry,
+        in SkillDatabase skillDatabase,
         ILoggerFactory loggerFactory
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
@@ -66,19 +68,25 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).
         _physics.SetGravity(Vector3.Zero);
 
-        _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCommand);
+_simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCommand);
+
+        var skills = new ServerSkillSystem(
+            skillDatabase,
+            sessions,
+            hub,
+            loggerFactory.CreateLogger<ServerSkillSystem>()
+        );
 
         _interaction = new ServerInteractionSystem(
             hub,
             interactionContent,
             loggerFactory.CreateLogger<ServerInteractionSystem>(),
             handlerRegistry,
-            store => new ServerVoxelInteractionWorld(store)
+            store => new ServerVoxelInteractionWorld(store),
+            skills
         );
 
-        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>());
-
-        _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
+        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), skillDatabase);
     }
 
     public void Run()
