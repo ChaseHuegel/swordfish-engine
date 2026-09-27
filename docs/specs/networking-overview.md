@@ -51,10 +51,10 @@ Two independent ECS worlds run concurrently in the process:
 takes a `ServerConnectionHub`, `PhysicsSettings`, a lazy `KeyValueStore`
 factory, an `ILoggerFactory`, and a shared `SessionManager`.
 
-The server is hosted inside the client app: `Client.Core/Injector.cs` calls
-`ServerComposition.Register(container)` (line 143), which registers
-`ServerContext` as an `IEntryPoint`. This hard-wired wiring exists because
-`WaywardBeyond.Server.Core` has no `manifest.toml` yet.
+The server is hosted inside the client app. `Server.Core/ServerModule.cs`
+calls `ServerComposition.Register(container)` and registers `LanHost` unless
+the process runs in `NetworkMode.Client`. The module loads through the
+standard module discovery path.
 
 The two sides never touch each other's `DataStore`. They exchange
 `ComponentSnapshot` payloads on the wire.
@@ -71,7 +71,7 @@ The two sides never touch each other's `DataStore`. They exchange
 | Client prediction + reconciliation | Implemented (server-authoritative, sim-tick driven) |
 | Authoritative server simulation | Implemented (shared deterministic step on the server world) |
 | Multi-client sessions & disconnect | Implemented (`ServerConnectionHub` + `SessionManager`) |
-| Peer transport (`TcpTransport`) | Exists, unexercised, no per-type demux |
+| Peer transport (`TcpTransport`) | Implemented (per-type demux, `TcpTransportTests`) |
 | LAN server discovery (UDP beacon) | Implemented |
 
 ## Source of truth
@@ -85,11 +85,6 @@ authority.
 
 ## Known gaps
 
-- **TcpTransport** has a single shared receive queue with no per-type demux. It
-  cannot yet host the polling systems. Unexercised.
-- **Server boot is hard-wired.** `ServerComplication.Register` is invoked from
-  the client's `Injector` because `WaywardBeyond.Server.Core` lacks a
-  `manifest.toml`.
 - **Despawn uuids must be captured before `store.Free`.** `DataStore.Free`
   clears an entity's uuid.
 - **Disconnect detection is manual** for the in-process loopback.

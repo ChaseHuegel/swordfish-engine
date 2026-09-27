@@ -37,6 +37,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ServerJoinSystem _join;
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
+    private readonly ServerChatSystem _chat;
     private readonly JoltPhysicsSystem _physics;
     private readonly SharedSimulationStep _simulationStep;
     private readonly WorldSaveService _worldService;
@@ -76,6 +77,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         );
 
         _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>());
+
+        _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
     }
 
     public void Run()
@@ -117,6 +120,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
             _replication.SimTick = _simulationStep.CurrentSimTick;
             _interaction.Tick(delta, store, _simulationStep.CurrentSimTick);
+            _chat.Tick(delta, store);
             _replication.PublishStage(delta, store);
         }
         catch (Exception ex)

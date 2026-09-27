@@ -50,6 +50,13 @@ message VoxelEditMessage
     uint Sequence = 5;
 }
 
+message ChatMessage
+{
+    ulong CharacterId = 0;
+    string SenderName = 1;
+    string Value = 2;
+}
+
 message LanBeacon
 {
     string ServerName    = 0;

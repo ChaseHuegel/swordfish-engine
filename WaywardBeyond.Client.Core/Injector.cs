@@ -133,6 +133,7 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<VoxelEditMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ChatMessage>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.Register<TransportManager>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context =>
@@ -158,6 +159,8 @@ public class Injector : IDryIocInjector
         container.Register<IEntitySystem, ClientReplicationSystem>();
         container.Register<IEntitySystem, ClientReconcileSystem>();
         container.Register<IEntitySystem, ClientVoxelReconcileSystem>();
+        container.Register<ChatService>(Reuse.Singleton);
+        container.Register<IEntitySystem, ClientChatSystem>();
         //  Runs after the voxel-edit producers (PlayerInteractionService, ClientVoxelReconcileSystem) so
         //  the dirty VoxelComponent flags it consumes reflect the current prediction/reconcile.
         container.Register<IEntitySystem, VoxelEntityRebuildSystem>();
@@ -203,6 +206,7 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<UISettings>(file: "ui.toml");
         container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
         container.RegisterConfig<NetworkingSettings>(file: "network.toml");
+        container.RegisterConfig<ChatSettings>(file: "chat.toml");
     }
 
     private static void RegisterUI(IContainer container)

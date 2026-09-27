@@ -59,6 +59,18 @@ LoadOrder = [
 ]
 ```
 
+## `chat.toml` (per app)
+
+Runtime chat tunables. Registered by the client module via
+`RegisterConfig<ChatSettings>`. Defaults live in
+`WaywardBeyond.Shared.Config/ChatSettings.cs`. See [chat](chat.md).
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `TimeoutSeconds` | int | 10 | seconds the closed chat overlay lingers after last activity |
+| `MaxHistory` | int | 100 | client scrollback message capacity |
+| `MaxVisibleLines` | int | 4 | messages the closed overlay shows |
+
 ## How configs load
 
 TOML parsing via Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,

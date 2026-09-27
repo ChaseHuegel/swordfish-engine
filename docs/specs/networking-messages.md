@@ -140,6 +140,24 @@ message VoxelEditMessage
 }
 ```
 
+## Chat
+
+`WaywardBeyond.Shared.Networking/CodeGen/network.nsd`:
+
+```nsd
+message ChatMessage
+{
+    ulong  CharacterId = 0;  // server-stamped
+    string SenderName  = 1;  // server-stamped
+    string Value       = 2;  // client-authored text
+}
+```
+
+`ChatMessage` is the only chat wire message. The client sends text only. The
+server stamps the sender identity from the player mirror and broadcasts the
+relay to every client, including the sender. See [chat](chat.md) for the relay
+rules, the log line, and the client behavior.
+
 ## Join and world-stream messages
 
 `WaywardBeyond.Shared.Data/CodeGen/world.nsd`: `JoinRequest`,

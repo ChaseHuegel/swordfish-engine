@@ -21,6 +21,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Client prediction and reconciliation | [specs/networking-prediction](specs/networking-prediction.md) |
 | Join handshake and full-world streaming | [specs/networking-join](specs/networking-join.md) |
 | Server-authoritative interactions and voxel edits | [specs/networking-voxel-edits](specs/networking-voxel-edits.md) |
+| Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: NATS KV buckets, key layout, storage services | [specs/persistence](specs/persistence.md) |
 | Asset definition TOML formats (items, bricks, materials, skills) | [specs/asset-definitions](specs/asset-definitions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
