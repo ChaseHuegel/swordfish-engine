@@ -10,25 +10,24 @@ using Swordfish.Integrations;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Meta;
-using WaywardBeyond.Client.Core.Saves;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 
-internal sealed class LoadScreen(
-    in GameSaveService gameSaveService,
-    in IAssetDatabase<LocalizedTags> localizedTagDatabase
-) : IUILayer
+internal sealed class LoadScreen(in IAssetDatabase<LocalizedTags> localizedTagDatabase) : IUILayer
 {
     private const float WORDS_PER_MINUTE = 150;
     private const float WORDS_PER_SECOND = WORDS_PER_MINUTE / 60f;
     private const float SECONDS_PER_WORD = 1f / WORDS_PER_SECOND;
     
-    private readonly GameSaveService _gameSaveService = gameSaveService;
     private readonly IAssetDatabase<LocalizedTags> _localizedTagDatabase = localizedTagDatabase;
     private readonly Randomizer _randomizer = new();
     
     private double _currentTime;
     
+    private string _status = string.Empty;
+    private double _statusStartTime;
+    private double _statusEndTime;
+
     private string _hint = string.Empty;
     private double _hintStartTime;
     private double _hintEndTime;
@@ -41,6 +40,14 @@ internal sealed class LoadScreen(
     public Result RenderUI(double delta, UIBuilder<Material> ui)
     {
         _currentTime += delta;
+
+        if (_currentTime >= _statusEndTime)
+        {
+            _statusStartTime = _currentTime;
+            Result<LocalizedTags> localizedTags = _localizedTagDatabase.Get(CultureInfo.CurrentCulture.TwoLetterISOLanguageName);
+            _status = localizedTags.Success ? RandomFromTags(localizedTags.Value, "game_load", "character_load") : string.Empty;
+            _statusEndTime = _statusStartTime + CountWords(_status) * SECONDS_PER_WORD;
+        }
 
         if (_currentTime >= _hintEndTime)
         {
@@ -93,7 +100,7 @@ internal sealed class LoadScreen(
                 };
             }
             
-            using (ui.Text(_gameSaveService.GetStatus()))
+            using (ui.Text(_status))
             {
                 ui.FontSize = 16;
                 ui.Constraints = new Constraints
@@ -123,6 +130,21 @@ internal sealed class LoadScreen(
         }
         
         return Result.FromSuccess();
+    }
+    
+    private string RandomFromTags(LocalizedTags localizedTags, params string[] tagNames)
+    {
+        var values = new List<string>();
+        for (var i = 0; i < tagNames.Length; i++)
+        {
+            IReadOnlyList<string>? tags = localizedTags.GetValues(tagNames[i]);
+            if (tags != null)
+            {
+                values.AddRange(tags);
+            }
+        }
+        
+        return values.Count > 0 ? _randomizer.Select((IReadOnlyList<string>)values) : string.Empty;
     }
     
     private static int CountWords(in string text)

@@ -28,8 +28,6 @@ internal sealed class GameSaveService(
     private readonly object _savesGate = new();
     private GameSave[] _saves = [];
 
-    public string GetStatus() => "Complete";
-
     public GameSave[] GetSaves()
     {
         lock (_savesGate)
