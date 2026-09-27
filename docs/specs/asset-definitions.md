@@ -1,0 +1,151 @@
+# Asset Definition TOML Formats
+
+One subject: the TOML config types that define game content (items, bricks,
+materials, skills). These live under `WaywardBeyond.Client.Core/assets/`.
+
+Parser registration: `WaywardBeyond.Client.Core/Injector.cs:315-317`
+(`RegisterTomlParser<BrickDefinitions/ItemDefinitions/SkillDefinitions>`).
+
+## Items (`assets/items/*.toml`)
+
+Schema: `WaywardBeyond.Client.Core/Items/ItemDefinitions.cs` (collection),
+`ItemDefinition.cs` (row).
+
+Each row is a `[[Items]]` table followed by optional sub-tables:
+
+| Field | Type | Schema class |
+|---|---|---|
+| `ID` | string | `ItemDefinition.ID` |
+| `Name` | string (localization key) | `ItemDefinition.Name` |
+| `Icon` | string? | `ItemDefinition.Icon` |
+| `MaxStack` | int? | `ItemDefinition.MaxStack` |
+| `[Items.Placeable]` | sub-table | `PlaceableDefinition` (`Type`, `ID`) |
+| `[Items.Tool]` | sub-table | `ToolDefinition` (`Type`, `Target`, `Tags`) |
+| `[Items.ViewModel]` | sub-table | `ModelDefinition` |
+| `[Items.WorldModel]` | sub-table | `ModelDefinition` |
+
+### Placeable
+
+`PlaceableDefinition` (`PlaceableDefinition.cs`): `Type` (`PlaceableType`),
+`ID` (the brick ID it places).
+
+Example:
+
+```toml
+[Items.Placeable]
+Type = "brick"
+ID = "core"
+```
+
+### Tool
+
+`ToolDefinition` (`ToolDefinition.cs`): `Type` (`ToolType`), `Target`, `Tags[]`.
+
+### Model
+
+`ModelDefinition` (`ModelDefinition.cs`): `Mesh`, `Material`, `Position`/
+`Rotation`/`Scale` (each a `Float3` with `X`/`Y`/`Z`). `Scale` defaults to
+`1,1,1`.
+
+Example:
+
+```toml
+[Items.ViewModel]
+Mesh       = "cube.obj"
+Material   = "bricks/core"
+Position.X = 0.4
+Scale.X    = 0.25
+```
+
+## Bricks (`assets/bricks/*.toml`)
+
+Schema: `WaywardBeyond.Client.Core/Bricks/BrickDefinitions.cs` (collection),
+`BrickDefinition.cs` (row).
+
+Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | unique brick id |
+| `Transparent` | bool | |
+| `Passable` | bool | |
+| `Mesh` | string? | |
+| `Shape` | `BrickShape` enum | `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs` |
+| `Textures` | sub-table | `BrickTextures` |
+| `Tags` | string[] | |
+
+Example:
+
+```toml
+[[Bricks]]
+ID      = "core"
+Shape   = "block"
+Tags    = ["metal", "buildable", "convertable_truss"]
+[Bricks.Textures]
+Default = ["core"]
+```
+
+### Textures
+
+`BrickTextures` (`BrickTextures.cs`): `Connected` plus per-face string?[] fields:
+`Default`, `Top`, `Bottom`, `Front`, `Back`, `Left`, `Right`. `Default` is the
+fallback face; faces override it.
+
+## Materials (`assets/materials/**/*.toml`)
+
+Flat config: `Swordfish/IO/MaterialDefinition.cs`. Keys include `Shader`,
+`Textures`, `Transparent`. Example at
+`assets/materials/bricks/glass.toml`. These are engine-side material
+definitions, not game content tables.
+
+## Skills (`assets/skills/*.toml`)
+
+Schema: `WaywardBeyond.Client.Core/Skills/SkillDefinitions.cs` (collection),
+`SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
+
+Each row is a `[[Skills]]` table:
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | |
+| `Name` | string (localization key) | |
+| `Category` | string | |
+| `Icon` | string? | |
+| `[Skills.Sources.<Source>]` | map: tag → XP | keyed by `XPSource` (Place/Break) |
+| `[Skills.Levels]` | map: level → cumulative XP | |
+
+Example structure:
+
+```toml
+[[Skills]]
+ID       = "mining"
+Name     = "skill.mining"
+Category = "..."
+[Skills.Sources.Break]
+"stone"  = 5
+[Skills.Levels]
+2 = 100
+3 = 250
+```
+
+A skill `Levels` table maps a level number to its cumulative XP threshold.
+
+## Localization
+
+`assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
+Schema classes: `Meta/LocalizedTagsDefinition.cs`,
+`Serialization/LocalizedTagDefinitionParser.cs`.
+
+## Source of truth
+
+- `WaywardBeyond.Client.Core/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
+- `WaywardBeyond.Client.Core/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
+- `WaywardBeyond.Client.Core/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
+- `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs`
+- `Swordfish/IO/MaterialDefinition.cs`
+- Parser registration: `WaywardBeyond.Client.Core/Injector.cs:315-317`
+
+## Tests that pin this
+
+- `WaywardBeyond.Client.Core.Tests` validate brick/item/skill definition
+  parsing from the asset TOML.

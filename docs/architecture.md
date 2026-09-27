@@ -1,0 +1,136 @@
+# Swordfish Engine — Architecture
+
+One subject: the as-built architecture. It covers the module map, the process
+and world split, the persistence schema, and the CLI surface.
+
+## Module map
+
+| Directory/Project | Role | Framework | NuGet? |
+|---|---|---|---|
+| `Shoal/` | App host, DI (DryIoc), module loader, CLI, localization | `net8.0` | Shoal |
+| `Swordfish/` | Engine module: rendering (Silk.NET/OpenGL), physics (Jolt), audio, input, UI | `net8.0` | Swordfish |
+| `Swordfish.ECS/` | Struct-based ECS: Entity, ChunkedStore, World | `net8.0` | Swordfish.ECS |
+| `Swordfish.Library/` | Shared types, serialization (Needlefish), DI abstractions | `netstandard2.1` | Swordfish.Library |
+| `Swordfish.Integrations/` | Integrations (SQL, FontAwesome, etc.) | — | Swordfish.Integrations |
+| `Swordfish.Compilation/` | Lexer/parser/linter for custom shader/script langs | `netstandard2.0` | Swordfish.Compilation |
+| `Reef/` | Renderer-agnostic IMGUI library (alpha, replaces Dear ImGui) | `net8.0` | Reef |
+| `Shoal.Extensions.Swordfish/` | Shoal extensions specific to Swordfish | `net8.0` | — |
+| `Swordfish.Launcher/` | Dev launcher for Swordfish modules | `net9.0` | — |
+| `Swordfish.Demo/` | Sandbox / tech demo module | — | — |
+| `Swordfish.Editor/` | Visual editor module (inspector, hierarchy, file browser) | — | — |
+| `WaywardBeyond.Client.Core/` | Game client module | `net9.0` | — |
+| `WaywardBeyond.Server.Core/` | Game server module | `net9.0` | — |
+| `WaywardBeyond.Shared.Data/` | Shared data models (client+server) | — | — |
+| `WaywardBeyond.Shared.Config/` | Shared config types | — | — |
+| `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
+| `WaywardBeyond.Shared.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
+| `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |
+
+**Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`)
+and `WaywardBeyond.Client.Launcher/Program.cs`.
+
+## Core architecture principles
+
+- **Shoal modularity**: every feature is a Shoal module. A module = a DLL +
+  `manifest.toml` (ID, name, assemblies). Modules are auto-discovered and loaded
+  via `Shoal/Modularity/ModulesLoader.cs`.
+- **DI via DryIoc**: `IContainer` everywhere. Modules register services via
+  `IDryIocInjector`. See `Shoal/DependencyInjection/`.
+- **ECS-first**: game objects are entities composed of struct components,
+  processed by systems (`Swordfish.ECS/`). Avoid OOP hierarchies.
+- **Structs default** for new types, especially data types. Classes only for
+  reference semantics or polymorphism.
+
+## Engine vs game split
+
+- **Engine set**: everything except `WaywardBeyond.*` (`Swordfish`,
+  `Swordfish.ECS`, `Swordfish.Library`, `Swordfish.Integrations`,
+  `Swordfish.Compilation`, `Shoal`, `Reef`, `Shoal.Extensions.Swordfish`,
+  launchers, demo/editor).
+- **Game set**: `WaywardBeyond.*`.
+- Engine changes commit separately and first, never mixed with game commits.
+  Change the separator only with justification.
+
+## Process & world split
+
+Two independent ECS worlds run concurrently in the game process:
+
+- **Client world** — `Swordfish/ECS/ECSContext.cs`, ticked on the `"ECS"`
+  thread. Runs engine systems plus client gameplay systems.
+- **Server world** — `WaywardBeyond.Server.Core/ServerContext.cs`, ticked on the
+  `"Server"` thread. Runs the authoritative server systems.
+
+The two worlds communicate **only** through serialized nsd messages over a
+transport. Singleplayer runs the authoritative server in-process on its own
+thread over a `LocalConnection` loopback that exercises the full wire protocol.
+There is no separate singleplayer simulation path.
+
+`ServerContext` is host-agnostic: it takes a connection hub, physics settings, a
+lazy `KeyValueStore` factory, an `ILoggerFactory`, and a shared `SessionManager`.
+A future dedicated server is a thin host around this class.
+
+See [specs/networking-overview](specs/networking-overview.md) for the full
+process boundary detail.
+
+## Persistence schema
+
+All save data persists through a local NATS JetStream server (launched by
+`PersistentNatsProcess`) wrapped by `KeyValueStore` (NATS KV, sync-over-async)
+in `WaywardBeyond.Shared.Data/KeyValueStore.cs`. Env config: `NATS_URL`,
+`NATS_JWT`, `NATS_NKEY_SEED`; default `nats://127.0.0.1:4222`. Buckets are
+auto-created on first use.
+
+The source of truth for full details is [specs/persistence](specs/persistence.md).
+
+### Buckets
+
+| Bucket | Owner | Key pattern | Payload |
+|---|---|---|---|
+| `characters` | Client | `<characterId>` | `Character` |
+| `levels` | Server | `<levelGuid>` | `Level` meta |
+| `levels` | Server | `<guid>.entity.<uuid>` | `VoxelEntityData` |
+| `levels` | Server | `<guid>.character.<characterId>` | `CharacterEntityData` (location) |
+
+## CLI surface
+
+The engine has a two-layer command/argument surface.
+
+### Process arguments (Shoal)
+
+`Shoal/CommandLine/` tokenizes `argv` into `CommandLineArgs`:
+- `CommandLineParser.cs` lexes flags (`-x`, `--option`) and values, including
+  quoted values.
+- `CommandLineTokenParser.cs` reduces tokens into typed args.
+- `--option=value` form is supported. See `CommandLineToken.cs`.
+
+### In-game commands (Swordfish.Library)
+
+`Swordfish.Library/IO/` defines a command abstraction:
+- `Command.cs` — base `Command` + generic subcommand variants
+  `Command<TSub0...>`.
+- `CommandParser.cs` — prefix-indicator parsing + `TryRunAsync`.
+
+Registration: `Shoal/AppEngine.cs` scans assemblies and registers commands via
+`RegisterCommands` (lines ~305–319). No concrete game commands ship yet; the
+only implementations are tests (`Swordfish.Tests/CommandTests.cs`).
+
+## SQL integration (legacy/parallel)
+
+`Swordfish.Integrations/SQL/` provides an optional SQLite/SqlClient layer:
+- `Database.cs` — SqlClient wrapper.
+- `Query.cs` — fluent builder (`Select/From/Where/Equals/And/InsertInto/Update/Set/Columns/Values/End`).
+
+This is not used by the game's save path, which uses NATS KV.
+
+## Notable dependencies
+
+- **Silk.NET** 2.22.0 — OpenGL, windowing, ImGui
+- **JoltPhysicsSharp** 2.17.5 — 3D physics
+- **DryIoc** 5.3.3 — DI container
+- **Needlefish** 1.2.0 — binary serializer (custom)
+- **Currents/CRNT** — UDP protocol (custom)
+- **Tomlet** 6.2.0 — TOML parsing
+- **SmartFormat.NET** — localization formatting
+- **ImageSharp** — image loading
+- **SoundFlow** — audio
+- **msdf-atlas-gen** — font atlases (external tool)

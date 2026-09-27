@@ -1,0 +1,93 @@
+# Persistence — NATS KV Buckets
+
+One subject: how save data persists.
+
+## Substrate
+
+All save data flows through a local NATS JetStream server launched by
+`PersistentNatsProcess` (`Server.Core/Streaming/PersistentNatsProcess.cs`,
+started from the client `Entry`), wrapped by `KeyValueStore` (NATS KV,
+sync-over-async) in `WaywardBeyond.Shared.Data/KeyValueStore.cs`.
+
+Environment config (in `KeyValueStore.cs:16-18`): `NATS_URL`, `NATS_JWT`,
+`NATS_NKEY_SEED`; default `nats://127.0.0.1:4222`. Buckets are auto-created on
+first use.
+
+`KeyValueStore` operations: `Put<T>`, `Get<T>`, `GetKeys`, `Delete` (single and
+bulk). It is sync-over-async (blocks on `.Task.Result`), so a full-world save
+must be throttled/submitted to a worker and not run inline on the server tick.
+
+## Buckets
+
+| Bucket | Owner | Key pattern | Payload |
+|---|---|---|---|
+| `characters` | Client | `<characterId>` | `Character` |
+| `levels` | Server | `<levelGuid>` | `Level` meta |
+| `levels` | Server | `<guid>.entity.<uuid>` | `VoxelEntityData` |
+| `levels` | Server | `<guid>.character.<characterId>` | `CharacterEntityData` (spawn location) |
+
+## `characters` bucket
+
+`NatsCharacterStorage` (`WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`,
+`BUCKET_NAME = "characters"` at line 8). Key = `id.ToString()`, value =
+serialized `Character` (via `Character.Serialize()`).
+
+Owned by the client. It is the source of the join-time seed — see
+[join](networking-join.md). `ICharacterStorage` is the interface contract.
+
+## `levels` bucket
+
+`WorldSaveService` (`Server.Core/Saves/WorldSaveService.cs`,
+`BUCKET_NAME = "levels"` at line 26). Server-owned.
+
+Key layout (confirmed at the cited source-of-truth lines):
+
+- `<levelGuid>` → serialized `Level` meta (Version, Seed, spawn, GameMode, Name).
+  Written at `WorldSaveService.cs:81`.
+- `<guid>.entity.<uuid>` → serialized `VoxelEntityData` (chunked voxels +
+  transform), one per structure. Written at `WorldSaveService.cs:85`.
+- `<guid>.character.<characterId>` → serialized `CharacterEntityData`
+  (authoritative location). Written at `WorldSaveService.cs:202`.
+
+Operations: `CreateWorld` (runs the shared `WorldGenerator`, persists Level meta
++ one entity per structure), `ListLevels`, `DeleteLevel`, `LoadLevel` (builds
+authority bodies via `VoxelWorldEntityFactory`), `SaveLocation` (sampled from
+the server-authoritative transform), `QueueWorldSave`/`Flush` (autosave + flush
+on server stop).
+
+## Server shutdown cascade
+
+The sequencing point is explicit: client window close → client requests server
+stop → server flushes world save → server thread exits → NATS process stops →
+process exits. The flush must be awaited before `PersistentNatsProcess` dispose
+(Shoal dispose order is unspecified), to avoid a save-vs-teardown race.
+
+## Client facade
+
+`GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached save
+listing from `ListWorldsRequest`, with `CreateSave`/`Delete`/`TriggerServerSave`
+routed to the server via `WorldsClient`. Character save is handled by
+`CharacterSaveManager` + `NatsCharacterStorage`. The old world-gen/load/save
+stages are gone.
+
+## Serialization
+
+Shared DTOs live in `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
+(`Character`, `Level`, `VoxelEntityData`/`Chunk`/`Voxel`,
+`CharacterEntityData`). No sqlite, no loose files (except a legacy disk-migration
+path retained in `GameSaveService`).
+
+The optional SQL layer (`Swordfish.Integrations/SQL/`) is not used by the save
+path.
+
+## Source of truth
+
+- `WaywardBeyond.Shared.Data/KeyValueStore.cs`
+- `WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`
+- `WaywardBeyond.Server.Core/Saves/WorldSaveService.cs`
+- `WaywardBeyond.Server.Core/Streaming/PersistentNatsProcess.cs`
+- `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
+
+## Tests that pin this
+
+- Character save/load round-trips in `WaywardBeyond.Client.Core.Tests`.

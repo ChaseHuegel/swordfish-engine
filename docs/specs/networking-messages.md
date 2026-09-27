@@ -1,0 +1,170 @@
+# Networking — Wire Messages
+
+One subject: the serialized message and component shapes that cross the wire.
+
+## Serialization substrate
+
+Wire messages are nsd schemas compiled by `nsdc` into structs with generated
+`Serialize()`/`Deserialize(ReadOnlySpan<byte>)`. The generated `.cs` files under
+`**/CodeGen/Output` are auto-generated; never hand-edit them.
+
+`NsdMessageSerializer<T>` (`Serialization/NsdMessageSerializer.cs`) adapts any
+nsd message to the generic `ISerializer<T>` used by transports, by
+reflection-driving the generated methods. A `SerializerCache` indexes the
+DI-provided serializers by message type.
+
+> **No envelope.** The wire is plain serialized nsd messages with raw
+> transport-only framing (TCP uses a 4-byte length prefix). There is no
+> `GamePacket` envelope, no per-message sequence/ack/RTT layer. Reliability and
+> ordering are left to the transport (TCP today).
+
+## Snapshots
+
+`WaywardBeyond.Shared.Networking/CodeGen/network.nsd`:
+
+```nsd
+message ComponentSnapshot
+{
+    ulong Entity    = 0;
+    ulong TypeUuid  = 1;
+    byte[] Payload  = 2;
+}
+
+message WorldSnapshot
+{
+    uint TickNumber           = 0;
+    uint LastProcessedInput   = 1;
+    ComponentSnapshot[] Components     = 2;
+    ulong[] RemovedEntities   = 3;
+}
+```
+
+`TickNumber` is the canonical sim tick (physics-step ordinal) at publish, not
+the server's per-world replication tick. `LastProcessedInput` is that client's
+own `LastAckedInput`.
+
+## Transform and physics
+
+```nsd
+message TransformMessage { float PositionX/Y/Z; float OrientationX/Y/Z/W; float ScaleX/Y/Z; }
+message PhysicsMessage  { float VelocityX/Y/Z; float AngularVelocityX/Y/Z; }
+```
+
+`PhysicsComponent.Torque` is dual-semantics and was canonicalized: the wire
+`PhysicsMessage` carries velocity and angular velocity, well-defined only at
+sync boundaries.
+
+## Input component
+
+`InputComponent` is both a networked component and an nsd message
+(`CodeGen/components.nsd`). It carries absolute, sensitivity-resolved look
+totals (radians) plus continuous held state:
+
+```nsd
+message InputComponent
+{
+    float MovementX          = 0;
+    float MovementY          = 1;
+    float MovementZ          = 2;
+    float LookPitch          = 3;
+    float LookYaw            = 4;
+    float LookRoll           = 5;
+    uint  SequenceNumber     = 6;
+    uint  ServerTickAtSample = 7;
+    bool  PrimaryHeld        = 9;   // continuous held state
+    bool  SecondaryHeld      = 10;  // continuous held state
+}
+```
+
+Mouse sensitivity is a client-local setting, never networked. The wire carries
+resolved look, not config.
+
+## Interaction event (extensible pseudo-union)
+
+Discrete interaction edges ride a `ClientOwned` message as an extensible union
+of nullable hint sub-messages. Common edge metadata stays at the root;
+per-interaction hints are nullable sub-messages.
+
+`Kind` is the button/edge and is **not** the union discriminator. Hint
+presence is. A wholly hint-less event is valid and resolves to `Action.None`.
+
+```nsd
+message InteractionEvent
+{
+    ulong Entity;            // player mirror address (dedupe/routing)
+    uint  SequenceNumber;
+    uint  ServerTickAtSample;
+    byte  Kind;              // PrimaryPressed / PrimaryReleased / SecondaryPressed / SecondaryReleased
+    BrickInteraction? Brick; // hint payload; future interactions add their own nullable sub-message
+}
+
+message BrickInteraction
+{
+    ulong TargetEntity = 0;
+    int  TargetX, TargetY, TargetZ;  // client hint target cell
+    byte HintShape;         // place only
+    byte HintOrientation;   // place only
+}
+```
+
+`InteractionKind` maps the `byte Kind` to the edge. Callers guard optional
+hints with `.HasValue` / pattern matching.
+
+## Interaction context components
+
+`CodeGen/components.nsd` also defines the server-owned interaction context and
+the body view:
+
+```nsd
+message EquipmentComponent   { int ActiveInventorySlot = 0; }
+message InventoryComponent   { WaywardBeyond.Shared.Data.ItemData[] Contents = 0; }
+message GameModeComponent    { int Value = 0; }
+message BodyViewComponent    { int Body = 0; }
+message IdentifierMessage    { string Name; string Tag; }
+```
+
+`GameModeComponent` carries an `int` on the wire (cross-namespace enums do not
+serialize as enums in nsd codegen) and exposes `Mode` via the partial.
+
+## Authoritative voxel edits
+
+Downstream broadcast delta in `network.nsd`:
+
+```nsd
+message VoxelEditMessage
+{
+    ulong EntityUuid = 0;
+    int X, Y, Z;
+    WaywardBeyond.Shared.Data.Voxel Voxel;
+    uint Sequence = 5;
+}
+```
+
+## Join and world-stream messages
+
+`WaywardBeyond.Shared.Data/CodeGen/world.nsd`: `JoinRequest`,
+`JoinAccept`, `WorldEntityAdd`, `WorldStreamComplete`, `PublicView`,
+`CharacterSeed`, and the save-listing pair
+(`NewWorldRequest`/`Response`, `ListWorlds*`, `DeleteWorld*`, `SaveWorld*`).
+See [join](networking-join.md) and [persistence](persistence.md).
+
+## LAN beacon
+
+```nsd
+message LanBeacon { string ServerName; int TcpPort; int ProtocolVersion; int PlayerCount; }
+```
+
+A UDP control-plane beacon only. See [transports](networking-transports.md).
+
+## Source of truth
+
+- Schema files: `WaywardBeyond.Shared.Networking/CodeGen/network.nsd`,
+  `.../components.nsd`, `WaywardBeyond.Shared.Data/CodeGen/{voxels,world,saves}.nsd`.
+- `nsdc` build wiring: the Exec targets in each `.csproj`
+  (e.g. `WaywardBeyond.Shared.Networking.csproj`, `WaywardBeyond.Shared.Data.csproj`).
+
+## Tests that pin this
+
+- `Swordfish.Tests` codec / round-trip tests for `InteractionEvent`,
+  `CharacterSeed`, and the component codecs.
+- `WaywardBeyond.Client.Core.Tests` cover voxel-object processing.
