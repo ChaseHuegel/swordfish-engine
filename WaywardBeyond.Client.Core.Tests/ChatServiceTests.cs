@@ -18,10 +18,23 @@ public class ChatServiceTests
         service.Add(new ChatMessage { Value = "2" });
         service.Add(new ChatMessage { Value = "3" });
 
-        ChatMessage[] snapshot = service.Snapshot();
+        ChatLine[] snapshot = service.Snapshot();
         Assert.That(snapshot, Has.Length.EqualTo(2));
-        Assert.That(snapshot[0].Value, Is.EqualTo("2"));
-        Assert.That(snapshot[1].Value, Is.EqualTo("3"));
+        Assert.That(snapshot[0].Message.Value, Is.EqualTo("2"));
+        Assert.That(snapshot[1].Message.Value, Is.EqualTo("3"));
+    }
+
+    [Test]
+    public void StampsNonDecreasingArrivalTimes()
+    {
+        var service = new ChatService(new ChatSettings());
+
+        service.Add(new ChatMessage { Value = "first" });
+        service.Add(new ChatMessage { Value = "second" });
+
+        ChatLine[] snapshot = service.Snapshot();
+        Assert.That(snapshot[0].ReceivedAt, Is.GreaterThan(0));
+        Assert.That(snapshot[1].ReceivedAt, Is.GreaterThanOrEqualTo(snapshot[0].ReceivedAt));
     }
 
     [Test]
@@ -32,8 +45,8 @@ public class ChatServiceTests
         service.Add(new ChatMessage { Value = "first" });
         service.Add(new ChatMessage { Value = "second" });
 
-        ChatMessage[] snapshot = service.Snapshot();
-        Assert.That(snapshot.Select(message => message.Value), Is.EqualTo(new[] { "first", "second" }));
+        ChatLine[] snapshot = service.Snapshot();
+        Assert.That(snapshot.Select(line => line.Message.Value), Is.EqualTo(new[] { "first", "second" }));
     }
 
     [Test]

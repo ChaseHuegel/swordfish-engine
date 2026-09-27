@@ -270,6 +270,9 @@ public class Injector : IDryIocInjector
         container.Register<NameplateUILayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, NameplateUILayer>();
 
+        container.Register<ChatLayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, ChatLayer>();
+
         container.Register<ModalMenu>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ModalMenu>();
         container.Register<IMenuPage<Modal>, EmptyModal>();

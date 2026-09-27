@@ -69,7 +69,6 @@ Runtime chat tunables. Registered by the client module via
 |---|---|---|---|
 | `TimeoutSeconds` | int | 10 | seconds the closed chat overlay lingers after last activity |
 | `MaxHistory` | int | 100 | client scrollback message capacity |
-| `MaxVisibleLines` | int | 4 | messages the closed overlay shows |
 
 ## How configs load
 
