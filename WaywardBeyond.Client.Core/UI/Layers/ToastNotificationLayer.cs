@@ -2,6 +2,7 @@
 using Reef.UI;
 using Swordfish.Graphics;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Networking;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 

@@ -5,6 +5,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Core.Extensions;
+using WaywardBeyond.Shared.Networking;
 
 namespace WaywardBeyond.Client.Core.UI;
 

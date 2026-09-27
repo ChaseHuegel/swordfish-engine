@@ -5,6 +5,7 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Systems;

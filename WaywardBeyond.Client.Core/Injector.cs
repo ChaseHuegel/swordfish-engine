@@ -24,7 +24,6 @@ using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Serialization;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Shortcuts;
-using WaywardBeyond.Client.Core.Skills;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Client.Core.UI.Layers;
@@ -106,8 +105,6 @@ public class Injector : IDryIocInjector
     {
         container.Register<EventInvoker<PlaceEvent>>();
         container.Register<EventInvoker<BreakEvent>>();
-        container.Register<EventInvoker<LevelUpEvent>>();
-        container.Register<EventInvoker<XPEvent>>();
         container.Register<EventInvoker<PlayerMovedEvent>>();
     }
 
@@ -133,6 +130,8 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<VoxelEditMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<NotificationMessage>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<SkillStateUpdateMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<ChatMessage>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.Register<TransportManager>(Reuse.Singleton);
@@ -172,6 +171,8 @@ public class Injector : IDryIocInjector
 
         container.Register<WorldsClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientWorldServiceSystem>();
+        container.Register<ClientNotificationSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, ClientNotificationSystem>();
         container.Register<LanDiscoveryService>(Reuse.Singleton);
     }
 
@@ -312,16 +313,12 @@ public class Injector : IDryIocInjector
         
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
-        
-        container.Register<SkillDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IAssetDatabase<Skill>, SkillDatabase>();
     }
     
     private static void RegisterParsers(IContainer container)
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
-        container.RegisterTomlParser<SkillDefinitions>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();

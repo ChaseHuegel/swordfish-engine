@@ -1,3 +1,5 @@
+using WaywardBeyond.Shared.Networking;
+
 namespace WaywardBeyond.Client.Core.UI;
 
 internal readonly struct Notification
