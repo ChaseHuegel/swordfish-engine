@@ -6,6 +6,10 @@
         <Nullable>enable</Nullable>
         <Version>0.1.0-alpha</Version>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!--  Modules carry a <manifest.toml>; when published alongside transitively-referenced modules the
+              copied manifests collide in publish output. Mirrors the module-publish duplicate suppression in
+              Shoal.Build.targets. -->
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
     </PropertyGroup>
 
     <ItemGroup>

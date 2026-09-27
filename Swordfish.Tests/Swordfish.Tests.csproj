@@ -27,6 +27,9 @@
     <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Shared.Skills\WaywardBeyond.Shared.Skills.csproj" />
+    <None Include="..\WaywardBeyond.Shared.Skills\assets\skills\*.toml" Link="TestFiles\Skills\assets\skills\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Include="..\WaywardBeyond.Shared.Skills\assets\lang\tags\*.toml" Link="TestFiles\Skills\assets\lang\tags\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <None Update="TestFiles\Fonts\Font Awesome 6 Free Solid.otf">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
