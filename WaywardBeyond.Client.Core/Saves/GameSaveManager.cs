@@ -118,17 +118,11 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
             GameSave save = ActiveSave.Value;
 
-            long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            Level level = save.Level with
-            {
-                LastPlayedMs = nowUtcMs,
-            };
-
-            save = new GameSave(save.Name, level);
-            ActiveSave = save;
+            //  Start the client's own play session clock for this save (meta is persisted on save/leave).
+            _gameSaveService.BeginSaveSession(save.Level.Guid);
 
             WaywardBeyond.GameState.Set(GameState.Loading);
-            _joinSystem.RequestJoin(character.Value, level.Guid);
+            _joinSystem.RequestJoin(character.Value, save.Level.Guid);
         }
 
         return Task.CompletedTask;
@@ -149,15 +143,15 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         }
 
         GameSave save = ActiveSave.Value;
-        
+
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Level level = save.Level with
+        SaveMeta meta = _gameSaveService.GetSaveMeta(save.Level.Guid) ?? new SaveMeta();
+        meta = new SaveMeta
         {
-            AgeMs = save.Level.AgeMs + nowUtcMs - save.Level.LastPlayedMs,
+            AgeMs = SaveTime.Accumulate(meta.AgeMs, meta.LastPlayedMs, nowUtcMs),
             LastPlayedMs = nowUtcMs,
         };
-        
-        save = new GameSave(save.Name, level);
+        _gameSaveService.UpdateSaveMeta(save.Level.Guid, meta);
         
         _characterSaveManager.Save(_dataStore);
         _ = _gameSaveService.TriggerServerSave();

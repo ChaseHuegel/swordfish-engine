@@ -86,6 +86,9 @@ public sealed class ServerJoinSystem : IEntitySystem
         }
 
         _sessions.EndSession(clientId);
+
+        //  Stamp the save's server-owned time played: this player's session ended.
+        _worldService.EndSessionStamp();
     }
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
@@ -115,6 +118,12 @@ public sealed class ServerJoinSystem : IEntitySystem
         {
             position = levelLoaded ? _worldService.LevelSpawn : PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
             orientation = Quaternion.Identity;
+        }
+
+        //  Stamp the save's server-owned last-played: someone joined this save.
+        if (levelLoaded)
+        {
+            _worldService.MarkActive();
         }
 
         int entity = store.Alloc();

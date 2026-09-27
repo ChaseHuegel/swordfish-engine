@@ -5,6 +5,7 @@
 
 "ui.label.timePlayed" = "Time played"
 "ui.label.lastPlayed" = "Last played"
+"ui.label.never" = "Never"
 
 "ui.word.hours" = "hours"
 "ui.word.minutes" = "minutes"

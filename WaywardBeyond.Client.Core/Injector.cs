@@ -87,6 +87,7 @@ public class Injector : IDryIocInjector
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
         container.Register<ICharacterStorage, NatsCharacterStorage>(Reuse.Singleton);
+        container.Register<ISaveMetaStorage, NatsSaveMetaStorage>(Reuse.Singleton);
         
         container.Register<KeyValueStore>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<PersistentNatsProcess>(setup: Setup.With(allowDisposableTransient: true));

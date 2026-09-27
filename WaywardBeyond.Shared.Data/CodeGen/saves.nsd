@@ -74,6 +74,12 @@ message Statistic
     long Value = 1;
 }
 
+message SaveMeta
+{
+    long LastPlayedMs = 0;
+    long AgeMs        = 1;
+}
+
 message CharacterEntityData
 {
     ulong Uuid = 0;

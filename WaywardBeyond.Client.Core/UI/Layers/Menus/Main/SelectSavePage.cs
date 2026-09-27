@@ -195,9 +195,11 @@ internal sealed class SelectSavePage(
                         Anchors = Anchors.Center,
                     };
 
-                    DateTimeOffset lastPlayed = DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.LastPlayedMs);
+                    string lastPlayedStr = activeSave.Level.LastPlayedMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.LastPlayedMs).ToLocalTime().ToString(format: "g")
+                        : _localization.GetString("ui.label.never")!;
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
-                    using (ui.Text(lastPlayed.ToLocalTime().ToString(format: "g")))
+                    using (ui.Text(lastPlayedStr))
                     {
                         ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }

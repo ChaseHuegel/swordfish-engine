@@ -161,6 +161,9 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
 
             _sessions.EndSession(clientId);
             _logger.LogInformation("Ended session for client {client}.", clientId);
+
+            //  Stamp the save's server-owned time played: a player's session ended abruptly.
+            _worldService.EndSessionStamp();
         }
     }
 

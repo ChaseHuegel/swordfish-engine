@@ -372,9 +372,11 @@ internal sealed class SelectCharacterPage(
                         Anchors = Anchors.Center,
                     };
 
-                    DateTimeOffset lastPlayed = DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs);
+                    string lastPlayedStr = activeCharacter.LastPlayedMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToLocalTime().ToString(format: "g")
+                        : _localization.GetString("ui.label.never")!;
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
-                    using (ui.Text(lastPlayed.ToLocalTime().ToString(format: "g")))
+                    using (ui.Text(lastPlayedStr))
                     {
                         ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
                     }

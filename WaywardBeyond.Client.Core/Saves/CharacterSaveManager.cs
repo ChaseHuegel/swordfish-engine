@@ -68,7 +68,7 @@ internal sealed class CharacterSaveManager
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Character character = ActiveSave.Value with
         {
-            AgeMs = ActiveSave.Value.AgeMs + (nowUtcMs - ActiveSave.Value.LastPlayedMs),
+            AgeMs = SaveTime.Accumulate(ActiveSave.Value.AgeMs, ActiveSave.Value.LastPlayedMs, nowUtcMs),
             LastPlayedMs = nowUtcMs,
         };
 

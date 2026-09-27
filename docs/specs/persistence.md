@@ -22,9 +22,21 @@ must be throttled/submitted to a worker and not run inline on the server tick.
 | Bucket | Owner | Key pattern | Payload |
 |---|---|---|---|
 | `characters` | Client | `<characterId>` | `Character` |
+| `saves` | Client | `<levelGuid>` | `SaveMeta` |
 | `levels` | Server | `<levelGuid>` | `Level` meta |
 | `levels` | Server | `<guid>.entity.<uuid>` | `VoxelEntityData` |
 | `levels` | Server | `<guid>.character.<characterId>` | `CharacterEntityData` (spawn location) |
+
+## `saves` bucket
+
+`NatsSaveMetaStorage` (`WaywardBeyond.Shared.Data/NatsSaveMetaStorage.cs`,
+`BUCKET_NAME = "saves"` at line 9). Key = `<levelGuid>`, value = serialized
+`SaveMeta` (`LastPlayedMs`, `AgeMs`).
+
+Client-owned. Each process runs its own local NATS, so this bucket is per-client
+by construction: two clients joining the same multiplayer save each track their
+own "last played" and "time played" for it. `ISaveMetaStorage` is the interface
+contract, mirrored on the `characters` bucket.
 
 ## `characters` bucket
 
@@ -60,6 +72,15 @@ authority bodies via `VoxelWorldEntityFactory`), `SaveLocation` (sampled from
 the server-authoritative transform), `QueueWorldSave`/`Flush` (autosave + flush
 on server stop).
 
+The server owns the save's aggregate playtime metadata. `LastPlayedMs` stamps
+to the current wall-clock when anyone joins (`MarkActive`, called from
+`ServerJoinSystem`). `AgeMs` accumulates through every world save (the level
+meta rides the `QueueWorldSave`/`Flush` capture) and whenever a player leaves
+or disconnects (`EndSessionStamp`, called from `ServerJoinSystem` and
+`ServerContext`). The aggregate `AgeMs` therefore represents a total across all
+players' sessions. Share the stamping rule via `SaveTime.Accumulate`; a zero
+last-played stamps no time, so the epoch never leaks into the age.
+
 ## Server shutdown cascade
 
 The sequencing point is explicit: client window close → client requests server
@@ -71,9 +92,12 @@ process exits. The flush must be awaited before `PersistentNatsProcess` dispose
 
 `GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached save
 listing from `ListWorldsRequest`, with `CreateSave`/`Delete`/`TriggerServerSave`
-routed to the server via `WorldsClient`. Character save is handled by
-`CharacterSaveManager` + `NatsCharacterStorage`. The old world-gen/load/save
-stages are gone.
+routed to the server via `WorldsClient`. The client tracks its own per-save
+"last played" and "time played" in the `saves` bucket, merged over the server's
+level metadata in `GameSaveService.GetSaves()` (no client meta uses a
+never-stamped save) and updated on join and on every save/leave by
+`GameSaveManager`. Character save is handled by `CharacterSaveManager` +
+`NatsCharacterStorage`. The old world-gen/load/save stages are gone.
 
 ## Serialization
 
@@ -89,10 +113,13 @@ path.
 
 - `WaywardBeyond.Shared.Data/KeyValueStore.cs`
 - `WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`
+- `WaywardBeyond.Shared.Data/NatsSaveMetaStorage.cs`
+- `WaywardBeyond.Shared.Data/SaveTime.cs`
 - `WaywardBeyond.Server.Core/Saves/WorldSaveService.cs`
 - `WaywardBeyond.Server.Core/Streaming/PersistentNatsProcess.cs`
 - `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
 
 ## Tests that pin this
 
+- Save-meta accumulation rules in `WaywardBeyond.Client.Core.Tests/SaveTimeTests.cs`.
 - Character save/load round-trips in `WaywardBeyond.Client.Core.Tests`.

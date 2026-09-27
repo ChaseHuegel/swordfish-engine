@@ -350,14 +350,79 @@ public sealed class WorldSaveService
     }
 
     /// <summary>
+    /// Marks the active level as played-by-now: stamps its "last played" at the current wall-clock and
+    /// persists just the level metadata. Called on join, so the save's server-owned last-played reflects
+    /// whenever anyone joined it. No-op when no level is loaded. The write is a single small KV put that
+    /// runs on the caller (server) thread, matching <see cref="LoadLevel"/>'s inline KV access.
+    /// </summary>
+    public void MarkActive()
+    {
+        if (CurrentLevelGuid == null || CurrentLevel == null)
+        {
+            return;
+        }
+
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Level level = CurrentLevel.Value with { LastPlayedMs = nowMs };
+        CurrentLevel = level;
+        PersistLevelMeta(level);
+    }
+
+    /// <summary>
+    /// Accumulates the active level's "time played" up to the current wall-clock and persists just the
+    /// level metadata. Called when a player leaves (or abruptly disconnects) so the save's server-owned
+    /// total reflects the session. A continuous play session also accumulates through
+    /// <see cref="QueueWorldSave"/>, whose capture stamps the metadata. No-op when no level is loaded.
+    /// </summary>
+    public void EndSessionStamp()
+    {
+        if (CurrentLevelGuid == null || CurrentLevel == null)
+        {
+            return;
+        }
+
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Level level = StampMeta(CurrentLevel.Value, nowMs);
+        CurrentLevel = level;
+        PersistLevelMeta(level);
+    }
+
+    private void PersistLevelMeta(in Level level)
+    {
+        try
+        {
+            _keyValueStore().Put(BUCKET_NAME, level.Guid, level.Serialize());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to persist level metadata for \"{guid}\".", level.Guid);
+        }
+    }
+
+    private static Level StampMeta(in Level level, long nowMs)
+    {
+        return level with
+        {
+            AgeMs = SaveTime.Accumulate(level.AgeMs, level.LastPlayedMs, nowMs),
+            LastPlayedMs = nowMs,
+        };
+    }
+
+    /// <summary>
     /// Samples structures and player locations from the authoritative server world into serialized KV
     /// entries. Must be called on the server thread. Structure transforms reflect authoritative dynamics;
-    /// player locations are the server-side transform, never the client's.
+    /// player locations are the server-side transform, never the client's. The actively loaded level's
+    /// metadata is stamped (time played) and included so a save persists its server-owned playtime total.
     /// </summary>
     private List<WorldEntry> Capture(in DataStore store)
     {
         var entries = new List<WorldEntry>();
         string levelGuid = CurrentLevelGuid!;
+
+        //  Stamp and carry the level metadata so the world save persists the aggregate playtime.
+        long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        CurrentLevel = StampMeta(CurrentLevel!.Value, nowMs);
+        entries.Add(new WorldEntry(levelGuid, CurrentLevel.Value.Serialize()));
 
         CaptureStructureAction structureAction = new()
         {
