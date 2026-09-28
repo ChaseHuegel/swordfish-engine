@@ -47,6 +47,13 @@ serialized `Character` (via `Character.Serialize()`).
 Owned by the client. It is the source of the join-time seed — see
 [join](networking-join.md). `ICharacterStorage` is the interface contract.
 
+The character record carries its own playtime clock (`LastPlayedMs`, `AgeMs`),
+accumulated with the same `SaveTime.Accumulate` rule. The clock re-stamps to the
+current wall-clock at session start. `CharacterSaveManager.Load` does the stamp,
+called from `GameSaveManager.Load` when a character joins a world. The stamp
+means the character's time played measures session time only. It never counts
+the idle gap since the previous session.
+
 Skill XP persists only here, as `Character.Statistics` entries (skill id → total
 XP). The client writes the server-authoritative totals from each
 `SkillStateUpdateMessage` (see [skills](skills.md)); the server stores no skill
@@ -126,4 +133,5 @@ path.
 ## Tests that pin this
 
 - Save-meta accumulation rules in `WaywardBeyond.Client.Core.Tests/SaveTimeTests.cs`.
+- Character playtime frames in `WaywardBeyond.Client.Core.Tests/CharacterSaveManagerTests.cs`.
 - Character save/load round-trips in `WaywardBeyond.Client.Core.Tests`.

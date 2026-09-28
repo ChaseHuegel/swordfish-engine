@@ -8,6 +8,7 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Client.Core.Systems;
@@ -110,16 +111,18 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
                 return Task.CompletedTask;
             }
 
-            Character? character = _characterSaveManager.ActiveSave;
-            if (character == null)
-            {
-                return Task.CompletedTask;
-            }
-
             GameSave save = ActiveSave.Value;
 
             //  Start the client's own play session clock for this save (meta is persisted on save/leave).
             _gameSaveService.BeginSaveSession(save.Level.Guid);
+
+            //  Stamp the character's clock at session start too; without it the next save would fold the
+            //  idle gap since the previous session into the character's time played.
+            Result<Character> character = _characterSaveManager.Load();
+            if (!character)
+            {
+                return Task.CompletedTask;
+            }
 
             WaywardBeyond.GameState.Set(GameState.Loading);
             _joinSystem.RequestJoin(character.Value, save.Level.Guid);
