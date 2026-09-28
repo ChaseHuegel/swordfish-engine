@@ -78,8 +78,10 @@ to the current wall-clock when anyone joins (`MarkActive`, called from
 meta rides the `QueueWorldSave`/`Flush` capture) and whenever a player leaves
 or disconnects (`EndSessionStamp`, called from `ServerJoinSystem` and
 `ServerContext`). The aggregate `AgeMs` therefore represents a total across all
-players' sessions. Share the stamping rule via `SaveTime.Accumulate`; a zero
-last-played stamps no time, so the epoch never leaks into the age.
+players' sessions. The in-memory stamp is synchronous; the metadata KV write is
+submitted to a worker, so the server tick never blocks on the store. Share the
+stamping rule via `SaveTime.Accumulate`; a zero last-played stamps no time, so
+the epoch never leaks into the age.
 
 ## Server shutdown cascade
 

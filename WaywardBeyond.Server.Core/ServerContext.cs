@@ -87,6 +87,8 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
         );
 
         _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), skillDatabase);
+
+        _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
     }
 
     public void Run()

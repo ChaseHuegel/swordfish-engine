@@ -352,8 +352,9 @@ public sealed class WorldSaveService
     /// <summary>
     /// Marks the active level as played-by-now: stamps its "last played" at the current wall-clock and
     /// persists just the level metadata. Called on join, so the save's server-owned last-played reflects
-    /// whenever anyone joined it. No-op when no level is loaded. The write is a single small KV put that
-    /// runs on the caller (server) thread, matching <see cref="LoadLevel"/>'s inline KV access.
+    /// whenever anyone joined it. The in-memory stamp is synchronous (so <see cref="CurrentLevel"/> is
+    /// immediately fresh for <see cref="LoadLevel"/> consumers); the KV write is submitted to a worker so
+    /// the caller (server) thread never blocks on the blocking store. No-op when no level is loaded.
     /// </summary>
     public void MarkActive()
     {
@@ -365,14 +366,16 @@ public sealed class WorldSaveService
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Level level = CurrentLevel.Value with { LastPlayedMs = nowMs };
         CurrentLevel = level;
-        PersistLevelMeta(level);
+        QueuePersistLevelMeta(level);
     }
 
     /// <summary>
     /// Accumulates the active level's "time played" up to the current wall-clock and persists just the
     /// level metadata. Called when a player leaves (or abruptly disconnects) so the save's server-owned
     /// total reflects the session. A continuous play session also accumulates through
-    /// <see cref="QueueWorldSave"/>, whose capture stamps the metadata. No-op when no level is loaded.
+    /// <see cref="QueueWorldSave"/>, whose capture stamps the metadata. The in-memory stamp is synchronous
+    /// and the KV write is submitted to a worker, as in <see cref="MarkActive"/>. No-op when no level is
+    /// loaded.
     /// </summary>
     public void EndSessionStamp()
     {
@@ -384,7 +387,13 @@ public sealed class WorldSaveService
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Level level = StampMeta(CurrentLevel.Value, nowMs);
         CurrentLevel = level;
-        PersistLevelMeta(level);
+        QueuePersistLevelMeta(level);
+    }
+
+    private void QueuePersistLevelMeta(in Level level)
+    {
+        Level levelCopy = level;
+        _ = Task.Run(() => PersistLevelMeta(levelCopy));
     }
 
     private void PersistLevelMeta(in Level level)
