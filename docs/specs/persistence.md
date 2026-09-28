@@ -60,14 +60,16 @@ data of its own.
 Key layout (confirmed at the cited source-of-truth lines):
 
 - `<levelGuid>` → serialized `Level` meta (Version, Seed, spawn, GameMode, Name).
-  Written at `WorldSaveService.cs:81`.
+  Written at `WorldSaveService.cs:77`.
 - `<guid>.entity.<uuid>` → serialized `VoxelEntityData` (chunked voxels +
-  transform), one per structure. Written at `WorldSaveService.cs:85`.
+  transform), one per structure. Written at `WorldSaveService.cs:81`.
 - `<guid>.character.<characterId>` → serialized `CharacterEntityData`
-  (authoritative location). Written at `WorldSaveService.cs:202`.
+  (authoritative location). Written at `WorldSaveService.cs:198`.
 
 Operations: `CreateWorld` (runs the shared `WorldGenerator`, persists Level meta
-+ one entity per structure), `ListLevels`, `DeleteLevel`, `LoadLevel` (builds
++ one entity per structure; the seed string is normalized to an int via
++ `WorldGenerator.HashSeed`, so typed, randomized, and non-numeric seeds all
++ create a deterministic world), `ListLevels`, `DeleteLevel`, `LoadLevel` (builds
 authority bodies via `VoxelWorldEntityFactory`), `SaveLocation` (sampled from
 the server-authoritative transform), `QueueWorldSave`/`Flush` (autosave + flush
 on server stop).

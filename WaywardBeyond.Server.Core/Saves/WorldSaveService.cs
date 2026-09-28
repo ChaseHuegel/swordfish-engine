@@ -51,11 +51,7 @@ public sealed class WorldSaveService
     public bool CreateWorld(string name, string seed, GameMode gameMode, out string levelGuid)
     {
         levelGuid = string.Empty;
-
-        if (!int.TryParse(seed, out int seedValue))
-        {
-            return false;
-        }
+        int seedValue = WorldGenerator.HashSeed(seed);
 
         KeyValueStore kv = _keyValueStore();
 
