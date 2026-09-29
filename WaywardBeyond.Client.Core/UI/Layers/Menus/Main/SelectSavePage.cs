@@ -103,6 +103,11 @@ internal sealed class SelectSavePage(
                 Height = new Relative(1f),
             };
             
+            if (_gameSaveManager.ActiveSave == null)
+            {
+                _gameSaveManager.ActiveSave = _gameSaveManager.GetMostRecentSave();
+            }
+
             GameSave[] saves = _gameSaveService.GetSaves();
             if (saves.Length == 0)
             {

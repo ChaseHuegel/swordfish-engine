@@ -4,35 +4,20 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
-using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Saves;
 
-internal sealed class CharacterSaveManager
-{
+internal sealed class CharacterSaveManager(
+    ILogger<CharacterSaveManager> logger,
+    ICharacterStorage characterStorage,
+    ActiveCharacterSave activeCharacterSave
+) {
     public Character? ActiveSave
     {
-        get => _activeCharacterSave.ActiveSave;
-        set => _activeCharacterSave.ActiveSave = value;
-    }
-
-    private readonly ILogger<CharacterSaveManager> _logger;
-    private readonly ICharacterStorage _characterStorage;
-    private readonly ActiveCharacterSave _activeCharacterSave;
-
-    public CharacterSaveManager(
-        ILogger<CharacterSaveManager> logger,
-        ICharacterStorage characterStorage,
-        ActiveCharacterSave activeCharacterSave
-    ) {
-        _logger = logger;
-        _characterStorage = characterStorage;
-        _activeCharacterSave = activeCharacterSave;
-
-        //  Default to the most recent character save, if there is one
-        ActiveSave = GetMostRecentSave();
+        get => activeCharacterSave.ActiveSave;
+        set => activeCharacterSave.ActiveSave = value;
     }
 
     public Result<Character> Load()
@@ -105,28 +90,28 @@ internal sealed class CharacterSaveManager
             }
         }
 
-        Result saveResult = _characterStorage.SaveCharacter(character);
+        Result saveResult = characterStorage.SaveCharacter(character);
         if (saveResult)
         {
             ActiveSave = character;
         }
         else
         {
-            _logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Id, saveResult.Message);
+            logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Id, saveResult.Message);
         }
     }
     
     public void Delete(Character character)
     {
-        if (!_characterStorage.DeleteCharacter(character.Id))
+        if (!characterStorage.DeleteCharacter(character.Id))
         {
-            _logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Id);
+            logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Id);
         }
     }
     
     internal Character? GetMostRecentSave()
     {
-        return _characterStorage.GetAllCharacters()
+        return characterStorage.GetAllCharacters()
             .OrderByDescending(c => c.LastPlayedMs)
             .FirstOrDefault();
     }

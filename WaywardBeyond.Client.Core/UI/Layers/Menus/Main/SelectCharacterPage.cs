@@ -272,6 +272,11 @@ internal sealed class SelectCharacterPage(
                     Height = new Relative(1f),
                 };
 
+                if (_characterSaveManager.ActiveSave == null)
+                {
+                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
+                }
+
                 List<Character> characters = _characterStorage.GetAllCharacters().ToList();
                 if (characters.Count == 0)
                 {

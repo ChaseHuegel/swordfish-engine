@@ -84,9 +84,6 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         int autosaveIntervalMs = gameplaySettings.AutosaveIntervalMs.Get();
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
         gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
-        
-        //  Default to the most recent game save, if there is one
-        ActiveSave = GetMostRecentSave();
 
         //  The save listing is served from the server; start loading it so the menu populates promptly.
         _ = _gameSaveService.RefreshWorldsAsync();
