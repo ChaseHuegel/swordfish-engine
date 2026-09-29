@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
@@ -17,11 +18,18 @@ namespace WaywardBeyond.Client.Core.Bricks;
 /// <summary>
 ///     Provides access to brick information from virtual resources.
 /// </summary>
-internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase
+internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase, IBrickIdMap
 {
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<ushort, BrickInfo> _bricksByDataID = [];
-    
+
+    /// <summary>
+    ///     The deterministic id space for this load of brick content. Owned here because this database is
+    ///     the single authority over what bricks are present; every other consumer resolves brick ids
+    ///     through the <see cref="IBrickIdMap"/> this exposes.
+    /// </summary>
+    private readonly BrickIdRegistry _registry;
+
     public BrickDatabase(
         in ILogger<BrickDatabase> logger,
         in IFileParseService fileParseService,
@@ -30,8 +38,18 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         : base(logger, fileParseService, vfs)
     {
         _meshDatabase = meshDatabase;
+        _registry = BuildRegistry();
         Load();
     }
+
+    /// <inheritdoc/>
+    public ushort Id(string name) => _registry.Id(name);
+
+    /// <inheritdoc/>
+    public string? Name(ushort id) => _registry.Name(id);
+
+    /// <inheritdoc/>
+    public int Count => _registry.Count;
     
     public bool IsCuller(Voxel voxel)
     {
@@ -126,21 +144,34 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
     private Result<ushort> GenerateDataID(string str)
     {
-        //  The id is a pure, deterministic hash of the brick name so it is identical on the client,
-        //  the server, worldgen, and skills regardless of asset load order. This id must never be
-        //  shifted by insertion order: a genuine FNV collision between two brick names is a hard error
-        //  rather than a silent remap, so it cannot corrupt saves or diverge across runs.
-        ushort id = FNV1a.ComputeDataID(str);
+        //  The id comes from the deterministic, collision-free registry built over every loaded brick
+        //  name. It is identical on the client, the server, worldgen, and skills because the base
+        //  registry assigns base bricks their stable sorted id and extra (mod) bricks append after them.
+        return Result<ushort>.FromSuccess(_registry.Id(str));
+    }
 
-        lock (_bricksByDataID)
+    /// <summary>
+    ///     Collects every brick id under the brick root and builds the registry over
+    ///     <see cref="BaseBrickCatalog.Registry"/> plus the loaded set, so the whole id space is known
+    ///     before individual bricks are loaded.
+    /// </summary>
+    private BrickIdRegistry BuildRegistry()
+    {
+        var ids = new List<string>();
+        foreach (PathInfo file in VFS.GetFiles(GetRootPath(), SearchOption.AllDirectories))
         {
-            if (_bricksByDataID.TryGetValue(id, out BrickInfo? existing) && existing.ID != str)
+            if (!IsValidFile(file))
             {
-                return Result<ushort>.FromFailure(
-                    $"Brick \"{str}\" collides with \"{existing.ID}\": both hash to voxel id {id}. Rename one of them.");
+                continue;
+            }
+
+            BrickDefinitions resource = FileParseService.Parse<BrickDefinitions>(file);
+            foreach (BrickDefinition definition in GetAssetInfo(file, resource))
+            {
+                ids.Add(definition.ID);
             }
         }
 
-        return Result<ushort>.FromSuccess(id);
+        return BrickIdRegistry.FromBaseAndExtras(BaseBrickCatalog.Registry, ids);
     }
 }

@@ -68,8 +68,8 @@ public class SkillDatabaseTests
         SkillDatabase db = CreateSharedSkillDatabase();
         SkillData mining = db.Get("mining").Value;
 
-        ushort rock = FNV1a.ComputeDataID("wb:rock");
-        ushort ice = FNV1a.ComputeDataID("wb:ice");
+        ushort rock = BaseBrickCatalog.Registry.Id("wb:rock");
+        ushort ice = BaseBrickCatalog.Registry.Id("wb:ice");
 
         //  The environment tag drives mining's Break sources.
         Assert.True(mining.TryGetXP(XPSource.Break, rock, out int rockXP));

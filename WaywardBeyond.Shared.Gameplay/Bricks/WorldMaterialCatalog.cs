@@ -23,6 +23,6 @@ public static class WorldMaterialCatalog
     /// </summary>
     public static Voxel FromName(string name)
     {
-        return new Voxel(FNV1a.ComputeDataID(name), _ShapeLight: 0, _Orientation: 0);
+        return new Voxel(BaseBrickCatalog.Registry.Id(name), _ShapeLight: 0, _Orientation: 0);
     }
 }

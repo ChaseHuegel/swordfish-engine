@@ -303,6 +303,7 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         
         container.Register<BrickDatabase>(Reuse.Singleton);
+        container.RegisterMapping<IBrickIdMap, BrickDatabase>();
         container.RegisterMapping<IBrickDatabase, BrickDatabase>();
         container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
 

@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using WaywardBeyond.Shared.Data;
 
-namespace WaywardBeyond.Shared.Gameplay;
+namespace WaywardBeyond.Shared.Data;
 
 /// <summary>
 /// A deterministic, collision-free mapping from brick names to 16-bit voxel ids for a single load of
@@ -16,7 +15,7 @@ namespace WaywardBeyond.Shared.Gameplay;
 /// (index to name) so stored ids can be remapped to whatever registry a later run builds; the registry
 /// itself is never the durable identity. The canonical identity is the string name.
 /// </remarks>
-public sealed class BrickIdRegistry
+public sealed class BrickIdRegistry : IBrickIdMap
 {
     private readonly Dictionary<string, ushort> _idByName;
     private readonly Dictionary<ushort, string> _nameById;
@@ -84,6 +83,12 @@ public sealed class BrickIdRegistry
 
     /// <summary>The ids of every name in the registry, in no particular order.</summary>
     public IEnumerable<ushort> Ids => _nameById.Keys;
+
+    /// <summary>The voxel id for a brick name, or 0 (empty) when not registered.</summary>
+    public ushort Id(string name)
+    {
+        return _idByName.TryGetValue(name, out ushort id) ? id : (ushort)0;
+    }
 
     /// <summary>Resolves a name to its voxel id, or false when the name is not registered.</summary>
     public bool TryId(string name, out ushort id)

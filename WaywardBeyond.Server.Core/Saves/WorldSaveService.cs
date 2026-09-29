@@ -273,7 +273,7 @@ public sealed class WorldSaveService
 
                     VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(entityResult.Value);
                     VoxelEntityData migrated = GameSaveMigrations.Migrator.Migrate(voxelEntityData, levelVersion);
-                    VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, VoxelEntityDataCodec.BaseNameToLocalId);
+                    VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, BaseBrickCatalog.Registry);
                     VoxelWorldEntityFactory.CreateAuthority(store, local);
                 }
                 catch (Exception ex)
@@ -499,7 +499,7 @@ public sealed class WorldSaveService
             _ScaleZ: 1,
             entity.Chunks,
             _BrickPalette: null
-        ));
+        ), BaseBrickCatalog.Registry);
     }
 
     private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
@@ -524,7 +524,7 @@ public sealed class WorldSaveService
                 transform.Scale.Z,
                 data.Chunks,
                 _BrickPalette: null
-            ));
+            ), BaseBrickCatalog.Registry);
 
             Entries.Add(new WorldEntry($"{LevelGuid}.entity.{uuid}", voxel.Serialize()));
         }

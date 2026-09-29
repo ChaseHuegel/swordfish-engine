@@ -1,5 +1,3 @@
-using System;
-using System.Numerics;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using Xunit;
@@ -8,7 +6,9 @@ namespace Swordfish.Tests;
 
 public class VoxelEntityDataCodecTests
 {
-    private static VoxelEntityData MakeLegacy(ushort id)
+    private static IBrickIdMap Map => BaseBrickCatalog.Registry;
+
+    private static VoxelEntityData Make(ushort id)
     {
         var voxels = new Voxel[2];
         voxels[0] = new Voxel(id, 7, 0);
@@ -17,63 +17,60 @@ public class VoxelEntityDataCodecTests
     }
 
     [Fact]
-    public void EncodeToPaletteReIndexesLegacyIdsIntoRegistryPalette()
+    public void EncodeToPaletteRecordsNamesForRegistryIds()
     {
-        ushort rockId = FNV1a.ComputeDataID("wb:rock");
-        VoxelEntityData legacy = MakeLegacy(rockId);
+        ushort rockId = Map.Id("wb:rock");
+        VoxelEntityData source = Make(rockId);
 
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacy);
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(source, Map);
 
-        //  A legacy (palette-less) FNV rock id becomes the stable registry id for rock.
+        //  A live structure already carries registry ids; the palette records the name for each.
         Assert.True(VoxelEntityDataCodec.HasPalette(encoded));
-        Assert.True(BaseBrickCatalog.Registry.TryId("wb:rock", out ushort rockRegistryId));
-        Assert.Equal(rockRegistryId, encoded.Chunks[0].Chunk.Voxels[0].ID);
-        Assert.Equal("wb:rock", encoded.BrickPalette[rockRegistryId]);
+        Assert.Equal(rockId, encoded.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.Equal("wb:rock", encoded.BrickPalette[rockId]);
     }
 
     [Fact]
     public void EncodeToPaletteIsIdempotent()
     {
-        VoxelEntityData legacyIce = MakeLegacy(FNV1a.ComputeDataID("wb:ice"));
-        VoxelEntityData encodedOnce = VoxelEntityDataCodec.EncodeToPalette(legacyIce);
-        VoxelEntityData encodedTwice = VoxelEntityDataCodec.EncodeToPalette(encodedOnce);
+        VoxelEntityData first = VoxelEntityDataCodec.EncodeToPalette(Make(Map.Id("wb:ice")), Map);
+        VoxelEntityData second = VoxelEntityDataCodec.EncodeToPalette(first, Map);
 
-        Assert.Equal(encodedOnce.BrickPalette!, encodedTwice.BrickPalette!);
-        Assert.Equal(encodedOnce.Chunks[0].Chunk.Voxels[0].ID, encodedTwice.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.Equal(first.BrickPalette!, second.BrickPalette!);
+        Assert.Equal(first.Chunks[0].Chunk.Voxels[0].ID, second.Chunks[0].Chunk.Voxels[0].ID);
     }
 
     [Fact]
-    public void DecodeToLocalRestoresLegacyFnvIdFromPalette()
+    public void DecodeToLocalResolvesPaletteNamesToMapIds()
     {
-        ushort coreId = FNV1a.ComputeDataID("wb:core");
-        VoxelEntityData legacyCore = MakeLegacy(coreId);
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacyCore);
+        ushort coreId = Map.Id("wb:core");
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(Make(coreId), Map);
 
-        //  Resolving palette->name via BaseNameToLocalId restores the original FNV id.
-        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(encoded, VoxelEntityDataCodec.BaseNameToLocalId);
+        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(encoded, Map);
+
         Assert.Equal(coreId, local.Chunks[0].Chunk.Voxels[0].ID);
         Assert.False(VoxelEntityDataCodec.HasPalette(local));
     }
 
     [Fact]
-    public void DecodeToLocalPassesThroughLegacyStructureUnchanged()
+    public void DecodeToLocalPassesThroughStructureWithoutPalette()
     {
-        ushort rockId = FNV1a.ComputeDataID("wb:rock");
-        VoxelEntityData legacy = MakeLegacy(rockId);
+        ushort coreId = Map.Id("wb:core");
+        VoxelEntityData source = Make(coreId);
 
-        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(legacy, VoxelEntityDataCodec.BaseNameToLocalId);
+        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(source, Map);
 
-        //  No palette means the ids are already the local FNV scheme.
-        Assert.Equal(rockId, local.Chunks[0].Chunk.Voxels[0].ID);
+        //  No palette means the ids are already local registry ids.
+        Assert.Equal(coreId, local.Chunks[0].Chunk.Voxels[0].ID);
         Assert.False(VoxelEntityDataCodec.HasPalette(local));
     }
 
     [Fact]
-    public void UnknownLegacyIdMapsToAir()
+    public void UnknownBareFnvLegacyIdMapsToAir()
     {
         //  9999 has no base brick FNV mapping in the catalog.
-        VoxelEntityData legacy = MakeLegacy(9999);
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacy);
+        VoxelEntityData legacy = Make(9999);
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacy);
 
         Assert.Equal((ushort)0, encoded.Chunks[0].Chunk.Voxels[0].ID);
     }
@@ -83,12 +80,10 @@ public class VoxelEntityDataCodecTests
     {
         //  A data version 3 save stores FNV1a of the BARE name ("rock"), not the namespaced id.
         ushort bareRockId = FNV1a.ComputeDataID("rock");
-        VoxelEntityData legacy = MakeLegacy(bareRockId);
-
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacy);
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(Make(bareRockId));
 
         Assert.True(VoxelEntityDataCodec.HasPalette(encoded));
-        Assert.True(BaseBrickCatalog.Registry.TryId("wb:rock", out ushort rockRegistryId));
+        ushort rockRegistryId = Map.Id("wb:rock");
         Assert.Equal(rockRegistryId, encoded.Chunks[0].Chunk.Voxels[0].ID);
         Assert.Equal("wb:rock", encoded.BrickPalette[rockRegistryId]);
     }
@@ -96,15 +91,14 @@ public class VoxelEntityDataCodecTests
     [Fact]
     public void RoundTripThroughSerialize()
     {
-        ushort rockId = FNV1a.ComputeDataID("wb:rock");
-        VoxelEntityData legacyRock = MakeLegacy(rockId);
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacyRock);
+        ushort rockId = Map.Id("wb:rock");
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(Make(rockId), Map);
 
         VoxelEntityData deserialized = VoxelEntityData.Deserialize(encoded.Serialize());
         Assert.True(VoxelEntityDataCodec.HasPalette(deserialized));
         Assert.Equal(encoded.BrickPalette!, deserialized.BrickPalette!);
 
-        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(deserialized, VoxelEntityDataCodec.BaseNameToLocalId);
+        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(deserialized, Map);
         Assert.Equal(rockId, local.Chunks[0].Chunk.Voxels[0].ID);
     }
 }
