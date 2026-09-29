@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using Reef.MSDF.Models;
 using Reef.Text;
@@ -50,8 +51,14 @@ internal sealed class Typeface : ITypeface
     
     public TextConstraints Measure(FontOptions fontOptions, string text, int start, int length)
     {
+        RichText parsed = RichText.Parse(text, start, length);
+        return Measure(fontOptions, parsed.Text);
+    }
+
+    private TextConstraints Measure(FontOptions fontOptions, string text)
+    {
         var widthEm = 0d;
-        for (int i = start; i < start + length; i++)
+        for (int i = 0; i < text.Length; i++)
         {
             char c = text[i];
             Glyph glyph = _glyphs.GetValueOrDefault(c, _unknownGlyph);
@@ -68,10 +75,16 @@ internal sealed class Typeface : ITypeface
 
     public TextLayout Layout(FontOptions fontOptions, string text, int start, int length, int maxWidth)
     {
+        RichText parsed = RichText.Parse(text, start, length);
+        return Layout(fontOptions, parsed, maxWidth);
+    }
+
+    private TextLayout Layout(FontOptions fontOptions, RichText parsed, int maxWidth)
+    {
         float scale = fontOptions.Size / _metrics.emSize;
         var glyphs = new List<GlyphLayout>();
         
-        string[] lines = Wrap(fontOptions, text, start, length, maxWidth);
+        (string[] lines, int[] lineStarts) = Wrap(fontOptions, parsed.Text, maxWidth);
 
         var bboxWidth = 0d;
         var bboxHeight = 0d;
@@ -84,7 +97,9 @@ internal sealed class Typeface : ITypeface
             var xOffset = 0d;
             for (var n = 0; n < line.Length; n++)
             {
-                Glyph glyph = _glyphs.GetValueOrDefault(line[n], _unknownGlyph);
+                int charIndex = lineStarts[i] + n;
+                Glyph glyph = _glyphs.GetValueOrDefault(parsed.Text[charIndex], _unknownGlyph);
+                Vector4? glyphColor = parsed.Color[charIndex];
 
                 //  MSDF uses the bottom-left corner as the origin, offset top/bottom to shift the origin point to top-left.
                 PlaneBounds planeBounds = glyph.planeBounds ?? PlaneBounds.Zero;
@@ -93,7 +108,7 @@ internal sealed class Typeface : ITypeface
                 var bottom = (int)Math.Ceiling((1f - planeBounds.bottom + yOffset) * scale);
                 
                 int right;
-                switch (line[n])
+                switch (parsed.Text[charIndex])
                 {
                     //  Spaces should be sized to match one advance
                     case ' ':
@@ -121,7 +136,7 @@ internal sealed class Typeface : ITypeface
                 bottom = (int)Math.Ceiling(_atlas.height - atlasBounds.bottom);
                 var uv = new IntRect(left, top, right, bottom);
 
-                glyphs.Add(new GlyphLayout(bbox, uv));
+                glyphs.Add(new GlyphLayout(bbox, uv, glyphColor));
             }
 
             yOffset += _metrics.lineHeight;
@@ -138,17 +153,21 @@ internal sealed class Typeface : ITypeface
     
     public string[] Wrap(FontOptions fontOptions, string text, int start, int length, int maxWidth)
     {
-        if (length == 0)
-        {
-            return [];
-        }
-        
+        RichText parsed = RichText.Parse(text, start, length);
+        return Wrap(fontOptions, parsed.Text, maxWidth).Lines;
+    }
+
+    private (string[] Lines, int[] LineStarts) Wrap(FontOptions fontOptions, string text, int maxWidth)
+    {
         var lines = new List<string>();
+        var lineStarts = new List<int>();
         var wordBuilder = new StringBuilder();
         var lineBuilder = new StringBuilder();
         float currentLineWidth = 0;
+        var lineStart = 0;
+        var wordStart = 0;
 
-        for (int i = start; i < start + length; i++)
+        for (int i = 0; i < text.Length; i++)
         {
             char c = text[i];
             
@@ -158,18 +177,21 @@ internal sealed class Typeface : ITypeface
             
             if (!isNewline && !isReturn)
             {
+                if (wordBuilder.Length == 0)
+                {
+                    wordStart = i;
+                }
                 wordBuilder.Append(c);
             }
 
             //  Search for the end of a word (space or newline), or else the end of the text
-            if (!isWhitespace &&!isNewline && i < start + length - 1)
+            if (!isWhitespace &&!isNewline && i < text.Length - 1)
             {
                 continue;
             }
 
             var word = wordBuilder.ToString();
-            TextConstraints wordMeasurement = Measure(fontOptions, word, start: 0, word.Length);
-            float wordWidth = wordMeasurement.PreferredWidth;
+            float wordWidth = Measure(fontOptions, word).PreferredWidth;
 
             bool overWidth = currentLineWidth + wordWidth > maxWidth;
 
@@ -181,14 +203,15 @@ internal sealed class Typeface : ITypeface
                 if (lineBuilder.Length > 0 && !isNewline)
                 {
                     lines.Add(lineBuilder.ToString());
+                    lineStarts.Add(lineStart);
                     lineBuilder.Clear();
                 }
                 
                 //  While the word doesn't fit on the line, split it until it does
-                while (Measure(fontOptions, wordBuilder.ToString(), 0, wordBuilder.Length).PreferredWidth > maxWidth && wordBuilder.Length > 1)
+                while (Measure(fontOptions, wordBuilder.ToString()).PreferredWidth > maxWidth && wordBuilder.Length > 1)
                 {
                     var splitIndex = 1;
-                    while (splitIndex < wordBuilder.Length && Measure(fontOptions, wordBuilder.ToString(), 0, splitIndex + 1).PreferredWidth <= maxWidth)
+                    while (splitIndex < wordBuilder.Length && Measure(fontOptions, wordBuilder.ToString(0, splitIndex + 1)).PreferredWidth <= maxWidth)
                     {
                         splitIndex++;
                     }
@@ -197,28 +220,39 @@ internal sealed class Typeface : ITypeface
                     if (!IsNullOrWhiteSpace(wordBuilder))
                     {
                         lines.Add(wordBuilder.ToString(0, splitIndex));
+                        lineStarts.Add(wordStart);
                     }
                     
                     wordBuilder.Remove(0, splitIndex);
+                    wordStart += splitIndex;
                 }
 
                 //  Flush any remaining word
+                if (lineBuilder.Length == 0)
+                {
+                    lineStart = wordStart;
+                }
                 lineBuilder.Append(wordBuilder);
                 wordBuilder.Clear();
                 
                 if (isNewline)
                 {
                     lines.Add(lineBuilder.ToString());
+                    lineStarts.Add(lineStart);
                     lineBuilder.Clear();
                     currentLineWidth = 0;
                 }
                 else
                 {
-                    currentLineWidth = Measure(fontOptions, lineBuilder.ToString(), 0, lineBuilder.Length).PreferredWidth;
+                    currentLineWidth = Measure(fontOptions, lineBuilder.ToString()).PreferredWidth;
                 }
             }
             else
             {
+                if (lineBuilder.Length == 0)
+                {
+                    lineStart = wordStart;
+                }
                 currentLineWidth += wordWidth;
                 lineBuilder.Append(wordBuilder);
                 wordBuilder.Clear();
@@ -235,15 +269,17 @@ internal sealed class Typeface : ITypeface
         if (lineBuilder.Length > 0)
         {
             lines.Add(lineBuilder.ToString());
+            lineStarts.Add(lineStart);
         }
         
         // If the text ends with a newline, tail with an empty line to represent it
-        if (length > 0 && text[start + length - 1] == '\n')
+        if (text.Length > 0 && text[text.Length - 1] == '\n')
         {
             lines.Add(string.Empty);
+            lineStarts.Add(text.Length);
         }
 
-        return lines.ToArray();
+        return (lines.ToArray(), lineStarts.ToArray());
     }
 
     private static bool IsNullOrWhiteSpace(StringBuilder stringBuilder)
