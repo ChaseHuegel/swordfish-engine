@@ -158,7 +158,8 @@ internal sealed class ReefRenderer : IScreenSpaceRenderStage
                         continue;
                     }
                 
-                    instance.Text!.Value.AddVertexData(bbox, glyph.UV, command.Color, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
+                    Vector4 glyphColor = glyph.ResolveColor(command.Color);
+                    instance.Text!.Value.AddVertexData(bbox, glyph.UV, glyphColor, command.ClipRect, _reefContext.Builder.Width, _reefContext.Builder.Height);
                 }
             }
             
