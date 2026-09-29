@@ -10,7 +10,7 @@ The canonical identity of a brick (and of the items that place it) is a
 for example `wb:rock`. A mod declares its own namespace, so no mod brick can
 shadow a base brick by name.
 
-- Namespacing lives in `WaywardBeyond.Shared.Data/Bricks/BaseBrickCatalog.cs`
+- Namespacing lives in `WaywardBeyond.Shared.Bricks/BaseBrickCatalog.cs`
   (`Namespace`, `Namespaced`).
 - `BrickDatabase` loads the brick `ID` from each `assets/bricks/*.toml` row and
   keys everything by that namespaced string.
@@ -24,14 +24,14 @@ values. It makes name collisions between content authors impossible.
 
 A voxel packs a `ushort ID` (`WaywardBeyond.Shared.Data/CodeGen/voxels.nsd:39`).
 That id comes from a sorted, collision-free registry. `BrickIdRegistry`
-(`WaywardBeyond.Shared.Data/Bricks/BrickIdRegistry.cs`) assigns ids by sorting
+(`WaywardBeyond.Shared.Bricks/BrickIdRegistry.cs`) assigns ids by sorting
 the present brick names, so id 0 (the empty voxel) is reserved and ids depend
 only on the name set, never on load order. `BrickDatabase`
-(`WaywardBeyond.Client.Core/Bricks/BrickDatabase.cs`) builds the id space over
+(`WaywardBeyond.Shared.Bricks/BrickDatabase.cs`) builds the id space over
 `BaseBrickCatalog.Registry` plus its loaded extras and owns it as the process
 `IBrickIdMap`.
 
-`IBrickIdMap` (`WaywardBeyond.Shared.Data/Bricks/IBrickIdMap.cs`) is the single
+`IBrickIdMap` (`WaywardBeyond.Shared.Bricks/IBrickIdMap.cs`) is the single
 name-to-id lens every consumer resolves through: `Id(name)` (0 for an unknown
 name), `Name(id)`, `Count`. It is injected, never a global static.
 
@@ -42,6 +42,12 @@ name), `Name(id)`, `Count`. It is injected, never a global static.
 | `PlaceableBrick.ToVoxel` / `SharedInteractionResolver` | the caller's `IBrickIdMap` |
 | `VoxelEntityDataCodec` | an `IBrickIdMap` argument |
 | `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickIdMap` |
+
+`BrickInfo` (`WaywardBeyond.Shared.Bricks/BrickInfo.cs`) is the headless view of
+a loaded brick: it carries the voxel id, shape, textures, tags, and the custom
+mesh **id** (a string). It holds no renderable mesh and builds no voxel, so it
+is reusable by the server. The client resolves the mesh id to a renderable mesh
+through an `IAssetDatabase<Mesh>` in the mesh-build and gizmo paths.
 
 ## Persistent voxel data
 

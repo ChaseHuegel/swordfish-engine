@@ -8,6 +8,7 @@ using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
@@ -51,7 +52,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         in IInteractionContent interactionContent,
         IInteractionHandlerRegistry handlerRegistry,
         in SkillDatabase skillDatabase,
-        ILoggerFactory loggerFactory
+        ILoggerFactory loggerFactory,
+        IBrickIdMap brickIdMap = null
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
         _threadWorker = new ThreadWorker(Update, "Server");
@@ -60,7 +62,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         _sessions = sessions;
         World = new World();
 
-        _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore);
+        _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore, brickIdMap);
         _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
         _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
 
@@ -83,10 +85,11 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
             loggerFactory.CreateLogger<ServerInteractionSystem>(),
             handlerRegistry,
             store => new ServerVoxelInteractionWorld(store),
-            skills
+            skills,
+            brickIdMap
         );
 
-        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), skillDatabase);
+        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), skillDatabase, brickIdMap);
 
         _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
     }

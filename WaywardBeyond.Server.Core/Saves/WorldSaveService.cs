@@ -30,6 +30,7 @@ public sealed class WorldSaveService
 
     private readonly ILogger _logger;
     private readonly Func<KeyValueStore> _keyValueStore;
+    private readonly IBrickIdMap _brickIdMap;
 
     public string? CurrentLevelGuid { get; private set; }
     public Level? CurrentLevel { get; private set; }
@@ -37,10 +38,12 @@ public sealed class WorldSaveService
 
     public WorldSaveService(
         in ILogger logger,
-        in Func<KeyValueStore> keyValueStore
+        in Func<KeyValueStore> keyValueStore,
+        IBrickIdMap brickIdMap = null
     ) {
         _logger = logger;
         _keyValueStore = keyValueStore;
+        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
     }
 
     /// <summary>
@@ -71,14 +74,14 @@ public sealed class WorldSaveService
             name
         );
 
-        GeneratedVoxelEntity[] entities = new WorldGenerator(seedValue, BaseBrickCatalog.Registry).Generate();
+        GeneratedVoxelEntity[] entities = new WorldGenerator(seedValue, _brickIdMap).Generate();
 
         try
         {
             kv.Put(BUCKET_NAME, guid.ToString(), level.Serialize());
             foreach (GeneratedVoxelEntity entity in entities)
             {
-                VoxelEntityData data = ToVoxelEntityData(entity);
+                VoxelEntityData data = ToVoxelEntityData(entity, _brickIdMap);
                 kv.Put(BUCKET_NAME, $"{guid}.entity.{entity.Uuid}", data.Serialize());
             }
         }
@@ -274,7 +277,7 @@ public sealed class WorldSaveService
 
                     VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(entityResult.Value);
                     VoxelEntityData migrated = GameSaveMigrations.Migrator.Migrate(voxelEntityData, levelVersion);
-                    VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, BaseBrickCatalog.Registry);
+                    VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, _brickIdMap);
                     VoxelWorldEntityFactory.CreateAuthority(store, local);
                 }
                 catch (Exception ex)
@@ -455,6 +458,7 @@ public sealed class WorldSaveService
         {
             LevelGuid = levelGuid,
             Entries = entries,
+            BrickIdMap = _brickIdMap,
         };
         store.Query<VoxelEntityDataComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
 
@@ -484,7 +488,7 @@ public sealed class WorldSaveService
         }
     }
 
-    private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity)
+    private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity, IBrickIdMap brickIdMap)
     {
         return VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
             entity.Uuid.ToValue(),
@@ -500,13 +504,14 @@ public sealed class WorldSaveService
             _ScaleZ: 1,
             entity.Chunks,
             _BrickPalette: null
-        ), BaseBrickCatalog.Registry);
+        ), brickIdMap);
     }
 
     private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
     {
         public string LevelGuid;
         public List<WorldEntry> Entries;
+        public IBrickIdMap BrickIdMap;
 
         public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
         {
@@ -525,7 +530,7 @@ public sealed class WorldSaveService
                 transform.Scale.Z,
                 data.Chunks,
                 _BrickPalette: null
-            ), BaseBrickCatalog.Registry);
+            ), BrickIdMap);
 
             Entries.Add(new WorldEntry($"{LevelGuid}.entity.{uuid}", voxel.Serialize()));
         }

@@ -63,8 +63,10 @@ Scale.X    = 0.25
 
 ## Bricks (`assets/bricks/*.toml`)
 
-Schema: `WaywardBeyond.Client.Core/Bricks/BrickDefinitions.cs` (collection),
-`BrickDefinition.cs` (row).
+Schema: `WaywardBeyond.Shared.Bricks/BrickDefinitions.cs` (collection),
+`BrickDefinition.cs` (row). The brick tomls live in the `WaywardBeyond.Shared.Bricks`
+module (mirroring the skills module), so the block sides author and the headless
+server share one database.
 
 Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 
