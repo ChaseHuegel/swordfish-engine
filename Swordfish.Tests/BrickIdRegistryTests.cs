@@ -1,0 +1,86 @@
+using System;
+using System.Linq;
+using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
+using Xunit;
+
+namespace Swordfish.Tests;
+
+public class BrickIdRegistryTests
+{
+    [Fact]
+    public void AssignsDistinctNonZeroIdsByOrdinalNameOrder()
+    {
+        //  Input order must not matter; ids are assigned in ordinal name order.
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "rock", "core", "ice" });
+
+        Assert.True(registry.TryId("core", out ushort core));
+        Assert.True(registry.TryId("ice", out ushort ice));
+        Assert.True(registry.TryId("rock", out ushort rock));
+
+        //  Id 0 is reserved for the empty/air voxel, so every brick id starts at 1.
+        Assert.NotEqual((ushort)0, core);
+        Assert.NotEqual((ushort)0, ice);
+        Assert.NotEqual((ushort)0, rock);
+
+        ushort[] ids = new[] { core, ice, rock }.Distinct().OrderBy(id => id).ToArray();
+        Assert.Equal(3, ids.Length);
+
+        //  Ordinal ordering: "core" < "ice" < "rock" -> ascending ids.
+        Assert.True(core < ice);
+        Assert.True(ice < rock);
+    }
+
+    [Fact]
+    public void IsDeterministicForTheSameNameSet()
+    {
+        BrickIdRegistry first = BrickIdRegistry.FromNames(new[] { "rock", "ice", "core" });
+        BrickIdRegistry second = BrickIdRegistry.FromNames(new[] { "ice", "core", "rock" });
+
+        Assert.Equal(first.Name(1), second.Name(1));
+        Assert.Equal(3, first.Count);
+        Assert.Equal(first.Count, second.Count);
+
+        foreach (string name in new[] { "rock", "ice", "core" })
+        {
+            Assert.True(first.TryId(name, out ushort a));
+            Assert.True(second.TryId(name, out ushort b));
+            Assert.Equal(a, b);
+        }
+    }
+
+    [Fact]
+    public void IdsAreSequentialFromMinDataId()
+    {
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "a", "b", "c" });
+
+        Assert.Equal(SaveVersion.MinDataId, registry.Name(1) is not null ? 1 : 0);
+        Assert.Equal("a", registry.Name(SaveVersion.MinDataId));
+        Assert.Equal("b", registry.Name(SaveVersion.MinDataId + 1));
+        Assert.Equal("c", registry.Name(SaveVersion.MinDataId + 2));
+    }
+
+    [Fact]
+    public void NameAndIdRoundTrip()
+    {
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "panel", "rock", "core" });
+        foreach (ushort id in registry.Ids)
+        {
+            string name = registry.Name(id);
+            Assert.NotNull(name);
+            Assert.True(registry.TryId(name, out ushort roundTrip));
+            Assert.Equal(id, roundTrip);
+        }
+    }
+
+    [Fact]
+    public void DeduplicatesNamesAndIgnoresUnknownLookups()
+    {
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "rock", "rock", "ice" });
+
+        Assert.Equal(2, registry.Count);
+        Assert.False(registry.TryId("missing", out _));
+        Assert.Null(registry.Name(ushort.MaxValue));
+        Assert.True(registry.Name(SaveVersion.MinDataId) == "ice" || registry.Name(SaveVersion.MinDataId) == "rock");
+    }
+}

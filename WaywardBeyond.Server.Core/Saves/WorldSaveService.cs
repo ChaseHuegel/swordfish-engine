@@ -25,7 +25,7 @@ public sealed class WorldSaveService
 {
     private const string BUCKET_NAME = "levels";
 
-    private static readonly WaywardBeyond.Shared.Data.Version _gameVersion = new(_DataVersion: 3, _Name: "Wayward Beyond", _Environment: "Development");
+    private static readonly WaywardBeyond.Shared.Data.Version _gameVersion = new(_DataVersion: SaveVersion.CurrentDataVersion, _Name: "Wayward Beyond", _Environment: "Development");
 
     private readonly ILogger _logger;
     private readonly Func<KeyValueStore> _keyValueStore;
