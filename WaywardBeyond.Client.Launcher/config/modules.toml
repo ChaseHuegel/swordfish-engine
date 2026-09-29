@@ -1,6 +1,7 @@
 ﻿AllowScriptCompilation = false
 LoadOrder = [
     "swordfish",
+    "waywardbeyond.shared.bricks",
     "waywardbeyond.shared.skills",
     "waywardbeyond.client.core",
     "waywardbeyond.server.core",
