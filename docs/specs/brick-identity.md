@@ -10,7 +10,7 @@ The canonical identity of a brick (and of the items that place it) is a
 for example `wb:rock`. A mod declares its own namespace, so no mod brick can
 shadow a base brick by name.
 
-- Namespacing lives in `WaywardBeyond.Shared.Bricks/BaseBrickCatalog.cs`
+- Namespacing lives in `WaywardBeyond.Shared.Bricks/BrickId.cs`
   (`Namespace`, `Namespaced`).
 - `BrickDatabase` loads the brick `ID` from each `assets/bricks/*.toml` row and
   keys everything by that namespaced string.
@@ -20,6 +20,11 @@ shadow a base brick by name.
 The `wb` prefix is purely a string convention. It does not change voxel id
 values. It makes name collisions between content authors impossible.
 
+Bricks are defined only in toml. Nothing hardcodes the brick set in the runtime
+API. The one exception is the v3 to v4 save migration, which carries the legacy
+bare brick names privately in `VoxelEntityDataV3ToV4Migration`
+(`WaywardBeyond.Shared.Gameplay/Saves/`).
+
 ## Runtime voxel id
 
 A voxel packs a `ushort ID` (`WaywardBeyond.Shared.Data/CodeGen/voxels.nsd:39`).
@@ -27,9 +32,11 @@ That id comes from a sorted, collision-free registry. `BrickIdRegistry`
 (`WaywardBeyond.Shared.Bricks/BrickIdRegistry.cs`) assigns ids by sorting
 the present brick names, so id 0 (the empty voxel) is reserved and ids depend
 only on the name set, never on load order. `BrickDatabase`
-(`WaywardBeyond.Shared.Bricks/BrickDatabase.cs`) builds the id space over
-`BaseBrickCatalog.Registry` plus its loaded extras and owns it as the process
-`IBrickIdMap`.
+(`WaywardBeyond.Shared.Bricks/BrickDatabase.cs`) builds the id space purely from
+its loaded toml content and owns it as the process `IBrickIdMap`.
+`BrickDatabase.BuildRegistry` uses `BrickIdRegistry.FromNames(loadedIds)`, so a
+brick's id shifts only when the present content set changes. That is safe
+because edits reconcile by name and saved structures carry a palette.
 
 `IBrickIdMap` (`WaywardBeyond.Shared.Bricks/IBrickIdMap.cs`) is the single
 name-to-id lens every consumer resolves through: `Id(name)` (0 for an unknown
@@ -63,7 +70,9 @@ its own `IBrickIdMap`.
 owns the boundary:
 
 - `EncodeToPalette` attaches a palette to live registry-id data.
-- `EncodeLegacyToPalette` re-indexes legacy bare-name FNV ids (version 3 saves).
+- `EncodeLegacyToPalette` re-indexes legacy bare-name FNV ids (version 3 saves)
+  through a legacy-name map the migration supplies, re-id'ing the structure over
+  a local registry built from its own names.
 - `DecodeToLocal` resolves a palette name to the caller's local id space.
 
 `WorldSaveService` encodes palettes when it writes and decodes when it loads.
@@ -86,7 +95,8 @@ Every save-bearing record stamps a data version. The current version is
 `SaveVersion.CurrentDataVersion` (`WaywardBeyond.Shared.Data/SaveVersion.cs`),
 now `4`. The v3→v4 migration, `VoxelEntityDataV3ToV4Migration`
 (`WaywardBeyond.Shared.Gameplay/Saves/`), re-indexes a legacy bare-name FNV
-palette-less structure into a v4 palette. `SaveMigrator`
+palette-less structure into a v4 palette. It owns the only hardcoded brick names
+in the codebase, privately, to reverse-map legacy FNV ids. `SaveMigrator`
 (`WaywardBeyond.Shared.Data/Saves/SaveMigrator.cs`) gates on the version and
 refuses records stamped by a newer build. See [persistence](persistence.md).
 
