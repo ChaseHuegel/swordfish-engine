@@ -34,7 +34,10 @@ save worlds. World data is streamed to the client during join.
    `Session`, and replies `JoinAccept { Level, SpawnTransform, PlayerEntity }`.
 
 3. It then streams the world as one `WorldEntityAdd { VoxelEntityData }` per
-   structure (bounded per-entity), followed by a `WorldStreamComplete`. The
+   structure (bounded per-entity), followed by a `WorldStreamComplete`. Each
+   entity carries a brick palette so the client can resolve the server's
+   registry ids locally (`ClientJoinSystem`, see
+   [brick-identity](brick-identity.md)). The
    client builds a view entity for each arrival (mesh + a local prediction
    collider) on the ECS thread, and **only** transitions to `Playing` on
    `WorldStreamComplete`.

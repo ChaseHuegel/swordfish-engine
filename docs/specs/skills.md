@@ -31,10 +31,10 @@ that owns the headless models and the tomls:
   **data id** (`Dictionary<XPSource, Dictionary<ushort,int>>`).
 - `Skills/SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
   the invariant `lang/tags/` lists (which carry namespaced brick ids like
-  `wb:rock`) into brick data ids via `FNV1a.ComputeDataID` (same rule as
-  `WorldMaterialCatalog` and the client `BrickDatabase`), logs a warning on
-  a source-set data-id collision, and never touches localization, textures, or
-  icons.
+  `wb:rock`) into brick data ids through an injected `IBrickIdMap` (the same
+  map the client `BrickDatabase` owns, so ids match worldgen and placement),
+  logs a warning on a source-set data-id collision, and never touches
+  localization, textures, or icons.
 - `Skills/SkillDataExtensions.cs` — `CalculateLevel(long totalXP) → LevelInfo`.
 - `Components/SkillStateComponent.cs` — the transient, in-memory per-player XP
   table. Never persisted and never replicated as a component.

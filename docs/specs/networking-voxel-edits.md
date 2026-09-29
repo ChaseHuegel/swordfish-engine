@@ -66,8 +66,12 @@ Every applied edit broadcasts to **all** clients as a `VoxelEditMessage` delta
 (ordered/lossless by the transport):
 
 ```nsd
-message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Shared.Data.Voxel Voxel; uint Sequence; }
+message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Shared.Data.Voxel Voxel; uint Sequence; string? BrickId; }
 ```
+
+The `BrickId` carries the canonical brick name so the client reconciles by name
+even when its registry ids differ from the server's. See
+[brick-identity](brick-identity.md).
 
 `ClientVoxelReconcileSystem` (`Client.Core/Systems/`, gated on `Playing`)
 correlates each echo against the local `PendingInteractionComponent.Queue` by

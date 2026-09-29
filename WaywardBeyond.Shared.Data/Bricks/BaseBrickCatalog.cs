@@ -51,16 +51,6 @@ public static class BaseBrickCatalog
     public static BrickIdRegistry Registry { get; } = BrickIdRegistry.FromNames(Names);
 
     /// <summary>
-    /// The namespaced brick name that a raw FNV1a voxel id (hashed from the current namespaced name)
-    /// refers to, or null when no base brick hashes to it. This resolves ids produced by the current
-    /// build, whose content uses <see cref="Namespace"/>-prefixed names.
-    /// </summary>
-    public static string? CurrentNameFromDataId(ushort dataId)
-    {
-        return _currentByDataId.TryGetValue(dataId, out string name) ? name : null;
-    }
-
-    /// <summary>
     /// The brick name (namespaced) that a legacy raw FNV1a voxel id (hashed from the bare name) refers to,
     /// or null when no base brick hashes to it.
     /// </summary>
@@ -69,7 +59,6 @@ public static class BaseBrickCatalog
         return _legacyByDataId.TryGetValue(dataId, out string name) ? name : null;
     }
 
-    private static readonly Dictionary<ushort, string> _currentByDataId = BuildCurrentMap();
     private static readonly Dictionary<ushort, string> _legacyByDataId = BuildLegacyMap();
 
     private static IReadOnlyList<string> BuildNamespaced(IReadOnlyList<string> bare)
@@ -81,18 +70,6 @@ public static class BaseBrickCatalog
         }
 
         return names;
-    }
-
-    private static Dictionary<ushort, string> BuildCurrentMap()
-    {
-        var map = new Dictionary<ushort, string>(Names.Count);
-        foreach (string name in Names)
-        {
-            ushort id = FNV1a.ComputeDataID(name);
-            map.TryAdd(id, name);
-        }
-
-        return map;
     }
 
     private static Dictionary<ushort, string> BuildLegacyMap()
