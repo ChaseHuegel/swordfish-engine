@@ -31,14 +31,14 @@ Each row is a `[[Items]]` table followed by optional sub-tables:
 ### Placeable
 
 `PlaceableDefinition` (`PlaceableDefinition.cs`): `Type` (`PlaceableType`),
-`ID` (the brick ID it places).
+`ID` (the namespaced brick ID it places).
 
 Example:
 
 ```toml
 [Items.Placeable]
 Type = "brick"
-ID = "core"
+ID = "wb:core"
 ```
 
 ### Tool
@@ -70,7 +70,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 
 | Field | Type | Notes |
 |---|---|---|
-| `ID` | string | unique brick id |
+| `ID` | string | unique, namespaced brick id (e.g. `wb:rock`) |
 | `Transparent` | bool | |
 | `Passable` | bool | |
 | `Mesh` | string? | |
@@ -78,11 +78,18 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
 
+Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
+namespace so no two content authors can collide by name. A brick's voxel id is
+`FNV1a.ComputeDataID(ID)` — a pure, deterministic hash of the namespaced id. The
+client, server, worldgen, and skills all derive the same id from the same string,
+and a genuine FNV collision between two brick ids is a hard load error. See
+[brick-identity](brick-identity.md).
+
 Example:
 
 ```toml
 [[Bricks]]
-ID      = "core"
+ID      = "wb:core"
 Shape   = "block"
 Tags    = ["metal", "buildable", "convertable_truss"]
 [Bricks.Textures]

@@ -117,6 +117,24 @@ Shared DTOs live in `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
 `CharacterEntityData`). No sqlite, no loose files (except a legacy disk-migration
 path retained in `GameSaveService`).
 
+### Brick palette and data versioning
+
+A world structure (`VoxelEntityData`) carries a brick palette since data version
+4: `BrickPalette[n]` is the brick name for voxel id `n`
+(`voxels.nsd`). `WorldSaveService` encodes live FNV voxel ids into a palette on
+write and decodes a palette back to the local id space on load, via
+`VoxelEntityDataCodec` (`Shared.Gameplay/Saves/`). The palette makes saved voxel
+ids self-describing and stable across content changes. See
+[brick-identity](brick-identity.md).
+
+`SaveMigrator` (`WaywardBeyond.Shared.Data/Saves/SaveMigrator.cs`) gates on
+`SaveVersion.CurrentDataVersion` (`Shared.Data/SaveVersion.cs`, value `4`) and
+runs per-record forward migrations. `WorldSaveService.LoadLevel` refuses a level
+stamped by a newer build, migrates and decodes each loaded structure, and
+`ListLevels` skips newer-format levels. `NatsCharacterStorage` gates and migrates
+characters. The v3→v4 structure migration is
+`VoxelEntityDataV3ToV4Migration` (`Shared.Gameplay/Saves/`).
+
 The optional SQL layer (`Swordfish.Integrations/SQL/`) is not used by the save
 path.
 
@@ -126,6 +144,9 @@ path.
 - `WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`
 - `WaywardBeyond.Shared.Data/NatsSaveMetaStorage.cs`
 - `WaywardBeyond.Shared.Data/SaveTime.cs`
+- `WaywardBeyond.Shared.Data/SaveVersion.cs`
+- `WaywardBeyond.Shared.Data/Saves/SaveMigrator.cs`
+- `WaywardBeyond.Shared.Gameplay/Saves/VoxelEntityDataCodec.cs`
 - `WaywardBeyond.Server.Core/Saves/WorldSaveService.cs`
 - `WaywardBeyond.Server.Core/Streaming/PersistentNatsProcess.cs`
 - `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`

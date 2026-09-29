@@ -30,8 +30,9 @@ that owns the headless models and the tomls:
   keys, icon path, max level, sorted level curve, and sources keyed by brick
   **data id** (`Dictionary<XPSource, Dictionary<ushort,int>>`).
 - `Skills/SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
-  the invariant `lang/tags/` lists into brick data ids via
-  `FNV1a.ComputeDataID` (same rule as `WorldMaterialCatalog`), logs a warning on
+  the invariant `lang/tags/` lists (which carry namespaced brick ids like
+  `wb:rock`) into brick data ids via `FNV1a.ComputeDataID` (same rule as
+  `WorldMaterialCatalog` and the client `BrickDatabase`), logs a warning on
   a source-set data-id collision, and never touches localization, textures, or
   icons.
 - `Skills/SkillDataExtensions.cs` — `CalculateLevel(long totalXP) → LevelInfo`.
