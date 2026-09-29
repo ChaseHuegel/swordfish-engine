@@ -18,7 +18,7 @@ public class SaveMigratorTests
     [Fact]
     public void CurrentVersionRecordPassesThroughWithoutMigration()
     {
-        SaveMigrator migrator = new(new ISaveMigration[] { new V3ToV4Dummy() });
+        SaveMigrator migrator = new([new V3ToV4Dummy()]);
         var record = new DummyRecord(false);
 
         DummyRecord result = migrator.Migrate(record, SaveVersion.CurrentDataVersion);
@@ -29,7 +29,7 @@ public class SaveMigratorTests
     [Fact]
     public void OlderVersionRecordRunsStepUpToCurrent()
     {
-        SaveMigrator migrator = new(new ISaveMigration[] { new V3ToV4Dummy() });
+        SaveMigrator migrator = new([new V3ToV4Dummy()]);
         var record = new DummyRecord(false);
 
         DummyRecord result = migrator.Migrate(record, 3);
@@ -40,7 +40,7 @@ public class SaveMigratorTests
     [Fact]
     public void NewerVersionRecordIsRefused()
     {
-        SaveMigrator migrator = new(new ISaveMigration[] { new V3ToV4Dummy() });
+        SaveMigrator migrator = new([new V3ToV4Dummy()]);
 
         Assert.Throws<SaveDataNotSupportedException>(() => migrator.Migrate(new DummyRecord(false), SaveVersion.CurrentDataVersion + 5));
     }
@@ -49,7 +49,7 @@ public class SaveMigratorTests
     public void NonContiguousChainIsRejected()
     {
         var bad = new SkipToV5Dummy();
-        Assert.Throws<InvalidOperationException>(() => new SaveMigrator(new ISaveMigration[] { bad }));
+        Assert.Throws<InvalidOperationException>(() => new SaveMigrator([bad]));
     }
 
     private sealed class SkipToV5Dummy : SaveMigration<DummyRecord>
@@ -63,7 +63,7 @@ public class SaveMigratorTests
     public void TypeWithoutMigrationPassesThroughAnySupportedVersion()
     {
         //  Character has no registered migration in v4, so an older same-shaped record is a no-op.
-        SaveMigrator migrator = new(Array.Empty<ISaveMigration>());
+        SaveMigrator migrator = new([]);
         var character = new Character(
             new WaywardBeyond.Shared.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),
             1, 0, 0, "n", 1, 1, 1, 1, 1, 1, 1, 0, GameMode.Creative, _Statistics: null, _Inventory: null
@@ -78,7 +78,7 @@ public class SaveMigratorTests
     [Fact]
     public void IsSupportedRejectsNewerVersions()
     {
-        SaveMigrator migrator = new(new ISaveMigration[] { new V3ToV4Dummy() });
+        SaveMigrator migrator = new([new V3ToV4Dummy()]);
 
         Assert.True(migrator.IsSupported(3));
         Assert.True(migrator.IsSupported(SaveVersion.CurrentDataVersion));

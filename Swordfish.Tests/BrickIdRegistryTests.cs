@@ -12,7 +12,7 @@ public class BrickIdRegistryTests
     public void AssignsDistinctNonZeroIdsByOrdinalNameOrder()
     {
         //  Input order must not matter; ids are assigned in ordinal name order.
-        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "wb:rock", "wb:core", "wb:ice" });
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(["wb:rock", "wb:core", "wb:ice"]);
 
         Assert.True(registry.TryId("wb:core", out ushort core));
         Assert.True(registry.TryId("wb:ice", out ushort ice));
@@ -34,8 +34,8 @@ public class BrickIdRegistryTests
     [Fact]
     public void IsDeterministicForTheSameNameSet()
     {
-        BrickIdRegistry first = BrickIdRegistry.FromNames(new[] { "wb:rock", "wb:ice", "wb:core" });
-        BrickIdRegistry second = BrickIdRegistry.FromNames(new[] { "wb:ice", "wb:core", "wb:rock" });
+        BrickIdRegistry first = BrickIdRegistry.FromNames(["wb:rock", "wb:ice", "wb:core"]);
+        BrickIdRegistry second = BrickIdRegistry.FromNames(["wb:ice", "wb:core", "wb:rock"]);
 
         Assert.Equal(first.Name(1), second.Name(1));
         Assert.Equal(3, first.Count);
@@ -52,9 +52,9 @@ public class BrickIdRegistryTests
     [Fact]
     public void IdsAreSequentialFromMinDataId()
     {
-        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "a", "b", "c" });
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(["a", "b", "c"]);
 
-        Assert.Equal(SaveVersion.MinDataId, registry.Name(1) is not null ? 1 : 0);
+        Assert.NotNull(registry.Name(1));
         Assert.Equal("a", registry.Name(SaveVersion.MinDataId));
         Assert.Equal("b", registry.Name(SaveVersion.MinDataId + 1));
         Assert.Equal("c", registry.Name(SaveVersion.MinDataId + 2));
@@ -63,7 +63,7 @@ public class BrickIdRegistryTests
     [Fact]
     public void NameAndIdRoundTrip()
     {
-        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "wb:panel", "wb:rock", "wb:core" });
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(["wb:panel", "wb:rock", "wb:core"]);
         foreach (ushort id in registry.Ids)
         {
             string name = registry.Name(id);
@@ -76,7 +76,7 @@ public class BrickIdRegistryTests
     [Fact]
     public void DeduplicatesNamesAndIgnoresUnknownLookups()
     {
-        BrickIdRegistry registry = BrickIdRegistry.FromNames(new[] { "wb:rock", "wb:rock", "wb:ice" });
+        BrickIdRegistry registry = BrickIdRegistry.FromNames(["wb:rock", "wb:rock", "wb:ice"]);
 
         Assert.Equal(2, registry.Count);
         Assert.False(registry.TryId("missing", out _));

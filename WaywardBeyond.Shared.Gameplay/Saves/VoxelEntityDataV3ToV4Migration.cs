@@ -8,7 +8,7 @@ namespace WaywardBeyond.Shared.Gameplay;
 /// saved ids are stable and self-describing. Re-indexing legacy ids into the palette is idempotent, so a
 /// partially-migrated structure (or one already re-encoded) can be safely re-processed.
 /// </summary>
-public sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntityData>
+internal sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntityData>
 {
     public override uint FromVersion => 3;
     public override uint ToVersion => 4;
@@ -26,8 +26,5 @@ public sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntityDa
 public static class GameSaveMigrations
 {
     /// <summary>A migrator carrying every game-save record migration for this build.</summary>
-    public static SaveMigrator Migrator { get; } = new(new ISaveMigration[]
-    {
-        new VoxelEntityDataV3ToV4Migration(),
-    });
+    public static SaveMigrator Migrator { get; } = new([new VoxelEntityDataV3ToV4Migration()]);
 }

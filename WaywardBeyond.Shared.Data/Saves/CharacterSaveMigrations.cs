@@ -6,9 +6,9 @@ namespace WaywardBeyond.Shared.Data;
 /// empty and older, same-shaped records pass through; the <see cref="SaveMigrator"/> version gate still
 /// refuses characters stamped by a newer build.
 /// </summary>
-public static class CharacterSaveMigrations
+internal static class CharacterSaveMigrations
 {
-    public static SaveMigrator Create()
+    internal static SaveMigrator Create()
     {
         return new SaveMigrator([]);
     }
