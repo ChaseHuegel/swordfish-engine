@@ -3,11 +3,24 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Shared.Data;
 
-public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterStorage
+public class NatsCharacterStorage : ICharacterStorage
 {
     private const string BUCKET_NAME = "characters";
 
-    private readonly KeyValueStore _keyValueStore = keyValueStore;
+    private readonly KeyValueStore _keyValueStore;
+
+    /// <summary>
+    /// Migrates character records on load. Carries no character migration yet (the character record is
+    /// unchanged in v4), so an older, same-shaped record passes through; the version gate still refuses
+    /// records stamped by a newer build. Injectable for hosts that register a full migrator.
+    /// </summary>
+    private readonly SaveMigrator _migrator;
+
+    public NatsCharacterStorage(in KeyValueStore keyValueStore, SaveMigrator? migrator = null)
+    {
+        _keyValueStore = keyValueStore;
+        _migrator = migrator ?? CharacterSaveMigrations.Create();
+    }
 
     public Result<Character> GetCharacter(ulong id)
     {
@@ -26,7 +39,17 @@ public class NatsCharacterStorage(in KeyValueStore keyValueStore) : ICharacterSt
         try
         {
             Character character = Character.Deserialize(getResult.Value);
-            return Result<Character>.FromSuccess(character);
+            if (!_migrator.IsSupported(character.Version.DataVersion))
+            {
+                return Result<Character>.FromFailure(
+                    $"Character {character.Id} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CurrentDataVersion}.");
+            }
+
+            return Result<Character>.FromSuccess(_migrator.Migrate(character, character.Version.DataVersion));
+        }
+        catch (SaveDataNotSupportedException ex)
+        {
+            return Result<Character>.FromFailure($"Failed to load character: {ex.Message}");
         }
         catch (System.Exception ex)
         {

@@ -108,7 +108,8 @@ public class ServerVoxelWorldTests
             x, y, z,
             0f, 0f, 0f, 1f,
             1f, 1f, 1f,
-            [chunkInfo]
+            [chunkInfo],
+            _BrickPalette: null
         );
     }
 }

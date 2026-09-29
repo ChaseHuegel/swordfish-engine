@@ -122,6 +122,14 @@ public sealed class WorldSaveService
             try
             {
                 Level level = Level.Deserialize(metaResult.Value);
+                if (!GameSaveMigrations.Migrator.IsSupported(level.Version.DataVersion))
+                {
+                    _logger.LogWarning(
+                        "Skipping level \"{key}\" with newer data version {version} in the save list.",
+                        key, level.Version.DataVersion);
+                    continue;
+                }
+
                 if (!string.IsNullOrEmpty(level.Guid))
                 {
                     levels.Add(level);
@@ -229,9 +237,20 @@ public sealed class WorldSaveService
         }
 
         Level level = Level.Deserialize(metaResult.Value);
+        if (!GameSaveMigrations.Migrator.IsSupported(level.Version.DataVersion))
+        {
+            _logger.LogError(
+                "Refusing to load level \"{level}\" stamped with data version {version}: it was created by a newer build.",
+                levelGuid, level.Version.DataVersion);
+            return false;
+        }
+
         CurrentLevel = level;
         LevelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
 
+        //  Data version of the level governs every structure it persists (structures carry no version of
+        //  their own). Migrate each one forward, then resolve it into the in-memory local id space.
+        uint levelVersion = level.Version.DataVersion;
         Result<string[]> keysResult = kv.GetKeys(BUCKET_NAME);
         if (keysResult.Success)
         {
@@ -253,7 +272,9 @@ public sealed class WorldSaveService
                     }
 
                     VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(entityResult.Value);
-                    VoxelWorldEntityFactory.CreateAuthority(store, voxelEntityData);
+                    VoxelEntityData migrated = GameSaveMigrations.Migrator.Migrate(voxelEntityData, levelVersion);
+                    VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, VoxelEntityDataCodec.BaseNameToLocalId);
+                    VoxelWorldEntityFactory.CreateAuthority(store, local);
                 }
                 catch (Exception ex)
                 {
@@ -464,7 +485,7 @@ public sealed class WorldSaveService
 
     private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity)
     {
-        return new VoxelEntityData(
+        return VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
             entity.Uuid.ToValue(),
             entity.Position.X,
             entity.Position.Y,
@@ -476,8 +497,9 @@ public sealed class WorldSaveService
             _ScaleX: 1,
             _ScaleY: 1,
             _ScaleZ: 1,
-            entity.Chunks
-        );
+            entity.Chunks,
+            _BrickPalette: null
+        ));
     }
 
     private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
@@ -488,7 +510,7 @@ public sealed class WorldSaveService
         public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
         {
             Uuid uuid = store.GetUuid(entity);
-            var voxel = new VoxelEntityData(
+            var voxel = VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
                 uuid.ToValue(),
                 transform.Position.X,
                 transform.Position.Y,
@@ -500,8 +522,9 @@ public sealed class WorldSaveService
                 transform.Scale.X,
                 transform.Scale.Y,
                 transform.Scale.Z,
-                data.Chunks
-            );
+                data.Chunks,
+                _BrickPalette: null
+            ));
 
             Entries.Add(new WorldEntry($"{LevelGuid}.entity.{uuid}", voxel.Serialize()));
         }

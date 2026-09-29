@@ -19,6 +19,7 @@ message VoxelEntityData
     float ScaleZ = 10;
     
     ChunkInfo[] Chunks = 50;
+    string[]? BrickPalette = 51;
 }
 
 message ChunkInfo

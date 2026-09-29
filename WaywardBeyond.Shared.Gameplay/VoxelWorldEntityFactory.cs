@@ -83,7 +83,8 @@ public static class VoxelWorldEntityFactory
             transform.Scale.X,
             transform.Scale.Y,
             transform.Scale.Z,
-            content.Chunks
+            content.Chunks,
+            _BrickPalette: null
         );
     }
 

@@ -145,7 +145,8 @@ public class SharedWorldGenTests
             Vector3.One.X,
             Vector3.One.Y,
             Vector3.One.Z,
-            entity.Chunks
+            entity.Chunks,
+            _BrickPalette: null
         );
         return data.Serialize();
     }

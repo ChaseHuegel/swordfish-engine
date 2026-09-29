@@ -26,7 +26,8 @@ internal class VoxelEntityModelSerializer : ISerializer<VoxelEntityModel>
             value.Scale.X,
             value.Scale.Y,
             value.Scale.Z,
-            chunkInfos
+            chunkInfos,
+            _BrickPalette: null
         );
         
         return voxelEntityData.Serialize();
