@@ -13,11 +13,13 @@ dotnet build                                        # Debug default; runs nsdc c
 dotnet test Swordfish.Tests                         # xunit engine tests
 dotnet test WaywardBeyond.Client.Core.Tests         # NUnit game tests
 dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
+dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
 
 - `Reef.Tests` targets `net8.0-windows`; it cannot run on Linux.
+- `Reef.Text.Tests` is `net8.0`; it runs on Linux.
 - No CI workflows exist (`.github/workflows/` is empty).
 - No lint or typecheck scripts. `dotnet build` is the check.
 - Stale `launch.json` references `Swordfish/bin/Debug/Swordfish.exe`; the real
@@ -45,6 +47,7 @@ Every top-level path and what it is:
 | `Reef/` | Renderer-agnostic IMGUI library (alpha) |
 | `Reef.Benchmarks/` | Reef BenchmarkDotNet benchmarks |
 | `Reef.Tests/` | Reef tests (Windows only) |
+| `Reef.Text.Tests/` | Reef rich-text parser tests (cross-platform) |
 | `WaywardBeyond.Client.Core/` | Game client module |
 | `WaywardBeyond.Client.Core.Tests/` | Game client tests (NUnit) |
 | `WaywardBeyond.Discovery/` | (empty) |

@@ -258,7 +258,7 @@ internal sealed class ChatLayer : IUILayer
             ui.LayoutDirection = LayoutDirection.Horizontal;
             ui.Spacing = SPACING;
 
-            using (ui.Text($"{message.SenderName}: {message.Value}"))
+            using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
             {
                 ui.Passthrough = true;
                 ui.FontSize = FONT_SIZE;
