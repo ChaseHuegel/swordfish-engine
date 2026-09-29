@@ -281,7 +281,7 @@ in IInteractionContent content,
         BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickDatabase);
         if (resolution.Action == InteractionAction.None)
         {
             return;

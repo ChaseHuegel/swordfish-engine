@@ -70,7 +70,7 @@ public sealed class WorldSaveService
             name
         );
 
-        GeneratedVoxelEntity[] entities = new WorldGenerator(seedValue).Generate();
+        GeneratedVoxelEntity[] entities = new WorldGenerator(seedValue, BaseBrickCatalog.Registry).Generate();
 
         try
         {

@@ -76,7 +76,7 @@ public class ServerInteractionSystemTests
         system.Tick(0f, store, simTick: 100);
 
         //  The destination cell received the placed voxel.
-        Assert.Equal(BRICK_DATA_ID, voxelObject.Get(1, 0, 0).ID);
+        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
 
         //  Survival consumed one held item.
         Assert.True(store.TryGet(player, out InventoryComponent inventory));
@@ -102,7 +102,7 @@ public class ServerInteractionSystemTests
 
         //  The place wrote the brick at the adjacent cell and the break cleared the occupied cell - both
         //  discrete edges are consumed even though they share the same staged sim tick.
-        Assert.Equal(BRICK_DATA_ID, voxelObject.Get(1, 0, 0).ID);
+        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
         Assert.Equal((ushort)0, voxelObject.Get(0, 0, 0).ID);
 
         //  The inventory was untouched by creative interactions.
@@ -443,7 +443,7 @@ public class ServerInteractionSystemTests
     {
         public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
         {
-            placeable = new PlaceableBrick(BRICK_DATA_ID, WaywardBeyond.Client.Core.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
+            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Client.Core.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
             return true;
         }
 

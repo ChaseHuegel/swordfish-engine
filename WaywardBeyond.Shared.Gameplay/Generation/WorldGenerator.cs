@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay.Generation.Structures;
 using WaywardBeyond.Shared.Gameplay.Generation.Noise;
 
@@ -26,10 +27,10 @@ public sealed class WorldGenerator
     private readonly AsteroidGenerator _asteroidGenerator;
     private readonly Randomizer _randomizer;
 
-    public WorldGenerator(in int seed)
+    public WorldGenerator(in int seed, in IBrickIdMap brickIdMap)
     {
         _seed = seed;
-        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.Rock, WorldMaterialCatalog.Ice);
+        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName(BaseBrickCatalog.Namespaced("rock"), brickIdMap), WorldMaterialCatalog.FromName(BaseBrickCatalog.Namespaced("ice"), brickIdMap));
         _randomizer = new Randomizer(seed);
     }
 

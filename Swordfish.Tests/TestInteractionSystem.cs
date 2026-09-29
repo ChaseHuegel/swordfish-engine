@@ -48,7 +48,7 @@ internal static class TestInteractionSystem
     {
         public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
         {
-            placeable = new PlaceableBrick(0, BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
+            placeable = new PlaceableBrick("wb:panel", BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
             return false;
         }
 

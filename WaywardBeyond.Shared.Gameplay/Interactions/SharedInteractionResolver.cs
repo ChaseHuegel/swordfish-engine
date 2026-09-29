@@ -36,7 +36,8 @@ public static class SharedInteractionResolver
         PlaceableBrick? placeable,
         GameMode gameMode,
         float reach,
-        in IVoxelInteractionWorld world
+        in IVoxelInteractionWorld world,
+        IBrickIdMap brickIdMap
     ) {
         if (hint == null)
         {
@@ -88,7 +89,7 @@ public static class SharedInteractionResolver
             return InteractionResolution.None;
         }
 
-        Voxel voxel = placeable.Value.ToVoxel((BrickShape)hint.Value.HintShape, new Orientation(hint.Value.HintOrientation));
+        Voxel voxel = placeable.Value.ToVoxel((BrickShape)hint.Value.HintShape, brickIdMap, new Orientation(hint.Value.HintOrientation));
         return new InteractionResolution(InteractionAction.Place, entity, hintCell, voxel);
     }
 

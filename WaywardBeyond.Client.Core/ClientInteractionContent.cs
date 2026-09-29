@@ -58,7 +58,7 @@ internal sealed class ClientInteractionContent : IInteractionContent
 
         BrickInfo brick = brickResult.Value;
         placeable = new PlaceableBrick(
-            brick.DataID,
+            brick.ID,
             brick.Shape,
             brick.Shapeable,
             brick.Tags.Contains("orientable"),

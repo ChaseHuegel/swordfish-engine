@@ -32,6 +32,7 @@ public sealed class ServerInteractionSystem
     private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
+    private readonly IBrickIdMap _brickIdMap;
     private readonly ServerSkillSystem? _skills;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
@@ -56,7 +57,8 @@ public sealed class ServerInteractionSystem
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        ServerSkillSystem? skills = null
+        ServerSkillSystem? skills = null,
+        IBrickIdMap brickIdMap = null
     ) {
         _hub = hub;
         _content = content;
@@ -64,6 +66,7 @@ public sealed class ServerInteractionSystem
         _logger = logger;
         _worldFactory = worldFactory;
         _skills = skills;
+        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
     }
 
     private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()
@@ -132,7 +135,7 @@ public sealed class ServerInteractionSystem
         IVoxelInteractionWorld world = _worldFactory(store);
 
         InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickIdMap);
         if (resolution.Action == InteractionAction.None)
         {
             return;

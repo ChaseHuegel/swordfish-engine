@@ -7,21 +7,22 @@ namespace WaywardBeyond.Shared.Gameplay;
 /// <summary>
 /// The headless, shared representation of a held item that places a brick. Carries exactly the facts
 /// needed to author a placed voxel server-side (or predict one client-side) without depending on the
-/// render-coupled client <c>BrickInfo</c>: the brick's data id, shape, whether it is shapeable, whether it
-/// accepts an orientation, and its light output. <see cref="ToVoxel"/> mirrors
-/// <c>BrickInfo.ToVoxel(shape, orientation)</c> so both sides write identical voxels.
+/// render-coupled client <c>BrickInfo</c>: the brick's canonical name, shape, whether it is shapeable,
+/// whether it accepts an orientation, and its light output. <see cref="ToVoxel"/> resolves the canonical
+/// name through a caller-supplied <see cref="IBrickIdMap"/>, so each side authors with its own voxel id
+/// space.
 /// </summary>
 public readonly struct PlaceableBrick
 {
-    public readonly ushort DataID;
+    public readonly string Name;
     public readonly BrickShape Shape;
     public readonly bool Shapeable;
     public readonly bool HasOrientableTag;
     public readonly int Brightness;
 
-    public PlaceableBrick(ushort dataID, BrickShape shape, bool shapeable, bool hasOrientableTag, int brightness)
+    public PlaceableBrick(string name, BrickShape shape, bool shapeable, bool hasOrientableTag, int brightness)
     {
-        DataID = dataID;
+        Name = name;
         Shape = shape;
         Shapeable = shapeable;
         HasOrientableTag = hasOrientableTag;
@@ -45,11 +46,12 @@ public readonly struct PlaceableBrick
 
     /// <summary>
     /// Returns the data representation of this brick with a desired shape and optional orientation,
-    /// mirroring <c>BrickInfo.ToVoxel</c> byte-for-byte and light-fact for light-fact.
+    /// resolving the canonical <see cref="Name"/> through <paramref name="map"/> so the authored voxel
+    /// uses the caller's own id space.
     /// </summary>
-    public Voxel ToVoxel(BrickShape shape, Orientation orientation = default)
+    public Voxel ToVoxel(BrickShape shape, IBrickIdMap map, Orientation orientation = default)
     {
-        var voxel = new Voxel(DataID, new ShapeLight(Shape == BrickShape.Any ? BrickShape.Block : Shape, Brightness), _Orientation: 0);
+        var voxel = new Voxel(map.Id(Name), new ShapeLight(Shape == BrickShape.Any ? BrickShape.Block : Shape, Brightness), _Orientation: 0);
 
         if (Shapeable)
         {

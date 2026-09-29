@@ -19,10 +19,18 @@ public static class WorldMaterialCatalog
     public static Voxel Core => FromName(BaseBrickCatalog.Namespaced("core"));
 
     /// <summary>
-    ///     Returns the block-shaped, non-luminous voxel for a named brick material.
+    ///     Returns the block-shaped, non-luminous voxel for a named brick material over the base registry.
     /// </summary>
     public static Voxel FromName(string name)
     {
-        return new Voxel(BaseBrickCatalog.Registry.Id(name), _ShapeLight: 0, _Orientation: 0);
+        return FromName(name, BaseBrickCatalog.Registry);
+    }
+
+    /// <summary>
+    ///     Returns the block-shaped, non-luminous voxel for a named brick material over the provided map.
+    /// </summary>
+    public static Voxel FromName(string name, in IBrickIdMap brickIdMap)
+    {
+        return new Voxel(brickIdMap.Id(name), _ShapeLight: 0, _Orientation: 0);
     }
 }
