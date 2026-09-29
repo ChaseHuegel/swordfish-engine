@@ -55,9 +55,9 @@ public class InteractionHandlerRegistryTests
         ));
 
         InteractionResolution result = registry.Apply(
-            Request(kind: InteractionKind.SecondaryPressed, heldItemID: "panel"),
+            Request(kind: InteractionKind.SecondaryPressed, heldItemID: "wb:panel"),
             PlaceResolution(),
-            heldItemID: "panel"
+            heldItemID: "wb:panel"
         );
 
         Assert.Equal(InteractionAction.Place, result.Action);
@@ -81,7 +81,7 @@ public class InteractionHandlerRegistryTests
         //  Wrong held item: no match, base resolution preserved.
         Assert.Equal(
             InteractionAction.Break,
-            registry.Apply(Request(heldItemID: "panel", gameMode: GameMode.Adventure), BreakResolution(), "panel").Action
+            registry.Apply(Request(heldItemID: "wb:panel", gameMode: GameMode.Adventure), BreakResolution(), "wb:panel").Action
         );
 
         //  Wrong mode: no match, base resolution preserved.

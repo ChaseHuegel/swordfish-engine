@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "light"
+ID      = "wb:light"
 Shape   = "any"
 Tags    = [
     "entity",

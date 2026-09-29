@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "caution_panel"
+ID       = "wb:caution_panel"
 Name     = "item.base.caution_panel"
 Icon     = "block/caution_panel.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "caution_panel"
+ID       = "wb:caution_panel"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/caution_panel"

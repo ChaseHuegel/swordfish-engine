@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "truss"
+ID       = "wb:truss"
 Name     = "item.base.truss"
 Icon     = "block/truss.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "truss"
+ID       = "wb:truss"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/truss"

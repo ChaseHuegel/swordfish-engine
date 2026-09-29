@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "small_light"
+ID      = "wb:small_light"
 Shape   = "any"
 Tags    = [
     "entity",

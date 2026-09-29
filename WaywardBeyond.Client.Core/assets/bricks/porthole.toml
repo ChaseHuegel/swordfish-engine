@@ -1,5 +1,5 @@
 [[Bricks]]
-ID          = "porthole"
+ID          = "wb:porthole"
 Shape       = "any"
 Transparent = true
 Tags        = [

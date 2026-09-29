@@ -1,11 +1,11 @@
 [[Items]]
-ID         = "small_light"
+ID         = "wb:small_light"
 Name       = "item.base.small_light"
 Icon       = "block/small_light.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"
-ID         = "small_light"
+ID         = "wb:small_light"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/small_light"

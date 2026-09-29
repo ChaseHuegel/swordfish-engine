@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "control_panel"
+ID       = "wb:control_panel"
 Name     = "item.base.control_panel"
 Icon     = "block/control_panel.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "control_panel"
+ID       = "wb:control_panel"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/control_panel"

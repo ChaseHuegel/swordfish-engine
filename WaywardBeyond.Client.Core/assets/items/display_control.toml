@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "display_control"
+ID       = "wb:display_control"
 Name     = "item.base.display_control"
 Icon     = "block/display_control.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "display_control"
+ID       = "wb:display_control"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/display_control"

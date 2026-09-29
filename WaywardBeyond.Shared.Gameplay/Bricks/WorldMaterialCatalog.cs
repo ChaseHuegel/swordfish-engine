@@ -12,11 +12,11 @@ namespace WaywardBeyond.Shared.Gameplay;
 /// </summary>
 public static class WorldMaterialCatalog
 {
-    public static Voxel Rock => FromName("rock");
+    public static Voxel Rock => FromName(BaseBrickCatalog.Namespaced("rock"));
 
-    public static Voxel Ice => FromName("ice");
+    public static Voxel Ice => FromName(BaseBrickCatalog.Namespaced("ice"));
 
-    public static Voxel Core => FromName("core");
+    public static Voxel Core => FromName(BaseBrickCatalog.Namespaced("core"));
 
     /// <summary>
     ///     Returns the block-shaped, non-luminous voxel for a named brick material.

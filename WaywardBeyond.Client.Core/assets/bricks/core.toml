@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "core"
+ID      = "wb:core"
 Shape   = "block"
 Tags    = [
     "metal",

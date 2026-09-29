@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "vent"
+ID       = "wb:vent"
 Name     = "item.base.vent"
 Icon     = "block/vent.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "vent"
+ID       = "wb:vent"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/vent"

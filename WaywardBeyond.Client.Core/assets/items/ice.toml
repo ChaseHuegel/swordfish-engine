@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "ice"
+ID       = "wb:ice"
 Name     = "item.base.ice"
 Icon     = "block/ice.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "ice"
+ID       = "wb:ice"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/ice"

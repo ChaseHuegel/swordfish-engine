@@ -1,5 +1,5 @@
 [[Bricks]]
-ID          = "grate"
+ID          = "wb:grate"
 Shape       = "any"
 Transparent = true
 Tags        = [

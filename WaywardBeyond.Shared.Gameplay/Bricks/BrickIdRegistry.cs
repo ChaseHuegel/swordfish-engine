@@ -27,7 +27,9 @@ public sealed class BrickIdRegistry
         _nameById = nameById;
     }
 
-    /// <summary>Builds a registry over the supplied names, assigning sequential ids in ordinal name order.</summary>
+    /// <summary>
+    /// Builds a registry over the supplied names, assigning sequential ids in ordinal name order.
+    /// </summary>
     public static BrickIdRegistry FromNames(IEnumerable<string> names)
     {
         string[] sorted = names
@@ -43,6 +45,35 @@ public sealed class BrickIdRegistry
             ushort id = (ushort)(SaveVersion.MinDataId + i);
             idByName[sorted[i]] = id;
             nameById[id] = sorted[i];
+        }
+
+        return new BrickIdRegistry(idByName, nameById);
+    }
+
+    /// <summary>
+    /// Extends a base registry with extra names, preserving every base id so a brick keeps the same id
+    /// whether or not the extra (typically mod) names are present. Extra names are appended after all
+    /// base names, sorted ordinal, so base ids are immutable across content changes.
+    /// </summary>
+    public static BrickIdRegistry FromBaseAndExtras(BrickIdRegistry baseRegistry, IEnumerable<string> extraNames)
+    {
+        var idByName = new Dictionary<string, ushort>(baseRegistry._idByName, StringComparer.Ordinal);
+        var nameById = new Dictionary<ushort, string>(baseRegistry._nameById);
+
+        ushort nextId = (ushort)(SaveVersion.MinDataId + baseRegistry.Count);
+        foreach (string name in extraNames
+                     .Where(name => !idByName.ContainsKey(name))
+                     .OrderBy(name => name, StringComparer.Ordinal))
+        {
+            //  Skip any id already taken by a base name to keep ids unique and contiguous after them.
+            while (nameById.ContainsKey(nextId))
+            {
+                nextId++;
+            }
+
+            idByName[name] = nextId;
+            nameById[nextId] = name;
+            nextId++;
         }
 
         return new BrickIdRegistry(idByName, nameById);

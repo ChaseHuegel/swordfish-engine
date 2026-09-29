@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "panel"
+ID      = "wb:panel"
 Shape   = "any"
 Tags    = [
     "metal",

@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "control_buttons"
+ID      = "wb:control_buttons"
 Shape   = "block"
 Tags    = [
     "metal",

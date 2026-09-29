@@ -1,11 +1,11 @@
 [[Items]]
-ID         = "porthole"
+ID         = "wb:porthole"
 Name       = "item.base.porthole"
 Icon       = "block/porthole.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"
-ID         = "porthole"
+ID         = "wb:porthole"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/porthole"

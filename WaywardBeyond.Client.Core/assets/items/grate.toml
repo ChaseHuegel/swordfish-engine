@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "grate"
+ID       = "wb:grate"
 Name     = "item.base.grate"
 Icon     = "block/grate.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "grate"
+ID       = "wb:grate"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/grate"

@@ -1,5 +1,5 @@
 [[Bricks]]
-ID          = "truss"
+ID          = "wb:truss"
 Shape       = "any"
 Transparent = true
 Tags        = [

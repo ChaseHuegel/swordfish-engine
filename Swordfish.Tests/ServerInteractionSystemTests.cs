@@ -48,7 +48,7 @@ public class ServerInteractionSystemTests
 
         //  Survival granted the loot for the broken brick.
         Assert.True(store.TryGet(player, out InventoryComponent inventory));
-        Assert.Contains(inventory.Contents, stack => stack.ID == "rock" && stack.Count == 1);
+        Assert.Contains(inventory.Contents, stack => stack.ID == "wb:rock" && stack.Count == 1);
 
         //  The collider was rebuilt from the (now empty) voxel content.
         Assert.True(store.TryGet(structure, out ColliderComponent collider));
@@ -66,7 +66,7 @@ public class ServerInteractionSystemTests
     {
         DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
 
-        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "panel");
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "wb:panel");
         StoreInitialVoxel(voxelObject, 0, 0, 0);
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
 
@@ -80,7 +80,7 @@ public class ServerInteractionSystemTests
 
         //  Survival consumed one held item.
         Assert.True(store.TryGet(player, out InventoryComponent inventory));
-        Assert.Equal("panel", inventory.Contents[0].ID);
+        Assert.Equal("wb:panel", inventory.Contents[0].ID);
         Assert.Equal(4, inventory.Contents[0].Count);
     }
 
@@ -89,7 +89,7 @@ public class ServerInteractionSystemTests
     {
         DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
 
-        int player = BuildPlayerMirror(store, GameMode.Creative, heldItemID: "panel");
+        int player = BuildPlayerMirror(store, GameMode.Creative, heldItemID: "wb:panel");
         StoreInitialVoxel(voxelObject, 0, 0, 0);
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
@@ -142,7 +142,7 @@ public class ServerInteractionSystemTests
     {
         DataStore store = BuildWorld(out int structure, out VoxelObject voxelObject);
 
-        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "rock");
+        int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "wb:rock");
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: null);
 
         
@@ -449,7 +449,7 @@ public class ServerInteractionSystemTests
 
         public bool TryGetLoot(ushort brickDataID, out ItemData loot)
         {
-            loot = new ItemData { ID = "rock", Count = 1, MaxSize = 100 };
+            loot = new ItemData { ID = "wb:rock", Count = 1, MaxSize = 100 };
             return true;
         }
     }

@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "caution_panel"
+ID      = "wb:caution_panel"
 Shape   = "any"
 Tags    = [
     "metal",

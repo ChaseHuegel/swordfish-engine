@@ -19,22 +19,22 @@ public class VoxelEntityDataCodecTests
     [Fact]
     public void EncodeToPaletteReIndexesLegacyIdsIntoRegistryPalette()
     {
-        ushort rockId = FNV1a.ComputeDataID("rock");
+        ushort rockId = FNV1a.ComputeDataID("wb:rock");
         VoxelEntityData legacy = MakeLegacy(rockId);
 
         VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacy);
 
         //  A legacy (palette-less) FNV rock id becomes the stable registry id for rock.
         Assert.True(VoxelEntityDataCodec.HasPalette(encoded));
-        Assert.True(BaseBrickCatalog.Registry.TryId("rock", out ushort rockRegistryId));
+        Assert.True(BaseBrickCatalog.Registry.TryId("wb:rock", out ushort rockRegistryId));
         Assert.Equal(rockRegistryId, encoded.Chunks[0].Chunk.Voxels[0].ID);
-        Assert.Equal("rock", encoded.BrickPalette[rockRegistryId]);
+        Assert.Equal("wb:rock", encoded.BrickPalette[rockRegistryId]);
     }
 
     [Fact]
     public void EncodeToPaletteIsIdempotent()
     {
-        VoxelEntityData legacyIce = MakeLegacy(FNV1a.ComputeDataID("ice"));
+        VoxelEntityData legacyIce = MakeLegacy(FNV1a.ComputeDataID("wb:ice"));
         VoxelEntityData encodedOnce = VoxelEntityDataCodec.EncodeToPalette(legacyIce);
         VoxelEntityData encodedTwice = VoxelEntityDataCodec.EncodeToPalette(encodedOnce);
 
@@ -45,7 +45,7 @@ public class VoxelEntityDataCodecTests
     [Fact]
     public void DecodeToLocalRestoresLegacyFnvIdFromPalette()
     {
-        ushort coreId = FNV1a.ComputeDataID("core");
+        ushort coreId = FNV1a.ComputeDataID("wb:core");
         VoxelEntityData legacyCore = MakeLegacy(coreId);
         VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacyCore);
 
@@ -58,7 +58,7 @@ public class VoxelEntityDataCodecTests
     [Fact]
     public void DecodeToLocalPassesThroughLegacyStructureUnchanged()
     {
-        ushort rockId = FNV1a.ComputeDataID("rock");
+        ushort rockId = FNV1a.ComputeDataID("wb:rock");
         VoxelEntityData legacy = MakeLegacy(rockId);
 
         VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(legacy, VoxelEntityDataCodec.BaseNameToLocalId);
@@ -79,9 +79,24 @@ public class VoxelEntityDataCodecTests
     }
 
     [Fact]
+    public void EncodeLegacyToPaletteMapsBareFnvIdToNamespacedName()
+    {
+        //  A data version 3 save stores FNV1a of the BARE name ("rock"), not the namespaced id.
+        ushort bareRockId = FNV1a.ComputeDataID("rock");
+        VoxelEntityData legacy = MakeLegacy(bareRockId);
+
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacy);
+
+        Assert.True(VoxelEntityDataCodec.HasPalette(encoded));
+        Assert.True(BaseBrickCatalog.Registry.TryId("wb:rock", out ushort rockRegistryId));
+        Assert.Equal(rockRegistryId, encoded.Chunks[0].Chunk.Voxels[0].ID);
+        Assert.Equal("wb:rock", encoded.BrickPalette[rockRegistryId]);
+    }
+
+    [Fact]
     public void RoundTripThroughSerialize()
     {
-        ushort rockId = FNV1a.ComputeDataID("rock");
+        ushort rockId = FNV1a.ComputeDataID("wb:rock");
         VoxelEntityData legacyRock = MakeLegacy(rockId);
         VoxelEntityData encoded = VoxelEntityDataCodec.EncodeToPalette(legacyRock);
 

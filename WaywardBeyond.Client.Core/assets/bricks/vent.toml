@@ -1,5 +1,5 @@
 [[Bricks]]
-ID          = "vent"
+ID          = "wb:vent"
 Shape       = "any"
 Transparent = false
 Tags        = [

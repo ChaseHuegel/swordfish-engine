@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "control_buttons"
+ID       = "wb:control_buttons"
 Name     = "item.base.control_buttons"
 Icon     = "block/control_buttons.0.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "control_buttons"
+ID       = "wb:control_buttons"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/control_buttons"

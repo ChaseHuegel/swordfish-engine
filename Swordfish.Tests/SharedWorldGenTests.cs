@@ -24,9 +24,9 @@ public class SharedWorldGenTests
 
         //  The shared catalog derives ids identically to the client brick database's FNV1a rule, and
         //  every worldgen material is a block-shaped, non-luminous voxel.
-        Assert.Equal(FNV1a.ComputeDataID("rock"), rock.ID);
-        Assert.Equal(FNV1a.ComputeDataID("ice"), ice.ID);
-        Assert.Equal(FNV1a.ComputeDataID("core"), core.ID);
+        Assert.Equal(FNV1a.ComputeDataID("wb:rock"), rock.ID);
+        Assert.Equal(FNV1a.ComputeDataID("wb:ice"), ice.ID);
+        Assert.Equal(FNV1a.ComputeDataID("wb:core"), core.ID);
         Assert.Equal((byte)0, rock.ShapeLight);
         Assert.Equal((byte)0, ice.Orientation);
     }

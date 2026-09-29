@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "display_console"
+ID       = "wb:display_console"
 Name     = "item.base.display_console"
 Icon     = "block/display_console.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "display_console"
+ID       = "wb:display_console"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/display_console"

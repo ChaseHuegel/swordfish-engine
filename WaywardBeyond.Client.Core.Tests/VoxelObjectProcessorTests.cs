@@ -173,7 +173,7 @@ public class VoxelObjectProcessorTests
             mesh: null,
             BrickShape.Block,
             new BrickTextures(),
-            tags: ["light"]
+            tags: ["wb:light"]
         );
         
         public bool IsCuller(Voxel voxel)

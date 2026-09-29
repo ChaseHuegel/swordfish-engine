@@ -74,7 +74,7 @@ public class InteractionContextComponentTests
         int entity = store.Alloc();
         store.AddOrUpdate(entity, new InventoryComponent(new ItemData[]
         {
-            InventoryComponent.Stack("panel", 64, 100),
+            InventoryComponent.Stack("wb:panel", 64, 100),
             InventoryComponent.Stack("laser", 1, 1),
         }));
 
@@ -88,7 +88,7 @@ public class InteractionContextComponentTests
 
         Assert.True(output.TryGet(outputEntity, out InventoryComponent result));
         Assert.Equal(2, result.Contents.Length);
-        Assert.Equal("panel", result.Contents[0].ID);
+        Assert.Equal("wb:panel", result.Contents[0].ID);
         Assert.Equal(64, result.Contents[0].Count);
         Assert.Equal("laser", result.Contents[1].ID);
     }
@@ -103,7 +103,7 @@ public class InteractionContextComponentTests
             Body = 3,
             InventoryContents =
             [
-                InventoryComponent.Stack("rock", 5, 100),
+                InventoryComponent.Stack("wb:rock", 5, 100),
             ],
             ActiveInventorySlot = 2,
             GameMode = (int)GameMode.Adventure,
@@ -118,7 +118,7 @@ public class InteractionContextComponentTests
         Assert.Equal(seed.ActiveInventorySlot, roundTripped.ActiveInventorySlot);
         Assert.Equal(seed.GameMode, roundTripped.GameMode);
         Assert.Single(roundTripped.InventoryContents);
-        Assert.Equal("rock", roundTripped.InventoryContents[0].ID);
+        Assert.Equal("wb:rock", roundTripped.InventoryContents[0].ID);
         Assert.Equal(5, roundTripped.InventoryContents[0].Count);
     }
 

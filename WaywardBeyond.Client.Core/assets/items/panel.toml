@@ -1,11 +1,11 @@
 [[Items]]
-ID         = "panel"
+ID         = "wb:panel"
 Name       = "item.base.panel"
 Icon       = "items/panel.png"
 MaxStack   = 100
 [Items.Placeable]
 Type       = "brick"
-ID         = "panel"
+ID         = "wb:panel"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/panel"

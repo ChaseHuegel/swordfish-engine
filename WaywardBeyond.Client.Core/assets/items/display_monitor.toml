@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "display_monitor"
+ID       = "wb:display_monitor"
 Name     = "item.base.display_monitor"
 Icon     = "block/display_monitor.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "display_monitor"
+ID       = "wb:display_monitor"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/display_monitor"

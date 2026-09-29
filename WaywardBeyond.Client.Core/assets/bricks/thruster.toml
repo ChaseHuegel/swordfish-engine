@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "thruster"
+ID      = "wb:thruster"
 Shape   = "custom"
 Mesh    = "thruster.obj"
 Tags    = [

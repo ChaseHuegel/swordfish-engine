@@ -1,11 +1,11 @@
 [[Items]]
-ID       = "thruster"
+ID       = "wb:thruster"
 Name     = "item.base.thruster"
 Icon     = "items/thruster.png"
 MaxStack = 100
 [Items.Placeable]
 Type     = "brick"
-ID       = "thruster"
+ID       = "wb:thruster"
 [Items.ViewModel]
 Mesh       = "cube.obj"
 Material   = "bricks/thruster"

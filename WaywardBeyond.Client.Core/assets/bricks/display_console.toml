@@ -1,5 +1,5 @@
 [[Bricks]]
-ID      = "display_console"
+ID      = "wb:display_console"
 Shape   = "block"
 Tags    = [
     "metal",

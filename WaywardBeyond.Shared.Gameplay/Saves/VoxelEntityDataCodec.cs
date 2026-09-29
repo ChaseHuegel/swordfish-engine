@@ -20,12 +20,31 @@ public static class VoxelEntityDataCodec
     /// </summary>
     public static VoxelEntityData EncodeToPalette(in VoxelEntityData source)
     {
+        return EncodeToPalette(in source, BaseBrickCatalog.CurrentNameFromDataId);
+    }
+
+    /// <summary>
+    /// Re-indexes a legacy (version 3) structure into palette form, translating raw FNV1a brick ids that
+    /// were hashed from the bare (un-namespaced) name. Used by the v3 to v4 migration on older saves.
+    /// </summary>
+    public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source)
+    {
+        return EncodeToPalette(in source, BaseBrickCatalog.LegacyNameFromDataId);
+    }
+
+    /// <summary>
+    /// Re-indexes a palette-less structure into palette form: each voxel is translated from its raw FNV1a
+    /// brick id to a stable registry id, and a <see cref="BaseBrickCatalog"/> name is recorded for that id
+    /// in the palette. Ids not in the base catalog map to the empty voxel (0).
+    /// </summary>
+    private static VoxelEntityData EncodeToPalette(in VoxelEntityData source, Func<ushort, string?> idToName)
+    {
         if (HasPalette(in source))
         {
             return source;
         }
 
-        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => IdToRegistryId(id));
+        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => IdToRegistryId(id, idToName));
         string[]? palette = BuildPalette(chunks);
         return new VoxelEntityData(
             source.Uuid,
@@ -73,9 +92,9 @@ public static class VoxelEntityDataCodec
         return FNV1a.ComputeDataID(name);
     }
 
-    private static ushort IdToRegistryId(ushort legacyId)
+    private static ushort IdToRegistryId(ushort legacyId, Func<ushort, string?> idToName)
     {
-        string? name = BaseBrickCatalog.LegacyNameFromDataId(legacyId);
+        string? name = idToName(legacyId);
         if (name == null)
         {
             return 0;

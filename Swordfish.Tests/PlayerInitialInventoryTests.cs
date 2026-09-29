@@ -15,8 +15,8 @@ public class PlayerInitialInventoryTests
         Assert.NotNull(resolved);
         Assert.Equal(20, resolved.Length);
         Assert.Contains(resolved, stack => stack.ID == "laser" && stack.Count == 1 && stack.MaxSize == 1);
-        Assert.Contains(resolved, stack => stack.ID == "panel" && stack.Count == 100);
-        Assert.Contains(resolved, stack => stack.ID == "control_panel" && stack.Count == 100);
+        Assert.Contains(resolved, stack => stack.ID == "wb:panel" && stack.Count == 100);
+        Assert.Contains(resolved, stack => stack.ID == "wb:control_panel" && stack.Count == 100);
     }
 
     [Fact]
@@ -24,16 +24,16 @@ public class PlayerInitialInventoryTests
     {
         ItemData[] saved =
         [
-            InventoryComponent.Stack("rock", 3, 100),
-            InventoryComponent.Stack("glass", 2, 100),
+            InventoryComponent.Stack("wb:rock", 3, 100),
+            InventoryComponent.Stack("wb:glass", 2, 100),
         ];
 
         ItemData[] resolved = PlayerInitialInventory.Resolve(saved);
 
         Assert.Same(saved, resolved);
         Assert.Equal(2, resolved.Length);
-        Assert.Equal("rock", resolved[0].ID);
-        Assert.Equal("glass", resolved[1].ID);
+        Assert.Equal("wb:rock", resolved[0].ID);
+        Assert.Equal("wb:glass", resolved[1].ID);
     }
 
     [Fact]
@@ -74,7 +74,7 @@ public class PlayerInitialInventoryTests
 
         Assert.Equal(InventoryComponent.DefaultSlotCount, inventory.Contents.Length);
         Assert.Equal("laser", inventory.Contents[0].ID);
-        Assert.Equal("control_panel", inventory.Contents[19].ID);
+        Assert.Equal("wb:control_panel", inventory.Contents[19].ID);
         Assert.Null(inventory.Contents[20].ID);
     }
 }

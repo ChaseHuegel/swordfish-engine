@@ -15,7 +15,7 @@ public sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntityDa
 
     public override VoxelEntityData ApplyValue(VoxelEntityData value)
     {
-        return VoxelEntityDataCodec.EncodeToPalette(in value);
+        return VoxelEntityDataCodec.EncodeLegacyToPalette(in value);
     }
 }
 

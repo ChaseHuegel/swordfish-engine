@@ -126,33 +126,21 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
     private Result<ushort> GenerateDataID(string str)
     {
+        //  The id is a pure, deterministic hash of the brick name so it is identical on the client,
+        //  the server, worldgen, and skills regardless of asset load order. This id must never be
+        //  shifted by insertion order: a genuine FNV collision between two brick names is a hard error
+        //  rather than a silent remap, so it cannot corrupt saves or diverge across runs.
         ushort id = FNV1a.ComputeDataID(str);
-        
-        var collisions = 0;
+
         lock (_bricksByDataID)
         {
-            ushort startID = id;
-            while (_bricksByDataID.ContainsKey(id))
+            if (_bricksByDataID.TryGetValue(id, out BrickInfo? existing) && existing.ID != str)
             {
-                collisions++;
-                id++;
-                
-                if (id == ushort.MaxValue)
-                {
-                    id = 0;
-                }
-                else if (id == startID)
-                {
-                    return Result<ushort>.FromFailure("No brick IDs are available");
-                }
+                return Result<ushort>.FromFailure(
+                    $"Brick \"{str}\" collides with \"{existing.ID}\": both hash to voxel id {id}. Rename one of them.");
             }
         }
-        
-        if (collisions != 0)
-        {
-            Logger.LogWarning("Brick \"{str}\" had {collisions} ID collisions! This brick may not be stable across load orders.", str, collisions);
-        }
-        
+
         return Result<ushort>.FromSuccess(id);
     }
 }

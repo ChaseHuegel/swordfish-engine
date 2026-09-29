@@ -62,7 +62,7 @@ public class ServerJoinSkillSeedTests
                 Statistics =
                 [
                     new Statistic("mining", 25),
-                    new Statistic("bricks.broken:rock", 12),
+                    new Statistic("bricks.broken:wb:rock", 12),
                 ],
             },
         });
@@ -75,7 +75,7 @@ public class ServerJoinSkillSeedTests
 
         //  Known skills seed; non-skill statistics never enter the server's state.
         Assert.Equal(25, state.GetXP("mining"));
-        Assert.Equal(0, state.GetXP("bricks.broken:rock"));
+        Assert.Equal(0, state.GetXP("bricks.broken:wb:rock"));
     }
 
     [Fact]
