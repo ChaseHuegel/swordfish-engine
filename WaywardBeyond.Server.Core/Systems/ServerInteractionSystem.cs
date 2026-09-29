@@ -6,6 +6,7 @@ using Swordfish.ECS;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;

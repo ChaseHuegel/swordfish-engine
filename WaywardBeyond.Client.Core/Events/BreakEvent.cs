@@ -1,4 +1,4 @@
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 
 namespace WaywardBeyond.Client.Core.Events;
 

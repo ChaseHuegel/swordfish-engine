@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Client.Core.Bricks;
+namespace WaywardBeyond.Shared.Bricks;
 
 public struct BrickTextures()
 {

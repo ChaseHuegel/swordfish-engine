@@ -13,7 +13,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using Swordfish.Physics;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
@@ -59,6 +59,7 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly PlayerData _playerData;
     private readonly BrickDatabase _brickDatabase;
     private readonly ItemDatabase _itemDatabase;
+    private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<BrickShape, MeshGizmo> _shapeGizmos;
     private readonly Dictionary<Mesh, MeshGizmo> _meshGizmos = [];
     private MeshGizmo _activeGizmo;
@@ -112,6 +113,7 @@ in IInteractionContent content,
         _playerData = playerData;
         _brickDatabase = brickDatabase;
         _itemDatabase = itemDatabase;
+        _meshDatabase = meshDatabase;
         _debugSettings = debugSettings;
         _soundEffectService = soundEffectService;
         _placeEvent = placeEvent;
@@ -586,18 +588,22 @@ in IInteractionContent content,
             placeableShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
         }
         
-        if (placeableShape == BrickShape.Custom && placeableBrickInfo.Mesh != null)
+        if (placeableShape == BrickShape.Custom)
         {
-            if (!_meshGizmos.TryGetValue(placeableBrickInfo.Mesh, out MeshGizmo? meshGizmo))
+            Mesh? gizmoMesh = ResolveMesh(placeableBrickInfo);
+            if (gizmoMesh != null)
             {
-                meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, placeableBrickInfo.Mesh);
-                _meshGizmos.Add(placeableBrickInfo.Mesh, meshGizmo);
-            }
-            
-            if (_activeGizmo != meshGizmo)
-            {
-                _activeGizmo.Visible = false;
-                _activeGizmo = meshGizmo;
+                if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
+                {
+                    meshGizmo = new MeshGizmo(_lineRenderer, _gizmoColor, gizmoMesh);
+                    _meshGizmos.Add(gizmoMesh, meshGizmo);
+                }
+
+                if (_activeGizmo != meshGizmo)
+                {
+                    _activeGizmo.Visible = false;
+                    _activeGizmo = meshGizmo;
+                }
             }
         }
         else if (_shapeGizmos.TryGetValue(placeableShape, out MeshGizmo? meshGizmo) && _activeGizmo != meshGizmo)
@@ -610,6 +616,17 @@ in IInteractionContent content,
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
+    private Mesh? ResolveMesh(in BrickInfo brickInfo)
+    {
+        if (brickInfo.MeshID == null)
+        {
+            return null;
+        }
+
+        Result<Mesh> meshResult = _meshDatabase.Get(brickInfo.MeshID);
+        return meshResult.Success ? meshResult.Value : null;
+    }
+
     private Quaternion GetPlacementWorldQuaternion(TransformComponent transformComponent, Vector3 clickedPos, Vector3 brickPosWorld)
     {
         return transformComponent.Orientation * GetPlacementLocalQuaternion(transformComponent, clickedPos, brickPosWorld);

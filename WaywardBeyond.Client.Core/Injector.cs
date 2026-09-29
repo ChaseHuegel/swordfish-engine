@@ -11,7 +11,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Globalization;
@@ -302,11 +302,6 @@ public class Injector : IDryIocInjector
         container.Register<ItemDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         
-        container.Register<BrickDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IBrickIdMap, BrickDatabase>();
-        container.RegisterMapping<IBrickDatabase, BrickDatabase>();
-        container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
-
         //  Shared interaction-content resolution used by the in-process server to author placeable/loot.
         container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton);
         
@@ -319,7 +314,6 @@ public class Injector : IDryIocInjector
     
     private static void RegisterParsers(IContainer container)
     {
-        container.RegisterTomlParser<BrickDefinitions>();
         container.RegisterTomlParser<ItemDefinitions>();
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);

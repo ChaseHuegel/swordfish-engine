@@ -6,6 +6,7 @@ using Shoal.DependencyInjection;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Shared.Skills;

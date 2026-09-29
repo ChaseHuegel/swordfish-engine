@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay.Generation.Structures;
 using WaywardBeyond.Shared.Gameplay.Generation.Noise;

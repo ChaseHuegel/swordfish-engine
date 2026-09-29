@@ -1,4 +1,5 @@
 using System;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Shared.Gameplay;

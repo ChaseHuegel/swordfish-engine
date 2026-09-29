@@ -1,4 +1,4 @@
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 
@@ -38,7 +38,7 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
                     return;
                 }
 
-                if (_brickDatabase.IsCuller(voxel, shapeLight))
+                if (_brickDatabase.IsCuller(voxel, shapeLight.Shape))
                 {
                     return;
                 }

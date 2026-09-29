@@ -1,5 +1,5 @@
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 

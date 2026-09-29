@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Shared.Data;
+namespace WaywardBeyond.Shared.Bricks;
 
 /// <summary>
 /// Maps brick names to their 16-bit voxel ids for one loaded content set.

@@ -4,6 +4,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core;
 using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;

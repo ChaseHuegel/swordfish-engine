@@ -11,7 +11,7 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Items;

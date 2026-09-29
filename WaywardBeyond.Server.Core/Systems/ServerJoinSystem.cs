@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Saves;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;

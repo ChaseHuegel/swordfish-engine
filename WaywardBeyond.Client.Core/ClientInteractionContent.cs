@@ -1,7 +1,7 @@
 using System;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;

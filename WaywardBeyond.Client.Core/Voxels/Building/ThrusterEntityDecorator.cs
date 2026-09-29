@@ -4,7 +4,7 @@ using System.Linq;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Extensions;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Voxels.Models;
 

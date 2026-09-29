@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace WaywardBeyond.Client.Core.Bricks;
+namespace WaywardBeyond.Shared.Bricks;
 
 public struct BrickDefinitions()
 {

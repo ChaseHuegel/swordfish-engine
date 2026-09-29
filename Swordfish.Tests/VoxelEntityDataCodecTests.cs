@@ -1,3 +1,4 @@
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using Xunit;

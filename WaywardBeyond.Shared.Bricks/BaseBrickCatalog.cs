@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using WaywardBeyond.Shared.Data;
 
-namespace WaywardBeyond.Shared.Data;
+namespace WaywardBeyond.Shared.Bricks;
 
 /// <summary>The shipped (non-mod) brick set, used as the deterministic bridge between voxel ids and brick names
 /// that both the authoritative server and the client derive identically from the same content. Kept in

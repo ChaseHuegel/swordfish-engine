@@ -7,6 +7,7 @@ using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
@@ -443,7 +444,7 @@ public class ServerInteractionSystemTests
     {
         public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
         {
-            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Client.Core.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
+            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Shared.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
             return true;
         }
 

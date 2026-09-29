@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 using Swordfish.Graphics;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);

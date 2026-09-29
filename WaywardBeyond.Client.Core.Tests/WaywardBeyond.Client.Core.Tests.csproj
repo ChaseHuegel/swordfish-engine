@@ -23,6 +23,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\WaywardBeyond.Client.Core\WaywardBeyond.Client.Core.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Bricks\WaywardBeyond.Shared.Bricks.csproj" />
     </ItemGroup>
 
 </Project>

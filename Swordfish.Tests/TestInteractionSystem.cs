@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;

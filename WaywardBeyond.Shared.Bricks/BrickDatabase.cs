@@ -4,40 +4,36 @@ using System.IO;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
-using Swordfish.Graphics;
-using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Voxels;
-using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Shared.Data;
 
-namespace WaywardBeyond.Client.Core.Bricks;
+namespace WaywardBeyond.Shared.Bricks;
 
 /// <summary>
-///     Provides access to brick information from virtual resources.
+/// Provides headless access to brick definitions from virtual resources. Owns the deterministic brick-id
+/// registry for the loaded content and exposes it as the process <see cref="IBrickIdMap"/>. It carries
+/// no render-coupled mesh or shape-light types, so the client, the server, and headless consumers share
+/// one database.
 /// </summary>
-internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase, IBrickIdMap
+public sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, BrickDefinition, BrickInfo>, IAutoActivate, IBrickDatabase, IBrickIdMap
 {
-    private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<ushort, BrickInfo> _bricksByDataID = [];
 
     /// <summary>
-    ///     The deterministic id space for this load of brick content. Owned here because this database is
-    ///     the single authority over what bricks are present; every other consumer resolves brick ids
-    ///     through the <see cref="IBrickIdMap"/> this exposes.
+    /// The deterministic id space for this load of brick content. Owned here because this database is
+    /// the single authority over what bricks are present; every other consumer resolves brick ids
+    /// through the <see cref="IBrickIdMap"/> this exposes.
     /// </summary>
     private readonly BrickIdRegistry _registry;
 
     public BrickDatabase(
         in ILogger<BrickDatabase> logger,
         in IFileParseService fileParseService,
-        in VirtualFileSystem vfs,
-        in IAssetDatabase<Mesh> meshDatabase)
-        : base(logger, fileParseService, vfs)
+        in VirtualFileSystem vfs
+    ) : base(logger, fileParseService, vfs)
     {
-        _meshDatabase = meshDatabase;
         _registry = BuildRegistry();
         Load();
     }
@@ -50,34 +46,25 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
 
     /// <inheritdoc/>
     public int Count => _registry.Count;
-    
-    public bool IsCuller(Voxel voxel)
-    {
-        return IsCuller(voxel, voxel.GetShapeLight().Shape);
-    }
-    
-    public bool IsCuller(Voxel voxel, ShapeLight shapeLight)
-    {
-        return IsCuller(voxel, shapeLight.Shape);
-    }
-    
-    public bool IsCuller(Voxel voxel, BrickShape shape)
+
+    /// <summary>Returns whether a block-shaped voxel of the provided shape culls faces around it.</summary>
+    public bool IsCuller(in Voxel voxel, BrickShape shape)
     {
         if (voxel.ID == 0)
         {
             return false;
         }
-        
+
         //  If this is not a block shape, it doesn't cull
         if (shape != BrickShape.Block)
         {
             return false;
         }
-        
+
         BrickInfo brickInfo = Get(voxel.ID).Value;
         return !brickInfo.Passable && !brickInfo.Transparent;
     }
-    
+
     /// <inheritdoc/>
     public Result<BrickInfo> Get(ushort id)
     {
@@ -87,12 +74,11 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             {
                 return Result<BrickInfo>.FromSuccess(value);
             }
-            
+
             return Result<BrickInfo>.FromFailure($"Unknown brick \"{id}\"");
         }
     }
 
-    
     /// <inheritdoc/>
     public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
     {
@@ -101,59 +87,36 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             return _bricksByDataID.Values.Where(predicate).ToList();
         }
     }
-    
+
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
-    
+
     /// <inheritdoc/>
-    protected override PathInfo GetRootPath() => AssetPaths.Root.At("bricks");
-    
+    protected override PathInfo GetRootPath() => new PathInfo("bricks/");
+
     /// <inheritdoc/>
     protected override IEnumerable<BrickDefinition> GetAssetInfo(PathInfo path, BrickDefinitions resource) => resource.Bricks;
 
     /// <inheritdoc/>
     protected override string GetAssetID(BrickDefinition assetInfo) => assetInfo.ID;
-    
+
     /// <inheritdoc/>
     protected override Result<BrickInfo> LoadAsset(string id, BrickDefinition assetInfo)
     {
-        Result<ushort> dataIDResult = GenerateDataID(id);
-        if (!dataIDResult.Success)
-        {
-            return new Result<BrickInfo>(success: false, null!, dataIDResult.Message, dataIDResult.Exception);
-        }
-        
-        Mesh? mesh = null;
-        if (assetInfo.Shape == BrickShape.Custom && assetInfo.Mesh != null)
-        {
-            Result<Mesh> meshResult = _meshDatabase.Get(assetInfo.Mesh);
-            if (meshResult.Success)
-            {
-                mesh = meshResult.Value;
-            }
-        }
-        
-        var brickInfo = new BrickInfo(id, dataIDResult, assetInfo.Transparent, assetInfo.Passable, mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
+        ushort dataID = _registry.Id(id);
+        var brickInfo = new BrickInfo(id, dataID, assetInfo.Transparent, assetInfo.Passable, assetInfo.Mesh, assetInfo.Shape, assetInfo.Textures, assetInfo.Tags);
         lock (_bricksByDataID)
         {
-            _bricksByDataID[dataIDResult] = brickInfo;
+            _bricksByDataID[dataID] = brickInfo;
         }
-        
+
         return Result<BrickInfo>.FromSuccess(brickInfo);
     }
 
-    private Result<ushort> GenerateDataID(string str)
-    {
-        //  The id comes from the deterministic, collision-free registry built over every loaded brick
-        //  name. It is identical on the client, the server, worldgen, and skills because the base
-        //  registry assigns base bricks their stable sorted id and extra (mod) bricks append after them.
-        return Result<ushort>.FromSuccess(_registry.Id(str));
-    }
-
     /// <summary>
-    ///     Collects every brick id under the brick root and builds the registry over
-    ///     <see cref="BaseBrickCatalog.Registry"/> plus the loaded set, so the whole id space is known
-    ///     before individual bricks are loaded.
+    /// Collects every brick id under the brick root and builds the registry over
+    /// <see cref="BaseBrickCatalog.Registry"/> plus the loaded set, so the whole id space is known
+    /// before individual bricks are loaded.
     /// </summary>
     private BrickIdRegistry BuildRegistry()
     {

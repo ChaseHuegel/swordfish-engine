@@ -1,8 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using WaywardBeyond.Shared.Data;
 
-namespace WaywardBeyond.Shared.Data;
+namespace WaywardBeyond.Shared.Bricks;
 
 /// <summary>
 /// A deterministic, collision-free mapping from brick names to 16-bit voxel ids for a single load of

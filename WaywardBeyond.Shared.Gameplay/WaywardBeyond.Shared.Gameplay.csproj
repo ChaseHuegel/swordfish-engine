@@ -17,6 +17,7 @@
         <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
         <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Bricks\WaywardBeyond.Shared.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
     </ItemGroup>
 

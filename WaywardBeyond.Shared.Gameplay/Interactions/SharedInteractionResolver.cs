@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 using Swordfish.ECS;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;

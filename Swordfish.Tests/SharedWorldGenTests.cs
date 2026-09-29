@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Numerics;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using Xunit;

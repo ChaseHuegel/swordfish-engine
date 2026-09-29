@@ -1,6 +1,6 @@
 using System.Diagnostics;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
@@ -148,7 +148,7 @@ public class VoxelObjectProcessorTests
             dataID: 0,
             transparent: false,
             passable: false,
-            mesh: null,
+            meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: null
@@ -159,7 +159,7 @@ public class VoxelObjectProcessorTests
             dataID: SOLID_VOXEL,
             transparent: false,
             passable: false,
-            mesh: null,
+            meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: null
@@ -170,23 +170,13 @@ public class VoxelObjectProcessorTests
             dataID: LIGHT_VOXEL,
             transparent: false,
             passable: false,
-            mesh: null,
+            meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: ["wb:light"]
         );
         
-        public bool IsCuller(Voxel voxel)
-        {
-            return voxel.ID != 0;
-        }
-
-        public bool IsCuller(Voxel voxel, ShapeLight shapeLight)
-        {
-            return voxel.ID != 0;
-        }
-
-        public bool IsCuller(Voxel voxel, BrickShape shape)
+        public bool IsCuller(in Voxel voxel, BrickShape shape)
         {
             return voxel.ID != 0;
         }

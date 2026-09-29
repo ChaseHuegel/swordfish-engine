@@ -25,7 +25,7 @@ public static class FNV1a
     ///     database assigns; the game-shared voxel generation (server, worldgen, tests) and the client
     ///     must derive identical voxel ids for the same named material, which is what lets server-authored
     ///     world data resolve to correct bricks once streamed to the client. Contrast with the client's
-    ///     full <see cref="WaywardBeyond.Client.Core.Bricks.BrickDatabase"/> which additionally shifts a
+    ///     full <see cref="WaywardBeyond.Shared.Bricks.BrickDatabase"/> which additionally shifts a
     ///     DataID when a rare FNV collision occurs within the baked brick set; the worldgen materials are
     ///     never affected by that pass.
     /// </summary>

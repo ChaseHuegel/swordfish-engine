@@ -3,7 +3,7 @@ using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Bricks;
+using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Client.Core.Graphics;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels.Models;
@@ -21,6 +21,7 @@ internal sealed class MeshPostPass(
     private readonly MeshState _meshState = meshState;
     private readonly BrickDatabase _brickDatabase = brickDatabase;
     private readonly PBRTextureArrays _textureArrays = textureArrays;
+    private readonly IAssetDatabase<Mesh> _meshDatabase = meshDatabase;
 
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
@@ -86,13 +87,14 @@ internal sealed class MeshPostPass(
                 AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Custom:
-                if (brickInfo.Mesh == null)
+                Mesh? customMesh = ResolveMesh(in brickInfo);
+                if (customMesh == null)
                 {
                     AddCube(brickInfo.Transparent ? ref _transparentCubeMeshBuilder : ref _opaqueCubeMeshBuilder, sample.Coords, offset, orientation, sample, brickInfo, culledAbove, culledBelow, culledAhead, culledBehind, culledRight, culledLeft);
                     break;
                 }
-                
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, brickInfo.Mesh, orientation, shapeLight.LightLevel);
+
+                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Block:
             default:
@@ -115,7 +117,19 @@ internal sealed class MeshPostPass(
             return true;
         }
         
-        return _brickDatabase.IsCuller(neighbor);
+        return _brickDatabase.IsCuller(neighbor, shapeLight.Shape);
+    }
+
+    /// <summary>Resolves a custom brick's mesh id to a renderable mesh, or null when absent or missing.</summary>
+    private Mesh? ResolveMesh(in BrickInfo brickInfo)
+    {
+        if (brickInfo.MeshID == null)
+        {
+            return null;
+        }
+
+        Result<Mesh> meshResult = _meshDatabase.Get(brickInfo.MeshID);
+        return meshResult.Success ? meshResult.Value : null;
     }
     
     private void AddCube(
