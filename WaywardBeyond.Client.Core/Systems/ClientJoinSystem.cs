@@ -6,6 +6,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Transport;
 
@@ -25,6 +26,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly VoxelEntityBuilder _voxelBuilder;
+    private readonly IBrickIdMap _brickIdMap;
     private readonly ILogger<ClientJoinSystem> _logger;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
@@ -37,11 +39,13 @@ internal sealed class ClientJoinSystem : IEntitySystem
         in IClientConnection transport,
         in PlayerCharacterEntityBuilder playerBuilder,
         in VoxelEntityBuilder voxelBuilder,
-        ILogger<ClientJoinSystem> logger
+        ILogger<ClientJoinSystem> logger,
+        IBrickIdMap brickIdMap = null
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
+        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
         _logger = logger;
     }
 
@@ -146,7 +150,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
             chunkSize = 16;
         }
 
-        var voxelObject = new VoxelObject(chunkSize, data.Chunks);
+        //  Resolve the server's palette-indexed voxel ids into this process's local id space.
+        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(data, _brickIdMap);
+        var voxelObject = new VoxelObject(chunkSize, local.Chunks);
         _voxelBuilder.Create(
             store,
             Uuid.FromValue(data.Uuid),

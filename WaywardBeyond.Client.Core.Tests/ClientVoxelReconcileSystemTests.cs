@@ -120,6 +120,55 @@ public class ClientVoxelReconcileSystemTests
     }
 
     [Test]
+    public void ConfirmsPlacementAcrossDifferingRegistryIds()
+    {
+        Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        DataStore store = BuildWorld(out int structure, out VoxelObject world);
+
+        //  The client predicted a place with its own registry id for the brick.
+        ushort localPanel = BaseBrickCatalog.Registry.Id("wb:panel");
+        var queue = new PendingInteractionQueue();
+        queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
+        int player = AddPlayer(store, queue);
+
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+
+        //  The server echoes the same brick but with a different numeric id; the canonical name confirms.
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:panel" });
+
+        system.Tick(0f, store);
+
+        Assert.That(queue.TryFindBySequence(1, out _), Is.False, "The name-confirmed prediction should be resolved.");
+    }
+
+    [Test]
+    public void SnapsToAuthoritativeBrickResolvedLocally()
+    {
+        Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        DataStore store = BuildWorld(out int structure, out VoxelObject world);
+
+        //  The client predicted panel, but the server authoritatively says rock with a server-only id.
+        ushort localPanel = BaseBrickCatalog.Registry.Id("wb:panel");
+        ushort localRock = BaseBrickCatalog.Registry.Id("wb:rock");
+        var queue = new PendingInteractionQueue();
+        queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
+        int player = AddPlayer(store, queue);
+
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:rock" });
+
+        system.Tick(0f, store);
+
+        Assert.That(queue.TryFindBySequence(1, out _), Is.False, "The snapped prediction should be resolved.");
+        Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo(localRock), "The view should write the local id for the authoritative brick name.");
+    }
+
+    [Test]
     public void EchoResolvesPendingBySequenceAcrossCells()
     {
         Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);

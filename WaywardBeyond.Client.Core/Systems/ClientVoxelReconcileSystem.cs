@@ -27,13 +27,16 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
+    private readonly IBrickIdMap _brickIdMap;
 
     public ClientVoxelReconcileSystem(
         in IClientConnection transport,
-        in SnapshotAckTracker snapshotAck
+        in SnapshotAckTracker snapshotAck,
+        IBrickIdMap brickIdMap = null
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
+        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
     }
 
     public void Tick(float delta, DataStore store)
@@ -89,7 +92,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         if (pending != null)
         {
             PendingEdit edit = pending.Value;
-            if (VoxelEquals(in edit.Predicted, in message.Voxel))
+            if (VoxelEquals(in edit.Predicted, in message.Voxel, message.BrickId))
             {
                 //  The server agreed with the prediction - already applied. Resolve the pending entry.
                 queue!.Remove(edit.Entity, edit.Coordinate);
@@ -100,7 +103,14 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             queue!.Remove(edit.Entity, edit.Coordinate);
         }
 
-        WriteVoxel(store, entity, in coordinate, in message.Voxel);
+        //  The echo carries the server's voxel id; resolve it to this process's local id space for the write.
+        Voxel authority = message.Voxel;
+        if (!string.IsNullOrEmpty(message.BrickId))
+        {
+            authority.ID = _brickIdMap.Id(message.BrickId);
+        }
+
+        WriteVoxel(store, entity, in coordinate, in authority);
     }
 
     private static PendingEdit? FindPending(
@@ -167,8 +177,20 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         store.MarkDirty<VoxelComponent>(entity);
     }
 
-    private static bool VoxelEquals(in Voxel a, in Voxel b)
+    private bool VoxelEquals(in Voxel predicted, in Voxel server, string? serverBrickId)
     {
-        return a.ID == b.ID && a.ShapeLight == b.ShapeLight && a.Orientation == b.Orientation;
+        if (predicted.ShapeLight != server.ShapeLight || predicted.Orientation != server.Orientation)
+        {
+            return false;
+        }
+
+        //  Compare by canonical brick name so confirmation holds even when the client and server resolve
+        //  different numeric ids for the same brick. Fall back to the raw id when the echo carries no name.
+        if (!string.IsNullOrEmpty(serverBrickId))
+        {
+            return _brickIdMap.Name(predicted.ID) == serverBrickId;
+        }
+
+        return predicted.ID == server.ID;
     }
 }

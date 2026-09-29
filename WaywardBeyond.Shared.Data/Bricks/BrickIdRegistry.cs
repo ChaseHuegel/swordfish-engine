@@ -99,12 +99,19 @@ public sealed class BrickIdRegistry : IBrickIdMap
     /// <summary>Resolves a voxel id to its name, or false when the id is not registered.</summary>
     public bool TryName(ushort id, out string name)
     {
-        return _nameById.TryGetValue(id, out name);
+        if (_nameById.TryGetValue(id, out string? found))
+        {
+            name = found;
+            return true;
+        }
+
+        name = string.Empty;
+        return false;
     }
 
     /// <summary>The registered name for a voxel id, or null when not registered.</summary>
     public string? Name(ushort id)
     {
-        return _nameById.TryGetValue(id, out string name) ? name : null;
+        return _nameById.TryGetValue(id, out string? found) ? found : null;
     }
 }

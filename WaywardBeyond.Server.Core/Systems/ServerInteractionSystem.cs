@@ -200,6 +200,7 @@ public sealed class ServerInteractionSystem
             Z = coordinate.Z,
             Voxel = voxel,
             Sequence = sequence,
+            BrickId = _brickIdMap.Name(voxel.ID),
         };
 
         foreach ((Uuid clientId, _) in _hub.Clients)

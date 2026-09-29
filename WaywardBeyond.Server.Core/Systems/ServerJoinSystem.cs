@@ -29,6 +29,7 @@ public sealed class ServerJoinSystem : IEntitySystem
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly SkillDatabase? _skillDatabase;
+    private readonly IBrickIdMap _brickIdMap;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -40,7 +41,8 @@ public sealed class ServerJoinSystem : IEntitySystem
         in NetworkReplicationSystem replication,
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
-        in SkillDatabase? skillDatabase = null
+        in SkillDatabase? skillDatabase = null,
+        IBrickIdMap brickIdMap = null
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -48,6 +50,7 @@ public sealed class ServerJoinSystem : IEntitySystem
         _replication = replication;
         _interaction = interaction;
         _skillDatabase = skillDatabase;
+        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
         _logger = logger;
     }
 
@@ -229,7 +232,8 @@ public sealed class ServerJoinSystem : IEntitySystem
                 continue;
             }
 
-            _hub.Send(clientId, new WorldEntityAdd { VoxelEntity = data });
+            //  Attach the brick palette so the client can resolve the server's registry ids locally.
+            _hub.Send(clientId, new WorldEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
         }
     }
 
