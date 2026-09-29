@@ -24,10 +24,11 @@ public class ServerJoinSkillSeedTests
         return new ServerJoinSystem(
             hub,
             sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new System.NotImplementedException()),
+            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new System.NotImplementedException(), TestBricks.Map),
             new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(hub),
             NullLogger<ServerJoinSystem>.Instance,
+            TestBricks.Map,
             skills
         );
     }

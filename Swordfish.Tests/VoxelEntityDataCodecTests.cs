@@ -1,4 +1,5 @@
 using WaywardBeyond.Shared.Bricks;
+using System;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using Xunit;
@@ -7,7 +8,7 @@ namespace Swordfish.Tests;
 
 public class VoxelEntityDataCodecTests
 {
-    private static IBrickIdMap Map => BaseBrickCatalog.Registry;
+    private static IBrickIdMap Map => TestBricks.Map;
 
     private static VoxelEntityData Make(ushort id)
     {
@@ -69,9 +70,9 @@ public class VoxelEntityDataCodecTests
     [Fact]
     public void UnknownBareFnvLegacyIdMapsToAir()
     {
-        //  9999 has no base brick FNV mapping in the catalog.
+        //  9999 has no legacy bare-name mapping.
         VoxelEntityData legacy = Make(9999);
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacy);
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacy, _ => (string?)null);
 
         Assert.Equal((ushort)0, encoded.Chunks[0].Chunk.Voxels[0].ID);
     }
@@ -81,12 +82,15 @@ public class VoxelEntityDataCodecTests
     {
         //  A data version 3 save stores FNV1a of the BARE name ("rock"), not the namespaced id.
         ushort bareRockId = FNV1a.ComputeDataID("rock");
-        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(Make(bareRockId));
+        VoxelEntityData legacyRock = Make(bareRockId);
+        Func<ushort, string?> legacyMap = id => id == bareRockId ? "wb:rock" : null;
+
+        VoxelEntityData encoded = VoxelEntityDataCodec.EncodeLegacyToPalette(legacyRock, legacyMap);
 
         Assert.True(VoxelEntityDataCodec.HasPalette(encoded));
-        ushort rockRegistryId = Map.Id("wb:rock");
-        Assert.Equal(rockRegistryId, encoded.Chunks[0].Chunk.Voxels[0].ID);
-        Assert.Equal("wb:rock", encoded.BrickPalette[rockRegistryId]);
+        ushort id = encoded.Chunks[0].Chunk.Voxels[0].ID;
+        Assert.NotEqual((ushort)0, id);
+        Assert.Equal("wb:rock", encoded.BrickPalette[id]);
     }
 
     [Fact]

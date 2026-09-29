@@ -33,11 +33,11 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     public ClientVoxelReconcileSystem(
         in IClientConnection transport,
         in SnapshotAckTracker snapshotAck,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
     }
 
     public void Tick(float delta, DataStore store)

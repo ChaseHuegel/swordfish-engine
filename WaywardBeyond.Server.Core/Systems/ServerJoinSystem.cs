@@ -42,8 +42,8 @@ public sealed class ServerJoinSystem : IEntitySystem
         in NetworkReplicationSystem replication,
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
-        in SkillDatabase? skillDatabase = null,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap,
+        in SkillDatabase? skillDatabase = null
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -51,7 +51,7 @@ public sealed class ServerJoinSystem : IEntitySystem
         _replication = replication;
         _interaction = interaction;
         _skillDatabase = skillDatabase;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
         _logger = logger;
     }
 

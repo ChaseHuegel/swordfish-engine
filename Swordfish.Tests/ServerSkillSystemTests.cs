@@ -57,7 +57,7 @@ public class ServerSkillSystemTests
     public void BreakingARockGrantsMiningXP()
     {
         Fixture fixture = new();
-        ushort rock = BaseBrickCatalog.Registry.Id("wb:rock");
+        ushort rock = TestBricks.Map.Id("wb:rock");
 
         fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, rock, isBreak: true);
 
@@ -76,7 +76,7 @@ public class ServerSkillSystemTests
     public void RepeatedGrantsAccumulateXPInOrder()
     {
         Fixture fixture = new();
-        ushort rock = BaseBrickCatalog.Registry.Id("wb:rock");
+        ushort rock = TestBricks.Map.Id("wb:rock");
 
         fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, rock, isBreak: true);
         fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, rock, isBreak: true);
@@ -93,7 +93,7 @@ public class ServerSkillSystemTests
     public void PlacingAPanelGrantsBuildingXPButNotMining()
     {
         Fixture fixture = new();
-        ushort panel = BaseBrickCatalog.Registry.Id("wb:panel");
+        ushort panel = TestBricks.Map.Id("wb:panel");
 
         //  A place only sources the right skill; mining has no place source.
         fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, panel, isBreak: false);
@@ -120,7 +120,7 @@ public class ServerSkillSystemTests
         Fixture fixture = new();
         fixture.Store.AddOrUpdate(fixture.Player, new SkillStateComponent(new Dictionary<string, long> { ["mining"] = 61 }));
 
-        ushort rock = BaseBrickCatalog.Registry.Id("wb:rock");
+        ushort rock = TestBricks.Map.Id("wb:rock");
         fixture.System.OnInteractionApplied(fixture.Store, fixture.Player, rock, isBreak: true);
 
         Result<SkillStateUpdateMessage> update = fixture.ReceiveUpdate();

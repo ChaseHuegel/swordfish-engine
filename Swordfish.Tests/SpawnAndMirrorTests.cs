@@ -101,7 +101,8 @@ public class SpawnAndMirrorTests
             sessions,
             new WaywardBeyond.Server.Core.Saves.WorldSaveService(
                 NullLogger<WaywardBeyond.Server.Core.Saves.WorldSaveService>.Instance,
-                () => throw new NotImplementedException()
+                () => throw new NotImplementedException(),
+                TestBricks.Map
             ),
             new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
                 hub,
@@ -109,7 +110,8 @@ public class SpawnAndMirrorTests
                 NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
             ),
             TestInteractionSystem.Create(hub),
-            NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance
+            NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance,
+            TestBricks.Map
         );
 
         connection.Client.Send(new JoinRequest

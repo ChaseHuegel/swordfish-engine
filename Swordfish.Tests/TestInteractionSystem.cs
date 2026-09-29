@@ -22,7 +22,8 @@ internal static class TestInteractionSystem
             hub,
             new StubContent(),
             NullLogger<ServerInteractionSystem>.Instance,
-            _ => new StubWorld()
+            _ => new StubWorld(),
+            TestBricks.Map
         );
     }
 

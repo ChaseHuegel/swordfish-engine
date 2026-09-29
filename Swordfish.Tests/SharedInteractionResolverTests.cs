@@ -37,7 +37,7 @@ public class SharedInteractionResolverTests
     {
         (IVoxelInteractionWorld world, _) = BuildWorld();
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, hint: null, InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, hint: null, InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -48,7 +48,7 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, _) = BuildWorld();
         var hint = Hint(0xDEAD, 0, 0, 0);
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, hint, InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, hint, InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -59,7 +59,7 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.Break, result.Action);
         Assert.Equal(new Int3(0, 0, 0), result.Coordinate);
@@ -73,7 +73,7 @@ public class SharedInteractionResolverTests
         //  Cell (1,0,0) is empty; break requires an occupied cell.
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -84,7 +84,7 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(1, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.Break, result.Action);
         Assert.Equal(new Int3(1, 0, 0), result.Coordinate);
@@ -98,7 +98,7 @@ public class SharedInteractionResolverTests
         //  teleport-breaking/placing far from the player).
         voxelObject.Set(500, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 500, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 500, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -109,11 +109,11 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.Place, result.Action);
         Assert.Equal(new Int3(1, 0, 0), result.Coordinate);
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:panel"), result.Voxel.ID);
+        Assert.Equal(TestBricks.Map.Id("wb:panel"), result.Voxel.ID);
     }
 
     [Fact]
@@ -122,7 +122,7 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(1, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -133,7 +133,7 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, placeable: null, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution result = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 1, 0, 0), InteractionKind.SecondaryPressed, placeable: null, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(InteractionAction.None, result.Action);
     }
@@ -144,8 +144,8 @@ public class SharedInteractionResolverTests
         (IVoxelInteractionWorld world, VoxelObject voxelObject) = BuildWorld();
         voxelObject.Set(0, 0, 0, new Voxel(BREAK_BRICK_ID, 0, 0));
 
-        InteractionResolution first = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
-        InteractionResolution second = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, BaseBrickCatalog.Registry);
+        InteractionResolution first = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
+        InteractionResolution second = SharedInteractionResolver.Resolve(_origin, Hint(STRUCTURE_UUID, 0, 0, 0), InteractionKind.PrimaryPressed, _placeableBrick, GameMode.Creative, SharedInteractionResolver.DEFAULT_REACH, world, TestBricks.Map);
 
         Assert.Equal(first.Action, second.Action);
         Assert.Equal(first.Coordinate, second.Coordinate);

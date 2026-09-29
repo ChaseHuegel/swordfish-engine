@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 
@@ -38,18 +39,42 @@ public static class VoxelEntityDataCodec
     }
 
     /// <summary>
-    /// Re-indexes a legacy (version 3) structure into palette form, translating raw FNV1a brick ids that
-    /// were hashed from the bare (un-namespaced) name. Used by the v3 to v4 migration on older saves.
-    /// </summary>
-    public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source)
+/// Re-indexes a legacy (version 3) structure into palette form, translating raw FNV1a brick ids that
+/// were hashed from the bare (un-namespaced) name. <paramref name="legacyIdToName"/> resolves a legacy
+/// id to its current namespaced name; the caller (the v3 to v4 migration) supplies it because those
+/// legacy names are migration data. The structure is re-id'd over a registry built from its own names.
+/// </summary>
+public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source, Func<ushort, string?> legacyIdToName)
     {
         if (HasPalette(in source))
         {
             return source;
         }
 
-        ChunkInfo[] chunks = RemapVoxels(source.Chunks, LegacyIdToRegistryId);
-        string[]? palette = BuildPalette(chunks, BaseBrickCatalog.Registry.Name);
+        //  Collect the distinct migrated names so a local, data-driven registry gives the structure a
+        //  self-consistent palette-id space that DecodeToLocal later maps through the current map.
+        var names = new List<string>();
+        foreach (ChunkInfo chunkInfo in source.Chunks)
+        {
+            Voxel[]? voxels = chunkInfo.Chunk.Voxels;
+            if (voxels == null)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < voxels.Length; i++)
+            {
+                string? name = LegacyNameOf(voxels[i].ID, legacyIdToName);
+                if (name != null && !names.Contains(name))
+                {
+                    names.Add(name);
+                }
+            }
+        }
+
+        BrickIdRegistry local = BrickIdRegistry.FromNames(names);
+        ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => LegacyIdToLocalId(id, legacyIdToName, local));
+        string[]? palette = BuildPalette(chunks, local.Name);
         return new VoxelEntityData(
             source.Uuid,
             source.X, source.Y, source.Z,
@@ -58,6 +83,17 @@ public static class VoxelEntityDataCodec
             chunks,
             palette
         );
+    }
+
+    private static string? LegacyNameOf(ushort legacyId, Func<ushort, string?> legacyIdToName)
+    {
+        return legacyId == 0 ? null : legacyIdToName(legacyId);
+    }
+
+    private static ushort LegacyIdToLocalId(ushort legacyId, Func<ushort, string?> legacyIdToName, BrickIdRegistry local)
+    {
+        string? name = LegacyNameOf(legacyId, legacyIdToName);
+        return name == null ? (ushort)0 : local.Id(name);
     }
 
     /// <summary>
@@ -88,17 +124,6 @@ public static class VoxelEntityDataCodec
     public static bool HasPalette(in VoxelEntityData data)
     {
         return data.BrickPalette != null && data.BrickPalette.Length > 0;
-    }
-
-    private static ushort LegacyIdToRegistryId(ushort legacyId)
-    {
-        string? name = BaseBrickCatalog.LegacyNameFromDataId(legacyId);
-        if (name == null)
-        {
-            return 0;
-        }
-
-        return BaseBrickCatalog.Registry.Id(name);
     }
 
     private static ushort PaletteIdToLocalId(ushort paletteIndex, string[] palette, Func<string, ushort> nameToLocalId)

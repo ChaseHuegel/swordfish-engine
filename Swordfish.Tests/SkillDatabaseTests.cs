@@ -37,7 +37,7 @@ public class SkillDatabaseTests
         };
         var parseService = new VirtualFileParseService(parsers, vfs);
 
-        return new SkillDatabase(NullLogger<SkillDatabase>.Instance, parseService, vfs);
+        return new SkillDatabase(NullLogger<SkillDatabase>.Instance, parseService, vfs, TestBricks.Map);
     }
 
     [Fact]
@@ -69,8 +69,8 @@ public class SkillDatabaseTests
         SkillDatabase db = CreateSharedSkillDatabase();
         SkillData mining = db.Get("mining").Value;
 
-        ushort rock = BaseBrickCatalog.Registry.Id("wb:rock");
-        ushort ice = BaseBrickCatalog.Registry.Id("wb:ice");
+        ushort rock = TestBricks.Map.Id("wb:rock");
+        ushort ice = TestBricks.Map.Id("wb:ice");
 
         //  The environment tag drives mining's Break sources.
         Assert.True(mining.TryGetXP(XPSource.Break, rock, out int rockXP));
@@ -89,7 +89,7 @@ public class SkillDatabaseTests
         SkillData mining = db.Get("mining").Value;
 
         //  Worldgenerated bricks are authored from the same FNV1a rule; a broken rock voxel must yield XP.
-        ushort rockDataID = WorldMaterialCatalog.Rock.ID;
+        ushort rockDataID = WorldMaterialCatalog.FromName("wb:rock", TestBricks.Map).ID;
         Assert.NotEqual((ushort)0, rockDataID);
         Assert.True(mining.TryGetXP(XPSource.Break, rockDataID, out int xp));
         Assert.Equal(1, xp);

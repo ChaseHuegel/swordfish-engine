@@ -40,7 +40,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -72,12 +72,12 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.SecondaryPressed, hint: Hint(1, 0, 0));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
         //  The destination cell received the placed voxel.
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
+        Assert.Equal(TestBricks.Map.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
 
         //  Survival consumed one held item.
         Assert.True(store.TryGet(player, out InventoryComponent inventory));
@@ -96,14 +96,14 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         //  Tick once for each interaction (they share a sequence space; stagger sequences).
         system.Tick(0f, store, simTick: 100);
 
         //  The place wrote the brick at the adjacent cell and the break cleared the occupied cell - both
         //  discrete edges are consumed even though they share the same staged sim tick.
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
+        Assert.Equal(TestBricks.Map.Id("wb:panel"), voxelObject.Get(1, 0, 0).ID);
         Assert.Equal((ushort)0, voxelObject.Get(0, 0, 0).ID);
 
         //  The inventory was untouched by creative interactions.
@@ -118,7 +118,7 @@ public class ServerInteractionSystemTests
 
         int player = BuildPlayerMirror(store, GameMode.Adventure, heldItemID: "laser");
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         //  First session consumes a high sequence (5) on this mirror index, raising the watermark.
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0), sequence: 5);
@@ -147,7 +147,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: null);
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -175,7 +175,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0));
 
         
-        ServerInteractionSystem system = new(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -202,7 +202,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(1, 0, 0));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -223,7 +223,7 @@ public class ServerInteractionSystemTests
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(500, 0, 0));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -248,7 +248,7 @@ public class ServerInteractionSystemTests
         //  resolves because validation reads the structure by uuid, not by any ray.
         
         ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ =>
-            new RaylessWorld(structure, voxelObject));
+            new RaylessWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -267,7 +267,7 @@ public class ServerInteractionSystemTests
         registry.Register(new ModHandler(new InteractionHandlerFilter(), static _ => InteractionResolution.None));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 
@@ -292,7 +292,7 @@ public class ServerInteractionSystemTests
         ));
 
         
-        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject));
+        ServerInteractionSystem system = new(new ServerConnectionHub(), new StubContent(), NullLogger<ServerInteractionSystem>.Instance, registry, _ => new StubWorld(structure, voxelObject), TestBricks.Map);
 
         system.Tick(0f, store, simTick: 100);
 

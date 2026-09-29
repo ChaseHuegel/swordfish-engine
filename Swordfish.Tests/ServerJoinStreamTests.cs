@@ -44,7 +44,7 @@ public class ServerJoinStreamTests : IDisposable
     public void CreateWorldThenLoadBuildsAuthoritativeBodies()
     {
         using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
 
         bool created = world.CreateWorld("Test World", seed: "1337", GameMode.Creative, out string guid);
         Assert.True(created);
@@ -65,7 +65,7 @@ public class ServerJoinStreamTests : IDisposable
     public void JoinStreamsWorldAndSeatsPlayer()
     {
         using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
 
         Assert.True(world.CreateWorld("Join World", seed: "42", GameMode.Creative, out string levelGuid));
 
@@ -81,7 +81,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         connection.Client.Send(new JoinRequest
         {
@@ -114,7 +114,7 @@ public class ServerJoinStreamTests : IDisposable
     public void LeaveThenJoinADifferentWorld()
     {
         using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
 
         Assert.True(world.CreateWorld("World A", seed: "111", GameMode.Creative, out string levelA));
         Assert.True(world.CreateWorld("World B", seed: "222", GameMode.Creative, out string levelB));
@@ -132,7 +132,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
+        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         int DrainWorld()
         {
@@ -171,7 +171,7 @@ public class ServerJoinStreamTests : IDisposable
     public void JoiningClientPreservesPreExistingPlayersOnTheSameLevel()
     {
         using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv);
+        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
 
         Assert.True(world.CreateWorld("Multi Join World", seed: "99", GameMode.Creative, out string levelGuid));
 
@@ -189,7 +189,7 @@ public class ServerJoinStreamTests : IDisposable
         var sessions = new SessionManager();
         var serverStore = new DataStore();
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
-        var join = new ServerJoinSystem(hub, sessions, world, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance);
+        var join = new ServerJoinSystem(hub, sessions, world, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         //  The host joins the level first and plays.
         var hostConnection = new LocalConnection(serializers);

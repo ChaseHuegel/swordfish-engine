@@ -70,10 +70,11 @@ public class RemotePlayerVisualTests
         var system = new ServerJoinSystem(
             fixture.Hub,
             fixture.Sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException()),
+            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map),
             new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(fixture.Hub),
-            NullLogger<ServerJoinSystem>.Instance
+            NullLogger<ServerJoinSystem>.Instance,
+            TestBricks.Map
         );
 
         const ulong characterId = 42;

@@ -41,12 +41,12 @@ internal sealed class ClientJoinSystem : IEntitySystem
         in PlayerCharacterEntityBuilder playerBuilder,
         in VoxelEntityBuilder voxelBuilder,
         ILogger<ClientJoinSystem> logger,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
         _logger = logger;
     }
 

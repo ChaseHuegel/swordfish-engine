@@ -24,6 +24,9 @@ namespace WaywardBeyond.Client.Core.Tests;
 /// </summary>
 public class ClientVoxelReconcileSystemTests
 {
+    /// <summary>Reconcile compares by canonical name, so a small, fixture-local map suffices.</summary>
+    private static readonly BrickIdRegistry _brickMap = BrickIdRegistry.FromNames(["wb:panel", "wb:rock"]);
+
     private const ulong STRUCTURE_UUID = 0xBEEF;
     private const ushort BRICK_ID = 7;
 
@@ -42,7 +45,7 @@ public class ClientVoxelReconcileSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject world);
 
         var snapshotAck = new SnapshotAckTracker();
-        var system = new ClientVoxelReconcileSystem(connection.Client, snapshotAck);
+        var system = new ClientVoxelReconcileSystem(connection.Client, snapshotAck, _brickMap);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -58,7 +61,7 @@ public class ClientVoxelReconcileSystemTests
         var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
         DataStore store = BuildWorld(out _, out VoxelObject world);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker());
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker(), _brickMap);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -85,7 +88,7 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
 
         //  The server broadcast agrees with the prediction (break -> empty).
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
@@ -110,7 +113,7 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(BRICK_ID, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
 
@@ -129,12 +132,12 @@ public class ClientVoxelReconcileSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject world);
 
         //  The client predicted a place with its own registry id for the brick.
-        ushort localPanel = BaseBrickCatalog.Registry.Id("wb:panel");
+        ushort localPanel = _brickMap.Id("wb:panel");
         var queue = new PendingInteractionQueue();
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
 
         //  The server echoes the same brick but with a different numeric id; the canonical name confirms.
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:panel" });
@@ -153,13 +156,13 @@ public class ClientVoxelReconcileSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject world);
 
         //  The client predicted panel, but the server authoritatively says rock with a server-only id.
-        ushort localPanel = BaseBrickCatalog.Registry.Id("wb:panel");
-        ushort localRock = BaseBrickCatalog.Registry.Id("wb:rock");
+        ushort localPanel = _brickMap.Id("wb:panel");
+        ushort localRock = _brickMap.Id("wb:rock");
         var queue = new PendingInteractionQueue();
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:rock" });
 
@@ -186,7 +189,7 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(1, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 2, serverTickAtSample: 10);
         AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
 
         //  The echo for seq 2 arrives first, then seq 1; each confirms its own pending prediction.
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 1, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 2 });
@@ -216,7 +219,7 @@ public class ClientVoxelReconcileSystemTests
         AddPlayer(store, queue);
 
         //  No authoritative edit is sent; the ack advances far past the sample tick.
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 });
+        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 }, _brickMap);
 
         system.Tick(0f, store);
 

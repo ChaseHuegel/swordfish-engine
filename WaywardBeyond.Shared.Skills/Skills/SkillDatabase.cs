@@ -34,11 +34,11 @@ public sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Skill
         in ILogger<SkillDatabase> logger,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap
     ) : base(logger, fileParseService, vfs)
     {
         _logger = logger;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
         LoadInvariantTags();
         Load();
     }

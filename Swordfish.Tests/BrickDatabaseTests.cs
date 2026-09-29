@@ -10,31 +10,34 @@ namespace Swordfish.Tests;
 
 /// <summary>
 /// Headless coverage for the shared brick module: the real brick tomls loaded through a virtual file
-/// system, proving <see cref="BrickDatabase"/> owns the deterministic id registry over the shipped
-/// content, the same ids the client derives.
+/// system, proving <see cref="BrickDatabase"/> owns a deterministic, data-driven id registry over the
+/// shipped content, the same ids the client derives.
 /// </summary>
 public class BrickDatabaseTests
 {
     [Fact]
-    public void LoadsEveryShippedBrick()
+    public void LoadsTheShippedBricks()
     {
         BrickDatabase db = CreateSharedBrickDatabase();
 
-        Assert.Equal(BaseBrickCatalog.Names.Count, db.Count);
-        foreach (string name in BaseBrickCatalog.Names)
-        {
-            Assert.True(db.Get(db.Id(name)).Success, $"Brick \"{name}\" should load.");
-        }
+        //  The shipped set is loaded from toml, never from a hardcoded catalog.
+        Assert.True(db.Count > 0);
+        Assert.NotEqual((ushort)0, db.Id("wb:rock"));
+        Assert.NotEqual((ushort)0, db.Id("wb:ice"));
+        Assert.NotEqual((ushort)0, db.Id("wb:core"));
     }
 
     [Fact]
-    public void ResolvesRegistryIdsConsistentlyWithBaseCatalog()
+    public void ResolvesNamesAndIdsConsistently()
     {
         BrickDatabase db = CreateSharedBrickDatabase();
+        string[] names = ["wb:rock", "wb:ice", "wb:core", "wb:panel"];
 
-        foreach (string name in BaseBrickCatalog.Names)
+        foreach (string name in names)
         {
-            Assert.Equal(name, db.Name(db.Id(name)));
+            ushort id = db.Id(name);
+            Assert.NotEqual((ushort)0, id);
+            Assert.Equal(name, db.Name(id));
         }
     }
 
@@ -50,7 +53,7 @@ public class BrickDatabaseTests
         Assert.False(db.IsCuller(ice, BrickShape.Plate));
     }
 
-    private static BrickDatabase CreateSharedBrickDatabase()
+    public static BrickDatabase CreateSharedBrickDatabase()
     {
         var vfs = new VirtualFileSystem();
         vfs.Mount(new PathInfo("TestFiles/Bricks/assets"));

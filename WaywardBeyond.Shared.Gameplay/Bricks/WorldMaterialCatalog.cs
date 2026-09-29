@@ -4,29 +4,12 @@ using WaywardBeyond.Shared.Data;
 namespace WaywardBeyond.Shared.Gameplay;
 
 /// <summary>
-///     Stable voxel representations of the named materials the world generator places. The id for each
-///     name is derived with the same FNV1a brick-id rule the client's brick database uses, and every
-///     material here is a block-shaped (shape 0), non-luminous (light 0) voxel, which is exactly what
-///     <see cref="WaywardBeyond.Shared.Bricks.BrickInfo"/> produces for these bricks. Keeping
-///     this in game-shared code lets the authoritative server generate world data whose voxel ids resolve
-///     to the correct bricks once streamed to a client.
+/// Resolves the block-shaped, non-luminous voxel for a brick a worldgen places. Every material resolves
+/// through the caller's <see cref="IBrickIdMap"/>, so worldgen emits the same ids the loaded brick
+/// content assigns. The material names worldgen selects are a gameplay choice, not a brick catalog.
 /// </summary>
 public static class WorldMaterialCatalog
 {
-    public static Voxel Rock => FromName(BaseBrickCatalog.Namespaced("rock"));
-
-    public static Voxel Ice => FromName(BaseBrickCatalog.Namespaced("ice"));
-
-    public static Voxel Core => FromName(BaseBrickCatalog.Namespaced("core"));
-
-    /// <summary>
-    ///     Returns the block-shaped, non-luminous voxel for a named brick material over the base registry.
-    /// </summary>
-    public static Voxel FromName(string name)
-    {
-        return FromName(name, BaseBrickCatalog.Registry);
-    }
-
     /// <summary>
     ///     Returns the block-shaped, non-luminous voxel for a named brick material over the provided map.
     /// </summary>

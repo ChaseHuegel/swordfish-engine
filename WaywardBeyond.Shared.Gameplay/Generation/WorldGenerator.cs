@@ -31,7 +31,7 @@ public sealed class WorldGenerator
     public WorldGenerator(in int seed, in IBrickIdMap brickIdMap)
     {
         _seed = seed;
-        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName(BaseBrickCatalog.Namespaced("rock"), brickIdMap), WorldMaterialCatalog.FromName(BaseBrickCatalog.Namespaced("ice"), brickIdMap));
+        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName(BrickId.Namespaced("rock"), brickIdMap), WorldMaterialCatalog.FromName(BrickId.Namespaced("ice"), brickIdMap));
         _randomizer = new Randomizer(seed);
     }
 

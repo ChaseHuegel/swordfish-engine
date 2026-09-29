@@ -42,15 +42,17 @@ public sealed class ServerInteractionSystem
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
         in IInteractionContent content,
-        ILogger<ServerInteractionSystem> logger
-    ) : this(hub, content, logger, CreateWorldFactory()) { }
+        ILogger<ServerInteractionSystem> logger,
+        IBrickIdMap brickIdMap
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), CreateWorldFactory(), brickIdMap) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
-        Func<DataStore, IVoxelInteractionWorld> worldFactory
-    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory) { }
+        Func<DataStore, IVoxelInteractionWorld> worldFactory,
+        IBrickIdMap brickIdMap
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory, brickIdMap) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
@@ -58,8 +60,8 @@ public sealed class ServerInteractionSystem
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        ServerSkillSystem? skills = null,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap,
+        ServerSkillSystem? skills = null
     ) {
         _hub = hub;
         _content = content;
@@ -67,7 +69,7 @@ public sealed class ServerInteractionSystem
         _logger = logger;
         _worldFactory = worldFactory;
         _skills = skills;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
     }
 
     private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()

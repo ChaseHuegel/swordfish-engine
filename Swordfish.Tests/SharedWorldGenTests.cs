@@ -12,9 +12,9 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldMaterialCatalogVoxelsUseStableDistinctDataIds()
     {
-        Voxel rock = WorldMaterialCatalog.Rock;
-        Voxel ice = WorldMaterialCatalog.Ice;
-        Voxel core = WorldMaterialCatalog.Core;
+        Voxel rock = WorldMaterialCatalog.FromName("wb:rock", TestBricks.Map);
+        Voxel ice = WorldMaterialCatalog.FromName("wb:ice", TestBricks.Map);
+        Voxel core = WorldMaterialCatalog.FromName("wb:core", TestBricks.Map);
 
         Assert.NotEqual((ushort)0, rock.ID);
         Assert.NotEqual((ushort)0, ice.ID);
@@ -25,9 +25,9 @@ public class SharedWorldGenTests
 
         //  The shared catalog derives ids identically to the client brick database's FNV1a rule, and
         //  every worldgen material is a block-shaped, non-luminous voxel.
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:rock"), rock.ID);
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:ice"), ice.ID);
-        Assert.Equal(BaseBrickCatalog.Registry.Id("wb:core"), core.ID);
+        Assert.Equal(TestBricks.Map.Id("wb:rock"), rock.ID);
+        Assert.Equal(TestBricks.Map.Id("wb:ice"), ice.ID);
+        Assert.Equal(TestBricks.Map.Id("wb:core"), core.ID);
         Assert.Equal((byte)0, rock.ShapeLight);
         Assert.Equal((byte)0, ice.Orientation);
     }
@@ -35,7 +35,7 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorProducesCollidableStructuresForSeed()
     {
-        GeneratedVoxelEntity[] world = new WorldGenerator(seed: 1337, BaseBrickCatalog.Registry).Generate();
+        GeneratedVoxelEntity[] world = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
 
         Assert.Equal(20, world.Length);
         foreach (GeneratedVoxelEntity entity in world)
@@ -62,8 +62,8 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorIsDeterministicForSeed()
     {
-        GeneratedVoxelEntity[] first = new WorldGenerator(seed: 1337, BaseBrickCatalog.Registry).Generate();
-        GeneratedVoxelEntity[] second = new WorldGenerator(seed: 1337, BaseBrickCatalog.Registry).Generate();
+        GeneratedVoxelEntity[] first = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
+        GeneratedVoxelEntity[] second = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
 
         Assert.Equal(first.Length, second.Length);
         for (var i = 0; i < first.Length; i++)
@@ -75,8 +75,8 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorDiffersForDifferentSeeds()
     {
-        byte[] first = SerializeAll(new WorldGenerator(seed: 1337, BaseBrickCatalog.Registry).Generate());
-        byte[] second = SerializeAll(new WorldGenerator(seed: 1338, BaseBrickCatalog.Registry).Generate());
+        byte[] first = SerializeAll(new WorldGenerator(seed: 1337, TestBricks.Map).Generate());
+        byte[] second = SerializeAll(new WorldGenerator(seed: 1338, TestBricks.Map).Generate());
 
         Assert.NotEqual(first, second);
     }
@@ -85,7 +85,7 @@ public class SharedWorldGenTests
     public void VoxelChunkWriterRecordsExpectedOffsetsAndVoxels()
     {
         var writer = new VoxelChunkWriter(chunkSize: 16);
-        Voxel voxel = WorldMaterialCatalog.Core;
+        Voxel voxel = WorldMaterialCatalog.FromName("wb:core", TestBricks.Map);
 
         writer.Set(0, 0, 0, voxel);
         writer.Set(-1, -1, -1, voxel);
@@ -123,7 +123,7 @@ public class SharedWorldGenTests
         //  A voxel at x = -524288 maps to a chunk offset of exactly short.MinValue, which used to throw
         //  OverflowException from Math.Abs(short). The writer must tolerate it (out-of-range structures,
         //  e.g. a corrupted/legacy structure, must not crash voxel reconstruction).
-        Voxel voxel = WorldMaterialCatalog.Rock;
+        Voxel voxel = WorldMaterialCatalog.FromName("wb:rock", TestBricks.Map);
         writer.Set(-524288, 0, 0, voxel);
 
         ChunkInfo[] chunks = writer.GetChunkInfos();

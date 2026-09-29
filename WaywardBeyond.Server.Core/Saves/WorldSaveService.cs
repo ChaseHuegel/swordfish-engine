@@ -39,11 +39,11 @@ public sealed class WorldSaveService
     public WorldSaveService(
         in ILogger logger,
         in Func<KeyValueStore> keyValueStore,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap
     ) {
         _logger = logger;
         _keyValueStore = keyValueStore;
-        _brickIdMap = brickIdMap ?? BaseBrickCatalog.Registry;
+        _brickIdMap = brickIdMap;
     }
 
     /// <summary>

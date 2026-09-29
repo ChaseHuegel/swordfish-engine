@@ -85,11 +85,11 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
             loggerFactory.CreateLogger<ServerInteractionSystem>(),
             handlerRegistry,
             store => new ServerVoxelInteractionWorld(store),
-            skills,
-            brickIdMap
+            brickIdMap,
+            skills
         );
 
-        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), skillDatabase, brickIdMap);
+        _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), brickIdMap, skillDatabase);
 
         _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
     }

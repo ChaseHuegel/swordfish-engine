@@ -114,9 +114,8 @@ public sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Brick
     }
 
     /// <summary>
-    /// Collects every brick id under the brick root and builds the registry over
-    /// <see cref="BaseBrickCatalog.Registry"/> plus the loaded set, so the whole id space is known
-    /// before individual bricks are loaded.
+    /// Collects every brick id under the brick root and builds the registry over that loaded content, so
+    /// the whole id space is known before individual bricks are loaded.
     /// </summary>
     private BrickIdRegistry BuildRegistry()
     {
@@ -135,6 +134,6 @@ public sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Brick
             }
         }
 
-        return BrickIdRegistry.FromBaseAndExtras(BaseBrickCatalog.Registry, ids);
+        return BrickIdRegistry.FromNames(ids);
     }
 }
