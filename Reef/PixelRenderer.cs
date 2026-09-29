@@ -141,7 +141,7 @@ public sealed class PixelRenderer
                 renderCommand.Rect.Top + glyph.BBOX.Bottom
             );
 
-            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, color, font);
+            DrawCharacter(bbox, renderCommand.ClipRect, glyph.UV, glyph.ResolveColor(color), font);
         }
     }
     
