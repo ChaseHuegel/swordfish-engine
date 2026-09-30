@@ -1,0 +1,5 @@
+[[Bodies]]
+ID = "wb:bot"
+
+[Bodies.States.standing]
+Front = ["characters/bot_standing.png"]

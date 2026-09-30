@@ -3,6 +3,7 @@ LoadOrder = [
     "swordfish",
     "waywardbeyond.shared.bricks",
     "waywardbeyond.shared.skills",
+    "waywardbeyond.shared.bodies",
     "waywardbeyond.client.core",
     "waywardbeyond.server.core",
 ]
