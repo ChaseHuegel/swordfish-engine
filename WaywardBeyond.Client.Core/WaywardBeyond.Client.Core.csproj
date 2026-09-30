@@ -26,6 +26,7 @@
         <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile"/>
       <ProjectReference Include="..\WaywardBeyond.Shared.Data\WaywardBeyond.Shared.Data.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Bricks\WaywardBeyond.Shared.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+      <ProjectReference Include="..\WaywardBeyond.Shared.Bodies\WaywardBeyond.Shared.Bodies.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Gameplay\WaywardBeyond.Shared.Gameplay.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Networking\WaywardBeyond.Shared.Networking.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />

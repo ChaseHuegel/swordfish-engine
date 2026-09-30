@@ -54,7 +54,7 @@ public class PlayerInitialInventoryTests
         {
             CharacterId = 1,
             Name = "Ada",
-            Body = 3,
+            Body = "wb:m_human",
             InventoryContents = null,
             ActiveInventorySlot = 0,
             GameMode = (int)GameMode.Creative,

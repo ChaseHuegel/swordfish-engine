@@ -1,70 +1,58 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Bodies;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.Services;
 
+/// <summary>
+/// Resolves a body's stable string ID (the <see cref="Character.Body"/> / <c>BodyViewComponent.Body</c>)
+/// into renderable client materials. Fronts (standing) drive the UI preview and face-forward material;
+/// floating materials drive the directional remote-player billboard. An ID that is not a loaded body falls
+/// back to the first loaded body so older or malformed saves still render.
+/// </summary>
 internal sealed class CharacterAssetService
 {
-    private const string FLOATING_SUFFIX = "_floating";
+    private readonly IBodyDatabase _bodyDatabase;
+    private readonly IAssetDatabase<Texture> _textureDatabase;
+    private readonly Shader _uiShader;
+    private readonly Shader _worldShader;
 
-    private readonly List<string> _characterMaterialIds;
-    private readonly List<Material> _characterMaterials;
-    private readonly IAssetDatabase<Material> _materialDatabase;
+    private readonly Dictionary<string, Material> _standingMaterials = [];
+    private readonly Dictionary<string, Material[]> _floatingMaterials = [];
 
-    public CharacterAssetService(in IAssetDatabase<Material> materialDatabase, in VirtualFileSystem vfs)
-    {
-        _materialDatabase = materialDatabase;
-
-        PathInfo characterMaterialsPath = AssetPaths.Materials.At("characters/");
-        IEnumerable<string> standingMaterialIds = vfs.GetFiles(characterMaterialsPath, SearchOption.TopDirectoryOnly)
-            .OrderBy(pathInfo => pathInfo.OriginalString, new NaturalComparer())
-            .Select(pathInfo => $"characters/{pathInfo.GetFileNameWithoutExtension()}")
-            .Where(id => !id.EndsWith(FLOATING_SUFFIX, StringComparison.Ordinal));
-
-        _characterMaterialIds = [];
-        _characterMaterials = [];
-        foreach (string id in standingMaterialIds)
-        {
-            Result<Material> materialResult = materialDatabase.Get(id);
-            if (materialResult)
-            {
-                _characterMaterialIds.Add(id);
-                _characterMaterials.Add(materialResult);
-            }
-        }
+    public CharacterAssetService(
+        in IBodyDatabase bodyDatabase,
+        in IAssetDatabase<Texture> textureDatabase,
+        in IFileParseService fileParseService
+    ) {
+        _bodyDatabase = bodyDatabase;
+        _textureDatabase = textureDatabase;
+        _uiShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("ui_reef_textured.glsl"));
+        _worldShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("textured.glsl"));
     }
 
     public int GetAppearancesCount()
     {
-        return _characterMaterials.Count;
-    }
-    
-    public Material GetAppearanceMaterial(int index)
-    {
-        return GetAppearanceMaterial(index, CharacterAssetVariant.Standing);
+        return _bodyDatabase.Count;
     }
 
-    public Material GetAppearanceMaterial(int index, CharacterAssetVariant variant)
+    /// <summary>Returns the stable string ID of the body at the provided cycle index, or the default body when out of range.</summary>
+    public string GetBodyId(int index)
     {
-        if (variant == CharacterAssetVariant.Floating)
-        {
-            //  Not every body has a floating variant; fall back to the standing material when it does not.
-            Result<Material> floatingResult = _materialDatabase.Get(_characterMaterialIds[index] + FLOATING_SUFFIX);
-            if (floatingResult)
-            {
-                return floatingResult;
-            }
-        }
+        string? id = _bodyDatabase.Ids.ElementAtOrDefault(index);
+        return id ?? _bodyDatabase.DefaultId ?? string.Empty;
+    }
 
-        return _characterMaterials[index];
+    /// <summary>Returns the standing (UI preview) material for a body ID, falling back to the default body for an unknown ID.</summary>
+    public Material GetAppearanceMaterial(string bodyId)
+    {
+        return Resolve(bodyId, _standingMaterials, BuildStandingMaterial);
     }
 
     public Material GetAppearanceMaterial(Character character)
@@ -72,8 +60,76 @@ internal sealed class CharacterAssetService
         return GetAppearanceMaterial(character.Body);
     }
 
-    public Material GetAppearanceMaterial(Character character, CharacterAssetVariant variant)
+    /// <summary>
+    /// Returns the ordered directional floating materials for a body ID, falling back to the default body
+    /// for an unknown ID. Index 0 is the forward-facing (front) material and later indices step around the
+    /// entity, so a billboard can select a sprite by relative facing.
+    /// </summary>
+    public Material[] GetFloatingMaterials(string bodyId)
     {
-        return GetAppearanceMaterial(character.Body, variant);
+        return Resolve(bodyId, _floatingMaterials, BuildFloatingMaterials);
+    }
+
+    private string ResolveId(string bodyId)
+    {
+        return _bodyDatabase.Contains(bodyId) ? bodyId : (_bodyDatabase.DefaultId ?? bodyId);
+    }
+
+    private Material BuildStandingMaterial(string bodyId)
+    {
+        string resolved = ResolveId(bodyId);
+        //  Standing is the default state; if absent, fall back to the first floating state's texture.
+        string[] textures = _bodyDatabase.Get(resolved).Value.GetState("standing");
+        Texture texture = LoadFirstTexture(resolved, textures);
+        return new Material(_uiShader, texture) { Transparent = true };
+    }
+
+    private Material[] BuildFloatingMaterials(string bodyId)
+    {
+        string resolved = ResolveId(bodyId);
+        string[] textures = _bodyDatabase.Get(resolved).Value.GetState("floating");
+        if (textures.Length == 0)
+        {
+            //  No floating pose: render the standing pose as a single-direction billboard.
+            string texturePath = _bodyDatabase.Get(resolved).Value.GetState("standing").FirstOrDefault() ?? string.Empty;
+            if (string.IsNullOrEmpty(texturePath))
+            {
+                return [];
+            }
+
+            return [new Material(_worldShader, LoadTexture(texturePath)) { Transparent = true }];
+        }
+
+        var materials = new Material[textures.Length];
+        for (var i = 0; i < textures.Length; i++)
+        {
+            materials[i] = new Material(_worldShader, LoadTexture(textures[i])) { Transparent = true };
+        }
+
+        return materials;
+    }
+
+    private Texture LoadFirstTexture(string bodyId, string[] textures)
+    {
+        string texturePath = textures.FirstOrDefault() ?? string.Empty;
+        return LoadTexture(texturePath);
+    }
+
+    private Texture LoadTexture(string path)
+    {
+        Result<Texture> textureResult = _textureDatabase.Get(path);
+        return textureResult ? textureResult : _textureDatabase.Get("characters/m_human_standing.png");
+    }
+
+    private static T Resolve<T>(string bodyId, Dictionary<string, T> cache, System.Func<string, T> build)
+    {
+        string resolved = bodyId;
+        if (!cache.TryGetValue(bodyId, out T? value))
+        {
+            value = build(bodyId);
+            cache[bodyId] = value;
+        }
+
+        return value;
     }
 }

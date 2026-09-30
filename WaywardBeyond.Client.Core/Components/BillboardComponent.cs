@@ -18,6 +18,6 @@ public struct BillboardComponent : IDataComponent
     /// <summary>The quad's width and height in world units.</summary>
     public Vector2 Size;
 
-    /// <summary>The material drawn on the quad.</summary>
-    public Material Material;
+    /// <summary>The materials drawn on the quad. Index 0 is the forward-facing material; additional materials are directional.</summary>
+    public Material[] Materials;
 }

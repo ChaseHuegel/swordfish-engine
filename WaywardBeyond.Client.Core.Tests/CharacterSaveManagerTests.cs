@@ -49,7 +49,7 @@ public class CharacterSaveManagerTests
             _Charisma: 5,
             _Education: 5,
             _Resolve: 5,
-            _Body: 0,
+            _Body: "wb:m_human",
             _ActiveInventorySlot: 0,
             _GameMode: GameMode.Creative,
             _Statistics: null,

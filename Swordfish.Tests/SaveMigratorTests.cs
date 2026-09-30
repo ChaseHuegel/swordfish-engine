@@ -66,7 +66,7 @@ public class SaveMigratorTests
         SaveMigrator migrator = new([]);
         var character = new Character(
             new WaywardBeyond.Shared.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),
-            1, 0, 0, "n", 1, 1, 1, 1, 1, 1, 1, 0, GameMode.Creative, _Statistics: null, _Inventory: null
+            1, 0, 0, "n", 1, 1, 1, 1, 1, 1, "wb:m_human", 0, GameMode.Creative, _Statistics: null, _Inventory: null
         );
 
         Character result = migrator.Migrate(character, 3);

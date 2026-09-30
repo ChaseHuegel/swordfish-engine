@@ -81,7 +81,7 @@ public class RemotePlayerVisualTests
         fixture.Client(0).Send(new JoinRequest
         {
             CharacterId = characterId,
-            PublicView = new PublicView { CharacterId = characterId, Name = "Ada", Body = 2 },
+            PublicView = new PublicView { CharacterId = characterId, Name = "Ada", Body = "wb:m_human" },
         });
 
         system.Tick(0f, fixture.Store);
@@ -91,7 +91,7 @@ public class RemotePlayerVisualTests
         Assert.True(fixture.Sessions.TryGetEntity(fixture.ClientIds[0], out int entity));
 
         Assert.True(fixture.Store.TryGet(entity, out BodyViewComponent body));
-        Assert.Equal(2, body.Body);
+        Assert.Equal("wb:m_human", body.Body);
 
         Assert.True(fixture.Store.TryGet(entity, out IdentifierComponent identifier));
         Assert.Equal("Ada", identifier.Name);

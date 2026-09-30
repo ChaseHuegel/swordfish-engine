@@ -100,7 +100,7 @@ public class InteractionContextComponentTests
         {
             CharacterId = 42,
             Name = "Ada",
-            Body = 3,
+            Body = "wb:m_human",
             InventoryContents =
             [
                 InventoryComponent.Stack("wb:rock", 5, 100),
@@ -131,7 +131,7 @@ public class InteractionContextComponentTests
         {
             LevelGuid = "level",
             CharacterId = 42,
-            PublicView = new PublicView { CharacterId = 42, Name = "Ada", Body = 3 },
+            PublicView = new PublicView { CharacterId = 42, Name = "Ada", Body = "wb:m_human" },
         };
 
         byte[] bytes = join.Serialize();

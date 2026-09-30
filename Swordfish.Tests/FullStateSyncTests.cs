@@ -90,7 +90,7 @@ public class FullStateSyncTests
         hostConnection.Client.Send(new JoinRequest
         {
             CharacterId = 1,
-            PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = 1 },
+            PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = "wb:m_human" },
         });
         join.Tick(0f, store);
 
@@ -109,7 +109,7 @@ public class FullStateSyncTests
         guestConnection.Client.Send(new JoinRequest
         {
             CharacterId = 2,
-            PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = 0 },
+            PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = "wb:m_human" },
         });
         join.Tick(0f, store);
         replication.PublishStage(0f, store);
@@ -148,7 +148,7 @@ public class FullStateSyncTests
         //  A player mirror that carried a BodyView.
         int mirror = store.Alloc();
         store.AddOrUpdate(mirror, new NetworkComponent());
-        store.AddOrUpdate(mirror, new BodyViewComponent { Body = 3 });
+        store.AddOrUpdate(mirror, new BodyViewComponent { Body = "wb:m_human" });
         sessions.Register(store, mirror, clientId, new Session(1u));
 
         //  Publish once so the mirror's dirty BodyView is consumed and cleared.

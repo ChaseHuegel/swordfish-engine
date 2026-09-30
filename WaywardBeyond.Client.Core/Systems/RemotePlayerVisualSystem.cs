@@ -2,8 +2,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
-using Swordfish.IO;
-using Swordfish.Library.IO;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Shared.Gameplay;
@@ -12,27 +10,23 @@ using WaywardBeyond.Shared.Networking.Components;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Player-specific glue between the replicated <see cref="BodyViewComponent"/> (an appearance index) and
+/// Player-specific glue between the replicated <see cref="BodyViewComponent"/> (a body asset ID) and
 /// the general client billboard path. For every remote player entity (an entity carrying a
-/// <see cref="BodyViewComponent"/> but no local <see cref="PlayerComponent"/>), it resolves the Body index
-/// into a world-space material using the floating character texture (the UI keeps the standing pose; remote
-/// players billboard hovering, driven by the same <see cref="BodyViewComponent.Body"/> index) and attaches a
-/// <see cref="BillboardComponent"/>, which the general <see cref="BillboardSystem"/> renders. Caches one
-/// material per Body so remote players share textures; leaves the local player untouched.
+/// <see cref="BodyViewComponent"/> but no local <see cref="PlayerComponent"/>), it resolves the body ID
+/// into world-space directional materials (the UI keeps the standing pose; remote players billboard
+/// hovering) and attaches a <see cref="BillboardComponent"/> with those materials, which the general
+/// <see cref="BillboardSystem"/> renders. Caches the material set per body so remote players share
+/// textures; leaves the local player untouched.
 /// </summary>
 internal sealed class RemotePlayerVisualSystem : IEntitySystem
 {
     private readonly CharacterAssetService _characterAssetService;
-    private readonly Shader _texturedShader;
 
-    private readonly Dictionary<int, Material> _materials = [];
+    private readonly Dictionary<string, Material[]> _materials = [];
 
-    public RemotePlayerVisualSystem(
-        in CharacterAssetService characterAssetService,
-        in IFileParseService fileParseService
-    ) {
+    public RemotePlayerVisualSystem(in CharacterAssetService characterAssetService)
+    {
         _characterAssetService = characterAssetService;
-        _texturedShader = fileParseService.Parse<Shader>(AssetPaths.Shaders.At("textured.glsl"));
     }
 
     public void Tick(float delta, DataStore store)
@@ -41,20 +35,20 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
         store.Query<BodyViewComponent, TransformComponent, AttachAction>(delta, ref action);
     }
 
-    private Material ResolveMaterial(int body)
+    private Material[] ResolveMaterials(string bodyId)
     {
-        if (_materials.TryGetValue(body, out Material? cached))
+        if (_materials.TryGetValue(bodyId, out Material[]? cached))
         {
             return cached;
         }
 
-        //  The character UI material carries the texture but renders through a clip-space Reef UI shader
-        //  that cannot be drawn in-world, so reuse its texture under the world texture shader.
-        Material appearance = _characterAssetService.GetAppearanceMaterial(body, CharacterAssetVariant.Floating);
-        Texture texture = appearance.Textures[0];
-        var material = new Material(_texturedShader, texture) { Transparent = appearance.Transparent };
-        _materials[body] = material;
-        return material;
+        Material[] materials = _characterAssetService.GetFloatingMaterials(bodyId);
+        if (materials.Length > 0)
+        {
+            _materials[bodyId] = materials;
+        }
+
+        return materials;
     }
 
     private void Attach(DataStore store, int entity, in BodyViewComponent body, in TransformComponent transform)
@@ -65,10 +59,10 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
             return;
         }
 
-        Material material = ResolveMaterial(body.Body);
+        Material[] materials = ResolveMaterials(body.Body);
 
         //  Scale the quad to the texture's aspect so the sprite is not squashed, sized to the player's body height.
-        Texture texture = material.Textures[0];
+        Texture texture = materials[0].Textures[0];
         float height = PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y;
         float width = texture.Width > 0 ? height * (texture.Width / (float)texture.Height) : height;
 
@@ -76,7 +70,7 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
         {
             Offset = new Vector3(0f, height * 0.5f, 0f),
             Size = new Vector2(width, height),
-            Material = material,
+            Materials = materials,
         });
     }
 

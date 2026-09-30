@@ -86,7 +86,7 @@ public class TcpServerHostTests
         }
 
         //  Each client sends a distinct message type; each must land on exactly one accepted peer.
-        clientA.Send(new JoinRequest { CharacterId = 11, PublicView = new PublicView { CharacterId = 11, Name = "A", Body = 0 } });
+        clientA.Send(new JoinRequest { CharacterId = 11, PublicView = new PublicView { CharacterId = 11, Name = "A", Body = "wb:m_human" } });
         clientB.Send(new LeaveGameRequest { Dummy = 22 });
 
         TcpTransport? joinPeer = null;

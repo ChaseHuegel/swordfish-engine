@@ -67,7 +67,7 @@ public class NetworkComponentCodecTests
     {
         var store = new DataStore();
         int entity = store.Alloc();
-        store.AddOrUpdate(entity, new BodyViewComponent { Body = 3 });
+        store.AddOrUpdate(entity, new BodyViewComponent { Body = "wb:m_human" });
 
         var codec = new NsdComponentCodec<BodyViewComponent>();
         byte[] payload = codec.Serialize(store, entity);
@@ -78,7 +78,7 @@ public class NetworkComponentCodecTests
         codec.Apply(output, outputEntity, payload);
 
         Assert.True(output.TryGet(outputEntity, out BodyViewComponent result));
-        Assert.Equal(3, result.Body);
+        Assert.Equal("wb:m_human", result.Body);
     }
 
     [Fact]

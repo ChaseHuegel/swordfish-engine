@@ -106,7 +106,7 @@ public class SessionRoutingTests
             fixture.Client(i).Send(new JoinRequest
             {
                 CharacterId = characterId,
-                PublicView = new PublicView { CharacterId = characterId, Name = "P", Body = 0 },
+                PublicView = new PublicView { CharacterId = characterId, Name = "P", Body = "wb:m_human" },
             });
         }
 

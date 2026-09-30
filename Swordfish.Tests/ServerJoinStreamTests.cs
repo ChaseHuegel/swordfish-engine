@@ -87,7 +87,7 @@ public class ServerJoinStreamTests : IDisposable
         {
             LevelGuid = levelGuid,
             CharacterId = 7,
-            PublicView = new PublicView { CharacterId = 7, Name = "Test", Body = 3 },
+            PublicView = new PublicView { CharacterId = 7, Name = "Test", Body = "wb:m_human" },
         });
 
         join.Tick(delta: 0f, serverStore);
@@ -194,7 +194,7 @@ public class ServerJoinStreamTests : IDisposable
         //  The host joins the level first and plays.
         var hostConnection = new LocalConnection(serializers);
         Uuid hostClient = hub.Add(hostConnection.Server);
-        hostConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = 1 } });
+        hostConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = "wb:m_human" } });
         join.Tick(0f, serverStore);
         replication.PublishStage(0f, serverStore);
 
@@ -205,7 +205,7 @@ public class ServerJoinStreamTests : IDisposable
         //  which would free the host's mirror along with every world entity.
         var guestConnection = new LocalConnection(serializers);
         hub.Add(guestConnection.Server);
-        guestConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 2, PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = 0 } });
+        guestConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 2, PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = "wb:m_human" } });
         join.Tick(0f, serverStore);
 
         Assert.True(sessions.TryGetEntity(hostClient, out int hostAfter));

@@ -117,7 +117,7 @@ public class SpawnAndMirrorTests
         connection.Client.Send(new JoinRequest
         {
             CharacterId = 99,
-            PublicView = new PublicView { CharacterId = 99, Name = "P", Body = 2 },
+            PublicView = new PublicView { CharacterId = 99, Name = "P", Body = "wb:m_human" },
         });
 
         system.Tick(0f, serverStore);

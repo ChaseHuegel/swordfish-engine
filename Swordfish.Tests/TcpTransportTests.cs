@@ -61,7 +61,7 @@ public class TcpTransportTests
         using TcpTransport server = CreateServer();
         using TcpTransport client = CreateClient(server.LocalPort);
 
-        client.Send(new JoinRequest { CharacterId = 11, PublicView = new PublicView { CharacterId = 11, Name = "P", Body = 0 } });
+        client.Send(new JoinRequest { CharacterId = 11, PublicView = new PublicView { CharacterId = 11, Name = "P", Body = "wb:m_human" } });
         client.Send(new WorldStreamComplete { Dummy = 5 });
         client.Send(new LeaveGameRequest { Dummy = 9 });
 

@@ -208,7 +208,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                                 }
                             }
 
-                            Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterMaterialIndex);
+                            Material appearanceMaterial = _characterAssetService.GetAppearanceMaterial(_characterAssetService.GetBodyId(_characterMaterialIndex));
                             using (ui.Image(appearanceMaterial))
                             {
                                 ui.Constraints = new Constraints
@@ -537,7 +537,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                     _charisma,
                     _education,
                     _resolve,
-                    _Body: _characterMaterialIndex,
+                    _Body: _characterAssetService.GetBodyId(_characterMaterialIndex),
                     _ActiveInventorySlot: 0,
                     _GameMode: GameMode.Creative,
                     _Statistics: null,

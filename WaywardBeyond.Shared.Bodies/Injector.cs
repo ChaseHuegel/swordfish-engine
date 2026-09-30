@@ -17,5 +17,6 @@ public sealed class Injector : IDryIocInjector
         container.RegisterTomlParser<BodyModels>();
         container.Register<BodyDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<BodyInfo>, BodyDatabase>();
+        container.RegisterMapping<IBodyDatabase, BodyDatabase>();
     }
 }

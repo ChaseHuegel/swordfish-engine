@@ -11,7 +11,7 @@ namespace WaywardBeyond.Shared.Bodies;
 /// <see cref="BodyInfo"/> carrying its stable string ID and per-state directional texture paths. It carries
 /// no render-coupled material types, so the client, the server, and headless consumers share one database.
 /// </summary>
-public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, BodyInfo>
+public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, BodyInfo>, IBodyDatabase
 {
     private readonly Dictionary<string, BodyModel> _models = [];
 

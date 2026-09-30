@@ -54,12 +54,12 @@ public class ServerJoinSkillSeedTests
         connection.Client.Send(new JoinRequest
         {
             CharacterId = 7,
-            PublicView = new PublicView { CharacterId = 7, Name = "Test", Body = 0 },
+            PublicView = new PublicView { CharacterId = 7, Name = "Test", Body = "wb:m_human" },
             Seed = new CharacterSeed
             {
                 CharacterId = 7,
                 Name = "Test",
-                Body = 0,
+                Body = "wb:m_human",
                 Statistics =
                 [
                     new Statistic("mining", 25),
@@ -101,7 +101,7 @@ public class ServerJoinSkillSeedTests
         connection.Client.Send(new JoinRequest
         {
             CharacterId = 8,
-            PublicView = new PublicView { CharacterId = 8, Name = "New", Body = 0 },
+            PublicView = new PublicView { CharacterId = 8, Name = "New", Body = "wb:m_human" },
         });
 
         join.Tick(0f, store);
