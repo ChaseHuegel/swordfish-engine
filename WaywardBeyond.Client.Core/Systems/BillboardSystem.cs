@@ -56,7 +56,9 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
 
         Vector3 position = record.Position + record.Offset;
         Quaternion orientation = GetAxialLookAt(cameraPosition, position, record.Orientation);
-        var scale = new Vector3(record.Size.X, record.Size.Y, 1f);
+        //  Mirror the quad's X so a laterally-facing character looks left or right from the camera.
+        int facing = GetHorizontalFacing(record.Orientation, position, cameraPosition);
+        var scale = new Vector3(record.Size.X * facing, record.Size.Y, 1f);
         var transform = new TransformComponent(position, orientation, scale);
 
         //  Number of materials is the number of directions: 1 renders every facing, otherwise the camera's
@@ -137,6 +139,33 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
     private static Vector3 ProjectOnto(Vector3 value, Vector3 basis)
     {
         return value - Vector3.Dot(value, basis) * basis;
+    }
+
+    /// <summary>
+    ///     Returns whether to mirror the billboard's X for a camera looking at <paramref name="position"/>.
+    ///     Returns -1 (mirror) when the entity's forward points to the camera's left of the line of sight, +1
+    ///     (no mirror) when it points right. Degenerate alignment with the up axis returns +1.
+    /// </summary>
+    private static int GetHorizontalFacing(Quaternion entityOrientation, Vector3 position, Vector3 cameraPosition)
+    {
+        Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, entityOrientation));
+
+        //  Direction toward the camera is the billboard's face normal (same axis GetAxialLookAt builds).
+        Vector3 facing = ProjectOnto(cameraPosition - position, localUp);
+        Vector3 forward = ProjectOnto(Vector3.Transform(-Vector3.UnitZ, entityOrientation), localUp);
+
+        if (facing.LengthSquared() < 1e-6f || forward.LengthSquared() < 1e-6f)
+        {
+            //  Aligned with the up axis; the mirror is ambiguous, so leave it unmirrored.
+            return 1;
+        }
+
+        facing = Vector3.Normalize(facing);
+        forward = Vector3.Normalize(forward);
+
+        //  Billboard in-plane horizontal axis, orthogonal to both the face normal and the up axis.
+        Vector3 right = Vector3.Cross(localUp, facing);
+        return Vector3.Dot(forward, right) < 0f ? -1 : 1;
     }
 
     /// <summary>
