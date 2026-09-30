@@ -17,7 +17,7 @@ message InputComponent
 
 message BodyViewComponent
 {
-    int Body = 0;
+    string Body = 0;
 }
 
 message IdentifierMessage

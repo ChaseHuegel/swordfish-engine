@@ -51,7 +51,7 @@ message Character
     int Education = 9;
     int Resolve = 10;
     
-    int Body = 11;
+    string Body = 11;
     
     int ActiveInventorySlot = 12;
     GameMode GameMode = 13;
