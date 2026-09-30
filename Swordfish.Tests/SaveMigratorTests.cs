@@ -62,7 +62,7 @@ public class SaveMigratorTests
     [Fact]
     public void TypeWithoutMigrationPassesThroughAnySupportedVersion()
     {
-        //  Character has no registered migration in v4, so an older same-shaped record is a no-op.
+        //  Character has no registered migration, so an older same-shaped record is a no-op.
         SaveMigrator migrator = new([]);
         var character = new Character(
             new WaywardBeyond.Shared.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),

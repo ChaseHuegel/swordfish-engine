@@ -55,15 +55,18 @@ grouping of 10–15 are reserved; do not reuse.
 
 ## Remote player public view
 
-`BodyViewComponent` (`int Body`) and the reused engine `IdentifierComponent`
-(its `Name`) carry a joining client's minimal public character view on the
-server player mirror. This is the appearance index that drives a remote
-player's billboard, plus the name. It never carries inventory or attributes.
+`BodyViewComponent` (its `Body` is the body asset string ID) and the reused
+engine `IdentifierComponent` (its `Name`) carry a joining client's minimal
+public character view on the server player mirror. This is the appearance that
+drives a remote player's billboard, plus the name. It never carries inventory
+or attributes.
 
 The client renders any remote player (an entity with `BodyViewComponent` but no
 `PlayerComponent`) through the general billboard path. `RemotePlayerVisualSystem`
-resolves `Body` to a world-space material and attaches a `BillboardComponent`,
-which `BillboardSystem` renders as a camera-facing quad.
+resolves `Body` (a string ID) into the body's directional materials and attaches
+a `BillboardComponent`, which `BillboardSystem` renders as a camera-facing
+quad with the sector-facing material. See [asset-definitions](asset-definitions.md)
+for the body data format.
 
 The interaction context (`EquipmentComponent`, `InventoryComponent`,
 `GameModeComponent`) is seeded from the client's local character save at join

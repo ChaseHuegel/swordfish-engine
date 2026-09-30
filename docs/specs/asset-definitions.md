@@ -133,6 +133,24 @@ Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
 on load. `Name` and `Category` are localization keys resolved client-side (see
 [skills](skills.md) for the authoritative model).
 
+## Bodies (`assets/bodies/*.toml`)
+
+Bodies live in the shared `WaywardBeyond.Shared.Bodies` module. Schema:
+`BodyModels.cs` (collection), `BodyModel.cs` (row).
+
+Each body is a `[[Bodies]]` table carrying a stable namespaced string ID
+(`wb:m_human`). The `States` member is a tag-keyed map of state variants
+(`standing`, `floating`, ...); each state maps direction tags (`front`, `back`,
+... , free-form for future sets) to texture paths. Direction display order is
+canonical, not the asset order: `front` is index 0, then `back`/`left`/`right`
+(`BodyDirectionOrder.cs`). An unknown body ID falls back to the first loaded
+body at resolution.
+
+| Field | Type | Notes |
+|---|---|---|
+| `ID` | string | namespaced body asset ID (e.g. `wb:m_human`) |
+| `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
+
 ## Localization
 
 `assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
@@ -144,6 +162,7 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 - `WaywardBeyond.Client.Core/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
 - `WaywardBeyond.Client.Core/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Shared.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
+- `WaywardBeyond.Shared.Bodies/{BodyModels,BodyModel,BodyDirectionOrder,BodyDatabase}.cs`
 - `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Shared.Skills/Injector.cs`,

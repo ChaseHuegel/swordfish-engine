@@ -27,6 +27,7 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |
 | `WaywardBeyond.Shared.Skills/` | Shared skill module: definitions, headless loader, skill state | `net9.0` | — |
 | `WaywardBeyond.Shared.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
+| `WaywardBeyond.Shared.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
 
 **Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`)
 and `WaywardBeyond.Client.Launcher/Program.cs`.

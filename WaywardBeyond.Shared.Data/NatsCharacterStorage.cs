@@ -10,9 +10,10 @@ public class NatsCharacterStorage : ICharacterStorage
     private readonly KeyValueStore _keyValueStore;
 
     /// <summary>
-    /// Migrates character records on load. Carries no character migration yet (the character record is
-    /// unchanged in v4), so an older, same-shaped record passes through; the version gate still refuses
-    /// records stamped by a newer build. Injectable for hosts that register a full migrator.
+    /// Migrates character records on load. Carries no character migration: the v4 Body change (int to
+    /// string asset ID) is not forward-migrated, so older records pass through and an unknown body ID
+    /// falls back to the first loaded body at resolution. The version gate still refuses records stamped
+    /// by a newer build. Injectable for hosts that register a full migrator.
     /// </summary>
     private readonly SaveMigrator _migrator;
 
