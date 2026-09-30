@@ -103,7 +103,7 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
         Vector3 localUp = Vector3.Normalize(Vector3.Transform(Vector3.UnitY, entityOrientation));
 
         //  Entity forward is the sector-0 reference; project it onto the up-orthogonal plane.
-        Vector3 forward = Vector3.Transform(Vector3.UnitZ, entityOrientation);
+        Vector3 forward = Vector3.Transform(-Vector3.UnitZ, entityOrientation);
         Vector3 projectedForward = ProjectOnto(forward, localUp);
 
         //  Direction from the entity toward the camera, projected onto the same plane.
