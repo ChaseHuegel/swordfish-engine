@@ -13,12 +13,12 @@ public static class BodyDirectionOrder
     public static readonly string[] Preferences = ["front", "back", "left", "right"];
 
     /// <summary>
-    /// Returns the direction textures of <paramref name="state"/> in canonical order, only including tags
-    /// the state defines. Multiple texture paths for one direction are flattened.
+    /// Returns the direction textures of <paramref name="directions"/> in canonical order, only including tags
+    /// present. Multiple texture paths for one direction are flattened.
     /// </summary>
-    public static string[] Resolve(in BodyStateTextures state)
+    public static string[] Resolve(in Dictionary<string, string?[]> directions)
     {
-        if (state.Directions == null)
+        if (directions == null)
         {
             return [];
         }
@@ -26,7 +26,7 @@ public static class BodyDirectionOrder
         var textures = new List<string>();
         foreach (string tag in Preferences)
         {
-            if (!state.Directions.TryGetValue(tag, out string?[]? paths))
+            if (!directions.TryGetValue(tag, out string?[]? paths))
             {
                 continue;
             }

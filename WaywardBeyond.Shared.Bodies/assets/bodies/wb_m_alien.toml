@@ -2,7 +2,7 @@
 ID = "wb:m_alien"
 
 [Bodies.States.standing]
-Front = ["characters/m_alien_standing.png"]
+front = ["characters/m_alien_standing.png"]
 
 [Bodies.States.floating]
-Front = ["characters/m_alien_floating.png"]
+front = ["characters/m_alien_floating.png"]

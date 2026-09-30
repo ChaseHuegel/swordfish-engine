@@ -65,9 +65,9 @@ public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, B
         var states = new Dictionary<string, string[]>();
         if (assetInfo.States != null)
         {
-            foreach ((string stateTag, BodyStateTextures state) in assetInfo.States)
+            foreach ((string stateTag, Dictionary<string, string?[]> directions) in assetInfo.States)
             {
-                states[stateTag] = BodyDirectionOrder.Resolve(in state);
+                states[stateTag] = BodyDirectionOrder.Resolve(in directions);
             }
         }
 

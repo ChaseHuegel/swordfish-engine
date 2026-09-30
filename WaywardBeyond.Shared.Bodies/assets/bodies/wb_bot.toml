@@ -2,4 +2,4 @@
 ID = "wb:bot"
 
 [Bodies.States.standing]
-Front = ["characters/bot_standing.png"]
+front = ["characters/bot_standing.png"]
