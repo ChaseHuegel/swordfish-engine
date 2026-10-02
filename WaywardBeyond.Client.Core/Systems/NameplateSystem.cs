@@ -19,7 +19,7 @@ internal sealed class NameplateSystem(
     IWindowContext windowContext
 ) : IEntitySystem
 {
-    private const float MAX_RENDER_DISTANCE = 12;
+    private const float MAX_RENDER_DISTANCE = 20;
     private const int BASE_FONT_SIZE = 12;
     private const float REFERENCE_DISTANCE = 4f;
     private const int MIN_FONT_SIZE = 9;
