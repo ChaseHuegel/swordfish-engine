@@ -163,6 +163,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                     if (serverInteractions.Has(Widgets.Interactions.Click))
                     {
                         PickServer(in server);
+                        TryConnect(menu);
                     }
                 }
             }
