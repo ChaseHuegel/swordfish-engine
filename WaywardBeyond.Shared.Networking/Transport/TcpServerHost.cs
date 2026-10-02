@@ -21,6 +21,8 @@ public sealed class TcpServerHost : IDisposable
 {
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILogger _logger;
+    private readonly int _connectionTimeoutMs;
+    private readonly int _sendQueueSize;
     private TcpListener? _listener;
     private Thread? _acceptThread;
     private volatile bool _isRunning;
@@ -29,10 +31,16 @@ public sealed class TcpServerHost : IDisposable
     /// <summary>Invoked with each freshly accepted server transport so a host can register it.</summary>
     public Action<TcpTransport>? OnClientAccepted { get; set; }
 
-    public TcpServerHost(IEnumerable<INetworkSerializer> serializers, ILoggerFactory? loggerFactory = null)
-    {
+    public TcpServerHost(
+        IEnumerable<INetworkSerializer> serializers,
+        ILoggerFactory? loggerFactory = null,
+        int connectionTimeoutMs = 5000,
+        int sendQueueSize = 256
+    ) {
         _serializers = serializers;
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpServerHost>();
+        _connectionTimeoutMs = connectionTimeoutMs;
+        _sendQueueSize = sendQueueSize;
     }
 
     /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
@@ -65,7 +73,7 @@ public sealed class TcpServerHost : IDisposable
                 break; //  Listener stopped (Dispose).
             }
 
-            TcpTransport transport = TcpTransport.Accepted(_serializers, client);
+            TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize);
             _clients[transport] = transport;
             try
             {

@@ -10,6 +10,7 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Client.Core.Systems;
 
@@ -45,7 +46,9 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
-    
+
+    private readonly TransportManager _transportManager;
+
     public GameSaveManager(
         in ILogger<GameSaveManager> logger,
         in GameSaveService gameSaveService,
@@ -55,6 +58,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in GameplaySettings gameplaySettings,
         in ClientJoinSystem joinSystem,
         in ClientCleanupSystem cleanupSystem,
+        in TransportManager transportManager,
         in DataStore dataStore
     ) {
         _logger = logger;
@@ -64,6 +68,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameplaySettings = gameplaySettings;
         _joinSystem = joinSystem;
         _cleanupSystem = cleanupSystem;
+        _transportManager = transportManager;
         _dataStore = dataStore;
 
         Shortcut saveShortcut = new(
@@ -154,7 +159,14 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameSaveService.UpdateSaveMeta(save.Level.Guid, meta);
         
         _characterSaveManager.Save(_dataStore);
-        _ = _gameSaveService.TriggerServerSave();
+
+        //  Only ask the server to flush its authoritative world when a server is actually reachable. After
+        //  a remote disconnect the transport is dropped, so the send would target a dead host for nothing.
+        if (_transportManager.IsConnected)
+        {
+            _ = _gameSaveService.TriggerServerSave();
+        }
+
         return Task.CompletedTask;
     }
     

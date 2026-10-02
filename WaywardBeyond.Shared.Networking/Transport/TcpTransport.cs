@@ -24,13 +24,18 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 {
     private readonly SerializerCache _serializers;
     private readonly ILogger _logger;
+    private readonly int _connectionTimeoutMs;
+    private readonly int _sendQueueSize;
+    private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
+    private readonly BlockingCollection<byte[]> _sendQueue;
+    private readonly CancellationTokenSource _sendCts = new();
     private TcpClient? _client;
     private TcpListener? _listener;
     private NetworkStream? _stream;
-    private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
-    private readonly object _sendLock = new();
     private volatile bool _isRunning;
+    private volatile bool _disconnectedRaised;
     private Thread? _receiveThread;
+    private Thread? _sendThread;
 
     public bool IsConnected => _client?.Connected ?? false;
     public bool IsLocal => false;
@@ -42,10 +47,17 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     /// </summary>
     public Action? OnDisconnected { get; set; }
 
-    public TcpTransport(IEnumerable<INetworkSerializer> serializers, ILoggerFactory? loggerFactory = null)
-    {
+    public TcpTransport(
+        IEnumerable<INetworkSerializer> serializers,
+        ILoggerFactory? loggerFactory = null,
+        int connectionTimeoutMs = 5000,
+        int sendQueueSize = 256
+    ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
+        _connectionTimeoutMs = connectionTimeoutMs;
+        _sendQueueSize = Math.Max(1, sendQueueSize);
+        _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
     }
 
     /// <summary>
@@ -54,12 +66,17 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public static TcpTransport Accepted(
         IEnumerable<INetworkSerializer> serializers,
         TcpClient client,
-        ILoggerFactory? loggerFactory = null
+        ILoggerFactory? loggerFactory = null,
+        int connectionTimeoutMs = 5000,
+        int sendQueueSize = 256
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize);
         transport._client = client;
+        transport._client.NoDelay = true;
+        transport._client.SendTimeout = connectionTimeoutMs;
+        transport._client.ReceiveTimeout = connectionTimeoutMs;
         transport._stream = client.GetStream();
-        transport.StartReceiveLoop();
+        transport.StartLoops();
         return transport;
     }
 
@@ -71,8 +88,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         _client = new TcpClient();
         _client.Connect(host, port);
         _client.NoDelay = true;
+        _client.SendTimeout = _connectionTimeoutMs;
+        _client.ReceiveTimeout = _connectionTimeoutMs;
         _stream = _client.GetStream();
-        StartReceiveLoop();
+        StartLoops();
     }
 
     public void Listen(int port)
@@ -92,8 +111,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         try
         {
             _client = _listener!.AcceptTcpClient();
+            _client.NoDelay = true;
+            _client.SendTimeout = _connectionTimeoutMs;
+            _client.ReceiveTimeout = _connectionTimeoutMs;
             _stream = _client.GetStream();
-            StartReceiveLoop();
+            StartLoops();
         }
         catch
         {
@@ -104,6 +126,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public void Disconnect()
     {
         _isRunning = false;
+        _sendCts.Cancel();
         _stream?.Close();
         _client?.Close();
         _listener?.Stop();
@@ -111,6 +134,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
     public Result Send<T>(in T message)
     {
+        if (!_isRunning)
+        {
+            return Result.FromFailure("Transport is not running.");
+        }
         if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
         {
             return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
@@ -129,21 +156,26 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         BitConverter.TryWriteBytes(frame.AsSpan(0, 4), typeTag.Length);
         typeTag.CopyTo(frame, 4);
         payload.CopyTo(frame, 4 + typeTag.Length);
-        byte[] lengthPrefix = BitConverter.GetBytes(frame.Length);
 
-        lock (_sendLock)
+        var bytes = new byte[4 + frame.Length];
+        BitConverter.TryWriteBytes(bytes.AsSpan(0, 4), frame.Length);
+        frame.CopyTo(bytes, 4);
+
+        //  Enqueue for the dedicated send thread. Sends never block the calling thread. When the queue is
+        //  full (peer stopped reading a dead socket) drop the oldest frame and retry the new one so input
+        //  staleness is bounded instead of the queue growing without limit.
+        if (_sendQueue.TryAdd(bytes))
         {
-            try
-            {
-                _stream?.Write(lengthPrefix, 0, 4);
-                _stream?.Write(frame, 0, frame.Length);
-                return Result.FromSuccess();
-            }
-            catch (Exception ex)
-            {
-                return Result.FromFailure(ex);
-            }
+            return Result.FromSuccess();
         }
+
+        _sendQueue.TryTake(out _);
+        if (_sendQueue.TryAdd(bytes))
+        {
+            return Result.FromSuccess();
+        }
+
+        return Result.FromFailure("Send queue is full.");
     }
 
     public Result<T> Receive<T>()
@@ -171,9 +203,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public void Dispose()
     {
         Disconnect();
+        _sendCts.Dispose();
+        _sendQueue.Dispose();
     }
 
-    private void StartReceiveLoop()
+    private void StartLoops()
     {
         _isRunning = true;
         _receiveThread = new Thread(ReceiveLoop)
@@ -182,6 +216,45 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             Name = "TcpTransport Receive"
         };
         _receiveThread.Start();
+
+        _sendThread = new Thread(SendLoop)
+        {
+            IsBackground = true,
+            Name = "TcpTransport Send"
+        };
+        _sendThread.Start();
+    }
+
+    private void SendLoop()
+    {
+        while (_isRunning)
+        {
+            byte[] bytes;
+            try
+            {
+                bytes = _sendQueue.Take(_sendCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break; //  Intentional Disconnect.
+            }
+
+            if (!_isRunning)
+            {
+                break;
+            }
+
+            try
+            {
+                _stream?.Write(bytes, 0, bytes.Length);
+            }
+            catch (Exception)
+            {
+                //  A write timeout or socket failure means the peer is gone. Surface it exactly once.
+                MarkBroken();
+                break;
+            }
+        }
     }
 
     private void ReceiveLoop()
@@ -234,18 +307,41 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         }
 
         //  If we exited the loop due to a peer disconnect (not an intentional Disconnect, which already
-        //  cleared _isRunning), surface the disconnect so a host can drop the client from its hub.
+        //  cleared _isRunning), surface the disconnect so a host can drop the client from its hub and a
+        //  client can return to the menu.
         if (_isRunning)
         {
-            _isRunning = false;
-            try
-            {
-                OnDisconnected?.Invoke();
-            }
-            catch
-            {
-                //  A subscriber's exception must not kill the receive thread.
-            }
+            MarkBroken();
+        }
+    }
+
+    /// <summary>
+    /// Marks the transport broken after a peer disconnect detected by either the receive or the send
+    /// thread, canceling the send drain and raising <see cref="OnDisconnected"/> exactly once.
+    /// </summary>
+    private void MarkBroken()
+    {
+        if (!_isRunning)
+        {
+            return;
+        }
+
+        _isRunning = false;
+        _sendCts.Cancel();
+
+        if (_disconnectedRaised)
+        {
+            return;
+        }
+
+        _disconnectedRaised = true;
+        try
+        {
+            OnDisconnected?.Invoke();
+        }
+        catch
+        {
+            //  A subscriber's exception must not kill the detecting thread.
         }
     }
 

@@ -1,4 +1,7 @@
 using System;
+using System.Diagnostics;
+using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
@@ -124,5 +127,45 @@ public class TcpTransportTests
 
         Assert.False(client.Receive<WorldSnapshot>().Success);
         Assert.False(client.Receive<JoinAccept>().Success);
+    }
+
+    /// <summary>
+    /// A peer shutdown must surface through <see cref="TcpTransport.OnDisconnected"/> exactly once, and
+    /// subsequent <see cref="TcpTransport.Send{T}"/> must never block the calling thread (it enqueues for
+    /// the background send drainer). This pins the fix for the client hang on close after a lost server.
+    /// </summary>
+    [Fact]
+    public void PeerShutdownRaisesDisconnectOnceAndSendDoesNotBlock()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        using var client = new TcpTransport(_serializers);
+        client.Connect("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
+
+        using TcpClient serverSide = listener.AcceptTcpClient();
+        int disconnectCount = 0;
+        var disconnectedGate = new ManualResetEventSlim();
+        client.OnDisconnected += () =>
+        {
+            Interlocked.Increment(ref disconnectCount);
+            disconnectedGate.Set();
+        };
+
+        //  The server shuts down its side of the connection.
+        serverSide.Close();
+
+        Assert.True(disconnectedGate.Wait(5000), "The client should observe the server shutdown.");
+        Assert.Equal(1, disconnectCount);
+
+        var stopwatch = Stopwatch.StartNew();
+        _ = client.Send(new LeaveGameRequest { Dummy = 1 });
+        stopwatch.Stop();
+
+        //  A send after the peer is gone must return promptly, never block the caller.
+        Assert.True(stopwatch.ElapsedMilliseconds < 2000, "Send must not block after a peer disconnect.");
+        Assert.Equal(1, disconnectCount);
+        client.Disconnect();
+        listener.Stop();
     }
 }

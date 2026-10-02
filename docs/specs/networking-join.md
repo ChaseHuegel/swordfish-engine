@@ -50,6 +50,11 @@ client defers `WorldSnapshot` application until `WorldStreamComplete` arrives.
 Subsequent per-tick replication keeps using the `WorldSnapshot` path; streaming
 is a join-time event, not ongoing AOI.
 
+A remote disconnect during join or loading is handled the same as one during
+play: `ClientDisconnectSystem` drops the dead transport and returns the client
+to the menu with a connection-lost toast. The character save is gated on
+`Playing`, so a mid-join disconnect simply abandons the stream.
+
 ## Character ownership nuance
 
 - The client's local `characters` bucket remains the client-owned **storage**

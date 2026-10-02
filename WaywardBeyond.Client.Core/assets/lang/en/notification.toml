@@ -17,6 +17,8 @@
 "notification.character.create.failed" = "Character creation failed."
 "notification.character.saving.failed" = "Character save failed, some information may be lost."
 
+"notification.connection.lost" = "Connection to the server was lost."
+
 "ui.notification.name.required" = "Name is required"
 "ui.notification.name.taken" = "Name is already taken"
 "ui.notification.tooSoon" = "Please wait a few moments"

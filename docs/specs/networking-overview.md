@@ -87,5 +87,7 @@ authority.
 
 - **Despawn uuids must be captured before `store.Free`.** `DataStore.Free`
   clears an entity's uuid.
-- **Disconnect detection is manual** for the in-process loopback.
+- **In-process loopback disconnect is implicit.** The `LocalConnection` never
+  raises a disconnect; remote TCP peers detect it and drive the client back to
+  the menu (`ClientDisconnectSystem`).
 - **AOI / chunked interest streaming** is out of scope; join is a full-world stream.

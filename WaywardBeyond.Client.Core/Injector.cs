@@ -170,6 +170,9 @@ public class Injector : IDryIocInjector
         container.Register<ClientCleanupSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientCleanupSystem>();
 
+        container.Register<ClientDisconnectSystem>(Reuse.Singleton);
+        container.RegisterMapping<IEntitySystem, ClientDisconnectSystem>();
+
         container.Register<WorldsClient>(Reuse.Singleton);
         container.Register<IEntitySystem, ClientWorldServiceSystem>();
         container.Register<ClientNotificationSystem>(Reuse.Singleton);

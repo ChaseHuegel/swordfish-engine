@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
 
@@ -12,21 +13,28 @@ namespace WaywardBeyond.Client.Core.Networking;
 /// systems bind to at construction while transparently forwarding to whichever transport is active.
 /// Singleplayer keeps it on the in-process <see cref="LocalConnection.Client"/>; multiplayer <see
 /// cref="ConnectRemote"/> swaps it to a <see cref="TcpTransport"/> connected to a remote host so the
-/// save select / character select / join flows target that server unchanged.
+/// save select / character select / join flows target that server unchanged. A remote disconnect is
+/// surfaced through <see cref="RemoteDisconnected"/> so the game can return to the menu.
 /// </summary>
 internal sealed class TransportManager : IClientConnection
 {
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILoggerFactory _loggerFactory;
+    private readonly NetworkingSettings _settings;
     private TcpTransport? _remote;
     private IClientConnection? _active;
 
+    /// <summary>Raised when the active remote <see cref="TcpTransport"/> detects the peer is gone.</summary>
+    public event Action? RemoteDisconnected;
+
     public TransportManager(
         in IEnumerable<INetworkSerializer> serializers,
-        in ILoggerFactory loggerFactory
+        in ILoggerFactory loggerFactory,
+        in NetworkingSettings settings
     ) {
         _serializers = serializers;
         _loggerFactory = loggerFactory;
+        _settings = settings;
     }
 
     /// <summary>The currently active transport, or null before a client connects.</summary>
@@ -45,7 +53,13 @@ internal sealed class TransportManager : IClientConnection
     {
         try
         {
-            var transport = new TcpTransport(_serializers, _loggerFactory);
+            var transport = new TcpTransport(
+                _serializers,
+                _loggerFactory,
+                _settings.ConnectionTimeoutMs.Get(),
+                _settings.SendQueueSize.Get()
+            );
+            transport.OnDisconnected += RaiseRemoteDisconnected;
             transport.Connect(host, port);
 
             _remote?.Dispose();
@@ -62,9 +76,19 @@ internal sealed class TransportManager : IClientConnection
     /// <summary>Drops any active remote connection (e.g. returning to the menu).</summary>
     public void Disconnect()
     {
-        _remote?.Dispose();
+        if (_remote != null)
+        {
+            _remote.OnDisconnected -= RaiseRemoteDisconnected;
+            _remote.Dispose();
+        }
+
         _remote = null;
         _active = null;
+    }
+
+    private void RaiseRemoteDisconnected()
+    {
+        RemoteDisconnected?.Invoke();
     }
 
     public bool IsLocal => _active?.IsLocal ?? false;

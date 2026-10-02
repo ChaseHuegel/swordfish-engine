@@ -33,12 +33,24 @@ and deserializes. This exercises the full protocol with zero network I/O.
 
 ## `TcpTransport` (peer / LAN / dedicated)
 
-`Transport/TcpTransport.cs` is a single-threaded TCP peer (`Connect(host, port)`
-for client mode, `Listen(port)` for server mode). It length-prefixes each
-serialized message and reads frames on a background thread into a **single
-shared receive queue**. It has no per-type demux, so it cannot yet host the
-polling systems that each `Receive<T>` a distinct type. It is unexercised in
-production code.
+`Transport/TcpTransport.cs` is a socket peer usable as a client
+(`Connect(host, port)`) or a server peer (`Listen(port)`; the multi-peer
+acceptor is `TcpServerHost`). It length-prefixes each serialized message with a
+type tag and dispatches frames to a **per-type receive queue** on a background
+receive thread, so each polling system can `Receive<T>` a distinct type.
+
+Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
+the calling thread, enqueues the bytes to a bounded `BlockingCollection`, and
+returns. A dedicated background send thread drains the queue in FIFO order and
+writes the socket. This keeps a dead peer from blocking the game loop: a full
+send queue drops the oldest frame instead of growing, and the socket
+`SendTimeout`/`ReceiveTimeout` bound any stalled write.
+
+Disconnect detection is symmetric. Either the receive or the send thread can
+observe the peer is gone (EOF, a read/write exception, or a timeout); the first
+to do so cancels the other, marks the transport broken, and raises
+`OnDisconnected` exactly once. The server host drops the peer from its hub; the
+client returns to the menu (see `ClientDisconnectSystem`).
 
 ## `ServerConnectionHub` (multi-client)
 
@@ -101,6 +113,8 @@ loaded from `network.toml`:
 | `LanDiscovery` | `true` |
 | `DiscoveryBroadcastSeconds` | `5` |
 | `DiscoveryScanSeconds` | `20` |
+| `ConnectionTimeoutMs` | `5000` |
+| `SendQueueSize` | `256` |
 
 ## Source of truth
 
@@ -108,6 +122,8 @@ loaded from `network.toml`:
 - `WaywardBeyond.Server.Core/SessionManager.cs`
 - `WaywardBeyond.Server.Core/LanHost.cs`
 - `WaywardBeyond.Client.Core/Networking/LanDiscoveryService.cs`
+- `WaywardBeyond.Client.Core/Networking/TransportManager.cs`
+- `WaywardBeyond.Client.Core/Systems/ClientDisconnectSystem.cs`
 - `WaywardBeyond.Shared.Config/NetworkingSettings.cs`
 
 ## Tests that pin this

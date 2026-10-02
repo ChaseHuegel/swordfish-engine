@@ -17,4 +17,8 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<bool> LanDiscovery { get; private set; } = new(true);
     public DataBinding<int> DiscoveryBroadcastSeconds { get; private set; } = new(5);
     public DataBinding<int> DiscoveryScanSeconds { get; private set; } = new(20);
+    /// <summary>Bounded socket read/write timeout in milliseconds for a peer connection.</summary>
+    public DataBinding<int> ConnectionTimeoutMs { get; private set; } = new(5000);
+    /// <summary>Maximum pending send frames a peer transport buffers before dropping the oldest.</summary>
+    public DataBinding<int> SendQueueSize { get; private set; } = new(256);
 }
