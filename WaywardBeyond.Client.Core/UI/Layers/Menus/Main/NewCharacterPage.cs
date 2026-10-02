@@ -252,7 +252,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                                 NicknameChance: 0.1f
                             );
                             
-                            string generatedName = _nameGenerator.Generate(key: _characterMaterialIndex.ToString(), nameGeneratorOptions);
+                            string generatedName = _nameGenerator.Generate(key: _characterAssetService.GetBodyId(_characterMaterialIndex), nameGeneratorOptions);
                             _nameTextBox.Text.Clear();
                             _nameTextBox.Text.Append(generatedName);
                         }

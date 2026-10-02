@@ -146,6 +146,13 @@ canonical, not the asset order: `front` is index 0, then `back`/`left`/`right`
 (`BodyDirectionOrder.cs`). An unknown body ID falls back to the first loaded
 body at resolution.
 
+Character-name generation keys its localized tags and formats by the same body
+ID. `NameGenerator.Generate(key)` resolves `names.{title,first,last,subtitle,nickname}.{key}`
+and `formats.name.{key}` (see `NameGenerator.cs:30`). The client passes the
+current body ID, so a character named against a body reuses those strings.
+Body-named tag lists live in `WaywardBeyond.Client.Core/assets/lang/en/tags/`
+(`names_*.en.csv`); the shared `names_save.en.csv` uses the fixed `save` key.
+
 | Field | Type | Notes |
 |---|---|---|
 | `ID` | string | namespaced body asset ID (e.g. `wb:m_human`) |
