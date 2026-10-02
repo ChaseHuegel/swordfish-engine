@@ -85,6 +85,9 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Constraints: new Constraints { Width = new Fixed(300), }
             )
         );
+
+        _scanning = true;
+        Task.Run(ScanServersAsync);
     }
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
@@ -127,25 +130,27 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 }
             }
 
-            using (ui.TextButton(id: "Button_Scan", text: _localization.GetString("ui.button.scan")!, _buttonOptions, out Widgets.Interactions scanInteractions))
-            {
-                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
-
-                if (scanInteractions.Has(Widgets.Interactions.Click) && !_scanning)
-                {
-                    _scanning = true;
-                    _discoverMessage = null;
-                    _foundServers.Clear();
-                    _discoveredServers = [];
-                    _ = ScanServersAsync();
-                }
-            }
-
             if (_scanning)
             {
                 using (ui.Text(_localization.GetString("ui.notification.discover.scanning")!))
                 {
                     ui.FontSize = 16;
+                }
+            }
+            else
+            {
+                using (ui.TextButton(id: "Button_Scan", text: _localization.GetString("ui.button.scan")!, _buttonOptions, out Widgets.Interactions scanInteractions))
+                {
+                    ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                    if (scanInteractions.Has(Widgets.Interactions.Click) && !_scanning)
+                    {
+                        _scanning = true;
+                        _discoverMessage = null;
+                        _foundServers.Clear();
+                        _discoveredServers = [];
+                        _ = ScanServersAsync();
+                    }
                 }
             }
 
