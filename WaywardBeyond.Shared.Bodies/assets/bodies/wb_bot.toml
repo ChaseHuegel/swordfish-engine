@@ -3,3 +3,8 @@ ID = "wb:bot"
 
 [Bodies.States.standing]
 front = ["characters/bot_standing.png"]
+back  = ["characters/bot_standing_back.png"]
+
+[Bodies.States.floating]
+front = ["characters/bot_standing.png"]
+back  = ["characters/bot_standing_back.png"]

@@ -6,3 +6,4 @@ front = ["characters/m_alien_standing.png"]
 
 [Bodies.States.floating]
 front = ["characters/m_alien_floating.png"]
+back  = ["characters/m_alien_floating_back.png"]
