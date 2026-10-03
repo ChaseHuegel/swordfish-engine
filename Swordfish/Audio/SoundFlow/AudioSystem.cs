@@ -37,12 +37,19 @@ internal sealed class AudioSystem : IEntitySystem, IDisposable
         //  Init all playback devices
         foreach (DeviceInfo deviceInfo in _engine.PlaybackDevices)
         {
-            AudioPlaybackDevice playbackDevice = _engine.InitializePlaybackDevice(deviceInfo, _format);
-            _playbackDevices[deviceInfo.Name] = playbackDevice;
-
-            if (deviceInfo.IsDefault)
+            try
             {
-                _defaultPlaybackDevice = playbackDevice;
+                AudioPlaybackDevice playbackDevice = _engine.InitializePlaybackDevice(deviceInfo, _format);
+                _playbackDevices[deviceInfo.Name] = playbackDevice;
+                
+                if (deviceInfo.IsDefault)
+                {
+                    _defaultPlaybackDevice = playbackDevice;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Failed to initialize playback device: {device}", deviceInfo.Name);
             }
         }
 
