@@ -168,4 +168,39 @@ public class TcpTransportTests
         client.Disconnect();
         listener.Stop();
     }
+
+    /// <summary>
+    /// A live-but-idle peer must not be dropped by the socket read timeout: a keepalive heartbeat keeps
+    /// each direction fed within the timeout window. This pins the tailscale disconnect, where an idle
+    /// link read blocks a full <see cref="TcpTransport"/> timeout and is misread as a dead peer.
+    /// </summary>
+    [Fact]
+    public void KeepaliveKeepsIdlePeerConnected()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600, keepaliveIntervalMs: 250);
+        server.Listen(0);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600, keepaliveIntervalMs: 250);
+        client.Connect("127.0.0.1", server.LocalPort);
+
+        int clientDropped = 0;
+        int serverDropped = 0;
+        client.OnDisconnected += () => Interlocked.Increment(ref clientDropped);
+        server.OnDisconnected += () => Interlocked.Increment(ref serverDropped);
+
+        //  Stay idle for well past the 600ms read timeout so a missing keepalive would falsely drop.
+        Thread.Sleep(2200);
+
+        Assert.Equal(0, clientDropped);
+        Assert.Equal(0, serverDropped);
+
+        //  The link is still fully functional for real traffic.
+        client.Send(new JoinRequest { CharacterId = 5, PublicView = new PublicView { CharacterId = 5, Name = "K", Body = "wb:m_human" } });
+        Result<JoinRequest> join = PollFor<JoinRequest>(server);
+        Assert.True(join.Success);
+
+        server.Send(new WorldSnapshot { TickNumber = 9, Components = [], RemovedEntities = [] });
+        Result<WorldSnapshot> snapshot = PollFor<WorldSnapshot>(client);
+        Assert.True(snapshot.Success);
+        Assert.Equal(9u, snapshot.Value.TickNumber);
+    }
 }

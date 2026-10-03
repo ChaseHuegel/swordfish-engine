@@ -44,13 +44,23 @@ the calling thread, enqueues the bytes to a bounded `BlockingCollection`, and
 returns. A dedicated background send thread drains the queue in FIFO order and
 writes the socket. This keeps a dead peer from blocking the game loop: a full
 send queue drops the oldest frame instead of growing, and the socket
-`SendTimeout`/`ReceiveTimeout` bound any stalled write.
+`SendTimeout`/`ReceiveTimeout` bound any stalled read or write.
+
+A keepalive heartbeat keeps a live-but-idle peer from being dropped. Each peer
+runs a dedicated background thread that enqueues an empty-type-tag frame every
+`KeepaliveIntervalMs`, so both receive directions always deliver a readable byte
+within the `ConnectionTimeoutMs` window. The receive loop silently skips frames
+with an empty type tag. Without keepalive, a quiet client whose server only
+publishes on change would idle a full read timeout and be misread as dead over a
+high-latency link (for example tailscale).
 
 Disconnect detection is symmetric. Either the receive or the send thread can
-observe the peer is gone (EOF, a read/write exception, or a timeout); the first
-to do so cancels the other, marks the transport broken, and raises
-`OnDisconnected` exactly once. The server host drops the peer from its hub; the
-client returns to the menu (see `ClientDisconnectSystem`).
+observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
+live link keeps breathing via keepalive, a read/write timeout now only fires for
+a genuinely gone peer; the first thread to observe it cancels the other, marks
+the transport broken, and raises `OnDisconnected` exactly once. The server host
+drops the peer from its hub; the client returns to the menu (see
+`ClientDisconnectSystem`).
 
 ## `ServerConnectionHub` (multi-client)
 
@@ -114,6 +124,7 @@ loaded from `network.toml`:
 | `DiscoveryBroadcastSeconds` | `5` |
 | `DiscoveryScanSeconds` | `20` |
 | `ConnectionTimeoutMs` | `5000` |
+| `KeepaliveIntervalMs` | `2000` |
 | `SendQueueSize` | `256` |
 
 ## Source of truth

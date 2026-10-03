@@ -19,6 +19,8 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> DiscoveryScanSeconds { get; private set; } = new(20);
     /// <summary>Bounded socket read/write timeout in milliseconds for a peer connection.</summary>
     public DataBinding<int> ConnectionTimeoutMs { get; private set; } = new(5000);
+    /// <summary>Heartbeat interval in milliseconds that keeps a live-but-idle peer from tripping the read timeout.</summary>
+    public DataBinding<int> KeepaliveIntervalMs { get; private set; } = new(2000);
     /// <summary>Maximum pending send frames a peer transport buffers before dropping the oldest.</summary>
     public DataBinding<int> SendQueueSize { get; private set; } = new(256);
 }
