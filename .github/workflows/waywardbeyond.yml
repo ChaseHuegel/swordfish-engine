@@ -49,7 +49,7 @@ jobs:
         name: generated-atlases
     - name: Setup nsdc
       run: |
-        curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
+        curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.3.2/nsdc_linux.zip -o nsdc.zip
         unzip nsdc.zip
         echo "$PWD" >> $GITHUB_PATH
     - name: Publish
@@ -75,7 +75,7 @@ jobs:
           name: generated-atlases
       - name: Setup nsdc
         run: |
-          curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.2.1/nsdc.v1.2.1.linux64.zip -o nsdc.zip
+          curl -L https://github.com/ChaseHuegel/needlefish/releases/download/v1.3.2/nsdc_linux.zip -o nsdc.zip
           unzip nsdc.zip
           echo "$PWD" >> $GITHUB_PATH
       - name: Publish
