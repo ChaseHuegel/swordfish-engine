@@ -27,4 +27,10 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> MaxFrameBytes { get; private set; } = new(16 * 1024 * 1024);
     /// <summary>Reliable send queue length that triggers an error log when exceeded (re-logged every ~100 frames).</summary>
     public DataBinding<int> ReliableQueueConcernThreshold { get; private set; } = new(64);
+    /// <summary>Reliable send backlog length that gets a peer disconnected when held past the disconnect window.</summary>
+    public DataBinding<int> ReliableQueueDisconnectThreshold { get; private set; } = new(128);
+    /// <summary>How long a peer may hold the reliable backlog over the disconnect threshold before it is dropped, in milliseconds.</summary>
+    public DataBinding<int> ReliableQueueDisconnectMs { get; private set; } = new(10_000);
+    /// <summary>Client-side join timeout: how long a join may wait for the world stream to complete, in milliseconds.</summary>
+    public DataBinding<int> JoinStreamTimeoutMs { get; private set; } = new(60_000);
 }

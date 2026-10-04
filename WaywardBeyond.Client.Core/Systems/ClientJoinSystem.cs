@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
@@ -6,6 +7,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Shared.Bricks;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
@@ -28,6 +30,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly IBrickIdMap _brickIdMap;
+    private readonly ClientDisconnectSystem _disconnectSystem;
+    private readonly NetworkingSettings _settings;
     private readonly ILogger<ClientJoinSystem> _logger;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
@@ -35,18 +39,23 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private JoinRequestData? _request;
     private bool _sent;
     private bool _seated;
+    private int _joinStartedTicks;
 
     public ClientJoinSystem(
         in IClientConnection transport,
         in PlayerCharacterEntityBuilder playerBuilder,
         in VoxelEntityBuilder voxelBuilder,
         ILogger<ClientJoinSystem> logger,
-        IBrickIdMap brickIdMap
+        IBrickIdMap brickIdMap,
+        in ClientDisconnectSystem disconnectSystem,
+        in NetworkingSettings settings
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
         _brickIdMap = brickIdMap;
+        _disconnectSystem = disconnectSystem;
+        _settings = settings;
         _logger = logger;
     }
 
@@ -66,6 +75,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
 
         if (_request != null && !_sent)
         {
+            _joinStartedTicks = Environment.TickCount;
             JoinRequestData pending = _request.Value;
             Character character = pending.Character;
             Result send = _transport.Send(new JoinRequest
@@ -123,6 +133,17 @@ internal sealed class ClientJoinSystem : IEntitySystem
             _request = null;
             _sent = false;
             _logger.LogInformation("World stream complete; beginning play.");
+        }
+
+        //  A join that never completes (undelivered WorldStreamComplete, dying link, or a world too
+        //  large to drain) must not stall Loading forever: abort and return to the menu with the
+        //  connection-lost notice.
+        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _settings.JoinStreamTimeoutMs.Get())
+        {
+            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _settings.JoinStreamTimeoutMs.Get());
+            _request = null;
+            _sent = false;
+            _disconnectSystem.RequestDisconnect();
         }
     }
 

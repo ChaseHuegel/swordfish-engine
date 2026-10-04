@@ -32,7 +32,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private readonly BlockingCollection<byte[]> _sendQueue;
     private readonly BlockingCollection<byte[]> _reliableQueue = new();
     private readonly int _reliableConcernThreshold;
+    private readonly int _reliableDisconnectThreshold;
+    private readonly int _reliableDisconnectMs;
     private int _reliableConcernLoggedCount;
+    private int _reliableOverflowTicks;
     private readonly CancellationTokenSource _sendCts = new();
     private readonly CancellationTokenSource _keepaliveCts = new();
     private TcpClient? _client;
@@ -67,7 +70,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int sendQueueSize = 256,
         int keepaliveIntervalMs = 2000,
         int maxFrameBytes = 16 * 1024 * 1024,
-        int reliableQueueConcernThreshold = 64
+        int reliableQueueConcernThreshold = 64,
+        int reliableQueueDisconnectThreshold = 128,
+        int reliableQueueDisconnectMs = 10_000
     ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
@@ -76,6 +81,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         _sendQueueSize = Math.Max(1, sendQueueSize);
         _maxFrameBytes = Math.Max(64, maxFrameBytes);
         _reliableConcernThreshold = Math.Max(1, reliableQueueConcernThreshold);
+        _reliableDisconnectThreshold = Math.Max(_reliableConcernThreshold, reliableQueueDisconnectThreshold);
+        _reliableDisconnectMs = Math.Max(1, reliableQueueDisconnectMs);
         _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
     }
 
@@ -90,9 +97,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int sendQueueSize = 256,
         int keepaliveIntervalMs = 2000,
         int maxFrameBytes = 16 * 1024 * 1024,
-        int reliableQueueConcernThreshold = 64
+        int reliableQueueConcernThreshold = 64,
+        int reliableQueueDisconnectThreshold = 128,
+        int reliableQueueDisconnectMs = 10_000
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold, reliableQueueDisconnectThreshold, reliableQueueDisconnectMs);
         transport._client = client;
         transport._client.NoDelay = true;
         transport._client.SendTimeout = connectionTimeoutMs;
@@ -220,7 +229,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     /// Enqueues a never-evicting reliable frame. The queue is unbounded by design (drops are data loss),
     /// so a peer that stops reading surfaces as a grow-and-error condition instead: once the concern
     /// threshold is crossed, an error is logged and re-logged roughly every 100 enqueues while it stays
-    /// over the threshold.
+    /// over the threshold, and a peer holding the backlog past the disconnect threshold for the
+    /// disconnect window is marked broken (the host drops it, bounding per-peer memory).
     /// </summary>
     private void EnqueueReliable(byte[] bytes)
     {
@@ -231,6 +241,24 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         {
             _reliableConcernLoggedCount = count;
             _logger.LogError("Reliable send queue holds {count} frames, over the {threshold} concern threshold; a peer is not reading.", count, _reliableConcernThreshold);
+        }
+
+        if (count > _reliableDisconnectThreshold)
+        {
+            if (_reliableOverflowTicks == 0)
+            {
+                _reliableOverflowTicks = Environment.TickCount;
+            }
+
+            if (Environment.TickCount - _reliableOverflowTicks >= _reliableDisconnectMs)
+            {
+                _logger.LogError("Dropping peer: reliable backlog of {count} frames held over {ms} ms.", count, _reliableDisconnectMs);
+                MarkBroken();
+            }
+        }
+        else
+        {
+            _reliableOverflowTicks = 0;
         }
     }
 

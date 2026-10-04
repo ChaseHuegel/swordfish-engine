@@ -1,7 +1,7 @@
 # Bug: World-stream integrity and join — truncation risk, no timeout, infinite Loading
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -34,18 +34,18 @@ logging concern threshold.
 
 ## Acceptance criteria
 
-- [ ] Client-side join-stream timeout: if `WorldStreamComplete` does not
+- [x] Client-side join-stream timeout: if `WorldStreamComplete` does not
       arrive within `JoinStreamTimeoutMs`, the client aborts the join,
       returns to the menu with the connection-lost notice, and tears the
       transport down.
-- [ ] Server-side backlog policy: a client whose reliable send backlog
+- [x] Server-side backlog policy: a client whose reliable send backlog
       stays over the configured disconnect threshold (default 2x the #3
       concern threshold) for a bounded period is disconnected, bounding
       per-client server memory. Config key documented in the
       `networking-transports.md` table.
-- [ ] Stream integrity pinned by a test: a world of N structures delivers
+- [x] Stream integrity pinned by a test: a world of N structures delivers
       all N `WorldEntityAdd` frames plus `WorldStreamComplete` in order
       over a congested `TcpTransport` (using #3's queues).
-- [ ] The ordering rule (no `WorldSnapshot` application before
+- [x] The ordering rule (no `WorldSnapshot` application before
       `WorldStreamComplete`; full-sync and stream on the same join tick)
       is documented in `networking-join.md` and kept true.

@@ -35,6 +35,7 @@ public class TcpTransportTests
         new NsdMessageSerializer<VoxelEditMessage>(),
         new NsdMessageSerializer<NotificationMessage>(),
         new NsdMessageSerializer<SkillStateUpdateMessage>(),
+        new NsdMessageSerializer<WorldEntityAdd>(),
     ];
 
     private static TcpTransport CreateServer()
@@ -342,6 +343,85 @@ public class TcpTransportTests
         //  Some snapshots were written before the freeze, the rest were dropped oldest-first; the
         //  control frames above prove none of the drops were reliable frames.
         Assert.True(counts.GetValueOrDefault(typeof(WorldSnapshot).FullName!) >= 1);
+    }
+
+    /// <summary>
+    /// A world stream over a congested transport must deliver every <see cref="WorldEntityAdd"/> in
+    /// order plus the final <see cref="WorldStreamComplete"/>, even while the per-tick queue floods
+    /// snapshot frames into the same socket.
+    /// </summary>
+    [Fact]
+    public void WorldStreamDeliversAllEntitiesInOrderUnderSnapshotFlood()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance);
+        server.Listen(0);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance);
+        client.Connect("127.0.0.1", server.LocalPort);
+
+        const int entityCount = 40;
+        for (var i = 1; i <= entityCount; i++)
+        {
+            server.Send(new WorldEntityAdd
+            {
+                VoxelEntity = new VoxelEntityData { Uuid = (ulong)i, X = i, Y = 0, Z = 0, Chunks = [] },
+            });
+        }
+        server.Send(new WorldStreamComplete { Dummy = 0 });
+
+        //  Flood the per-tick queue while the stream is in flight.
+        for (var i = 0; i < 200; i++)
+        {
+            server.Send(new WorldSnapshot { TickNumber = (uint)i, Components = [], RemovedEntities = [] });
+        }
+
+        for (var i = 1; i <= entityCount; i++)
+        {
+            Result<WorldEntityAdd> add = PollFor<WorldEntityAdd>(client);
+            Assert.True(add.Success, $"World entity {i} must arrive.");
+            Assert.Equal((ulong)i, add.Value.VoxelEntity.Uuid);
+        }
+
+        Result<WorldStreamComplete> complete = PollFor<WorldStreamComplete>(client);
+        Assert.True(complete.Success, "The stream complete marker must arrive after the entities.");
+    }
+
+    /// <summary>
+    /// A peer whose reliable backlog stays over the disconnect threshold for the disconnect window is
+    /// marked broken, bounding the server's per-peer memory even though the reliable queue never evicts.
+    /// </summary>
+    [Fact]
+    public void StalledPeerIsDroppedAfterReliableBacklogWindow()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        using var client = new TcpTransport(
+            _serializers,
+            NullLoggerFactory.Instance,
+            keepaliveIntervalMs: 60_000,
+            reliableQueueConcernThreshold: 1,
+            reliableQueueDisconnectThreshold: 2,
+            reliableQueueDisconnectMs: 300
+        );
+        client.Connect("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
+        using TcpClient peer = listener.AcceptTcpClient();
+
+        var disconnectedGate = new ManualResetEventSlim();
+        client.OnDisconnected += disconnectedGate.Set;
+
+        //  A never-reading peer jams the send thread; three reliable frames overshoot the threshold.
+        for (var i = 0; i < 3; i++)
+        {
+            Assert.True(client.Send(new JoinRequest { CharacterId = (ulong)i, PublicView = new PublicView { CharacterId = (ulong)i, Name = "P", Body = "wb:m_human" } }).Success);
+        }
+
+        //  The backlog must be held past the window before the peer is dropped.
+        Assert.False(disconnectedGate.Wait(100), "A short backlog must not drop the peer yet.");
+        Thread.Sleep(400);
+        Assert.True(client.Send(new JoinRequest { CharacterId = 9, PublicView = new PublicView { CharacterId = 9, Name = "P", Body = "wb:m_human" } }).Success);
+
+        Assert.True(disconnectedGate.Wait(5000), "The stalled peer must be dropped after the backlog window.");
+        listener.Stop();
     }
 
     /// <summary>

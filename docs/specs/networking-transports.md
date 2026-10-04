@@ -52,7 +52,11 @@ snapshot frame, so input staleness is bounded instead of the queue growing
 without limit. The classification is explicit (`SendPriority`): every new
 per-tick message must be deliberately marked droppable. This keeps a dead
 peer from blocking the game loop, and the socket `SendTimeout`/
-`ReceiveTimeout` bound any stalled read or write.
+`ReceiveTimeout` bound any stalled read or write. A peer whose reliable
+backlog stays over `ReliableQueueDisconnectThreshold` for
+`ReliableQueueDisconnectMs` is dropped outright, bounding per-peer memory on
+a peer that never reads (see [join](networking-join.md) for the client-side
+join-stream timeout).
 
 A keepalive heartbeat keeps a live-but-idle peer from being dropped. Each peer
 runs a dedicated background thread that enqueues an empty-type-tag frame every
@@ -136,6 +140,9 @@ loaded from `network.toml`:
 | `SendQueueSize` | `256` |
 | `MaxFrameBytes` | `16777216` |
 | `ReliableQueueConcernThreshold` | `64` |
+| `ReliableQueueDisconnectThreshold` | `128` |
+| `ReliableQueueDisconnectMs` | `10000` |
+| `JoinStreamTimeoutMs` | `60000` |
 
 Frames are length-prefixed with a 4-byte body length. The receive loop rejects
 a prefix over `MaxFrameBytes` as a protocol violation and drops the connection

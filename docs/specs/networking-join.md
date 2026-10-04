@@ -48,12 +48,29 @@ save worlds. World data is streamed to the client during join.
 One-time transport queues do not preserve cross-type order (no envelope), so the
 client defers `WorldSnapshot` application until `WorldStreamComplete` arrives.
 Subsequent per-tick replication keeps using the `WorldSnapshot` path; streaming
-is a join-time event, not ongoing AOI.
+is a join-time event, not ongoing AOI. The full-sync request rides the same
+join tick: `ServerJoinSystem` requests the one-shot full-state snapshot in the
+same tick that it streams the world, so the full-state publish lands alongside
+the first deltas, all after the stream completes.
 
 A remote disconnect during join or loading is handled the same as one during
 play: `ClientDisconnectSystem` drops the dead transport and returns the client
 to the menu with a connection-lost toast. The character save is gated on
 `Playing`, so a mid-join disconnect simply abandons the stream.
+
+## Join-stream timeout
+
+A join whose `WorldStreamComplete` never arrives (undelivered marker, dying
+link, or a world too large to drain) must not stall `Loading` forever.
+`ClientJoinSystem` starts a clock when the `JoinRequest` is sent; if the stream
+does not complete within `NetworkingSettings.JoinStreamTimeoutMs`, it aborts the
+join and asks `ClientDisconnectSystem` for the normal connection-lost teardown:
+menu, toast, transport down. The server bounds the other side of the stream:
+a client whose reliable send backlog stays over
+`ReliableQueueDisconnectThreshold` (2x the
+`ReliableQueueConcernThreshold` logging threshold by default) for
+`ReliableQueueDisconnectMs` is disconnected (see
+[transports](networking-transports.md)).
 
 ## Character ownership nuance
 

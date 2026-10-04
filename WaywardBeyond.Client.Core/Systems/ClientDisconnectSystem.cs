@@ -57,4 +57,10 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         _notificationService.Push(new Notification(_localization.GetString("notification.connection.lost")!, NotificationType.Toast));
         _transport.Disconnect();
     }
+
+    /// <summary>Enqueues a disconnect (e.g. a join that timed out awaiting the world stream) for the next tick.</summary>
+    public void RequestDisconnect()
+    {
+        _disconnects.Enqueue(0);
+    }
 }
