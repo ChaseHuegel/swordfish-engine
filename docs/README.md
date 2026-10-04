@@ -28,6 +28,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
+| Local issue index and agent workflow | [specs/issues](specs/issues.md) |
 
 ## Conventions
 
@@ -37,3 +38,8 @@ change touches a subject, run the docs pass (see `development.md`).
   re-derive it, and point at the implementing `file:line`.
 - All new doc prose uses Simplified Technical English: active voice, short
   sentences, no semicolons, no contractions, one name per thing.
+
+## Live index
+
+The live issue index is `docs/issues/index.md`. See
+[specs/issues](specs/issues.md) for the format and workflow.
