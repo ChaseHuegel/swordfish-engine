@@ -1,6 +1,5 @@
 #nullable enable
 using Swordfish.Library.Types;
-using Tomlet;
 using Tomlet.Models;
 
 namespace Swordfish.Library.Serialization.Toml.Mappers;
@@ -11,12 +10,12 @@ public sealed class DataBindingTomlMapper<T> : TomlMapper<DataBinding<T>>
     protected override TomlValue Serialize(DataBinding<T>? value)
     {
         T? backingValue = value != null ? value.Get() : default;
-        return TomletMain.ValueFrom(typeof(T), backingValue!)!;
+        return Toml.ValueFrom(typeof(T), backingValue);
     }
 
     protected override DataBinding<T> Deserialize(TomlValue value)
     {
-        var backingValue = TomletMain.To<T>(value);
+        var backingValue = Toml.To<T>(value);
         return new DataBinding<T>(backingValue);
     }
 }
