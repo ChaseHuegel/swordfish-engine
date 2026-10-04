@@ -30,7 +30,7 @@ is not part of this workflow.
 - [x] [Inventory moves don't replicate](/docs/issues/0021-inventory-replication.md) — InventoryEvent/SlotMoveOp op messaging architecture, shared resolver, authoritative echo
 - [x] [Embedded NATS server process leaks on app close](/docs/issues/0022-nats-process-leak.md) — child never terminated, restart race on dispose, close path unverified
 - [x] [Network logging — disconnect reasons and tracing](/docs/issues/0023-network-logging.md) — reason-carrying OnDisconnected, NetworkingSettings.TraceLogging gate
-- [ ] [Break/place sounds don't play for remote or authoritative edits](/docs/issues/0024-networked-audio.md) — silent authoritative apply path, no double-play on own echoes
+- [x] [Break/place sounds don't play for remote or authoritative edits](/docs/issues/0024-networked-audio.md) — silent authoritative apply path, no double-play on own echoes
 - [ ] [Name tag layer renders over the HUD](/docs/issues/0026-nametag-layer-order.md) — nameplate layer ordered above hotbar/inventory widgets
 - [ ] [Name tag distance — default 32 and a setting](/docs/issues/0027-nametag-distance-setting.md) — UISettings.NameplateDistance, 0-64 step 8 on the settings page
 - [ ] [Persist the last-entered server address and port](/docs/issues/0028-persist-last-server.md) — DefaultHost/DefaultConnectPort written to network.toml on join

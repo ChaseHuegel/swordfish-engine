@@ -4,6 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
@@ -18,7 +19,9 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// (no-op, already applied), a differing echo snaps it to authority, and a prediction that ages past a
 /// bound with no echo (the server rejected it) is reverted to the pre-prediction voxel. Applied edits
 /// publish via the voxel component's dirty flag, which the <see cref="VoxelEntityRebuildSystem"/>
-/// consumes to rebuild the mesh/collider. Gated on <see cref="GameState.Playing"/> so it never races the
+/// consumes to rebuild the mesh/collider. Unpredicted (remote or authoritative) edits play the matching
+/// break/place sound; edits correlating to the local player's own predictions play none - the prediction
+/// already sounded. Gated on <see cref="GameState.Playing"/> so it never races the
 /// load-thread world build.
 /// </summary>
 internal sealed class ClientVoxelReconcileSystem : IEntitySystem
@@ -29,15 +32,21 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly IBrickIdMap _brickIdMap;
+    private readonly SoundEffectService _soundEffectService;
+    private readonly IBrickDatabase _brickDatabase;
 
     public ClientVoxelReconcileSystem(
         in IClientConnection transport,
         in SnapshotAckTracker snapshotAck,
-        IBrickIdMap brickIdMap
+        IBrickIdMap brickIdMap,
+        in SoundEffectService soundEffectService,
+        in IBrickDatabase brickDatabase
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
         _brickIdMap = brickIdMap;
+        _soundEffectService = soundEffectService;
+        _brickDatabase = brickDatabase;
     }
 
     public void Tick(float delta, DataStore store)
@@ -100,7 +109,8 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
                 return;
             }
 
-            //  The server's authoritative voxel differs from the prediction - snap to authority.
+            //  The server's authoritative voxel differs from the prediction - snap to authority. The
+            //  prediction already sounded; snap plays none.
             queue!.Remove(edit.Entity, edit.Coordinate);
         }
 
@@ -111,7 +121,62 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             authority.ID = _brickIdMap.Id(message.BrickId);
         }
 
+        //  The pre-edit voxel survives only for an unpredicted edit's sound material: a break's result is
+        //  empty, so the broken brick's material must come from the cell before the write.
+        Voxel previous = default;
+        if (pending == null && store.TryGet(entity, out VoxelComponent previousComponent))
+        {
+            previous = previousComponent.VoxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        }
+
         WriteVoxel(store, entity, in coordinate, in authority);
+
+        //  An unpredicted (remote or authoritative) edit is audible; an own prediction's echo is not -
+        //  the prediction already played its sound.
+        if (pending == null)
+        {
+            PlayEditSound(in previous, in authority);
+        }
+    }
+
+    /// <summary>
+    /// Plays the break or place sound for an unpredicted authoritative edit, with the material-class
+    /// variant (rock vs metal) resolved from the brick's tags, mirroring the prediction path. The result
+    /// voxel decides break (empty) vs place (filled); the material comes from the pre-edit voxel for a
+    /// break and the result voxel for a place.
+    /// </summary>
+    private void PlayEditSound(in Voxel previous, in Voxel result)
+    {
+        bool isBreak = result.ID == 0;
+        Voxel materialVoxel = isBreak ? previous : result;
+
+        bool isRock = false;
+        if (materialVoxel.ID != 0 && _brickDatabase.Get(materialVoxel.ID) is { Success: true } info)
+        {
+            isRock = info.Value.Tags.Contains("environment");
+        }
+
+        if (isBreak)
+        {
+            if (isRock)
+            {
+                _soundEffectService.PlayRemoveRock();
+            }
+            else
+            {
+                _soundEffectService.PlayRemoveMetal();
+            }
+            return;
+        }
+
+        if (isRock)
+        {
+            _soundEffectService.PlayPlaceRock();
+        }
+        else
+        {
+            _soundEffectService.PlayPlaceMetal();
+        }
     }
 
     private static PendingEdit? FindPending(

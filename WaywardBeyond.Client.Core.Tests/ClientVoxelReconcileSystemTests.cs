@@ -1,8 +1,18 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Numerics;
+using Swordfish.Audio;
 using Swordfish.ECS;
+using Swordfish.IO;
+using Swordfish.Library.IO;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Numerics;
+using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Shared.Bricks;
@@ -30,6 +40,86 @@ public class ClientVoxelReconcileSystemTests
     private const ulong STRUCTURE_UUID = 0xBEEF;
     private const ushort BRICK_ID = 7;
 
+    private sealed class StubBrickDatabase : IBrickDatabase
+    {
+        private readonly Dictionary<ushort, BrickInfo> _bricks;
+
+        public StubBrickDatabase(params BrickInfo[] bricks)
+        {
+            _bricks = bricks.ToDictionary(brick => brick.DataID);
+        }
+
+        public bool IsCuller(in Voxel voxel, BrickShape shape) => false;
+
+        public Result<BrickInfo> Get(ushort id)
+        {
+            return _bricks.TryGetValue(id, out BrickInfo? info)
+                ? Result<BrickInfo>.FromSuccess(info)
+                : Result<BrickInfo>.FromFailure("Not registered.");
+        }
+
+        public List<BrickInfo> Get(Func<BrickInfo, bool> predicate) => _bricks.Values.Where(predicate).ToList();
+    }
+
+    /// <summary>
+    /// Real audio plumbing with a temp VFS carrying one dummy sound per effect folder, so the sound
+    /// service can actually emit plays that the channel system then allocates as entities.
+    /// </summary>
+    private sealed class SoundFixture : IDisposable
+    {
+        private readonly string _tempRoot;
+
+        public AudioChannelSystem Channels { get; }
+        public SoundEffectService Sounds { get; }
+        public StubBrickDatabase Bricks { get; } = new(
+            new BrickInfo("wb:rock", BRICK_ID, transparent: false, passable: true, meshID: null, BrickShape.Block, new BrickTextures(), ["environment"])
+        );
+
+        public SoundFixture()
+        {
+            Channels = new AudioChannelSystem(new VolumeSettings());
+            _tempRoot = Path.Combine(Path.GetTempPath(), $"audio-fixture-{Guid.NewGuid():N}");
+            string[] folders = ["sounds/place/metal", "sounds/remove/metal", "sounds/place/rock", "sounds/remove/rock"];
+            foreach (string folder in folders)
+            {
+                Directory.CreateDirectory(Path.Combine(_tempRoot, "audio", folder));
+                File.WriteAllText(Path.Combine(_tempRoot, "audio", folder, "dummy.wav"), "dummy");
+            }
+
+            var vfs = new VirtualFileSystem();
+            Assert.That(vfs.Mount(new PathInfo(_tempRoot)).Success, Is.True);
+            Sounds = new SoundEffectService(Channels, vfs);
+
+            //  Create the channel entities so TryGetChannelEntity("effects") resolves.
+            Channels.Tick(0f, new DataStore());
+        }
+
+        public int CountPlays(DataStore store)
+        {
+            Channels.Tick(0f, store);
+            int plays = 0;
+            store.Query<AudioSource>(0f, (float _, DataStore _, int _, in AudioSource _) => plays++);
+            return plays;
+        }
+
+        public void Dispose()
+        {
+            try
+            {
+                Directory.Delete(_tempRoot, recursive: true);
+            }
+            catch (IOException)
+            {
+                //  Best-effort temp cleanup.
+            }
+        }
+    }
+
+    private static ClientVoxelReconcileSystem BuildSystem(in IClientConnection transport, SnapshotAckTracker snapshotAck, in SoundFixture sounds)
+    {
+        return new ClientVoxelReconcileSystem(transport, snapshotAck, _brickMap, sounds.Sounds, sounds.Bricks);
+    }
+
     [TearDown]
     public void TearDown()
     {
@@ -45,7 +135,8 @@ public class ClientVoxelReconcileSystemTests
         DataStore store = BuildWorld(out int structure, out VoxelObject world);
 
         var snapshotAck = new SnapshotAckTracker();
-        var system = new ClientVoxelReconcileSystem(connection.Client, snapshotAck, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, snapshotAck, sounds);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -61,7 +152,8 @@ public class ClientVoxelReconcileSystemTests
         var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
         DataStore store = BuildWorld(out _, out VoxelObject world);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker(), _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker(), sounds);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0) });
 
@@ -88,7 +180,8 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
 
         //  The server broadcast agrees with the prediction (break -> empty).
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
@@ -113,7 +206,8 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(BRICK_ID, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
 
@@ -137,7 +231,8 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
 
         //  The server echoes the same brick but with a different numeric id; the canonical name confirms.
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:panel" });
@@ -162,7 +257,8 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(0, 0, 0), new Voxel(0, 0, 0), new Voxel(localPanel, 0, 0), sequence: 1, serverTickAtSample: 10);
         int player = AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
 
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(999, 0, 0), Sequence = 1, BrickId = "wb:rock" });
 
@@ -189,7 +285,8 @@ public class ClientVoxelReconcileSystemTests
         queue.Register(structure, new Int3(1, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 2, serverTickAtSample: 10);
         AddPlayer(store, queue);
 
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
 
         //  The echo for seq 2 arrives first, then seq 1; each confirms its own pending prediction.
         connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 1, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 2 });
@@ -219,12 +316,68 @@ public class ClientVoxelReconcileSystemTests
         AddPlayer(store, queue);
 
         //  No authoritative edit is sent; the ack advances far past the sample tick.
-        var system = new ClientVoxelReconcileSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 }, _brickMap);
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 200 }, sounds);
 
         system.Tick(0f, store);
 
         Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo((ushort)0), "The rejected prediction should revert to the pre-prediction (empty) voxel.");
         Assert.That(queue.TryFind(structure, new Int3(0, 0, 0), out _), Is.False, "The reverted prediction should be resolved.");
+        Assert.That(sounds.CountPlays(store), Is.Zero, "A reverted own prediction plays no sound - the prediction already sounded.");
+    }
+
+    [Test]
+    public void UnpredictedEditPlaysASound()
+    {
+        Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        DataStore store = BuildWorld(out int structure, out VoxelObject world);
+
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker(), sounds);
+
+        //  A remote player breaks the (0,0,0) brick: no local prediction exists.
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
+
+        system.Tick(0f, store);
+
+        Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo((ushort)0));
+        Assert.That(sounds.CountPlays(store), Is.EqualTo(1), "A remote break must be audible.");
+
+        //  A remote player places a brick at (1,0,0): also audible.
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 1, Y = 0, Z = 0, Voxel = new Voxel(BRICK_ID, 0, 0), Sequence = 2 });
+        system.Tick(0f, store);
+
+        Assert.That(world.Get(1, 0, 0).ID, Is.EqualTo(BRICK_ID));
+        Assert.That(sounds.CountPlays(store), Is.EqualTo(2), "A remote place must be audible.");
+    }
+
+    [Test]
+    public void ConfirmedOwnPredictionPlaysNoSound()
+    {
+        Core.WaywardBeyond.GameState.Set(Core.GameState.Playing);
+
+        var connection = new LocalConnection(new INetworkSerializer[] { new NsdMessageSerializer<VoxelEditMessage>() });
+        DataStore store = BuildWorld(out int structure, out VoxelObject world);
+
+        //  The local player predicted a break of (0,0,0): the presentation already shows it cleared.
+        world.Set(0, 0, 0, new Voxel(0, 0, 0));
+        var queue = new PendingInteractionQueue();
+        queue.Register(structure, new Int3(0, 0, 0), new Voxel(BRICK_ID, 0, 0), new Voxel(0, 0, 0), sequence: 1, serverTickAtSample: 0);
+        AddPlayer(store, queue);
+
+        using SoundFixture sounds = new();
+        var system = BuildSystem(connection.Client, new SnapshotAckTracker { LastAppliedSnapshotTick = 12 }, sounds);
+
+        //  The server echoes the exact prediction.
+        connection.Server.Send(new VoxelEditMessage { EntityUuid = STRUCTURE_UUID, X = 0, Y = 0, Z = 0, Voxel = new Voxel(0, 0, 0), Sequence = 1 });
+
+        system.Tick(0f, store);
+
+        Assert.That(world.Get(0, 0, 0).ID, Is.EqualTo((ushort)0));
+        Assert.That(sounds.CountPlays(store), Is.Zero, "Confirming an own prediction echo must not double-play.");
+        Assert.That(queue.TryFindBySequence(1, out _), Is.False, "The confirmed prediction should be resolved.");
     }
 
     private DataStore BuildWorld(out int structure, out VoxelObject world)

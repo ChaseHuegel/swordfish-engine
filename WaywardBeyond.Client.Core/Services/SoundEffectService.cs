@@ -79,6 +79,11 @@ internal sealed class SoundEffectService
     
     private void PlayRandomSound(string[] ids)
     {
+        if (ids.Length == 0)
+        {
+            return;
+        }
+
         if (!_audioChannelSystem.TryGetChannelEntity("effects", out Uuid channel))
         {
             return;
