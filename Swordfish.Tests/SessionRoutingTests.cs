@@ -9,6 +9,7 @@ using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Sessions;
@@ -227,6 +228,81 @@ public class SessionRoutingTests
             Assert.True(received.Success, $"Client {i} should receive a snapshot.");
             Assert.Contains(droppedUuid.ToValue(), received.Value.RemovedEntities);
         }
+    }
+
+    [Fact]
+    public void SnapshotAddressedAtAnotherClientsEntityIsIgnored()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
+        const int count = 2;
+        Fixture fixture = new(count);
+
+        var entities = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            entities[i] = fixture.Store.Alloc();
+            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+            fixture.Sessions.Register(fixture.Store, entities[i], fixture.ClientIds[i], new Session((uint)i));
+        }
+
+        var replication = new NetworkReplicationSystem(
+            fixture.Hub,
+            fixture.Sessions,
+            NullLogger<NetworkReplicationSystem>.Instance
+        );
+
+        Uuid victimUuid = fixture.Store.GetUuid(entities[0]);
+        Uuid attackerUuid = fixture.Store.GetUuid(entities[1]);
+
+        //  Client B addresses an input snapshot at client A's entity uuid.
+        fixture.Client(1).Send(new WorldSnapshot
+        {
+            TickNumber = 1,
+            LastProcessedInput = 0,
+            Components = [new ComponentSnapshot(victimUuid.ToValue(), 1, SerializeInput(9u))],
+            RemovedEntities = [],
+        });
+
+        replication.ApplyStage(0f, fixture.Store);
+
+        //  The victim's mirror staged nothing: no input, no interactions, untouched ack state.
+        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Shared.Networking.Components.NetworkComponent victim));
+        Assert.Null(victim.StagedInputs);
+        Assert.Null(victim.StagedInteractions);
+        Assert.Equal(0u, victim.LastAckedInput);
+
+        //  The same client writing to its own session entity still stages on its own mirror.
+        fixture.Client(1).Send(new WorldSnapshot
+        {
+            TickNumber = 2,
+            LastProcessedInput = 0,
+            Components = [new ComponentSnapshot(attackerUuid.ToValue(), 1, SerializeInput(9u))],
+            RemovedEntities = [],
+        });
+
+        replication.ApplyStage(0f, fixture.Store);
+
+        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Shared.Networking.Components.NetworkComponent attacker));
+        Assert.NotNull(attacker.StagedInputs);
+        Assert.Equal(9u, attacker.LastAckedInput);
+    }
+
+    private static byte[] SerializeInput(uint serverTickAtSample)
+    {
+        var store = new DataStore();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new InputComponent
+        {
+            MovementX = 1f,
+            MovementY = 2f,
+            MovementZ = 3f,
+            SequenceNumber = 1,
+            ServerTickAtSample = serverTickAtSample,
+        });
+
+        NetworkRegistry.TryGetInfo<InputComponent>(out NetworkComponentInfo info);
+        return info.Codec.Serialize(store, entity);
     }
 
     [Fact]

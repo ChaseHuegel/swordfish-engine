@@ -7,10 +7,11 @@ One subject: dirty-driven replication between server and client.
 `NetworkReplicationSystem` (`Server.Core/Systems/NetworkReplicationSystem.cs`):
 
 - **Apply stage** drains `WorldSnapshot`s across **all** connected clients,
-  applying `ClientOwned` components (materializing a server mirror for unknown
-  entity uuids) and advancing `LastAckedInput`/`LastAckedSnapshot` on
-  `InputComponent` application. Input and interaction events are staged, not
-  applied in place.
+  binding every inbound `ClientOwned` snapshot to its sender's session entity:
+  a wire uuid naming any other entity is ignored, never allocated, staged, or
+  applied (`NetworkReplicationSystem.ApplyStage`). Accepted `InputComponent`s
+  advance `LastAckedInput`/`LastAckedSnapshot`; input and interaction events
+  are staged, not applied in place.
 - **Publish stage** queries entities carrying `NetworkComponent`, serializes
   every dirty `ServerOwned` component into `ComponentSnapshot`s, then composes
   a **per-client** `WorldSnapshot` for every connected client. The component

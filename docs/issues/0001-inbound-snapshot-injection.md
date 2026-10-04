@@ -1,7 +1,7 @@
 # Bug: Server accepts client-addressed snapshots for any entity (cross-client command injection)
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem

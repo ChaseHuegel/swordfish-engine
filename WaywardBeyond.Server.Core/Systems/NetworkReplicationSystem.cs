@@ -12,9 +12,9 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// <summary>
 /// Server-side replication, split into an ordered <see cref="ApplyStage"/> and <see cref="PublishStage"/>
 /// so the server can consume physics + the shared motion step between them. <see cref="ApplyStage"/>
-/// drains inbound client-owned components across every connected client, staging each
-/// <see cref="InputComponent"/> in the server entity's sim-tick-keyed command buffer (the snapshot's
-/// entity uuid addresses the target, so cross-connection routing is unnecessary). <see cref="PublishStage"/>
+/// drains inbound client-owned components across every connected client and binds each snapshot to the
+/// sender's session entity: a wire uuid naming any other entity is ignored, staging each
+/// <see cref="InputComponent"/> in the server entity's sim-tick-keyed command buffer. <see cref="PublishStage"/>
 /// publishes authoritative server-owned snapshots plus despawns to each client, composing a per-client
 /// <see cref="WorldSnapshot"/> whose <see cref="WorldSnapshot.LastProcessedInput"/> reflects that client
 ///'s own acked input. Snapshot <see cref="WorldSnapshot.TickNumber"/> is the server's current sim tick
@@ -74,15 +74,26 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         PublishStage(delta, store);
     }
 
-    /// <summary>Drains and applies inbound client-owned components from all connected clients.</summary>
+    /// <summary>
+    /// Drains and applies inbound client-owned components from all connected clients. Every snapshot is
+    /// bound to the sender's session entity: a component whose wire uuid is not the sender's own player
+    /// entity is ignored and never allocated, staged, or applied.
+    /// </summary>
     public void ApplyStage(float delta, DataStore store)
     {
-        foreach ((_, WorldSnapshot snapshot) in _hub.Receive<WorldSnapshot>())
+        foreach ((Uuid clientId, WorldSnapshot snapshot) in _hub.Receive<WorldSnapshot>())
         {
+            if (!_sessions.TryGetEntity(clientId, out int sessionEntity))
+            {
+                _logger.LogWarning("Ignoring inbound snapshot from client {clientId} without a session.", clientId);
+                continue;
+            }
+
+            Uuid sessionUuid = store.GetUuid(sessionEntity);
             ComponentSnapshot[] components = snapshot.Components;
             for (var i = 0; i < components.Length; i++)
             {
-                ApplyComponent(store, components[i]);
+                ApplyComponent(store, sessionEntity, sessionUuid, components[i]);
             }
         }
     }
@@ -152,8 +163,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         _fullSync.Clear();
     }
 
-    private void ApplyComponent(DataStore store, ComponentSnapshot snapshot)
+    private void ApplyComponent(DataStore store, int sessionEntity, Uuid sessionUuid, ComponentSnapshot snapshot)
     {
+        Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
+        if (entityUuid != sessionUuid)
+        {
+            _logger.LogWarning("Ignoring client-owned snapshot addressed at entity {uuid}; only the sender's session entity {sessionUuid} is writable.", snapshot.Entity, sessionUuid);
+            return;
+        }
+
         if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
         {
             _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
@@ -166,22 +184,17 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
-        Uuid entityUuid = Uuid.FromValue(snapshot.Entity);
-        if (!store.TryGet(entityUuid, out int entity))
-        {
-            entity = store.Alloc(entityUuid);
-        }
-
-        info.Codec.Apply(store, entity, snapshot.Payload);
+        //  The session entity already exists (spawned at join); wire uuids never allocate entities.
+        info.Codec.Apply(store, sessionEntity, snapshot.Payload);
 
         if (info.Type == typeof(InputComponent))
         {
-            if (!store.TryGet<NetworkComponent>(entity, out _))
+            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
             {
                 return;
             }
 
-            store.QueryRef<NetworkComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
             {
                 net.Write.StagedInputs ??= new InputStageBuffer();
                 if (s.TryGet(e, out InputComponent input))
@@ -200,12 +213,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
         if (info.Type == typeof(InteractionEvent))
         {
-            if (!store.TryGet<NetworkComponent>(entity, out _))
+            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
             {
                 return;
             }
 
-            store.QueryRef<NetworkComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
             {
                 net.Write.StagedInteractions ??= new InteractionStageBuffer();
                 if (s.TryGet(e, out InteractionEvent interaction))
