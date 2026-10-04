@@ -1,5 +1,4 @@
 using Swordfish.Library.IO;
-using Tomlet;
 
 namespace Swordfish.Library.Serialization.Toml;
 
@@ -11,6 +10,6 @@ public class TomlParser<T> : IFileParser<T>
     object IFileParser.Parse(PathInfo file) => Parse(file)!;
     public T Parse(PathInfo file)
     {
-        return TomletMain.To<T>(file.ReadString());
+        return Toml.To<T>(file.ReadString());
     }
 }
