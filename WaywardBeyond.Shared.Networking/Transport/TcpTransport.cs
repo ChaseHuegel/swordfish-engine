@@ -27,9 +27,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private readonly ILogger _logger;
     private readonly bool _traceLogging;
     private readonly int _connectionTimeoutMs;
-    private readonly int _keepaliveIntervalMs;
     private readonly int _sendQueueSize;
     private readonly int _maxFrameBytes;
+    private readonly int _sendIntervalMs;
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
     private readonly BlockingCollection<byte[]> _sendQueue;
     private readonly BlockingCollection<byte[]> _reliableQueue = new();
@@ -39,7 +39,16 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private int _reliableConcernLoggedCount;
     private int _reliableOverflowTicks;
     private readonly CancellationTokenSource _sendCts = new();
-    private readonly CancellationTokenSource _keepaliveCts = new();
+
+    private long _packetsSent;
+    private long _packetsReceived;
+    private long _bytesSent;
+    private long _bytesReceived;
+
+    public long PacketsSent => Interlocked.Read(ref _packetsSent);
+    public long PacketsReceived => Interlocked.Read(ref _packetsReceived);
+    public long BytesSent => Interlocked.Read(ref _bytesSent);
+    public long BytesReceived => Interlocked.Read(ref _bytesReceived);
     private TcpClient? _client;
     private TcpListener? _listener;
     private NetworkStream? _stream;
@@ -47,11 +56,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private volatile bool _disconnectedRaised;
     private Thread? _receiveThread;
     private Thread? _sendThread;
-    private Thread? _keepaliveThread;
 
-    //  Keepalive frame with an empty type tag: [frameLen=4][typeTagLen=0], so a live-but-idle peer always
-    //  delivers a readable byte within the socket timeout and is never falsely dropped.
-    private static readonly byte[] _KEEPALIVE_FRAME = [0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
     private const int _THREAD_JOIN_TIMEOUT_MS = 2000;
 
@@ -77,23 +82,23 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         ILoggerFactory? loggerFactory = null,
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
-        int keepaliveIntervalMs = 2000,
         int maxFrameBytes = 16 * 1024 * 1024,
         int reliableQueueConcernThreshold = 64,
         int reliableQueueDisconnectThreshold = 128,
         int reliableQueueDisconnectMs = 10_000,
-        bool traceLogging = false
+        bool traceLogging = false,
+        int sendIntervalMs = 16
     ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
         _traceLogging = traceLogging;
         _connectionTimeoutMs = connectionTimeoutMs;
-        _keepaliveIntervalMs = ClampKeepaliveInterval(keepaliveIntervalMs, connectionTimeoutMs);
         _sendQueueSize = Math.Max(1, sendQueueSize);
         _maxFrameBytes = Math.Max(64, maxFrameBytes);
         _reliableConcernThreshold = Math.Max(1, reliableQueueConcernThreshold);
         _reliableDisconnectThreshold = Math.Max(_reliableConcernThreshold, reliableQueueDisconnectThreshold);
         _reliableDisconnectMs = Math.Max(1, reliableQueueDisconnectMs);
+        _sendIntervalMs = Math.Max(1, sendIntervalMs);
         _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
     }
 
@@ -106,14 +111,14 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         ILoggerFactory? loggerFactory = null,
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
-        int keepaliveIntervalMs = 2000,
         int maxFrameBytes = 16 * 1024 * 1024,
         int reliableQueueConcernThreshold = 64,
         int reliableQueueDisconnectThreshold = 128,
         int reliableQueueDisconnectMs = 10_000,
-        bool traceLogging = false
+        bool traceLogging = false,
+        int sendIntervalMs = 16
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold, reliableQueueDisconnectThreshold, reliableQueueDisconnectMs, traceLogging);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, maxFrameBytes, reliableQueueConcernThreshold, reliableQueueDisconnectThreshold, reliableQueueDisconnectMs, traceLogging, sendIntervalMs);
         transport._client = client;
         transport._client.NoDelay = true;
         transport._client.SendTimeout = connectionTimeoutMs;
@@ -188,7 +193,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     {
         _isRunning = false;
         _sendCts.Cancel();
-        _keepaliveCts.Cancel();
         _stream?.Close();
         _client?.Close();
         _listener?.Stop();
@@ -330,7 +334,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         //  every loop exit promptly, and the joined threads cannot outlive the transport.
         JoinIfAlive(_receiveThread);
         JoinIfAlive(_sendThread);
-        JoinIfAlive(_keepaliveThread);
     }
 
     private void StartLoops()
@@ -349,79 +352,43 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             Name = "TcpTransport Send"
         };
         _sendThread.Start();
-
-        //  Keepalive keeps a live-but-idle link from tripping the socket read timeout on either peer. Both
-        //  ends run the loop, so both receive directions always see a byte within the timeout window.
-        _keepaliveThread = new Thread(KeepaliveLoop)
-        {
-            IsBackground = true,
-            Name = "TcpTransport Keepalive"
-        };
-        _keepaliveThread.Start();
     }
 
-    private void KeepaliveLoop()
-    {
-        WaitHandle wait = _keepaliveCts.Token.WaitHandle;
-
-        while (true)
-        {
-            if (_keepaliveCts.IsCancellationRequested)
-            {
-                break;
-            }
-
-            wait.WaitOne(_keepaliveIntervalMs);
-
-            if (_keepaliveCts.IsCancellationRequested || !_isRunning)
-            {
-                break;
-            }
-
-            //  Enqueue for the send thread so it stays the single writer to the socket. A full queue
-            //  means real traffic already keeps the link warm, so dropping the keepalive is fine.
-            if (_sendQueue.TryAdd(_KEEPALIVE_FRAME))
-            {
-                continue;
-            }
-
-            _sendQueue.TryTake(out _);
-            _sendQueue.TryAdd(_KEEPALIVE_FRAME);
-        }
-    }
 
     private void SendLoop()
     {
+        var pendingFrames = new List<byte[]>(32);
+        WaitHandle wake = _sendCts.Token.WaitHandle;
+
         while (_isRunning)
         {
-            byte[] bytes;
-            try
+            pendingFrames.Clear();
+
+            //  Reliable frames drain first (never dropped), then per-tick frames. Poll both queues
+            //  non-blocking (a reliable frame arriving must wake the drain even when the per-tick queue
+            //  is empty), and park on a timed wait when nothing is pending: at most one send interval
+            //  elapses between drains, so every pending frame coalesces into one socket write.
+            if (!_reliableQueue.TryTake(out byte[]? reliable) && !_sendQueue.TryTake(out reliable))
             {
-                //  Reliable frames drain first (never dropped), then per-tick frames. TryTake on the
-                //  unbounded reliable queue is non-blocking; the per-tick Take blocks until a frame or
-                //  a cancel, so the loop parks on the snapshot queue when both are empty.
-                if (_reliableQueue.TryTake(out byte[]? reliable))
-                {
-                    bytes = reliable;
-                }
-                else
-                {
-                    bytes = _sendQueue.Take(_sendCts.Token);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                break; //  Intentional Disconnect.
+                wake.WaitOne(_sendIntervalMs);
+                continue;
             }
 
-            if (!_isRunning)
+            pendingFrames.Add(reliable);
+
+            //  Coalesce everything else that arrived this interval (reliable first, then per-tick).
+            while (_reliableQueue.TryTake(out byte[]? moreReliable))
             {
-                break;
+                pendingFrames.Add(moreReliable);
+            }
+            while (_sendQueue.TryTake(out byte[]? perTick))
+            {
+                pendingFrames.Add(perTick);
             }
 
             try
             {
-                _stream?.Write(bytes, 0, bytes.Length);
+                WriteAll(pendingFrames);
             }
             catch (Exception ex)
             {
@@ -432,6 +399,29 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                 break;
             }
         }
+    }
+
+    private void WriteAll(List<byte[]> frames)
+    {
+        //  One socket write per interval: concatenate the pending frames so a burst (snapshots,
+        //  world stream) goes out as far fewer, larger segments instead of 60 tiny writes per second.
+        int total = 0;
+        for (var i = 0; i < frames.Count; i++)
+        {
+            total += frames[i].Length;
+        }
+
+        var combined = new byte[total];
+        int offset = 0;
+        for (var i = 0; i < frames.Count; i++)
+        {
+            Array.Copy(frames[i], 0, combined, offset, frames[i].Length);
+            offset += frames[i].Length;
+        }
+
+        _stream?.Write(combined, 0, combined.Length);
+        Interlocked.Add(ref _packetsSent, frames.Count);
+        Interlocked.Add(ref _bytesSent, combined.Length);
     }
 
     private void ReceiveLoop()
@@ -472,11 +462,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                     break;
                 }
 
-                if (typeTagLength == 0)
-                {
-                    continue; //  Keepalive heartbeat, no message body.
-                }
-
                 string typeName = Encoding.UTF8.GetString(frame, 4, typeTagLength);
                 byte[] payload = new byte[frameLength - 4 - typeTagLength];
                 Array.Copy(frame, 4 + typeTagLength, payload, 0, payload.Length);
@@ -492,6 +477,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                     _logger.LogTrace("Received {type} frame ({bytes} bytes).", typeName, payload.Length);
                 }
 
+                Interlocked.Increment(ref _packetsReceived);
+                Interlocked.Add(ref _bytesReceived, 4 + frameLength);
                 _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<byte[]>()).Enqueue(payload);
             }
             catch (Exception ex)
@@ -524,7 +511,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
         _isRunning = false;
         _sendCts.Cancel();
-        _keepaliveCts.Cancel();
 
         if (_disconnectedRaised)
         {
@@ -556,12 +542,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         return false;
     }
 
-    private static int ClampKeepaliveInterval(int keepaliveIntervalMs, int connectionTimeoutMs)
-    {
-        int clamped = keepaliveIntervalMs > 0 ? keepaliveIntervalMs : 2000;
-        int ceiling = Math.Max(1, connectionTimeoutMs / 2);
-        return Math.Max(250, Math.Min(clamped, ceiling));
-    }
 
     private static void JoinIfAlive(Thread? thread)
     {

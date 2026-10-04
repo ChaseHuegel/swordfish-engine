@@ -60,11 +60,12 @@ internal sealed class TransportManager : IClientConnection
                 _loggerFactory,
                 _settings.ConnectionTimeoutMs.Get(),
                 _settings.SendQueueSize.Get(),
-                _settings.KeepaliveIntervalMs.Get(),
                 _settings.MaxFrameBytes.Get(),
                 _settings.ReliableQueueConcernThreshold.Get(),
                 _settings.ReliableQueueDisconnectThreshold.Get(),
-                _settings.ReliableQueueDisconnectMs.Get(), _settings.TraceLogging.Get()
+                _settings.ReliableQueueDisconnectMs.Get(),
+                _settings.TraceLogging.Get(),
+                _settings.SendIntervalMs.Get()
             );
             transport.OnDisconnected += reason =>
             {

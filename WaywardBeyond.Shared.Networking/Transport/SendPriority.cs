@@ -27,6 +27,8 @@ public static class SendPriority
         typeof(VoxelEditMessage),
         typeof(NotificationMessage),
         typeof(SkillStateUpdateMessage),
+        typeof(ServerHeartbeatMessage),
+        typeof(ClientHeartbeatMessage),
     };
 
     /// <summary>True for control/state messages that must never be silently dropped.</summary>

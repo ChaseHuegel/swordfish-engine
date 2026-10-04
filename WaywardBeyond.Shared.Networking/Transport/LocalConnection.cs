@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Serialization;
@@ -22,33 +23,64 @@ public sealed class LocalConnection
     public IServerConnection Server { get; }
     public IClientConnection Client { get; }
 
+    //  Aggregate counters for the pair; each endpoint's counters are the same object (in-process frames
+    //  are counted once, at the queueing boundary).
+    public IConnectionCounters Counters { get; }
+
     public LocalConnection(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new SerializerCache(serializers);
 
-        var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer);
-        var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient);
+        var counters = new LocalConnectionCounters();
+        Counters = counters;
+
+        var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer, counters: counters);
+        var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient, counters: counters);
         Server = serverEndpoint;
         Client = clientEndpoint;
     }
 
-    private sealed class LocalConnectionEndpoint : IClientConnection, IServerConnection
+    private sealed class LocalConnectionCounters : IConnectionCounters
+    {
+        private long _packetsSent;
+        private long _packetsReceived;
+        private long _bytesSent;
+        private long _bytesReceived;
+
+        public long PacketsSent => Interlocked.Read(ref _packetsSent);
+        public long PacketsReceived => Interlocked.Read(ref _packetsReceived);
+        public long BytesSent => Interlocked.Read(ref _bytesSent);
+        public long BytesReceived => Interlocked.Read(ref _bytesReceived);
+
+        public void RecordSent(int bytes) { Interlocked.Increment(ref _packetsSent); Interlocked.Add(ref _bytesSent, bytes); }
+        public void RecordReceived(int bytes) { Interlocked.Increment(ref _packetsReceived); Interlocked.Add(ref _bytesReceived, bytes); }
+    }
+
+    private sealed class LocalConnectionEndpoint : IClientConnection, IServerConnection, IConnectionCounters
     {
         private readonly SerializerCache _serializers;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _sendQueues;
         private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues;
+        private readonly LocalConnectionCounters _counters;
 
         public bool IsConnected => true;
         public bool IsLocal => true;
 
+        public long PacketsSent => _counters.PacketsSent;
+        public long PacketsReceived => _counters.PacketsReceived;
+        public long BytesSent => _counters.BytesSent;
+        public long BytesReceived => _counters.BytesReceived;
+
         public LocalConnectionEndpoint(
             SerializerCache serializers,
             ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> sendQueues,
-            ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> receiveQueues
+            ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> receiveQueues,
+            LocalConnectionCounters counters
         ) {
             _serializers = serializers;
             _sendQueues = sendQueues;
             _receiveQueues = receiveQueues;
+            _counters = counters;
         }
 
         public Result Send<T>(in T message)
@@ -58,8 +90,11 @@ public sealed class LocalConnection
                 return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
             }
 
+            byte[] payload = serializer.Serialize(message);
+            _counters.RecordSent(payload.Length);
+
             _sendQueues.GetOrAdd(typeof(T), static _ => new ConcurrentQueue<byte[]>())
-                .Enqueue(serializer.Serialize(message));
+                .Enqueue(payload);
             return Result.FromSuccess();
         }
 
@@ -75,6 +110,8 @@ public sealed class LocalConnection
             {
                 return Result<T>.FromFailure("No messages available.");
             }
+
+            _counters.RecordReceived(data.Length);
 
             try
             {

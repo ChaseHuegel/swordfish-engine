@@ -76,6 +76,19 @@ message ChatMessage
     string Value = 2;
 }
 
+message ServerHeartbeatMessage
+{
+    uint TPS = 0;
+    uint TickNumber = 1;
+    uint PlayerCount = 2;
+}
+
+message ClientHeartbeatMessage
+{
+    uint TickNumber = 0;
+    uint LastAppliedSnapshotTick = 1;
+}
+
 message LanBeacon
 {
     string ServerName    = 0;

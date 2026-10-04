@@ -134,6 +134,8 @@ public class Injector : IDryIocInjector
         container.Register<INetworkSerializer, NsdMessageSerializer<NotificationMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<SkillStateUpdateMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<ChatMessage>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ServerHeartbeatMessage>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ClientHeartbeatMessage>>();
         container.Register<LocalConnection>(Reuse.Singleton);
         container.Register<TransportManager>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context =>
@@ -153,7 +155,10 @@ public class Injector : IDryIocInjector
         }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
+        container.Register<ServerStats>(Reuse.Singleton);
         container.Register<LanHostInfo>(Reuse.Singleton);
+
+        container.Register<IEntitySystem, ClientHeartbeatSystem>();
 
         container.Register<IEntitySystem, ClientInputSystem>();
         container.Register<IEntitySystem, ClientReplicationSystem>();
@@ -277,6 +282,7 @@ public class Injector : IDryIocInjector
         container.Register<DebugOverlayRenderer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
+        container.Register<IDebugOverlay, NetworkStatsOverlay>();
         
         container.Register<ChatLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ChatLayer>();

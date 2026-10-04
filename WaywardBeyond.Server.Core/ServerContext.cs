@@ -6,6 +6,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Threading;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Bricks;
@@ -44,6 +45,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly JoltPhysicsSystem _physics;
     private readonly SharedSimulationStep _simulationStep;
     private readonly WorldSaveService _worldService;
+    private readonly ServerHeartbeatService _heartbeats;
 
     public ServerContext(
         in ServerConnectionHub hub,
@@ -54,7 +56,8 @@ public sealed class ServerContext : IEntryPoint, IDisposable
         IInteractionHandlerRegistry handlerRegistry,
         in SkillDatabase skillDatabase,
         ILoggerFactory loggerFactory,
-        IBrickIdMap brickIdMap = null
+        IBrickIdMap brickIdMap = null,
+        in NetworkingSettings networkingSettings = null
     ) {
         _logger = loggerFactory.CreateLogger<ServerContext>();
         _threadWorker = new ThreadWorker(Update, "Server");
@@ -65,7 +68,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
 
         _worldService = new WorldSaveService(loggerFactory.CreateLogger<WorldSaveService>(), keyValueStore, brickIdMap);
         _world = new ServerWorldSystem(hub, _worldService, loggerFactory.CreateLogger<ServerWorldSystem>());
-        _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>());
+        _replication = new NetworkReplicationSystem(hub, sessions, loggerFactory.CreateLogger<NetworkReplicationSystem>(), networkingSettings?.SnapshotHz.Get() ?? 30);
 
         _physics = new JoltPhysicsSystem(loggerFactory.CreateLogger<JoltPhysicsSystem>(), physicsSettings);
         //  Mirror the client's physics runtime config (gravity zero, by default a fresh world is Earth).
@@ -95,6 +98,8 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
         _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), brickIdMap, skillDatabase);
 
         _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
+
+        _heartbeats = new ServerHeartbeatService(hub, networkingSettings ?? new NetworkingSettings(), loggerFactory.CreateLogger<ServerHeartbeatService>());
     }
 
     public void Run()
@@ -133,6 +138,7 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
             _join.Tick(delta, store);
             _replication.ApplyStage(delta, store);
             _inventory.Tick(delta, store);
+            _heartbeats.Pump(delta, store, _simulationStep.CurrentSimTick);
             _physics.Tick(delta, store);
 
             _replication.SimTick = _simulationStep.CurrentSimTick;

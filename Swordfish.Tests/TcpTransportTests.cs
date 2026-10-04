@@ -36,6 +36,8 @@ public class TcpTransportTests
         new NsdMessageSerializer<NotificationMessage>(),
         new NsdMessageSerializer<SkillStateUpdateMessage>(),
         new NsdMessageSerializer<WorldEntityAdd>(),
+        new NsdMessageSerializer<ServerHeartbeatMessage>(),
+        new NsdMessageSerializer<ClientHeartbeatMessage>(),
     ];
 
     private static TcpTransport CreateServer()
@@ -243,7 +245,7 @@ public class TcpTransportTests
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
 
-        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, sendQueueSize: 4, keepaliveIntervalMs: 60_000);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, sendQueueSize: 4, sendIntervalMs: 1000);
         client.Connect("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
 
         //  The peer side stays unread for the whole burst, so the client's send thread eventually
@@ -403,7 +405,7 @@ public class TcpTransportTests
         using var client = new TcpTransport(
             _serializers,
             NullLoggerFactory.Instance,
-            keepaliveIntervalMs: 60_000,
+            sendIntervalMs: 60_000,
             reliableQueueConcernThreshold: 1,
             reliableQueueDisconnectThreshold: 2,
             reliableQueueDisconnectMs: 300
@@ -472,16 +474,16 @@ public class TcpTransportTests
     }
 
     /// <summary>
-    /// A live-but-idle peer must not be dropped by the socket read timeout: a keepalive heartbeat keeps
-    /// each direction fed within the timeout window. This pins the tailscale disconnect, where an idle
-    /// link read blocks a full <see cref="TcpTransport"/> timeout and is misread as a dead peer.
+    /// The transport no longer emits its own keepalive: the app-level session heartbeat is the
+    /// liveness signal now. App heartbeats sent within the timeout window keep a live-but-idle link
+    /// from being misread as a dead peer; a truly idle link times out (the honest behavior).
     /// </summary>
     [Fact]
-    public void KeepaliveKeepsIdlePeerConnected()
+    public void HeartbeatsKeepIdlePeerConnected()
     {
-        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600, keepaliveIntervalMs: 250);
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600);
         server.Listen(0);
-        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600, keepaliveIntervalMs: 250);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600);
         client.Connect("127.0.0.1", server.LocalPort);
 
         int clientDropped = 0;
@@ -489,8 +491,15 @@ public class TcpTransportTests
         client.OnDisconnected += _ => Interlocked.Increment(ref clientDropped);
         server.OnDisconnected += _ => Interlocked.Increment(ref serverDropped);
 
-        //  Stay idle for well past the 600ms read timeout so a missing keepalive would falsely drop.
-        Thread.Sleep(2200);
+        //  App heartbeats (client -> server, server -> client) keep both read directions fed within
+        //  the 600ms timeout window, replacing the removed transport keepalive.
+        var deadline = Environment.TickCount + 2200;
+        while (Environment.TickCount < deadline)
+        {
+            client.Send(new ClientHeartbeatMessage { TickNumber = 1, LastAppliedSnapshotTick = 1 });
+            server.Send(new ServerHeartbeatMessage { TPS = 64, TickNumber = 2, PlayerCount = 1 });
+            Thread.Sleep(200);
+        }
 
         Assert.Equal(0, clientDropped);
         Assert.Equal(0, serverDropped);
@@ -504,5 +513,25 @@ public class TcpTransportTests
         Result<WorldSnapshot> snapshot = PollFor<WorldSnapshot>(client);
         Assert.True(snapshot.Success);
         Assert.Equal(9u, snapshot.Value.TickNumber);
+    }
+
+    /// <summary>
+    /// A genuinely idle link (no app messages at all) now times out - there is no transport keepalive
+    /// left to save it.
+    /// </summary>
+    [Fact]
+    public void IdlePeerWithoutHeartbeatsTimesOut()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600);
+        server.Listen(0);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 600);
+        client.Connect("127.0.0.1", server.LocalPort);
+
+        var disconnectedGate = new ManualResetEventSlim();
+        client.OnDisconnected += _ => disconnectedGate.Set();
+
+        Thread.Sleep(2000);
+
+        Assert.True(disconnectedGate.Wait(2000), "An idle link with no heartbeats must time out.");
     }
 }

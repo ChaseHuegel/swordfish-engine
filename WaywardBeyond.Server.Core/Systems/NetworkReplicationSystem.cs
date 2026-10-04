@@ -48,14 +48,19 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     public uint SimTick { get; set; }
 
+    private readonly uint _snapshotIntervalTicks;
+
     public NetworkReplicationSystem(
         in ServerConnectionHub hub,
         SessionManager sessions,
-        in ILogger<NetworkReplicationSystem> logger
+        in ILogger<NetworkReplicationSystem> logger,
+        int snapshotHz = 0
     ) {
         _hub = hub;
         _sessions = sessions;
         _logger = logger;
+        //  0 = uncapped (every tick); the server wiring passes the configured cadence.
+        _snapshotIntervalTicks = snapshotHz <= 0 ? 1 : (uint)Math.Max(1, 60 / snapshotHz);
     }
 
     /// <summary>
@@ -140,10 +145,19 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// <summary>
     /// Collects authoritative server-owned snapshots once, then publishes to each client a per-client
     /// snapshot carrying that client's own <see cref="WorldSnapshot.LastProcessedInput"/>. Despawns are
-    /// those queued via <see cref="RequestDespawn"/>.
+    /// those queued via <see cref="RequestDespawn"/>. Publishes at the configured snapshot cadence
+    /// (<c>SnapshotHz</c>): the tick semantics are unchanged and despawns/full-syncs ride the same
+    /// cadence, at most one interval of delay.
     /// </summary>
     public void PublishStage(float delta, DataStore store)
     {
+        //  Snapshot cadence: emit only on interval ticks (60 / SnapshotHz). All publish effects ride
+        //  the cadence, so nothing on the wire waits more than one interval.
+        if (SimTick % _snapshotIntervalTicks != 0)
+        {
+            return;
+        }
+
         _pending.Clear();
 
         OnTickAction onTick = new() { Owner = this };
