@@ -106,8 +106,18 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
 
     private bool ResolveCommand(int entity, uint simTick, out InputComponent command)
     {
-        //  Client prediction applies the newest locally sampled input on the entity.
         DataStore store = _store!;
+
+        //  Replay: resolve per sim tick from the pending ring (newest-per-sim-tick, matching the
+        //  server's staging), so after a reconcile AlignTo the surviving in-flight inputs re-apply
+        //  tick-exactly instead of the newest live sample being re-applied every step.
+        if (store.TryGet(entity, out PendingInputComponent pending) && pending.TryGetNewestAtOrBefore(simTick, out command))
+        {
+            return true;
+        }
+
+        //  Fallback for entities without a pending ring (or whose ring is fully trimmed): the live
+        //  component.
         return store.TryGet(entity, out command);
     }
 

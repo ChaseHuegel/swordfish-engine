@@ -36,13 +36,21 @@ per-world sim state.
 `ClientReconcileSystem` (`Client.Core/Systems/ClientReconcileSystem.cs`)
 receives server `WorldSnapshot`s, applies `ServerOwned` components (full state:
 position, orientation, linear AND angular velocity), frees despawned entities,
-trims `PendingInputComponent` by `LastProcessedInput`, and replays the surviving
-inputs through the shared step. `SnapshotAckTracker` records the last applied
-snapshot tick.
+trims `PendingInputComponent` by `LastProcessedInput`, and aligns the shared
+step (`AlignTo` the snapshot's sim tick). `SnapshotAckTracker` records the
+last applied snapshot tick.
 
-Replay pins the **newest-per-sim-tick collapse rule**: as the simulated sim
-tick advances, drop earlier commands for the same sim tick, matching the
-server's staging exactly. Otherwise replay over-applies.
+Replay is per-sim-tick resolution, not a separate phase: the shared step's
+command resolver reads the pending ring
+(`PendingInputComponent.TryGetNewestAtOrBefore`) instead of the newest live
+component, so every step after an `AlignTo` applies the surviving in-flight
+inputs tick-exactly. The lookup pins the **newest-per-sim-tick collapse rule**:
+it scans newest-to-oldest and returns the newest sample whose
+`ServerTickAtSample` is at or below the sim tick — the exact scan the server's
+`InputStageBuffer.TryGet` performs, so both sides consume the same
+command-per-tick sequence and "same input sequence → same state" holds. The
+ring is written by `ClientInputSystem` and read by no other caller; a player
+without a ring (or a fully trimmed one) falls back to its live component.
 
 ## Prediction acks
 

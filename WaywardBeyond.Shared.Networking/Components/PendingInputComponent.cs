@@ -57,4 +57,26 @@ public struct PendingInputComponent : IDataComponent
     {
         return _history?[(_tail + (uint)index) % (uint)_history.Length] ?? default;
     }
+
+    /// <summary>
+    /// Replay lookup: returns the newest pending input whose target sim tick
+    /// (<see cref="InputComponent.ServerTickAtSample"/>) is at or below the given sim tick, mirroring the
+    /// server's <see cref="InputStageBuffer.TryGet"/> exactly (newest-per-sim-tick collapse included), so
+    /// the client replays the same command-per-sim-tick sequence the server staged.
+    /// </summary>
+    public readonly bool TryGetNewestAtOrBefore(uint simTick, out InputComponent command)
+    {
+        for (var i = (int)(_head - _tail) - 1; i >= 0; i--)
+        {
+            InputComponent candidate = GetPending(i);
+            if (candidate.ServerTickAtSample <= simTick)
+            {
+                command = candidate;
+                return true;
+            }
+        }
+
+        command = default;
+        return false;
+    }
 }

@@ -1,7 +1,7 @@
 # Bug: Client prediction does not perform the documented replay; `PendingInputComponent` is dead weight
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -35,14 +35,14 @@ much more precisely.
 
 ## Acceptance criteria
 
-- [ ] After a reconcile `AlignTo`, the client re-applies the surviving
+- [x] After a reconcile `AlignTo`, the client re-applies the surviving
       pending inputs through the shared step, tick-exactly, with
       newest-per-sim-tick collapse matching the server's staging.
-- [ ] `networking-prediction.md` matches the code exactly (replay path and
+- [x] `networking-prediction.md` matches the code exactly (replay path and
       its collapse rule described as implemented).
-- [ ] The replay path (not just the ring buffer write/trim) is exercised
+- [x] The replay path (not just the ring buffer write/trim) is exercised
       by tests: a determinism test proves the client step converges to the
       server state from the same pending input sequence; the existing
       authority-divergence tests still pass.
-- [ ] No dead replicated code remains: `GetPending` (or the replay
+- [x] No dead replicated code remains: `GetPending` (or the replay
       equivalent) has a caller.
