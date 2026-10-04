@@ -101,4 +101,19 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
             mutation(ref inventory.Write);
         });
     }
+
+    /// <summary>
+    /// Stages an inventory move op for upstream replication. The op's sequence comes from the player's
+    /// <see cref="PendingInventoryComponent"/> so retransmits dedupe server-side.
+    /// </summary>
+    public void StageInventoryOp(DataStore store, in SlotMoveOp op)
+    {
+        SlotMoveOp move = op;
+        store.QueryRef<PlayerComponent, PendingInventoryComponent>(0f,
+            (float _, DataStore dataStore, int _, ref Ref<PlayerComponent> _, ref Ref<PendingInventoryComponent> pending) =>
+            {
+                ref PendingInventoryComponent pendingValue = ref pending.Write;
+                pendingValue.Outbound.Stage(++pendingValue.NextSequence, move);
+            });
+    }
 }

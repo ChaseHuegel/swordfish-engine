@@ -10,6 +10,7 @@ and the process boundary. The specifics live in the sibling networking specs:
 - [prediction](networking-prediction.md) — client prediction and reconcile
 - [join](networking-join.md) — join handshake and world streaming
 - [voxel-edits](networking-voxel-edits.md) — server-authoritative interactions
+- [inventory](networking-inventory.md) — server-authoritative inventory moves
 
 ## Model
 

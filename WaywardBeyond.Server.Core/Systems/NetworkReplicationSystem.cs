@@ -279,6 +279,23 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 }
             });
         }
+
+        if (info.Type == typeof(InventoryEvent))
+        {
+            if (!store.TryGet<NetworkComponent>(sessionEntity, out _))
+            {
+                return;
+            }
+
+            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            {
+                net.Write.StagedInventoryOps ??= new InventoryOpStageBuffer();
+                if (s.TryGet(e, out InventoryEvent inventoryEvent) && inventoryEvent.SlotMove != null)
+                {
+                    net.Write.StagedInventoryOps.Stage(inventoryEvent.SequenceNumber, inventoryEvent.SlotMove.Value);
+                }
+            });
+        }
     }
 
     private struct OnTickAction : IForEach<NetworkComponent>

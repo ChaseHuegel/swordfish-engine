@@ -59,3 +59,18 @@ message BrickInteraction
     byte HintShape = 4;
     byte HintOrientation = 5;
 }
+
+message InventoryEvent
+{
+    ulong Entity              = 0;
+    uint  SequenceNumber      = 1;
+    SlotMoveOp? SlotMove      = 2;
+}
+
+message SlotMoveOp
+{
+    byte  Mode       = 0;
+    int  FromSlot   = 1;
+    int  ToSlot     = 2;
+    uint? Count     = 3;
+}

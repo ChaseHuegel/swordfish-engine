@@ -15,4 +15,7 @@ public struct NetworkComponent : IDataComponent
 
     /// <summary>Sim-tick-keyed inbound interaction-edge staging, populated server-side.</summary>
     public InteractionStageBuffer? StagedInteractions;
+
+    /// <summary>Sequence-keyed inbound inventory-op staging, populated server-side.</summary>
+    public InventoryOpStageBuffer? StagedInventoryOps;
 }

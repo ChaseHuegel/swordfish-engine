@@ -16,6 +16,7 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
     public void Decorate(Entity player, Character character)
     {
         player.Add<PlayerComponent>();
+        player.AddOrUpdate(new PendingInventoryComponent());
         player.AddOrUpdate(new EquipmentComponent(character.ActiveInventorySlot));
         player.AddOrUpdate(new IdentifierComponent(character.Name, PlayerBodyConfig.PLAYER_TAG));
         player.AddOrUpdate(new TransformComponent(

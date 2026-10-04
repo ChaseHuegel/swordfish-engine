@@ -27,7 +27,7 @@ is not part of this workflow.
 - [x] [Interaction edges dropped on congestion](/docs/issues/0010-interaction-edge-loss.md) — unconditional outbound clear discards staged edges on failed send
 - [x] [Client prediction does not perform the documented replay](/docs/issues/0011-prediction-replay.md) — PendingInputComponent written and trimmed but never replayed
 - [x] [Disconnect handling has holes outside Playing](/docs/issues/0020-disconnect-state-machine.md) — save-screen disconnect never returns to menu, join hangs, in-flight world ops await forever
-- [ ] [Inventory moves don't replicate](/docs/issues/0021-inventory-replication.md) — InventoryEvent/SlotMoveOp op messaging architecture, shared resolver, authoritative echo
+- [x] [Inventory moves don't replicate](/docs/issues/0021-inventory-replication.md) — InventoryEvent/SlotMoveOp op messaging architecture, shared resolver, authoritative echo
 - [ ] [Embedded NATS server process leaks on app close](/docs/issues/0022-nats-process-leak.md) — child never terminated, restart race on dispose, close path unverified
 - [ ] [Network logging — disconnect reasons and tracing](/docs/issues/0023-network-logging.md) — reason-carrying OnDisconnected, NetworkingSettings.TraceLogging gate
 - [ ] [Break/place sounds don't play for remote or authoritative edits](/docs/issues/0024-networked-audio.md) — silent authoritative apply path, no double-play on own echoes

@@ -49,9 +49,10 @@ Wired in `Client.Core/Injector.cs` (`RegisterNetworking`).
 | `InventoryComponent` | 13 | ServerOwned | `NsdComponentCodec<InventoryComponent>` |
 | `GameModeComponent` | 14 | ServerOwned | `NsdComponentCodec<GameModeComponent>` |
 | `InteractionEvent` | 15 | ClientOwned | `NsdComponentCodec<InteractionEvent>` |
+| `InventoryEvent` | 16 | ClientOwned | `NsdComponentCodec<InventoryEvent>` |
 
 Uuid allocation is stable and intentional. The sequence-gap at 4–9 and the
-grouping of 10–15 are reserved; do not reuse.
+grouping of 10–16 are reserved; do not reuse.
 
 ## Remote player public view
 

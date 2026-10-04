@@ -38,6 +38,7 @@ public sealed class ServerContext : IEntryPoint, IDisposable
     private readonly ServerWorldSystem _world;
     private readonly ServerJoinSystem _join;
     private readonly NetworkReplicationSystem _replication;
+    private readonly ServerInventorySystem _inventory;
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerChatSystem _chat;
     private readonly JoltPhysicsSystem _physics;
@@ -89,6 +90,8 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
             skills
         );
 
+        _inventory = new ServerInventorySystem(loggerFactory.CreateLogger<ServerInventorySystem>());
+
         _join = new ServerJoinSystem(hub, sessions, _worldService, _replication, _interaction, loggerFactory.CreateLogger<ServerJoinSystem>(), brickIdMap, skillDatabase);
 
         _chat = new ServerChatSystem(hub, sessions, loggerFactory.CreateLogger<ServerChatSystem>());
@@ -129,6 +132,7 @@ _simulationStep = new SharedSimulationStep(World.DataStore, _physics, ResolveCom
             _world.Tick(delta, store);
             _join.Tick(delta, store);
             _replication.ApplyStage(delta, store);
+            _inventory.Tick(delta, store);
             _physics.Tick(delta, store);
 
             _replication.SimTick = _simulationStep.CurrentSimTick;

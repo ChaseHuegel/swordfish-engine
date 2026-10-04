@@ -1,7 +1,7 @@
 # Bug: Inventory moves don't replicate (foundation: inventory op messaging architecture)
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -55,21 +55,21 @@ slots, and crafting stations.
 
 ## Acceptance criteria
 
-- [ ] Wire and registry per the locked architecture: `InventoryEvent` and
+- [x] Wire and registry per the locked architecture: `InventoryEvent` and
       `SlotMoveOp` added to `components.nsd`, uuid 16 registered
       ClientOwned, server stage/dedupe and session binding per #0001.
-- [ ] `SharedInventoryResolver` implemented and used by both sides; the
+- [x] `SharedInventoryResolver` implemented and used by both sides; the
       server validates per the rule, applies, and marks
       `InventoryComponent` dirty for the downstream echo.
-- [ ] Client prediction applies moves locally; the authoritative echo
+- [x] Client prediction applies moves locally; the authoritative echo
       corrects invalid or partial outcomes; a double-sent op applies
       exactly once.
-- [ ] Same-tick ordering: a move and a place interaction in one tick
+- [x] Same-tick ordering: a move and a place interaction in one tick
       resolve against the moved inventory.
-- [ ] Tests: whole-stack (null count), partial, split, and AutoStack
+- [x] Tests: whole-stack (null count), partial, split, and AutoStack
       moves; out-of-bounds rejection with client correction; retransmit
       dedupe; glass-brick regression (placing consumes the item the
       server's copy holds).
-- [ ] `docs/specs/networking-inventory.md` written (union, reservation
+- [x] `docs/specs/networking-inventory.md` written (union, reservation
       table, add-an-op checklist, resolution rules); `networking-messages.md`
       and `networking-registry.md` updated (docs pass).

@@ -110,6 +110,19 @@ message BrickInteraction
 `InteractionKind` maps the `byte Kind` to the edge. Callers guard optional
 hints with `.HasValue` / pattern matching.
 
+Inventory moves use the same envelope pattern with a nullable op member; the
+union shapes, op modes, and resolution rules live in
+[inventory](networking-inventory.md).
+
+```nsd
+message InventoryEvent
+{
+    ulong Entity;            // player mirror address (dedupe/routing)
+    uint  SequenceNumber;
+    SlotMoveOp? SlotMove;    // op payload; future ops add their own nullable sub-message
+}
+```
+
 ## Interaction context components
 
 `CodeGen/components.nsd` also defines the server-owned interaction context and

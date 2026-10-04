@@ -42,11 +42,13 @@ iterates **dirty `ClientOwned`** components — `InputComponent` and
 `InteractionEvent` — and sends them up in a `WorldSnapshot`. Discrete
 interaction taps are latched into a coalesced edge queue (mirroring the
 `PendingInputComponent` ring buffer) so a tap falling in a send gap is still
-delivered on the next packet. Outbound edges are cleared only after the
-containing snapshot is actually sent: a failed send leaves them staged and the
-next successful tick re-emits them, so edge delivery trades latency, never
-drops. Client-owned components that are not packet-level (e.g. the active
-inventory slot) flow as dirty deltas, where clearing is best-effort per tick.
+delivered on the next packet, and inventory moves ride the same drain as
+`InventoryEvent` ops (see [inventory](networking-inventory.md)). Outbound edges
+and ops are cleared only after the containing snapshot is actually sent: a
+failed send leaves them staged and the next successful tick re-emits them, so
+edge and op delivery trades latency, never drops. Client-owned components that
+are not packet-level (e.g. the active inventory slot) flow as dirty deltas,
+where clearing is best-effort per tick.
 
 ## Dirty tracking
 

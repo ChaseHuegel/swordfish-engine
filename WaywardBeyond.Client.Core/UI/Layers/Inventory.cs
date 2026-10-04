@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
@@ -106,7 +107,16 @@ internal class Inventory : IUILayer
                     return;
                 }
 
-                _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) => inventory.Swap(slotIndex, _selectedSlot));
+                //  Whole-stack move to the hotbar slot; occupied-destination resolution is deterministic
+                //  (stack if the same item with capacity, otherwise swap) on both the prediction and the
+                //  server.
+                ApplyAndStage(new SlotMoveOp
+                {
+                    Mode = SlotMoveOp.MODE_EXACT,
+                    FromSlot = _selectedSlot,
+                    ToSlot = slotIndex,
+                    Count = null,
+                });
             }
         }
     }
@@ -149,28 +159,29 @@ internal class Inventory : IUILayer
             //  Drop dragged items
             if (!isDragSlotEmpty)
             {
-                //  Try to fill the selected stack from the dragged stack, if it is the same as the dragged item
-                _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+                //  Same item: fill the selected stack from the dragged stack (partial, client-computed).
+                //  Otherwise: whole-stack move, which the resolver stacks-or-swaps deterministically.
+                if (dragItemStack.ID == selectedItemStack.ID)
                 {
-                    if (dragItemStack.ID == selectedItemStack.ID)
+                    int available = selectedItemStack.MaxSize - selectedItemStack.Count;
+                    ApplyAndStage(new SlotMoveOp
                     {
-                        int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-                        Result<ItemData> content = inventory.Remove(_draggingSlot, available);
-                        if (content.Success)
-                        {
-                            if (!inventory.Add(_selectedSlot, content))
-                            {
-                                inventory.Add(content);
-                                //  TODO if this fails, the item should be dropped so it isn't lost
-                            }
-                        }
-                    }
-                    //  Otherwise, swap the slots
-                    else
+                        Mode = SlotMoveOp.MODE_EXACT,
+                        FromSlot = _draggingSlot,
+                        ToSlot = _selectedSlot,
+                        Count = (uint)Math.Max(0, available),
+                    });
+                }
+                else
+                {
+                    ApplyAndStage(new SlotMoveOp
                     {
-                        inventory.Swap(_draggingSlot, _selectedSlot);
-                    }
-                });
+                        Mode = SlotMoveOp.MODE_EXACT,
+                        FromSlot = _draggingSlot,
+                        ToSlot = _selectedSlot,
+                        Count = null,
+                    });
+                }
             }
         }
         
@@ -258,17 +269,12 @@ internal class Inventory : IUILayer
                                 //  Right-clicking a slot while dragging an item drops 1 count
                                 if (_dragging && rightClicked)
                                 {
-                                    _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+                                    ApplyAndStage(new SlotMoveOp
                                     {
-                                        Result<ItemData> content = inventory.Remove(_draggingSlot, 1);
-                                        if (content.Success)
-                                        {
-                                            if (!inventory.Add(inventorySlot, content) && !inventory.Add(_draggingSlot, content))
-                                            {
-                                                inventory.Add(content);
-                                                //  TODO if this fails, the item should be dropped so it isn't lost
-                                            }
-                                        }
+                                        Mode = SlotMoveOp.MODE_EXACT,
+                                        FromSlot = _draggingSlot,
+                                        ToSlot = inventorySlot,
+                                        Count = 1,
                                     });
                                 }
                                 
@@ -279,17 +285,12 @@ internal class Inventory : IUILayer
                                     int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
                                     var amount = (int)Math.Abs(scroll);
                                     
-                                    _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+                                    ApplyAndStage(new SlotMoveOp
                                     {
-                                        Result<ItemData> content = inventory.Remove(sourceSlot, amount);
-                                        if (content.Success)
-                                        {
-                                            if (!inventory.Add(destinationSlot, content) && !inventory.Add(sourceSlot, content))
-                                            {
-                                                inventory.Add(content);
-                                                //  TODO if this fails, the item should be dropped so it isn't lost
-                                            }
-                                        }
+                                        Mode = SlotMoveOp.MODE_EXACT,
+                                        FromSlot = sourceSlot,
+                                        ToSlot = destinationSlot,
+                                        Count = (uint)amount,
                                     });
                                 }
                                 
@@ -334,37 +335,36 @@ internal class Inventory : IUILayer
 
                                 if (shiftHeld)
                                 {
-                                    //  Shift + click and shift + hold left click quick moves items
+                                    //  Shift + click and shift + hold left click quick moves items via the
+                                    //  server-resolved AutoStack op.
                                     if (clicked || held)
                                     {
-                                        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+                                        ApplyAndStage(new SlotMoveOp
                                         {
-                                            Result<ItemData> content = inventory.Remove(inventorySlot);
-                                            if (content.Success)
-                                            {
-                                                int startingSlot = inventorySlot < SLOTS_PER_ROW ? SLOTS_PER_ROW : 0;
-                                                inventory.Add(content, startingSlot);
-                                            }
+                                            Mode = SlotMoveOp.MODE_AUTO_STACK,
+                                            FromSlot = inventorySlot,
+                                            ToSlot = -1,
+                                            Count = null,
                                         });
                                     }
                                 }
                                 else
                                 {
-                                    //  Right-clicking a slot splits the stack
+                                    //  Right-clicking a slot splits the stack: move half to the first
+                                    //  empty slot (client-computed target, server revalidated).
                                     if (!_dragging && rightClicked)
                                     {
-                                        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+                                        int splitTarget = SharedInventoryResolver.FindFirstEmptySlot(in inventory);
+                                        if (splitTarget >= 0)
                                         {
-                                            Result<ItemData> content = inventory.Remove(inventorySlot, itemStack.Count / 2);
-                                            if (content.Success)
+                                            ApplyAndStage(new SlotMoveOp
                                             {
-                                                if (!inventory.Add(content, onlyEmptySlots: true) && !inventory.Add(inventorySlot, content))
-                                                {
-                                                    inventory.Add(content);
-                                                    //  TODO if this fails, the item should be dropped so it isn't lost
-                                                }
-                                            }
-                                        });
+                                                Mode = SlotMoveOp.MODE_EXACT,
+                                                FromSlot = inventorySlot,
+                                                ToSlot = splitTarget,
+                                                Count = (uint)Math.Max(1, itemStack.Count / 2),
+                                            });
+                                        }
                                     }
 
                                     //  Start dragging this slot
@@ -430,6 +430,20 @@ internal class Inventory : IUILayer
         return Result.FromSuccess();
     }
     
+    /// <summary>
+    /// Applies a move op to the local inventory as prediction (via the shared resolver, so the result
+    /// matches what the server will apply) and stages it for upstream replication.
+    /// </summary>
+    private void ApplyAndStage(in SlotMoveOp moveOp)
+    {
+        SlotMoveOp move = moveOp;
+        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
+        {
+            SharedInventoryResolver.Apply(ref inventory, move);
+        });
+        _playerData.StageInventoryOp(_ecsContext.World.DataStore, move);
+    }
+
     private void OnToggleInventoryPressed()
     {
         if (_open)

@@ -93,4 +93,39 @@ public class ClientReplicationInteractionTests
         system.Tick(0f, store);
         Assert.That(connection.SnapshotsSent, Is.EqualTo(1));
     }
+
+    [Test]
+    public void InventoryOpsDrainIntoSnapshotsAndClearOnSuccess()
+    {
+        var connection = new FlakyConnection();
+        var system = new ClientReplicationSystem(connection);
+        var store = new DataStore();
+
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new PendingInventoryComponent());
+        store.QueryRef<PendingInventoryComponent>(entity, 0f,
+            (float _, DataStore s, int e, ref Ref<PendingInventoryComponent> pending) =>
+            {
+                ref PendingInventoryComponent value = ref pending.Write;
+                value.Outbound.Stage(++value.NextSequence, new SlotMoveOp { Mode = SlotMoveOp.MODE_EXACT, FromSlot = 7, ToSlot = 0, Count = null });
+                value.Outbound.Stage(++value.NextSequence, new SlotMoveOp { Mode = SlotMoveOp.MODE_AUTO_STACK, FromSlot = 9, ToSlot = -1, Count = null });
+            });
+
+        //  A failed send retains both ops.
+        connection.SendsFail = true;
+        system.Tick(0f, store);
+        Assert.That(connection.SnapshotsSent, Is.Zero);
+        store.TryGet(entity, out PendingInventoryComponent pending);
+        Assert.That(pending.Outbound.Snapshot(), Has.Length.EqualTo(2));
+
+        //  A successful send emits one InventoryEvent snapshot per op and clears the buffer.
+        connection.SendsFail = false;
+        system.Tick(0f, store);
+        Assert.That(connection.Received[0].Components, Has.Length.EqualTo(2));
+        store.TryGet(entity, out pending);
+        Assert.That(pending.Outbound.Snapshot(), Is.Empty);
+
+        system.Tick(0f, store);
+        Assert.That(connection.SnapshotsSent, Is.EqualTo(1));
+    }
 }
