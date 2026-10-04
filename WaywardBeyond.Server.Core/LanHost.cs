@@ -53,12 +53,12 @@ public sealed class LanHost : IEntryPoint, IDisposable
     public void Run()
     {
         int port = _settings.ServerPort.Get();
-        _host = new TcpServerHost(_serializers, _loggerFactory, _settings.ConnectionTimeoutMs.Get(), _settings.SendQueueSize.Get(), _settings.KeepaliveIntervalMs.Get(), _settings.MaxFrameBytes.Get(), _settings.ReliableQueueConcernThreshold.Get(), _settings.ReliableQueueDisconnectThreshold.Get(), _settings.ReliableQueueDisconnectMs.Get());
+        _host = new TcpServerHost(_serializers, _loggerFactory, _settings.ConnectionTimeoutMs.Get(), _settings.SendQueueSize.Get(), _settings.KeepaliveIntervalMs.Get(), _settings.MaxFrameBytes.Get(), _settings.ReliableQueueConcernThreshold.Get(), _settings.ReliableQueueDisconnectThreshold.Get(), _settings.ReliableQueueDisconnectMs.Get(), _settings.TraceLogging.Get());
         _host.OnClientAccepted = transport =>
         {
             Uuid clientId = _hub.Add(transport);
             _clientIds[transport] = clientId;
-            transport.OnDisconnected += () => RemoveClient(transport);
+            transport.OnDisconnected += reason => RemoveClient(transport, reason);
             _logger.LogInformation("A LAN client connected (id {clientId}).", clientId);
         };
 
@@ -159,8 +159,10 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _beacon?.Dispose();
     }
 
-    private void RemoveClient(TcpTransport transport)
+    private void RemoveClient(TcpTransport transport, DisconnectReason reason)
     {
+        _logger.LogInformation("A LAN client disconnected (id removed): {reason}.", reason);
+
         //  The owner disposes the dead peer: dropping it from the hub, pruning the id map, and closing
         //  the socket exactly once per transport.
         if (_clientIds.TryRemove(transport, out Uuid clientId))

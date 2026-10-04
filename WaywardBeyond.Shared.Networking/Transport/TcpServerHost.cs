@@ -29,6 +29,7 @@ public sealed class TcpServerHost : IDisposable
     private readonly int _reliableQueueConcernThreshold;
     private readonly int _reliableQueueDisconnectThreshold;
     private readonly int _reliableQueueDisconnectMs;
+    private readonly bool _traceLogging;
     private TcpListener? _listener;
     private Thread? _acceptThread;
     private volatile bool _isRunning;
@@ -46,7 +47,8 @@ public sealed class TcpServerHost : IDisposable
         int maxFrameBytes = 16 * 1024 * 1024,
         int reliableQueueConcernThreshold = 64,
         int reliableQueueDisconnectThreshold = 128,
-        int reliableQueueDisconnectMs = 10_000
+        int reliableQueueDisconnectMs = 10_000,
+        bool traceLogging = false
     ) {
         _serializers = serializers;
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpServerHost>();
@@ -57,6 +59,7 @@ public sealed class TcpServerHost : IDisposable
         _reliableQueueConcernThreshold = reliableQueueConcernThreshold;
         _reliableQueueDisconnectThreshold = reliableQueueDisconnectThreshold;
         _reliableQueueDisconnectMs = reliableQueueDisconnectMs;
+        _traceLogging = traceLogging;
     }
 
     /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
@@ -89,9 +92,9 @@ public sealed class TcpServerHost : IDisposable
                 break; //  Listener stopped (Dispose).
             }
 
-            TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _keepaliveIntervalMs, _maxFrameBytes, _reliableQueueConcernThreshold, _reliableQueueDisconnectThreshold, _reliableQueueDisconnectMs);
+            TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _keepaliveIntervalMs, _maxFrameBytes, _reliableQueueConcernThreshold, _reliableQueueDisconnectThreshold, _reliableQueueDisconnectMs, _traceLogging);
             _clients[transport] = transport;
-            transport.OnDisconnected += () => _clients.TryRemove(transport, out _);
+            transport.OnDisconnected += reason => _clients.TryRemove(transport, out _);
             try
             {
                 OnClientAccepted?.Invoke(transport);

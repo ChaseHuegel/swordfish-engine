@@ -151,6 +151,15 @@ loaded from `network.toml`:
 | `ReliableQueueDisconnectMs` | `10000` |
 | `JoinStreamTimeoutMs` | `60000` |
 | `MaxReceiveWindow` | `10` |
+| `TraceLogging` | `false` |
+
+Disconnect detection is reason-carrying: `TcpTransport.OnDisconnected` reports
+a `DisconnectReason` (peer-closed EOF, read/write error, read/write timeout, or
+backlog limit), logged by the transport and its consumers (`LanHost`,
+`TransportManager`). Per-message tracing (every sent and received frame's type
+and byte count, at trace level) is gated by `TraceLogging`, so production logs
+stay clean. Frames dropped for unknown type tags and decode failures log at
+warn with the discriminating type name and byte count.
 
 Frames are length-prefixed with a 4-byte body length. The receive loop rejects
 a prefix over `MaxFrameBytes` as a protocol violation and drops the connection

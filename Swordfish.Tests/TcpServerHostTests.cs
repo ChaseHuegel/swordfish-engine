@@ -62,7 +62,7 @@ public class TcpServerHostTests
                 accepted.Add(transport);
             }
 
-            transport.OnDisconnected += () => disconnectGate.Set();
+            transport.OnDisconnected += _ => disconnectGate.Set();
             acceptedGate.Set();
         };
 

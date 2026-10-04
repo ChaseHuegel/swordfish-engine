@@ -21,6 +21,7 @@ internal sealed class TransportManager : IClientConnection
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILoggerFactory _loggerFactory;
     private readonly NetworkingSettings _settings;
+    private readonly ILogger _logger;
     private TcpTransport? _remote;
     private IClientConnection? _active;
 
@@ -35,6 +36,7 @@ internal sealed class TransportManager : IClientConnection
         _serializers = serializers;
         _loggerFactory = loggerFactory;
         _settings = settings;
+        _logger = loggerFactory.CreateLogger<TransportManager>();
     }
 
     /// <summary>The currently active transport, or null before a client connects.</summary>
@@ -62,9 +64,13 @@ internal sealed class TransportManager : IClientConnection
                 _settings.MaxFrameBytes.Get(),
                 _settings.ReliableQueueConcernThreshold.Get(),
                 _settings.ReliableQueueDisconnectThreshold.Get(),
-                _settings.ReliableQueueDisconnectMs.Get()
+                _settings.ReliableQueueDisconnectMs.Get(), _settings.TraceLogging.Get()
             );
-            transport.OnDisconnected += RaiseRemoteDisconnected;
+            transport.OnDisconnected += reason =>
+            {
+                _logger.LogWarning("Remote transport disconnected: {reason}.", reason);
+                RaiseRemoteDisconnected();
+            };
             transport.Connect(host, port);
 
             _remote?.Dispose();
@@ -83,7 +89,7 @@ internal sealed class TransportManager : IClientConnection
     {
         if (_remote != null)
         {
-            _remote.OnDisconnected -= RaiseRemoteDisconnected;
+            _remote.Disconnect();
             _remote.Dispose();
         }
 

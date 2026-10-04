@@ -1,7 +1,7 @@
 # Improvement: Network logging — disconnect reasons and config-gated message tracing
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -22,18 +22,18 @@ Locked decision: the trace-logging flag is a WaywardBeyond config key,
 
 ## Acceptance criteria
 
-- [ ] Disconnects carry a reason: `OnDisconnected` gains a reason (e.g. an
+- [x] Disconnects carry a reason: `OnDisconnected` gains a reason (e.g. an
       enum: peer-closed-EOF, read-error, read/write-timeout, write-error,
       backlog-limit) reported by each detection site, logged at the
       transport and by consumers (`LanHost`,
       `TransportManager`/`ClientDisconnectSystem`).
-- [ ] Per-message trace logging for sent and received frames (type, byte
+- [x] Per-message trace logging for sent and received frames (type, byte
       count, direction) gated by `NetworkingSettings.TraceLogging`
       (default false), so production logs stay clean. Config key
       documented in the `networking-transports.md` table.
-- [ ] Frames dropped for unknown type tags and decode failures are logged
+- [x] Frames dropped for unknown type tags and decode failures are logged
       at warn with the discriminating detail (type name, byte count).
-- [ ] Tests: each disconnect scenario reports the correct reason (EOF,
+- [x] Tests: each disconnect scenario reports the correct reason (EOF,
       timeout, write failure; backlog-limit once #0004 lands); trace logs
       can be enabled without affecting message flow (docs pass:
       `networking-transports.md`).

@@ -154,10 +154,12 @@ public class TcpTransportTests
 
         using TcpClient serverSide = listener.AcceptTcpClient();
         int disconnectCount = 0;
+        DisconnectReason disconnectReason = default;
         var disconnectedGate = new ManualResetEventSlim();
-        client.OnDisconnected += () =>
+        client.OnDisconnected += reason =>
         {
             Interlocked.Increment(ref disconnectCount);
+            disconnectReason = reason;
             disconnectedGate.Set();
         };
 
@@ -166,6 +168,7 @@ public class TcpTransportTests
 
         Assert.True(disconnectedGate.Wait(5000), "The client should observe the server shutdown.");
         Assert.Equal(1, disconnectCount);
+        Assert.Equal(DisconnectReason.PeerClosed, disconnectReason);
 
         var stopwatch = Stopwatch.StartNew();
         _ = client.Send(new LeaveGameRequest { Dummy = 1 });
@@ -189,7 +192,8 @@ public class TcpTransportTests
         server.Listen(0);
 
         var disconnectedGate = new ManualResetEventSlim();
-        server.OnDisconnected += disconnectedGate.Set;
+        DisconnectReason reason = default;
+        server.OnDisconnected += r => { reason = r; disconnectedGate.Set(); };
 
         using var raw = new TcpClient();
         raw.Connect("127.0.0.1", server.LocalPort);
@@ -200,6 +204,7 @@ public class TcpTransportTests
         stream.Flush();
 
         Assert.True(disconnectedGate.Wait(5000), "The server must drop a peer claiming an oversized frame.");
+        Assert.Equal(DisconnectReason.ReadError, reason);
     }
 
     /// <summary>
@@ -213,7 +218,7 @@ public class TcpTransportTests
         server.Listen(0);
 
         var disconnectedGate = new ManualResetEventSlim();
-        server.OnDisconnected += disconnectedGate.Set;
+        server.OnDisconnected += _ => disconnectedGate.Set();
 
         using var raw = new TcpClient();
         raw.Connect("127.0.0.1", server.LocalPort);
@@ -407,7 +412,8 @@ public class TcpTransportTests
         using TcpClient peer = listener.AcceptTcpClient();
 
         var disconnectedGate = new ManualResetEventSlim();
-        client.OnDisconnected += disconnectedGate.Set;
+        DisconnectReason reason = default;
+        client.OnDisconnected += r => { reason = r; disconnectedGate.Set(); };
 
         //  A never-reading peer jams the send thread; three reliable frames overshoot the threshold.
         for (var i = 0; i < 3; i++)
@@ -421,6 +427,7 @@ public class TcpTransportTests
         Assert.True(client.Send(new JoinRequest { CharacterId = 9, PublicView = new PublicView { CharacterId = 9, Name = "P", Body = "wb:m_human" } }).Success);
 
         Assert.True(disconnectedGate.Wait(5000), "The stalled peer must be dropped after the backlog window.");
+        Assert.Equal(DisconnectReason.BacklogLimit, reason);
         listener.Stop();
     }
 
@@ -443,6 +450,28 @@ public class TcpTransportTests
     }
 
     /// <summary>
+    /// Enabling trace logging must not alter message flow: frames still arrive intact and in order.
+    /// </summary>
+    [Fact]
+    public void TraceLoggingLeavesMessageFlowUntouched()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, traceLogging: true);
+        server.Listen(0);
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, traceLogging: true);
+        client.Connect("127.0.0.1", server.LocalPort);
+
+        client.Send(new JoinRequest { CharacterId = 3, PublicView = new PublicView { CharacterId = 3, Name = "T", Body = "wb:m_human" } });
+        Result<JoinRequest> join = PollFor<JoinRequest>(server);
+        Assert.True(join.Success);
+        Assert.Equal(3ul, join.Value.CharacterId);
+
+        server.Send(new WorldSnapshot { TickNumber = 11, Components = [], RemovedEntities = [] });
+        Result<WorldSnapshot> snapshot = PollFor<WorldSnapshot>(client);
+        Assert.True(snapshot.Success);
+        Assert.Equal(11u, snapshot.Value.TickNumber);
+    }
+
+    /// <summary>
     /// A live-but-idle peer must not be dropped by the socket read timeout: a keepalive heartbeat keeps
     /// each direction fed within the timeout window. This pins the tailscale disconnect, where an idle
     /// link read blocks a full <see cref="TcpTransport"/> timeout and is misread as a dead peer.
@@ -457,8 +486,8 @@ public class TcpTransportTests
 
         int clientDropped = 0;
         int serverDropped = 0;
-        client.OnDisconnected += () => Interlocked.Increment(ref clientDropped);
-        server.OnDisconnected += () => Interlocked.Increment(ref serverDropped);
+        client.OnDisconnected += _ => Interlocked.Increment(ref clientDropped);
+        server.OnDisconnected += _ => Interlocked.Increment(ref serverDropped);
 
         //  Stay idle for well past the 600ms read timeout so a missing keepalive would falsely drop.
         Thread.Sleep(2200);

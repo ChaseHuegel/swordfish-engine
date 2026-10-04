@@ -25,6 +25,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 {
     private readonly SerializerCache _serializers;
     private readonly ILogger _logger;
+    private readonly bool _traceLogging;
     private readonly int _connectionTimeoutMs;
     private readonly int _keepaliveIntervalMs;
     private readonly int _sendQueueSize;
@@ -64,11 +65,12 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
     /// <summary>
     /// Raised once when the remote peer disconnects (receive loop reaches EOF/error) while the transport
-    /// is still running — i.e. not on an intentional <see cref="Disconnect"/>. Used by the server host to
-    /// drop a departed client from its connection hub, and by the owner (LanHost, TransportManager) to
-    /// dispose the transport exactly once.
+    /// is still running — i.e. not on an intentional <see cref="Disconnect"/>, which never raises it. The
+    /// reason discriminates EOF, read/write errors, timeouts, and the backlog-limit drop. Used by the
+    /// server host to drop a departed client from its connection hub, and by the owner (LanHost,
+    /// TransportManager) to dispose the transport exactly once.
     /// </summary>
-    public event Action? OnDisconnected;
+    public event Action<DisconnectReason>? OnDisconnected;
 
     public TcpTransport(
         IEnumerable<INetworkSerializer> serializers,
@@ -79,10 +81,12 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int maxFrameBytes = 16 * 1024 * 1024,
         int reliableQueueConcernThreshold = 64,
         int reliableQueueDisconnectThreshold = 128,
-        int reliableQueueDisconnectMs = 10_000
+        int reliableQueueDisconnectMs = 10_000,
+        bool traceLogging = false
     ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
+        _traceLogging = traceLogging;
         _connectionTimeoutMs = connectionTimeoutMs;
         _keepaliveIntervalMs = ClampKeepaliveInterval(keepaliveIntervalMs, connectionTimeoutMs);
         _sendQueueSize = Math.Max(1, sendQueueSize);
@@ -106,9 +110,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int maxFrameBytes = 16 * 1024 * 1024,
         int reliableQueueConcernThreshold = 64,
         int reliableQueueDisconnectThreshold = 128,
-        int reliableQueueDisconnectMs = 10_000
+        int reliableQueueDisconnectMs = 10_000,
+        bool traceLogging = false
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold, reliableQueueDisconnectThreshold, reliableQueueDisconnectMs);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold, reliableQueueDisconnectThreshold, reliableQueueDisconnectMs, traceLogging);
         transport._client = client;
         transport._client.NoDelay = true;
         transport._client.SendTimeout = connectionTimeoutMs;
@@ -225,6 +230,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             return Result.FromFailure($"Frame of {frame.Length} bytes exceeds the {_maxFrameBytes} byte cap.");
         }
 
+        if (_traceLogging)
+        {
+            _logger.LogTrace("Sending {type} frame ({bytes} bytes).", typeName, bytes.Length);
+        }
+
         //  Enqueue for the dedicated send thread. Sends never block the calling thread. Reliable control/state
         //  messages ride a never-evicting priority queue (a drop would be permanent data loss); per-tick
         //  snapshot traffic rides the bounded queue where a full queue drops the oldest frame so input
@@ -278,7 +288,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             if (Environment.TickCount - _reliableOverflowTicks >= _reliableDisconnectMs)
             {
                 _logger.LogError("Dropping peer: reliable backlog of {count} frames held over {ms} ms.", count, _reliableDisconnectMs);
-                MarkBroken();
+                MarkBroken(DisconnectReason.BacklogLimit);
             }
         }
         else
@@ -305,6 +315,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         }
         catch (Exception ex)
         {
+            _logger.LogWarning("Failed to decode a {type} frame ({bytes} bytes): {message}.", typeof(T).Name, data.Length, ex.Message);
             return Result<T>.FromFailure(ex);
         }
     }
@@ -412,10 +423,12 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             {
                 _stream?.Write(bytes, 0, bytes.Length);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 //  A write timeout or socket failure means the peer is gone. Surface it exactly once.
-                MarkBroken();
+                DisconnectReason reason = IsTimedOut(ex) ? DisconnectReason.WriteTimeout : DisconnectReason.WriteError;
+                _logger.LogDebug("Peer write failed: {reason}.", reason);
+                MarkBroken(reason);
                 break;
             }
         }
@@ -424,6 +437,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private void ReceiveLoop()
     {
         byte[] lengthBuffer = new byte[4];
+        DisconnectReason reason = DisconnectReason.PeerClosed;
 
         while (_isRunning)
         {
@@ -440,18 +454,21 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                     //  A peer claiming a size beyond the cap cannot be satisfied without allocating its
                     //  buffer; treat the frame as a protocol violation and drop the connection.
                     _logger.LogWarning("Dropping connection: frame length {frameLength} exceeds the {maxFrameBytes} byte cap.", frameLength, _maxFrameBytes);
+                    reason = DisconnectReason.ReadError;
                     break;
                 }
 
                 byte[] frame = new byte[frameLength];
                 if (ReadExact(frame, 0, frameLength) == 0)
                 {
+                    reason = DisconnectReason.PeerClosed;
                     break;
                 }
 
                 int typeTagLength = BitConverter.ToInt32(frame, 0);
                 if (typeTagLength < 0 || 4 + typeTagLength > frameLength)
                 {
+                    reason = DisconnectReason.ReadError;
                     break;
                 }
 
@@ -466,14 +483,20 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
                 if (!_serializers.TryGetType(typeName, out Type type))
                 {
-                    _logger.LogWarning("Dropping frame with unknown type tag '{typeName}'.", typeName);
+                    _logger.LogWarning("Dropping frame with unknown type tag '{typeName}' ({bytes} bytes).", typeName, payload.Length);
                     continue;
+                }
+
+                if (_traceLogging)
+                {
+                    _logger.LogTrace("Received {type} frame ({bytes} bytes).", typeName, payload.Length);
                 }
 
                 _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<byte[]>()).Enqueue(payload);
             }
-            catch
+            catch (Exception ex)
             {
+                reason = IsTimedOut(ex) ? DisconnectReason.ReadTimeout : DisconnectReason.ReadError;
                 break;
             }
         }
@@ -483,15 +506,16 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         //  client can return to the menu.
         if (_isRunning)
         {
-            MarkBroken();
+            MarkBroken(reason);
         }
     }
 
     /// <summary>
     /// Marks the transport broken after a peer disconnect detected by either the receive or the send
-    /// thread, canceling the send drain and raising <see cref="OnDisconnected"/> exactly once.
+    /// thread, canceling the send drain and raising <see cref="OnDisconnected"/> exactly once with the
+    /// detection <paramref name="reason"/>.
     /// </summary>
-    private void MarkBroken()
+    private void MarkBroken(DisconnectReason reason)
     {
         if (!_isRunning)
         {
@@ -510,12 +534,26 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         _disconnectedRaised = true;
         try
         {
-            OnDisconnected?.Invoke();
+            OnDisconnected?.Invoke(reason);
         }
         catch
         {
             //  A subscriber's exception must not kill the detecting thread.
         }
+    }
+
+    /// <summary>True when a socket exception chain indicates a timed-out read or write.</summary>
+    private static bool IsTimedOut(Exception ex)
+    {
+        for (Exception? current = ex; current != null; current = current.InnerException)
+        {
+            if (current is SocketException { SocketErrorCode: SocketError.TimedOut })
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static int ClampKeepaliveInterval(int keepaliveIntervalMs, int connectionTimeoutMs)
