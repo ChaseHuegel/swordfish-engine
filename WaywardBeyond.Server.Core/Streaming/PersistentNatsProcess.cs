@@ -17,12 +17,14 @@ public sealed class PersistentNatsProcess : IDisposable
 {
     private readonly ILogger<PersistentNatsProcess> _logger;
     private const string VAR_NATS_EXTRA_ARGS = "NATS_EXTRA_ARGS";
+    private const int STOP_WAIT_MS = 5000;
 
     private readonly Lock _lock = new();
     private readonly ProcessStartInfo _startInfo;
     
     private Process? _process;
     private Job? _windowsJob;
+    private volatile bool _disposed;
 
     public PersistentNatsProcess(in ILogger<PersistentNatsProcess> logger, in VirtualFileSystem vfs, in IConfiguration configuration)
     {
@@ -47,9 +49,20 @@ public sealed class PersistentNatsProcess : IDisposable
             throw new FileNotFoundException("NATS server executable not found.");
         }
 
+        _startInfo = CreateStartInfo(absolutePath.Value, configuration);
+    }
+
+    internal PersistentNatsProcess(in ILogger<PersistentNatsProcess> logger, string executablePath, in IConfiguration configuration)
+    {
+        _logger = logger;
+        _startInfo = CreateStartInfo(executablePath, configuration);
+    }
+
+    private static ProcessStartInfo CreateStartInfo(string executablePath, in IConfiguration configuration)
+    {
         string storageDirectory = Path.GetFullPath("saves/").Replace('\\', '/');
         
-        _startInfo = new ProcessStartInfo(absolutePath.Value)
+        return new ProcessStartInfo(executablePath)
         {
             Arguments = $"-js -sd \"{storageDirectory}\" {configuration.GetString(VAR_NATS_EXTRA_ARGS)}",
             CreateNoWindow = true,
@@ -63,14 +76,52 @@ public sealed class PersistentNatsProcess : IDisposable
     {
         using Lock.Scope _ = _lock.EnterScope();
 
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
+
+        //  Detach every handler first so teardown can never be followed by a resurrected server: the
+        //  Exited handler restarts the child on crash, and draining the output can race the kill.
+        if (_process != null)
+        {
+            _process.Exited -= OnProcessExited;
+            _process.OutputDataReceived -= OnProcessOutput;
+            _process.ErrorDataReceived -= OnProcessError;
+        }
+
+        //  Process.Dispose only releases the handle; a child must be terminated explicitly. Kill the
+        //  whole tree (the server may spawn subprocesses) and wait a bounded time for it to stop.
+        try
+        {
+            if (_process != null && !_process.HasExited)
+            {
+                _process.Kill(entireProcessTree: true);
+                _process.WaitForExit(STOP_WAIT_MS);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to terminate the NATS server process cleanly.");
+        }
+
         _windowsJob?.Dispose();
+        _windowsJob = null;
         _process?.Dispose();
+        _process = null;
     }
     
     public Result Start()
     {
         using Lock.Scope _ = _lock.EnterScope();
-        
+
+        if (_disposed)
+        {
+            return Result.FromFailure("NATS process is disposed.");
+        }
+
         if (_process != null)
         {
             return Result.FromSuccess();
@@ -137,7 +188,13 @@ public sealed class PersistentNatsProcess : IDisposable
     private void OnProcessExited(object? sender, EventArgs e)
     {
         using Lock.Scope _ = _lock.EnterScope();
-        
+
+        //  The child died before dispose: never restart during or after teardown.
+        if (_disposed)
+        {
+            return;
+        }
+
         //  Cleanup the previous process
         if (_process != null)
         {

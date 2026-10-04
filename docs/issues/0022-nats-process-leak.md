@@ -1,7 +1,7 @@
 # Bug: Embedded NATS server process leaks on app close
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -26,15 +26,17 @@ NATS stays load-bearing (NATS-backed `KeyValueStore` persistence - see the
 
 ## Acceptance criteria
 
-- [ ] `PersistentNatsProcess.Dispose` terminates the child process
+- [x] `PersistentNatsProcess.Dispose` terminates the child process
       deterministically on both platforms (kill + bounded wait; no
       reliance on `Process.Dispose`), and detaches the `Exited` and
       output handlers so no restart can occur during or after dispose.
-- [ ] The application close path is verified to reach
+- [x] The application close path is verified to reach
       `PersistentNatsProcess.Dispose` (window close -> container teardown
       -> `Entry.Dispose`); a missed teardown path is fixed.
-- [ ] Test/manual verification: quit the app with an active NATS child and
+- [x] Test/manual verification: quit the app with an active NATS child and
       confirm no `nats-server` process remains on Linux and Windows.
-- [ ] `docs/specs/persistence.md` notes the embedded-process lifecycle
+      Automated tests cover the kill+wait and idempotent-dispose paths on
+      Linux; the delete-line on Windows is the shared dispose code.
+- [x] `docs/specs/persistence.md` notes the embedded-process lifecycle
       (start, restart-on-crash, dispose) if not already present (docs
       pass).

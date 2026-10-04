@@ -99,6 +99,18 @@ stop → server flushes world save → server thread exits → NATS process stop
 process exits. The flush must be awaited before `PersistentNatsProcess` dispose
 (Shoal dispose order is unspecified), to avoid a save-vs-teardown race.
 
+## Embedded NATS process lifecycle
+
+`PersistentNatsProcess` (`Server.Core/Streaming/`) starts the bundled
+`nats-server` child, restarts it on crash (guarded by a disposed flag), and
+terminates it deterministically on dispose: handlers detach first, then the
+child (and its tree) is killed with a bounded wait — `Process.Dispose` alone
+only releases the handle. On Windows the child also rides a Job object. The
+close path is: window close → `SwordfishEngine.Run` returns → `AppEngine.Dispose`
+→ container dispose → `PersistentNatsProcess.Dispose`. Verify manually after a
+change that no `nats-server` process remains after app close (Linux: `pgrep
+nats-server`; Windows: Task Manager).
+
 ## Client facade
 
 `GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached save
