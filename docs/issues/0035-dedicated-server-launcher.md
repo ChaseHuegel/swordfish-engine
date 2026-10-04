@@ -1,7 +1,7 @@
 # Improvement: Headless dedicated server launcher
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -55,13 +55,13 @@ default (non-`--client`) mode, so it works unmodified.
 
 ## Acceptance criteria
 
-- [ ] `WaywardBeyond.Server.Launcher` boots headless without a client
+- [x] `WaywardBeyond.Server.Launcher` boots headless without a client
       module; LAN clients join and play through the normal TCP path
       (end-to-end verified).
-- [ ] Host wiring extracted into the shared Server.Core composition; the
+- [x] Host wiring extracted into the shared Server.Core composition; the
       client host path registers the same shared composition (no
       duplicated or drifted wire-up between embedded host and launcher).
-- [ ] Clean shutdown (Ctrl+C, console close) flushes the world, ends
+- [x] Clean shutdown (Ctrl+C, console close) flushes the world, ends
       sessions, and stops the NATS child (#0022).
-- [ ] `networking-transports.md` gains a dedicated-server section
+- [x] `networking-transports.md` gains a dedicated-server section
       documenting the launcher, module set, and lifecycle (docs pass).

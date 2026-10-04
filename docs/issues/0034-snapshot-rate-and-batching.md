@@ -1,7 +1,7 @@
 # Improvement: Bandwidth — snapshot-rate reduction and interval send batching
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -42,16 +42,16 @@ issue if judged steppy.
 
 ## Acceptance criteria
 
-- [ ] Baseline measured with the #0033 counters before and after the
+- [x] Baseline measured with the #0033 counters before and after the
       change; the two-player scenario shows roughly halved downstream
       bytes.
-- [ ] `WorldSnapshot` publishes at `SnapshotHz` (default 30); the wire
+- [x] `WorldSnapshot` publishes at `SnapshotHz` (default 30); the wire
       format and tick semantics are unchanged; despawns and full-sync
       publish within one interval.
-- [ ] `TcpTransport` drains on `SendIntervalMs` (default 16, clamped to
+- [x] `TcpTransport` drains on `SendIntervalMs` (default 16, clamped to
       <= `1000 / SnapshotHz`), coalescing pending writes; reliable-queue
       frames are never dropped, only delayed by at most one interval.
-- [ ] Visual check: remote player motion at 30 Hz with no interpolation
+- [x] Visual check: remote player motion at 30 Hz with no interpolation
       is acceptable; a follow-up interpolation issue is opened if not.
-- [ ] New config keys documented in `networking-transports.md` and
+- [x] New config keys documented in `networking-transports.md` and
       `networking-replication.md` (docs pass).

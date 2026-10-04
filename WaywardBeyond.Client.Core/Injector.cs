@@ -34,6 +34,7 @@ using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
+using WaywardBeyond.Server.Core;
 using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
@@ -89,9 +90,6 @@ public class Injector : IDryIocInjector
         container.Register<ICharacterStorage, NatsCharacterStorage>(Reuse.Singleton);
         container.Register<ISaveMetaStorage, NatsSaveMetaStorage>(Reuse.Singleton);
         
-        container.Register<KeyValueStore>(setup: Setup.With(allowDisposableTransient: true));
-        container.Register<PersistentNatsProcess>(setup: Setup.With(allowDisposableTransient: true));
-
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
         container.Register<GameSaveService>(Reuse.Singleton);
@@ -111,32 +109,11 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
-        NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
-        NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
-        NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec());
+        //  The shared host wire-up (registry, serializers, loopback transports, hub, NATS-backed
+        //  persistence, networking config) lives in Server.Core so the embedded host and the dedicated
+        //  launcher compose from the same source.
+        HostComposition.RegisterNetworking(container, seedLocalLoopback: true);
 
-        container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<JoinRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<JoinAccept>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<WorldEntityAdd>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<VoxelEditMessage>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<NotificationMessage>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SkillStateUpdateMessage>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ChatMessage>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ServerHeartbeatMessage>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ClientHeartbeatMessage>>();
-        container.Register<LocalConnection>(Reuse.Singleton);
         container.Register<TransportManager>(Reuse.Singleton);
         container.RegisterDelegate<IClientConnection>(context =>
         {
@@ -147,16 +124,9 @@ public class Injector : IDryIocInjector
             }
             return transport;
         }, Reuse.Singleton);
-        container.RegisterDelegate<ServerConnectionHub>(context =>
-        {
-            ServerConnectionHub hub = new(context.Resolve<NetworkingSettings>().MaxReceiveWindow.Get());
-            hub.Add(context.Resolve<LocalConnection>().Server);
-            return hub;
-        }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
         container.Register<ServerStats>(Reuse.Singleton);
-        container.Register<LanHostInfo>(Reuse.Singleton);
 
         container.Register<IEntitySystem, ClientHeartbeatSystem>();
 

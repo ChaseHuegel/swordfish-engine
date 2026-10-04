@@ -37,10 +37,10 @@ is not part of this workflow.
 - [x] [Continue button connects to the last joined server](/docs/issues/0029-continue-last-server.md) — ProfileSettings.LastServerMode marker branches local vs remote
 - [x] [Saved server list on the multiplayer page](/docs/issues/0030-saved-servers.md) — ProfileSettings records, connect/remove with icon styling, 32-entry cap
 - [x] [Multiplayer page — Enter submits connect](/docs/issues/0031-multiplayer-enter-submit.md) — keyboard submit on the address/port fields
-- [ ] [Session heartbeats — server TPS and client sim-tick reporting](/docs/issues/0032-session-heartbeats.md) — paired nsd heartbeats replace the transport keepalive, TickLagWarnThreshold
-- [ ] [F3 network statistics](/docs/issues/0033-f3-network-stats.md) — transport counters + engine Sampler rates + player count via heartbeat
-- [ ] [Bandwidth — snapshot-rate reduction and interval batching](/docs/issues/0034-snapshot-rate-and-batching.md) — SnapshotHz 30 default, SendIntervalMs coalesced drain, no traffic caps
-- [ ] [Headless dedicated server launcher](/docs/issues/0035-dedicated-server-launcher.md) — composition-driven (no mode flag), shared host composition in Server.Core
+- [x] [Session heartbeats — server TPS and client sim-tick reporting](/docs/issues/0032-session-heartbeats.md) — paired nsd heartbeats replace the transport keepalive, TickLagWarnThreshold
+- [x] [F3 network statistics](/docs/issues/0033-f3-network-stats.md) — transport counters + engine Sampler rates + player count via heartbeat
+- [x] [Bandwidth — snapshot-rate reduction and interval batching](/docs/issues/0034-snapshot-rate-and-batching.md) — SnapshotHz 30 default, SendIntervalMs coalesced drain, no traffic caps
+- [x] [Headless dedicated server launcher](/docs/issues/0035-dedicated-server-launcher.md) — composition-driven (no mode flag), shared host composition in Server.Core
 
 ### Improvement
 

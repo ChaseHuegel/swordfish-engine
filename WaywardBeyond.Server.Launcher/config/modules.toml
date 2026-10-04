@@ -1,0 +1,7 @@
+AllowScriptCompilation = false
+LoadOrder = [
+    "waywardbeyond.shared.bricks",
+    "waywardbeyond.shared.skills",
+    "waywardbeyond.shared.bodies",
+    "waywardbeyond.server.core",
+]

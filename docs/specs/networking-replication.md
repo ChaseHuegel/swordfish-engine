@@ -20,6 +20,12 @@ One subject: dirty-driven replication between server and client.
 - **Despawns** are recorded via `RequestDespawn` (must be called before the
   entity is freed, since `DataStore.Free` clears the uuid) and broadcast in
   `RemovedEntities`.
+- **Publish cadence.** The publish stage emits on an interval of
+  `60 / NetworkingSettings.SnapshotHz` sim ticks (default 30 Hz), not every
+  tick. `TickNumber`/`LastProcessedInput` semantics are unchanged; despawns
+  and the full-sync publish ride the same tick cadence, at most one interval
+  of delay. The transport additionally coalesces pending frames into one
+  socket write per `SendIntervalMs` (see [transports](networking-transports.md)).
 - **Join-stream gating.** Once a client's world stream is enqueued
   (`ServerJoinSystem.BeginStream`), the publish stage sends it no per-tick
   deltas until the stream complete has been enqueued (`EndStream`), so a

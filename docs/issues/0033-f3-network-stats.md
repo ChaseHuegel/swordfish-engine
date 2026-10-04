@@ -1,7 +1,7 @@
 # Improvement: F3 network statistics — packets/bytes counters and player count
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -41,14 +41,14 @@ established by `PerformanceStatsOverlay`.
 
 ## Acceptance criteria
 
-- [ ] Send/receive counters on both transports are incremented on every
+- [x] Send/receive counters on both transports are incremented on every
       frame and exposed; the #0014 pooling work does not change counter
       semantics (counts events and bytes, not retained buffers).
-- [ ] `NetworkStatsOverlay` records and renders per-second rates (packets
+- [x] `NetworkStatsOverlay` records and renders per-second rates (packets
       and bytes in/out), totals, player count, and the #0032 server TPS,
       with a no-signal state when disconnected.
-- [ ] `ServerHeartbeatMessage.PlayerCount` added per the #0032 coupling
+- [x] `ServerHeartbeatMessage.PlayerCount` added per the #0032 coupling
       and documented in `networking-messages.md`.
-- [ ] Tests: known packet/byte sequences over `LocalConnection` and a
+- [x] Tests: known packet/byte sequences over `LocalConnection` and a
       `TcpTransport` pair produce exact counter values; counter
       thread-safety holds under the transport's send threads.

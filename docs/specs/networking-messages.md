@@ -153,6 +153,30 @@ message VoxelEditMessage
 }
 ```
 
+## Session heartbeats
+
+`ServerHeartbeatMessage` (server → client, reliable, per connection at
+`HeartbeatIntervalMs`) and `ClientHeartbeatMessage` (client → server, same
+cadence) carry the liveness + lag signal.
+
+```nsd
+message ServerHeartbeatMessage
+{
+    uint TPS;           // server fixed-step count per wall second, averaged
+    uint TickNumber;    // current server sim tick
+    uint PlayerCount;   // server-stamped from the hub (own client included)
+}
+message ClientHeartbeatMessage
+{
+    uint TickNumber;             // client sim tick (AlignTo-ed from snapshots)
+    uint LastAppliedSnapshotTick;
+}
+```
+
+The heartbeats replace the transport keepalive frame (see
+[transports](networking-transports.md)). Bandwidth is negligible: one small
+reliable frame per second per connection.
+
 ## Chat
 
 `WaywardBeyond.Shared.Networking/CodeGen/network.nsd`:

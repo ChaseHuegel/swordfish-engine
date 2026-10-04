@@ -1,7 +1,7 @@
 # Improvement: Session heartbeats — server TPS and client sim-tick reporting, replacing the transport keepalive
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -45,22 +45,22 @@ a socket-liveness byte, not an application message.
 
 ## Acceptance criteria
 
-- [ ] Both heartbeat messages added to `network.nsd`; server and client
+- [x] Both heartbeat messages added to `network.nsd`; server and client
       emit their heartbeat per connection per `HeartbeatIntervalMs` on
       the reliable queue, starting at connection establishment; interval
       clamped below `ConnectionTimeoutMs`.
-- [ ] Transport keepalive removed: `_KEEPALIVE_FRAME`, `KeepaliveLoop`,
+- [x] Transport keepalive removed: `_KEEPALIVE_FRAME`, `KeepaliveLoop`,
       the empty-type-tag skip in `ReceiveLoop`, and the
       `KeepaliveIntervalMs` key are gone; the idle-link test
       (`KeepaliveKeepsIdlePeerConnected`) is rewritten to drive app-level
       heartbeats and still passes.
-- [ ] Server tracks per-client reported ticks and warns once per crossing
+- [x] Server tracks per-client reported ticks and warns once per crossing
       when a client falls behind by more than `TickLagWarnThreshold`,
       with the delta in the log line.
-- [ ] Client F3 shows the live server TPS from the heartbeat, with a
+- [x] Client F3 shows the live server TPS from the heartbeat, with a
       no-signal state when heartbeats stop.
-- [ ] Heartbeat bandwidth is negligible (verified via the #0033 counters).
-- [ ] `networking-transports.md` documents the heartbeat-as-keepalive
+- [x] Heartbeat bandwidth is negligible (verified via the #0033 counters).
+- [x] `networking-transports.md` documents the heartbeat-as-keepalive
       model and new config keys (`HeartbeatIntervalMs`,
       `TickLagWarnThreshold`); `networking-messages.md` documents both
       messages (docs pass).

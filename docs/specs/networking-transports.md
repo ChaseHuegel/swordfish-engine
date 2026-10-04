@@ -61,13 +61,17 @@ backlog stays over `ReliableQueueDisconnectThreshold` for
 a peer that never reads (see [join](networking-join.md) for the client-side
 join-stream timeout).
 
-A keepalive heartbeat keeps a live-but-idle peer from being dropped. Each peer
-runs a dedicated background thread that enqueues an empty-type-tag frame every
-`KeepaliveIntervalMs`, so both receive directions always deliver a readable byte
-within the `ConnectionTimeoutMs` window. The receive loop silently skips frames
-with an empty type tag. Without keepalive, a quiet client whose server only
-publishes on change would idle a full read timeout and be misread as dead over a
-high-latency link (for example tailscale).
+A keepalive heartbeat keeps a live-but-idle peer from being dropped. There is
+no transport-level keepalive frame: the **session heartbeat** is the liveness
+signal. Both sides emit an app-level heartbeat per connection at
+`NetworkingSettings.HeartbeatIntervalMs` (clamped below `ConnectionTimeoutMs`)
+from connection establishment - server → client `ServerHeartbeatMessage`
+(carrying the averaged `TPS`, the current sim `TickNumber`, and
+`PlayerCount`), client → server `ClientHeartbeatMessage` (carrying the client's
+sim tick and last applied snapshot tick). The receive loop no longer skips any
+frame kind; a genuinely idle link times out. The server tracks each client's
+reported tick and logs a warn when it falls behind by more than
+`TickLagWarnThreshold` sim ticks (once per crossing).
 
 Disconnect detection is symmetric. Either the receive or the send thread can
 observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
@@ -143,7 +147,10 @@ loaded from `network.toml`:
 | `DiscoveryBroadcastSeconds` | `5` |
 | `DiscoveryScanSeconds` | `20` |
 | `ConnectionTimeoutMs` | `5000` |
-| `KeepaliveIntervalMs` | `2000` |
+| `HeartbeatIntervalMs` | `1000` |
+| `TickLagWarnThreshold` | `10` |
+| `SnapshotHz` | `30` |
+| `SendIntervalMs` | `16` |
 | `SendQueueSize` | `256` |
 | `MaxFrameBytes` | `16777216` |
 | `ReliableQueueConcernThreshold` | `64` |
@@ -182,6 +189,24 @@ change, and the submission (exact locations + suggested guard shape) is tracked
 as [issue 0037](/docs/issues/0037-nsdc-unpack-safety.md). Until the fixed
 codegen lands, `MaxFrameBytes` bounds the reachable buffer size and
 per-client isolation keeps a decode fault from halting the server.
+
+## Dedicated server
+
+A headless dedicated server is a Shoal embedding without the client module:
+`WaywardBeyond.Server.Launcher` (console `Exe`) loads the server and shared
+modules only (`shared.bricks`, `shared.skills`, `shared.bodies`,
+`server.core`) - no window, input, or client-world services. It registers the
+same shared host wire-up as the embedded client host
+(`Server.Core/HostComposition.cs`): the serializer set, `NetworkRegistry`
+init, hub (no loopback seed), NATS-backed persistence, `NetworkingSettings`,
+and `PhysicsSettings`; `ServerModule`'s host registrations add
+`ServerContext` + `LanHost` + the beacon. Interaction content is the
+embedding's choice: the client module registers its item-backed content, the
+launcher registers `ServerInteractionContent` (breaks and loot; place
+resolution needs shared item content). Lifecycle: NATS start (per
+[persistence](persistence.md)), `Ctrl+C`/SIGTERM → clean shutdown (world
+flush, session teardown, NATS stop). CLI: `--name`, `--port` override the
+`NetworkingSettings` defaults.
 
 ## Source of truth
 
