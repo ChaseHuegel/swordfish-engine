@@ -68,7 +68,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         {
             JoinRequestData pending = _request.Value;
             Character character = pending.Character;
-            _transport.Send(new JoinRequest
+            Result send = _transport.Send(new JoinRequest
             {
                 LevelGuid = pending.LevelGuid,
                 CharacterId = character.Id,
@@ -93,6 +93,10 @@ internal sealed class ClientJoinSystem : IEntitySystem
                     Statistics = character.Statistics,
                 },
             });
+            if (!send.Success)
+            {
+                _logger.LogWarning("Failed to send join request: {message}.", send.Message);
+            }
             _sent = true;
         }
 

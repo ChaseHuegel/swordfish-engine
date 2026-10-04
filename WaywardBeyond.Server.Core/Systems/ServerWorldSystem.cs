@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -55,7 +56,16 @@ public sealed class ServerWorldSystem : IEntitySystem
             //  Capture on the server thread is required (the store is owned by it); the KV writes are
             //  offloaded inside QueueWorldSave.
             _worldService.QueueWorldSave(store);
-            _hub.Send(clientId, new SaveWorldResponse { Success = true });
+            SendOrLog(clientId, new SaveWorldResponse { Success = true });
+        }
+    }
+
+    private void SendOrLog<T>(Uuid clientId, in T message)
+    {
+        Result send = _hub.Send(clientId, message);
+        if (!send.Success)
+        {
+            _logger.LogWarning("Failed to send world-management response to client {clientId}: {message}.", clientId, send.Message);
         }
     }
 
@@ -69,12 +79,12 @@ public sealed class ServerWorldSystem : IEntitySystem
                 (GameMode)request.GameMode,
                 out string levelGuid
             );
-            _hub.Send(clientId, new NewWorldResponse { LevelGuid = levelGuid, Success = success });
+            SendOrLog(clientId, new NewWorldResponse { LevelGuid = levelGuid, Success = success });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create world \"{name}\" on behalf of client {client}.", request.Name, clientId);
-            _hub.Send(clientId, new NewWorldResponse { LevelGuid = string.Empty, Success = false });
+            SendOrLog(clientId, new NewWorldResponse { LevelGuid = string.Empty, Success = false });
         }
     }
 
@@ -83,12 +93,12 @@ public sealed class ServerWorldSystem : IEntitySystem
         try
         {
             Level[] levels = _worldService.ListLevels();
-            _hub.Send(clientId, new ListWorldsResponse { Levels = levels });
+            SendOrLog(clientId, new ListWorldsResponse { Levels = levels });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to list worlds for client {client}.", clientId);
-            _hub.Send(clientId, new ListWorldsResponse { Levels = [] });
+            SendOrLog(clientId, new ListWorldsResponse { Levels = [] });
         }
     }
 
@@ -97,12 +107,12 @@ public sealed class ServerWorldSystem : IEntitySystem
         try
         {
             _worldService.DeleteLevel(request.LevelGuid ?? string.Empty);
-            _hub.Send(clientId, new DeleteWorldResponse { Success = true });
+            SendOrLog(clientId, new DeleteWorldResponse { Success = true });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete world \"{level}\" on behalf of client {client}.", request.LevelGuid, clientId);
-            _hub.Send(clientId, new DeleteWorldResponse { Success = false });
+            SendOrLog(clientId, new DeleteWorldResponse { Success = false });
         }
     }
 }

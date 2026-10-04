@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Bricks;
@@ -161,7 +162,7 @@ public sealed class ServerJoinSystem : IEntitySystem
         //  materialize as remote players on the joining client.
         _replication.RequestFullSync(clientId);
 
-        _hub.Send(clientId, new JoinAccept
+        Result accept = _hub.Send(clientId, new JoinAccept
         {
             Level = _worldService.CurrentLevel ?? new Level(),
             SpawnX = position.X,
@@ -173,9 +174,17 @@ public sealed class ServerJoinSystem : IEntitySystem
             OrientationW = orientation.W,
             PlayerEntity = uuid.ToValue(),
         });
+        if (!accept.Success)
+        {
+            _logger.LogWarning("Failed to send join accept to client {clientId}: {message}.", clientId, accept.Message);
+        }
 
         StreamWorld(clientId, store);
-        _hub.Send(clientId, new WorldStreamComplete { Dummy = 0 });
+        Result stream = _hub.Send(clientId, new WorldStreamComplete { Dummy = 0 });
+        if (!stream.Success)
+        {
+            _logger.LogWarning("Failed to send world stream complete to client {clientId}: {message}.", clientId, stream.Message);
+        }
 
         _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterId, levelGuid, session.ID);
     }
@@ -234,7 +243,11 @@ public sealed class ServerJoinSystem : IEntitySystem
             }
 
             //  Attach the brick palette so the client can resolve the server's registry ids locally.
-            _hub.Send(clientId, new WorldEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
+            Result send = _hub.Send(clientId, new WorldEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
+            if (!send.Success)
+            {
+                _logger.LogWarning("Failed to stream world entity to client {clientId}: {message}.", clientId, send.Message);
+            }
         }
     }
 

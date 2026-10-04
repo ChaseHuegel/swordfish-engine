@@ -40,11 +40,19 @@ type tag and dispatches frames to a **per-type receive queue** on a background
 receive thread, so each polling system can `Receive<T>` a distinct type.
 
 Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
-the calling thread, enqueues the bytes to a bounded `BlockingCollection`, and
-returns. A dedicated background send thread drains the queue in FIFO order and
-writes the socket. This keeps a dead peer from blocking the game loop: a full
-send queue drops the oldest frame instead of growing, and the socket
-`SendTimeout`/`ReceiveTimeout` bound any stalled read or write.
+the calling thread, enqueues the bytes, and returns. A dedicated background
+send thread drains the queues in priority order and writes the socket. Control
+and state messages (join, world stream, chat, voxel edits, notifications,
+skill updates) ride a **never-evicting reliable queue**; a dropped frame there
+is permanent data loss, so a peer that stops reading surfaces as a
+grow-and-error condition instead (`ReliableQueueConcernThreshold`, re-logged
+every ~100 frames). Per-tick snapshot traffic rides the bounded `SendQueue`
+whose drop-oldest policy applies only to it — a full queue drops the oldest
+snapshot frame, so input staleness is bounded instead of the queue growing
+without limit. The classification is explicit (`SendPriority`): every new
+per-tick message must be deliberately marked droppable. This keeps a dead
+peer from blocking the game loop, and the socket `SendTimeout`/
+`ReceiveTimeout` bound any stalled read or write.
 
 A keepalive heartbeat keeps a live-but-idle peer from being dropped. Each peer
 runs a dedicated background thread that enqueues an empty-type-tag frame every
@@ -127,6 +135,7 @@ loaded from `network.toml`:
 | `KeepaliveIntervalMs` | `2000` |
 | `SendQueueSize` | `256` |
 | `MaxFrameBytes` | `16777216` |
+| `ReliableQueueConcernThreshold` | `64` |
 
 Frames are length-prefixed with a 4-byte body length. The receive loop rejects
 a prefix over `MaxFrameBytes` as a protocol violation and drops the connection

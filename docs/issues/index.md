@@ -18,7 +18,7 @@ is not part of this workflow.
 
 - [x] [Server accepts client-addressed snapshots for any entity](/docs/issues/0001-inbound-snapshot-injection.md) — cross-client command injection via forged input/interaction snapshots
 - [x] [Unsafe frame ingestion](/docs/issues/0002-unsafe-frame-ingestion.md) — unbounded frame lengths, nsdc deserializer OOB reads, client-caused tick aborts
-- [ ] [Send-queue drop policy discards protocol-critical frames](/docs/issues/0003-send-queue-drop-policy.md) — silent data loss on the single FIFO; reliable-priority queue never evicts
+- [x] [Send-queue drop policy discards protocol-critical frames](/docs/issues/0003-send-queue-drop-policy.md) — silent data loss on the single FIFO; reliable-priority queue never evicts
 - [ ] [World-stream integrity and join](/docs/issues/0004-world-stream-integrity.md) — stream truncation risk, no join timeout, infinite Loading; server backlog disconnect policy
 - [ ] [Blocking, timeout-less TCP connect](/docs/issues/0005-blocking-connect.md) — synchronous connect hangs the client on unreachable hosts
 - [ ] [Hub receive poll lets one client starve the rest](/docs/issues/0006-hub-receive-starvation.md) — per-client drain unbounded; needs fair MaxReceiveWindow rotation

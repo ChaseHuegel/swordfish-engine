@@ -1,6 +1,7 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core.Components;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -56,7 +57,11 @@ public sealed class ServerChatSystem
 
             foreach ((Uuid client, _) in _hub.Clients)
             {
-                _hub.Send(client, relay);
+                Result send = _hub.Send(client, relay);
+                if (!send.Success)
+                {
+                    _logger.LogWarning("Failed to relay chat message to client {client}: {message}.", client, send.Message);
+                }
             }
         }
     }

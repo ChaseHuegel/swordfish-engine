@@ -25,4 +25,6 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> SendQueueSize { get; private set; } = new(256);
     /// <summary>Maximum frame body a peer transport accepts or sends, in bytes.</summary>
     public DataBinding<int> MaxFrameBytes { get; private set; } = new(16 * 1024 * 1024);
+    /// <summary>Reliable send queue length that triggers an error log when exceeded (re-logged every ~100 frames).</summary>
+    public DataBinding<int> ReliableQueueConcernThreshold { get; private set; } = new(64);
 }

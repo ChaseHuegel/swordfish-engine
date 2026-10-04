@@ -59,7 +59,8 @@ internal sealed class TransportManager : IClientConnection
                 _settings.ConnectionTimeoutMs.Get(),
                 _settings.SendQueueSize.Get(),
                 _settings.KeepaliveIntervalMs.Get(),
-                _settings.MaxFrameBytes.Get()
+                _settings.MaxFrameBytes.Get(),
+                _settings.ReliableQueueConcernThreshold.Get()
             );
             transport.OnDisconnected += RaiseRemoteDisconnected;
             transport.Connect(host, port);

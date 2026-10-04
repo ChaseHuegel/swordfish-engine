@@ -30,6 +30,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private readonly int _maxFrameBytes;
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
     private readonly BlockingCollection<byte[]> _sendQueue;
+    private readonly BlockingCollection<byte[]> _reliableQueue = new();
+    private readonly int _reliableConcernThreshold;
+    private int _reliableConcernLoggedCount;
     private readonly CancellationTokenSource _sendCts = new();
     private readonly CancellationTokenSource _keepaliveCts = new();
     private TcpClient? _client;
@@ -63,7 +66,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
         int keepaliveIntervalMs = 2000,
-        int maxFrameBytes = 16 * 1024 * 1024
+        int maxFrameBytes = 16 * 1024 * 1024,
+        int reliableQueueConcernThreshold = 64
     ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
@@ -71,6 +75,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         _keepaliveIntervalMs = ClampKeepaliveInterval(keepaliveIntervalMs, connectionTimeoutMs);
         _sendQueueSize = Math.Max(1, sendQueueSize);
         _maxFrameBytes = Math.Max(64, maxFrameBytes);
+        _reliableConcernThreshold = Math.Max(1, reliableQueueConcernThreshold);
         _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
     }
 
@@ -84,9 +89,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
         int keepaliveIntervalMs = 2000,
-        int maxFrameBytes = 16 * 1024 * 1024
+        int maxFrameBytes = 16 * 1024 * 1024,
+        int reliableQueueConcernThreshold = 64
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes, reliableQueueConcernThreshold);
         transport._client = client;
         transport._client.NoDelay = true;
         transport._client.SendTimeout = connectionTimeoutMs;
@@ -185,14 +191,22 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             return Result.FromFailure($"Frame of {frame.Length} bytes exceeds the {_maxFrameBytes} byte cap.");
         }
 
-        //  Enqueue for the dedicated send thread. Sends never block the calling thread. When the queue is
-        //  full (peer stopped reading a dead socket) drop the oldest frame and retry the new one so input
+        //  Enqueue for the dedicated send thread. Sends never block the calling thread. Reliable control/state
+        //  messages ride a never-evicting priority queue (a drop would be permanent data loss); per-tick
+        //  snapshot traffic rides the bounded queue where a full queue drops the oldest frame so input
         //  staleness is bounded instead of the queue growing without limit.
+        if (SendPriority.IsReliable(typeof(T)))
+        {
+            EnqueueReliable(bytes);
+            return Result.FromSuccess();
+        }
+
         if (_sendQueue.TryAdd(bytes))
         {
             return Result.FromSuccess();
         }
 
+        _logger.LogWarning("Per-tick send queue full; dropping the oldest frame.");
         _sendQueue.TryTake(out _);
         if (_sendQueue.TryAdd(bytes))
         {
@@ -200,6 +214,24 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         }
 
         return Result.FromFailure("Send queue is full.");
+    }
+
+    /// <summary>
+    /// Enqueues a never-evicting reliable frame. The queue is unbounded by design (drops are data loss),
+    /// so a peer that stops reading surfaces as a grow-and-error condition instead: once the concern
+    /// threshold is crossed, an error is logged and re-logged roughly every 100 enqueues while it stays
+    /// over the threshold.
+    /// </summary>
+    private void EnqueueReliable(byte[] bytes)
+    {
+        _reliableQueue.Add(bytes);
+
+        int count = _reliableQueue.Count;
+        if (count > _reliableConcernThreshold && count - _reliableConcernLoggedCount >= 100)
+        {
+            _reliableConcernLoggedCount = count;
+            _logger.LogError("Reliable send queue holds {count} frames, over the {threshold} concern threshold; a peer is not reading.", count, _reliableConcernThreshold);
+        }
     }
 
     public Result<T> Receive<T>()
@@ -301,7 +333,17 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             byte[] bytes;
             try
             {
-                bytes = _sendQueue.Take(_sendCts.Token);
+                //  Reliable frames drain first (never dropped), then per-tick frames. TryTake on the
+                //  unbounded reliable queue is non-blocking; the per-tick Take blocks until a frame or
+                //  a cancel, so the loop parks on the snapshot queue when both are empty.
+                if (_reliableQueue.TryTake(out byte[]? reliable))
+                {
+                    bytes = reliable;
+                }
+                else
+                {
+                    bytes = _sendQueue.Take(_sendCts.Token);
+                }
             }
             catch (OperationCanceledException)
             {

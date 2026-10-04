@@ -70,7 +70,7 @@ public sealed class ServerSkillSystem
             LevelInfo previousLevel = skill.CalculateLevel(previousXP);
             LevelInfo currentLevel = skill.CalculateLevel(totalXP);
 
-            _hub.Send(clientId, new SkillStateUpdateMessage
+            SendOrLog(clientId, new SkillStateUpdateMessage
             {
                 SkillId = skill.ID,
                 TotalXP = totalXP,
@@ -102,7 +102,7 @@ public sealed class ServerSkillSystem
     {
         int nextLevelXP = skill.Levels.TryGetValue(currentLevel.Level + 1, out int next) ? next : 1;
 
-        _hub.Send(clientId, new NotificationMessage
+        SendOrLog(clientId, new NotificationMessage
         {
             Type = (byte)NotificationType.Bar,
             Key = "notification.skill.bar",
@@ -114,11 +114,20 @@ public sealed class ServerSkillSystem
 
     private void SendLevelUp(Uuid clientId, SkillData skill, int previousLevel, int currentLevel)
     {
-        _hub.Send(clientId, new NotificationMessage
+        SendOrLog(clientId, new NotificationMessage
         {
             Type = (byte)NotificationType.Toast,
             Key = "notification.skill.levelUp",
             Args = [skill.Name, previousLevel.ToString(), currentLevel.ToString()],
         });
+    }
+
+    private void SendOrLog<T>(Uuid clientId, in T message)
+    {
+        Result send = _hub.Send(clientId, message);
+        if (!send.Success)
+        {
+            _logger.LogWarning("Failed to send skill message to client {clientId}: {message}.", clientId, send.Message);
+        }
     }
 }

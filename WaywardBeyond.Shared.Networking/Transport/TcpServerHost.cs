@@ -25,6 +25,7 @@ public sealed class TcpServerHost : IDisposable
     private readonly int _sendQueueSize;
     private readonly int _keepaliveIntervalMs;
     private readonly int _maxFrameBytes;
+    private readonly int _reliableQueueConcernThreshold;
     private TcpListener? _listener;
     private Thread? _acceptThread;
     private volatile bool _isRunning;
@@ -39,7 +40,8 @@ public sealed class TcpServerHost : IDisposable
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
         int keepaliveIntervalMs = 2000,
-        int maxFrameBytes = 16 * 1024 * 1024
+        int maxFrameBytes = 16 * 1024 * 1024,
+        int reliableQueueConcernThreshold = 64
     ) {
         _serializers = serializers;
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpServerHost>();
@@ -47,6 +49,7 @@ public sealed class TcpServerHost : IDisposable
         _sendQueueSize = sendQueueSize;
         _keepaliveIntervalMs = keepaliveIntervalMs;
         _maxFrameBytes = maxFrameBytes;
+        _reliableQueueConcernThreshold = reliableQueueConcernThreshold;
     }
 
     /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
@@ -79,7 +82,7 @@ public sealed class TcpServerHost : IDisposable
                 break; //  Listener stopped (Dispose).
             }
 
-            TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _keepaliveIntervalMs, _maxFrameBytes);
+            TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _keepaliveIntervalMs, _maxFrameBytes, _reliableQueueConcernThreshold);
             _clients[transport] = transport;
             try
             {

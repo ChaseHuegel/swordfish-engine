@@ -1,7 +1,7 @@
 # Bug: Send-queue drop policy silently discards protocol-critical frames
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -28,18 +28,18 @@ Drop-oldest applies only to per-tick snapshot traffic.
 
 ## Acceptance criteria
 
-- [ ] Two send paths: a reliable-priority queue that never evicts a frame,
+- [x] Two send paths: a reliable-priority queue that never evicts a frame,
       and the existing bounded per-tick queue whose drop-oldest policy
       applies to per-tick snapshot traffic only. Control and state
       messages (join, world stream, chat, voxel edits, notifications,
       skill updates) go to the reliable queue.
-- [ ] Defensive logging: warn when the per-tick queue drops a frame; error
+- [x] Defensive logging: warn when the per-tick queue drops a frame; error
       when the reliable queue exceeds a concern threshold (config-driven),
       re-logged at an interval (e.g. every 100 messages) while it stays
       over the threshold so the condition becomes visible without spamming
       the log.
-- [ ] Senders of control and state messages observe and log a failed send
+- [x] Senders of control and state messages observe and log a failed send
       instead of ignoring the `Result`.
-- [ ] Test: fill the per-tick queue with snapshot frames to capacity, then
+- [x] Test: fill the per-tick queue with snapshot frames to capacity, then
       send one control message per class; none is dropped. Test that
       per-tick drop-oldest evicts only snapshot frames.

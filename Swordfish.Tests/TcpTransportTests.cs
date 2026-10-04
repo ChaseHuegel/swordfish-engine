@@ -1,8 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Data;
@@ -27,6 +31,10 @@ public class TcpTransportTests
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<WorldStreamComplete>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
+        new NsdMessageSerializer<ChatMessage>(),
+        new NsdMessageSerializer<VoxelEditMessage>(),
+        new NsdMessageSerializer<NotificationMessage>(),
+        new NsdMessageSerializer<SkillStateUpdateMessage>(),
     ];
 
     private static TcpTransport CreateServer()
@@ -216,6 +224,124 @@ public class TcpTransportTests
         raw.Close();
 
         Assert.True(disconnectedGate.Wait(5000), "The server must surface a disconnect on a truncated frame.");
+    }
+
+    /// <summary>
+    /// A full per-tick queue must drop only snapshot frames: control/state messages ride the
+    /// never-evicting reliable queue, so one message per class survives an overloaded snapshot stream.
+    /// A raw peer that stops reading freezes the send thread, making the drop path deterministic.
+    /// </summary>
+    [Fact]
+    public void ReliableMessagesSurviveAFullPerTickQueue()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        using var client = new TcpTransport(_serializers, NullLoggerFactory.Instance, sendQueueSize: 4, keepaliveIntervalMs: 60_000);
+        client.Connect("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
+
+        //  The peer side stays unread for the whole burst, so the client's send thread eventually
+        //  blocks on a full OS buffer instead of draining the queue.
+        using TcpClient peer = listener.AcceptTcpClient();
+
+        //  A snapshot with a fat payload so a few frames exceed the OS socket buffer and freeze the
+        //  send thread mid-write (the raw peer never reads).
+        var payload = new byte[256 * 1024];
+        for (var i = 0; i < payload.Length; i++)
+        {
+            payload[i] = (byte)i;
+        }
+        var bigSnapshot = new WorldSnapshot
+        {
+            Components = [new ComponentSnapshot(1, 2, payload)],
+            RemovedEntities = [],
+        };
+
+        //  Overfill the per-tick queue (capacity 4): with the send thread blocked, each new snapshot
+        //  drops the oldest buffered one.
+        for (var i = 0; i < 8; i++)
+        {
+            Assert.True(client.Send(bigSnapshot).Success);
+        }
+        for (var i = 0; i < 8; i++)
+        {
+            Assert.True(client.Send(bigSnapshot).Success);
+        }
+
+        //  One control message per class: none may be dropped by the overloaded queue.
+        Assert.True(client.Send(new JoinRequest { CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "A", Body = "wb:m_human" } }).Success);
+        Assert.True(client.Send(new JoinAccept { PlayerEntity = 2 }).Success);
+        Assert.True(client.Send(new WorldStreamComplete { Dummy = 3 }).Success);
+        Assert.True(client.Send(new LeaveGameRequest { Dummy = 4 }).Success);
+        Assert.True(client.Send(new ChatMessage { CharacterId = 5, SenderName = "A", Value = "hello" }).Success);
+        Assert.True(client.Send(new VoxelEditMessage { EntityUuid = 6, X = 1, Y = 2, Z = 3, Sequence = 7, BrickId = "brick" }).Success);
+        Assert.True(client.Send(new NotificationMessage { Type = 1, Key = "k", Args = ["a"] }).Success);
+        Assert.True(client.Send(new SkillStateUpdateMessage { SkillId = "mining", TotalXP = 9, Level = 2, XPIntoLevel = 3, GainedXP = 1 }).Success);
+
+        //  Drain the link now: everything the send thread actually wrote must be parseable, and every
+        //  control message of every class must be present exactly once.
+        var frames = new List<(int len, string tag, byte[] payload)>();
+        var drainTask = Task.Run(() =>
+        {
+            var stream = peer.GetStream();
+            stream.ReadTimeout = 2000;
+            var lengthBuffer = new byte[4];
+            try
+            {
+                while (stream.Read(lengthBuffer, 0, 4) == 4)
+                {
+                    int len = BitConverter.ToInt32(lengthBuffer, 0);
+                    var frame = new byte[len];
+                    int read = 0;
+                    while (read < len)
+                    {
+                        int n = stream.Read(frame, read, len - read);
+                        if (n == 0)
+                        {
+                            return;
+                        }
+                        read += n;
+                    }
+
+                    int tagLen = BitConverter.ToInt32(frame, 0);
+                    string tag = Encoding.UTF8.GetString(frame, 4, tagLen);
+                    var body = new byte[len - 4 - tagLen];
+                    Array.Copy(frame, 4 + tagLen, body, 0, body.Length);
+                    lock (frames)
+                    {
+                        frames.Add((len, tag, body));
+                    }
+                }
+            }
+            catch (System.IO.IOException)
+            {
+                //  Read timeout: no more frames are coming on a connection that stays open.
+            }
+        });
+
+        Assert.True(drainTask.Wait(10_000), "Draining the buffered frames must complete.");
+        listener.Stop();
+
+        var counts = new Dictionary<string, int>();
+        HashSet<string> known = _serializers.Select(s => s.MessageType.FullName!).ToHashSet();
+        foreach ((int len, string tag, byte[] _) in frames)
+        {
+            Assert.Contains(tag, known);
+            counts[tag] = counts.GetValueOrDefault(tag) + 1;
+        }
+
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(JoinRequest).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(JoinAccept).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(WorldStreamComplete).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(LeaveGameRequest).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(ChatMessage).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(VoxelEditMessage).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(NotificationMessage).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(SkillStateUpdateMessage).FullName!));
+
+        //  Some snapshots were written before the freeze, the rest were dropped oldest-first; the
+        //  control frames above prove none of the drops were reliable frames.
+        Assert.True(counts.GetValueOrDefault(typeof(WorldSnapshot).FullName!) >= 1);
     }
 
     /// <summary>

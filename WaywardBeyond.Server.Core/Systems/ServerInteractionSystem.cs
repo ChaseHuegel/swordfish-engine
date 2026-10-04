@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Voxels;
 using WaywardBeyond.Server.Core.Components;
@@ -208,7 +209,11 @@ public sealed class ServerInteractionSystem
 
         foreach ((Uuid clientId, _) in _hub.Clients)
         {
-            _hub.Send(clientId, message);
+            Result send = _hub.Send(clientId, message);
+            if (!send.Success)
+            {
+                _logger.LogWarning("Failed to broadcast voxel edit to client {clientId}: {message}.", clientId, send.Message);
+            }
         }
     }
 
