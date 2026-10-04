@@ -107,6 +107,35 @@ public partial class DataStore
             }
         }
     }
+    
+    public bool Remove(Type type, int entity)
+    {
+        (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(type, out ChunkedStore? store))
+            {
+                return false;
+            }
+
+            store.SetAt(chunkIndex, localEntity, exists: false);
+            return true;
+        }
+    }
+
+    public bool Has(Type type, int entity)
+    {
+        (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(type, out ChunkedStore? store))
+            {
+                return false;
+            }
+
+            return store.TryGetAt(chunkIndex, localEntity, out _);
+        }
+    }
 
     public void Query(float delta, ForEach forEach)
     {
