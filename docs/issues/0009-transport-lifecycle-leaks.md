@@ -1,7 +1,7 @@
 # Bug: Transport lifecycle leaks — dead peers never disposed, host client registry never pruned
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -33,16 +33,16 @@ disconnects is responsible for disposal on disconnect
 
 ## Acceptance criteria
 
-- [ ] The disconnect path deterministically closes the socket and
+- [x] The disconnect path deterministically closes the socket and
       disposes the transport exactly once, performed by its owner
       (server: `LanHost` on `OnDisconnected`; client: `TransportManager`
       path) - never by the transport itself, and never twice.
-- [ ] `TcpServerHost` prunes `_clients` when a peer disconnects, so the
+- [x] `TcpServerHost` prunes `_clients` when a peer disconnects, so the
       registry holds only live peers (subscribing to the same
       `OnDisconnected` signal as the owner).
-- [ ] `IsConnected` reflects the true state: false once the receive or
+- [x] `IsConnected` reflects the true state: false once the receive or
       send loop has stopped (peer gone or intentional disconnect), not the
       stale `TcpClient.Connected` result.
-- [ ] Test: repeated connect/disconnect cycles against `TcpServerHost` +
+- [x] Test: repeated connect/disconnect cycles against `TcpServerHost` +
       `LanHost` leave no growth in `_clients`, `_clientIds`, or hub
       `Count`, and no live socket handles for dead peers.

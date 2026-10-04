@@ -74,8 +74,10 @@ observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
 live link keeps breathing via keepalive, a read/write timeout now only fires for
 a genuinely gone peer; the first thread to observe it cancels the other, marks
 the transport broken, and raises `OnDisconnected` exactly once. The server host
-drops the peer from its hub; the client returns to the menu (see
-`ClientDisconnectSystem`).
+drops the peer from its hub and prunes its own registry; its owner (`LanHost`
+server-side, `TransportManager` client-side) disposes the dead transport —
+closing the socket exactly once — and `IsConnected` flips to false. The
+transport never disposes itself.
 
 ## `ServerConnectionHub` (multi-client)
 

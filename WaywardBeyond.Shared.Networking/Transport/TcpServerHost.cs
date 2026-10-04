@@ -15,7 +15,8 @@ namespace WaywardBeyond.Shared.Networking.Transport;
 /// connections on a loop, wraps each accepted socket in its own <see cref="TcpTransport"/> (so each peer
 /// has independent per-type queues and can be polled/routed independently), and hands it to <see
 /// cref="OnClientAccepted"/> — the host wiring adds it to the <see cref="ServerConnectionHub"/>. The host
-/// listens for <see cref="TcpTransport.OnDisconnected"/> to drop a departed peer from the hub.
+/// listens for <see cref="TcpTransport.OnDisconnected"/> to drop a departed peer from the hub; the
+/// acceptor itself prunes that peer from its registry so it holds only live transports.
 /// </summary>
 public sealed class TcpServerHost : IDisposable
 {
@@ -90,6 +91,7 @@ public sealed class TcpServerHost : IDisposable
 
             TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _keepaliveIntervalMs, _maxFrameBytes, _reliableQueueConcernThreshold, _reliableQueueDisconnectThreshold, _reliableQueueDisconnectMs);
             _clients[transport] = transport;
+            transport.OnDisconnected += () => _clients.TryRemove(transport, out _);
             try
             {
                 OnClientAccepted?.Invoke(transport);
@@ -108,7 +110,6 @@ public sealed class TcpServerHost : IDisposable
 
         foreach (TcpTransport transport in _clients.Keys)
         {
-            transport.OnDisconnected = null;
             transport.Dispose();
         }
 

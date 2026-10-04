@@ -54,15 +54,21 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
     private const int _THREAD_JOIN_TIMEOUT_MS = 2000;
 
-    public bool IsConnected => _client?.Connected ?? false;
+    /// <summary>
+    /// True as long as the receive and send loops are running: false once the peer is gone (read/send
+    /// failure) or the transport was intentionally disconnected. Not the socket's stale
+    /// <c>TcpClient.Connected</c> result, which reflects only the last I/O.
+    /// </summary>
+    public bool IsConnected => _isRunning;
     public bool IsLocal => false;
 
     /// <summary>
-    /// Raised once when the remote peer disconnects (receive loop reaches EOF/error) while the transport is
-    /// still running — i.e. not on an intentional <see cref="Disconnect"/>. Used by the server host to drop
-    /// a departed client from its connection hub.
+    /// Raised once when the remote peer disconnects (receive loop reaches EOF/error) while the transport
+    /// is still running — i.e. not on an intentional <see cref="Disconnect"/>. Used by the server host to
+    /// drop a departed client from its connection hub, and by the owner (LanHost, TransportManager) to
+    /// dispose the transport exactly once.
     /// </summary>
-    public Action? OnDisconnected { get; set; }
+    public event Action? OnDisconnected;
 
     public TcpTransport(
         IEnumerable<INetworkSerializer> serializers,
@@ -521,7 +527,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
     private static void JoinIfAlive(Thread? thread)
     {
-        if (thread != null && thread.IsAlive)
+        //  The disconnecting owner may be invoked from the receive thread itself (MarkBroken raises
+        //  OnDisconnected on it); a thread cannot join itself.
+        if (thread != null && thread != Thread.CurrentThread && thread.IsAlive)
         {
             thread.Join(_THREAD_JOIN_TIMEOUT_MS);
         }

@@ -58,7 +58,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         {
             Uuid clientId = _hub.Add(transport);
             _clientIds[transport] = clientId;
-            transport.OnDisconnected = () => RemoveClient(transport);
+            transport.OnDisconnected += () => RemoveClient(transport);
             _logger.LogInformation("A LAN client connected (id {clientId}).", clientId);
         };
 
@@ -161,9 +161,12 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
     private void RemoveClient(TcpTransport transport)
     {
+        //  The owner disposes the dead peer: dropping it from the hub, pruning the id map, and closing
+        //  the socket exactly once per transport.
         if (_clientIds.TryRemove(transport, out Uuid clientId))
         {
             _hub.Remove(clientId);
+            transport.Dispose();
         }
     }
 
