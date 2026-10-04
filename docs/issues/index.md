@@ -48,7 +48,7 @@ is not part of this workflow.
 - [ ] [Per-tick snapshot serialized once per client](/docs/issues/0013-per-client-serialization.md) — fan-out the shared authoritative snapshot instead of N full serializations
 - [ ] [Message serialization and transport copies unpooled](/docs/issues/0014-serialization-pooling.md) — ArrayPool, cached type tags, receive-path double copy
 - [ ] [Component-level removal is not replicated](/docs/issues/0015-component-removal-replication.md) — store Remove<T> surface, ComponentRemoval wire delta, engine-first commit
-- [ ] [Remove the legacy packet-relay networking path](/docs/issues/0016-remove-legacy-nats.md) — dead PacketStreamClient/ProtocolV1 no-op and Server.Core codegen remnants; NATS persistence stays
+- [x] [Remove the legacy packet-relay networking path](/docs/issues/0016-remove-legacy-nats.md) — dead PacketStreamClient/ProtocolV1 no-op and Server.Core codegen remnants; NATS persistence stays
 - [ ] [NetworkRegistry registration failures are silent or deferred](/docs/issues/0017-registry-registration-failures.md) — Result-typed registration, fail-fast for built-ins, log-and-continue for mods
 - [ ] [Networking docs drift](/docs/issues/0018-networking-docs-drift.md) — specs claim replay, QueryDirty model, and full-protocol loopback that the code does not have
 

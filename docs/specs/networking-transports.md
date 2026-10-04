@@ -29,7 +29,9 @@ typed messages regardless of transport.
 `Transport/LocalConnection.cs` creates a client endpoint and a server endpoint
 backed by per-type `ConcurrentQueue<byte[]>`s. Every `Send<T>` serializes
 through the wire format and enqueues the resulting bytes; `Receive<T>` dequeues
-and deserializes. This exercises the full protocol with zero network I/O.
+and deserializes. It exercises the wire **serialization** fully with zero
+network I/O; framing, keepalive replacement (session heartbeats), and per-type
+demux are `TcpTransport` behavior covered by `TcpTransportTests`.
 
 ## `TcpTransport` (peer / LAN / dedicated)
 

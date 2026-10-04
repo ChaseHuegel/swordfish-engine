@@ -1,7 +1,7 @@
 # Improvement: Remove the legacy packet-relay networking path (NATS persistence stays)
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -29,14 +29,14 @@ re-evaluation).
 
 ## Acceptance criteria
 
-- [ ] `PacketStreamClient`, `PacketNatsSerializer`, `IProtocol`,
+- [x] `PacketStreamClient`, `PacketNatsSerializer`, `IProtocol`,
       `ProtocolV1`, and the legacy `Server.Core/CodeGen` packet schemas
       (and their generated output) are removed; `dotnet build` is clean
       and no reference to `Torches.*` or `IProtocol` remains.
-- [ ] `PersistentNatsProcess` and the NATS-backed `KeyValueStore`
+- [x] `PersistentNatsProcess` and the NATS-backed `KeyValueStore`
       persistence path are untouched.
-- [ ] `networking-overview.md`'s source-of-truth list no longer implies a
+- [x] `networking-overview.md`'s source-of-truth list no longer implies a
       second packet protocol (docs pass); the NATS persistence role stays
       documented per `persistence.md`.
-- [ ] No behavioral change: the TCP/nsd path and NATS persistence are
+- [x] No behavioral change: the TCP/nsd path and NATS persistence are
       untouched (existing networking and persistence tests green).

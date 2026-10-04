@@ -65,7 +65,7 @@ The two sides never touch each other's `DataStore`. They exchange
 | Area | Status |
 |---|---|
 | Separate client/server worlds on separate threads | Implemented |
-| Serialized loopback (`LocalConnection`) with full wire format | Implemented |
+| Serialized loopback (`LocalConnection`) | Implemented (wire serialization; framing/demux are TCP-only) |
 | Dirty-driven replication (server → client) | Implemented |
 | Client-owned input replication (client → server) | Implemented |
 | Server spawn handshake | Implemented |
