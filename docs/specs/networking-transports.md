@@ -83,8 +83,10 @@ drops the peer from its hub; the client returns to the menu (see
 connected client under an opaque `Uuid` (`clientId`) assigned on `Add`. It is
 shared code because the shared transports feed it and every world side consumes it.
 
-- `Receive<T>()` polls every client connection and tags each inbound message
-  with the `clientId` it arrived on.
+- `Receive<T>()` polls every client connection, draining at most
+  `NetworkingSettings.MaxReceiveWindow` frames per client per poll so one
+  chatty client cannot starve the rest of a server tick, and tags each
+  inbound message with the `clientId` it arrived on.
 - `Send<T>(clientId, ...)` addresses a single client.
 - `Remove(clientId)` queues a disconnect that `DrainDisconnects()` surfaces to
   the server teardown step.
@@ -146,6 +148,7 @@ loaded from `network.toml`:
 | `ReliableQueueDisconnectThreshold` | `128` |
 | `ReliableQueueDisconnectMs` | `10000` |
 | `JoinStreamTimeoutMs` | `60000` |
+| `MaxReceiveWindow` | `10` |
 
 Frames are length-prefixed with a 4-byte body length. The receive loop rejects
 a prefix over `MaxFrameBytes` as a protocol violation and drops the connection

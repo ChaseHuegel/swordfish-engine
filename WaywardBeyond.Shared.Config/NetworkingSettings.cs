@@ -33,4 +33,6 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> ReliableQueueDisconnectMs { get; private set; } = new(10_000);
     /// <summary>Client-side join timeout: how long a join may wait for the world stream to complete, in milliseconds.</summary>
     public DataBinding<int> JoinStreamTimeoutMs { get; private set; } = new(60_000);
+    /// <summary>Frames drained per client per hub poll; bounds a chatty client's share of the server tick.</summary>
+    public DataBinding<int> MaxReceiveWindow { get; private set; } = new(10);
 }

@@ -147,7 +147,7 @@ public class Injector : IDryIocInjector
         }, Reuse.Singleton);
         container.RegisterDelegate<ServerConnectionHub>(context =>
         {
-            ServerConnectionHub hub = new();
+            ServerConnectionHub hub = new(context.Resolve<NetworkingSettings>().MaxReceiveWindow.Get());
             hub.Add(context.Resolve<LocalConnection>().Server);
             return hub;
         }, Reuse.Singleton);

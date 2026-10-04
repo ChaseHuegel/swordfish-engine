@@ -380,6 +380,46 @@ public class SessionRoutingTests
     }
 
     [Fact]
+    public void ChattyClientDoesNotStarveOtherClientsInAPoll()
+    {
+        const int count = 2;
+        var hub = new ServerConnectionHub(maxReceiveWindow: 2);
+
+        var connections = new LocalConnection[count];
+        var clientIds = new Uuid[count];
+        for (var i = 0; i < count; i++)
+        {
+            connections[i] = new LocalConnection(Serializers);
+            clientIds[i] = hub.Add(connections[i].Server);
+        }
+
+        //  Client A floods 20 frames; client B sends a single frame.
+        for (var i = 0; i < 20; i++)
+        {
+            connections[0].Client.Send(new JoinRequest
+            {
+                CharacterId = (ulong)(100 + i),
+                PublicView = new PublicView { CharacterId = (ulong)(100 + i), Name = "A", Body = "wb:m_human" },
+            });
+        }
+        connections[1].Client.Send(new JoinRequest
+        {
+            CharacterId = 1,
+            PublicView = new PublicView { CharacterId = 1, Name = "B", Body = "wb:m_human" },
+        });
+
+        //  One poll drains at most the receive window per client, so B is reached within the same poll.
+        var seen = new Dictionary<Uuid, int>();
+        foreach ((Uuid clientId, JoinRequest _) in hub.Receive<JoinRequest>())
+        {
+            seen[clientId] = seen.GetValueOrDefault(clientId) + 1;
+        }
+
+        Assert.Equal(2, seen.GetValueOrDefault(clientIds[0]));
+        Assert.Equal(1, seen.GetValueOrDefault(clientIds[1]));
+    }
+
+    [Fact]
     public void LeavingGameEndsSessionAndFreesMirror()
     {
         Fixture fixture = new(1);

@@ -19,9 +19,15 @@ public sealed class ServerConnectionHub
 {
     private readonly ConcurrentDictionary<Uuid, IServerConnection> _connections = new();
     private readonly ConcurrentQueue<Uuid> _disconnects = new();
+    private readonly int _maxReceiveWindow;
     private long _nextClientId;
 
     public int Count => _connections.Count;
+
+    public ServerConnectionHub(int maxReceiveWindow = 10)
+    {
+        _maxReceiveWindow = Math.Max(1, maxReceiveWindow);
+    }
 
     /// <summary>Registers a client connection and assigns its opaque client id.</summary>
     public Uuid Add(in IServerConnection connection)
@@ -54,16 +60,21 @@ public sealed class ServerConnectionHub
     }
 
     /// <summary>
-    /// Polls every connected client for a message type, tagging each with the client it arrived on. The
-    /// connection list is snapshotted so a client removed mid-poll is not enumerated.
+    /// Polls every connected client for a message type, tagging each with the client it arrived on. Each
+    /// connection drains at most <see cref="_maxReceiveWindow"/> frames before the poll moves to the
+    /// next connection, so one chatty client cannot starve the rest of a server tick. Per-connection
+    /// polling is weakly consistent (a client removed mid-poll is not enumerated further); it is not a
+    /// snapshot.
     /// </summary>
     public IEnumerable<(Uuid clientId, T message)> Receive<T>()
     {
         foreach (KeyValuePair<Uuid, IServerConnection> entry in _connections)
         {
+            var drained = 0;
             Result<T> result;
-            while ((result = entry.Value.Receive<T>()).Success)
+            while (drained < _maxReceiveWindow && (result = entry.Value.Receive<T>()).Success)
             {
+                drained++;
                 yield return (entry.Key, result.Value);
             }
         }

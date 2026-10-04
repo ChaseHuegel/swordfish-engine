@@ -1,7 +1,7 @@
 # Bug: Hub receive poll lets one chatty client starve the rest
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -23,12 +23,12 @@ serviced at a fair pace within each poll.
 
 ## Acceptance criteria
 
-- [ ] Each poll drains at most `MaxReceiveWindow` frames per client
+- [x] Each poll drains at most `MaxReceiveWindow` frames per client
       (default 10) before moving to the next connection. Config key
       documented in the `networking-transports.md` table.
-- [ ] Comment corrected: per-connection polling is weakly consistent and
+- [x] Comment corrected: per-connection polling is weakly consistent and
       bounded per client; removal mid-poll is safe for the dictionary but
       must not be described as a snapshot.
-- [ ] Test: one client queueing 1000+ frames does not prevent a second
+- [x] Test: one client queueing 1000+ frames does not prevent a second
       client's frames from being received within the same poll (or across
       two polls).
