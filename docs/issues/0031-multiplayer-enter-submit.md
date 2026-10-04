@@ -1,7 +1,7 @@
 # Improvement: Multiplayer page — Enter submits connect
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -13,12 +13,12 @@ flow).
 
 ## Acceptance criteria
 
-- [ ] Pressing Enter while the address or port field has focus triggers
+- [x] Pressing Enter while the address or port field has focus triggers
       the same connect path as the connect button (including validation of
       an empty or invalid address).
-- [ ] The key handling doesn't conflict with existing page navigation
+- [x] The key handling doesn't conflict with existing page navigation
       (e.g., Esc/back behavior unchanged).
-- [ ] Manual verification: focus address, type, Enter -> connect starts;
+- [x] Manual verification: focus address, type, Enter -> connect starts;
       same from the port field.
-- [ ] `networking-join.md` notes the keyboard submit affordance if the
+- [x] `networking-join.md` notes the keyboard submit affordance if the
       multiplayer page flow is documented there (docs pass).

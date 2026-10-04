@@ -4,6 +4,7 @@ using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.UI;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
@@ -11,15 +12,16 @@ using WaywardBeyond.Shared.Networking.Components;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Projects remote players' head positions to screen space for the nameplate UI layer.
+/// Projects remote players' head positions to screen space for the nameplate UI layer. Render distance
+/// comes from <see cref="UISettings.NameplateDistance"/> (0 disables tags).
 /// </summary>
 internal sealed class NameplateSystem(
     NameplateSnapshot snapshot,
     IRenderContext renderContext,
-    IWindowContext windowContext
+    IWindowContext windowContext,
+    UISettings uiSettings
 ) : IEntitySystem
 {
-    private const float MAX_RENDER_DISTANCE = 20;
     private const int BASE_FONT_SIZE = 12;
     private const float REFERENCE_DISTANCE = 4f;
     private const int MIN_FONT_SIZE = 9;
@@ -62,6 +64,7 @@ internal sealed class NameplateSystem(
             Projection = projection,
             CameraPosition = cameraPosition,
             Resolution = resolution,
+            MaxRenderDistance = uiSettings.NameplateDistance.Get(),
         };
         store.Query<BodyViewComponent, TransformComponent, CollectAction>(delta, ref action);
 
@@ -77,7 +80,8 @@ internal sealed class NameplateSystem(
         in Matrix4x4 view,
         in Matrix4x4 projection,
         in Vector3 cameraPosition,
-        in Vector2 resolution
+        in Vector2 resolution,
+        float maxRenderDistance
     ) {
         if (string.IsNullOrEmpty(name))
         {
@@ -85,7 +89,7 @@ internal sealed class NameplateSystem(
         }
 
         float depth = Vector3.Distance(cameraPosition, head);
-        if (depth > MAX_RENDER_DISTANCE)
+        if (maxRenderDistance <= 0f || depth > maxRenderDistance)
         {
             return;
         }
@@ -130,6 +134,7 @@ internal sealed class NameplateSystem(
         public Matrix4x4 Projection;
         public Vector3 CameraPosition;
         public Vector2 Resolution;
+        public float MaxRenderDistance;
 
         public void Execute(
             float delta,
@@ -153,7 +158,7 @@ internal sealed class NameplateSystem(
             Vector3 head = transform.Position + billboard.Offset + transform.GetUp() * (billboard.Size.Y * 0.5f);
             string? name = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name : null;
             
-            Project(Owner._nameplates, store, entity, head, name, View, Projection, CameraPosition, Resolution);
+            Project(Owner._nameplates, store, entity, head, name, View, Projection, CameraPosition, Resolution, MaxRenderDistance);
         }
     }
 }

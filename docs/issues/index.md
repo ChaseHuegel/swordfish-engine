@@ -31,12 +31,12 @@ is not part of this workflow.
 - [x] [Embedded NATS server process leaks on app close](/docs/issues/0022-nats-process-leak.md) — child never terminated, restart race on dispose, close path unverified
 - [x] [Network logging — disconnect reasons and tracing](/docs/issues/0023-network-logging.md) — reason-carrying OnDisconnected, NetworkingSettings.TraceLogging gate
 - [x] [Break/place sounds don't play for remote or authoritative edits](/docs/issues/0024-networked-audio.md) — silent authoritative apply path, no double-play on own echoes
-- [ ] [Name tag layer renders over the HUD](/docs/issues/0026-nametag-layer-order.md) — nameplate layer ordered above hotbar/inventory widgets
-- [ ] [Name tag distance — default 32 and a setting](/docs/issues/0027-nametag-distance-setting.md) — UISettings.NameplateDistance, 0-64 step 8 on the settings page
-- [ ] [Persist the last-entered server address and port](/docs/issues/0028-persist-last-server.md) — DefaultHost/DefaultConnectPort written to network.toml on join
-- [ ] [Continue button connects to the last joined server](/docs/issues/0029-continue-last-server.md) — ProfileSettings.LastServerMode marker branches local vs remote
-- [ ] [Saved server list on the multiplayer page](/docs/issues/0030-saved-servers.md) — ProfileSettings records, connect/remove with icon styling, 32-entry cap
-- [ ] [Multiplayer page — Enter submits connect](/docs/issues/0031-multiplayer-enter-submit.md) — keyboard submit on the address/port fields
+- [x] [Name tag layer renders over the HUD](/docs/issues/0026-nametag-layer-order.md) — nameplate layer ordered above hotbar/inventory widgets
+- [x] [Name tag distance — default 32 and a setting](/docs/issues/0027-nametag-distance-setting.md) — UISettings.NameplateDistance, 0-64 step 8 on the settings page
+- [x] [Persist the last-entered server address and port](/docs/issues/0028-persist-last-server.md) — DefaultHost/DefaultConnectPort written to network.toml on join
+- [x] [Continue button connects to the last joined server](/docs/issues/0029-continue-last-server.md) — ProfileSettings.LastServerMode marker branches local vs remote
+- [x] [Saved server list on the multiplayer page](/docs/issues/0030-saved-servers.md) — ProfileSettings records, connect/remove with icon styling, 32-entry cap
+- [x] [Multiplayer page — Enter submits connect](/docs/issues/0031-multiplayer-enter-submit.md) — keyboard submit on the address/port fields
 - [ ] [Session heartbeats — server TPS and client sim-tick reporting](/docs/issues/0032-session-heartbeats.md) — paired nsd heartbeats replace the transport keepalive, TickLagWarnThreshold
 - [ ] [F3 network statistics](/docs/issues/0033-f3-network-stats.md) — transport counters + engine Sampler rates + player count via heartbeat
 - [ ] [Bandwidth — snapshot-rate reduction and interval batching](/docs/issues/0034-snapshot-rate-and-batching.md) — SnapshotHz 30 default, SendIntervalMs coalesced drain, no traffic caps

@@ -18,6 +18,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
     in GameplaySettings gameplaySettings,
+    in UISettings uiSettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
@@ -28,6 +29,7 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
     private readonly GameplaySettings _gameplaySettings = gameplaySettings;
+    private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
 
@@ -283,6 +285,17 @@ internal abstract class SettingsPage<TIdentifier>(
                 _soundEffectService,
                 OnRenderDistanceChanged
             );
+
+            ui.NumberControl(
+                id: "Control_NameplateDistance",
+                text: _localization.GetString("ui.setting.nameplateDistance")!,
+                _uiSettings.NameplateDistance.Get(),
+                constraints: new Int2(0, 64),
+                display: new Int2(0, 64),
+                steps: 8,
+                _soundEffectService,
+                OnNameplateDistanceChanged
+            );
         }
 
         using (ui.Element())
@@ -349,5 +362,10 @@ internal abstract class SettingsPage<TIdentifier>(
     private void OnRenderDistanceChanged(float oldValue, float newValue, float change)
     {
         _renderSettings.FarPlane.Set(newValue);
+    }
+
+    private void OnNameplateDistanceChanged(int oldValue, int newValue, int change)
+    {
+        _uiSettings.NameplateDistance.Set(newValue);
     }
 }

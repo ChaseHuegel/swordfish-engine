@@ -1,7 +1,7 @@
 # Improvement: Saved server list on the multiplayer page
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -27,15 +27,15 @@ Locked design:
 
 ## Acceptance criteria
 
-- [ ] Saved servers persist across restarts via `ProfileSettings`; list
+- [x] Saved servers persist across restarts via `ProfileSettings`; list
       renders on the multiplayer page with connect and remove actions.
-- [ ] Add captures host/port from the page (name optional, defaults to the
+- [x] Add captures host/port from the page (name optional, defaults to the
       host); duplicates by host:port are replaced, and the list is capped
       at 32 entries.
-- [ ] Connecting from the list uses the standard join flow and updates the
+- [x] Connecting from the list uses the standard join flow and updates the
       #0028/#0029 persisted endpoint and `LastServerMode`.
-- [ ] Remove uses a trash-can icon button matching existing menu-page icon
+- [x] Remove uses a trash-can icon button matching existing menu-page icon
       styling.
-- [ ] `docs/specs/config-schemas.md` documents the saved-server records;
+- [x] `docs/specs/config-schemas.md` documents the saved-server records;
       `networking-join.md` notes the saved-server connect path (docs
       pass).

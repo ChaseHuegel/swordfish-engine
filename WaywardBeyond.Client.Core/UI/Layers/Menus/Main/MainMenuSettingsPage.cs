@@ -12,6 +12,7 @@ internal sealed class MainMenuSettingsPage(
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
     in GameplaySettings gameplaySettings,
+    in UISettings uiSettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : SettingsPage<MenuPage>(
@@ -21,6 +22,7 @@ internal sealed class MainMenuSettingsPage(
     in renderSettings,
     in volumeSettings,
     in gameplaySettings,
+    in uiSettings,
     in soundEffectService,
     in localization
 ) {

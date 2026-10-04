@@ -1,7 +1,7 @@
 # Bug: Name tag layer renders over the HUD
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -13,9 +13,9 @@ the hotbar/inventory widgets instead of being occluded by them.
 
 ## Acceptance criteria
 
-- [ ] Name tag rendering is ordered below HUD layers (hotbar, inventory,
+- [x] Name tag rendering is ordered below HUD layers (hotbar, inventory,
       notifications) in the render/layer stack.
-- [ ] Visual verification: with another player's tag visible, opening the
+- [x] Visual verification: with another player's tag visible, opening the
       hotbar and inventory never draws the tag over the widgets.
-- [ ] The layer-ordering constants are documented where the render stack
+- [x] The layer-ordering constants are documented where the render stack
       is defined (docs pass if a spec names the layer order).

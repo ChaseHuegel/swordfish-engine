@@ -70,6 +70,33 @@ Runtime chat tunables. Registered by the client module via
 | `TimeoutSeconds` | int | 10 | seconds the closed chat overlay lingers after last activity |
 | `MaxHistory` | int | 100 | client scrollback message capacity |
 
+## `ui.toml` (per app)
+
+Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `NameplateDistance` | int | 32 | remote player name tag render distance in world units; 0 disables tags (settings page control: 0-64, steps of 8) |
+
+## `network.toml` last-used endpoint
+
+`NetworkingSettings.DefaultHost`/`DefaultConnectPort` double as the **last-used
+endpoint**: the multiplayer page writes the entered address/port to them on
+every connect attempt and persists them (`network.toml`, `SettingsManager`
+save path), and the page prefill reads them back on launch. Singleplayer never
+writes them, so they cannot encode how a session was joined — the mode marker
+lives in `profile.toml` (`LastServerMode`).
+
+## `profile.toml` (per app)
+
+Client-local state and preferences, registered via `RegisterConfig<ProfileSettings>`.
+Schema: `WaywardBeyond.Client.Core/Configuration/ProfileSettings.cs`.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `LastServerMode` | enum | `Local` | how the last session was joined (`Local` \| `Remote`); Continue branches on this |
+| `SavedServers` | `SavedServer[]` | `[]` | saved connect targets, each `{ Name, Host, Port }`; deduped by host:port, capped at 32 |
+
 ## How configs load
 
 TOML parsing via Tomlet. See `Shoal/Modularity/ModuleOptions.cs`,

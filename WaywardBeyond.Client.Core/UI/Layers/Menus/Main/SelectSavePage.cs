@@ -9,10 +9,13 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Extensions;
+using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus.Main;
@@ -25,7 +28,10 @@ internal sealed class SelectSavePage(
     in ILocalization localization,
     in ICharacterStorage characterStorage,
     in ModalMenu modalMenu,
-    in ConfirmModal confirmModal
+    in ConfirmModal confirmModal,
+    in TransportManager transportManager,
+    in NetworkingSettings networkingSettings,
+    in ProfileSettings profileSettings
 ) : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.SelectSave;
@@ -37,6 +43,11 @@ internal sealed class SelectSavePage(
     private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
+    private readonly TransportManager _transportManager = transportManager;
+    private readonly NetworkingSettings _networkingSettings = networkingSettings;
+    private readonly ProfileSettings _profileSettings = profileSettings;
+
+    private bool _remoteConnectTried;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -74,6 +85,8 @@ internal sealed class SelectSavePage(
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        EnsureRemoteConnection();
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints
@@ -251,7 +264,7 @@ internal sealed class SelectSavePage(
                 Height = new Fill(),
             };
         }
-        
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints
@@ -274,5 +287,27 @@ internal sealed class SelectSavePage(
         }
         
         return Result.FromSuccess();
+    }
+
+    /// <summary>
+    /// Continue branch: when the last session was remote and no transport is active, connect to the
+    /// persisted endpoint so the save list and join flow target that server. A local session needs no
+    /// action - the in-process host server is already running.
+    /// </summary>
+    private void EnsureRemoteConnection()
+    {
+        if (_profileSettings.LastServerMode.Get() != LastServerMode.Remote
+            || _transportManager.Active != null
+            || _remoteConnectTried)
+        {
+            return;
+        }
+
+        _remoteConnectTried = true;
+        Result result = _transportManager.ConnectRemote(_networkingSettings.DefaultHost.Get(), _networkingSettings.DefaultConnectPort.Get());
+        if (result.Success)
+        {
+            _ = _gameSaveService.RefreshWorldsAsync();
+        }
     }
 }

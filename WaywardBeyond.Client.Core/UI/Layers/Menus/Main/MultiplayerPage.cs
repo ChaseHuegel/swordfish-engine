@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Numerics;
 using Reef;
@@ -9,6 +10,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Saves;
 using WaywardBeyond.Client.Core.Services;
@@ -23,6 +25,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private readonly TransportManager _transportManager;
     private readonly GameSaveService _gameSaveService;
     private readonly NetworkingSettings _networkingSettings;
+    private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
     private readonly IInputService _inputService;
     private readonly SoundEffectService _soundEffectService;
@@ -30,6 +33,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private readonly Widgets.ButtonOptions _menuButtonOptions;
     private readonly Widgets.ButtonOptions _buttonOptions;
+    private readonly Widgets.ButtonOptions _iconOptions;
+    private readonly Widgets.ButtonOptions _smallIconOptions;
 
     private TextBoxState _hostTextBox;
     private TextBoxState _portTextBox;
@@ -38,11 +43,13 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private string? _discoverMessage;
     private readonly List<DiscoveredServer> _foundServers = [];
     private IReadOnlyList<DiscoveredServer> _discoveredServers = [];
+    private List<SavedServer> _savedServers = [];
 
     public MultiplayerPage(
         in TransportManager transportManager,
         in GameSaveService gameSaveService,
         in NetworkingSettings networkingSettings,
+        in ProfileSettings profileSettings,
         in LanDiscoveryService discovery,
         in IInputService inputService,
         in SoundEffectService soundEffectService,
@@ -51,6 +58,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _transportManager = transportManager;
         _gameSaveService = gameSaveService;
         _networkingSettings = networkingSettings;
+        _profileSettings = profileSettings;
         _discovery = discovery;
         _inputService = inputService;
         _soundEffectService = soundEffectService;
@@ -66,8 +74,19 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             new Widgets.AudioOptions(soundEffectService)
         );
 
+        _iconOptions = new Widgets.ButtonOptions(
+            new FontOptions { ID = "Font Awesome 6 Free Solid", Size = 32, },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+
+        _smallIconOptions = new Widgets.ButtonOptions(
+            new FontOptions { ID = "Font Awesome 6 Free Solid", Size = 20, },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+
+        //  The persisted last-used endpoint prefills the page (the #0028 prefill).
         _hostTextBox = new TextBoxState(
-            initialValue: string.Empty,
+            initialValue: networkingSettings.DefaultHost.Get(),
             new TextBoxState.Options(
                 Placeholder: localization.GetString("ui.field.host"),
                 MaxCharacters: 253,
@@ -85,6 +104,8 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
                 Constraints: new Constraints { Width = new Fixed(300), }
             )
         );
+
+        _savedServers = [.. profileSettings.SavedServers.Get()];
 
         _scanning = true;
         Task.Run(ScanServersAsync);
@@ -108,9 +129,10 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             ui.LayoutDirection = LayoutDirection.Vertical;
             ui.Constraints = new Constraints { Anchors = Anchors.Center, };
 
-            ui.TextBox(id: "TextBox_Host", state: ref _hostTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
-
-            ui.TextBox(id: "TextBox_Port", state: ref _portTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+            //  Enter in either field submits the connect, matching the connect button path.
+            ui.TextBox(id: "TextBox_Host", state: ref _hostTextBox, _buttonOptions.FontOptions, _inputService, out Widgets.Interactions hostInteractions);
+            ui.TextBox(id: "TextBox_Port", state: ref _portTextBox, _buttonOptions.FontOptions, _inputService, out Widgets.Interactions portInteractions);
+            bool submitted = hostInteractions.Has(Widgets.Interactions.Submit) || portInteractions.Has(Widgets.Interactions.Submit);
 
             if (_errorMessage != null)
             {
@@ -124,9 +146,59 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             {
                 ui.Constraints = new Constraints { Anchors = Anchors.Center, };
 
-                if (interactions.Has(Widgets.Interactions.Click))
+                if (interactions.Has(Widgets.Interactions.Click) || submitted)
                 {
                     TryConnect(menu);
+                }
+            }
+
+            //  Saved servers: connect on click, remove via the trash icon.
+            if (_savedServers.Count > 0)
+            {
+                using (ui.Text(_localization.GetString("ui.savedServer.saved")!))
+                {
+                    ui.FontSize = 18;
+                }
+
+                foreach (SavedServer saved in _savedServers)
+                {
+                    using (ui.Element())
+                    {
+                        ui.LayoutDirection = LayoutDirection.Horizontal;
+                        ui.Spacing = 8;
+                        ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                        using (ui.TextButton(id: $"SavedServer_{saved.Host}:{saved.Port}", text: $"{saved.Name} ({saved.Host}:{saved.Port})", _buttonOptions, out Widgets.Interactions serverInteractions))
+                        {
+                            ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                            if (serverInteractions.Has(Widgets.Interactions.Click))
+                            {
+                                _hostTextBox.Text.Clear().Append(saved.Host);
+                                _portTextBox.Text.Clear().Append(saved.Port.ToString());
+                                TryConnect(menu);
+                            }
+                        }
+
+                        using (ui.TextButton(id: $"RemoveSavedServer_{saved.Host}:{saved.Port}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions removeInteractions))
+                        {
+                            if (removeInteractions.Has(Widgets.Interactions.Click))
+                            {
+                                _savedServers.Remove(saved);
+                                PersistSavedServers();
+                            }
+                        }
+                    }
+                }
+            }
+
+            using (ui.TextButton(id: "Button_SaveServer", text: _localization.GetString("ui.savedServer.add")!, _buttonOptions, out Widgets.Interactions saveInteractions))
+            {
+                ui.Constraints = new Constraints { Anchors = Anchors.Center, };
+
+                if (saveInteractions.Has(Widgets.Interactions.Click))
+                {
+                    AddCurrentServer();
                 }
             }
 
@@ -257,7 +329,43 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         }
 
         _errorMessage = null;
+
+        //  The connect attempt becomes the persisted last-used endpoint (and the remote continue marker).
+        _networkingSettings.DefaultHost.Set(host);
+        _networkingSettings.DefaultConnectPort.Set(port);
+        _networkingSettings.Save();
+        _profileSettings.LastServerMode.Set(LastServerMode.Remote);
+        _profileSettings.Save();
+
         _ = _gameSaveService.RefreshWorldsAsync();
         menu.GoToPage(MenuPage.SelectSave);
+    }
+
+    /// <summary>Saves the page's current endpoint as a named entry, deduped by host:port and capped at 32.</summary>
+    private void AddCurrentServer()
+    {
+        string host = _hostTextBox.Text.ToString().Trim();
+        if (string.IsNullOrWhiteSpace(host) || !int.TryParse(_portTextBox.Text.ToString().Trim(), out int port) || port < 1 || port > 65535)
+        {
+            _errorMessage = _localization.GetString("ui.notification.connect.portInvalid");
+            return;
+        }
+
+        SavedServer entry = new() { Name = host, Host = host, Port = port };
+        _savedServers.RemoveAll(saved => saved.Host == host && saved.Port == port);
+        if (_savedServers.Count >= ProfileSettings.MaxSavedServers)
+        {
+            _savedServers.RemoveAt(_savedServers.Count - 1);
+        }
+
+        _savedServers.Insert(0, entry);
+        PersistSavedServers();
+        _errorMessage = null;
+    }
+
+    private void PersistSavedServers()
+    {
+        _profileSettings.SavedServers.Set([.. _savedServers]);
+        _profileSettings.Save();
     }
 }

@@ -211,6 +211,7 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<UISettings>(file: "ui.toml");
         container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
         container.RegisterConfig<NetworkingSettings>(file: "network.toml");
+        container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatSettings>(file: "chat.toml");
     }
 
@@ -228,6 +229,12 @@ public class Injector : IDryIocInjector
         container.Register<OrientationSelector>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, OrientationSelector>();
         container.RegisterMapping<IActionIndicator, OrientationSelector>();
+
+        //  Nameplates are world-correlated UI: ordered below the HUD layers (hotbar, inventory,
+        //  notifications) so player tags render behind the widgets.
+        container.Register<NameplateSnapshot>(Reuse.Singleton);
+        container.Register<NameplateUILayer>(Reuse.Singleton);
+        container.RegisterMapping<IUILayer, NameplateUILayer>();
 
         container.Register<Hotbar>(Reuse.Singleton);
         container.Register<Actions>(Reuse.Singleton);
@@ -271,10 +278,6 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IUILayer, DebugOverlayRenderer>();
         container.Register<IDebugOverlay, PerformanceStatsOverlay>();
         
-        container.Register<NameplateSnapshot>(Reuse.Singleton);
-        container.Register<NameplateUILayer>(Reuse.Singleton);
-        container.RegisterMapping<IUILayer, NameplateUILayer>();
-
         container.Register<ChatLayer>(Reuse.Singleton);
         container.RegisterMapping<IUILayer, ChatLayer>();
 

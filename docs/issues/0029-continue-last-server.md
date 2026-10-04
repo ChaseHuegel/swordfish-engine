@@ -1,7 +1,7 @@
 # Improvement: Continue button connects to the last joined server
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -22,14 +22,14 @@ client-local state and preferences that are not real configuration
 
 ## Acceptance criteria
 
-- [ ] `ProfileSettings` registered (`profile.toml`); `LastServerMode`
+- [x] `ProfileSettings` registered (`profile.toml`); `LastServerMode`
       written alongside the #0028 endpoint persistence: `Remote` on a
       remote connect/join, `Local` when the singleplayer/host path runs.
-- [ ] Continue branches on `LastServerMode`: `Remote` ->
+- [x] Continue branches on `LastServerMode`: `Remote` ->
       `TransportManager.ConnectRemote` to the persisted endpoint + the
       normal join flow; `Local` -> the existing singleplayer/host path.
-- [ ] Manual verification: end a session on a remote server, restart,
+- [x] Manual verification: end a session on a remote server, restart,
       Continue, and land in the same world; repeat for a local session.
-- [ ] `docs/specs/config-schemas.md` documents `profile.toml` and
+- [x] `docs/specs/config-schemas.md` documents `profile.toml` and
       `LastServerMode`, and `networking-join.md` documents the Continue
       branch (docs pass).

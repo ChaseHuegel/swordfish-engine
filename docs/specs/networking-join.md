@@ -96,6 +96,21 @@ The save-listing menu is served by the server: `NewWorldRequest`,
 authoritative world) map to `WorldSaveService` operations, driven by a client
 `WorldsClient` whose responses the ECS thread completes.
 
+### Continue and the multiplayer page
+
+- **Continue** branches on `ProfileSettings.LastServerMode` (`profile.toml`):
+  a `Remote` marker (written on every multiplayer connect) reconnects to the
+  persisted endpoint on the save page before the save list and join flow target
+  that server; a `Local` marker (written when a host-mode session loads) uses
+  the in-process server. The endpoint itself is the last-used
+  `NetworkingSettings.DefaultHost`/`DefaultConnectPort` (see
+  [config-schemas](config-schemas.md)).
+- **Saved servers** (the multiplayer page's saved list, capped at 32, deduped
+  by host:port) connect through the standard `ConnectRemote` + join flow and
+  update the persisted endpoint and `LastServerMode` like any other connect.
+- **Keyboard submit**: pressing Enter in the address or port field triggers the
+  same connect path as the connect button (including validation).
+
 The old `ClientPlayerSpawnSystem`/`ServerSpawnSystem` spawn path and client load
 stages were removed in favor of join.
 

@@ -48,6 +48,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private GameSave? _activeSave;
 
     private readonly TransportManager _transportManager;
+    private readonly ProfileSettings _profileSettings;
 
     public GameSaveManager(
         in ILogger<GameSaveManager> logger,
@@ -59,7 +60,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in ClientJoinSystem joinSystem,
         in ClientCleanupSystem cleanupSystem,
         in TransportManager transportManager,
-        in DataStore dataStore
+        in DataStore dataStore,
+        in ProfileSettings profileSettings
     ) {
         _logger = logger;
         _gameSaveService = gameSaveService;
@@ -70,6 +72,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _cleanupSystem = cleanupSystem;
         _transportManager = transportManager;
         _dataStore = dataStore;
+        _profileSettings = profileSettings;
 
         Shortcut saveShortcut = new(
             "Quicksave",
@@ -124,6 +127,13 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             if (!character)
             {
                 return Task.CompletedTask;
+            }
+
+            //  A local (host-mode) session becomes the continue marker: Continue branches on this.
+            if (_transportManager.IsLocal)
+            {
+                _profileSettings.LastServerMode.Set(LastServerMode.Local);
+                _profileSettings.Save();
             }
 
             WaywardBeyond.GameState.Set(GameState.Loading);
