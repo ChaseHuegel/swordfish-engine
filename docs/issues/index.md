@@ -24,7 +24,7 @@ is not part of this workflow.
 - [x] [Hub receive poll lets one client starve the rest](/docs/issues/0006-hub-receive-starvation.md) — per-client drain unbounded; needs fair MaxReceiveWindow rotation
 - [x] [Loading-state snapshot pile-up](/docs/issues/0007-loading-snapshot-pileup.md) — memory spike and join-time hitch from queued snapshots during stream
 - [x] [Transport lifecycle leaks](/docs/issues/0009-transport-lifecycle-leaks.md) — dead peers never disposed, host client registry never pruned, stale IsConnected
-- [ ] [Interaction edges dropped on congestion](/docs/issues/0010-interaction-edge-loss.md) — unconditional outbound clear discards staged edges on failed send
+- [x] [Interaction edges dropped on congestion](/docs/issues/0010-interaction-edge-loss.md) — unconditional outbound clear discards staged edges on failed send
 - [ ] [Client prediction does not perform the documented replay](/docs/issues/0011-prediction-replay.md) — PendingInputComponent written and trimmed but never replayed
 - [ ] [Disconnect handling has holes outside Playing](/docs/issues/0020-disconnect-state-machine.md) — save-screen disconnect never returns to menu, join hangs, in-flight world ops await forever
 - [ ] [Inventory moves don't replicate](/docs/issues/0021-inventory-replication.md) — InventoryEvent/SlotMoveOp op messaging architecture, shared resolver, authoritative echo

@@ -20,6 +20,10 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly List<ComponentSnapshot> _pending = [];
 
+    //  Entities whose outbound interaction edges rode this tick's snapshot; their buffers are cleared
+    //  only after the send succeeds so a failed send leaves the edges staged for re-emission.
+    private readonly HashSet<int> _edgeEntities = [];
+
     public ClientReplicationSystem(in IClientConnection transport)
     {
         _transport = transport;
@@ -28,6 +32,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     public void Tick(float delta, DataStore store)
     {
         _pending.Clear();
+        _edgeEntities.Clear();
 
         CollectAction action = new() { Owner = this };
         store.Query(0f, ref action);
@@ -45,7 +50,21 @@ internal sealed class ClientReplicationSystem : IEntitySystem
             RemovedEntities = [],
         };
 
-        _transport.Send(snapshot);
+        //  Edges are consumed exactly once: the outbound buffers are cleared only after the containing
+        //  snapshot is actually sent. A failed send leaves them staged, so the next successful tick
+        //  re-emits them instead of silently dropping clicks.
+        if (!_transport.Send(snapshot).Success)
+        {
+            return;
+        }
+
+        foreach (int entity in _edgeEntities)
+        {
+            if (store.TryGet(entity, out PendingInteractionComponent pending))
+            {
+                pending.Outbound.Clear();
+            }
+        }
     }
 
     private struct CollectAction : IForEach
@@ -110,9 +129,9 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                 }
             }
 
-            //  Emitted edges are consumed; the buffer can be reset. The transport is in-process (LocalConnection),
-            //  so a staged edge is always delivered; TCP/relayed clients keep their own outbound framing.
-            pending.Outbound.Clear();
+            //  The edges ride this tick's snapshot; the buffer is cleared after the send succeeds (see
+            //  ClientReplicationSystem.Tick), so a failed send leaves them staged for the next tick.
+            Owner._edgeEntities.Add(entity);
         }
     }
 }

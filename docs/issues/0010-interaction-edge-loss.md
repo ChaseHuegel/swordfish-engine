@@ -1,7 +1,7 @@
 # Bug: Interaction edges dropped on TCP congestion — unconditional outbound clear
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -19,11 +19,11 @@ mine-mode click or place is lost silently.
 
 ## Acceptance criteria
 
-- [ ] The outbound buffer is cleared only after the containing snapshot is
+- [x] The outbound buffer is cleared only after the containing snapshot is
       successfully sent; on failure the edges remain staged and are
       re-emitted on a later tick.
-- [ ] Test: with a transport whose `Send` fails (or a full per-tick
+- [x] Test: with a transport whose `Send` fails (or a full per-tick
       queue), staged edges survive and are delivered on the next
       successful tick, exactly once.
-- [ ] Stale comment removed; the transport-dependence of edge delivery is
+- [x] Stale comment removed; the transport-dependence of edge delivery is
       documented in `networking-replication.md`.
