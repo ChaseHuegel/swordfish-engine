@@ -12,9 +12,10 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// Drives the client back to the menu when the active remote <see cref="TcpTransport"/> loses its server.
 /// The transport raises <see cref="TransportManager.RemoteDisconnected"/> on its receive thread; this
 /// system enqueues the event and does the teardown on the ECS thread, mirroring the join/cleanup
-/// threading rules: it saves the character while still in <c>Playing</c>, requests the world cleanup, then
-/// drops to the menu with a connection-lost toast. It runs for any state (menu, loading, playing) - a
-/// player who loses the server mid-join returns to the menu and is told why.
+/// threading rules: it saves the character while still in <c>Playing</c>, faults any in-flight world
+/// operations, requests the world cleanup, then drops to the menu with a connection-lost toast. It runs
+/// for any state (menu, loading, playing) - a player who loses the server mid-join returns to the menu
+/// and is told why.
 /// </summary>
 internal sealed class ClientDisconnectSystem : IEntitySystem
 {
@@ -23,6 +24,7 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
     private readonly ClientCleanupSystem _cleanupSystem;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
+    private readonly WorldsClient _worlds;
 
     private readonly ConcurrentQueue<byte> _disconnects = new();
 
@@ -31,13 +33,15 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         in CharacterSaveManager characterSaveManager,
         in ClientCleanupSystem cleanupSystem,
         in NotificationService notificationService,
-        in ILocalization localization
+        in ILocalization localization,
+        in WorldsClient worlds
     ) {
         _transport = transport;
         _characterSaveManager = characterSaveManager;
         _cleanupSystem = cleanupSystem;
         _notificationService = notificationService;
         _localization = localization;
+        _worlds = worlds;
 
         _transport.RemoteDisconnected += () => _disconnects.Enqueue(0);
     }
@@ -54,6 +58,11 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         _characterSaveManager.Save(store);
         _cleanupSystem.RequestCleanup();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
+
+        //  World-management requests in flight will never be answered by the vanished server: complete
+        //  them as failures so the save screen and world UI never await them forever.
+        _worlds.FaultPending();
+
         _notificationService.Push(new Notification(_localization.GetString("notification.connection.lost")!, NotificationType.Toast));
         _transport.Disconnect();
     }

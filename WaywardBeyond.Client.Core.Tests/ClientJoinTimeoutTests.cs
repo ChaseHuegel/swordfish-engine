@@ -46,6 +46,19 @@ public class ClientJoinTimeoutTests
         }
     }
 
+    private sealed class NoConnection : IClientConnection
+    {
+        public bool IsConnected => false;
+        public bool IsLocal => false;
+
+        public Result Send<T>(in T message) => Result.FromFailure("No active connection.");
+
+        public Result<T> Receive<T>()
+        {
+            return Result<T>.FromFailure("No active connection.");
+        }
+    }
+
     private sealed class StubBrickIdMap : IBrickIdMap
     {
         public ushort Id(string name) => 0;
@@ -102,7 +115,8 @@ public class ClientJoinTimeoutTests
         var notifications = new NotificationService(NullLogger<NotificationService>.Instance, window);
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization());
+        var worlds = new WorldsClient(transportManager);
+        var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization(), worlds);
 
         var joinSystem = new ClientJoinSystem(
             new StalledConnection(),
@@ -137,6 +151,54 @@ public class ClientJoinTimeoutTests
             List<NotificationState> toasts = [.. notifications.GetActiveNotifications(NotificationType.Toast)];
             Assert.That(toasts, Has.Count.EqualTo(1));
             Assert.That(toasts[0].Notification.Text, Is.EqualTo("notification.connection.lost"));
+        }
+        finally
+        {
+            WaywardBeyond.GameState.Set(prior);
+            transportManager.Disconnect();
+        }
+    }
+
+    [Test]
+    public void JoinWithNoActiveConnectionFailsFastInsteadOfLoading()
+    {
+        var settings = new NetworkingSettings();
+
+        var transportManager = new TransportManager(
+            new INetworkSerializer[] { new NsdMessageSerializer<JoinRequest>() },
+            NullLoggerFactory.Instance,
+            settings
+        );
+
+        var notifications = new NotificationService(NullLogger<NotificationService>.Instance, new FakeWindowContext());
+        var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
+        var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
+        var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization(), new WorldsClient(transportManager));
+
+        var joinSystem = new ClientJoinSystem(
+            new NoConnection(),
+            new PlayerCharacterEntityBuilder(null!),
+            new VoxelEntityBuilder(null!, new Shader("test"), new PBRTextureArrays(null!, null!, null!, null!, null!), null!, []),
+            NullLogger<ClientJoinSystem>.Instance,
+            new StubBrickIdMap(),
+            disconnectSystem,
+            settings
+        );
+
+        GameState prior = WaywardBeyond.GameState.Get();
+        WaywardBeyond.GameState.Set(GameState.Loading);
+
+        try
+        {
+            joinSystem.RequestJoin(new Character { Id = 1, Name = "Tester" }, "level-guid");
+            var store = new DataStore();
+
+            //  Two ticks: the join send fails, the request is dropped, and the disconnect teardown runs.
+            joinSystem.Tick(0f, store);
+            disconnectSystem.Tick(0f, store);
+            joinSystem.Tick(0f, store);
+
+            Assert.That(WaywardBeyond.GameState.Get(), Is.EqualTo(GameState.MainMenu), "A failed join must leave Loading.");
         }
         finally
         {

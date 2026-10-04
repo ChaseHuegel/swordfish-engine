@@ -1,7 +1,7 @@
 # Bug: Disconnect handling has holes outside Playing — save screen never returns to menu, join hangs after disconnect
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -29,16 +29,16 @@ has three gaps:
 
 ## Acceptance criteria
 
-- [ ] A remote disconnect while in any menu state (save screen, world
+- [x] A remote disconnect while in any menu state (save screen, world
       list, any page) returns the client to the main menu with the
       connection-lost notice, regardless of when the transport was
       attached.
-- [ ] `WorldsClient` pending operations are faulted (or otherwise
+- [x] `WorldsClient` pending operations are faulted (or otherwise
       completed) when the connection drops, so the save screen and
       world-management UI never wait forever on a dead server.
-- [ ] A join attempt with no active connection fails fast with a
+- [x] A join attempt with no active connection fails fast with a
       user-visible notice instead of entering Loading.
-- [ ] Tests: disconnect during the save screen returns to the menu; a
+- [x] Tests: disconnect during the save screen returns to the menu; a
       `SaveWorldRequest` in flight during a disconnect completes with
       failure; a join with no active transport reports failure without
       entering Loading.

@@ -91,7 +91,8 @@ public class ClientDisconnectSystemTests
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         saves.ActiveSave = new Character { Id = 1, Name = "Tester" };
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var system = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, localization);
+        var worlds = new WorldsClient(transportManager);
+        var system = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, localization, worlds);
 
         GameState prior = WaywardBeyond.GameState.Get();
         WaywardBeyond.GameState.Set(GameState.Playing);
@@ -121,6 +122,74 @@ public class ClientDisconnectSystemTests
             List<NotificationState> toasts = [.. notifications.GetActiveNotifications(NotificationType.Toast)];
             Assert.That(toasts, Has.Count.EqualTo(1));
             Assert.That(toasts[0].Notification.Text, Is.EqualTo("Connection to the server was lost."));
+        }
+        finally
+        {
+            WaywardBeyond.GameState.Set(prior);
+            transportManager.Disconnect();
+            listener.Stop();
+        }
+    }
+
+    [Test]
+    public void InFlightWorldOperationFaultsWhenServerDies()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+
+        var transportManager = new TransportManager(
+            new INetworkSerializer[]
+            {
+                new NsdMessageSerializer<SaveWorldRequest>(),
+                new NsdMessageSerializer<SaveWorldResponse>(),
+            },
+            NullLoggerFactory.Instance,
+            new NetworkingSettings()
+        );
+
+        var localization = new FakeLocalization(new Dictionary<string, string>
+        {
+            ["notification.connection.lost"] = "Connection to the server was lost.",
+        });
+        var window = new FakeWindowContext();
+        var notifications = new NotificationService(NullLogger<NotificationService>.Instance, window);
+        var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
+        var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
+        var worlds = new WorldsClient(transportManager);
+        var system = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, localization, worlds);
+
+        GameState prior = WaywardBeyond.GameState.Get();
+        WaywardBeyond.GameState.Set(GameState.MainMenu);
+
+        try
+        {
+            Result connect = transportManager.ConnectRemote("127.0.0.1", ((IPEndPoint)listener.LocalEndpoint).Port);
+            Assert.That(connect.Success, Is.True);
+            using TcpClient serverSide = listener.AcceptTcpClient();
+
+            //  A save request goes out; the server never answers and then dies.
+            Task<bool> pending = worlds.SaveWorldAsync();
+            Assert.That(pending.IsCompleted, Is.False, "The request must be outstanding until the connection drops.");
+
+            serverSide.Close();
+
+            var store = new DataStore();
+            var deadline = Environment.TickCount + 5000;
+            bool completed = false;
+            while (Environment.TickCount < deadline)
+            {
+                system.Tick(0f, store);
+                if (pending.IsCompleted)
+                {
+                    completed = true;
+                    break;
+                }
+                Thread.Sleep(10);
+            }
+
+            Assert.That(completed, Is.True, "An in-flight save against a vanished server must complete.");
+            Assert.That(pending.Result, Is.False, "The failed save must report failure, not hang.");
+            Assert.That(WaywardBeyond.GameState.Get(), Is.EqualTo(GameState.MainMenu));
         }
         finally
         {

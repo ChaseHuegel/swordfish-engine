@@ -14,13 +14,14 @@ namespace WaywardBeyond.Client.Core.Networking;
 /// delivered asynchronously and completed by <see cref="Poll"/> - driven on the client ECS thread by a
 /// dedicated system, so the menu never blocks a thread spinning on the transport. Responses are matched
 /// to requests strictly in FIFO order per response type, which is correct here because the menu issues
-/// at most one outstanding operation of each kind at a time.
+/// at most one outstanding operation of each kind at a time. A dropped connection faults every pending
+/// operation (<see cref="FaultPending"/>) so no waiter hangs on a vanished server.
 /// </summary>
 internal sealed class WorldsClient
 {
     private readonly IClientConnection _transport;
     private readonly object _gate = new();
-    private readonly Dictionary<Type, Queue<Action<object>>> _pending = [];
+    private readonly Dictionary<Type, Queue<(Action<object> onComplete, Action onFailure)>> _pending = [];
 
     public WorldsClient(in IClientConnection transport)
     {
@@ -36,10 +37,34 @@ internal sealed class WorldsClient
         Drain<SaveWorldResponse>();
     }
 
+    /// <summary>
+    /// Faults every pending operation (called on connection drop): each waiter completes with its
+    /// failure value instead of awaiting a response that will never come. Run on the ECS thread.
+    /// </summary>
+    public void FaultPending()
+    {
+        lock (_gate)
+        {
+            foreach (Queue<(Action<object>, Action)> queue in _pending.Values)
+            {
+                while (queue.Count > 0)
+                {
+                    queue.Dequeue().Item2();
+                }
+            }
+
+            _pending.Clear();
+        }
+    }
+
     public Task<Level[]> GetLevelsAsync()
     {
         var completion = new TaskCompletionSource<Level[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Request(new ListWorldsRequest { Dummy = 0 }, (ListWorldsResponse response) => completion.TrySetResult(response.Levels ?? []));
+        Request(
+            new ListWorldsRequest { Dummy = 0 },
+            (ListWorldsResponse response) => completion.TrySetResult(response.Levels ?? []),
+            () => completion.TrySetResult([])
+        );
         return completion.Task;
     }
 
@@ -48,7 +73,8 @@ internal sealed class WorldsClient
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         Request(
             new NewWorldRequest { Name = name, Seed = seed, GameMode = (int)gameMode },
-            (NewWorldResponse response) => completion.TrySetResult(response.Success)
+            (NewWorldResponse response) => completion.TrySetResult(response.Success),
+            () => completion.TrySetResult(false)
         );
         return completion.Task;
     }
@@ -58,7 +84,8 @@ internal sealed class WorldsClient
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         Request(
             new DeleteWorldRequest { LevelGuid = levelGuid },
-            (DeleteWorldResponse response) => completion.TrySetResult(response.Success)
+            (DeleteWorldResponse response) => completion.TrySetResult(response.Success),
+            () => completion.TrySetResult(false)
         );
         return completion.Task;
     }
@@ -68,7 +95,8 @@ internal sealed class WorldsClient
         var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
         Request(
             new SaveWorldRequest { Dummy = 0 },
-            (SaveWorldResponse response) => completion.TrySetResult(response.Success)
+            (SaveWorldResponse response) => completion.TrySetResult(response.Success),
+            () => completion.TrySetResult(false)
         );
         return completion.Task;
     }
@@ -93,30 +121,30 @@ internal sealed class WorldsClient
 
     private void Complete<TResponse>(TResponse response)
     {
-        Action<object>? onComplete = null;
+        (Action<object> onComplete, Action _)? waiter = null;
         lock (_gate)
         {
-            if (_pending.TryGetValue(typeof(TResponse), out Queue<Action<object>>? queue) && queue.Count > 0)
+            if (_pending.TryGetValue(typeof(TResponse), out Queue<(Action<object>, Action)>? queue) && queue.Count > 0)
             {
-                onComplete = queue.Dequeue();
+                waiter = queue.Dequeue();
             }
         }
 
-        onComplete?.Invoke(response!);
+        waiter?.Item1(response!);
     }
 
-    private void Request<TRequest, TResponse>(TRequest request, Action<TResponse> onComplete)
+    private void Request<TRequest, TResponse>(TRequest request, Action<TResponse> onComplete, Action onFailure)
         where TRequest : struct
     {
         lock (_gate)
         {
-            if (!_pending.TryGetValue(typeof(TResponse), out Queue<Action<object>>? queue))
+            if (!_pending.TryGetValue(typeof(TResponse), out Queue<(Action<object>, Action)>? queue))
             {
-                queue = new Queue<Action<object>>();
+                queue = new Queue<(Action<object>, Action)>();
                 _pending[typeof(TResponse)] = queue;
             }
 
-            queue.Enqueue(response => onComplete((TResponse)response!));
+            queue.Enqueue((response => onComplete((TResponse)response!), onFailure));
         }
 
         _transport.Send(request);

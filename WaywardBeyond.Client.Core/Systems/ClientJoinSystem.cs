@@ -105,7 +105,13 @@ internal sealed class ClientJoinSystem : IEntitySystem
             });
             if (!send.Success)
             {
+                //  No active connection: fail fast with the connection-lost teardown instead of sitting
+                //  in Loading until the join-stream timeout.
                 _logger.LogWarning("Failed to send join request: {message}.", send.Message);
+                _request = null;
+                _sent = false;
+                _disconnectSystem.RequestDisconnect();
+                return;
             }
             _sent = true;
         }
