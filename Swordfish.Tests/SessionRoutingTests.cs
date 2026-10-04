@@ -51,9 +51,30 @@ public class SessionRoutingTests
     //  tests' ad hoc registrations in the shared NetworkRegistry.
     private const ulong MarkerUuid = 0xE010;
 
+    //  ClientOwned component whose codec rejects the payload, standing in for a malformed inbound frame.
+    private const ulong ThrowingUuid = 0xEF11;
+
+    private struct RejectingComponent : IDataComponent
+    {
+        public int Value;
+    }
+
+    private sealed class RejectingCodec : IPayloadCodec
+    {
+        public Type ComponentType => typeof(RejectingComponent);
+
+        public byte[] Serialize(DataStore store, int entity) => [];
+
+        public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
+        {
+            throw new InvalidOperationException("Malformed payload.");
+        }
+    }
+
     public SessionRoutingTests()
     {
         NetworkRegistry.Register<MarkerComponent>(Uuid.FromValue(MarkerUuid), NetworkDirection.ServerOwned, new MarkerCodec());
+        NetworkRegistry.Register<RejectingComponent>(Uuid.FromValue(ThrowingUuid), NetworkDirection.ClientOwned, new RejectingCodec());
     }
 
     private static INetworkSerializer[] Serializers => new INetworkSerializer[]
@@ -303,6 +324,59 @@ public class SessionRoutingTests
 
         NetworkRegistry.TryGetInfo<InputComponent>(out NetworkComponentInfo info);
         return info.Codec.Serialize(store, entity);
+    }
+
+    [Fact]
+    public void MalformedSnapshotFromOneClientDoesNotAffectOthers()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
+        const int count = 2;
+        Fixture fixture = new(count);
+
+        var entities = new int[count];
+        for (var i = 0; i < count; i++)
+        {
+            entities[i] = fixture.Store.Alloc();
+            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+            fixture.Sessions.Register(fixture.Store, entities[i], fixture.ClientIds[i], new Session((uint)i));
+        }
+
+        var replication = new NetworkReplicationSystem(
+            fixture.Hub,
+            fixture.Sessions,
+            NullLogger<NetworkReplicationSystem>.Instance
+        );
+
+        Uuid attackerUuid = fixture.Store.GetUuid(entities[1]);
+
+        //  Client B leads with a payload whose codec throws, then a valid input of its own. Client A
+        //  sends a plain valid input in the same tick.
+        fixture.Client(1).Send(new WorldSnapshot
+        {
+            Components =
+            [
+                new ComponentSnapshot(attackerUuid.ToValue(), ThrowingUuid, [0xDE, 0xAD]),
+                new ComponentSnapshot(attackerUuid.ToValue(), 1, SerializeInput(3u)),
+            ],
+            RemovedEntities = [],
+        });
+        fixture.Client(0).Send(new WorldSnapshot
+        {
+            Components = [new ComponentSnapshot(fixture.Store.GetUuid(entities[0]).ToValue(), 1, SerializeInput(7u))],
+            RemovedEntities = [],
+        });
+
+        //  The stage must not throw: the malformed client is skipped, its remaining components dropped,
+        //  and the healthy client's input still stages.
+        replication.ApplyStage(0f, fixture.Store);
+
+        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Shared.Networking.Components.NetworkComponent victim));
+        Assert.NotNull(victim.StagedInputs);
+        Assert.Equal(7u, victim.LastAckedInput);
+
+        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Shared.Networking.Components.NetworkComponent attacker));
+        Assert.Null(attacker.StagedInputs);
     }
 
     [Fact]

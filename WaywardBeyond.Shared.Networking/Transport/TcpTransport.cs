@@ -27,6 +27,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private readonly int _connectionTimeoutMs;
     private readonly int _keepaliveIntervalMs;
     private readonly int _sendQueueSize;
+    private readonly int _maxFrameBytes;
     private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
     private readonly BlockingCollection<byte[]> _sendQueue;
     private readonly CancellationTokenSource _sendCts = new();
@@ -44,6 +45,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     //  delivers a readable byte within the socket timeout and is never falsely dropped.
     private static readonly byte[] _KEEPALIVE_FRAME = [0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
+    private const int _THREAD_JOIN_TIMEOUT_MS = 2000;
+
     public bool IsConnected => _client?.Connected ?? false;
     public bool IsLocal => false;
 
@@ -59,13 +62,15 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         ILoggerFactory? loggerFactory = null,
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
-        int keepaliveIntervalMs = 2000
+        int keepaliveIntervalMs = 2000,
+        int maxFrameBytes = 16 * 1024 * 1024
     ) {
         _serializers = new SerializerCache(serializers);
         _logger = (loggerFactory ?? NullLoggerFactory.Instance).CreateLogger<TcpTransport>();
         _connectionTimeoutMs = connectionTimeoutMs;
         _keepaliveIntervalMs = ClampKeepaliveInterval(keepaliveIntervalMs, connectionTimeoutMs);
         _sendQueueSize = Math.Max(1, sendQueueSize);
+        _maxFrameBytes = Math.Max(64, maxFrameBytes);
         _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
     }
 
@@ -78,9 +83,10 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         ILoggerFactory? loggerFactory = null,
         int connectionTimeoutMs = 5000,
         int sendQueueSize = 256,
-        int keepaliveIntervalMs = 2000
+        int keepaliveIntervalMs = 2000,
+        int maxFrameBytes = 16 * 1024 * 1024
     ) {
-        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs);
+        var transport = new TcpTransport(serializers, loggerFactory, connectionTimeoutMs, sendQueueSize, keepaliveIntervalMs, maxFrameBytes);
         transport._client = client;
         transport._client.NoDelay = true;
         transport._client.SendTimeout = connectionTimeoutMs;
@@ -172,6 +178,13 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         BitConverter.TryWriteBytes(bytes.AsSpan(0, 4), frame.Length);
         frame.CopyTo(bytes, 4);
 
+        //  Refuse frames over the negotiated cap so the receive side never sees a prefix it must drop a
+        //  peer for. Serialization already happened; we only skip the queue.
+        if (frame.Length > _maxFrameBytes)
+        {
+            return Result.FromFailure($"Frame of {frame.Length} bytes exceeds the {_maxFrameBytes} byte cap.");
+        }
+
         //  Enqueue for the dedicated send thread. Sends never block the calling thread. When the queue is
         //  full (peer stopped reading a dead socket) drop the oldest frame and retry the new one so input
         //  staleness is bounded instead of the queue growing without limit.
@@ -214,9 +227,14 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public void Dispose()
     {
         Disconnect();
-        _sendCts.Dispose();
-        _keepaliveCts.Dispose();
-        _sendQueue.Dispose();
+
+        //  Cancel wakes each loop, but a not-yet-scheduled thread can still read the cancellation token
+        //  after we dispose its source, throwing ObjectDisposedException on a background thread (which
+        //  crashes the process). The CTSs and the queue are therefore left for GC: cancellation makes
+        //  every loop exit promptly, and the joined threads cannot outlive the transport.
+        JoinIfAlive(_receiveThread);
+        JoinIfAlive(_sendThread);
+        JoinIfAlive(_keepaliveThread);
     }
 
     private void StartLoops()
@@ -322,8 +340,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                 }
 
                 int frameLength = BitConverter.ToInt32(lengthBuffer, 0);
-                if (frameLength < 4)
+                if (frameLength < 4 || frameLength > _maxFrameBytes)
                 {
+                    //  A peer claiming a size beyond the cap cannot be satisfied without allocating its
+                    //  buffer; treat the frame as a protocol violation and drop the connection.
+                    _logger.LogWarning("Dropping connection: frame length {frameLength} exceeds the {maxFrameBytes} byte cap.", frameLength, _maxFrameBytes);
                     break;
                 }
 
@@ -407,6 +428,14 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         int clamped = keepaliveIntervalMs > 0 ? keepaliveIntervalMs : 2000;
         int ceiling = Math.Max(1, connectionTimeoutMs / 2);
         return Math.Max(250, Math.Min(clamped, ceiling));
+    }
+
+    private static void JoinIfAlive(Thread? thread)
+    {
+        if (thread != null && thread.IsAlive)
+        {
+            thread.Join(_THREAD_JOIN_TIMEOUT_MS);
+        }
     }
 
     private int ReadExact(byte[] buffer, int offset, int count)

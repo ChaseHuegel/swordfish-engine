@@ -170,6 +170,55 @@ public class TcpTransportTests
     }
 
     /// <summary>
+    /// The receive loop must reject a length prefix beyond <c>maxFrameBytes</c> before allocating its
+    /// buffer, dropping the peer as a protocol violation. A small cap keeps the test allocation-free.
+    /// </summary>
+    [Fact]
+    public void OversizedFramePrefixDropsThePeerWithoutAllocation()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, maxFrameBytes: 1024);
+        server.Listen(0);
+
+        var disconnectedGate = new ManualResetEventSlim();
+        server.OnDisconnected += disconnectedGate.Set;
+
+        using var raw = new TcpClient();
+        raw.Connect("127.0.0.1", server.LocalPort);
+        NetworkStream stream = raw.GetStream();
+
+        //  A claimed 0x7FFFFFFF byte frame: must be rejected off the prefix alone.
+        stream.Write([0xFF, 0xFF, 0xFF, 0x7F]);
+        stream.Flush();
+
+        Assert.True(disconnectedGate.Wait(5000), "The server must drop a peer claiming an oversized frame.");
+    }
+
+    /// <summary>
+    /// A frame whose body is shorter than its prefix claims must not wedge the receive loop: EOF finishes
+    /// the partial read and raises <see cref="TcpTransport.OnDisconnected"/>.
+    /// </summary>
+    [Fact]
+    public void TruncatedFrameSurfacesDisconnect()
+    {
+        using var server = new TcpTransport(_serializers, NullLoggerFactory.Instance, maxFrameBytes: 1024);
+        server.Listen(0);
+
+        var disconnectedGate = new ManualResetEventSlim();
+        server.OnDisconnected += disconnectedGate.Set;
+
+        using var raw = new TcpClient();
+        raw.Connect("127.0.0.1", server.LocalPort);
+        NetworkStream stream = raw.GetStream();
+
+        //  Prefix claims 100 bytes; only 10 arrive before EOF.
+        stream.Write([100, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+        stream.Flush();
+        raw.Close();
+
+        Assert.True(disconnectedGate.Wait(5000), "The server must surface a disconnect on a truncated frame.");
+    }
+
+    /// <summary>
     /// A live-but-idle peer must not be dropped by the socket read timeout: a keepalive heartbeat keeps
     /// each direction fed within the timeout window. This pins the tailscale disconnect, where an idle
     /// link read blocks a full <see cref="TcpTransport"/> timeout and is misread as a dead peer.

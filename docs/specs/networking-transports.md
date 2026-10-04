@@ -126,6 +126,29 @@ loaded from `network.toml`:
 | `ConnectionTimeoutMs` | `5000` |
 | `KeepaliveIntervalMs` | `2000` |
 | `SendQueueSize` | `256` |
+| `MaxFrameBytes` | `16777216` |
+
+Frames are length-prefixed with a 4-byte body length. The receive loop rejects
+a prefix over `MaxFrameBytes` as a protocol violation and drops the connection
+before allocating the frame buffer; `Send<T>` refuses frames over the cap. The
+cap also bounds the deserializer's worst-case wire reach (see
+[nsdc frame bounds](#nsdc-frame-bounds)).
+
+### Per-client isolation
+
+`NetworkReplicationSystem.ApplyStage` processes every inbound snapshot inside a
+per-client try/catch: a malformed payload from one client is logged and
+skipped, and the remaining clients plus the world step continue. The blanket
+guard in `ServerContext.Update` stays as the last line of defense.
+
+### nsdc frame bounds
+
+The nsdc-generated deserializers (`CodeGen/Output/*.cs`) bound internal reads
+against attacker-derived lengths; the structural fix requires an upstream nsdc
+change, and the submission (exact locations + suggested guard shape) is tracked
+as [issue 0037](/docs/issues/0037-nsdc-unpack-safety.md). Until the fixed
+codegen lands, `MaxFrameBytes` bounds the reachable buffer size and
+per-client isolation keeps a decode fault from halting the server.
 
 ## Source of truth
 

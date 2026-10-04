@@ -23,4 +23,6 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> KeepaliveIntervalMs { get; private set; } = new(2000);
     /// <summary>Maximum pending send frames a peer transport buffers before dropping the oldest.</summary>
     public DataBinding<int> SendQueueSize { get; private set; } = new(256);
+    /// <summary>Maximum frame body a peer transport accepts or sends, in bytes.</summary>
+    public DataBinding<int> MaxFrameBytes { get; private set; } = new(16 * 1024 * 1024);
 }

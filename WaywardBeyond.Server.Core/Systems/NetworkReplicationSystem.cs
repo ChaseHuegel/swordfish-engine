@@ -77,24 +77,37 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// <summary>
     /// Drains and applies inbound client-owned components from all connected clients. Every snapshot is
     /// bound to the sender's session entity: a component whose wire uuid is not the sender's own player
-    /// entity is ignored and never allocated, staged, or applied.
+    /// entity is ignored and never allocated, staged, or applied. A malformed snapshot from one client is
+    /// logged and skipped; it never aborts the world tick for the other clients.
     /// </summary>
     public void ApplyStage(float delta, DataStore store)
     {
         foreach ((Uuid clientId, WorldSnapshot snapshot) in _hub.Receive<WorldSnapshot>())
         {
-            if (!_sessions.TryGetEntity(clientId, out int sessionEntity))
+            try
             {
-                _logger.LogWarning("Ignoring inbound snapshot from client {clientId} without a session.", clientId);
-                continue;
+                ApplyClientSnapshot(store, clientId, snapshot);
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Dropping malformed inbound snapshot from client {clientId}.", clientId);
+            }
+        }
+    }
 
-            Uuid sessionUuid = store.GetUuid(sessionEntity);
-            ComponentSnapshot[] components = snapshot.Components;
-            for (var i = 0; i < components.Length; i++)
-            {
-                ApplyComponent(store, sessionEntity, sessionUuid, components[i]);
-            }
+    private void ApplyClientSnapshot(DataStore store, Uuid clientId, WorldSnapshot snapshot)
+    {
+        if (!_sessions.TryGetEntity(clientId, out int sessionEntity))
+        {
+            _logger.LogWarning("Ignoring inbound snapshot from client {clientId} without a session.", clientId);
+            return;
+        }
+
+        Uuid sessionUuid = store.GetUuid(sessionEntity);
+        ComponentSnapshot[] components = snapshot.Components;
+        for (var i = 0; i < components.Length; i++)
+        {
+            ApplyComponent(store, sessionEntity, sessionUuid, components[i]);
         }
     }
 

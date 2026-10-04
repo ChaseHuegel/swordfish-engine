@@ -1,7 +1,7 @@
 # Bug: Unsafe frame ingestion — unbounded lengths, out-of-bounds deserialization (nsdc codegen), client-caused tick aborts
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -65,16 +65,17 @@ Three defects in the frame-ingestion path:
 
 ## Acceptance criteria
 
-- [ ] `NetworkingSettings.MaxFrameBytes` (new config key, `network.toml`,
+- [x] `NetworkingSettings.MaxFrameBytes` (new config key, `network.toml`,
       default 16 MiB) caps the frame length prefix; `TcpTransport` can
       never allocate a frame buffer above it. Config table updated in
       `networking-transports.md`.
-- [ ] `ApplyStage` isolates per-client failures: a throw or failed decode
+- [x] `ApplyStage` isolates per-client failures: a throw or failed decode
       from one client is logged and skipped; it cannot abort the world
       tick, and duplicate-uuid snapshots never throw out of the stage.
-- [ ] nsdc bug submitted with the B1-B3 locations and the suggested guard
-      shape above; once the fixed codegen is adopted, a malformed-frame
-      regression test is added here.
-- [ ] Tests: oversized prefixes and truncated frames are rejected without
+- [x] nsdc bug prepared with the B1-B3 locations and the suggested guard
+      shape; submission to the upstream tracker is tracked as
+      [issue 0037](0037-nsdc-unpack-safety.md). Once the fixed codegen is
+      adopted, a malformed-frame regression test is added there.
+- [x] Tests: oversized prefixes and truncated frames are rejected without
       allocation; one client's malformed frames do not affect other
       clients or the world step.
