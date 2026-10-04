@@ -1,7 +1,7 @@
 # Bug: Blocking, timeout-less TCP connect hangs the client
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -16,11 +16,11 @@ no feedback.
 
 ## Acceptance criteria
 
-- [ ] Connect is bounded by `ConnectionTimeoutMs`: an
+- [x] Connect is bounded by `ConnectionTimeoutMs`: an
       unroutable/blackholed host fails within the configured bound, and
       the calling thread never blocks past it.
-- [ ] Test: connect to a blackholed address returns a failure `Result`
+- [x] Test: connect to a blackholed address returns a failure `Result`
       within `ConnectionTimeoutMs` and the transport is left cleanly
       disposed.
-- [ ] The UI path issuing a connect stays responsive for the duration of
+- [x] The UI path issuing a connect stays responsive for the duration of
       the attempt.

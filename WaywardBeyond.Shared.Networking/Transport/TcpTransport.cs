@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Serialization;
@@ -117,12 +118,30 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     public void Connect(string host, int port)
     {
         _client = new TcpClient();
-        _client.Connect(host, port);
-        _client.NoDelay = true;
-        _client.SendTimeout = _connectionTimeoutMs;
-        _client.ReceiveTimeout = _connectionTimeoutMs;
-        _stream = _client.GetStream();
-        StartLoops();
+        try
+        {
+            //  A synchronous connect has no timeout of its own: against a blackholed route it waits out
+            //  the OS retry schedule (tens of seconds). Bounding the async connect keeps the calling
+            //  thread (the multiplayer UI path) responsive within ConnectionTimeoutMs.
+            Task connect = _client.ConnectAsync(host, port);
+            if (!connect.Wait(_connectionTimeoutMs))
+            {
+                throw new TimeoutException($"Connecting to {host}:{port} timed out after {_connectionTimeoutMs} ms.");
+            }
+
+            connect.GetAwaiter().GetResult();
+            _client.NoDelay = true;
+            _client.SendTimeout = _connectionTimeoutMs;
+            _client.ReceiveTimeout = _connectionTimeoutMs;
+            _stream = _client.GetStream();
+            StartLoops();
+        }
+        catch
+        {
+            //  A failed or abandoned connect must not leak the socket.
+            _client.Close();
+            throw;
+        }
     }
 
     public void Listen(int port)

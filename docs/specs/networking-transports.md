@@ -34,10 +34,13 @@ and deserializes. This exercises the full protocol with zero network I/O.
 ## `TcpTransport` (peer / LAN / dedicated)
 
 `Transport/TcpTransport.cs` is a socket peer usable as a client
-(`Connect(host, port)`) or a server peer (`Listen(port)`; the multi-peer
-acceptor is `TcpServerHost`). It length-prefixes each serialized message with a
-type tag and dispatches frames to a **per-type receive queue** on a background
-receive thread, so each polling system can `Receive<T>` a distinct type.
+(`Connect(host, port)`; the async connect is bounded by `ConnectionTimeoutMs`
+so an unreachable host fails the join attempt instead of freezing the caller
+through the OS connect retry schedule) or a server peer (`Listen(port)`; the
+multi-peer acceptor is `TcpServerHost`). It length-prefixes each serialized
+message with a type tag and dispatches frames to a **per-type receive queue**
+on a background receive thread, so each polling system can `Receive<T>` a
+distinct type.
 
 Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
 the calling thread, enqueues the bytes, and returns. A dedicated background

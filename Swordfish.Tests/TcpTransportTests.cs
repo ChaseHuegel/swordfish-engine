@@ -425,6 +425,24 @@ public class TcpTransportTests
     }
 
     /// <summary>
+    /// A connect to an unreachable host must fail within <c>ConnectionTimeoutMs</c>: the synchronous
+    /// socket connect otherwise waits out the OS retry schedule (tens of seconds), freezing the caller.
+    /// 198.51.100.x is TEST-NET-2, a non-routable IANA documentation range.
+    /// </summary>
+    [Fact]
+    public void ConnectToBlackholedHostFailsWithinTimeout()
+    {
+        using var transport = new TcpTransport(_serializers, NullLoggerFactory.Instance, connectionTimeoutMs: 400);
+
+        var stopwatch = Stopwatch.StartNew();
+        Assert.ThrowsAny<Exception>(() => transport.Connect("198.51.100.7", 7777));
+        stopwatch.Stop();
+
+        Assert.True(stopwatch.ElapsedMilliseconds < 5000, $"Connect must be bounded, took {stopwatch.ElapsedMilliseconds} ms.");
+        Assert.False(transport.IsConnected, "The transport must be cleanly closed after a failed connect.");
+    }
+
+    /// <summary>
     /// A live-but-idle peer must not be dropped by the socket read timeout: a keepalive heartbeat keeps
     /// each direction fed within the timeout window. This pins the tailscale disconnect, where an idle
     /// link read blocks a full <see cref="TcpTransport"/> timeout and is misread as a dead peer.
