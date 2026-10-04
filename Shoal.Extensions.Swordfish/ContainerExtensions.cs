@@ -37,7 +37,9 @@ public static class ContainerExtensions
         PathInfo[] files = vfs.GetFiles(configPath, SearchOption.AllDirectories);
         
         //  Attempt to resolve the config from VFS else resolve it at the root
-        PathInfo path = files.Length > 0 ? files[0] : configPath.At(file);
+        PathInfo path = files.Any(pathInfo => pathInfo.GetFileName() == file)
+            ? files.First(pathInfo => pathInfo.GetFileName() == file)
+            : configPath.At(file);
         
         var fileParseService = context.Resolve<IFileParseService>();
         if (!fileParseService.TryParse<T>(path, out T result))
