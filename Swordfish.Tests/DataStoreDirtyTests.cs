@@ -174,4 +174,47 @@ public class DataStoreDirtyTests
         Assert.True(store.IsDirty<TestComponent>(entity));
         Assert.False(store.IsDirty<TestComponentB>(entity));
     }
+
+    [Fact]
+    public void RemoveClearsExistsPreservesValueAndMarksDirty()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent { Value = 5 });
+        store.ClearDirty<TestComponent>(entity);
+
+        Assert.True(store.Remove<TestComponent>(entity));
+        Assert.True(store.IsDirty<TestComponent>(entity), "Removal must flow through the dirty poll.");
+        Assert.Equal(0, CountTestComponents(store));
+
+        Assert.True(store.Remove(typeof(TestComponent), entity), "Removing again reports absence.");
+    }
+
+    [Fact]
+    public void RemoveUnknownTypeAndBareEntitySurvives()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent());
+
+        Assert.False(store.Remove(typeof(string), entity));
+
+        store.Remove<TestComponent>(entity);
+
+        //  The entity survives removal as a bare entity.
+        int visits = 0;
+        store.Query(0f, (float _, DataStore s, int e) => { if (s.TryGet(e, out TestComponent _)) visits++; });
+        Assert.Equal(0, visits);
+
+        //  ...but the slot itself is still alive (queries see it).
+        store.AddOrUpdate(entity, new TestComponent { Value = 1 });
+        Assert.Equal(1, CountTestComponents(store));
+    }
+
+    private static int CountTestComponents(DataStore store)
+    {
+        int count = 0;
+        store.Query<TestComponent>(0f, (float _, DataStore s, int e, in TestComponent component) => count++);
+        return count;
+    }
 }

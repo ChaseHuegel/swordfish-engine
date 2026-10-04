@@ -108,6 +108,27 @@ public partial class DataStore
         }
     }
 
+    /// <summary>
+    /// Runtime-type removal (the generated <c>Remove&lt;T&gt;</c> covers compile-time types): removes a
+    /// component from a live entity, preserving the value for readers (last-known data), clearing the
+    /// <c>EXISTS</c> flag, and setting <c>DIRTY</c> so removal flows through the same dirty polling as
+    /// updates. The entity itself survives removal.
+    /// </summary>
+    public bool Remove(Type type, int entity)
+    {
+        (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(type, out ChunkedStore? store))
+            {
+                return false;
+            }
+
+            store.SetAt(chunkIndex, localEntity, exists: false);
+            return true;
+        }
+    }
+
     public void Query(float delta, ForEach forEach)
     {
         lock (_chunkAndStoreLock)
