@@ -16,14 +16,6 @@ is not part of this workflow.
 
 ### Bug
 
-### Improvement
-
-### Research
-
-## Backlog
-
-### Bug
-
 - [ ] [Server accepts client-addressed snapshots for any entity](/docs/issues/0001-inbound-snapshot-injection.md) — cross-client command injection via forged input/interaction snapshots
 - [ ] [Unsafe frame ingestion](/docs/issues/0002-unsafe-frame-ingestion.md) — unbounded frame lengths, nsdc deserializer OOB reads, client-caused tick aborts
 - [ ] [Send-queue drop policy discards protocol-critical frames](/docs/issues/0003-send-queue-drop-policy.md) — silent data loss on the single FIFO; reliable-priority queue never evicts
@@ -66,3 +58,11 @@ is not part of this workflow.
 - [ ] [Thread-per-peer transport scaling](/docs/issues/0019-thread-per-peer-scaling.md) — 3N+1 network threads per host; measure and pick async multiplexing or a documented cap
 - [ ] [Validate LAN discovery broadcast/scan correctness](/docs/issues/0025-lan-discovery-validation.md) — standard networks only; fix defects or document as designed; no tailscale work
 - [ ] [Persistence backend re-evaluation](/docs/issues/0036-nats-persistence-backend.md) — NATS for game saves vs sqlite for character saves; proposal in a new doc for user review
+
+## Backlog
+
+### Bug
+
+### Improvement
+
+### Research
