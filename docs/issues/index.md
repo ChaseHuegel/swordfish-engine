@@ -22,7 +22,7 @@ is not part of this workflow.
 - [x] [World-stream integrity and join](/docs/issues/0004-world-stream-integrity.md) — stream truncation risk, no join timeout, infinite Loading; server backlog disconnect policy
 - [x] [Blocking, timeout-less TCP connect](/docs/issues/0005-blocking-connect.md) — synchronous connect hangs the client on unreachable hosts
 - [x] [Hub receive poll lets one client starve the rest](/docs/issues/0006-hub-receive-starvation.md) — per-client drain unbounded; needs fair MaxReceiveWindow rotation
-- [ ] [Loading-state snapshot pile-up](/docs/issues/0007-loading-snapshot-pileup.md) — memory spike and join-time hitch from queued snapshots during stream
+- [x] [Loading-state snapshot pile-up](/docs/issues/0007-loading-snapshot-pileup.md) — memory spike and join-time hitch from queued snapshots during stream
 - [ ] [Transport lifecycle leaks](/docs/issues/0009-transport-lifecycle-leaks.md) — dead peers never disposed, host client registry never pruned, stale IsConnected
 - [ ] [Interaction edges dropped on congestion](/docs/issues/0010-interaction-edge-loss.md) — unconditional outbound clear discards staged edges on failed send
 - [ ] [Client prediction does not perform the documented replay](/docs/issues/0011-prediction-replay.md) — PendingInputComponent written and trimmed but never replayed

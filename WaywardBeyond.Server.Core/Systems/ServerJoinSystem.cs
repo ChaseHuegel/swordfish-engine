@@ -157,6 +157,10 @@ public sealed class ServerJoinSystem : IEntitySystem
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
 
+        //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
+        //  (EndStream), so the client's Loading-time receive queue cannot pile up snapshots.
+        _replication.BeginStream(clientId);
+
         //  Existing networked players (e.g. the host) were last published before this client connected,
         //  so their dirty flags are already consumed; request a one-shot full-state snapshot so they
         //  materialize as remote players on the joining client.
@@ -185,6 +189,7 @@ public sealed class ServerJoinSystem : IEntitySystem
         {
             _logger.LogWarning("Failed to send world stream complete to client {clientId}: {message}.", clientId, stream.Message);
         }
+        _replication.EndStream(clientId);
 
         _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterId, levelGuid, session.ID);
     }

@@ -1,7 +1,7 @@
 # Bug: Loading-state snapshot pile-up — memory spike and join-time hitch
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -23,16 +23,16 @@ is complete.
 
 ## Acceptance criteria
 
-- [ ] The server publishes no per-tick `WorldSnapshot`s to a client while
+- [x] The server publishes no per-tick `WorldSnapshot`s to a client while
       its join stream is in flight (from join until `WorldStreamComplete`
       is enqueued); the full-sync publish remains the client's first
       snapshot.
-- [ ] Defensive client-side: entering `Playing` applies only the newest
+- [x] Defensive client-side: entering `Playing` applies only the newest
       queued snapshot (older queued snapshots are coalesced or dropped),
       so a burst left over from a previous join can never hitch the first
       play frame.
-- [ ] Test: a client stuck in Loading for N ticks accumulates no more than
+- [x] Test: a client stuck in Loading for N ticks accumulates no more than
       one server-queued snapshot; entering `Playing` performs exactly one
       `ApplySnapshot`.
-- [ ] `networking-replication.md` documents the per-client publish gating
+- [x] `networking-replication.md` documents the per-client publish gating
       during join.

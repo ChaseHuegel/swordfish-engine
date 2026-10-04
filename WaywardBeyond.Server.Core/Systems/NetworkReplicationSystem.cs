@@ -17,7 +17,9 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// <see cref="InputComponent"/> in the server entity's sim-tick-keyed command buffer. <see cref="PublishStage"/>
 /// publishes authoritative server-owned snapshots plus despawns to each client, composing a per-client
 /// <see cref="WorldSnapshot"/> whose <see cref="WorldSnapshot.LastProcessedInput"/> reflects that client
-///'s own acked input. Snapshot <see cref="WorldSnapshot.TickNumber"/> is the server's current sim tick
+///'s own acked input. Clients whose join stream is in flight (see <see cref="BeginStream"/>) receive no
+/// per-tick deltas until it completes, avoiding a Loading-time snapshot pile-up. Snapshot
+/// <see cref="WorldSnapshot.TickNumber"/> is the server's current sim tick
 /// (physics-step ordinal), set via <see cref="SimTick"/>.
 /// </summary>
 public sealed class NetworkReplicationSystem : IEntitySystem
@@ -34,6 +36,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     //  pre-existing players - whose dirty markings were already published-and-cleared before the client
     //  connected - still materialize as remote players.
     private readonly HashSet<Uuid> _fullSync = [];
+
+    //  Clients whose join world stream is in flight: they receive no per-tick deltas (which would pile
+    //  up unapplied while the client is Loading) until the stream complete has been enqueued. The
+    //  full-sync publish is exempt and remains the client's first snapshot.
+    private readonly HashSet<Uuid> _streamingClients = [];
+
+    //  Stream-complete notices queued by the join system; applied at the END of the publish stage so
+    //  the tick that enqueues the complete still publishes no deltas.
+    private readonly Queue<Uuid> _streamEnds = new();
 
     public uint SimTick { get; set; }
 
@@ -66,6 +77,21 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     public void RequestFullSync(Uuid clientId)
     {
         _fullSync.Add(clientId);
+    }
+
+    /// <summary>Marks a client's join world stream as in flight: no per-tick deltas until <see cref="EndStream"/>.</summary>
+    public void BeginStream(Uuid clientId)
+    {
+        _streamingClients.Add(clientId);
+    }
+
+    /// <summary>
+    /// Records that a client's <c>WorldStreamComplete</c> has been enqueued; the streaming gate lifts
+    /// at the end of the current publish stage, so the join tick itself publishes nothing to it.
+    /// </summary>
+    public void EndStream(Uuid clientId)
+    {
+        _streamEnds.Enqueue(clientId);
     }
 
     public void Tick(float delta, DataStore store)
@@ -163,6 +189,13 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 continue;
             }
 
+            //  A joining client's stream is still in flight: no per-tick deltas until the stream
+            //  complete has been enqueued (the full-sync publish above remains its first snapshot).
+            if (_streamingClients.Contains(clientId))
+            {
+                continue;
+            }
+
             _hub.Send(clientId, new WorldSnapshot
             {
                 TickNumber = SimTick,
@@ -170,6 +203,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 Components = components,
                 RemovedEntities = removed,
             });
+        }
+
+        //  Lift the streaming gates recorded this tick, so the next publish sends deltas again.
+        while (_streamEnds.TryDequeue(out Uuid clientId))
+        {
+            _streamingClients.Remove(clientId);
         }
 
         //  Drop full-sync requests whose client disconnected before the publish.

@@ -420,6 +420,42 @@ public class SessionRoutingTests
     }
 
     [Fact]
+    public void StreamingClientReceivesOnlyFullSyncUntilStreamCompletes()
+    {
+        Fixture fixture = new(1);
+
+        int entity = fixture.Store.Alloc();
+        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+        fixture.Store.AddOrUpdate(entity, new MarkerComponent { Value = 1 });
+        fixture.Sessions.Register(fixture.Store, entity, fixture.ClientIds[0], new Session(1u));
+
+        var replication = new NetworkReplicationSystem(
+            fixture.Hub,
+            fixture.Sessions,
+            NullLogger<NetworkReplicationSystem>.Instance
+        );
+        replication.SimTick = 5;
+
+        //  Join tick: the stream begins, the full sync is requested, and the stream complete is enqueued
+        //  (all in one server tick, as ServerJoinSystem does).
+        replication.BeginStream(fixture.ClientIds[0]);
+        replication.RequestFullSync(fixture.ClientIds[0]);
+        replication.EndStream(fixture.ClientIds[0]);
+        replication.PublishStage(0f, fixture.Store);
+
+        //  Exactly one snapshot arrives while streaming: the full sync, never a per-tick delta.
+        Result<WorldSnapshot> first = fixture.Client(0).Receive<WorldSnapshot>();
+        Assert.True(first.Success);
+        Assert.False(fixture.Client(0).Receive<WorldSnapshot>().Success, "No per-tick deltas while the stream is in flight.");
+
+        //  The next publish sends deltas again (the gate lifted when the join tick's stage ended).
+        fixture.Store.AddOrUpdate(entity, new MarkerComponent { Value = 2 });
+        replication.PublishStage(0f, fixture.Store);
+
+        Assert.True(fixture.Client(0).Receive<WorldSnapshot>().Success, "Deltas resume after the stream completes.");
+    }
+
+    [Fact]
     public void LeavingGameEndsSessionAndFreesMirror()
     {
         Fixture fixture = new(1);

@@ -18,6 +18,8 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// the server's last-processed sim tick, realigns the shared prediction step to the server's published
 /// sim tick, and frees entities despawned by the server. Local prediction continues from the corrected
 /// state, so concatenated snapshots never over-apply commands the server already collapsed.
+/// The transition into <c>Playing</c> coalesces any queued snapshot burst to the newest frame so a
+/// Loading-time backlog can never hitch the first play tick.
 /// </summary>
 internal sealed class ClientReconcileSystem : IEntitySystem
 {
@@ -29,6 +31,8 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     //  (server-assigned spawn); afterwards their orientation comes from local prediction, not the echo,
     //  so the authoritative snapshot never snaps the view back and causes look jitter.
     private readonly HashSet<Uuid> _seatedPlayers = [];
+
+    private bool _wasBelowPlaying = true;
 
     public ClientReconcileSystem(
         in IClientConnection transport,
@@ -49,9 +53,28 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         //  GameSaveService.Load has finished building the world, so this thread is the only writer.
         //  The menu is skipped too: the client world is empty there and stale server snapshots would
         //  re-allocate stray entities.
-        if (WaywardBeyond.GameState < GameState.Playing)
+        bool belowPlaying = WaywardBeyond.GameState < GameState.Playing;
+        bool enteringPlay = _wasBelowPlaying && !belowPlaying;
+        _wasBelowPlaying = belowPlaying;
+        if (belowPlaying)
         {
             return;
+        }
+
+        if (enteringPlay)
+        {
+            //  Defensive: a burst queued during Loading (e.g. from a previous join) is coalesced to the
+            //  newest frame so the first play tick performs exactly one ApplySnapshot.
+            WorldSnapshot? newest = null;
+            while (_transport.Receive<WorldSnapshot>() is { Success: true } burst)
+            {
+                newest = burst.Value;
+            }
+
+            if (newest != null)
+            {
+                ApplySnapshot(newest.Value, store);
+            }
         }
 
         Result<WorldSnapshot> receiveResult;

@@ -20,6 +20,13 @@ One subject: dirty-driven replication between server and client.
 - **Despawns** are recorded via `RequestDespawn` (must be called before the
   entity is freed, since `DataStore.Free` clears the uuid) and broadcast in
   `RemovedEntities`.
+- **Join-stream gating.** Once a client's world stream is enqueued
+  (`ServerJoinSystem.BeginStream`), the publish stage sends it no per-tick
+  deltas until the stream complete has been enqueued (`EndStream`), so a
+  Loading-time client cannot accumulate unapplied snapshots. The one-shot
+  full-sync publish is exempt and stays the client's first snapshot.
+  Client-side, `ClientReconcileSystem` additionally coalesces any queued
+  burst to the newest frame on entering `Playing`.
 - **World/voxel bodies.** Server-authoritative structures carrying a
   `NetworkComponent` flow through this same path each tick. Their
   `TransformComponent`/`PhysicsComponent` are dirtied by the physics sync
