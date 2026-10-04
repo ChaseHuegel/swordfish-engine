@@ -44,7 +44,7 @@ is not part of this workflow.
 
 ### Improvement
 
-- [ ] [Replication hot-path allocations and scans](/docs/issues/0012-replication-hot-path.md) — per-entity registry list allocs, client full-store scan, per-check store locks
+- [x] [Replication hot-path allocations and scans](/docs/issues/0012-replication-hot-path.md) — per-entity registry list allocs, client full-store scan, per-check store locks
 - [ ] [Per-tick snapshot serialized once per client](/docs/issues/0013-per-client-serialization.md) — fan-out the shared authoritative snapshot instead of N full serializations
 - [ ] [Message serialization and transport copies unpooled](/docs/issues/0014-serialization-pooling.md) — ArrayPool, cached type tags, receive-path double copy
 - [ ] [Component-level removal is not replicated](/docs/issues/0015-component-removal-replication.md) — store Remove<T> surface, ComponentRemoval wire delta, engine-first commit

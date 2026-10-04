@@ -64,6 +64,7 @@ public class ClientReplicationInteractionTests
         var store = new DataStore();
 
         int entity = store.Alloc();
+        store.AddOrUpdate(entity, new PlayerComponent());
         var pending = new PendingInteractionComponent(new PendingInteractionQueue());
         pending.Outbound.Stage(new InteractionEvent
         {
@@ -95,6 +96,26 @@ public class ClientReplicationInteractionTests
     }
 
     [Test]
+    public void NoInputWorldSendsNothingRegardlessOfEntityCount()
+    {
+        var connection = new FlakyConnection();
+        var system = new ClientReplicationSystem(connection);
+        var store = new DataStore();
+
+        //  Thousands of untouched world structures plus a player with no client-owned components:
+        //  nothing dirty, nothing to send - the player-scoped collection never emits.
+        for (var i = 0; i < 5000; i++)
+        {
+            store.Alloc();
+        }
+        store.AddOrUpdate(store.Alloc(), new PlayerComponent());
+
+        system.Tick(0f, store);
+
+        Assert.That(connection.SnapshotsSent, Is.Zero);
+    }
+
+    [Test]
     public void InventoryOpsDrainIntoSnapshotsAndClearOnSuccess()
     {
         var connection = new FlakyConnection();
@@ -102,6 +123,7 @@ public class ClientReplicationInteractionTests
         var store = new DataStore();
 
         int entity = store.Alloc();
+        store.AddOrUpdate(entity, new PlayerComponent());
         store.AddOrUpdate(entity, new PendingInventoryComponent());
         store.QueryRef<PendingInventoryComponent>(entity, 0f,
             (float _, DataStore s, int e, ref Ref<PendingInventoryComponent> pending) =>

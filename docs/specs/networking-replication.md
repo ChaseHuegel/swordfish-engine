@@ -62,8 +62,12 @@ Store-mediated writes (`Alloc<T...>`, `AddOrUpdate`, `Entity.Add`) auto-mark a
 component dirty. In-place mutation through a query `ref` is NOT auto-detected —
 mutating systems must use `store.QueryRef<T...>(...)` and go through the
 `Ref<T>` accessor's `Write` property, which marks dirty and returns a write
-`ref`. `QueryDirty<T>`/`QueryDirty<T1,T2>`/`QueryRemoved<T>` iterate matching
-dirty components without clearing; callers must explicitly `ClearDirty<T>`.
+`ref`. Replication iterates entities by component types, and each system caches
+its direction's `NetworkRegistry` component list once per instance so the hot
+path allocates nothing per entity; the client collection is player-scoped (only
+the local player carries client-owned components). The full-state (join-time)
+path still reads the store's boxed component span per entity — bounded by
+joins, never the tick loop.
 
 ## Tick tagging
 

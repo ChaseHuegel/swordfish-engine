@@ -24,9 +24,14 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     //  buffers are cleared only after the send succeeds so a failed send leaves them staged for re-emission.
     private readonly HashSet<int> _stagedEntities = [];
 
+    //  Cached once per system instance: the per-call registry enumeration would otherwise allocate a
+    //  fresh list on every tick of the replication hot path.
+    private readonly NetworkComponentInfo[] _clientOwnedComponents;
+
     public ClientReplicationSystem(in IClientConnection transport)
     {
         _transport = transport;
+        _clientOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ClientOwned)];
     }
 
     public void Tick(float delta, DataStore store)
@@ -34,8 +39,10 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         _pending.Clear();
         _stagedEntities.Clear();
 
+        //  Player-scoped: only the local player carries client-owned components, so collection never
+        //  visits world structures.
         CollectAction action = new() { Owner = this };
-        store.Query(0f, ref action);
+        store.Query<PlayerComponent, CollectAction>(delta, ref action);
 
         if (_pending.Count == 0)
         {
@@ -72,11 +79,11 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         }
     }
 
-    private struct CollectAction : IForEach
+    private struct CollectAction : IForEach<PlayerComponent>
     {
         public ClientReplicationSystem Owner;
 
-        public void Execute(float delta, DataStore store, int entity)
+        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
         {
             //  Buffered interaction edges and inventory ops are drained as their own snapshots before the
             //  dirty-scan, so a player who staged edges or moves this frame has them emitted even though
@@ -91,7 +98,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
                 DrainInventoryOps(store, entity, pendingOps);
             }
 
-            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ClientOwned))
+            foreach (NetworkComponentInfo info in Owner._clientOwnedComponents)
             {
                 if (info.Type == typeof(InteractionEvent))
                 {

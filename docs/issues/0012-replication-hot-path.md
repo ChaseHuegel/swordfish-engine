@@ -1,7 +1,7 @@
 # Improvement: Replication hot-path allocations and scans scale with world size, not dirtiness
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -31,17 +31,17 @@ regardless of how much actually changed:
 
 ## Acceptance criteria
 
-- [ ] Client replication work is proportional to dirty client-owned
+- [x] Client replication work is proportional to dirty client-owned
       components (player-scoped query or `QueryDirty`), not world entity
       count; a no-input world with 5000 entities costs the same per frame
       as an empty one.
-- [ ] Server publish hoists the `ServerOwned` component enumeration to
+- [x] Server publish hoists the `ServerOwned` component enumeration to
       once per tick (cached array), and per-entity dirty checks do not
       acquire the global store lock per check (batched or bulk dirty
       query).
-- [ ] Full-state collection avoids per-entity boxing (`store.Get(int)`),
+- [x] Full-state collection avoids per-entity boxing (`store.Get(int)`),
       or is measured and bounded for join-time only.
-- [ ] Benchmark or test pins per-frame work: replication cost is flat when
+- [x] Benchmark or test pins per-frame work: replication cost is flat when
       nothing is dirty, growing only with dirty components.
-- [ ] `networking-replication.md` describes the iteration model the code
+- [x] `networking-replication.md` describes the iteration model the code
       actually uses.

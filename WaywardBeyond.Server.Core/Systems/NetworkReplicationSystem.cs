@@ -50,6 +50,11 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     private readonly uint _snapshotIntervalTicks;
 
+    //  The server-owned component enumeration is cached per system instance: the replication hot path
+    //  runs at least once per tick, and the registry's per-call list allocation would otherwise scale
+    //  with world size instead of dirtiness.
+    private readonly NetworkComponentInfo[] _serverOwnedComponents;
+
     public NetworkReplicationSystem(
         in ServerConnectionHub hub,
         SessionManager sessions,
@@ -61,6 +66,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         _logger = logger;
         //  0 = uncapped (every tick); the server wiring passes the configured cadence.
         _snapshotIntervalTicks = snapshotHz <= 0 ? 1 : (uint)Math.Max(1, 60 / snapshotHz);
+        _serverOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ServerOwned)];
     }
 
     /// <summary>
@@ -177,7 +183,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         {
             //  Read-only snapshot of every server-owned component on every networked entity, regardless
             //  of dirty, for clients that joined after those components were last published.
-            CollectFullStateAction collect = new();
+            CollectFullStateAction collect = new(_serverOwnedComponents);
             store.Query<NetworkComponent, CollectFullStateAction>(delta, ref collect);
             fullState = collect.Components.ToArray();
         }
@@ -320,7 +326,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         {
             Uuid entityUuid = store.GetUuid(entity);
 
-            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ServerOwned))
+            foreach (NetworkComponentInfo info in Owner._serverOwnedComponents)
             {
                 if (!store.IsDirty(info.Type, entity))
                 {
@@ -349,10 +355,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private struct CollectFullStateAction : IForEach<NetworkComponent>
     {
         public readonly List<ComponentSnapshot> Components;
+        public NetworkComponentInfo[] ServerOwned;
 
-        public CollectFullStateAction()
+        public CollectFullStateAction(NetworkComponentInfo[] serverOwned)
         {
             Components = [];
+            ServerOwned = serverOwned;
         }
 
         public void Execute(float delta, DataStore store, int entity, in NetworkComponent net)
@@ -360,7 +368,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             Uuid entityUuid = store.GetUuid(entity);
             Span<IDataComponent> present = store.Get(entity);
 
-            foreach (NetworkComponentInfo info in NetworkRegistry.GetComponents(NetworkDirection.ServerOwned))
+            //  `store.Get` boxes per entity; this path is join-time-only (one-shot per joining client),
+            //  so the boxing is bounded by joins, not by the per-tick hot path.
+            foreach (NetworkComponentInfo info in ServerOwned)
             {
                 if (!Contains(present, info.Type))
                 {
