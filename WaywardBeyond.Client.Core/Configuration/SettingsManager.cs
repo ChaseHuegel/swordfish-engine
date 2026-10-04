@@ -1,6 +1,7 @@
 using Shoal.DependencyInjection;
 using Swordfish.Graphics;
 using Swordfish.Settings;
+using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Client.Core.Configuration;
 
@@ -12,7 +13,8 @@ internal sealed class SettingsManager : IAutoActivate
     private readonly AudioSettings _audioSettings;
     private readonly VolumeSettings _volumeSettings;
     private readonly GameplaySettings _gameplaySettings;
-    
+    private readonly NetworkingSettings _networkingSettings;
+
     public SettingsManager(
         in IWindowContext windowContext,
         in ControlSettings controlSettings,
@@ -20,7 +22,8 @@ internal sealed class SettingsManager : IAutoActivate
         in RenderSettings renderSettings,
         in AudioSettings audioSettings,
         in VolumeSettings volumeSettings,
-        GameplaySettings gameplaySettings
+        in GameplaySettings gameplaySettings,
+        in NetworkingSettings networkingSettings
     ) {
         _controlSettings = controlSettings;
         _windowSettings = windowSettings;
@@ -28,6 +31,7 @@ internal sealed class SettingsManager : IAutoActivate
         _audioSettings = audioSettings;
         _volumeSettings = volumeSettings;
         _gameplaySettings = gameplaySettings;
+        _networkingSettings = networkingSettings;
 
         windowContext.Closed += OnWindowClosed;
         ApplySettings();
@@ -41,6 +45,7 @@ internal sealed class SettingsManager : IAutoActivate
         _audioSettings.Save();
         _volumeSettings.Save();
         _gameplaySettings.Save();
+        _networkingSettings.Save();
     }
 
     private void OnWindowClosed()
