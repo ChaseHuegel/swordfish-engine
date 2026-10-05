@@ -44,6 +44,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
     private readonly List<WorldEntry> _worlds = [];
+    private readonly List<WorldEntry> _unloads = [];
     private readonly ConcurrentDictionary<IServerConnection, WorldBinding> _bindings = new();
 
     public ServerWorldHost(
@@ -79,6 +80,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     public void Dispose()
     {
         _threadWorker.Stop();
+        //  The tick thread may still be mid-Update (an idle unload, a join route); join before the
+        //  worlds table is torn down so the loop below never races the server thread.
+        _threadWorker.Join();
 
         //  The server thread owns the stores; once stopped, shutdown may safely flush them before the
         //  world containers and the local NATS backing are disposed.
@@ -106,11 +110,23 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             _worldManager.Tick();
             RoutePendingJoins();
 
+            //  Unloads are deferred until after the world iteration: removing from _worlds during the
+            //  tick loop would invalidate the enumerator.
             foreach (WorldEntry entry in _worlds)
             {
                 entry.World.Tick(delta);
-                ManageIdle(entry);
+                if (ShouldUnload(entry))
+                {
+                    _unloads.Add(entry);
+                }
             }
+
+            foreach (WorldEntry entry in _unloads)
+            {
+                UnloadWorld(entry);
+            }
+
+            _unloads.Clear();
         }
         catch (Exception ex)
         {
@@ -186,23 +202,22 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         return clientId;
     }
 
-    private void ManageIdle(WorldEntry entry)
+    private bool ShouldUnload(WorldEntry entry)
     {
         if (entry.World.Sessions.Count > 0)
         {
             entry.IdleSinceMs = 0;
-            return;
+            return false;
         }
 
         long now = Environment.TickCount64;
         if (entry.IdleSinceMs == 0)
         {
             entry.IdleSinceMs = now;
+            return false;
         }
-        else if (now - entry.IdleSinceMs >= _idleUnloadMs)
-        {
-            UnloadWorld(entry);
-        }
+
+        return now - entry.IdleSinceMs >= _idleUnloadMs;
     }
 
     private void UnloadWorld(WorldEntry entry)
