@@ -2,7 +2,7 @@ using System;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Physics.Jolt;
+using Swordfish.Settings;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Bricks;
@@ -35,10 +35,13 @@ public static class ServerComposition
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
         container.Register<ServerSkillSystem>();
-        container.Register<JoltPhysicsSystem>();
+        //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
+        //  under the game-owned identity, so nothing resolves the engine's concrete JoltPhysicsSystem
+        //  (which the engine also registers as a root singleton).
+        container.Register<IServerWorldPhysics>(made: Made.Of(() => CreateWorldPhysics(Arg.Of<ILoggerFactory>(), Arg.Of<PhysicsSettings>())));
         //  The step is disposable and transient by template; each world pins and disposes its own instance.
         container.Register<SharedSimulationStep>(
-            made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<JoltPhysicsSystem>())),
+            made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>())),
             setup: Setup.With(allowDisposableTransient: true)
         );
         container.Register<Func<DataStore, IVoxelInteractionWorld>>(made: Made.Of(() => CreateInteractionWorldFactory()));
@@ -49,7 +52,8 @@ public static class ServerComposition
         RegisterServerSystem<NetworkApplySystem>(container);
         RegisterServerSystem<ServerInventorySystem>(container);
         RegisterServerSystem<ServerHeartbeatService>(container);
-        RegisterServerSystem<ServerPhysicsSystem>(container);
+        //  The physics slot is the world's physics bundle itself (same per-world instance as the step's).
+        container.Register<IServerWorldSystem>(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         //  ServerInteractionSystem keeps public convenience ctors for tests; the world graph pins the
         //  full one explicitly, and its marker registration passes the same concrete instance through
         //  (the join system depends on the concrete type).
@@ -89,9 +93,19 @@ public static class ServerComposition
         return new ServerConnectionHub(settings.MaxReceiveWindow.Get());
     }
 
-    private static SharedSimulationStep CreateSimulationStep(World world, in JoltPhysicsSystem physics)
+    private static SharedSimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)
     {
         return new SharedSimulationStep(world.DataStore, physics);
+    }
+
+    private static IServerWorldPhysics CreateWorldPhysics(ILoggerFactory loggerFactory, in PhysicsSettings physicsSettings)
+    {
+        return new ServerPhysicsSystem(loggerFactory, physicsSettings);
+    }
+
+    private static IServerWorldSystem CreatePhysicsSlot(in IServerWorldPhysics physics)
+    {
+        return (IServerWorldSystem)physics;
     }
 
     private static Func<DataStore, IVoxelInteractionWorld> CreateInteractionWorldFactory()
