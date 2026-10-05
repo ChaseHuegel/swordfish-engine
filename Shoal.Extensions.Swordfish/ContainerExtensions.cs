@@ -25,7 +25,7 @@ public static class ContainerExtensions
         where T : Config<T>, new()
     {
         container.RegisterTomlParser<T>();
-        container.RegisterDelegate<T>(context => LoadOrCreateConfig<T>(context, file), Reuse.Singleton);
+        container.RegisterDelegate<T>(context => LoadOrCreateConfig<T>(context, file), Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
     }
     
     private static T LoadOrCreateConfig<T>(IResolverContext context, string file) 
