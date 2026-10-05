@@ -9,6 +9,7 @@ public class ThreadWorker
 {
     private volatile bool _stop;
     private volatile bool _pause;
+    private volatile bool _started;
 
     private readonly Thread _thread;
     private readonly Action _handleOnce;
@@ -50,12 +51,22 @@ public class ThreadWorker
     {
         _stop = false;
         _pause = false;
+        _started = true;
         _thread.Start();
     }
 
     public void Stop()
     {
         _stop = true;
+    }
+
+    /// <summary>Blocks until the worker thread has exited; pair with <see cref="Stop"/> before teardown.</summary>
+    public void Join()
+    {
+        if (_started)
+        {
+            _thread.Join();
+        }
     }
 
     public void Restart()
