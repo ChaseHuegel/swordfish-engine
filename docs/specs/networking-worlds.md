@@ -67,7 +67,11 @@ graph. Shared singletons (registry, codecs, `SkillDatabase`, `IBrickIdMap`,
   `ServerInteractionSystem` → `ServerChatSystem` → `NetworkPublishSystem`.
   The replication system's apply and publish stages split into two ordered
   systems so physics and the shared motion step run between them
-  (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`).
+  (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`). The per-world
+  `ServerWorldSystem` serves only the in-world save request.
+- **Server-level** (not per-world): `ServerWorldManager` serves the menu-time
+  create/list/delete requests on connections that have not joined a world yet;
+  the host ticks it before world routing.
 - Replication state: `NetworkReplicationSystem` is per world, so full-sync
   sets, streaming gates, pending snapshots, and acks cannot leak between
   worlds. Publish reads the world's sim tick from the injected
@@ -128,5 +132,6 @@ measured pressure from scaling work).
 
 - `WaywardBeyond.Server.Core/ServerWorldHost.cs`
 - `WaywardBeyond.Server.Core/ServerWorld.cs`
+- `WaywardBeyond.Server.Core/ServerWorldManager.cs`
 - `WaywardBeyond.Server.Core/ServerComposition.cs`
 - `docs/specs/networking-join.md` (world-routed joins)

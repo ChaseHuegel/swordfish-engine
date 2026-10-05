@@ -100,7 +100,11 @@ a client whose reliable send backlog stays over
 The save-listing menu is served by the server: `NewWorldRequest`,
 `ListWorldsRequest`, `DeleteWorldRequest`, and `SaveWorldRequest` (flush
 authoritative world) map to `WorldSaveService` operations, driven by a client
-`WorldsClient` whose responses the ECS thread completes.
+`WorldsClient` whose responses the ECS thread completes. Menu-time operations
+(create/list/delete) are served by `ServerWorldManager`
+(`Server.Core/ServerWorldManager.cs`) against connections that have not joined
+a world yet; the in-world `SaveWorldRequest` is served by the world's
+`ServerWorldSystem`.
 
 ### Continue and the multiplayer page
 
