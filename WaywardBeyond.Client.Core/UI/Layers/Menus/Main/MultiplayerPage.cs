@@ -290,7 +290,11 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         finally
         {
             _scanning = false;
-            if (_foundServers.Count == 0)
+            if (_discovery.DiscoveryUnavailable)
+            {
+                _discoverMessage = _localization.GetString("ui.notification.discover.unavailable");
+            }
+            else if (_foundServers.Count == 0)
             {
                 _discoverMessage = _localization.GetString("ui.notification.discover.none");
             }

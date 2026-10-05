@@ -38,6 +38,9 @@ internal sealed class LanDiscoveryService
         _isHost = NetworkModeResolver.Resolve() == NetworkMode.Host;
     }
 
+    /// <summary>True when the discovery socket could not bind (e.g. another game instance holds the port).</summary>
+    public bool DiscoveryUnavailable { get; private set; }
+
     /// <summary>
     /// Streams every unique server discovered within the scan window. The window is bounded by
     /// <see cref="NetworkingSettings.DiscoveryScanSeconds"/>; the enumeration completes normally when it
@@ -52,10 +55,14 @@ internal sealed class LanDiscoveryService
         try
         {
             udp = new UdpClient(discoveryPort);
+            DiscoveryUnavailable = false;
         }
         catch (SocketException)
         {
-            yield break; //  Could not bind the discovery socket.
+            //  Another game instance (or process) holds the discovery port: surface the state instead of
+            //  pretending a scan ran and found nothing.
+            DiscoveryUnavailable = true;
+            yield break;
         }
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

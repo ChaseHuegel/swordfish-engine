@@ -1,7 +1,7 @@
 # Research: Validate LAN discovery broadcast/scan correctness on standard networks
 
 - Type: research
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -30,10 +30,29 @@ defective; if sound, document the finding and take no action.
   sender on an ephemeral source port while this machine's own scanner
   holds 47777; any user-visible indication when discovery is unavailable.
 
+## Review findings (recorded)
+
+1. **Limited broadcast (255.255.255.255)** — correct as designed for
+   broadcast-capable home networks and routers; the tailscale/overlay
+   non-forwarding case is out of scope per the locked decision. No change.
+2. **Two game instances contending for the discovery port** — the second
+   `UdpClient(DiscoveryPort)` bind throws a `SocketException`; the scan
+   ended immediately and the page showed "No LAN servers found", a
+   misleading reading of a bind failure. **Defect: fixed.** The service
+   now surfaces `LanDiscoveryService.DiscoveryUnavailable`, and the page
+   shows a dedicated "LAN discovery is unavailable (the discovery port is
+   in use)" message instead of the empty-scan text.
+3. **Beacon source port vs this machine's scanner** — the beacon sender is
+   unbound (ephemeral source) while the scanner holds 47777, so both can
+   coexist on one machine; own-host suppression filters the loop. No
+   change.
+4. **User-visible indication** — now covered by the bind-failure message
+   in (2).
+
 ## Acceptance criteria
 
-- [ ] A written review (recorded in this issue or a short doc) covering
+- [x] A written review (recorded in this issue or a short doc) covering
       the scope, with verdicts on each defect point.
-- [ ] Defects found are fixed (and `networking-transports.md` updated); if
+- [x] Defects found are fixed (and `networking-transports.md` updated); if
       nothing defective is found, the LAN discovery behavior is documented
       as designed and the issue is closed with no change.

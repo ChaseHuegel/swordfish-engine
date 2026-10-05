@@ -64,6 +64,7 @@
 "ui.field.port" = "Port"
 
 "ui.notification.discover.scanning" = "Scanning for LAN servers..."
+"ui.notification.discover.unavailable" = "LAN discovery is unavailable (the discovery port is in use)"
 "ui.notification.discover.none" = "No LAN servers found"
 
 "ui.button.loadSave" = "Embark"
