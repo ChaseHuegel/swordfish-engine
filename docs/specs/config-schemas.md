@@ -78,6 +78,24 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 |---|---|---|---|
 | `NameplateDistance` | int | 32 | remote player name tag render distance in world units; 0 disables tags (settings page control: 0-64, steps of 8) |
 
+## `physics.toml` (per app)
+
+Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by
+the engine (`Swordfish/EngineContainer.cs:115`) and the shared host wire-up
+(`WaywardBeyond.Server.Core/HostComposition.cs:80`). Defaults live in
+`Swordfish/Settings/PhysicsSettings.cs`.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `AccumulateUpdates` | bool | `true` | whether physics steps accumulate to catch up a lagging world |
+| `gravity` | float[3] | `[0, -9.81, 0]` | world gravity as `[x, y, z]`; zero-G runtimes set it to `[0, 0, 0]` |
+
+`gravity` rides a dedicated mapper because Tomlet cannot map
+`System.Numerics.Vector3` itself:
+`Swordfish.Library/Serialization/Toml/Mappers/Vector3DataBindingTomlMapper.cs`.
+Applying gravity happens on change, not per tick:
+`Swordfish/Physics/Jolt/JoltPhysicsSystem.cs:93-97` (constructor + `Changed`).
+
 ## `network.toml` last-used endpoint
 
 `NetworkingSettings.DefaultHost`/`DefaultConnectPort` double as the **last-used
