@@ -46,6 +46,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private readonly List<WorldEntry> _worlds = [];
     private readonly List<WorldEntry> _unloads = [];
     private readonly ConcurrentDictionary<IServerConnection, WorldBinding> _bindings = new();
+    private bool _disposed;
 
     public ServerWorldHost(
         in IContainer container,
@@ -79,14 +80,21 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
 
     public void Dispose()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         _threadWorker.Stop();
         //  The tick thread may still be mid-Update (an idle unload, a join route); join before the
         //  worlds table is torn down so the loop below never races the server thread.
         _threadWorker.Join();
 
         //  The server thread owns the stores; once stopped, shutdown may safely flush them before the
-        //  world containers and the local NATS backing are disposed.
-        foreach (WorldEntry entry in _worlds)
+        //  world containers and the local NATS backing are disposed. The list is snapshotted so a world
+        //  container disposal can never invalidate the enumerator.
+        foreach (WorldEntry entry in _worlds.ToArray())
         {
             foreach ((Uuid clientId, _) in entry.World.Hub.Clients)
             {
@@ -161,7 +169,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             }
         }
 
-        IContainer worldContainer = ContainerTools.CreateChild(_container, RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: true);
+        IContainer worldContainer = ContainerTools.CreateChild(_container, RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: false);
         ServerWorld world;
         try
         {

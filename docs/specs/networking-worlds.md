@@ -33,11 +33,16 @@ The server module (`WaywardBeyond.Server.Core/ServerComposition.cs`) registers
 every per-world service and system as a **transient template** in the root
 container. `ServerWorld` (`ServerWorld.cs`) resolves each template once and
 pins it into an **exclusive child container** per world
-(`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`); every
-system's constructor dependencies then resolve to that world's own instance
-graph. Shared singletons (registry, codecs, `SkillDatabase`, `IBrickIdMap`,
-`IInteractionContent`, `WorldSaveService`'s KV backing, `NetworkingSettings`,
-`TcpServerHost`, `LocalConnection`) resolve through the child fall-through.
+(`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`,
+`withDisposables: false`); every system's constructor dependencies then resolve
+to that world's own instance graph. Shared singletons (registry, codecs,
+`SkillDatabase`, `IBrickIdMap`, `IInteractionContent`, `WorldSaveService`'s KV
+backing, `NetworkingSettings`, `TcpServerHost`, `LocalConnection`) resolve
+through the child fall-through.
+`withDisposables: false` is required: a child-container disposal cascades to
+the root's singleton disposables otherwise, so unloading a world would dispose
+the server host, the LAN host, and every other root singleton. The world's
+pinned instances (registered into the child) still dispose on world unload.
 
 - World systems register under the `IServerWorldSystem` marker
   (`IServerWorldSystem.cs`), never `IEntitySystem`, so the client's ECS

@@ -45,7 +45,9 @@ public class ServerWorldCompositionTests
 
         public ServerWorld OpenWorld()
         {
-            return new ServerWorld(ContainerTools.CreateChild(Container, RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: true));
+            //  withDisposables: false: a child container disposal must never cascade to the root's
+            //  singletons; it still disposes the instances pinned into the world (see ServerWorld).
+            return new ServerWorld(ContainerTools.CreateChild(Container, RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: false));
         }
 
         public void Dispose()
