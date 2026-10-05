@@ -42,7 +42,10 @@ through the OS connect retry schedule) or a server peer (`Listen(port)`; the
 multi-peer acceptor is `TcpServerHost`). It length-prefixes each serialized
 message with a type tag and dispatches frames to a **per-type receive queue**
 on a background receive thread, so each polling system can `Receive<T>` a
-distinct type.
+distinct type. Framing is pool-backed on the hot path: wire frames and the
+coalesced send segment come from `ArrayPool<byte>` and return after write, and
+type tags resolve to bytes once at registration (`SerializerCache`) instead of
+re-encoding per send.
 
 Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
 the calling thread, enqueues the bytes, and returns. A dedicated background

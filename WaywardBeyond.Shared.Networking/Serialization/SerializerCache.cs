@@ -12,16 +12,26 @@ public sealed class SerializerCache
 {
     private readonly Dictionary<Type, object> _serializers;
     private readonly Dictionary<string, Type> _serializersByTypeName;
+    private readonly Dictionary<Type, byte[]> _typeTags;
 
     public SerializerCache(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new Dictionary<Type, object>();
         _serializersByTypeName = new Dictionary<string, Type>();
+        _typeTags = new Dictionary<Type, byte[]>();
         foreach (INetworkSerializer serializer in serializers)
         {
             _serializers[serializer.MessageType] = serializer;
             _serializersByTypeName[serializer.MessageType.FullName!] = serializer.MessageType;
+            //  Type tags resolve to bytes once at registration and are reused per send.
+            _typeTags[serializer.MessageType] = System.Text.Encoding.UTF8.GetBytes(serializer.MessageType.FullName!);
         }
+    }
+
+    /// <summary>The pre-encoded wire type tag for a message type, or null when unregistered.</summary>
+    public byte[]? TryGetTypeTag<T>()
+    {
+        return _typeTags.TryGetValue(typeof(T), out byte[]? bytes) ? bytes : null;
     }
 
     public bool TryGet<T>(out ISerializer<T> serializer)

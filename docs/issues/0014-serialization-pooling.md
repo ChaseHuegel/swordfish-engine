@@ -1,7 +1,7 @@
 # Improvement: Message serialization and transport copies are unpooled and duplicated
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -28,15 +28,15 @@ allocations per second on the host.
 
 ## Acceptance criteria
 
-- [ ] `ArrayPool<byte>` (or equivalent) used for frame buffers and
+- [x] `ArrayPool<byte>` (or equivalent) used for frame buffers and
       deserialization scratch; buffers are returned to the pool after
       send/deserialize.
-- [ ] Type names resolved to bytes once at registration and reused per
+- [x] Type names resolved to bytes once at registration and reused per
       send (`SerializerCache`).
-- [ ] Receive path avoids the frame -> payload double copy where a single
+- [x] Receive path avoids the frame -> payload double copy where a single
       slice suffices.
-- [ ] Allocation profile measured before/after (e.g. alloc counter in the
+- [x] Allocation profile measured before/after (e.g. alloc counter in the
       replication benchmark) demonstrating a majority reduction on the
       send/receive hot path.
-- [ ] Correctness preserved: pooled buffers are never retained past the
+- [x] Correctness preserved: pooled buffers are never retained past the
       send/deserialize call (transport queues own their copies).

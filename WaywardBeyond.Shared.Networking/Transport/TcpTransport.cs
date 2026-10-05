@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Net;
@@ -30,9 +31,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     private readonly int _sendQueueSize;
     private readonly int _maxFrameBytes;
     private readonly int _sendIntervalMs;
-    private readonly ConcurrentDictionary<Type, ConcurrentQueue<byte[]>> _receiveQueues = new();
-    private readonly BlockingCollection<byte[]> _sendQueue;
-    private readonly BlockingCollection<byte[]> _reliableQueue = new();
+    private readonly ConcurrentDictionary<Type, ConcurrentQueue<QueuedFrame>> _receiveQueues = new();
+    private readonly BlockingCollection<QueuedFrame> _sendQueue;
+    private readonly BlockingCollection<QueuedFrame> _reliableQueue = new();
     private readonly int _reliableConcernThreshold;
     private readonly int _reliableDisconnectThreshold;
     private readonly int _reliableDisconnectMs;
@@ -99,7 +100,27 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         _reliableDisconnectThreshold = Math.Max(_reliableConcernThreshold, reliableQueueDisconnectThreshold);
         _reliableDisconnectMs = Math.Max(1, reliableQueueDisconnectMs);
         _sendIntervalMs = Math.Max(1, sendIntervalMs);
-        _sendQueue = new BlockingCollection<byte[]>(_sendQueueSize);
+        _sendQueue = new BlockingCollection<QueuedFrame>(_sendQueueSize);
+    }
+
+    /// <summary>
+    /// A pooled buffer queued for the send loop or a receive dispatch. The queue owns the buffer; the
+    /// consumer returns it to the shared pool after use, so the hot path allocates nothing per frame.
+    /// </summary>
+    private readonly struct QueuedFrame(byte[] buffer, int length, bool pooled)
+    {
+        public readonly byte[] Buffer = buffer;
+        public readonly int Length = length;
+        private readonly bool _pooled = pooled;
+
+        public void Return()
+        {
+            //  Only pooled rentals return; exact-size dispatch buffers are plain arrays.
+            if (_pooled)
+            {
+                ArrayPool<byte>.Shared.Return(Buffer);
+            }
+        }
     }
 
     /// <summary>
@@ -208,36 +229,42 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         {
             return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
-        if (!_serializers.TryGetTypeName<T>(out string typeName))
+        byte[]? typeTag = _serializers.TryGetTypeTag<T>();
+        if (typeTag == null)
         {
             return Result.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
 
         byte[] payload = serializer.Serialize(message);
-        byte[] typeTag = Encoding.UTF8.GetBytes(typeName);
 
-        //  Frame body = [4-byte type-tag length][type tag][payload], preceded on the wire by a
-        //  [4-byte body length] prefix (the body length excludes the prefix itself).
-        byte[] frame = new byte[4 + typeTag.Length + payload.Length];
-        BitConverter.TryWriteBytes(frame.AsSpan(0, 4), typeTag.Length);
-        typeTag.CopyTo(frame, 4);
-        payload.CopyTo(frame, 4 + typeTag.Length);
-
-        var bytes = new byte[4 + frame.Length];
-        BitConverter.TryWriteBytes(bytes.AsSpan(0, 4), frame.Length);
-        frame.CopyTo(bytes, 4);
+        //  Frame body = [4-byte body length][4-byte type-tag length][type tag][payload], built in one
+        //  pooled buffer. The queue owns the buffer; the send loop returns it to the pool after writing.
+        int frameLength = 4 + typeTag.Length + payload.Length;
 
         //  Refuse frames over the negotiated cap so the receive side never sees a prefix it must drop a
         //  peer for. Serialization already happened; we only skip the queue.
-        if (frame.Length > _maxFrameBytes)
+        if (frameLength > _maxFrameBytes)
         {
-            return Result.FromFailure($"Frame of {frame.Length} bytes exceeds the {_maxFrameBytes} byte cap.");
+            return Result.FromFailure($"Frame of {frameLength} bytes exceeds the {_maxFrameBytes} byte cap.");
         }
+
+        int totalLength = 4 + frameLength;
+        byte[] bytes = ArrayPool<byte>.Shared.Rent(totalLength);
+        int offset = 0;
+        WriteInt(bytes, offset, frameLength);
+        offset += 4;
+        WriteInt(bytes, offset, typeTag.Length);
+        offset += 4;
+        typeTag.CopyTo(bytes, offset);
+        offset += typeTag.Length;
+        payload.CopyTo(bytes, offset);
 
         if (_traceLogging)
         {
-            _logger.LogTrace("Sending {type} frame ({bytes} bytes).", typeName, bytes.Length);
+            _logger.LogTrace("Sending {type} frame ({bytes} bytes).", typeof(T).Name, totalLength);
         }
+
+        var queued = new QueuedFrame(bytes, totalLength, pooled: true);
 
         //  Enqueue for the dedicated send thread. Sends never block the calling thread. Reliable control/state
         //  messages ride a never-evicting priority queue (a drop would be permanent data loss); per-tick
@@ -245,23 +272,32 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         //  staleness is bounded instead of the queue growing without limit.
         if (SendPriority.IsReliable(typeof(T)))
         {
-            EnqueueReliable(bytes);
+            EnqueueReliable(queued);
             return Result.FromSuccess();
         }
 
-        if (_sendQueue.TryAdd(bytes))
+        if (_sendQueue.TryAdd(queued))
         {
             return Result.FromSuccess();
         }
 
         _logger.LogWarning("Per-tick send queue full; dropping the oldest frame.");
-        _sendQueue.TryTake(out _);
-        if (_sendQueue.TryAdd(bytes))
+        if (_sendQueue.TryTake(out QueuedFrame dropped))
+        {
+            dropped.Return();
+        }
+        if (_sendQueue.TryAdd(queued))
         {
             return Result.FromSuccess();
         }
 
+        queued.Return();
         return Result.FromFailure("Send queue is full.");
+    }
+
+    private static void WriteInt(byte[] buffer, int offset, int value)
+    {
+        BitConverter.TryWriteBytes(buffer.AsSpan(offset, 4), value);
     }
 
     /// <summary>
@@ -271,9 +307,9 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
     /// over the threshold, and a peer holding the backlog past the disconnect threshold for the
     /// disconnect window is marked broken (the host drops it, bounding per-peer memory).
     /// </summary>
-    private void EnqueueReliable(byte[] bytes)
+    private void EnqueueReliable(QueuedFrame frame)
     {
-        _reliableQueue.Add(bytes);
+        _reliableQueue.Add(frame);
 
         int count = _reliableQueue.Count;
         if (count > _reliableConcernThreshold && count - _reliableConcernLoggedCount >= 100)
@@ -308,19 +344,24 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             return Result<T>.FromFailure($"No serializer registered for type {typeof(T).Name}.");
         }
 
-        if (!_receiveQueues.TryGetValue(typeof(T), out ConcurrentQueue<byte[]>? queue) || !queue.TryDequeue(out byte[]? data))
+        if (!_receiveQueues.TryGetValue(typeof(T), out ConcurrentQueue<QueuedFrame>? queue) || !queue.TryDequeue(out QueuedFrame frame))
         {
             return Result<T>.FromFailure("No messages available.");
         }
 
         try
         {
-            return Result<T>.FromSuccess(serializer.Deserialize(data));
+            return Result<T>.FromSuccess(serializer.Deserialize(frame.Buffer));
         }
         catch (Exception ex)
         {
-            _logger.LogWarning("Failed to decode a {type} frame ({bytes} bytes): {message}.", typeof(T).Name, data.Length, ex.Message);
+            _logger.LogWarning("Failed to decode a {type} frame ({bytes} bytes): {message}.", typeof(T).Name, frame.Length, ex.Message);
             return Result<T>.FromFailure(ex);
+        }
+        finally
+        {
+            //  The deserializer copies into its own buffers; the dispatch buffer returns to the pool.
+            frame.Return();
         }
     }
 
@@ -357,7 +398,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
 
     private void SendLoop()
     {
-        var pendingFrames = new List<byte[]>(32);
+        var pendingFrames = new List<QueuedFrame>(32);
         WaitHandle wake = _sendCts.Token.WaitHandle;
 
         while (_isRunning)
@@ -368,7 +409,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             //  non-blocking (a reliable frame arriving must wake the drain even when the per-tick queue
             //  is empty), and park on a timed wait when nothing is pending: at most one send interval
             //  elapses between drains, so every pending frame coalesces into one socket write.
-            if (!_reliableQueue.TryTake(out byte[]? reliable) && !_sendQueue.TryTake(out reliable))
+            if (!_reliableQueue.TryTake(out QueuedFrame reliable) && !_sendQueue.TryTake(out reliable))
             {
                 wake.WaitOne(_sendIntervalMs);
                 continue;
@@ -377,11 +418,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
             pendingFrames.Add(reliable);
 
             //  Coalesce everything else that arrived this interval (reliable first, then per-tick).
-            while (_reliableQueue.TryTake(out byte[]? moreReliable))
+            while (_reliableQueue.TryTake(out QueuedFrame moreReliable))
             {
                 pendingFrames.Add(moreReliable);
             }
-            while (_sendQueue.TryTake(out byte[]? perTick))
+            while (_sendQueue.TryTake(out QueuedFrame perTick))
             {
                 pendingFrames.Add(perTick);
             }
@@ -401,27 +442,36 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         }
     }
 
-    private void WriteAll(List<byte[]> frames)
+    private void WriteAll(List<QueuedFrame> frames)
     {
         //  One socket write per interval: concatenate the pending frames so a burst (snapshots,
         //  world stream) goes out as far fewer, larger segments instead of 60 tiny writes per second.
+        //  The combined segment is pooled too; every queued frame rental returns to the pool here.
         int total = 0;
         for (var i = 0; i < frames.Count; i++)
         {
             total += frames[i].Length;
         }
 
-        var combined = new byte[total];
+        byte[] combined = ArrayPool<byte>.Shared.Rent(total);
         int offset = 0;
         for (var i = 0; i < frames.Count; i++)
         {
-            Array.Copy(frames[i], 0, combined, offset, frames[i].Length);
+            frames[i].Buffer.AsSpan(0, frames[i].Length).CopyTo(combined.AsSpan(offset));
             offset += frames[i].Length;
+            frames[i].Return();
         }
 
-        _stream?.Write(combined, 0, combined.Length);
-        Interlocked.Add(ref _packetsSent, frames.Count);
-        Interlocked.Add(ref _bytesSent, combined.Length);
+        try
+        {
+            _stream?.Write(combined, 0, total);
+            Interlocked.Add(ref _packetsSent, frames.Count);
+            Interlocked.Add(ref _bytesSent, total);
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(combined);
+        }
     }
 
     private void ReceiveLoop()
@@ -448,9 +498,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                     break;
                 }
 
-                byte[] frame = new byte[frameLength];
-                if (ReadExact(frame, 0, frameLength) == 0)
+                byte[] frame = ArrayPool<byte>.Shared.Rent(frameLength);
+                int totalRead = ReadExact(frame, 0, frameLength);
+                if (totalRead == 0)
                 {
+                    ArrayPool<byte>.Shared.Return(frame);
                     reason = DisconnectReason.PeerClosed;
                     break;
                 }
@@ -458,28 +510,35 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
                 int typeTagLength = BitConverter.ToInt32(frame, 0);
                 if (typeTagLength < 0 || 4 + typeTagLength > frameLength)
                 {
+                    ArrayPool<byte>.Shared.Return(frame);
                     reason = DisconnectReason.ReadError;
                     break;
                 }
 
                 string typeName = Encoding.UTF8.GetString(frame, 4, typeTagLength);
-                byte[] payload = new byte[frameLength - 4 - typeTagLength];
-                Array.Copy(frame, 4 + typeTagLength, payload, 0, payload.Length);
 
                 if (!_serializers.TryGetType(typeName, out Type type))
                 {
-                    _logger.LogWarning("Dropping frame with unknown type tag '{typeName}' ({bytes} bytes).", typeName, payload.Length);
+                    ArrayPool<byte>.Shared.Return(frame);
+                    _logger.LogWarning("Dropping frame with unknown type tag '{typeName}' ({bytes} bytes).", typeName, frameLength - 4 - typeTagLength);
                     continue;
                 }
 
+                //  The per-type dispatch queue owns the exact-size payload (the deserializer walks the full array
+                //  length, so pooled oversized buffers cannot be handed out); the frame rental returns now.
+                int payloadLength = frameLength - 4 - typeTagLength;
+                byte[] payload = new byte[payloadLength];
+                Array.Copy(frame, 4 + typeTagLength, payload, 0, payloadLength);
+                ArrayPool<byte>.Shared.Return(frame);
+
                 if (_traceLogging)
                 {
-                    _logger.LogTrace("Received {type} frame ({bytes} bytes).", typeName, payload.Length);
+                    _logger.LogTrace("Received {type} frame ({bytes} bytes).", typeName, payloadLength);
                 }
 
                 Interlocked.Increment(ref _packetsReceived);
                 Interlocked.Add(ref _bytesReceived, 4 + frameLength);
-                _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<byte[]>()).Enqueue(payload);
+                _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<QueuedFrame>()).Enqueue(new QueuedFrame(payload, payloadLength, pooled: false));
             }
             catch (Exception ex)
             {
