@@ -29,6 +29,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private readonly ILogger<NetworkReplicationSystem> _logger;
 
     private readonly List<ComponentSnapshot> _pending = [];
+    private readonly List<ComponentRemoval> _pendingRemovals = [];
     private readonly Queue<ulong> _removed = [];
 
     //  Clients awaiting a one-shot full-state snapshot (full server-owned state of every networked
@@ -165,16 +166,18 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         }
 
         _pending.Clear();
+        _pendingRemovals.Clear();
 
         OnTickAction onTick = new() { Owner = this };
         store.Query<NetworkComponent, OnTickAction>(delta, ref onTick);
 
-        if (_pending.Count == 0 && _removed.Count == 0 && _fullSync.Count == 0)
+        if (_pending.Count == 0 && _pendingRemovals.Count == 0 && _removed.Count == 0 && _fullSync.Count == 0)
         {
             return;
         }
 
         ComponentSnapshot[] components = _pending.ToArray();
+        ComponentRemoval[] removedComponents = _pendingRemovals.ToArray();
         ulong[] removed = _removed.ToArray();
         _removed.Clear();
 
@@ -205,6 +208,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                     LastProcessedInput = lastProcessedInput,
                     Components = fullState ?? [],
                     RemovedEntities = removed,
+                    RemovedComponents = removedComponents,
                 });
                 continue;
             }
@@ -222,6 +226,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 LastProcessedInput = lastProcessedInput,
                 Components = components,
                 RemovedEntities = removed,
+                RemovedComponents = removedComponents,
             });
         }
 
@@ -330,6 +335,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             {
                 if (!store.IsDirty(info.Type, entity))
                 {
+                    continue;
+                }
+
+                //  Removal publishes as a ComponentRemoval when the component no longer exists; the
+                //  dirty flag is cleared for both outcomes, and never both in one tick.
+                if (!store.Has(info.Type, entity))
+                {
+                    store.ClearDirty(info.Type, entity);
+                    Owner._pendingRemovals.Add(new ComponentRemoval(entityUuid.ToValue(), info.Uuid.ToValue()));
                     continue;
                 }
 

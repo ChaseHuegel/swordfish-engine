@@ -8,12 +8,19 @@ message ComponentSnapshot
     byte[] Payload  = 2;
 }
 
+message ComponentRemoval
+{
+    ulong Entity   = 0;
+    ulong TypeUuid = 1;
+}
+
 message WorldSnapshot
 {
     uint TickNumber           = 0;
     uint LastProcessedInput   = 1;
     ComponentSnapshot[] Components     = 2;
     ulong[] RemovedEntities   = 3;
+    ComponentRemoval[] RemovedComponents = 4;
 }
 
 message TransformMessage

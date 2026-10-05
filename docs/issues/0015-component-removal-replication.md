@@ -1,7 +1,7 @@
 # Improvement: Component-level removal is not replicated (no wire shape, no public store API)
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -33,16 +33,16 @@ Locked design:
 
 ## Acceptance criteria
 
-- [ ] Store removal surfaces implemented and wired so removals flow
+- [x] Store removal surfaces implemented and wired so removals flow
       through the same dirty polling as updates.
-- [ ] Publish and apply per the locked design; a removal in tick T can
+- [x] Publish and apply per the locked design; a removal in tick T can
       never be resurrected by a pre-removal delta (ordering pinned by
       same-snapshot delivery).
-- [ ] Tests: remove-on-live-entity replicates and clears client-side; the
+- [x] Tests: remove-on-live-entity replicates and clears client-side; the
       entity survives removal as a bare entity; despawn
       (`Free`/`RemovedEntities`) is unchanged.
-- [ ] Engine-first commit rule: the `Swordfish.ECS` change is committed
+- [x] Engine-first commit rule: the `Swordfish.ECS` change is committed
       separately, first, standalone-green (`Swordfish.Tests` passing),
       before any `WaywardBeyond` commit that uses it.
-- [ ] `networking-messages.md` and `networking-replication.md` updated
+- [x] `networking-messages.md` and `networking-replication.md` updated
       (docs pass).

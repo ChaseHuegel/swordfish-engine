@@ -12,6 +12,8 @@ using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Networking;
 using WaywardBeyond.Client.Core.Systems;
 using WaywardBeyond.Shared.Networking;
+using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Transport;
 using NUnit.Framework;
 
@@ -40,12 +42,61 @@ public class ClientReconcileBurstTests
 
         public Result<T> Receive<T>()
         {
-            if (typeof(T) == typeof(WorldSnapshot) && _messages.Count > 0)
+if (typeof(T) == typeof(WorldSnapshot) && _messages.Count > 0)
             {
                 return Result<T>.FromSuccess((T)(object)_messages.Dequeue());
             }
 
             return Result<T>.FromFailure("No messages available.");
+        }
+    }
+
+    [Test]
+    public void ComponentRemovalClearsClientSideAndEntitySurvives()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
+        var connection = new QueuedConnection();
+        var tracker = new SnapshotAckTracker();
+        var system = new ClientReconcileSystem(connection, tracker, new ClientPlayerMotionProcessor(
+            new StubInputService(),
+            new StubWindow(),
+            new StubPhysics(),
+            new EventInvoker<PlayerMovedEvent>([])
+        ));
+        var store = new Swordfish.ECS.DataStore();
+
+        //  A remote entity with a replicated component.
+        var uuid = Swordfish.ECS.Uuid.FromValue(0xCAFE);
+        int entity = store.Alloc(uuid);
+        store.AddOrUpdate(entity, new InputComponent());
+        store.AddOrUpdate(entity, new NetworkComponent());
+
+        //  The server removes the component and echoes the removal.
+        var removalTypeUuid = new NetworkComponentAttribute(1).Uuid;
+        connection.Queue(new WorldSnapshot
+        {
+            TickNumber = 5,
+            LastProcessedInput = 0,
+            Components = [],
+            RemovedEntities = [],
+            RemovedComponents = [new ComponentRemoval { Entity = uuid.ToValue(), TypeUuid = removalTypeUuid.ToValue() }],
+        });
+
+        GameState prior = WaywardBeyond.GameState.Get();
+        WaywardBeyond.GameState.Set(GameState.Playing);
+        try
+        {
+            system.Tick(0f, store);
+
+            Assert.That(store.Has(typeof(InputComponent), entity), Is.False, "The removed component clears client-side.");
+            Assert.That(store.Has(typeof(NetworkComponent), entity), Is.True, "Unrelated components stay.");
+            Assert.That(store.TryGet(uuid, out _), Is.True, "The entity survives removal as a bare entity.");
+            Assert.That(tracker.LastAppliedSnapshotTick, Is.EqualTo(5u));
+        }
+        finally
+        {
+            WaywardBeyond.GameState.Set(prior);
         }
     }
 

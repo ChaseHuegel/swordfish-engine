@@ -99,7 +99,22 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             ApplyComponent(components[i], store);
         }
 
-        ulong[] removed = snapshot.RemovedEntities;
+        //  Component removals apply before despawns: same snapshot, so a removal can never be
+        //  resurrected by a pre-removal delta. Bare entities persist; only RemovedEntities despawns.
+        ComponentRemoval[] removedComponents = snapshot.RemovedComponents ?? [];
+        for (var i = 0; i < removedComponents.Length; i++)
+        {
+            ComponentRemoval removal = removedComponents[i];
+            if (!store.TryGet(Uuid.FromValue(removal.Entity), out int entity)
+                || !NetworkRegistry.TryGetInfo(Uuid.FromValue(removal.TypeUuid), out NetworkComponentInfo info))
+            {
+                continue;
+            }
+
+            store.Remove(info.Type, entity);
+        }
+
+        ulong[] removed = snapshot.RemovedEntities ?? [];
         for (var i = 0; i < removed.Length; i++)
         {
             if (store.TryGet(Uuid.FromValue(removed[i]), out int entity))

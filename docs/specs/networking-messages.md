@@ -36,7 +36,10 @@ message WorldSnapshot
     uint LastProcessedInput   = 1;
     ComponentSnapshot[] Components     = 2;
     ulong[] RemovedEntities   = 3;
+    ComponentRemoval[] RemovedComponents = 4;
 }
+
+message ComponentRemoval { ulong Entity; ulong TypeUuid; }
 ```
 
 `TickNumber` is the canonical sim tick (physics-step ordinal) at publish, not
