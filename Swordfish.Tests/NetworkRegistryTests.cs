@@ -1,5 +1,6 @@
 using System;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Registry;
 using Xunit;
 
@@ -11,12 +12,45 @@ public class NetworkRegistryTests
     private struct ComponentB : IDataComponent;
     private struct ComponentC : IDataComponent;
     private struct ComponentD : IDataComponent;
+    private struct ComponentE : IDataComponent;
 
     private sealed class FakeCodec<T> : IPayloadCodec where T : struct, IDataComponent
     {
         public Type ComponentType => typeof(T);
         public byte[] Serialize(DataStore store, int entity) => [];
         public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload) { }
+    }
+
+    [Fact]
+    public void DuplicateRegistrationReportsTheReason()
+    {
+        var codec = new FakeCodec<ComponentE>();
+        Result first = NetworkRegistry.Register<ComponentE>(Uuid.FromValue(0x1011), NetworkDirection.ClientOwned, codec);
+        Assert.True(first.Success, first.Message);
+
+        Result duplicate = NetworkRegistry.Register<ComponentE>(Uuid.FromValue(0x1012), NetworkDirection.ServerOwned, codec);
+        Assert.False(duplicate.Success);
+        Assert.Contains("already registered", duplicate.Message);
+
+        Result duplicateUuid = NetworkRegistry.Register<ComponentB>(Uuid.FromValue(0x1011), NetworkDirection.ClientOwned, codec);
+        Assert.False(duplicateUuid.Success);
+        Assert.Contains("uuid", duplicateUuid.Message);
+
+        Result nullUuid = NetworkRegistry.Register<ComponentB>(Uuid.Null, NetworkDirection.ClientOwned, codec);
+        Assert.False(nullUuid.Success);
+        Assert.Contains("Null", nullUuid.Message);
+    }
+
+    [Fact]
+    public void NonNsdComponentFailsAtRegistration()
+    {
+        //  A component registered with NsdComponentCodec<T> but without generated nsd methods must fail
+        //  at registration, not on first use: the codec constructor itself validates and throws.
+        Assert.ThrowsAny<Exception>(() => NetworkRegistry.Register<ComponentA>(
+            Uuid.FromValue(0x100A),
+            NetworkDirection.ServerOwned,
+            new NsdComponentCodec<ComponentA>()
+        ));
     }
 
     [Fact]

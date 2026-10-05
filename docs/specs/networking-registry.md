@@ -10,10 +10,21 @@ component types to a stable wire identity.
 - `Initialize(assemblies)` scans assemblies for value-type `IDataComponent`
   structs annotated with `[NetworkComponent(uuid, direction)]` and registers
   each with an `NsdComponentCodec<T>` that drives the generated nsd serializers.
+  Duplicates from the scan fail registration and the scan continues (mod-facing
+  path: log and continue).
 - `Register<T>(Uuid, NetworkDirection, IPayloadCodec)` is the explicit path for
-  engine/third-party components that are not nsd messages.
+  engine/third-party components that are not nsd messages. It returns a
+  `Result` with a contextual failure message (duplicate type, duplicate uuid,
+  `Uuid.Null`, invalid codec) instead of failing silently; the shared host
+  wire-up treats a failed built-in registration as fatal at startup.
+- Codec validity is proven at registration: the generated-nsd-methods check in
+  `NsdComponentCodec<T>`'s static constructor is forced via
+  `RunClassConstructor`, so a component without generated serialize/deserialize
+  fails at registration, never mid-game on the wire.
 - Reverse lookups: `TryGetInfo(Type)` / `TryGetInfo(Uuid)`.
-- Enumeration by direction via `GetComponents(NetworkDirection)`.
+- Enumeration by direction via `GetComponents(NetworkDirection)`. Replication
+  systems cache the enumeration per instance so the per-tick hot path does not
+  allocate (see [replication](networking-replication.md)).
 
 Engine/third-party components are registered explicitly from the game wiring,
 never from the engine.

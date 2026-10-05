@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using DryIoc;
 using Shoal.Extensions.Swordfish;
+using Swordfish.Library.Util;
 using Swordfish.ECS;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core.Streaming;
@@ -27,12 +28,21 @@ namespace WaywardBeyond.Server.Core;
 /// </summary>
 public static class HostComposition
 {
+    private static void Require(Result registration)
+    {
+        if (!registration.Success)
+        {
+            throw new InvalidOperationException(registration.Message);
+        }
+    }
+
     public static void RegisterNetworking(IContainer container, bool seedLocalLoopback)
     {
         NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
-        NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
-        NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec());
-        NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec());
+        //  Built-in registrations fail fast: a colliding or invalid wire component is fatal at startup.
+        Require(NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()));
+        Require(NetworkRegistry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()));
+        Require(NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec()));
 
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();

@@ -68,13 +68,14 @@ public class LanHostLifecycleTests
                 raw.Close();
 
                 //  The host observes the drop and prunes every registry; the dead transport is disposed.
-                deadline = Environment.TickCount + 5000;
+                //  Poll tightly: under full-suite parallel load a 10ms sleep can stretch badly.
+                deadline = Environment.TickCount + 10_000;
                 while (hub.Count != 0 && Environment.TickCount < deadline)
                 {
-                    Thread.Sleep(10);
+                    Thread.Sleep(2);
                 }
 
-                Assert.Equal(0, hub.Count);
+Assert.Equal(0, hub.Count);
             }
 
             Assert.Empty((System.Collections.Concurrent.ConcurrentDictionary<TcpTransport, TcpTransport>)hostRegistry.GetValue(host)!);

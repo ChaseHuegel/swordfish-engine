@@ -1,7 +1,7 @@
 # Improvement: NetworkRegistry registration failures are silent or deferred
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -39,16 +39,16 @@ Decisions (locked):
 
 ## Acceptance criteria
 
-- [ ] `Register` returns a `Result` carrying a contextual failure message
+- [x] `Register` returns a `Result` carrying a contextual failure message
       (duplicate type, duplicate uuid, `Uuid.Null`, invalid codec); no
       call path ignores a failed result - built-in wiring treats failure
       as fatal at startup, mod-facing paths log the error and continue.
-- [ ] Codec validity is proven at registration (expected: static ctor
+- [x] Codec validity is proven at registration (expected: static ctor
       forced via `RuntimeHelpers.RunClassConstructor` or equivalent), so
       a component without generated nsd methods fails at registration.
-- [ ] The delta paths treat a missing component during serialize as
+- [x] The delta paths treat a missing component during serialize as
       distinct from an empty payload (log and skip explicitly); the
       `[]`-payload masking is removed or made unambiguous.
-- [ ] Tests: duplicate registration returns a failed `Result` with the
+- [x] Tests: duplicate registration returns a failed `Result` with the
       reason; a non-nsd component registration fails at registration
       time; mod-style registration failure logs and continues.

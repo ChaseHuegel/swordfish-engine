@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Shared.Networking.Registry;
 
@@ -19,7 +21,7 @@ public static class NetworkRegistry
     private static readonly Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
     private static readonly Lock _lock = new();
 
-    public static bool Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+    public static Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
         where T : struct, IDataComponent
     {
         return Register(typeof(T), uuid, direction, codec);
@@ -61,24 +63,49 @@ public static class NetworkRegistry
         }
     }
 
-    public static bool Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+    /// <summary>
+    /// Registers a networked component, returning a contextual failure message instead of failing
+    /// silently. Codec validity is proven at registration time: an nsd codec whose type lacks the
+    /// generated <c>Serialize</c>/<c>Deserialize</c> methods fails here (its validation lives in the
+    /// static constructor, forced via <c>RunClassConstructor</c>), not mid-game on the wire.
+    /// </summary>
+    public static Result Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
     {
         if (uuid == Uuid.Null)
         {
-            return false;
+            return Result.FromFailure($"Cannot register {type.Name}: uuid is Null.");
+        }
+
+        if (codec == null)
+        {
+            return Result.FromFailure($"Cannot register {type.Name}: codec is null.");
+        }
+
+        Type codecType = codec.GetType();
+        if (codecType.IsGenericType
+            && codecType.GetGenericTypeDefinition() == typeof(NsdComponentCodec<>))
+        {
+            //  Force the static constructor now: it validates the generated serializer methods and
+            //  throws a descriptive error when they are missing.
+            RuntimeHelpers.RunClassConstructor(codecType.TypeHandle);
         }
 
         lock (_lock)
         {
-            if (_byType.ContainsKey(type) || _byUuid.ContainsKey(uuid))
+            if (_byType.ContainsKey(type))
             {
-                return false;
+                return Result.FromFailure($"Cannot register {type.Name}: a component of this type is already registered.");
+            }
+
+            if (_byUuid.ContainsKey(uuid))
+            {
+                return Result.FromFailure($"Cannot register {type.Name}: uuid {uuid} is already registered.");
             }
 
             var info = new NetworkComponentInfo(type, uuid, direction, codec);
             _byType[type] = info;
             _byUuid[uuid] = info;
-            return true;
+            return Result.FromSuccess();
         }
     }
 

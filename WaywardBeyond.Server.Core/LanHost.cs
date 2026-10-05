@@ -60,6 +60,14 @@ public sealed class LanHost : IEntryPoint, IDisposable
             _clientIds[transport] = clientId;
             transport.OnDisconnected += reason => RemoveClient(transport, reason);
             _logger.LogInformation("A LAN client connected (id {clientId}).", clientId);
+
+            //  A peer that dies between accept and this handler was raised before any subscriber
+            //  existed, so OnDisconnected never fires for it. Re-check the live state and prune it now,
+            //  before the client can linger in the hub unremoved.
+            if (!transport.IsConnected)
+            {
+                RemoveClient(transport, DisconnectReason.PeerClosed);
+            }
         };
 
         try
