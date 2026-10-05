@@ -175,7 +175,9 @@ public class Injector : IDryIocInjector
 
     private static void RegisterConfiguration(IContainer container)
     {
-        container.Register<IConfiguration, EnvCmdConfiguration>(Reuse.Singleton);
+        //  IConfiguration (EnvCmdConfiguration) is registered by the shared host wire-up
+        //  (HostComposition.RegisterNetworking), which both this embedding and the dedicated launcher
+        //  call; a second registration would be ambiguous to resolve.
         
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
