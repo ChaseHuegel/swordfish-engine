@@ -195,6 +195,28 @@ as [issue 0037](/docs/issues/0037-nsdc-unpack-safety.md). Until the fixed
 codegen lands, `MaxFrameBytes` bounds the reachable buffer size and
 per-client isolation keeps a decode fault from halting the server.
 
+## Peer scaling (2N+1 threads)
+
+Each `TcpTransport` peer runs **two** background threads (receive, send) plus
+the host's accept thread - 2N+1 network threads for N connected remote
+clients, plus the server world thread. The transport keepalive thread was
+removed with the session heartbeat (see above), so the count is lower than
+earlier estimates. Per-peer memory is bounded: the per-tick send queue holds
+at most `SendQueueSize` frames (drop-oldest), the reliable queue grows only
+when a peer stops reading (bounded by the backlog-disconnect policy), and the
+receive queues are drained per tick at `MaxReceiveWindow` per client.
+
+This layout is the simplest correct design for blocking I/O and is fine for
+the LAN co-op target (N ≤ 8: 17 network threads). For a dedicated server
+heading toward dozens of clients, the options are a single async receive loop
+(`SocketAsyncEventArgs`/`ValueTask`) multiplexing all peers against per-peer
+queue state, or a documented hard cap on the thread model. **Decision: keep
+the per-peer thread model for the current target and cap the dedicated server
+at 32 clients (65 network threads); revisit async multiplexing only when a
+live 32-player dedicated server exists and measurements show thread count or
+per-peer memory is the bottleneck** (the #0033 counters + `NetworkStatsOverlay`
+already provide the per-peer bytes/rates needed for that measurement).
+
 ## Dedicated server
 
 A headless dedicated server is a Shoal embedding without the client module:

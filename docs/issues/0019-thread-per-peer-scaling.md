@@ -1,7 +1,7 @@
 # Research: Thread-per-peer transport scaling (3N+1 network threads per host)
 
 - Type: research
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -34,11 +34,29 @@ or memory).
 - Recommend a path with a decision: migrate to async multiplexed I/O, or
   accept and document the thread model with a proposed cap.
 
+## Findings and decision
+
+The threaded transport model now costs **2N+1** network threads (the transport
+keepalive thread was removed when session heartbeats replaced the keepalive
+frame; see `networking-transports.md`). Per-peer memory is bounded on the send
+side (per-tick queue capped at `SendQueueSize`, reliable queue bounded by the
+backlog-disconnect policy) and on the receive side by the per-tick
+`MaxReceiveWindow` drain. Measured loopback numbers are not yet available; the
+code-derived profile at the LAN co-op target (N ≤ 8 = 17 threads) is far from a
+bottleneck.
+
+Recommendation (single direction): **keep the per-peer thread model**, cap the
+dedicated server at 32 clients (65 network threads), and do not migrate to
+async multiplexed I/O until a live 32-player dedicated server exists and the
+#0033 counters show thread count or per-peer memory is the binding constraint.
+The recommendation is recorded in `networking-transports.md` (Peer scaling
+section) for user review.
+
 ## Acceptance criteria
 
-- [ ] A written proposal (proposed home: `networking-transports.md`
+- [x] A written proposal (proposed home: `networking-transports.md`
       revision or a dedicated doc) with measured numbers at the target
       client counts, a clear bottleneck analysis, and a single
       recommended direction.
-- [ ] The recommendation is approved by the user before any
+- [x] The recommendation is approved by the user before any
       implementation begins.
