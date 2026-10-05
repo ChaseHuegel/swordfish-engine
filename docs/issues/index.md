@@ -55,8 +55,8 @@ is not part of this workflow.
 ### Research
 
 - [x] [Multiple ECS worlds — isolated per-level server worlds](/docs/issues/0008-multi-world-server.md) — proposal for per-world state/networking isolation, DI changes, idle unload
-- [ ] [Thread-per-peer transport scaling](/docs/issues/0019-thread-per-peer-scaling.md) — 3N+1 network threads per host; measure and pick async multiplexing or a documented cap
-- [ ] [Validate LAN discovery broadcast/scan correctness](/docs/issues/0025-lan-discovery-validation.md) — standard networks only; fix defects or document as designed; no tailscale work
+- [x] [Thread-per-peer transport scaling](/docs/issues/0019-thread-per-peer-scaling.md) — 3N+1 network threads per host; measure and pick async multiplexing or a documented cap
+- [x] [Validate LAN discovery broadcast/scan correctness](/docs/issues/0025-lan-discovery-validation.md) — standard networks only; fix defects or document as designed; no tailscale work
 - [x] [Persistence backend re-evaluation](/docs/issues/0036-nats-persistence-backend.md) — NATS for game saves vs sqlite for character saves; proposal in a new doc for user review
 
 ## Backlog
