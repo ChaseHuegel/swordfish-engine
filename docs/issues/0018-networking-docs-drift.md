@@ -1,7 +1,7 @@
 # Improvement: Networking docs drift — specs claim behavior the code does not have
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -28,9 +28,9 @@ overstate coverage, and would mislead the next reader:
 
 ## Acceptance criteria
 
-- [ ] Each spec statement above is rewritten to match the code as it
+- [x] Each spec statement above is rewritten to match the code as it
       stands after #11, #12, and #16 land, with `file:line` pointers
       refreshed.
-- [ ] The "full protocol" claim for `LocalConnection` is scoped (wire
+- [x] The "full protocol" claim for `LocalConnection` is scoped (wire
       serialization only; framing behavior is TCP-only).
-- [ ] No spec claims a behavior that is not pinned by a test.
+- [x] No spec claims a behavior that is not pinned by a test.
