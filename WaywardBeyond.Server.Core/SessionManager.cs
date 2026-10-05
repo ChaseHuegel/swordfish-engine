@@ -18,6 +18,9 @@ public sealed class SessionManager
     private readonly ConcurrentDictionary<Session, int> _sessionToEntity = new();
     private readonly ConcurrentDictionary<int, Uuid> _entityToClient = new();
 
+    /// <summary>Number of live sessions (joined players); a world with zero is idle and eligible for unload.</summary>
+    public int Count => _clientToSession.Count;
+
     /// <summary>
     /// Binds a client connection to a fresh session and its spawned player entity, also stamping
     /// <see cref="NetworkComponent.Session"/> on the entity.

@@ -15,7 +15,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// client prediction. Ops are sequence-deduped by <see cref="InventoryOpStageBuffer"/>; the server
 /// tracks the last consumed sequence per entity.
 /// </summary>
-public sealed class ServerInventorySystem : IEntitySystem
+public sealed class ServerInventorySystem : IServerWorldSystem
 {
     private readonly ILogger<ServerInventorySystem> _logger;
 

@@ -9,7 +9,6 @@ using Swordfish.IO;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using Swordfish.Physics;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
 using WaywardBeyond.Server.Core.Streaming;
@@ -31,7 +30,6 @@ internal sealed class Entry : IAutoActivate, IDisposable
         in IFileParseService fileParseService,
         in IShortcutService shortcutService,
         in ModalMenu modalMenu,
-        in IPhysics physics,
         in PersistentNatsProcess natsProcess
     ) {
         _windowContext = windowContext;
@@ -68,8 +66,6 @@ internal sealed class Entry : IAutoActivate, IDisposable
             action: OpenFeedbackForm
         );
         shortcutService.RegisterShortcut(feedbackShortcut);
-   
-        physics.SetGravity(Vector3.Zero);
 
         Result natsStartResult = natsProcess.Start();
         if (!natsStartResult.Success)

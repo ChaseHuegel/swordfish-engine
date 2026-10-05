@@ -41,6 +41,8 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> JoinStreamTimeoutMs { get; private set; } = new(60_000);
     /// <summary>Frames drained per client per hub poll; bounds a chatty client's share of the server tick.</summary>
     public DataBinding<int> MaxReceiveWindow { get; private set; } = new(10);
+    /// <summary>How long a world with no sessions stays loaded before it unloads, in milliseconds.</summary>
+    public DataBinding<int> WorldIdleUnloadMs { get; private set; } = new(60_000);
     /// <summary>Logs every sent and received frame (type, byte count, direction) at trace level.</summary>
     public DataBinding<bool> TraceLogging { get; private set; } = new(false);
 }

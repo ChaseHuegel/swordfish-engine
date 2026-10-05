@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
@@ -21,15 +22,17 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// allocating the player mirror and binding a session, then streaming the full world to that client - one
 /// <see cref="WorldEntityAdd"/> per structure (bounded) followed by <see cref="WorldStreamComplete"/>, with
 /// a <see cref="JoinAccept"/> carrying the level meta and server-assigned spawn. The client never authors
-/// authoritative state; it builds view entities from the stream.
+/// authoritative state; it builds view entities from the stream. Runs first in the world tick so
+/// disconnect teardown and joins precede every other stage.
 /// </summary>
-public sealed class ServerJoinSystem : IEntitySystem
+public sealed class ServerJoinSystem : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
     private readonly WorldSaveService _worldService;
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
+    private readonly ServerJoinQueue _joinQueue;
     private readonly SkillDatabase? _skillDatabase;
     private readonly IBrickIdMap _brickIdMap;
     private readonly ILogger<ServerJoinSystem> _logger;
@@ -44,7 +47,8 @@ public sealed class ServerJoinSystem : IEntitySystem
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
         IBrickIdMap brickIdMap,
-        in SkillDatabase? skillDatabase = null
+        in SkillDatabase? skillDatabase = null,
+        in ServerJoinQueue? joinQueue = null
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -54,10 +58,19 @@ public sealed class ServerJoinSystem : IEntitySystem
         _skillDatabase = skillDatabase;
         _brickIdMap = brickIdMap;
         _logger = logger;
+        _joinQueue = joinQueue ?? new ServerJoinQueue();
     }
 
     public void Tick(float delta, DataStore store)
     {
+        HandleDisconnects(store);
+
+        //  Joins the world host pre-routed: it already bound the connection to this world's hub.
+        foreach ((Uuid clientId, JoinRequest request) in _joinQueue.Drain())
+        {
+            HandleJoin(clientId, request, store);
+        }
+
         foreach ((Uuid clientId, JoinRequest request) in _hub.Receive<JoinRequest>())
         {
             HandleJoin(clientId, request, store);
@@ -66,6 +79,36 @@ public sealed class ServerJoinSystem : IEntitySystem
         foreach ((Uuid clientId, LeaveGameRequest _) in _hub.Receive<LeaveGameRequest>())
         {
             HandleLeave(clientId, store);
+        }
+    }
+
+    /// <summary>
+    /// Ends dropped client sessions: disposes the mirror's physics body (marshalled to the physics thread
+    /// via its <see cref="PhysicsComponent.Dispose"/>) before freeing the entity so the subsequent publish
+    /// stage replicates its despawn to remaining clients, then clears the session mappings.
+    /// </summary>
+    private void HandleDisconnects(DataStore store)
+    {
+        foreach (Uuid clientId in _hub.DrainDisconnects())
+        {
+            if (_sessions.TryGetEntity(clientId, out int entity))
+            {
+                if (store.TryGet(entity, out PhysicsComponent physics))
+                {
+                    physics.Dispose();
+                }
+
+                //  Capture the uuid before Free (which clears it) so the despawn can replicate.
+                _replication.RequestDespawn(store.GetUuid(entity).ToValue());
+                _interaction.ResetPlayerSequence(entity);
+                store.Free(entity);
+            }
+
+            _sessions.EndSession(clientId);
+            _logger.LogInformation("Ended session for client {client}.", clientId);
+
+            //  Stamp the save's server-owned time played: a player's session ended abruptly.
+            _worldService.EndSessionStamp();
         }
     }
 
@@ -113,15 +156,46 @@ public sealed class ServerJoinSystem : IEntitySystem
         }
 
         string levelGuid = request.LevelGuid ?? string.Empty;
-        bool levelLoaded = !string.IsNullOrEmpty(levelGuid) && _worldService.LoadLevel(levelGuid, store);
-
-        if (levelLoaded && _worldService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out Vector3 position, out Quaternion orientation))
+        bool levelLoaded = !string.IsNullOrEmpty(levelGuid);
+        if (levelLoaded)
         {
-            //  Restored per-character location (or the level spawn point).
+            try
+            {
+                levelLoaded = _worldService.LoadLevel(levelGuid, store);
+            }
+            catch (Exception ex)
+            {
+                //  A save hiccup never drops a join: play on the default spawn against the empty world.
+                _logger.LogError(ex, "Failed to load level {level} for a joining client; continuing at the default spawn.", levelGuid);
+                levelLoaded = false;
+            }
+        }
+
+        Vector3 position;
+        Quaternion orientation;
+        if (levelLoaded)
+        {
+            try
+            {
+                bool restored = _worldService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out position, out orientation);
+                if (!restored)
+                {
+                    //  Restored per-character location (or the level spawn point).
+                    position = _worldService.LevelSpawn;
+                    orientation = Quaternion.Identity;
+                }
+            }
+            catch (Exception ex)
+            {
+                //  A save hiccup never drops a join: fall back to the level spawn.
+                _logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterId, levelGuid);
+                position = _worldService.LevelSpawn;
+                orientation = Quaternion.Identity;
+            }
         }
         else
         {
-            position = levelLoaded ? _worldService.LevelSpawn : PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
+            position = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
             orientation = Quaternion.Identity;
         }
 

@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
-using Swordfish.ECS;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Discovery;
@@ -15,35 +14,38 @@ using WaywardBeyond.Shared.Networking.Transport;
 namespace WaywardBeyond.Server.Core;
 
 /// <summary>
-/// Opens the in-process authoritative server to LAN peers over TCP. Runs alongside <see cref="ServerContext"/>
-/// in host mode: it listens on <see cref="NetworkingSettings.ServerPort"/>, registers each accepted peer as a
-/// client of the shared <see cref="ServerConnectionHub"/> (so sessions, per-client replication and despawn
-/// routing all work), and removes a peer from the hub when its socket disconnects. When LAN discovery is
-/// enabled, a background thread also broadcasts a <see cref="LanBeacon"/> so LAN clients can auto-detect the
-/// server on the discovery port.
+/// Opens the in-process authoritative server to LAN peers over TCP. Runs alongside <see cref="ServerWorldHost"/>
+/// in host mode: it listens on <see cref="NetworkingSettings.ServerPort"/>, routes each accepted peer
+/// into the pending-join set (the host binds it to its world's hub when its <c>JoinRequest</c> arrives),
+/// and on socket disconnect releases the peer from the world host. When LAN discovery is enabled, a
+/// background thread also broadcasts a <see cref="LanBeacon"/> so LAN clients can auto-detect the server
+/// on the discovery port.
 /// </summary>
 public sealed class LanHost : IEntryPoint, IDisposable
 {
     private readonly IEnumerable<INetworkSerializer> _serializers;
-    private readonly ServerConnectionHub _hub;
+    private readonly PendingJoins _pendingJoins;
+    private readonly ServerWorldHost _worldHost;
     private readonly NetworkingSettings _settings;
     private readonly LanHostInfo _hostInfo;
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly ConcurrentDictionary<TcpTransport, Uuid> _clientIds = new();
+    private readonly ConcurrentDictionary<TcpTransport, byte> _clientIds = new();
     private TcpServerHost? _host;
     private UdpClient? _beacon;
     private volatile bool _beaconRunning;
 
     public LanHost(
         in IEnumerable<INetworkSerializer> serializers,
-        in ServerConnectionHub hub,
+        in PendingJoins pendingJoins,
+        in ServerWorldHost worldHost,
         in NetworkingSettings settings,
         in LanHostInfo hostInfo,
         ILoggerFactory loggerFactory
     ) {
         _serializers = serializers;
-        _hub = hub;
+        _pendingJoins = pendingJoins;
+        _worldHost = worldHost;
         _settings = settings;
         _hostInfo = hostInfo;
         _logger = loggerFactory.CreateLogger<LanHost>();
@@ -56,14 +58,14 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _host = new TcpServerHost(_serializers, _loggerFactory, _settings.ConnectionTimeoutMs.Get(), _settings.SendQueueSize.Get(), _settings.MaxFrameBytes.Get(), _settings.ReliableQueueConcernThreshold.Get(), _settings.ReliableQueueDisconnectThreshold.Get(), _settings.ReliableQueueDisconnectMs.Get(), _settings.TraceLogging.Get(), _settings.SendIntervalMs.Get());
         _host.OnClientAccepted = transport =>
         {
-            Uuid clientId = _hub.Add(transport);
-            _clientIds[transport] = clientId;
+            _clientIds[transport] = 0;
             transport.OnDisconnected += reason => RemoveClient(transport, reason);
-            _logger.LogInformation("A LAN client connected (id {clientId}).", clientId);
+            _pendingJoins.Add(transport);
+            _logger.LogInformation("A LAN client connected and awaits its join request.");
 
             //  A peer that dies between accept and this handler was raised before any subscriber
             //  existed, so OnDisconnected never fires for it. Re-check the live state and prune it now,
-            //  before the client can linger in the hub unremoved.
+            //  before the client can linger in the pending set unremoved.
             if (!transport.IsConnected)
             {
                 RemoveClient(transport, DisconnectReason.PeerClosed);
@@ -135,7 +137,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
                 ServerName = serverName,
                 TcpPort = tcpPort,
                 ProtocolVersion = LanDiscovery.ProtocolVersion,
-                PlayerCount = _hub.Count,
+                PlayerCount = _worldHost.PlayerCount,
             }.Serialize();
 
             try
@@ -169,13 +171,17 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
     private void RemoveClient(TcpTransport transport, DisconnectReason reason)
     {
-        _logger.LogInformation("A LAN client disconnected (id removed): {reason}.", reason);
+        _logger.LogInformation("A LAN client disconnected: {reason}.", reason);
 
-        //  The owner disposes the dead peer: dropping it from the hub, pruning the id map, and closing
-        //  the socket exactly once per transport.
-        if (_clientIds.TryRemove(transport, out Uuid clientId))
+        //  The owner disposes the dead peer: dropping it from the pending set (or releasing its world
+        //  binding), pruning the id map, and closing the socket exactly once per transport.
+        if (_clientIds.TryRemove(transport, out _))
         {
-            _hub.Remove(clientId);
+            if (!_pendingJoins.Remove(transport))
+            {
+                _worldHost.DetachConnection(transport);
+            }
+
             transport.Dispose();
         }
     }

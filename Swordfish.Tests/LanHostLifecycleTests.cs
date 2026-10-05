@@ -1,6 +1,7 @@
 using System;
 using System.Reflection;
 using System.Threading;
+using DryIoc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WaywardBeyond.Server.Core;
 using WaywardBeyond.Shared.Config;
@@ -14,9 +15,10 @@ using Xunit;
 namespace Swordfish.Tests;
 
 /// <summary>
-/// A departed LAN peer must leave no residue: the hub drops it, the host's transport registry prunes
-/// it, LanHost's id map prunes it, and the owner disposes the dead transport (socket closed) exactly
-/// once. Repeating the cycle must not grow any registry.
+/// A departed LAN peer must leave no residue: the pending set drops it, the host's transport registry
+/// prunes it, LanHost's id map prunes it, and the owner disposes the dead transport (socket closed)
+/// exactly once. Repeating the cycle must not grow any registry. A peer that never sends a
+/// <c>JoinRequest</c> lives only in the pending set - its world binding happens at join time.
 /// </summary>
 public class LanHostLifecycleTests
 {
@@ -36,8 +38,9 @@ public class LanHostLifecycleTests
         settings.ServerPort.Set(0);
         settings.LanDiscovery.Set(false);
 
-        var hub = new ServerConnectionHub();
-        var lanHost = new LanHost(_serializers, hub, settings, new LanHostInfo(), NullLoggerFactory.Instance);
+        var pendingJoins = new PendingJoins();
+        var worldHost = new ServerWorldHost(new Container(), pendingJoins, settings, NullLoggerFactory.Instance);
+        var lanHost = new LanHost(_serializers, pendingJoins, worldHost, settings, new LanHostInfo(), NullLoggerFactory.Instance);
 
         //  The host's own transport registry and LanHost's id map are private; reflection reads them to
         //  prove pruning, since neither type exposes its internals.
@@ -57,33 +60,34 @@ public class LanHostLifecycleTests
                 var raw = new System.Net.Sockets.TcpClient();
                 raw.Connect("127.0.0.1", host.LocalPort);
 
-                //  The host accepts and registers the peer.
+                //  The host accepts and registers the peer as awaiting its join request.
                 var deadline = Environment.TickCount + 5000;
-                while (hub.Count == 0 && Environment.TickCount < deadline)
+                while (pendingJoins.Count == 0 && Environment.TickCount < deadline)
                 {
                     Thread.Sleep(10);
                 }
-                Assert.Equal(1, hub.Count);
+                Assert.Equal(1, pendingJoins.Count);
 
                 raw.Close();
 
                 //  The host observes the drop and prunes every registry; the dead transport is disposed.
                 //  Poll tightly: under full-suite parallel load a 10ms sleep can stretch badly.
                 deadline = Environment.TickCount + 10_000;
-                while (hub.Count != 0 && Environment.TickCount < deadline)
+                while (pendingJoins.Count != 0 && Environment.TickCount < deadline)
                 {
                     Thread.Sleep(2);
                 }
 
-Assert.Equal(0, hub.Count);
+                Assert.Equal(0, pendingJoins.Count);
             }
 
             Assert.Empty((System.Collections.Concurrent.ConcurrentDictionary<TcpTransport, TcpTransport>)hostRegistry.GetValue(host)!);
-            Assert.Empty((System.Collections.Concurrent.ConcurrentDictionary<TcpTransport, Swordfish.ECS.Uuid>)lanHostMap.GetValue(lanHost)!);
+            Assert.Empty((System.Collections.Concurrent.ConcurrentDictionary<TcpTransport, byte>)lanHostMap.GetValue(lanHost)!);
         }
         finally
         {
             lanHost.Dispose();
+            worldHost.Dispose();
         }
     }
 }

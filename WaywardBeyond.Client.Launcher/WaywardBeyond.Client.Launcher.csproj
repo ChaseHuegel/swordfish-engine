@@ -31,6 +31,9 @@
         <None Update="config\modules.toml">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
+        <None Update="config\physics.toml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <Import Project="..\Shoal.Build\build\Shoal.Build.targets" />

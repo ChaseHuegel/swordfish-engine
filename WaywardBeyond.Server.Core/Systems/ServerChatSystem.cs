@@ -15,7 +15,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// standard engine log, and broadcast to every connected client. Identity is never trusted from the
 /// wire; a client can only supply text.
 /// </summary>
-public sealed class ServerChatSystem
+public sealed class ServerChatSystem : IServerWorldSystem
 {
     /// <summary>Maximum characters of a chat message after sanitization.</summary>
     public const int MAX_MESSAGE_LENGTH = 512;

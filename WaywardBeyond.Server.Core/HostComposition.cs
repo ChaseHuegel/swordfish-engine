@@ -66,15 +66,13 @@ public static class HostComposition
         container.Register<INetworkSerializer, NsdMessageSerializer<ClientHeartbeatMessage>>();
 
         container.Register<LocalConnection>(Reuse.Singleton);
-        container.RegisterDelegate<ServerConnectionHub>(context =>
+        container.Register<PendingJoins>(Reuse.Singleton);
+        if (seedLocalLoopback)
         {
-            ServerConnectionHub hub = new(context.Resolve<NetworkingSettings>().MaxReceiveWindow.Get());
-            if (seedLocalLoopback)
-            {
-                hub.Add(context.Resolve<LocalConnection>().Server);
-            }
-            return hub;
-        }, Reuse.Singleton);
+            //  The in-process host's loopback rides the ordinary join route: it waits in the pending
+            //  set until its JoinRequest binds it to the world it joins.
+            container.Resolve<PendingJoins>().Add(container.Resolve<LocalConnection>().Server);
+        }
 
         container.RegisterConfig<NetworkingSettings>(file: "network.toml");
         container.RegisterConfig<PhysicsSettings>(file: "physics.toml");

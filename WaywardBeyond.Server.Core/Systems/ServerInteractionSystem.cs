@@ -28,7 +28,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// creative mode is free. A hint-less or rejected interaction resolves to <see cref="InteractionAction.None"/>
 /// and is simply skipped.
 /// </summary>
-public sealed class ServerInteractionSystem
+public sealed class ServerInteractionSystem : IServerWorldSystem
 {
     private readonly ILogger<ServerInteractionSystem> _logger;
     private readonly ServerConnectionHub _hub;
@@ -36,6 +36,7 @@ public sealed class ServerInteractionSystem
     private readonly IInteractionHandlerRegistry _handlerRegistry;
     private readonly IBrickIdMap _brickIdMap;
     private readonly ServerSkillSystem? _skills;
+    private readonly SharedSimulationStep? _simulationStep;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
@@ -62,7 +63,8 @@ public sealed class ServerInteractionSystem
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
         IBrickIdMap brickIdMap,
-        ServerSkillSystem? skills = null
+        ServerSkillSystem? skills = null,
+        in SharedSimulationStep? simulationStep = null
     ) {
         _hub = hub;
         _content = content;
@@ -70,7 +72,13 @@ public sealed class ServerInteractionSystem
         _logger = logger;
         _worldFactory = worldFactory;
         _skills = skills;
+        _simulationStep = simulationStep;
         _brickIdMap = brickIdMap;
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        Tick(delta, store, _simulationStep?.CurrentSimTick ?? 0);
     }
 
     private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()

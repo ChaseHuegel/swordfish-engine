@@ -16,7 +16,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// each is dispatched to a worker thread and the response is routed back to the requesting client when
 /// done - never blocking the server tick loop mid-physics.
 /// </summary>
-public sealed class ServerWorldSystem : IEntitySystem
+public sealed class ServerWorldSystem : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly WorldSaveService _worldService;

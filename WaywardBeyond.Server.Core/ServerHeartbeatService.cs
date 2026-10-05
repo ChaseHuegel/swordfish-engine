@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Transport;
 
@@ -17,10 +18,11 @@ namespace WaywardBeyond.Server.Core;
 /// sim tick and logging a warn when it falls behind the server by more than
 /// <c>NetworkingSettings.TickLagWarnThreshold</c> (once per crossing).
 /// </summary>
-public sealed class ServerHeartbeatService
+public sealed class ServerHeartbeatService : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly ILogger<ServerHeartbeatService> _logger;
+    private readonly SharedSimulationStep? _simulationStep;
     private readonly int _heartbeatIntervalMs;
     private readonly uint _lagWarnThreshold;
 
@@ -36,14 +38,21 @@ public sealed class ServerHeartbeatService
     public ServerHeartbeatService(
         in ServerConnectionHub hub,
         in NetworkingSettings settings,
-        in ILogger<ServerHeartbeatService> logger
+        in ILogger<ServerHeartbeatService> logger,
+        in SharedSimulationStep? simulationStep = null
     ) {
         _hub = hub;
         _logger = logger;
+        _simulationStep = simulationStep;
         _heartbeatIntervalMs = Math.Max(250, Math.Min(settings.HeartbeatIntervalMs.Get(), Math.Max(1, settings.ConnectionTimeoutMs.Get() / 2)));
         _lagWarnThreshold = (uint)Math.Max(1, settings.TickLagWarnThreshold.Get());
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        Pump(delta, store, _simulationStep?.CurrentSimTick ?? 0);
     }
 
     /// <summary>Run once per server update.</summary>

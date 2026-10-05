@@ -37,12 +37,24 @@ public sealed class SharedSimulationStep : IDisposable
     public SharedSimulationStep(
         DataStore store,
         in IPhysics physics,
-        CommandResolver resolveCommand
+        CommandResolver? resolveCommand = null
     ) {
         _store = store;
         _physics = physics;
-        _resolveCommand = resolveCommand;
+        _resolveCommand = resolveCommand ?? ((int entity, uint simTick, out InputComponent command) => ResolveStagedInput(_store, entity, simTick, out command));
         physics.FixedUpdate += OnFixedUpdate;
+    }
+
+    /// <summary>Resolves the staged input for a sim tick from the store's <see cref="NetworkComponent"/> buffer.</summary>
+    private static bool ResolveStagedInput(DataStore store, int entity, uint simTick, out InputComponent command)
+    {
+        if (store.TryGet(entity, out NetworkComponent net) && net.StagedInputs != null)
+        {
+            return net.StagedInputs.TryGet(simTick, out command);
+        }
+
+        command = default;
+        return false;
     }
 
     public void Dispose()
