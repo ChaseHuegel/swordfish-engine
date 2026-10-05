@@ -22,8 +22,13 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="JoltPhysicsSharp" Version="2.17.5" />
+    </ItemGroup>
+
+    <ItemGroup>
       <ProjectReference Include="..\WaywardBeyond.Client.Core\WaywardBeyond.Client.Core.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Shared.Bricks\WaywardBeyond.Shared.Bricks.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Server.Core\WaywardBeyond.Server.Core.csproj" />
     </ItemGroup>
 
 </Project>

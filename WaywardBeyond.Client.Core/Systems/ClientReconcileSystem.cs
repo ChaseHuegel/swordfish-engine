@@ -65,11 +65,15 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         {
             //  Defensive: a burst queued during Loading (e.g. from a previous join) is coalesced to the
             //  newest frame so the first play tick performs exactly one ApplySnapshot.
+            int burstCount = 0;
             WorldSnapshot? newest = null;
             while (_transport.Receive<WorldSnapshot>() is { Success: true } burst)
             {
+                burstCount++;
                 newest = burst.Value;
             }
+
+            Console.WriteLine($"[diag] entering play: burst={burstCount} newestHasComponents={(newest?.Components.Length ?? 0) >= 0}");
 
             if (newest != null)
             {
@@ -164,7 +168,17 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         }
         else
         {
-            info.Codec.Apply(store, entity, snapshot.Payload);
+            if (info.Type == typeof(InventoryComponent))
+            {
+                InventoryComponent before = store.TryGet(entity, out InventoryComponent existingInventory) ? existingInventory : default;
+                info.Codec.Apply(store, entity, snapshot.Payload);
+                InventoryComponent after = store.TryGet(entity, out InventoryComponent appliedInventory) ? appliedInventory : default;
+                Console.WriteLine($"[diag] inventory echo applied to {entity}: before={string.Join(";", Array.ConvertAll(before.Contents, i => i.ID ?? "null"))} after={string.Join(";", Array.ConvertAll(after.Contents, i => i.ID ?? "null"))}");
+            }
+            else
+            {
+                info.Codec.Apply(store, entity, snapshot.Payload);
+            }
         }
     }
 

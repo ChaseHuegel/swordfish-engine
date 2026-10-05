@@ -5,8 +5,11 @@ using DryIoc;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
+using Swordfish.ECS;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
@@ -29,6 +32,8 @@ public class ServerWorldHostTests
 
         public Fixture()
         {
+            NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+
             IContainer container = new Container();
             container.RegisterInstance(new NetworkingSettings());
             container.RegisterInstance(new PhysicsSettings());
@@ -152,6 +157,60 @@ public class ServerWorldHostTests
         }
 
         Assert.True(response.Success && !response.Value.Success, "The menu must receive the create-world verdict.");
+    }
+
+    [Fact]
+    public void InGameSnapshotBurstCarriesTheInventoryEcho()
+    {
+        using Fixture fixture = new();
+
+        SendJoin(fixture.LocalA.Client, "A", 100);
+        Pump(fixture.Host);
+        WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 1 && fixture.LocalA.Client.Receive<JoinAccept>().Success, "Join must complete.");
+
+        //  A long Loading phase: the client builds view entities on a background thread and does not
+        //  drain snapshots, while the server keeps publishing. This reproduces the burst the entering-
+        //  play coalesce evaluates.
+        for (var i = 0; i < 40; i++)
+        {
+            Pump(fixture.Host);
+            Thread.Sleep(1);
+        }
+
+        //  Drain the whole burst as the reconcile's entering-play coalesce would evaluate it, tracking
+        //  every snapshot that carries an InventoryComponent.
+        int inventoryAppearances = 0;
+        int snapshotCount = 0;
+        int componentCount = 0;
+        bool inventoryInNewest = false;
+        bool laserSeen = false;
+        Result<WorldSnapshot> snapshot;
+        while ((snapshot = fixture.LocalA.Client.Receive<WorldSnapshot>()).Success)
+        {
+            snapshotCount++;
+            componentCount += snapshot.Value.Components.Length;
+            bool inventoryHere = false;
+            foreach (ComponentSnapshot component in snapshot.Value.Components)
+            {
+                if (NetworkRegistry.TryGetInfo(Uuid.FromValue(component.TypeUuid), out NetworkComponentInfo info)
+                    && info.Type == typeof(InventoryComponent))
+                {
+                    inventoryHere = true;
+                    inventoryAppearances++;
+                    InventoryComponent inventory = InventoryComponent.Deserialize(component.Payload);
+                    if (Array.Exists(inventory.Contents, item => item.ID == "laser" && item.Count > 0))
+                    {
+                        laserSeen = true;
+                    }
+                }
+            }
+
+            inventoryInNewest = inventoryHere;
+        }
+
+        Assert.True(false, $"PROBE snapshots={snapshotCount} components={componentCount} appearances={inventoryAppearances} newestHas={inventoryInNewest}");
+        Assert.True(inventoryInNewest, $"The newest burst snapshot must carry the inventory (the entering-play coalesce keeps only it). appearances={inventoryAppearances}");
+        Assert.True(laserSeen, "The starter laser must ride the echo burst.");
     }
 
     [Fact]
