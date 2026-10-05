@@ -1,4 +1,4 @@
-# Networking — Multiple Server Worlds (implementation)
+# Networking — Multiple Server Worlds
 
 One subject: the server serves N isolated per-level worlds with idle unload.
 The server world graph is fully DI driven: systems and services register as
