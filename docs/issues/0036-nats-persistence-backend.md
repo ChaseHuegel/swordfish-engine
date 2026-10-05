@@ -1,7 +1,7 @@
 # Research: Persistence backend re-evaluation — NATS for game saves, sqlite for character saves?
 
 - Type: research
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -34,12 +34,12 @@ and #0008 (per-world save lifetimes).
 
 ## Acceptance criteria
 
-- [ ] The evaluation and proposal are written to an **entirely new,
+- [x] The evaluation and proposal are written to an **entirely new,
       standalone document** for user review - no existing spec,
       issue, or note is modified by this research's output.
-- [ ] The proposal contains measured data where possible (bucket sizes,
+- [x] The proposal contains measured data where possible (bucket sizes,
       write frequencies), a per-store recommendation (NATS vs sqlite vs
       file-backed), and the migration path.
-- [ ] The proposal is delivered to the user for review and approval;
+- [x] The proposal is delivered to the user for review and approval;
       changes to other documents and issues (#0022/#0035/#0008) happen
       only after that approval, as separate work.

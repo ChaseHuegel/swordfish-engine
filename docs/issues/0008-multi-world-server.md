@@ -1,7 +1,7 @@
 # Research: Multiple ECS worlds — isolated per-level server worlds with idle unload
 
 - Type: research
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -70,14 +70,14 @@ implementation.
 
 ## Acceptance criteria
 
-- [ ] A development proposal document (proposed home:
+- [x] A development proposal document (proposed home:
       `docs/specs/networking-worlds.md`) covering every scope item above,
       with an explicit decision for each open trade-off (per-world hubs
       vs shared hub, unload trigger, DI mechanism).
-- [ ] The proposal maps every current singleton dependency that must
+- [x] The proposal maps every current singleton dependency that must
       become per-world, with the concrete DI changes.
-- [ ] The proposal is approved by the user before any implementation
+- [x] The proposal is approved by the user before any implementation
       begins.
-- [ ] The cross-level join behavior described above is resolved by the
+- [x] The cross-level join behavior described above is resolved by the
       proposal's design (a second client joining a different level no
       longer tears down the first world).
