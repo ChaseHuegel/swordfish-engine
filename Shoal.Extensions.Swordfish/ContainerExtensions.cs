@@ -20,12 +20,14 @@ public static class ContainerExtensions
     /// <summary>
     ///     Registers a config file modeled by type <typeparamref name="T"/>,
     ///     which will be loaded from `config/` or else initialized from defaults.
+    ///     Re-registration keeps the first registration: the same config may be wired by both the core
+    ///     callback and a module (e.g. physics.toml), and duplicate singletons are ambiguous to resolve.
     /// </summary>
     public static void RegisterConfig<T>(this IContainer container, string file) 
         where T : Config<T>, new()
     {
         container.RegisterTomlParser<T>();
-        container.RegisterDelegate<T>(context => LoadOrCreateConfig<T>(context, file), Reuse.Singleton);
+        container.RegisterDelegate<T>(context => LoadOrCreateConfig<T>(context, file), Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
     }
     
     private static T LoadOrCreateConfig<T>(IResolverContext context, string file) 
