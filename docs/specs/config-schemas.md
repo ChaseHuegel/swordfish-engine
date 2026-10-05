@@ -88,7 +88,7 @@ the engine (`Swordfish/EngineContainer.cs:115`) and the shared host wire-up
 | Key | Type | Default | Purpose |
 |---|---|---|---|
 | `AccumulateUpdates` | bool | `true` | whether physics steps accumulate to catch up a lagging world |
-| `gravity` | float[3] | `[0, -9.81, 0]` | world gravity as `[x, y, z]`; zero-G runtimes set it to `[0, 0, 0]` |
+| `Gravity` | float[3] | `[0, -9.81, 0]` | world gravity as `[x, y, z]`; zero-G runtimes set it to `[0, 0, 0]` |
 
 `gravity` rides a dedicated mapper because Tomlet cannot map
 `System.Numerics.Vector3` itself:
