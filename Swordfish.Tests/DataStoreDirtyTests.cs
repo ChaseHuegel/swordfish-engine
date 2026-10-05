@@ -191,6 +191,20 @@ public class DataStoreDirtyTests
     }
 
     [Fact]
+    public void HasProbesRuntimeTypeExistence()
+    {
+        DataStore store = new();
+        int entity = store.Alloc();
+        store.AddOrUpdate(entity, new TestComponent());
+
+        Assert.True(store.Has(typeof(TestComponent), entity));
+        Assert.False(store.Has(typeof(TestComponentB), entity));
+
+        store.Remove<TestComponent>(entity);
+        Assert.False(store.Has(typeof(TestComponent), entity), "Removal clears existence.");
+    }
+
+    [Fact]
     public void RemoveUnknownTypeAndBareEntitySurvives()
     {
         DataStore store = new();

@@ -129,6 +129,21 @@ public partial class DataStore
         }
     }
 
+    /// <summary>Runtime-type existence probe (the generated <c>Get</c>/<c>TryGet</c> cover compile-time types).</summary>
+    public bool Has(Type type, int entity)
+    {
+        (int chunkIndex, int localEntity) = ToChunkSpace(entity);
+        lock (_chunkAndStoreLock)
+        {
+            if (!_stores.TryGetValue(type, out ChunkedStore? store))
+            {
+                return false;
+            }
+
+            return store.TryGetAt(chunkIndex, localEntity, out _);
+        }
+    }
+
     public void Query(float delta, ForEach forEach)
     {
         lock (_chunkAndStoreLock)
