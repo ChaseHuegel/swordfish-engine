@@ -32,7 +32,10 @@ One subject: dirty-driven replication between server and client.
   Loading-time client cannot accumulate unapplied snapshots. The one-shot
   full-sync publish is exempt and stays the client's first snapshot.
   Client-side, `ClientReconcileSystem` additionally coalesces any queued
-  burst to the newest frame on entering `Playing`.
+  burst on entering `Playing`: the newest frame applies fully, and every
+  superseded frame still has its non-motion components applied first, so
+  one-shot state seeded early in the join burst (the starter inventory)
+  survives a motion-superseding burst.
 - **World/voxel bodies.** Server-authoritative structures carrying a
   `NetworkComponent` flow through this same path each tick. Their
   `TransformComponent`/`PhysicsComponent` are dirtied by the physics sync

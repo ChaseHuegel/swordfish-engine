@@ -63,17 +63,21 @@ internal sealed class ClientReconcileSystem : IEntitySystem
 
         if (enteringPlay)
         {
-            //  Defensive: a burst queued during Loading (e.g. from a previous join) is coalesced to the
-            //  newest frame so the first play tick performs exactly one ApplySnapshot.
-            int burstCount = 0;
+            //  Defensive: a burst queued during Loading is coalesced to the newest frame so the first
+            //  play tick performs exactly one ApplySnapshot. One-shot server state (e.g. the seeded
+            //  inventory) rides only the early frames and must not be dropped, so each frame that is
+            //  superseded has its non-motion components applied first; the newest applies fully and its
+            //  transform/physics win (the per-frame motion history is otherwise useless).
             WorldSnapshot? newest = null;
             while (_transport.Receive<WorldSnapshot>() is { Success: true } burst)
             {
-                burstCount++;
+                if (newest != null)
+                {
+                    ApplyOneShotComponents(newest.Value, store);
+                }
+
                 newest = burst.Value;
             }
-
-            Console.WriteLine($"[diag] entering play: burst={burstCount} newestHasComponents={(newest?.Components.Length ?? 0) >= 0}");
 
             if (newest != null)
             {
@@ -168,17 +172,28 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         }
         else
         {
-            if (info.Type == typeof(InventoryComponent))
+            info.Codec.Apply(store, entity, snapshot.Payload);
+        }
+    }
+
+    /// <summary>
+    /// Applies every component of a superseded burst frame except the continuously-dirty motion pair,
+    /// so one-shot server state seeded early in the join burst (the starter inventory, seeded context)
+    /// survives the entering-play coalesce.
+    /// </summary>
+    private void ApplyOneShotComponents(WorldSnapshot snapshot, DataStore store)
+    {
+        ComponentSnapshot[] components = snapshot.Components;
+        for (var i = 0; i < components.Length; i++)
+        {
+            if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(components[i].TypeUuid), out NetworkComponentInfo info)
+                || info.Type == typeof(TransformComponent)
+                || info.Type == typeof(PhysicsComponent))
             {
-                InventoryComponent before = store.TryGet(entity, out InventoryComponent existingInventory) ? existingInventory : default;
-                info.Codec.Apply(store, entity, snapshot.Payload);
-                InventoryComponent after = store.TryGet(entity, out InventoryComponent appliedInventory) ? appliedInventory : default;
-                Console.WriteLine($"[diag] inventory echo applied to {entity}: before={string.Join(";", Array.ConvertAll(before.Contents, i => i.ID ?? "null"))} after={string.Join(";", Array.ConvertAll(after.Contents, i => i.ID ?? "null"))}");
+                continue;
             }
-            else
-            {
-                info.Codec.Apply(store, entity, snapshot.Payload);
-            }
+
+            ApplyComponent(components[i], store);
         }
     }
 

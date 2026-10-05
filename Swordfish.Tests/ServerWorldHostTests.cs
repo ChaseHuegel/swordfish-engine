@@ -208,7 +208,7 @@ public class ServerWorldHostTests
             inventoryInNewest = inventoryHere;
         }
 
-        Assert.True(false, $"PROBE snapshots={snapshotCount} components={componentCount} appearances={inventoryAppearances} newestHas={inventoryInNewest}");
+        Assert.True(inventoryAppearances > 0, $"The echo burst must carry the inventory at least once. snapshots={snapshotCount} components={componentCount}");
         Assert.True(inventoryInNewest, $"The newest burst snapshot must carry the inventory (the entering-play coalesce keeps only it). appearances={inventoryAppearances}");
         Assert.True(laserSeen, "The starter laser must ride the echo burst.");
     }

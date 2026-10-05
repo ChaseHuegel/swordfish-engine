@@ -210,4 +210,82 @@ public class ClientInventoryEchoTests
         public string GetClipboard() => string.Empty;
         public void SetClipboard(string text) { }
     }
+
+    [Test]
+    public void EnteringPlayBurstKeepsOneShotStateSupersededByMotion()
+    {
+        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+        NetworkRegistry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec());
+
+        //  The server's join burst: frame 1 carries the seeded inventory (one-shot), and the frames that
+        //  follow it - once the player moves - carry only the motion pair; the entering-play coalesce
+        //  keeps only the newest frame, so the one-shot state must be applied from the superseded frames.
+        var store = new DataStore();
+        const ulong playerUuidValue = 0xB0B;
+        int player = store.Alloc(Uuid.FromValue(playerUuidValue));
+        var seededInventory = new InventoryComponent();
+        seededInventory.Add(InventoryComponent.Stack("laser", 1, 1));
+        store.AddOrUpdate(player, seededInventory);
+
+        NetworkRegistry.TryGetInfo<InventoryComponent>(out NetworkComponentInfo inventoryInfo);
+        byte[] inventoryPayload = inventoryInfo.Codec.Serialize(store, player);
+        NetworkRegistry.TryGetInfo<TransformComponent>(out NetworkComponentInfo transformInfo);
+        store.AddOrUpdate(player, new TransformComponent(new Vector3(0f, 1f, 0f), Quaternion.Identity));
+        byte[] transformPayload = transformInfo.Codec.Serialize(store, player);
+
+        var connection = new QueuedConnection();
+        connection.Queue(new WorldSnapshot
+        {
+            TickNumber = 1,
+            Components = [new ComponentSnapshot(playerUuidValue, inventoryInfo.Uuid.ToValue(), inventoryPayload)],
+        });
+        connection.Queue(new WorldSnapshot
+        {
+            TickNumber = 2,
+            Components = [new ComponentSnapshot(playerUuidValue, transformInfo.Uuid.ToValue(), transformPayload)],
+        });
+
+        var tracker = new SnapshotAckTracker();
+        var reconcile = new ClientReconcileSystem(connection, tracker, new ClientPlayerMotionProcessor(
+            new StubInputService(),
+            new StubWindowContext(),
+            new StubPhysics(),
+            new EventInvoker<PlayerMovedEvent>([])
+        ));
+
+        GameState prior = WaywardBeyond.GameState.Get();
+        WaywardBeyond.GameState.Set(GameState.Playing);
+        try
+        {
+            reconcile.Tick(0f, store);
+        }
+        finally
+        {
+            WaywardBeyond.GameState.Set(prior);
+        }
+
+        Assert.That(store.TryGet(player, out InventoryComponent inventory), Is.True);
+        Assert.That(System.Linq.Enumerable.Any(inventory.Contents, item => item.ID == "laser" && item.Count > 0),
+            Is.True, "The one-shot starter inventory must survive the motion-superseding burst.");
+        Assert.That(store.TryGet(player, out TransformComponent transform), Is.True);
+        Assert.That(transform.Position.Y, Is.EqualTo(1f), "The newest frame's motion wins.");
+    }
+
+    private sealed class QueuedConnection : IClientConnection
+    {
+        private readonly Queue<WorldSnapshot> _messages = new();
+        public bool IsConnected => true;
+        public bool IsLocal => false;
+        public void Queue(WorldSnapshot snapshot) => _messages.Enqueue(snapshot);
+        public Result Send<T>(in T message) => Result.FromSuccess();
+        public Result<T> Receive<T>()
+        {
+            if (typeof(T) == typeof(WorldSnapshot) && _messages.Count > 0)
+            {
+                return Result<T>.FromSuccess((T)(object)_messages.Dequeue());
+            }
+
+            return Result<T>.FromFailure("No messages available.");
+        }
+    }
 }
