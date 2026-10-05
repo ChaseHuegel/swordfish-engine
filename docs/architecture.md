@@ -56,21 +56,25 @@ and `WaywardBeyond.Client.Launcher/Program.cs`.
 
 ## Process & world split
 
-Two independent ECS worlds run concurrently in the game process:
+The game process runs one client world and N server worlds concurrently:
 
 - **Client world** — `Swordfish/ECS/ECSContext.cs`, ticked on the `"ECS"`
   thread. Runs engine systems plus client gameplay systems.
-- **Server world** — `WaywardBeyond.Server.Core/ServerContext.cs`, ticked on the
-  `"Server"` thread. Runs the authoritative server systems.
+- **Server worlds** — one per loaded level, ticked sequentially on the
+  `"Server"` thread by `WaywardBeyond.Server.Core/ServerWorldHost.cs`. Each
+  world is a per-world DI graph (`ServerWorld.cs`) holding its own store,
+  physics, hub, sessions, and systems, with idle unload. See
+  [specs/networking-worlds](specs/networking-worlds.md).
 
-The two worlds communicate **only** through serialized nsd messages over a
+The worlds communicate **only** through serialized nsd messages over a
 transport. Singleplayer runs the authoritative server in-process on its own
 thread over a `LocalConnection` loopback that exercises the full wire protocol.
-There is no separate singleplayer simulation path.
+The loopback rides the same world-routed join path as LAN peers. There is no
+separate singleplayer simulation path.
 
-`ServerContext` is host-agnostic: it takes a connection hub, physics settings, a
-lazy `KeyValueStore` factory, an `ILoggerFactory`, and a shared `SessionManager`.
-A future dedicated server is a thin host around this class.
+`ServerModule` registers the server composition (see
+[specs/networking-worlds](specs/networking-worlds.md) for the per-world DI
+graph); the dedicated launcher is a thin host around the same wire-up.
 
 See [specs/networking-overview](specs/networking-overview.md) for the full
 process boundary detail.

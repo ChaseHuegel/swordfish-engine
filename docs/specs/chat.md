@@ -18,9 +18,9 @@ they never compete with replication frames.
 
 ## Server relay
 
-`WaywardBeyond.Server.Core/Systems/ServerChatSystem.cs` is ticked in
-`ServerContext.Update` after the interaction step and before replication
-publish. For each inbound `ChatMessage` it applies these rules:
+`WaywardBeyond.Server.Core/Systems/ServerChatSystem.cs` is a world system ticked
+after the interaction step and before replication publish (see
+[networking-worlds](networking-worlds.md)). For each inbound `ChatMessage` it applies these rules:
 
 - Drop the message if the client has no session (it did not join).
 - Stamp `CharacterId` from the player mirror's `OwnedCharacterComponent`.
@@ -100,7 +100,6 @@ edit.
 
 - `WaywardBeyond.Shared.Networking/CodeGen/network.nsd`
 - `WaywardBeyond.Server.Core/Systems/ServerChatSystem.cs`
-- `WaywardBeyond.Server.Core/ServerContext.cs`
 - `WaywardBeyond.Client.Core/Systems/ChatService.cs`
 - `WaywardBeyond.Client.Core/Systems/ClientChatSystem.cs`
 - `WaywardBeyond.Client.Core/UI/Layers/ChatLayer.cs`

@@ -85,8 +85,7 @@ The server owns the save's aggregate playtime metadata. `LastPlayedMs` stamps
 to the current wall-clock when anyone joins (`MarkActive`, called from
 `ServerJoinSystem`). `AgeMs` accumulates through every world save (the level
 meta rides the `QueueWorldSave`/`Flush` capture) and whenever a player leaves
-or disconnects (`EndSessionStamp`, called from `ServerJoinSystem` and
-`ServerContext`). The aggregate `AgeMs` therefore represents a total across all
+or disconnects (`EndSessionStamp`, called from `ServerJoinSystem`)). The aggregate `AgeMs` therefore represents a total across all
 players' sessions. The in-memory stamp is synchronous; the metadata KV write is
 submitted to a worker, so the server tick never blocks on the store. Share the
 stamping rule via `SaveTime.Accumulate`; a zero last-played stamps no time, so

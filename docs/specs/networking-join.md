@@ -25,13 +25,19 @@ save worlds. World data is streamed to the client during join.
    - It drives `MainMenu → Loading → Playing` and is queued from the menu so
       view building runs on the client ECS thread.
 
-2. **`ServerJoinSystem`** (`Server.Core/Systems/`) — via `WorldSaveService`
+2. **World routing** — `ServerWorldHost` (`Server.Core/ServerWorldHost.cs`)
+   consumes the client's `JoinRequest` from the pending set, creates (or finds)
+   the world for `LevelGuid` with a fresh per-world graph, binds the connection
+   to that world's hub, and queues the join into the world. `ServerJoinSystem`
+   (`Server.Core/Systems/`) then — via the world's `WorldSaveService`
    (`Server.Core/Saves/`) — loads the authoritative voxel world for `LevelGuid`
-   from the `levels` bucket (unloading any previous world, disposing its physics
-   bodies), resolves the spawn transform (the persisted `<level>.character.<id>`
-   location, else `Level.Spawn`), allocates the server mirror, seeds the
-   server's interaction context from `CharacterSeed`, binds it to a fresh
-   `Session`, and replies `JoinAccept { Level, SpawnTransform, PlayerEntity }`.
+   from the `levels` bucket into that world's store, resolves the spawn
+   transform (the persisted `<level>.character.<id>` location, else
+   `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
+   server mirror, seeds the server's interaction context from `CharacterSeed`,
+   binds it to a fresh `Session`, and replies `JoinAccept { Level, SpawnTransform,
+   PlayerEntity }`. Worlds are isolated per level; see
+   [networking-worlds](networking-worlds.md).
 
 3. It then streams the world as one `WorldEntityAdd { VoxelEntityData }` per
    structure (bounded per-entity), followed by a `WorldStreamComplete`. Each

@@ -110,8 +110,9 @@ shared code because the shared transports feed it and every world side consumes 
 - `ServerJoinSystem` allocates a `Session` per connection and calls `Register`.
 - `NetworkReplicationSystem` uses `SessionManager.TryGetEntity(clientId, ...)`
   to read that client's per-entity acked input.
-- Disconnect teardown (`ServerContext.HandleDisconnects`) disposes the mirror's
-  physics body, captures its uuid, frees the entity, and clears the mapping.
+- Disconnect teardown (the first stage of each world's `ServerJoinSystem`)
+  disposes the mirror's physics body, captures its uuid, frees the entity, and
+  clears the mapping.
   The despawn broadcasts in `RemovedEntities`. The despawn uuid is captured
   **before** the free because `DataStore.Free` clears the uuid.
 
@@ -125,8 +126,9 @@ plane and never carries game state.
 - **Server broadcast.** `LanHost` (`Server.Core/LanHost.cs`) starts a
   `"LAN BEACON"` thread that sends an nsd `LanBeacon` to `255.255.255.255`
   every `NetworkingSettings.DiscoveryBroadcastSeconds`. `PlayerCount` is read
-  live from `ServerConnectionHub.Clients`. A `SocketException` (broadcast
-  blocked) kills the loop permanently.
+  live from `ServerWorldHost.PlayerCount` (the sum over world hubs; each
+  accepted peer awaits its join in the pending set until it binds to a world).
+  A `SocketException` (broadcast blocked) kills the loop permanently.
 - **Client scan.** `LanDiscoveryService` (`Client.Core/Networking/`) opens a
   `UdpClient` on the same port and streams each discovered server as an
   `IAsyncEnumerable<DiscoveredServer>` while listening for
@@ -162,6 +164,7 @@ loaded from `network.toml`:
 | `ReliableQueueDisconnectThreshold` | `128` |
 | `ReliableQueueDisconnectMs` | `10000` |
 | `JoinStreamTimeoutMs` | `60000` |
+| `WorldIdleUnloadMs` | `60000` |
 | `MaxReceiveWindow` | `10` |
 | `TraceLogging` | `false` |
 
@@ -184,7 +187,7 @@ cap also bounds the deserializer's worst-case wire reach (see
 `NetworkReplicationSystem.ApplyStage` processes every inbound snapshot inside a
 per-client try/catch: a malformed payload from one client is logged and
 skipped, and the remaining clients plus the world step continue. The blanket
-guard in `ServerContext.Update` stays as the last line of defense.
+guard in `ServerWorldHost.Update` stays as the last line of defense.
 
 ### nsdc frame bounds
 
@@ -227,7 +230,7 @@ same shared host wire-up as the embedded client host
 (`Server.Core/HostComposition.cs`): the serializer set, `NetworkRegistry`
 init, hub (no loopback seed), NATS-backed persistence, `NetworkingSettings`,
 and `PhysicsSettings`; `ServerModule`'s host registrations add
-`ServerContext` + `LanHost` + the beacon. Interaction content is the
+`ServerWorldHost` + `LanHost` + the beacon. Interaction content is the
 embedding's choice: the client module registers its item-backed content, the
 launcher registers `ServerInteractionContent` (breaks and loot; place
 resolution needs shared item content). Lifecycle: NATS start (per

@@ -45,12 +45,10 @@ Two independent ECS worlds run concurrently in the process:
 
 - **Client world** — `Swordfish/ECS/ECSContext.cs`, ticked on the `"ECS"`
   thread. Runs engine systems plus client gameplay systems.
-- **Server world** — `WaywardBeyond.Server.Core/ServerContext.cs`, ticked on
-  the `"Server"` thread. Runs the authoritative server systems.
-
-`ServerContext` builds its own `World`/`DataStore`. It is host-agnostic: it
-takes a `ServerConnectionHub`, `PhysicsSettings`, a lazy `KeyValueStore`
-factory, an `ILoggerFactory`, and a shared `SessionManager`.
+- **Server worlds** — one per loaded level, ticked sequentially on the
+  `"Server"` thread by `ServerWorldHost` (`WaywardBeyond.Server.Core/`). Each
+  world is its own per-world DI graph; see
+  [networking-worlds](networking-worlds.md).
 
 The server is hosted inside the client app. `Server.Core/ServerModule.cs`
 calls `ServerComposition.Register(container)` and registers `LanHost` unless
