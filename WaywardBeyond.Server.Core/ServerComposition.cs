@@ -28,6 +28,10 @@ public static class ServerComposition
 {
     public static void Register(IContainer container)
     {
+        //  Server-level menu facade: create/list/delete saved worlds for connections that have not
+        //  joined a world yet; ticked by the host before world routing.
+        container.Register<ServerWorldManager>(Reuse.Singleton);
+
         container.Register<World>();
         container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingSettings>())));
         container.Register<SessionManager>();

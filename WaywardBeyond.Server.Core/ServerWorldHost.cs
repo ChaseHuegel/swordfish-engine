@@ -38,6 +38,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     }
 
     private readonly IContainer _container;
+    private readonly ServerWorldManager _worldManager;
     private readonly PendingJoins _pendingJoins;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
@@ -47,11 +48,13 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
 
     public ServerWorldHost(
         in IContainer container,
+        in ServerWorldManager worldManager,
         in PendingJoins pendingJoins,
         in NetworkingSettings settings,
         ILoggerFactory loggerFactory
     ) {
         _container = container;
+        _worldManager = worldManager;
         _pendingJoins = pendingJoins;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
         _idleUnloadMs = Math.Max(1, settings.WorldIdleUnloadMs.Get());
@@ -100,6 +103,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     {
         try
         {
+            _worldManager.Tick();
             RoutePendingJoins();
 
             foreach (WorldEntry entry in _worlds)

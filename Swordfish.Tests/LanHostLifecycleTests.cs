@@ -39,7 +39,8 @@ public class LanHostLifecycleTests
         settings.LanDiscovery.Set(false);
 
         var pendingJoins = new PendingJoins();
-        var worldHost = new ServerWorldHost(new Container(), pendingJoins, settings, NullLoggerFactory.Instance);
+        var worldManager = new ServerWorldManager(pendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
+        var worldHost = new ServerWorldHost(new Container(), worldManager, pendingJoins, settings, NullLoggerFactory.Instance);
         var lanHost = new LanHost(_serializers, pendingJoins, worldHost, settings, new LanHostInfo(), NullLoggerFactory.Instance);
 
         //  The host's own transport registry and LanHost's id map are private; reflection reads them to

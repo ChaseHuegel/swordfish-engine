@@ -46,7 +46,8 @@ public class ServerWorldHostTests
             var settings = new NetworkingSettings();
             settings.WorldIdleUnloadMs.Set(50);
             PendingJoins = new PendingJoins();
-            Host = new ServerWorldHost(container, PendingJoins, settings, NullLoggerFactory.Instance);
+            var worldManager = new ServerWorldManager(PendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
+            Host = new ServerWorldHost(container, worldManager, PendingJoins, settings, NullLoggerFactory.Instance);
 
             LocalA = new LocalConnection(Serializers);
             LocalB = new LocalConnection(Serializers);
@@ -69,6 +70,12 @@ public class ServerWorldHostTests
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
         new NsdMessageSerializer<ServerHeartbeatMessage>(),
+        new NsdMessageSerializer<NewWorldRequest>(),
+        new NsdMessageSerializer<NewWorldResponse>(),
+        new NsdMessageSerializer<ListWorldsRequest>(),
+        new NsdMessageSerializer<ListWorldsResponse>(),
+        new NsdMessageSerializer<DeleteWorldRequest>(),
+        new NsdMessageSerializer<DeleteWorldResponse>(),
     ];
 
     private static readonly MethodInfo _update = typeof(ServerWorldHost)
@@ -123,6 +130,28 @@ public class ServerWorldHostTests
         }
 
         Assert.True(result, message);
+    }
+
+    [Fact]
+    public void MenuRequestsAreServedToPendingConnections()
+    {
+        var pendingJoins = new PendingJoins();
+        var manager = new ServerWorldManager(pendingJoins, () => throw new NotSupportedException(), TestBricks.Map, NullLoggerFactory.Instance);
+        var connection = new LocalConnection(Serializers);
+        pendingJoins.Add(connection.Server);
+        connection.Client.Send(new NewWorldRequest { Name = "T", Seed = "s", GameMode = 0 });
+
+        //  The save backing is unavailable, so creation fails - but the menu still gets its response.
+        manager.Tick();
+        Result<NewWorldResponse> response = connection.Client.Receive<NewWorldResponse>();
+        long deadline = Environment.TickCount64 + 5000;
+        while (!response.Success && deadline > Environment.TickCount64)
+        {
+            Thread.Sleep(10);
+            response = connection.Client.Receive<NewWorldResponse>();
+        }
+
+        Assert.True(response.Success && !response.Value.Success, "The menu must receive the create-world verdict.");
     }
 
     [Fact]
