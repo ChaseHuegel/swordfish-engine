@@ -419,6 +419,26 @@ public class SessionRoutingTests
         Assert.Equal(1, seen.GetValueOrDefault(clientIds[1]));
     }
 
+[Fact]
+    public void SnapshotWireLayoutPlacesTickAndAckAtFixedOffsets()
+    {
+        //  The publish stage rewrites these two fields in a shared frame; the nsd payload is
+        //  self-describing [field-id][value], so TickNumber sits 2 bytes in and LastProcessedInput at 8.
+        byte[] payload = new WorldSnapshot
+        {
+            TickNumber = 0x11223344,
+            LastProcessedInput = 0xAABBCCDD,
+            Components = [],
+            RemovedEntities = [],
+            RemovedComponents = [],
+        }.Serialize();
+
+        Assert.Equal((ushort)0, BitConverter.ToUInt16(payload, 0));
+        Assert.Equal(0x11223344u, BitConverter.ToUInt32(payload, 2));
+        Assert.Equal((ushort)1, BitConverter.ToUInt16(payload, 6));
+        Assert.Equal(0xAABBCCDDu, BitConverter.ToUInt32(payload, 8));
+    }
+
     [Fact]
     public void StreamingClientReceivesOnlyFullSyncUntilStreamCompletes()
     {

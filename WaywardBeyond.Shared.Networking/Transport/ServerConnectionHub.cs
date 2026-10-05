@@ -90,6 +90,16 @@ public sealed class ServerConnectionHub
         return connection.Send(message);
     }
 
+    public Result SendRaw(Uuid clientId, in byte[] frame)
+    {
+        if (!_connections.TryGetValue(clientId, out IServerConnection? connection))
+        {
+            return Result.FromFailure($"No connection for client {clientId}.");
+        }
+
+        return connection.SendRaw(frame);
+    }
+
     /// <summary>
     /// Enumerates all connected clients. Used by the replication publish stage to compose a per-client
     /// snapshot.

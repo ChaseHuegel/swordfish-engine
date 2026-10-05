@@ -1,7 +1,7 @@
 # Improvement: Per-tick snapshot serialized once per client instead of once per tick
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -18,14 +18,14 @@ allocations (compounded by the #14 pooling work).
 
 ## Acceptance criteria
 
-- [ ] The authoritative `WorldSnapshot` (or its byte frame) is serialized
+- [x] The authoritative `WorldSnapshot` (or its byte frame) is serialized
       once per tick and fanned out to each client; `LastProcessedInput`
       continues to be the per-client value (either a per-client header
       rewrite on a shared frame, or one cached serialization when the
       component set is shared).
-- [ ] Measured: with N connected clients over `LocalConnection`,
+- [x] Measured: with N connected clients over `LocalConnection`,
       server-side serialization and allocations per tick do not grow
       linearly with N for the shared component set.
-- [ ] Behavior unchanged: per-client snapshots still carry each client's
+- [x] Behavior unchanged: per-client snapshots still carry each client's
       own `LastProcessedInput` (pinned by
       `SessionRoutingTests.EachClientReceivesItsOwnProcessedInputAck`).

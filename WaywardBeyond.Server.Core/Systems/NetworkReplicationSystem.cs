@@ -56,6 +56,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     //  with world size instead of dirtiness.
     private readonly NetworkComponentInfo[] _serverOwnedComponents;
 
+    //  The wire type tag (WorldSnapshot FullName) and its byte length, pre-encoded for snapshot framing.
+    private readonly byte[] _snapshotTypeTag;
+
     public NetworkReplicationSystem(
         in ServerConnectionHub hub,
         SessionManager sessions,
@@ -68,6 +71,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         //  0 = uncapped (every tick); the server wiring passes the configured cadence.
         _snapshotIntervalTicks = snapshotHz <= 0 ? 1 : (uint)Math.Max(1, 60 / snapshotHz);
         _serverOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ServerOwned)];
+        _snapshotTypeTag = System.Text.Encoding.UTF8.GetBytes(typeof(WorldSnapshot).FullName!);
     }
 
     /// <summary>
@@ -181,6 +185,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         ulong[] removed = _removed.ToArray();
         _removed.Clear();
 
+        //  Serialized once per tick: the authoritative component set is shared by every client, so the
+        //  whole snapshot frame is built a single time and fanned out with a per-client ack overwrite
+        //  (LastProcessedInput lives at a fixed 4-byte offset right after TickNumber).
+        byte[] sharedFrame = BuildSnapshotFrame(SimTick, 0, components, removed, removedComponents);
+        int payloadOffset = 8 + _snapshotTypeTag.Length;
+
         ComponentSnapshot[]? fullState = null;
         if (_fullSync.Count > 0)
         {
@@ -220,14 +230,14 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 continue;
             }
 
-            _hub.Send(clientId, new WorldSnapshot
-            {
-                TickNumber = SimTick,
-                LastProcessedInput = lastProcessedInput,
-                Components = components,
-                RemovedEntities = removed,
-                RemovedComponents = removedComponents,
-            });
+            //  Per-client copy of the shared frame with that client's own ack (and tick) rewritten.
+            //  The nsd payload is self-describing [field-id][value]: TickNumber sits at payload + 2,
+            //  its value is 4 bytes, then the 2-byte LastProcessedInput field id, then its 4-byte value
+            //  at payload + 8.
+            byte[] clientFrame = (byte[])sharedFrame.Clone();
+            BitConverter.TryWriteBytes(clientFrame.AsSpan(payloadOffset + 2, 4), SimTick);
+            BitConverter.TryWriteBytes(clientFrame.AsSpan(payloadOffset + 8, 4), lastProcessedInput);
+            _hub.SendRaw(clientId, clientFrame);
         }
 
         //  Lift the streaming gates recorded this tick, so the next publish sends deltas again.
@@ -366,6 +376,26 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     ///     so a shared registry never emits empty-payload snapshots for absent component kinds). Read-only:
     ///     dirty flags stay untouched and are cleared solely by the delta stage.
     /// </summary>
+    private byte[] BuildSnapshotFrame(uint tick, uint lastProcessedInput, ComponentSnapshot[] components, ulong[] removed, ComponentRemoval[] removedComponents)
+    {
+        byte[] payload = new WorldSnapshot
+        {
+            TickNumber = tick,
+            LastProcessedInput = lastProcessedInput,
+            Components = components,
+            RemovedEntities = removed,
+            RemovedComponents = removedComponents,
+        }.Serialize();
+
+        int bodyLength = 4 + _snapshotTypeTag.Length + payload.Length;
+        var frame = new byte[4 + bodyLength];
+        BitConverter.TryWriteBytes(frame.AsSpan(0, 4), bodyLength);
+        BitConverter.TryWriteBytes(frame.AsSpan(4, 4), _snapshotTypeTag.Length);
+        _snapshotTypeTag.CopyTo(frame, 8);
+        payload.CopyTo(frame, 8 + _snapshotTypeTag.Length);
+        return frame;
+    }
+
     private struct CollectFullStateAction : IForEach<NetworkComponent>
     {
         public readonly List<ComponentSnapshot> Components;

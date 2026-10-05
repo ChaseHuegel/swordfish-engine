@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Swordfish.Library.Util;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
@@ -335,6 +336,29 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IDispos
         {
             _reliableOverflowTicks = 0;
         }
+    }
+
+    public Result SendRaw(in byte[] frame)
+    {
+        if (!_isRunning)
+        {
+            return Result.FromFailure("Transport is not running.");
+        }
+
+        if (_sendQueue.TryAdd(new QueuedFrame(frame, frame.Length, pooled: false)))
+        {
+            return Result.FromSuccess();
+        }
+
+        _logger.LogWarning("Per-tick send queue full; dropping the oldest frame.");
+        if (_sendQueue.TryTake(out QueuedFrame dropped))
+        {
+            dropped.Return();
+        }
+
+        return _sendQueue.TryAdd(new QueuedFrame(frame, frame.Length, pooled: false))
+            ? Result.FromSuccess()
+            : Result.FromFailure("Send queue is full.");
     }
 
     public Result<T> Receive<T>()

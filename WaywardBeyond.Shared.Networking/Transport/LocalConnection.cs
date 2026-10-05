@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using Swordfish.Library.Util;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Shared.Networking.Serialization;
@@ -95,6 +96,23 @@ public sealed class LocalConnection
 
             _sendQueues.GetOrAdd(typeof(T), static _ => new ConcurrentQueue<byte[]>())
                 .Enqueue(payload);
+            return Result.FromSuccess();
+        }
+
+        public Result SendRaw(in byte[] frame)
+        {
+            //  A raw frame carries its own type tag; route the payload into that type's queue.
+            int tagLength = BitConverter.ToInt32(frame, 4);
+            string tag = System.Text.Encoding.UTF8.GetString(frame, 8, tagLength);
+            if (!_serializers.TryGetType(tag, out Type type))
+            {
+                return Result.FromFailure($"No serializer registered for type tag '{tag}'.");
+            }
+
+            var payload = new byte[frame.Length - 8 - tagLength];
+            Array.Copy(frame, 8 + tagLength, payload, 0, payload.Length);
+            _counters.RecordSent(payload.Length);
+            _sendQueues.GetOrAdd(type, static _ => new ConcurrentQueue<byte[]>()).Enqueue(payload);
             return Result.FromSuccess();
         }
 
