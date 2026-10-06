@@ -11,6 +11,7 @@ using Swordfish.Library.Types;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Networking;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Client.Core.Systems;
 
@@ -145,16 +146,30 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     public Task Save()
     {
+        SaveCharacter();
+
+        //  Only the local host may ask the server to flush the level. Remote clients save their own
+        //  character and let the server autosave the level.
+        if (_transportManager.IsLocal && _transportManager.IsConnected)
+        {
+            _ = _gameSaveService.TriggerServerSave();
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private void SaveCharacter()
+    {
         if (WaywardBeyond.GameState < GameState.Playing)
         {
-            return Task.CompletedTask;
+            return;
         }
-        
+
         using Lock.Scope activeSaveScope = _activeSaveLock.EnterScope();
-        
+
         if (ActiveSave == null)
         {
-            return Task.CompletedTask;
+            return;
         }
 
         GameSave save = ActiveSave.Value;
@@ -167,17 +182,8 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             LastPlayedMs = nowUtcMs,
         };
         _gameSaveService.UpdateSaveMeta(save.Level.Guid, meta);
-        
+
         _characterSaveManager.Save(_dataStore);
-
-        //  Only ask the server to flush its authoritative level when a server is actually reachable. After
-        //  a remote disconnect the transport is dropped, so the send would target a dead host for nothing.
-        if (_transportManager.IsConnected)
-        {
-            _ = _gameSaveService.TriggerServerSave();
-        }
-
-        return Task.CompletedTask;
     }
     
     public void SaveAndExit()
@@ -242,8 +248,9 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         {
             return;
         }
-        
-        Save();
+
+        //  Client autosave persists the character only. The server owns the level autosave cadence.
+        SaveCharacter();
     }
     
     private void OnGameStateChanged(object? sender, DataChangedEventArgs<GameState> e)

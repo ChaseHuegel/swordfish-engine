@@ -78,6 +78,20 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 |---|---|---|---|
 | `NameplateDistance` | int | 32 | remote player name tag render distance in world units; 0 disables tags (settings page control: 0-64, steps of 8) |
 
+## `gameplay.toml` (per app)
+
+Gameplay tunables shared by the client and the server, registered via
+`RegisterConfig<GameplaySettings>` (client `Injector.cs`, server
+`ServerComposition.cs`). Schema:
+`WaywardBeyond.Shared.Config/GameplaySettings.cs`.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `Autosave` | bool | `true` | enables the periodic save timers |
+| `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page edits it as minutes (1-60) |
+| `ControlHints` | bool | `true` | show the control hints overlay |
+| `Crosshair` | bool | `true` | show the crosshair |
+
 ## `physics.toml` (per app)
 
 Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by

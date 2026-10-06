@@ -89,6 +89,12 @@ save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
 server's level metadata in `GameSaveService.GetSaves()`. Character save is
 handled by `CharacterSaveManager` + `SqliteCharacterStorage`.
 
+`GameSaveManager` (`Client.Core/Saves/GameSaveManager.cs`) owns the client save
+cadence. Its autosave timer saves the character only. Pause, F5, and close call
+`Save()`, which saves the character and, on the local host only, sends a
+`SaveLevelRequest`. Remote clients never request a level save; the server
+autosaves the level.
+
 ## Serialization and data versioning
 
 `SaveMigrator` (`Shared.Data/Saves/SaveMigrator.cs`) gates on

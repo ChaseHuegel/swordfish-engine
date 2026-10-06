@@ -5,6 +5,7 @@ using Swordfish.Graphics;
 using Swordfish.Library.Globalization;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Configuration;
+using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Client.Core.UI.Layers;
 

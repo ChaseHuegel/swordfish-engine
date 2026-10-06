@@ -52,6 +52,10 @@ public static class ServerComposition
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 
+        //  The server reads the level autosave cadence from gameplay.toml. The client registers the
+        //  same file earlier in host mode, so the first registration is kept.
+        container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
+
         container.Register<World>();
         container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingSettings>())));
         container.Register<SessionManager>();

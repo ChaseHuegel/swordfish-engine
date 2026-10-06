@@ -8,6 +8,7 @@ using Swordfish.Settings;
 using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Numerics;
 using WaywardBeyond.Client.Core.Services;
+using WaywardBeyond.Shared.Config;
 
 namespace WaywardBeyond.Client.Core.UI.Layers.Menus;
 
