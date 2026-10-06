@@ -56,16 +56,12 @@ internal sealed class PlayerViewModelSystem(
 
             Owner._currentViewModel = viewModel;
 
-            //  Cleanup any pre-existing mesh renderer
+            //  Cleanup any pre-existing mesh renderer. Only the renderer is disposed: the mesh is shared
+            //  from the asset database, so disposing it would corrupt the asset for later swaps.
             MeshRendererComponent? meshRendererComponent = Owner._viewModelEntity.Value.Get<MeshRendererComponent>();
             if (meshRendererComponent != null)
             {
-                if (meshRendererComponent.Value.MeshRenderer != null)
-                {
-                    meshRendererComponent.Value.MeshRenderer.Dispose();
-                    meshRendererComponent.Value.MeshRenderer.Mesh.Dispose();
-                }
-
+                meshRendererComponent.Value.MeshRenderer?.Dispose();
                 Owner._viewModelEntity.Value.Remove<MeshRendererComponent>();
             }
 
