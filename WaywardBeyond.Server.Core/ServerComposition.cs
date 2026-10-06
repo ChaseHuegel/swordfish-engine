@@ -36,6 +36,7 @@ public static class ServerComposition
         //  Server-level menu facade: create/list/delete saved levels for connections that have not
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
+        container.Register<ServerHostHeartbeat>(Reuse.Singleton);
         container.Register<PendingLevelDeletes>(Reuse.Singleton);
         container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
 

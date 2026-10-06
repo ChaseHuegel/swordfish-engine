@@ -75,8 +75,10 @@ public class ServerWorldDisposalTests : IDisposable
         _pendingJoins = new PendingJoins();
         var pendingDeletes = new PendingLevelDeletes();
         var levelCatalog = new StubLevelCatalog();
+        var settings = new NetworkingSettings();
         var levelManager = new ServerLevelManager(_pendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
-        _host = new ServerWorldHost(_container, levelManager, _pendingJoins, pendingDeletes, levelCatalog, new NetworkingSettings(), NullLoggerFactory.Instance);
+        var hostHeartbeat = new ServerHostHeartbeat(_pendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
+        _host = new ServerWorldHost(_container, levelManager, hostHeartbeat, _pendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
     }
 
     public void Dispose()

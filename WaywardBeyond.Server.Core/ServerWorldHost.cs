@@ -43,6 +43,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
 
     private readonly IContainer _container;
     private readonly ServerLevelManager _levelManager;
+    private readonly ServerHostHeartbeat _hostHeartbeat;
     private readonly PendingJoins _pendingJoins;
     private readonly PendingLevelDeletes _pendingDeletes;
     private readonly ILevelCatalog _levelCatalog;
@@ -57,6 +58,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     public ServerWorldHost(
         in IContainer container,
         in ServerLevelManager levelManager,
+        in ServerHostHeartbeat hostHeartbeat,
         in PendingJoins pendingJoins,
         in PendingLevelDeletes pendingDeletes,
         in ILevelCatalog levelCatalog,
@@ -65,6 +67,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     ) {
         _container = container;
         _levelManager = levelManager;
+        _hostHeartbeat = hostHeartbeat;
         _pendingJoins = pendingJoins;
         _pendingDeletes = pendingDeletes;
         _levelCatalog = levelCatalog;
@@ -150,6 +153,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             _levelManager.Tick();
             ProcessPendingLevelDeletes();
             RoutePendingJoins();
+            //  Keep pre-join connections live: they are in no world hub, so only this host-level pump
+            //  feeds their read socket until a JoinRequest binds them to a world.
+            _hostHeartbeat.Tick((uint)PlayerCount);
 
             //  Unloads are deferred until after the world iteration: removing from _worlds during the
             //  tick loop would invalidate the enumerator.

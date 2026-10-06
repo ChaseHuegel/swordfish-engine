@@ -57,7 +57,8 @@ public class ServerWorldHostTests
             var pendingDeletes = new PendingLevelDeletes();
             var levelCatalog = new StubLevelCatalog();
             var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
-            Host = new ServerWorldHost(container, levelManager, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
+            var hostHeartbeat = new ServerHostHeartbeat(PendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
+            Host = new ServerWorldHost(container, levelManager, hostHeartbeat, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 
             LocalA = new LocalConnection(Serializers);
             LocalB = new LocalConnection(Serializers);
@@ -265,5 +266,20 @@ public class ServerWorldHostTests
         WaitUntil(fixture.Host, () => fixture.LocalB.Client.Receive<JoinAccept>().Success, "B must be accepted into world B.");
         WaitUntil(fixture.Host, () => fixture.Host.WorldCount == 2, "Joining a different level must create a second world.");
         WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 2, "A must survive world B's creation.");
+    }
+
+    [Fact]
+    public void PendingConnectionsReceiveHeartbeatsBeforeJoin()
+    {
+        using Fixture fixture = new();
+
+        //  Neither loopback sends a JoinRequest, so both stay in the pending set. The host must still
+        //  feed their read socket, or a menu-time client's read timeout drops the connection.
+        WaitUntil(
+            fixture.Host,
+            () => fixture.LocalA.Client.Receive<ServerHeartbeatMessage>().Success
+                && fixture.LocalB.Client.Receive<ServerHeartbeatMessage>().Success,
+            "Pending connections must receive server heartbeats before they join."
+        );
     }
 }

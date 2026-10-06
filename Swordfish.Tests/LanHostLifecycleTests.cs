@@ -42,7 +42,8 @@ public class LanHostLifecycleTests
         var pendingDeletes = new PendingLevelDeletes();
         var levelCatalog = new StubLevelCatalog();
         var levelManager = new ServerLevelManager(pendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
-        var worldHost = new ServerWorldHost(new Container(), levelManager, pendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
+        var hostHeartbeat = new ServerHostHeartbeat(pendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
+        var worldHost = new ServerWorldHost(new Container(), levelManager, hostHeartbeat, pendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
         var lanHost = new LanHost(_serializers, pendingJoins, worldHost, settings, new LanHostInfo(), NullLoggerFactory.Instance);
 
         //  The host's own transport registry and LanHost's id map are private; reflection reads them to

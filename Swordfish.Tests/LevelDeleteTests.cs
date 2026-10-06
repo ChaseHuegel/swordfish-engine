@@ -39,8 +39,10 @@ public class LevelDeleteTests
 
             var pendingJoins = new PendingJoins();
             var pendingDeletes = new PendingLevelDeletes();
+            var networkingSettings = new NetworkingSettings();
             var manager = new ServerLevelManager(pendingJoins, pendingDeletes, catalog, NullLoggerFactory.Instance);
-            var host = new ServerWorldHost(new Container(), manager, pendingJoins, pendingDeletes, catalog, new NetworkingSettings(), NullLoggerFactory.Instance);
+            var hostHeartbeat = new ServerHostHeartbeat(pendingJoins, networkingSettings, NullLogger<ServerHostHeartbeat>.Instance);
+            var host = new ServerWorldHost(new Container(), manager, hostHeartbeat, pendingJoins, pendingDeletes, catalog, networkingSettings, NullLoggerFactory.Instance);
 
             var connection = new LocalConnection(new INetworkSerializer[]
             {

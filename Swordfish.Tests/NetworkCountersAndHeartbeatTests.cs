@@ -117,6 +117,41 @@ public class NetworkCountersAndHeartbeatTests
     }
 
     [Fact]
+    public void HostHeartbeatKeepsPendingConnectionLive()
+    {
+        var settings = new NetworkingSettings();
+        settings.ConnectionTimeoutMs.Set(4000);
+        settings.HeartbeatIntervalMs.Set(250);
+
+        var pendingJoins = new PendingJoins();
+        var connection = new LocalConnection(_serializers);
+        pendingJoins.Add(connection.Server);
+
+        var service = new ServerHostHeartbeat(pendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
+
+        //  A pending connection's client heartbeat is drained, not left queued.
+        connection.Client.Send(new ClientHeartbeatMessage { TickNumber = 1, LastAppliedSnapshotTick = 1 });
+        service.Tick(playerCount: 0);
+        Assert.False(connection.Server.Receive<ClientHeartbeatMessage>().Success);
+
+        //  The server heartbeat reaches the pending connection at cadence.
+        var deadline = Environment.TickCount + 2000;
+        while (Environment.TickCount < deadline)
+        {
+            service.Tick(playerCount: 0);
+            Result<ServerHeartbeatMessage> heartbeat = connection.Client.Receive<ServerHeartbeatMessage>();
+            if (heartbeat.Success)
+            {
+                Assert.True(heartbeat.Value.TPS >= 1);
+                return;
+            }
+            Thread.Sleep(20);
+        }
+
+        Assert.True(false, "No server heartbeat emitted to a pending connection at cadence.");
+    }
+
+    [Fact]
     public void LaggingClientWarnsOncePerCrossing()
     {
         var settings = new NetworkingSettings();

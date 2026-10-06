@@ -75,9 +75,15 @@ from connection establishment - server → client `ServerHeartbeatMessage`
 (carrying the averaged `TPS`, the current sim `TickNumber`, and
 `PlayerCount`), client → server `ClientHeartbeatMessage` (carrying the client's
 sim tick and last applied snapshot tick). The receive loop no longer skips any
-frame kind; a genuinely idle link times out. The server tracks each client's
-reported tick and logs a warn when it falls behind by more than
-`TickLagWarnThreshold` sim ticks (once per crossing).
+frame kind; a genuinely idle link times out. The server emits its half from two
+pumps so every accepted connection stays readable: the per-world
+`ServerHeartbeatService` for connections bound to a world hub, and the
+host-level `ServerHostHeartbeat` (`Server.Core/ServerHostHeartbeat.cs`) for
+connections still in the pending set - the menu and character-creation window,
+before any world exists. The host-level pump also drains the pending
+connection's client heartbeats, so they cannot pile up unread. The server
+tracks each client's reported tick and logs a warn when it falls behind by more
+than `TickLagWarnThreshold` sim ticks (once per crossing).
 
 Disconnect detection is symmetric. Either the receive or the send thread can
 observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
@@ -244,6 +250,7 @@ shutdown (level flush, session teardown, store disposal, per
 - `WaywardBeyond.Shared.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
 - `WaywardBeyond.Server.Core/SessionManager.cs`
 - `WaywardBeyond.Server.Core/LanHost.cs`
+- `WaywardBeyond.Server.Core/ServerHostHeartbeat.cs`
 - `WaywardBeyond.Client.Core/Networking/LanDiscoveryService.cs`
 - `WaywardBeyond.Client.Core/Networking/TransportManager.cs`
 - `WaywardBeyond.Client.Core/Systems/ClientDisconnectSystem.cs`

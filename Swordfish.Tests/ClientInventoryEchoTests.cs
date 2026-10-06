@@ -54,7 +54,8 @@ public class ClientInventoryEchoTests
             var pendingDeletes = new PendingLevelDeletes();
             var levelCatalog = new StubLevelCatalog();
             var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
-            Host = new ServerWorldHost(container, levelManager, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
+            var hostHeartbeat = new ServerHostHeartbeat(PendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
+            Host = new ServerWorldHost(container, levelManager, hostHeartbeat, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 
             Local = new LocalConnection(Serializers);
             PendingJoins.Add(Local.Server);
