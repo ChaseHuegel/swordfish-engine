@@ -54,7 +54,7 @@ public sealed class BillboardSystem(IRenderContext renderContext) : IEntitySyste
     {
         _seenOwners.Add(record.Owner);
 
-        Vector3 position = record.Position + record.Offset;
+        Vector3 position = record.Position + (Vector3.Transform(record.Offset, record.Orientation));
         Quaternion orientation = GetAxialLookAt(cameraPosition, position, record.Orientation);
         //  Mirror the quad's X so a laterally-facing character looks left or right from the camera.
         int facing = GetHorizontalFacing(record.Orientation, position, cameraPosition);
