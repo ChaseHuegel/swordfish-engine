@@ -202,6 +202,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         TransformMessage message = TransformMessage.Deserialize(payload);
 
         var serverPosition = new Vector3(message.PositionX, message.PositionY, message.PositionZ);
+        var serverOrientation = new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW);
         var serverScale = new Vector3(message.ScaleX, message.ScaleY, message.ScaleZ);
 
         if (_seatedPlayers.Add(store.GetUuid(entity)))
@@ -209,17 +210,18 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             //  Seed the server-assigned spawn transform once.
             store.AddOrUpdate(entity, new TransformComponent(
                 serverPosition,
-                new Quaternion(message.OrientationX, message.OrientationY, message.OrientationZ, message.OrientationW),
+                serverOrientation,
                 serverScale
             ));
             return;
         }
 
         //  Keep the locally predicted look; snap only position/scale from the authority.
-        store.QueryRef<TransformComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<TransformComponent> transform) =>
+        store.QueryRef(entity, 0f, (float _, DataStore s, int e, ref Ref<TransformComponent> transform) =>
         {
             ref TransformComponent transformValue = ref transform.Write;
             transformValue.Position = serverPosition;
+            transformValue.Orientation = serverOrientation;
             transformValue.Scale = serverScale;
         });
     }
