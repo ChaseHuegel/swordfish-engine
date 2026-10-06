@@ -40,6 +40,7 @@ public class ServerWorldCompositionTests
             MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
             Container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
             Container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
+            Container.RegisterInstance(TestPermissions.EmptyPolicy);
 
             ServerComposition.Register(Container);
         }

@@ -1,14 +1,19 @@
 using System;
+using System.Collections.Generic;
 using DryIoc;
 using Microsoft.Extensions.Logging;
+using Shoal.Extensions.Swordfish;
+using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Settings;
+using WaywardBeyond.Server.Core.Permissions;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Permissions;
 
 namespace WaywardBeyond.Server.Core;
 
@@ -33,6 +38,19 @@ public static class ServerComposition
         container.Register<ServerLevelManager>(Reuse.Singleton);
         container.Register<PendingLevelDeletes>(Reuse.Singleton);
         container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+
+        //  Permissions: parse module and admin files once at startup; each world binds its own claims.
+        container.RegisterTomlParser<PermissionFile>();
+        container.Register<PermissionFileLoader>(Reuse.Singleton);
+        container.RegisterDelegate<IPermissionPolicy>(context =>
+        {
+            PermissionFileLoader loader = context.Resolve<PermissionFileLoader>();
+            var diagnostics = new PermissionDiagnostics();
+            IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
+            return PermissionPolicy.Create(files, diagnostics);
+        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<IUserPermissionService, UserPermissionService>();
+        container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 
         container.Register<World>();
         container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingSettings>())));

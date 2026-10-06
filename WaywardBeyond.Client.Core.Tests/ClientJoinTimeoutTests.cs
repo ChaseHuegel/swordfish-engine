@@ -22,6 +22,7 @@ using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Permissions;
 using NUnit.Framework;
 
 namespace WaywardBeyond.Client.Core.Tests;
@@ -99,6 +100,11 @@ public class ClientJoinTimeoutTests
         public Result DeleteCharacter(ulong id) => Result.FromSuccess();
     }
 
+    private sealed class StubUserClaimProvider : IUserClaimProvider
+    {
+        public UserClaim GetClaim() => new("test-user");
+    }
+
     [Test]
     public void JoinThatNeverCompletesReturnsToMenuAfterTimeout()
     {
@@ -125,7 +131,8 @@ public class ClientJoinTimeoutTests
             NullLogger<ClientJoinSystem>.Instance,
             new StubBrickIdMap(),
             disconnectSystem,
-            settings
+            settings,
+            new StubUserClaimProvider()
         );
 
         GameState prior = WaywardBeyond.GameState.Get();
@@ -182,7 +189,8 @@ public class ClientJoinTimeoutTests
             NullLogger<ClientJoinSystem>.Instance,
             new StubBrickIdMap(),
             disconnectSystem,
-            settings
+            settings,
+            new StubUserClaimProvider()
         );
 
         GameState prior = WaywardBeyond.GameState.Get();

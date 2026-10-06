@@ -12,6 +12,7 @@ using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Permissions;
 
 namespace WaywardBeyond.Client.Core.Systems;
 
@@ -32,6 +33,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly IBrickIdMap _brickIdMap;
     private readonly ClientDisconnectSystem _disconnectSystem;
     private readonly NetworkingSettings _settings;
+    private readonly IUserClaimProvider _userClaimProvider;
     private readonly ILogger<ClientJoinSystem> _logger;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
@@ -48,7 +50,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
         ILogger<ClientJoinSystem> logger,
         IBrickIdMap brickIdMap,
         in ClientDisconnectSystem disconnectSystem,
-        in NetworkingSettings settings
+        in NetworkingSettings settings,
+        in IUserClaimProvider userClaimProvider
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
@@ -56,6 +59,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         _brickIdMap = brickIdMap;
         _disconnectSystem = disconnectSystem;
         _settings = settings;
+        _userClaimProvider = userClaimProvider;
         _logger = logger;
     }
 
@@ -102,6 +106,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
                     //  transient per-session skill state, which the server then owns for the session.
                     Statistics = character.Statistics,
                 },
+                UserId = _userClaimProvider.GetClaim().UserId,
             });
             if (!send.Success)
             {

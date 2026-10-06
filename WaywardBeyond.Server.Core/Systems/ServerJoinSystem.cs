@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Core.Components;
+using WaywardBeyond.Server.Core.Permissions;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Bricks;
 using WaywardBeyond.Shared.Data;
@@ -12,6 +13,7 @@ using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Permissions;
 using WaywardBeyond.Shared.Skills;
 
 namespace WaywardBeyond.Server.Core.Systems;
@@ -35,6 +37,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly ServerJoinQueue _joinQueue;
     private readonly SkillDatabase? _skillDatabase;
     private readonly IBrickIdMap _brickIdMap;
+    private readonly IUserPermissionService? _permissions;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -48,7 +51,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         in ILogger<ServerJoinSystem> logger,
         IBrickIdMap brickIdMap,
         in SkillDatabase? skillDatabase = null,
-        in ServerJoinQueue? joinQueue = null
+        in ServerJoinQueue? joinQueue = null,
+        in IUserPermissionService? permissions = null
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -59,6 +63,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _brickIdMap = brickIdMap;
         _logger = logger;
         _joinQueue = joinQueue ?? new ServerJoinQueue();
+        _permissions = permissions;
     }
 
     public void Tick(float delta, DataStore store)
@@ -91,6 +96,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     {
         foreach (Uuid clientId in _hub.DrainDisconnects())
         {
+            _permissions?.Unbind(clientId);
+
             if (_sessions.TryGetEntity(clientId, out int entity))
             {
                 if (store.TryGet(entity, out PhysicsComponent physics))
@@ -140,6 +147,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             //  Stamp the save's server-owned time played: this player's session ended.
             _saveService.EndSessionStamp();
         }
+
+        _permissions?.Unbind(clientId);
     }
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
@@ -247,6 +256,13 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
+
+        //  Bind the joining client's claim so permission checks resolve against this session.
+        if (_permissions != null)
+        {
+            bool isHost = _hub.TryGet(clientId, out IServerConnection connection) && connection.IsLocal;
+            _permissions.Bind(clientId, new UserClaim(request.UserId ?? string.Empty), isHost);
+        }
 
         //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
         //  (EndStream), so the client's Loading-time receive queue cannot pile up snapshots.

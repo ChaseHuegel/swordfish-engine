@@ -16,6 +16,7 @@ using WaywardBeyond.Client.Core.Configuration;
 using WaywardBeyond.Client.Core.Events;
 using WaywardBeyond.Client.Core.Globalization;
 using WaywardBeyond.Client.Core.Graphics;
+using WaywardBeyond.Client.Core.Identity;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Meta;
 using WaywardBeyond.Client.Core.Networking;
@@ -45,6 +46,7 @@ using WaywardBeyond.Shared.Networking.Discovery;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Shared.Permissions;
 
 namespace WaywardBeyond.Client.Core;
 
@@ -94,6 +96,8 @@ public class Injector : IDryIocInjector
         container.Register<GameSaveService>(Reuse.Singleton);
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
+
+        container.Register<IUserClaimProvider, ProfileUserClaimProvider>(Reuse.Singleton);
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();

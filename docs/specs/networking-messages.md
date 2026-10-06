@@ -222,6 +222,10 @@ message CharacterSeed
 }
 ```
 
+`JoinRequest.UserId` is the client's stable user id. The server treats it as an
+unauthenticated claim and binds it to the session for permission checks. See
+[permissions](permissions.md).
+
 ## Notifications and skill state
 
 Server-to-client gameplay signaling in `network.nsd`. Servers never localize:

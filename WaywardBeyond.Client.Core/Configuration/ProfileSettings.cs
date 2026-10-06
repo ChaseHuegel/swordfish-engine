@@ -18,6 +18,9 @@ public sealed class ProfileSettings : Config<ProfileSettings>
     /// <summary>How the last gameplay session was joined; Continue branches on this.</summary>
     public DataBinding<Configuration.LastServerMode> LastServerMode { get; private set; } = new(Configuration.LastServerMode.Local);
 
+    /// <summary>The stable local user id. It is generated on first use and sent as the permission claim.</summary>
+    public DataBinding<string> UserId { get; private set; } = new(string.Empty);
+
     /// <summary>The player's saved servers (connect targets), capped at 32 entries, deduped by host:port.</summary>
     public DataBinding<List<SavedServer>> SavedServers { get; private set; } = new([]);
 }

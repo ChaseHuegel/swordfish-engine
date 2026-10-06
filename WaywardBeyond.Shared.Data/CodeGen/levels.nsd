@@ -57,6 +57,7 @@ message JoinRequest
     ulong CharacterId = 1;
     PublicView PublicView = 2;
     CharacterSeed Seed = 3;
+    string UserId = 4;
 }
 
 message CharacterSeed

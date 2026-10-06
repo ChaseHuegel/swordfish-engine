@@ -8,6 +8,15 @@ namespace WaywardBeyond.Shared.Permissions;
 /// </summary>
 public interface IPermissionPolicy
 {
+    /// <summary>Warnings and errors collected while loading and compiling.</summary>
+    PermissionDiagnostics Diagnostics { get; }
+
+    /// <summary>The number of loaded groups.</summary>
+    int GroupCount { get; }
+
+    /// <summary>The number of loaded users.</summary>
+    int UserCount { get; }
+
     /// <summary>Returns the compiled permission set for a user. Unlisted users share the default set.</summary>
     PermissionSet GetPermissions(string userId);
 

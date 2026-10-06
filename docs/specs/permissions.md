@@ -92,13 +92,30 @@ when code checks many keys, so the user lookup happens once.
 
 | Type | Role |
 |---|---|
-| `IPermissionPolicy` | `GetPermissions`, `HasPermission`, `GetRoles`, `GetEffectivePermissions` |
+| `IPermissionPolicy` | `GetPermissions`, `HasPermission`, `GetRoles`, `GetEffectivePermissions`; `Diagnostics`, `GroupCount`, `UserCount` |
 | `PermissionSet` | A compiled set; `HasPermission`; `AllowAll` grants everything |
-| `PermissionPolicy` | The compiled policy; `Create`; `Diagnostics`, `GroupCount`, `UserCount` |
+| `PermissionPolicy` | The compiled policy; `Create` |
 | `PermissionFileLoader` | Scans the two roots and parses files |
 | `PermissionLoadOptions` | `AssetRoot` (default `permissions/`), `ConfigRoot` (default `config/permissions/`) |
 | `PermissionDiagnostics` | `Warnings` and `Errors` from load and compile |
 | `UserClaim`, `IUserClaimProvider` | The user identity seam |
+
+## Server integration
+
+`UserPermissionService` (`WaywardBeyond.Server.Core/Permissions/UserPermissionService.cs`)
+binds a session to a claim and resolves the compiled set once at bind time.
+`ServerJoinSystem` binds at join and unbinds on leave or disconnect. The local
+host connection gets `PermissionSet.AllowAll`. An unbound client is denied.
+
+`PermissionEntryPoint`
+(`WaywardBeyond.Server.Core/Permissions/PermissionEntryPoint.cs`) resolves the
+policy at startup and logs the counts and every diagnostic.
+`GamePermissions` (`WaywardBeyond.Server.Core/Permissions/GamePermissions.cs`)
+declares the built-in feature keys.
+
+The game ships `WaywardBeyond.Server.Core/assets/permissions/default.toml`. It
+declares the `default` and `admin` groups. Mods ship defaults under their own
+`assets/permissions/` root.
 
 ## Tests that pin this
 

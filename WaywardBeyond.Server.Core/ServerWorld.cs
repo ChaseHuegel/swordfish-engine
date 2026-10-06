@@ -1,6 +1,7 @@
 using System;
 using DryIoc;
 using Swordfish.ECS;
+using WaywardBeyond.Server.Core.Permissions;
 using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Gameplay;
@@ -37,6 +38,7 @@ public sealed class ServerWorld : IDisposable
         JoinQueue = Pin<ServerJoinQueue>(container);
         Pin<NetworkReplicationSystem>(container);
         Pin<ServerSkillSystem>(container);
+        Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
         Pin<SharedSimulationStep>(container);
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);

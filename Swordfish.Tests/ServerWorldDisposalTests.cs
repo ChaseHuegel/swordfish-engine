@@ -66,6 +66,7 @@ public class ServerWorldDisposalTests : IDisposable
         MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
         _container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
         _container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
+        _container.RegisterInstance(TestPermissions.EmptyPolicy);
         _container.Register<RootDisposable>(Reuse.Singleton);
 
         ServerComposition.Register(_container);

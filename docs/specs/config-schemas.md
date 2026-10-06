@@ -124,6 +124,7 @@ Schema: `WaywardBeyond.Client.Core/Configuration/ProfileSettings.cs`.
 | Key | Type | Default | Purpose |
 |---|---|---|---|
 | `LastServerMode` | enum | `Local` | how the last session was joined (`Local` \| `Remote`); Continue branches on this |
+| `UserId` | string | `""` | stable local user id; generated on first use and sent as the join permission claim |
 | `SavedServers` | `SavedServer[]` | `[]` | saved connect targets, each `{ Name, Host, Port }`; deduped by host:port, capped at 32 |
 
 ## How configs load
