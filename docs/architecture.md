@@ -22,6 +22,7 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Server.Core/` | Game server module | `net9.0` | — |
 | `WaywardBeyond.Shared.Data/` | Shared data models (client+server) | — | — |
 | `WaywardBeyond.Shared.Config/` | Shared config types | — | — |
+| `WaywardBeyond.Shared.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
 | `WaywardBeyond.Shared.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
 | `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |

@@ -58,6 +58,7 @@ Every top-level path and what it is:
 | `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation |
 | `WaywardBeyond.Shared.Skills/` | Shared skill module: definitions, headless loader, server skill state |
 | `WaywardBeyond.Shared.Networking/` | Standalone networking layer over the ECS |
+| `WaywardBeyond.Shared.Permissions/` | Shared dot-key permission policy and file loader |
 | `docs/` | Self-documenting doc system (subject index in `docs/README.md`) |
 | `README.md`, `LICENSE` | Project docs |
 

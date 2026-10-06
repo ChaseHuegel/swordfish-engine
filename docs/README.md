@@ -30,6 +30,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Brick identity, voxel ids, the palette, and data versioning | [specs/brick-identity](specs/brick-identity.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
+| Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
 | Local issue index and agent workflow | [specs/issues](specs/issues.md) |
 
