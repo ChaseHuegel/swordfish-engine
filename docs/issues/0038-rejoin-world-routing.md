@@ -1,7 +1,7 @@
 # Bug: Rejoining a different save tears down the shared world
 
 - Type: bug
-- Status: in-progress
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -32,11 +32,11 @@ Playtest evidence (one server process):
 
 ## Acceptance criteria
 
-- [ ] A client that leaves a world and joins a different save lands in that
+- [x] A client that leaves a world and joins a different save lands in that
       level's own world; the original world and its players are untouched.
-- [ ] `ServerJoinSystem.HandleJoin` refuses a level mismatch with an error log.
+- [x] `ServerJoinSystem.HandleJoin` refuses a level mismatch with an error log.
       It never switches a live world's active level.
-- [ ] A connection returns to `PendingJoins` after `LeaveGame`, so the next
+- [x] A connection returns to `PendingJoins` after `LeaveGame`, so the next
       `JoinRequest` is routed by `ServerWorldHost`.
-- [ ] A regression test covers a cross-level rejoin while another session is
+- [x] A regression test covers a cross-level rejoin while another session is
       live, and asserts no cross-world despawns and no session-uuid warnings.

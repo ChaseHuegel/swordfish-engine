@@ -1,7 +1,7 @@
 # Bug: Shared NATS server never promotes when its owner closes
 
 - Type: bug
-- Status: in-progress
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -26,13 +26,13 @@ client-owned `saves` and `characters` buckets across processes is accepted.
 
 ## Acceptance criteria
 
-- [ ] At boot the process probes the NATS address. A reachable address selects
+- [x] At boot the process probes the NATS address. A reachable address selects
       shared mode with no child; otherwise it starts the child as owner.
-- [ ] In shared mode, when the address becomes unreachable the process starts
+- [x] In shared mode, when the address becomes unreachable the process starts
       the child with backoff, and stops probing once it binds.
-- [ ] An owned child that exits restarts with backoff and never throws out of
+- [x] An owned child that exits restarts with backoff and never throws out of
       the exit handler.
-- [ ] The child launches with the host and port from `NATS_URL`, and Linux stops
+- [x] The child launches with the host and port from `NATS_URL`, and Linux stops
       it gracefully before kill.
-- [ ] `KeyValueStore` retries the initial connect (`RetryOnInitialConnect`).
-- [ ] Tests cover shared-mode detection and promotion.
+- [x] `KeyValueStore` retries the initial connect (`RetryOnInitialConnect`).
+- [x] Tests cover shared-mode detection and promotion.

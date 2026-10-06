@@ -48,6 +48,19 @@ save worlds. World data is streamed to the client during join.
    collider) on the ECS thread, and **only** transitions to `Playing` on
    `WorldStreamComplete`.
 
+## Save switch and rejoin
+
+A player who returns to the menu sends `LeaveGameRequest`. The server ends the
+session and frees the player mirror. The host then returns the connection to
+the pending set (`ServerWorldHost.ReturnSessionlessConnectionsToPending`, `ServerWorldHost.cs:89`), so
+the player's next `JoinRequest` is world-routed (see
+[networking-worlds](networking-worlds.md)).
+
+A world serves exactly one level. A join that names another level is refused
+with an error log; the host creates a separate world for that level instead.
+This keeps the first world and its players intact when a second player switches
+saves.
+
 ## `Playing` as the gate
 
 `Playing` keeps `ClientReconcileSystem` inert until the world is fully streamed.

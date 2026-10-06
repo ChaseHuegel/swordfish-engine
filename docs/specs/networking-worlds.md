@@ -102,6 +102,14 @@ world, and an unload returns it to the pending set. Disconnects of bound
 peers release the world binding; the session teardown (despawn, stamp) stays
 in the owning world's join system.
 
+When a player leaves to the menu, the host returns the connection to the
+pending set after the world tick (`ServerWorldHost.ReturnSessionlessConnectionsToPending`, `ServerWorldHost.cs:89`).
+A bound connection without a session is idle, never mid-join: joins are
+enqueued and registered within one world tick. The next `JoinRequest` is then
+routed, so a player can switch saves. A world serves exactly one level;
+`ServerJoinSystem.HandleJoin` refuses a join that names another level with an
+error log (`ServerJoinSystem.cs`).
+
 The singleplayer host is the N=1 case: its loopback rides the same pending →
 hub → join path when it joins a world.
 

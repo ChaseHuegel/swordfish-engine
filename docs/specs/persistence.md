@@ -4,14 +4,18 @@ One subject: how save data persists.
 
 ## Substrate
 
-All save data flows through a local NATS JetStream server launched by
+All save data flows through a NATS JetStream server wrapped by `KeyValueStore`
+(NATS KV, sync-over-async) in `WaywardBeyond.Shared.Data/KeyValueStore.cs`.
 `PersistentNatsProcess` (`Server.Core/Streaming/PersistentNatsProcess.cs`,
-started from the client `Entry`), wrapped by `KeyValueStore` (NATS KV,
-sync-over-async) in `WaywardBeyond.Shared.Data/KeyValueStore.cs`.
+started from the client `Entry`) ensures a server is reachable at the
+`NATS_URL` address: it uses an existing server or starts a bundled child (see
+[Embedded NATS process lifecycle](#embedded-nats-process-lifecycle)).
 
-Environment config (in `KeyValueStore.cs:16-18`): `NATS_URL`, `NATS_JWT`,
-`NATS_NKEY_SEED`; default `nats://127.0.0.1:4222`. Buckets are auto-created on
-first use.
+Environment config: `NATS_URL` (server address), `NATS_EXTRA_ARGS` (extra
+`nats-server` arguments), `NATS_JWT` and `NATS_NKEY_SEED` (auth). The default
+address is `nats://127.0.0.1:4222`. Buckets are auto-created on first use.
+`KeyValueStore` retries the initial connect (`KeyValueStore.cs:38`), so a first
+operation can survive a server handoff.
 
 `KeyValueStore` operations: `Put<T>`, `Get<T>`, `GetKeys`, `Delete` (single and
 bulk). It is sync-over-async (blocks on `.Task.Result`), so a full-world save
@@ -33,10 +37,10 @@ must be throttled/submitted to a worker and not run inline on the server tick.
 `BUCKET_NAME = "saves"` at line 9). Key = `<levelGuid>`, value = serialized
 `SaveMeta` (`LastPlayedMs`, `AgeMs`).
 
-Client-owned. Each process runs its own local NATS, so this bucket is per-client
-by construction: two clients joining the same multiplayer save each track their
-own "last played" and "time played" for it. `ISaveMetaStorage` is the interface
-contract, mirrored on the `characters` bucket.
+Client-owned. Processes on one machine can share one NATS server, so this
+bucket can be shared too: two clients then share one save meta per level. This
+sharing is accepted. `ISaveMetaStorage` is the interface contract, mirrored on
+the `characters` bucket.
 
 ## `characters` bucket
 
@@ -100,12 +104,25 @@ process exits. The flush must be awaited before `PersistentNatsProcess` dispose
 
 ## Embedded NATS process lifecycle
 
-`PersistentNatsProcess` (`Server.Core/Streaming/`) starts the bundled
-`nats-server` child, restarts it on crash (guarded by a disposed flag), and
-terminates it deterministically on dispose: handlers detach first, then the
-child (and its tree) is killed with a bounded wait — `Process.Dispose` alone
-only releases the handle. On Windows the child also rides a Job object. The
-close path is: window close → `SwordfishEngine.Run` returns → `AppEngine.Dispose`
+`PersistentNatsProcess` (`Server.Core/Streaming/`) ensures a NATS server is
+reachable at the `NATS_URL` address. At start it probes the address (`PersistentNatsProcess.cs:104`). A
+reachable address selects shared mode: the process uses the existing server and
+starts no child. An unreachable loopback address starts the bundled
+`nats-server` child, bound to the URL port.
+
+A supervisor thread keeps the address covered (`PersistentNatsProcess.cs:206`). In shared mode it promotes to
+owner when the server goes away: it starts the child with backoff until it
+binds. An owned child that exits is restarted the same way. The restart never
+throws out of the exit handler. A client that shared another process's server
+therefore takes over when that process closes.
+
+Dispose is deterministic: it stops the supervisor, detaches the event handlers,
+stops the child gracefully, and force-kills it after a bounded wait
+(`PersistentNatsProcess.cs:320`). On Linux
+the graceful step sends SIGTERM so JetStream closes cleanly. On Windows the
+child also rides a Job object. `Process.Dispose` alone only releases the handle.
+
+The close path is: window close → `SwordfishEngine.Run` returns → `AppEngine.Dispose`
 → container dispose → `PersistentNatsProcess.Dispose`. Verify manually after a
 change that no `nats-server` process remains after app close (Linux: `pgrep
 nats-server`; Windows: Task Manager).
