@@ -69,6 +69,15 @@ disposed.
 touch the `level` or `character_locations` rows. The playtime stamping rules
 are unchanged (`SaveTime.Accumulate`).
 
+### Server autosave
+
+`ServerWorldSystem` (`Server.Core/Systems/ServerWorldSystem.cs`) queues a level
+flush every `GameplaySettings.AutosaveIntervalMs` while a world has sessions. It
+broadcasts `notification.save.saving` when the capture is queued, then
+`notification.save.saved` or `notification.save.saving.failed` when the
+background write finishes. A world with no sessions does not autosave; the
+unload path flushes it.
+
 ## Level delete
 
 Menu-time delete requests flow through `ServerLevelManager`

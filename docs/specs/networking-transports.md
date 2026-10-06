@@ -50,8 +50,9 @@ re-encoding per send.
 Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
 the calling thread, enqueues the bytes, and returns. A dedicated background
 send thread drains the queues in priority order and writes the socket. Control
-and state messages (join, world stream, chat, voxel edits, notifications,
-skill updates) ride a **never-evicting reliable queue**; a dropped frame there
+and state messages (join, world stream, level save requests, chat, voxel edits,
+notifications, skill updates) ride a **never-evicting reliable queue**; a dropped
+frame there
 is permanent data loss, so a peer that stops reading surfaces as a
 grow-and-error condition instead (`ReliableQueueConcernThreshold`, re-logged
 every ~100 frames). Per-tick snapshot traffic rides the bounded `SendQueue`

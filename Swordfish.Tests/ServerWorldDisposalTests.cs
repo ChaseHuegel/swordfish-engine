@@ -67,6 +67,7 @@ public class ServerWorldDisposalTests : IDisposable
         _container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
         _container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
         _container.RegisterInstance(TestPermissions.EmptyPolicy);
+        _container.RegisterInstance(new GameplaySettings());
         _container.Register<RootDisposable>(Reuse.Singleton);
 
         ServerComposition.Register(_container);

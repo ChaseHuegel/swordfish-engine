@@ -11,6 +11,7 @@
 "notification.save.saving" = "Saving \"{0}\"..."
 "notification.save.saved" = "Saved \"{0}\"."
 "notification.save.saving.failed" = "Save failed, some information may be lost."
+"notification.save.denied" = "You do not have permission to save."
 
 "notification.character.created" = "Created character \"{0}\"."
 "notification.character.saved" = "Saved character \"{0}\"."

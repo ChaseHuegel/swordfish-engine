@@ -19,6 +19,7 @@ public static class SendPriority
         typeof(LevelStreamComplete),
         typeof(LeaveGameRequest),
         typeof(LevelEntityAdd),
+        typeof(SaveLevelRequest),
         typeof(SaveLevelResponse),
         typeof(NewLevelResponse),
         typeof(ListLevelsResponse),

@@ -87,7 +87,7 @@ Gameplay tunables shared by the client and the server, registered via
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `Autosave` | bool | `true` | enables the periodic save timers |
+| `Autosave` | bool | `true` | enables the client character timer and the server level autosave |
 | `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page edits it as minutes (1-60) |
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |

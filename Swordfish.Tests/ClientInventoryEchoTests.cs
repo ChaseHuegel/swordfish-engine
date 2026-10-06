@@ -45,6 +45,7 @@ public class ClientInventoryEchoTests
             container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
             container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
             container.RegisterInstance(TestPermissions.EmptyPolicy);
+            container.RegisterInstance(new GameplaySettings());
 
             ServerComposition.Register(container);
 

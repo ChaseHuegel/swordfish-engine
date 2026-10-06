@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
 using System.Threading;
@@ -28,6 +29,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly ILevelCatalog _levelCatalog;
     private readonly IBrickIdMap _brickIdMap;
     private readonly Lock _saveLock = new();
+    private readonly ConcurrentQueue<bool> _completions = new();
 
     private ILevelStore? _levelStore;
     private Task _pendingSave = Task.CompletedTask;
@@ -219,6 +221,15 @@ public sealed class LevelSaveService : IDisposable
     }
 
     /// <summary>
+    ///     Drains one finished full level save. The value is the disk-write outcome, so the server can
+    ///     report completion after the background worker finishes. Other write paths never enqueue.
+    /// </summary>
+    public bool TryDequeueCompletion(out bool success)
+    {
+        return _completions.TryDequeue(out success);
+    }
+
+    /// <summary>
     /// Synchronously captures and persists the authoritative level state. Intended for shutdown: it must
     /// run after the server thread has stopped (so the store is not concurrently mutated) and before the
     /// world containers are disposed - the sequencing point that guards the shutdown cascade.
@@ -388,26 +399,31 @@ public sealed class LevelSaveService : IDisposable
 
     private void Persist(in CapturedSave save)
     {
+        bool success;
         lock (_saveLock)
         {
-            PersistLocked(save);
+            success = PersistLocked(save);
         }
+
+        _completions.Enqueue(success);
     }
 
-    private void PersistLocked(in CapturedSave save)
+    private bool PersistLocked(in CapturedSave save)
     {
         if (_levelStore == null)
         {
-            return;
+            return false;
         }
 
         try
         {
             _levelStore.WriteSave(save.LevelData, save.Entities, save.Locations);
+            return true;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to persist level save for level \"{level}\".", CurrentLevelGuid);
+            return false;
         }
     }
 

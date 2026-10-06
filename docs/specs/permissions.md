@@ -117,6 +117,15 @@ The game ships `WaywardBeyond.Server.Core/assets/permissions/default.toml`. It
 declares the `default` and `admin` groups. Mods ship defaults under their own
 `assets/permissions/` root.
 
+### Save authorization
+
+`ServerWorldSystem` requires `GamePermissions.LevelSave`
+(`waywardbeyond.level.save`) for a client `SaveLevelRequest`. A denied request
+sends `SaveLevelResponse { Success = false }` and a targeted
+`notification.save.denied` toast. The server logs the denial at information
+level. The server autosave does not need the permission. The stock remote client
+never sends a request; this check protects against a modified client.
+
 ## Tests that pin this
 
 - `Swordfish.Tests/Permissions/PermissionCompilerTests.cs` — merge, inheritance,

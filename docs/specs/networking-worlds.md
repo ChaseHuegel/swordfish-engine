@@ -67,8 +67,8 @@ pinned instances (registered into the child) still dispose on world unload.
 
 - `World`/`DataStore`, `ServerConnectionHub`, `SessionManager`,
   `LevelSaveService`, `SharedSimulationStep`, `JoltPhysicsSystem`,
-  `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`, the
-  interaction world factory.
+  `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
+  `IUserPermissionService`, the interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerWorldSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → `ServerPhysicsSystem` →
@@ -76,7 +76,9 @@ pinned instances (registered into the child) still dispose on world unload.
   The replication system's apply and publish stages split into two ordered
   systems so physics and the shared motion step run between them
   (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`). The per-world
-  `ServerWorldSystem` serves only the in-world save request.
+  `ServerWorldSystem` runs the autosave cadence, authorizes in-world save
+  requests, and broadcasts the save notifications. See
+  [permissions](permissions.md).
 - **Server-level** (not per-world): `ServerLevelManager` serves the menu-time
   create/list/delete requests on connections that have not joined a world yet;
   the host ticks it before world routing. Deletes defer to

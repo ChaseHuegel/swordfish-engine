@@ -41,6 +41,7 @@ public class ServerWorldCompositionTests
             Container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
             Container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
             Container.RegisterInstance(TestPermissions.EmptyPolicy);
+            Container.RegisterInstance(new GameplaySettings());
 
             ServerComposition.Register(Container);
         }
