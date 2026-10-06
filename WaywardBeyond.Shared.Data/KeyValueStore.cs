@@ -32,6 +32,10 @@ public sealed class KeyValueStore : IDisposable
         NatsOpts natsOpts = NatsOpts.Default with
         {
             Url = natsUrl,
+            //  A shared server may be down while its owner restarts; retry the first connect rather
+            //  than failing the operation. Reconnect after an established connection is already
+            //  unlimited by default.
+            RetryOnInitialConnect = true,
             AuthOpts = new NatsAuthOpts
             {
                 Jwt = natsJwt,
