@@ -41,6 +41,8 @@ is not part of this workflow.
 - [x] [F3 network statistics](/docs/issues/0033-f3-network-stats.md) — transport counters + engine Sampler rates + player count via heartbeat
 - [x] [Bandwidth — snapshot-rate reduction and interval batching](/docs/issues/0034-snapshot-rate-and-batching.md) — SnapshotHz 30 default, SendIntervalMs coalesced drain, no traffic caps
 - [x] [Headless dedicated server launcher](/docs/issues/0035-dedicated-server-launcher.md) — composition-driven (no mode flag), shared host composition in Server.Core
+- [ ] [Rejoining a different save tears down the shared world](/docs/issues/0038-rejoin-world-routing.md) — connected client save switch bypasses world routing and unloads every live player's mirror
+- [ ] [Shared NATS server never promotes when its owner closes](/docs/issues/0040-shared-nats-server.md) — owner/shared boot probe, promotion on disconnect, NATS_URL port, graceful stop
 
 ### Improvement
 
@@ -62,6 +64,8 @@ is not part of this workflow.
 ## Backlog
 
 ### Bug
+
+- [ ] [DataStore.Free can double-free an entity index](/docs/issues/0039-datastore-free-idempotency.md) — a second Free re-enqueues the index; one index can reach two owners (engine-first)
 
 ### Improvement
 
