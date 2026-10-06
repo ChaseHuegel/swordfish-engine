@@ -59,10 +59,14 @@ public sealed class SessionManager
         return _entityToClient.TryGetValue(entity, out clientId);
     }
 
-    /// <summary>Removes every mapping bound to a client id (disconnect teardown).</summary>
-    public void EndSession(Uuid clientId)
+    /// <summary>
+    /// Removes every mapping bound to a client id (disconnect teardown). Returns true when a session
+    /// existed, so callers can gate per-session side effects such as the time-played stamp.
+    /// </summary>
+    public bool EndSession(Uuid clientId)
     {
-        if (_clientToSession.TryRemove(clientId, out Session session))
+        bool hadSession = _clientToSession.TryRemove(clientId, out Session session);
+        if (hadSession)
         {
             _sessionToEntity.TryRemove(session, out _);
         }
@@ -71,5 +75,7 @@ public sealed class SessionManager
         {
             _entityToClient.TryRemove(entity, out _);
         }
+
+        return hadSession;
     }
 }

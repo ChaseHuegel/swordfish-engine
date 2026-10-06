@@ -111,7 +111,7 @@ public class ServerJoinStreamTests : IDisposable
     }
 
     [Fact]
-    public void LeaveThenJoinADifferentWorld()
+    public void JoiningDifferentLevelInLoadedWorldIsRefused()
     {
         using KeyValueStore kv = new(_nats.Configuration);
         WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
@@ -134,37 +134,27 @@ public class ServerJoinStreamTests : IDisposable
         var sessions = new SessionManager();
         ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
-        int DrainWorld()
-        {
-            var count = 0;
-            Result<WorldEntityAdd> add;
-            while ((add = connection.Client.Receive<WorldEntityAdd>()).Success)
-            {
-                count++;
-            }
-
-            return count;
-        }
-
         //  Join world A.
         connection.Client.Send(new JoinRequest { LevelGuid = levelA, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
         join.Tick(0f, serverStore);
         Assert.True(connection.Client.Receive<JoinAccept>().Success);
-        Assert.True(DrainWorld() > 0);
+        while (connection.Client.Receive<WorldEntityAdd>().Success)
+        {
+        }
+
         Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
 
-        //  Leave A (menu exit), then join the different world B.
+        //  Leave A (menu exit), then attempt to join the different world B on the same world.
         connection.Client.Send(new LeaveGameRequest { Dummy = 0 });
         join.Tick(0f, serverStore);
 
         connection.Client.Send(new JoinRequest { LevelGuid = levelB, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
         join.Tick(0f, serverStore);
 
-        Result<JoinAccept> acceptB = connection.Client.Receive<JoinAccept>();
-        Assert.True(acceptB.Success);
-        Assert.Equal(levelB, acceptB.Value.Level.Guid);
-        Assert.True(DrainWorld() > 0, "Joining world B should stream its structures.");
-        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
+        //  A world serves exactly one level: the join is refused and the loaded level is unchanged.
+        Assert.False(connection.Client.Receive<JoinAccept>().Success);
+        Assert.Equal(0, sessions.Count);
+        Assert.Equal(levelA, world.CurrentLevelGuid);
     }
 
     [Fact]

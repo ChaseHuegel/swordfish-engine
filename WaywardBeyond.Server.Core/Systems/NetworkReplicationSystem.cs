@@ -146,6 +146,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         }
 
         Uuid sessionUuid = store.GetUuid(sessionEntity);
+        if (sessionUuid == Uuid.Null)
+        {
+            //  The session entity was freed without clearing its session. Drop the stale mapping so
+            //  the client is no longer treated as joined.
+            _sessions.EndSession(clientId);
+            _logger.LogWarning("Dropping stale session for client {clientId}; its entity was freed.", clientId);
+            return;
+        }
+
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {

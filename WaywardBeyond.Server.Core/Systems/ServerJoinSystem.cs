@@ -104,11 +104,13 @@ public sealed class ServerJoinSystem : IServerWorldSystem
                 store.Free(entity);
             }
 
-            _sessions.EndSession(clientId);
-            _logger.LogInformation("Ended session for client {client}.", clientId);
+            if (_sessions.EndSession(clientId))
+            {
+                _logger.LogInformation("Ended session for client {client}.", clientId);
 
-            //  Stamp the save's server-owned time played: a player's session ended abruptly.
-            _worldService.EndSessionStamp();
+                //  Stamp the save's server-owned time played: a player's session ended abruptly.
+                _worldService.EndSessionStamp();
+            }
         }
     }
 
@@ -133,14 +135,29 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
 
-        _sessions.EndSession(clientId);
-
-        //  Stamp the save's server-owned time played: this player's session ended.
-        _worldService.EndSessionStamp();
+        if (_sessions.EndSession(clientId))
+        {
+            //  Stamp the save's server-owned time played: this player's session ended.
+            _worldService.EndSessionStamp();
+        }
     }
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
     {
+        string levelGuid = request.LevelGuid ?? string.Empty;
+
+        //  A world serves exactly one level. A join naming another level means routing failed:
+        //  never switch the live world, which would free every other player's mirror.
+        if (!string.IsNullOrEmpty(levelGuid)
+            && _worldService.CurrentLevelGuid != null
+            && _worldService.CurrentLevelGuid != levelGuid)
+        {
+            _logger.LogError(
+                "Refusing join for client {clientId}: world is level {current} but the join names {level}.",
+                clientId, _worldService.CurrentLevelGuid, levelGuid);
+            return;
+        }
+
         if (_sessions.TryGetEntity(clientId, out int existing))
         {
             if (store.TryGet(existing, out PhysicsComponent physics))
@@ -155,7 +172,6 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _sessions.EndSession(clientId);
         }
 
-        string levelGuid = request.LevelGuid ?? string.Empty;
         bool levelLoaded = !string.IsNullOrEmpty(levelGuid);
         if (levelLoaded)
         {

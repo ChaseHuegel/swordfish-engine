@@ -54,6 +54,15 @@ public sealed class ServerConnectionHub
         return true;
     }
 
+    /// <summary>
+    /// Removes a client connection without queuing a disconnect. Used when a connection migrates
+    /// between worlds: the caller owns the session teardown, so no disconnect is raised.
+    /// </summary>
+    public bool TryDetach(Uuid clientId)
+    {
+        return _connections.TryRemove(clientId, out _);
+    }
+
     public bool TryGet(Uuid clientId, out IServerConnection connection)
     {
         return _connections.TryGetValue(clientId, out connection!);

@@ -238,4 +238,27 @@ public class ServerWorldHostTests
         SendJoin(fixture.LocalB.Client, "B", 200);
         WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 2, "A rejoin must recreate B's world.");
     }
+
+    [Fact]
+    public void ClientSwitchesWorldsWithoutTearingDownTheOther()
+    {
+        using Fixture fixture = new();
+
+        //  B joins A's world.
+        SendJoin(fixture.LocalA.Client, "A", 100);
+        SendJoin(fixture.LocalB.Client, "A", 200);
+        WaitUntil(fixture.Host, () => fixture.LocalA.Client.Receive<JoinAccept>().Success, "A must join world A.");
+        WaitUntil(fixture.Host, () => fixture.LocalB.Client.Receive<JoinAccept>().Success, "B must join world A.");
+        WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 2, "Both players must share world A.");
+
+        //  B leaves to the menu while A keeps playing in world A.
+        fixture.LocalB.Client.Send(new LeaveGameRequest { Dummy = 0 });
+        WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 1, "B leaving must end only B's session.");
+
+        //  B joins a different level. The host must route it to its own world, leaving world A intact.
+        SendJoin(fixture.LocalB.Client, "B", 200);
+        WaitUntil(fixture.Host, () => fixture.LocalB.Client.Receive<JoinAccept>().Success, "B must be accepted into world B.");
+        WaitUntil(fixture.Host, () => fixture.Host.WorldCount == 2, "Joining a different level must create a second world.");
+        WaitUntil(fixture.Host, () => fixture.Host.PlayerCount == 2, "A must survive world B's creation.");
+    }
 }

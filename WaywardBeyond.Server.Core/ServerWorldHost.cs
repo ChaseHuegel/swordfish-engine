@@ -37,6 +37,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         }
     }
 
+    /// <summary>Number of live worlds (one per loaded level).</summary>
+    public int WorldCount => _worlds.Count;
+
     private readonly IContainer _container;
     private readonly ServerWorldManager _worldManager;
     private readonly PendingJoins _pendingJoins;
@@ -75,6 +78,28 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         if (_bindings.TryRemove(connection, out WorldBinding binding))
         {
             binding.World.Hub.Remove(binding.ClientId);
+        }
+    }
+
+    /// <summary>
+    /// Returns connections whose session has ended (a player left to the menu) to the pending set,
+    /// so their next <c>JoinRequest</c> is routed to the world it names. A bound connection without a
+    /// session is idle, never mid-join: joins are enqueued and registered within the same world tick.
+    /// </summary>
+    private void ReturnSessionlessConnectionsToPending()
+    {
+        foreach (KeyValuePair<IServerConnection, WorldBinding> entry in _bindings)
+        {
+            if (entry.Value.World.Sessions.TryGetEntity(entry.Value.ClientId, out _))
+            {
+                continue;
+            }
+
+            if (_bindings.TryRemove(entry.Key, out WorldBinding removed))
+            {
+                removed.World.Hub.TryDetach(removed.ClientId);
+                _pendingJoins.Add(entry.Key);
+            }
         }
     }
 
@@ -128,6 +153,8 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
                     _unloads.Add(entry);
                 }
             }
+
+            ReturnSessionlessConnectionsToPending();
 
             foreach (WorldEntry entry in _unloads)
             {
