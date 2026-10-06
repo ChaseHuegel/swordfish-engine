@@ -27,8 +27,8 @@ public class InventoryWireProbeTests
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldEntityAdd>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelEntityAdd>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
             new NsdMessageSerializer<WorldSnapshot>(),
         };
         var connection = new LocalConnection(serializers);
@@ -42,7 +42,7 @@ public class InventoryWireProbeTests
         var join = new ServerJoinSystem(
             hub,
             sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
             replication,
             interaction,
             NullLogger<ServerJoinSystem>.Instance,

@@ -8,6 +8,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
@@ -32,8 +33,8 @@ public class ServerWorldDisposalTests : IDisposable
     [
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldEntityAdd>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelEntityAdd>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
     ];
 
@@ -64,14 +65,16 @@ public class ServerWorldDisposalTests : IDisposable
         _container.RegisterDelegate<ILogger>(_ => NullLogger.Instance);
         MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
         _container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
-        _container.RegisterDelegate<Func<KeyValueStore>>(_ => () => throw new NotImplementedException());
+        _container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
         _container.Register<RootDisposable>(Reuse.Singleton);
 
         ServerComposition.Register(_container);
 
         _pendingJoins = new PendingJoins();
-        var worldManager = new ServerWorldManager(_pendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
-        _host = new ServerWorldHost(_container, worldManager, _pendingJoins, new NetworkingSettings(), NullLoggerFactory.Instance);
+        var pendingDeletes = new PendingLevelDeletes();
+        var levelCatalog = new StubLevelCatalog();
+        var levelManager = new ServerLevelManager(_pendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+        _host = new ServerWorldHost(_container, levelManager, _pendingJoins, pendingDeletes, levelCatalog, new NetworkingSettings(), NullLoggerFactory.Instance);
     }
 
     public void Dispose()

@@ -35,7 +35,6 @@ using WaywardBeyond.Client.Core.Voxels.Building;
 using WaywardBeyond.Client.Core.Voxels.Models;
 using WaywardBeyond.Client.Core.Voxels.Processing;
 using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
@@ -87,8 +86,8 @@ public class Injector : IDryIocInjector
         
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
-        container.Register<ICharacterStorage, NatsCharacterStorage>(Reuse.Singleton);
-        container.Register<ISaveMetaStorage, NatsSaveMetaStorage>(Reuse.Singleton);
+        container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
+        container.Register<ISaveMetaStorage, SqliteSaveMetaStorage>(Reuse.Singleton);
         
         container.Register<PlayerCharacterEntityBuilder>(Reuse.Transient);
         
@@ -109,8 +108,8 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        //  The shared host wire-up (registry, serializers, loopback transports, hub, NATS-backed
-        //  persistence, networking config) lives in Server.Core so the embedded host and the dedicated
+        //  The shared host wire-up (registry, serializers, loopback transports, hub, save storage,
+        //  networking config) lives in Server.Core so the embedded host and the dedicated
         //  launcher compose from the same source.
         HostComposition.RegisterNetworking(container, seedLocalLoopback: true);
 
@@ -148,8 +147,8 @@ public class Injector : IDryIocInjector
         container.Register<ClientDisconnectSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientDisconnectSystem>();
 
-        container.Register<WorldsClient>(Reuse.Singleton);
-        container.Register<IEntitySystem, ClientWorldServiceSystem>();
+        container.Register<LevelsClient>(Reuse.Singleton);
+        container.Register<IEntitySystem, ClientLevelServiceSystem>();
         container.Register<ClientNotificationSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, ClientNotificationSystem>();
         container.Register<LanDiscoveryService>(Reuse.Singleton);
@@ -175,10 +174,6 @@ public class Injector : IDryIocInjector
 
     private static void RegisterConfiguration(IContainer container)
     {
-        //  IConfiguration (EnvCmdConfiguration) is registered by the shared host wire-up
-        //  (HostComposition.RegisterNetworking), which both this embedding and the dedicated launcher
-        //  call; a second registration would be ambiguous to resolve.
-        
         container.Register<SettingsManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, SettingsManager>();
         

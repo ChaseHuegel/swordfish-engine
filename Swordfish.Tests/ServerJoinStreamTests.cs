@@ -1,9 +1,5 @@
 using System;
-using System.Diagnostics;
 using System.IO;
-using System.Net;
-using System.Net.Sockets;
-using System.Threading;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
@@ -22,66 +18,65 @@ using Xunit;
 namespace Swordfish.Tests;
 
 /// <summary>
-/// Headless integration coverage of the server-owned world and the join/full-world-stream path, backed by
-/// a real local NATS server (so persistence, not a mock, is exercised). The bundled nats-server binary is
-/// copied into the test output by the <c>Server.Core</c> project reference.
+/// Headless integration coverage of the server-owned level and the join/full-level-stream path, backed
+/// by real SQLite save databases in a throwaway data root (so persistence, not a mock, is exercised).
 /// </summary>
 public class ServerJoinStreamTests : IDisposable
 {
-    private readonly NatsFixture _nats;
+    private readonly LevelFixture _fixture;
 
     public ServerJoinStreamTests()
     {
-        _nats = new NatsFixture();
+        _fixture = new LevelFixture();
     }
 
     public void Dispose()
     {
-        _nats.Dispose();
+        _fixture.Dispose();
     }
 
     [Fact]
-    public void CreateWorldThenLoadBuildsAuthoritativeBodies()
+    public void CreateLevelThenLoadBuildsAuthoritativeBodies()
     {
-        using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
+        ILevelCatalog catalog = _fixture.Catalog;
+        LevelSaveService level = new(NullLogger<LevelSaveService>.Instance, catalog, TestBricks.Map);
 
-        bool created = world.CreateWorld("Test World", seed: "1337", GameMode.Creative, out string guid);
+        bool created = catalog.Create("Test Level", seed: "1337", GameMode.Creative, out string guid);
         Assert.True(created);
         Assert.False(string.IsNullOrEmpty(guid));
 
-        Level[] levels = world.ListLevels();
+        Level[] levels = catalog.ListLevels();
         Assert.Contains(levels, level => level.Guid == guid);
 
         var serverStore = new DataStore();
-        Assert.True(world.LoadLevel(guid, serverStore));
+        Assert.True(level.LoadLevel(guid, serverStore));
 
         CollectCountAction countAction = new();
         serverStore.Query<VoxelEntityDataComponent, CollectCountAction>(0f, ref countAction);
-        Assert.True(countAction.Count > 0, "Loading a world should build at least one authority structure.");
+        Assert.True(countAction.Count > 0, "Loading a level should build at least one authority structure.");
     }
 
     [Fact]
-    public void JoinStreamsWorldAndSeatsPlayer()
+    public void JoinStreamsLevelAndSeatsPlayer()
     {
-        using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
+        ILevelCatalog catalog = _fixture.Catalog;
+        LevelSaveService level = new(NullLogger<LevelSaveService>.Instance, catalog, TestBricks.Map);
 
-        Assert.True(world.CreateWorld("Join World", seed: "42", GameMode.Creative, out string levelGuid));
+        Assert.True(catalog.Create("Join Level", seed: "42", GameMode.Creative, out string levelGuid));
 
         var hub = new ServerConnectionHub();
         var connection = new LocalConnection(new INetworkSerializer[]
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldEntityAdd>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelEntityAdd>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
         });
         hub.Add(connection.Server);
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
+        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         connection.Client.Send(new JoinRequest
         {
@@ -98,79 +93,79 @@ public class ServerJoinStreamTests : IDisposable
         Assert.Equal(levelGuid, accept.Value.Level.Guid);
 
         int streamed = 0;
-        Result<WorldEntityAdd> add;
-        while ((add = connection.Client.Receive<WorldEntityAdd>()).Success)
+        Result<LevelEntityAdd> add;
+        while ((add = connection.Client.Receive<LevelEntityAdd>()).Success)
         {
             Assert.NotEqual((ulong)0, add.Value.VoxelEntity.Uuid);
             streamed++;
         }
 
-        Result<WorldStreamComplete> complete = connection.Client.Receive<WorldStreamComplete>();
+        Result<LevelStreamComplete> complete = connection.Client.Receive<LevelStreamComplete>();
         Assert.True(complete.Success);
-        Assert.True(streamed > 0, "Join should stream at least one world entity.");
+        Assert.True(streamed > 0, "Join should stream at least one level entity.");
     }
 
     [Fact]
-    public void JoiningDifferentLevelInLoadedWorldIsRefused()
+    public void JoiningDifferentLevelInLoadedLevelIsRefused()
     {
-        using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
+        ILevelCatalog catalog = _fixture.Catalog;
+        LevelSaveService level = new(NullLogger<LevelSaveService>.Instance, catalog, TestBricks.Map);
 
-        Assert.True(world.CreateWorld("World A", seed: "111", GameMode.Creative, out string levelA));
-        Assert.True(world.CreateWorld("World B", seed: "222", GameMode.Creative, out string levelB));
+        Assert.True(catalog.Create("Level A", seed: "111", GameMode.Creative, out string levelA));
+        Assert.True(catalog.Create("Level B", seed: "222", GameMode.Creative, out string levelB));
 
         var hub = new ServerConnectionHub();
         var connection = new LocalConnection(new INetworkSerializer[]
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldEntityAdd>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelEntityAdd>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
             new NsdMessageSerializer<LeaveGameRequest>(),
         });
         hub.Add(connection.Server);
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, world, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
+        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
-        //  Join world A.
+        //  Join level A.
         connection.Client.Send(new JoinRequest { LevelGuid = levelA, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
         join.Tick(0f, serverStore);
         Assert.True(connection.Client.Receive<JoinAccept>().Success);
-        while (connection.Client.Receive<WorldEntityAdd>().Success)
+        while (connection.Client.Receive<LevelEntityAdd>().Success)
         {
         }
 
-        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
+        Assert.True(connection.Client.Receive<LevelStreamComplete>().Success);
 
-        //  Leave A (menu exit), then attempt to join the different world B on the same world.
+        //  Leave A (menu exit), then attempt to join the different level B on the same level.
         connection.Client.Send(new LeaveGameRequest { Dummy = 0 });
         join.Tick(0f, serverStore);
 
         connection.Client.Send(new JoinRequest { LevelGuid = levelB, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
         join.Tick(0f, serverStore);
 
-        //  A world serves exactly one level: the join is refused and the loaded level is unchanged.
+        //  A level serves exactly one save: the join is refused and the loaded level is unchanged.
         Assert.False(connection.Client.Receive<JoinAccept>().Success);
         Assert.Equal(0, sessions.Count);
-        Assert.Equal(levelA, world.CurrentLevelGuid);
+        Assert.Equal(levelA, level.CurrentLevelGuid);
     }
 
     [Fact]
     public void JoiningClientPreservesPreExistingPlayersOnTheSameLevel()
     {
-        using KeyValueStore kv = new(_nats.Configuration);
-        WorldSaveService world = new(NullLogger<WorldSaveService>.Instance, () => kv, TestBricks.Map);
+        ILevelCatalog catalog = _fixture.Catalog;
+        LevelSaveService level = new(NullLogger<LevelSaveService>.Instance, catalog, TestBricks.Map);
 
-        Assert.True(world.CreateWorld("Multi Join World", seed: "99", GameMode.Creative, out string levelGuid));
+        Assert.True(catalog.Create("Multi Join Level", seed: "99", GameMode.Creative, out string levelGuid));
 
         INetworkSerializer[] serializers =
         [
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldEntityAdd>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelEntityAdd>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
             new NsdMessageSerializer<WorldSnapshot>(),
             new NsdMessageSerializer<LeaveGameRequest>(),
         ];
@@ -179,7 +174,7 @@ public class ServerJoinStreamTests : IDisposable
         var sessions = new SessionManager();
         var serverStore = new DataStore();
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
-        var join = new ServerJoinSystem(hub, sessions, world, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
+        var join = new ServerJoinSystem(hub, sessions, level, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         //  The host joins the level first and plays.
         var hostConnection = new LocalConnection(serializers);
@@ -191,8 +186,8 @@ public class ServerJoinStreamTests : IDisposable
         Assert.True(sessions.TryGetEntity(hostClient, out int hostEntity));
         Uuid hostUuid = serverStore.GetUuid(hostEntity);
 
-        //  A joiner connects to the already-loaded level. Joining must not unload and reload the world,
-        //  which would free the host's mirror along with every world entity.
+        //  A joiner connects to the already-loaded level. Joining must not unload and reload the level,
+        //  which would free the host's mirror along with every level entity.
         var guestConnection = new LocalConnection(serializers);
         hub.Add(guestConnection.Server);
         guestConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 2, PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = "wb:m_human" } });
@@ -206,7 +201,7 @@ public class ServerJoinStreamTests : IDisposable
 
         //  The joiner still completes the handshake and receives the full-state sync.
         Assert.True(guestConnection.Client.Receive<JoinAccept>().Success, "The joiner should receive its join accept.");
-        Assert.True(guestConnection.Client.Receive<WorldStreamComplete>().Success, "The joiner should receive the world stream complete.");
+        Assert.True(guestConnection.Client.Receive<LevelStreamComplete>().Success, "The joiner should receive the level stream complete.");
         Assert.True(guestConnection.Client.Receive<WorldSnapshot>().Success, "The joiner should receive a full-state snapshot.");
     }
 
@@ -221,68 +216,30 @@ public class ServerJoinStreamTests : IDisposable
     }
 
     /// <summary>
-    /// Launches the bundled nats-server in JetStream mode against a throwaway store directory and exposes
-    /// an <see cref="IConfiguration"/> pointing at it.
+    /// A throwaway data root holding real SQLite level databases for the duration of one test.
     /// </summary>
-    private sealed class NatsFixture : IDisposable
+    private sealed class LevelFixture : IDisposable
     {
-        private readonly Process? _process;
-        private readonly string _storeDir;
+        private readonly string _dataRoot;
 
-        public IConfiguration Configuration { get; }
+        public ILevelCatalog Catalog { get; }
 
-        public NatsFixture()
+        public LevelFixture()
         {
-            string binary = Path.Combine(AppContext.BaseDirectory, "assets", "server", "nats", "nats-server");
-            _storeDir = Path.Combine(Path.GetTempPath(), "wb_saves_" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(_storeDir);
-            int port = GetFreePort();
-
-            if (!OperatingSystem.IsWindows())
-            {
-                UnixFileMode mode = File.GetUnixFileMode(binary)
-                    | UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute;
-                File.SetUnixFileMode(binary, mode);
-            }
-
-            _process = new Process
-            {
-                StartInfo = new ProcessStartInfo
-                {
-                    FileName = binary,
-                    Arguments = $"-js -sd \"{_storeDir}\" -p {port}",
-                    UseShellExecute = false,
-                    RedirectStandardError = true,
-                    RedirectStandardOutput = true,
-                    CreateNoWindow = true,
-                },
-            };
-
-            _ = _process.Start();
-            WaitUntilReady(port);
-            Configuration = new TestConfiguration($"nats://127.0.0.1:{port}");
+            _dataRoot = Path.Combine(Path.GetTempPath(), "wb_levels_" + Guid.NewGuid().ToString("N"));
+            var settings = new StorageSettings();
+            settings.DataRoot.Set(_dataRoot);
+            var paths = new StoragePaths(settings);
+            Catalog = new SqliteLevelCatalog(NullLogger<SqliteLevelCatalog>.Instance, paths, TestBricks.Map);
         }
 
         public void Dispose()
         {
             try
             {
-                if (_process != null && !_process.HasExited)
+                if (Directory.Exists(_dataRoot))
                 {
-                    _process.Kill(entireProcessTree: true);
-                    _process.WaitForExit();
-                }
-            }
-            catch
-            {
-                //  Best-effort teardown.
-            }
-
-            try
-            {
-                if (Directory.Exists(_storeDir))
-                {
-                    Directory.Delete(_storeDir, recursive: true);
+                    Directory.Delete(_dataRoot, recursive: true);
                 }
             }
             catch
@@ -290,41 +247,5 @@ public class ServerJoinStreamTests : IDisposable
                 //  Best-effort teardown.
             }
         }
-
-        private static void WaitUntilReady(int port)
-        {
-            var deadline = DateTime.UtcNow.AddSeconds(15);
-            while (DateTime.UtcNow < deadline)
-            {
-                try
-                {
-                    using var client = new TcpClient();
-                    client.Connect(IPAddress.Loopback, port);
-                    return;
-                }
-                catch
-                {
-                    Thread.Sleep(50);
-                }
-            }
-
-            throw new TimeoutException("Timed out waiting for the test nats-server to accept connections.");
-        }
-
-        private static int GetFreePort()
-        {
-            var listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            listener.Stop();
-            return port;
-        }
-    }
-
-    private sealed class TestConfiguration(string natsUrl) : IConfiguration
-    {
-        public string? GetString(string key) => key == "NATS_URL" ? natsUrl : null;
-        public IPAddress? GetIPAddress(string key) => null;
-        public int? GetInt(string key) => null;
     }
 }

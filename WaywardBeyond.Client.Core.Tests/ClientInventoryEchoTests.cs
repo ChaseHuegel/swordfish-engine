@@ -37,8 +37,8 @@ public class ClientInventoryEchoTests
     [
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldEntityAdd>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelEntityAdd>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
     ];
 
@@ -59,7 +59,7 @@ public class ClientInventoryEchoTests
         var join = new ServerJoinSystem(
             hub,
             sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), new StubBrickIdMap()),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), new StubBrickIdMap()),
             replication,
             interaction,
             NullLogger<ServerJoinSystem>.Instance,

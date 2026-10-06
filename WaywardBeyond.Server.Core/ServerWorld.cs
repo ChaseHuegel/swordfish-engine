@@ -21,7 +21,7 @@ public sealed class ServerWorld : IDisposable
     public World World { get; }
     public DataStore Store => World.DataStore;
     public ServerConnectionHub Hub { get; }
-    public WorldSaveService WorldService { get; }
+    public LevelSaveService SaveService { get; }
     public SessionManager Sessions { get; }
     public ServerJoinQueue JoinQueue { get; }
 
@@ -33,7 +33,7 @@ public sealed class ServerWorld : IDisposable
         World = Pin<World>(container);
         Hub = Pin<ServerConnectionHub>(container);
         Sessions = Pin<SessionManager>(container);
-        WorldService = Pin<WorldSaveService>(container);
+        SaveService = Pin<LevelSaveService>(container);
         JoinQueue = Pin<ServerJoinQueue>(container);
         Pin<NetworkReplicationSystem>(container);
         Pin<ServerSkillSystem>(container);

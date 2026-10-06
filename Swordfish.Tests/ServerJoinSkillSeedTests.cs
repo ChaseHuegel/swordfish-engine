@@ -24,7 +24,7 @@ public class ServerJoinSkillSeedTests
         return new ServerJoinSystem(
             hub,
             sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new System.NotImplementedException(), TestBricks.Map),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
             new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(hub),
             NullLogger<ServerJoinSystem>.Instance,
@@ -43,7 +43,7 @@ public class ServerJoinSkillSeedTests
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
         });
         Uuid clientId = hub.Add(connection.Server);
 
@@ -89,7 +89,7 @@ public class ServerJoinSkillSeedTests
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
         });
         Uuid clientId = hub.Add(connection.Server);
 

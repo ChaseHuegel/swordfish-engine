@@ -4,9 +4,9 @@ One subject: how a client joins a server, and how the server streams the world.
 
 ## Model
 
-The server owns the `levels` KV bucket, world generation, and per-character
-location persistence. Clients own only `characters` and no longer generate or
-save worlds. World data is streamed to the client during join.
+The server owns the per-level save databases, generation, and per-character
+location persistence. Clients own only `profile.db` and no longer generate or
+save levels. Level data is streamed to the client during join.
 
 ## Join flow
 
@@ -29,24 +29,24 @@ save worlds. World data is streamed to the client during join.
    consumes the client's `JoinRequest` from the pending set, creates (or finds)
    the world for `LevelGuid` with a fresh per-world graph, binds the connection
    to that world's hub, and queues the join into the world. `ServerJoinSystem`
-   (`Server.Core/Systems/`) then — via the world's `WorldSaveService`
+   (`Server.Core/Systems/`) then — via the world's `LevelSaveService`
    (`Server.Core/Saves/`) — loads the authoritative voxel world for `LevelGuid`
-   from the `levels` bucket into that world's store, resolves the spawn
-   transform (the persisted `<level>.character.<id>` location, else
+   from its save database into that world's store, resolves the spawn
+   transform (the persisted per-character location, else
    `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
    server mirror, seeds the server's interaction context from `CharacterSeed`,
    binds it to a fresh `Session`, and replies `JoinAccept { Level, SpawnTransform,
    PlayerEntity }`. Worlds are isolated per level; see
    [networking-worlds](networking-worlds.md).
 
-3. It then streams the world as one `WorldEntityAdd { VoxelEntityData }` per
-   structure (bounded per-entity), followed by a `WorldStreamComplete`. Each
+3. It then streams the saved level as one `LevelEntityAdd { VoxelEntityData }`
+   per structure (bounded per-entity), followed by a `LevelStreamComplete`. Each
    entity carries a brick palette so the client can resolve the server's
    registry ids locally (`ClientJoinSystem`, see
    [brick-identity](brick-identity.md)). The
    client builds a view entity for each arrival (mesh + a local prediction
    collider) on the ECS thread, and **only** transitions to `Playing` on
-   `WorldStreamComplete`.
+   `LevelStreamComplete`.
 
 ## Save switch and rejoin
 
@@ -65,7 +65,7 @@ saves.
 
 `Playing` keeps `ClientReconcileSystem` inert until the world is fully streamed.
 One-time transport queues do not preserve cross-type order (no envelope), so the
-client defers `WorldSnapshot` application until `WorldStreamComplete` arrives.
+client defers `WorldSnapshot` application until `LevelStreamComplete` arrives.
 Subsequent per-tick replication keeps using the `WorldSnapshot` path; streaming
 is a join-time event, not ongoing AOI. The full-sync request rides the same
 join tick: `ServerJoinSystem` requests the one-shot full-state snapshot in the
@@ -78,7 +78,7 @@ to the menu with a connection-lost toast. The character save is gated on
 `Playing`, so a mid-join disconnect simply abandons the stream. The teardown
 frees every entity tagged `"game"` - the local player, the remote player
 mirrors, and the world geometry - so no gameplay entity survives into the menu.
-It also faults every in-flight world-management operation (`WorldsClient`), so
+It also faults every in-flight level-management operation (`LevelsClient`), so
 the save screen and world list never await a vanished server, and it runs for
 any menu state - a server death on the save screen returns the client to the
 main menu. A join attempt with no active connection fails fast through the same
@@ -86,7 +86,7 @@ teardown instead of entering Loading.
 
 ## Join-stream timeout
 
-A join whose `WorldStreamComplete` never arrives (undelivered marker, dying
+A join whose `LevelStreamComplete` never arrives (undelivered marker, dying
 link, or a world too large to drain) must not stall `Loading` forever.
 `ClientJoinSystem` starts a clock when the `JoinRequest` is sent; if the stream
 does not complete within `NetworkingSettings.JoinStreamTimeoutMs`, it aborts the
@@ -100,8 +100,8 @@ a client whose reliable send backlog stays over
 
 ## Character ownership nuance
 
-- The client's local `characters` bucket remains the client-owned **storage**
-  (the source of the join-time seed).
+- The client's local `profile.db` remains the client-owned **storage** (the
+  source of the join-time seed).
 - Interaction-relevant inventory counts and game mode are **server-owned after
   join** and replicated downstream.
 - The **active slot** stays **client-owned** (authoritative on
@@ -112,13 +112,13 @@ a client whose reliable send backlog stays over
 
 ## Save-listing menu
 
-The save-listing menu is served by the server: `NewWorldRequest`,
-`ListWorldsRequest`, `DeleteWorldRequest`, and `SaveWorldRequest` (flush
-authoritative world) map to `WorldSaveService` operations, driven by a client
-`WorldsClient` whose responses the ECS thread completes. Menu-time operations
-(create/list/delete) are served by `ServerWorldManager`
-(`Server.Core/ServerWorldManager.cs`) against connections that have not joined
-a world yet; the in-world `SaveWorldRequest` is served by the world's
+The save-listing menu is served by the server: `NewLevelRequest`,
+`ListLevelsRequest`, `DeleteLevelRequest`, and `SaveLevelRequest` (flush
+authoritative level) map to `ILevelCatalog`/`LevelSaveService` operations,
+driven by a client `LevelsClient` whose responses the ECS thread completes.
+Menu-time operations (create/list/delete) are served by `ServerLevelManager`
+(`Server.Core/ServerLevelManager.cs`) against connections that have not joined
+a world yet; the in-world `SaveLevelRequest` is served by the world's
 `ServerWorldSystem`.
 
 ### Continue and the multiplayer page
@@ -143,8 +143,9 @@ stages were removed in favor of join.
 
 - `WaywardBeyond.Client.Core/Systems/ClientJoinSystem.cs`
 - `WaywardBeyond.Server.Core/Systems/ServerJoinSystem.cs`
-- `WaywardBeyond.Server.Core/Saves/WorldSaveService.cs`
-- `WaywardBeyond.Shared.Data/CodeGen/world.nsd` (the join/stream messages)
+- `WaywardBeyond.Server.Core/Saves/LevelSaveService.cs`
+- `WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`
+- `WaywardBeyond.Shared.Data/CodeGen/levels.nsd` (the join/stream messages)
 
 ## Tests that pin this
 

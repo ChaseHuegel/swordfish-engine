@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Server.Core.Systems;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
@@ -38,7 +39,7 @@ public class ServerWorldCompositionTests
             Container.RegisterDelegate<ILogger>(_ => NullLogger.Instance);
             MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
             Container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
-            Container.RegisterDelegate<Func<KeyValueStore>>(_ => () => throw new NotImplementedException());
+            Container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
 
             ServerComposition.Register(Container);
         }
@@ -119,8 +120,8 @@ public class ServerWorldCompositionTests
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldEntityAdd>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelEntityAdd>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
             new NsdMessageSerializer<WorldSnapshot>(),
         };
         var connection = new LocalConnection(serializers);

@@ -23,9 +23,9 @@ change touches a subject, run the docs pass (see `development.md`).
 | Server-authoritative interactions and voxel edits | [specs/networking-voxel-edits](specs/networking-voxel-edits.md) |
 | Server-authoritative inventory moves | [specs/networking-inventory](specs/networking-inventory.md) |
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
-| Persistence backends research (NATS vs sqlite) | [research/persistence-backends](research/persistence-backends.md) |
+| Persistence backends research (NATS vs sqlite, superseded) | [research/persistence-backends](research/persistence-backends.md) |
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
-| Persistence: NATS KV buckets, key layout, storage services | [specs/persistence](specs/persistence.md) |
+| Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
 | Asset definition TOML formats (items, bricks, materials, skills) | [specs/asset-definitions](specs/asset-definitions.md) |
 | Brick identity, voxel ids, the palette, and data versioning | [specs/brick-identity](specs/brick-identity.md) |
 | Reef rich-text color runs, the "#" grammar, and per-glyph colors | [specs/rich-text](specs/rich-text.md) |

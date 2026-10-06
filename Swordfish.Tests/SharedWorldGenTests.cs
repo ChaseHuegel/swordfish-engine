@@ -35,7 +35,7 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorProducesCollidableStructuresForSeed()
     {
-        GeneratedVoxelEntity[] world = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
+        GeneratedVoxelEntity[] world = new LevelGenerator(seed: 1337, TestBricks.Map).Generate();
 
         Assert.Equal(20, world.Length);
         foreach (GeneratedVoxelEntity entity in world)
@@ -62,8 +62,8 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorIsDeterministicForSeed()
     {
-        GeneratedVoxelEntity[] first = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
-        GeneratedVoxelEntity[] second = new WorldGenerator(seed: 1337, TestBricks.Map).Generate();
+        GeneratedVoxelEntity[] first = new LevelGenerator(seed: 1337, TestBricks.Map).Generate();
+        GeneratedVoxelEntity[] second = new LevelGenerator(seed: 1337, TestBricks.Map).Generate();
 
         Assert.Equal(first.Length, second.Length);
         for (var i = 0; i < first.Length; i++)
@@ -75,8 +75,8 @@ public class SharedWorldGenTests
     [Fact]
     public void WorldGeneratorDiffersForDifferentSeeds()
     {
-        byte[] first = SerializeAll(new WorldGenerator(seed: 1337, TestBricks.Map).Generate());
-        byte[] second = SerializeAll(new WorldGenerator(seed: 1338, TestBricks.Map).Generate());
+        byte[] first = SerializeAll(new LevelGenerator(seed: 1337, TestBricks.Map).Generate());
+        byte[] second = SerializeAll(new LevelGenerator(seed: 1338, TestBricks.Map).Generate());
 
         Assert.NotEqual(first, second);
     }

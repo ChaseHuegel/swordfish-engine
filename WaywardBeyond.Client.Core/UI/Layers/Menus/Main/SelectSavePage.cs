@@ -307,7 +307,7 @@ internal sealed class SelectSavePage(
         Result result = _transportManager.ConnectRemote(_networkingSettings.DefaultHost.Get(), _networkingSettings.DefaultConnectPort.Get());
         if (result.Success)
         {
-            _ = _gameSaveService.RefreshWorldsAsync();
+            _ = _gameSaveService.RefreshLevelsAsync();
         }
     }
 }

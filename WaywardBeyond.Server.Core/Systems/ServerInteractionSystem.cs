@@ -185,7 +185,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         }
 
         //  Rebuild the structure's collider so subsequent authority raycasts see the change, and
-        //  re-derive the persisted chunks so the next world save reflects the edit.
+        //  re-derive the persisted chunks so the next level save reflects the edit.
         store.AddOrUpdate(resolution.Entity, new ColliderComponent(VoxelColliderBuilder.BuildCollition(voxelObject.GetChunkInfos())));
         store.AddOrUpdate(resolution.Entity, new VoxelEntityDataComponent(voxelObject.GetChunkInfos()));
         store.MarkDirty<VoxelEntityDataComponent>(resolution.Entity);

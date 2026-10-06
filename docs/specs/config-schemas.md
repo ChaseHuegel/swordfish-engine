@@ -105,6 +105,17 @@ save path), and the page prefill reads them back on launch. Singleplayer never
 writes them, so they cannot encode how a session was joined — the mode marker
 lives in `profile.toml` (`LastServerMode`).
 
+## `storage.toml` (per app)
+
+Save-data root, registered via `RegisterConfig<StorageSettings>`.
+Schema: `WaywardBeyond.Shared.Config/StorageSettings.cs`.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `DataRoot` | string | `saves/` | root for `profile.db` and the per-level databases; relative paths resolve against the process working directory |
+
+A dedicated server can override the root with `--data`.
+
 ## `profile.toml` (per app)
 
 Client-local state and preferences, registered via `RegisterConfig<ProfileSettings>`.

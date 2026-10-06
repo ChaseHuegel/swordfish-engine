@@ -20,7 +20,7 @@ namespace WaywardBeyond.Server.Core.Systems;
 /// Server-authoritative join. Handles a client's <see cref="JoinRequest"/> by loading the level's
 /// authoritative world, resolving the spawn (persisted per-character location or the level spawn),
 /// allocating the player mirror and binding a session, then streaming the full world to that client - one
-/// <see cref="WorldEntityAdd"/> per structure (bounded) followed by <see cref="WorldStreamComplete"/>, with
+/// <see cref="LevelEntityAdd"/> per structure (bounded) followed by <see cref="LevelStreamComplete"/>, with
 /// a <see cref="JoinAccept"/> carrying the level meta and server-assigned spawn. The client never authors
 /// authoritative state; it builds view entities from the stream. Runs first in the world tick so
 /// disconnect teardown and joins precede every other stage.
@@ -29,7 +29,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
-    private readonly WorldSaveService _worldService;
+    private readonly LevelSaveService _saveService;
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerJoinQueue _joinQueue;
@@ -42,7 +42,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     public ServerJoinSystem(
         in ServerConnectionHub hub,
         SessionManager sessions,
-        in WorldSaveService worldService,
+        in LevelSaveService saveService,
         in NetworkReplicationSystem replication,
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
@@ -52,7 +52,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     ) {
         _hub = hub;
         _sessions = sessions;
-        _worldService = worldService;
+        _saveService = saveService;
         _replication = replication;
         _interaction = interaction;
         _skillDatabase = skillDatabase;
@@ -109,7 +109,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
                 _logger.LogInformation("Ended session for client {client}.", clientId);
 
                 //  Stamp the save's server-owned time played: a player's session ended abruptly.
-                _worldService.EndSessionStamp();
+                _saveService.EndSessionStamp();
             }
         }
     }
@@ -138,7 +138,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         if (_sessions.EndSession(clientId))
         {
             //  Stamp the save's server-owned time played: this player's session ended.
-            _worldService.EndSessionStamp();
+            _saveService.EndSessionStamp();
         }
     }
 
@@ -149,12 +149,12 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  A world serves exactly one level. A join naming another level means routing failed:
         //  never switch the live world, which would free every other player's mirror.
         if (!string.IsNullOrEmpty(levelGuid)
-            && _worldService.CurrentLevelGuid != null
-            && _worldService.CurrentLevelGuid != levelGuid)
+            && _saveService.CurrentLevelGuid != null
+            && _saveService.CurrentLevelGuid != levelGuid)
         {
             _logger.LogError(
                 "Refusing join for client {clientId}: world is level {current} but the join names {level}.",
-                clientId, _worldService.CurrentLevelGuid, levelGuid);
+                clientId, _saveService.CurrentLevelGuid, levelGuid);
             return;
         }
 
@@ -177,7 +177,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                levelLoaded = _worldService.LoadLevel(levelGuid, store);
+                levelLoaded = _saveService.LoadLevel(levelGuid, store);
             }
             catch (Exception ex)
             {
@@ -193,11 +193,11 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                bool restored = _worldService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out position, out orientation);
+                bool restored = _saveService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out position, out orientation);
                 if (!restored)
                 {
                     //  Restored per-character location (or the level spawn point).
-                    position = _worldService.LevelSpawn;
+                    position = _saveService.LevelSpawn;
                     orientation = Quaternion.Identity;
                 }
             }
@@ -205,7 +205,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             {
                 //  A save hiccup never drops a join: fall back to the level spawn.
                 _logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterId, levelGuid);
-                position = _worldService.LevelSpawn;
+                position = _saveService.LevelSpawn;
                 orientation = Quaternion.Identity;
             }
         }
@@ -218,7 +218,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  Stamp the save's server-owned last-played: someone joined this save.
         if (levelLoaded)
         {
-            _worldService.MarkActive();
+            _saveService.MarkActive();
         }
 
         int entity = store.Alloc();
@@ -259,7 +259,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 
         Result accept = _hub.Send(clientId, new JoinAccept
         {
-            Level = _worldService.CurrentLevel ?? new Level(),
+            Level = _saveService.CurrentLevel ?? new Level(),
             SpawnX = position.X,
             SpawnY = position.Y,
             SpawnZ = position.Z,
@@ -274,8 +274,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _logger.LogWarning("Failed to send join accept to client {clientId}: {message}.", clientId, accept.Message);
         }
 
-        StreamWorld(clientId, store);
-        Result stream = _hub.Send(clientId, new WorldStreamComplete { Dummy = 0 });
+        StreamLevel(clientId, store);
+        Result stream = _hub.Send(clientId, new LevelStreamComplete { Dummy = 0 });
         if (!stream.Success)
         {
             _logger.LogWarning("Failed to send world stream complete to client {clientId}: {message}.", clientId, stream.Message);
@@ -325,10 +325,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         store.AddOrUpdate(entity, new SkillStateComponent(xpBySkillId));
     }
 
-    private void StreamWorld(Uuid clientId, DataStore store)
+    private void StreamLevel(Uuid clientId, DataStore store)
     {
-        CollectWorldEntitiesAction action = new();
-        store.Query<VoxelEntityDataComponent, NetworkComponent, TransformComponent, CollectWorldEntitiesAction>(0f, ref action);
+        CollectLevelEntitiesAction action = new();
+        store.Query<VoxelEntityDataComponent, NetworkComponent, TransformComponent, CollectLevelEntitiesAction>(0f, ref action);
 
         foreach (int entity in action.Entities)
         {
@@ -339,7 +339,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             }
 
             //  Attach the brick palette so the client can resolve the server's registry ids locally.
-            Result send = _hub.Send(clientId, new WorldEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
+            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
             if (!send.Success)
             {
                 _logger.LogWarning("Failed to stream world entity to client {clientId}: {message}.", clientId, send.Message);
@@ -347,11 +347,11 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }
     }
 
-    private struct CollectWorldEntitiesAction : IForEach<VoxelEntityDataComponent, NetworkComponent, TransformComponent>
+    private struct CollectLevelEntitiesAction : IForEach<VoxelEntityDataComponent, NetworkComponent, TransformComponent>
     {
         public readonly List<int> Entities;
 
-        public CollectWorldEntitiesAction()
+        public CollectLevelEntitiesAction()
         {
             Entities = new List<int>();
         }

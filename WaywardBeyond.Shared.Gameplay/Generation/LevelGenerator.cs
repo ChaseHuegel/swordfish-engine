@@ -16,19 +16,19 @@ namespace WaywardBeyond.Shared.Gameplay;
 using AsteroidStructure = (Vector3 Position, int Radius);
 
 /// <summary>
-///     Deterministic world generation: produces the fixed set of asteroid structures for a seed as
+///     Deterministic level generation: produces the fixed set of asteroid structures for a seed as
 ///     serialized <see cref="GeneratedVoxelEntity"/> data. Rendered/server-agnostic - it neither constructs
 ///     ECS entities nor meshes. The server runs it to author a new world and every consumer
 ///     (<see cref="WaywardBeyond.Server.Core"/>, tests, headless validation) derives identical data from the
 ///     same seed.
 /// </summary>
-public sealed class WorldGenerator
+public sealed class LevelGenerator
 {
     private readonly int _seed;
     private readonly AsteroidGenerator _asteroidGenerator;
     private readonly Randomizer _randomizer;
 
-    public WorldGenerator(in int seed, in IBrickIdMap brickIdMap)
+    public LevelGenerator(in int seed, in IBrickIdMap brickIdMap)
     {
         _seed = seed;
         _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName(BrickId.Namespaced("rock"), brickIdMap), WorldMaterialCatalog.FromName(BrickId.Namespaced("ice"), brickIdMap));

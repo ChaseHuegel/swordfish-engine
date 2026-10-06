@@ -60,7 +60,7 @@ public static class VoxelWorldEntityFactory
     /// <summary>
     /// Serializes a live authority structure entity back to its <see cref="VoxelEntityData"/> form, using
     /// its current authoritative transform and the retained chunk content. Used when streaming the world
-    /// to a client at join and by server-side world saves, so the data has the same shape the client's
+    /// to a client at join and by server-side level saves, so the data has the same shape the client's
     /// view world is built from.
     /// </summary>
     public static VoxelEntityData ToVoxelEntityData(in DataStore store, int entity)

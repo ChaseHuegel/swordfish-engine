@@ -115,7 +115,7 @@ public class ClientJoinTimeoutTests
         var notifications = new NotificationService(NullLogger<NotificationService>.Instance, window);
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var worlds = new WorldsClient(transportManager);
+        var worlds = new LevelsClient(transportManager);
         var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization(), worlds);
 
         var joinSystem = new ClientJoinSystem(
@@ -173,7 +173,7 @@ public class ClientJoinTimeoutTests
         var notifications = new NotificationService(NullLogger<NotificationService>.Instance, new FakeWindowContext());
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization(), new WorldsClient(transportManager));
+        var disconnectSystem = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, new FakeLocalization(), new LevelsClient(transportManager));
 
         var joinSystem = new ClientJoinSystem(
             new NoConnection(),

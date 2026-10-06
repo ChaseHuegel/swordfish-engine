@@ -94,7 +94,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
 
         //  The save listing is served from the server; start loading it so the menu populates promptly.
-        _ = _gameSaveService.RefreshWorldsAsync();
+        _ = _gameSaveService.RefreshLevelsAsync();
     }
 
     public void Dispose()
@@ -170,7 +170,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         
         _characterSaveManager.Save(_dataStore);
 
-        //  Only ask the server to flush its authoritative world when a server is actually reachable. After
+        //  Only ask the server to flush its authoritative level when a server is actually reachable. After
         //  a remote disconnect the transport is dropped, so the send would target a dead host for nothing.
         if (_transportManager.IsConnected)
         {

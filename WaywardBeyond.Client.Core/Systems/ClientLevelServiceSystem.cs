@@ -4,22 +4,22 @@ using WaywardBeyond.Client.Core.Networking;
 namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
-/// Polls the client <see cref="WorldsClient"/> for in-flight world-management responses (save listing,
-/// create/delete world requests) on the ECS thread, so the menu can await them without either blocking a
+/// Polls the client <see cref="LevelsClient"/> for in-flight level-management responses (save listing,
+/// create/delete level requests) on the ECS thread, so the menu can await them without either blocking a
 /// thread or racing the transport. This system runs regardless of <see cref="GameState"/> (the ECS thread
 /// ticks in the menu too), which is what lets the save-listing UI be served entirely from the server.
 /// </summary>
-internal sealed class ClientWorldServiceSystem : IEntitySystem
+internal sealed class ClientLevelServiceSystem : IEntitySystem
 {
-    private readonly WorldsClient _worlds;
+    private readonly LevelsClient _levels;
 
-    public ClientWorldServiceSystem(in WorldsClient worlds)
+    public ClientLevelServiceSystem(in LevelsClient levels)
     {
-        _worlds = worlds;
+        _levels = levels;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        _worlds.Poll();
+        _levels.Poll();
     }
 }

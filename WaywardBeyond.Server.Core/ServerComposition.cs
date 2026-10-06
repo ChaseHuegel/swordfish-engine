@@ -19,7 +19,7 @@ namespace WaywardBeyond.Server.Core;
 /// client runtime. Systems register under the <see cref="IServerWorldSystem"/> marker (never
 /// <see cref="IEntitySystem"/>), so the client's ECS context cannot resolve them; third-party modules
 /// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after the
-/// built-ins. Registration order is the world's tick order: join/disconnect → world management →
+/// built-ins. Registration order is the world's tick order: join/disconnect → level management →
 /// replication apply → inventory → heartbeats → physics → interaction → chat → replication publish.
 /// Per-world services are wired with <c>Made.Of</c> factories rather than scoped <c>RegisterDelegate</c>
 /// or <c>Reuse.Scoped</c>: DryIoc's compiled scoped-factory path is unusable on current runtimes.
@@ -28,14 +28,17 @@ public static class ServerComposition
 {
     public static void Register(IContainer container)
     {
-        //  Server-level menu facade: create/list/delete saved worlds for connections that have not
-        //  joined a world yet; ticked by the host before world routing.
-        container.Register<ServerWorldManager>(Reuse.Singleton);
+        //  Server-level menu facade: create/list/delete saved levels for connections that have not
+        //  joined a level yet; ticked by the host before level routing.
+        container.Register<ServerLevelManager>(Reuse.Singleton);
+        container.Register<PendingLevelDeletes>(Reuse.Singleton);
+        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
 
         container.Register<World>();
         container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingSettings>())));
         container.Register<SessionManager>();
-        container.Register<WorldSaveService>();
+        //  The level save service holds an open save database; each world pins and disposes its own.
+        container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
         container.Register<ServerJoinQueue>();
         container.Register<NetworkReplicationSystem>();
         container.Register<ServerSkillSystem>();

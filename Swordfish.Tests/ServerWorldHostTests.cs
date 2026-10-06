@@ -8,6 +8,7 @@ using Swordfish.Library.Util;
 using Swordfish.ECS;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
 using WaywardBeyond.Shared.Config;
@@ -44,15 +45,17 @@ public class ServerWorldHostTests
             container.RegisterDelegate<ILogger>(_ => NullLogger.Instance);
             MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
             container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
-            container.RegisterDelegate<Func<KeyValueStore>>(_ => () => throw new NotImplementedException());
+            container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
 
             ServerComposition.Register(container);
 
             var settings = new NetworkingSettings();
             settings.WorldIdleUnloadMs.Set(50);
             PendingJoins = new PendingJoins();
-            var worldManager = new ServerWorldManager(PendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
-            Host = new ServerWorldHost(container, worldManager, PendingJoins, settings, NullLoggerFactory.Instance);
+            var pendingDeletes = new PendingLevelDeletes();
+            var levelCatalog = new StubLevelCatalog();
+            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+            Host = new ServerWorldHost(container, levelManager, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 
             LocalA = new LocalConnection(Serializers);
             LocalB = new LocalConnection(Serializers);
@@ -70,17 +73,17 @@ public class ServerWorldHostTests
     [
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldEntityAdd>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelEntityAdd>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
         new NsdMessageSerializer<ServerHeartbeatMessage>(),
-        new NsdMessageSerializer<NewWorldRequest>(),
-        new NsdMessageSerializer<NewWorldResponse>(),
-        new NsdMessageSerializer<ListWorldsRequest>(),
-        new NsdMessageSerializer<ListWorldsResponse>(),
-        new NsdMessageSerializer<DeleteWorldRequest>(),
-        new NsdMessageSerializer<DeleteWorldResponse>(),
+        new NsdMessageSerializer<NewLevelRequest>(),
+        new NsdMessageSerializer<NewLevelResponse>(),
+        new NsdMessageSerializer<ListLevelsRequest>(),
+        new NsdMessageSerializer<ListLevelsResponse>(),
+        new NsdMessageSerializer<DeleteLevelRequest>(),
+        new NsdMessageSerializer<DeleteLevelResponse>(),
     ];
 
     private static readonly MethodInfo _update = typeof(ServerWorldHost)
@@ -141,19 +144,19 @@ public class ServerWorldHostTests
     public void MenuRequestsAreServedToPendingConnections()
     {
         var pendingJoins = new PendingJoins();
-        var manager = new ServerWorldManager(pendingJoins, () => throw new NotSupportedException(), TestBricks.Map, NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(pendingJoins, new PendingLevelDeletes(), new StubLevelCatalog(), NullLoggerFactory.Instance);
         var connection = new LocalConnection(Serializers);
         pendingJoins.Add(connection.Server);
-        connection.Client.Send(new NewWorldRequest { Name = "T", Seed = "s", GameMode = 0 });
+        connection.Client.Send(new NewLevelRequest { Name = "T", Seed = "s", GameMode = 0 });
 
         //  The save backing is unavailable, so creation fails - but the menu still gets its response.
         manager.Tick();
-        Result<NewWorldResponse> response = connection.Client.Receive<NewWorldResponse>();
+        Result<NewLevelResponse> response = connection.Client.Receive<NewLevelResponse>();
         long deadline = Environment.TickCount64 + 5000;
         while (!response.Success && deadline > Environment.TickCount64)
         {
             Thread.Sleep(10);
-            response = connection.Client.Receive<NewWorldResponse>();
+            response = connection.Client.Receive<NewLevelResponse>();
         }
 
         Assert.True(response.Success && !response.Value.Success, "The menu must receive the create-world verdict.");

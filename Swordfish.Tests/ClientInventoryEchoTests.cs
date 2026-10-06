@@ -7,6 +7,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Server.Core;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
@@ -42,14 +43,16 @@ public class ClientInventoryEchoTests
             container.RegisterDelegate<ILogger>(_ => NullLogger.Instance);
             System.Reflection.MethodInfo createLogger = typeof(LoggerFactoryExtensions).GetMethod("CreateLogger", [typeof(ILoggerFactory)])!;
             container.Register(typeof(ILogger<>), made: Made.Of(req => createLogger.MakeGenericMethod(req.Parent.ImplementationType)));
-            container.RegisterDelegate<Func<KeyValueStore>>(_ => () => throw new NotImplementedException());
+            container.RegisterInstance<ILevelCatalog>(new StubLevelCatalog());
 
             ServerComposition.Register(container);
 
             var settings = new NetworkingSettings();
             PendingJoins = new PendingJoins();
-            var worldManager = new ServerWorldManager(PendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
-            Host = new ServerWorldHost(container, worldManager, PendingJoins, settings, NullLoggerFactory.Instance);
+            var pendingDeletes = new PendingLevelDeletes();
+            var levelCatalog = new StubLevelCatalog();
+            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+            Host = new ServerWorldHost(container, levelManager, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 
             Local = new LocalConnection(Serializers);
             PendingJoins.Add(Local.Server);
@@ -65,8 +68,8 @@ public class ClientInventoryEchoTests
     [
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldEntityAdd>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelEntityAdd>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
     ];
 

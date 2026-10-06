@@ -102,7 +102,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     }
 
     /// <summary>
-    /// Records that a client's <c>WorldStreamComplete</c> has been enqueued; the streaming gate lifts
+    /// Records that a client's <c>LevelStreamComplete</c> has been enqueued; the streaming gate lifts
     /// at the end of the current publish stage, so the join tick itself publishes nothing to it.
     /// </summary>
     public void EndStream(Uuid clientId)

@@ -11,16 +11,14 @@ using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Client.Core.UI.Layers.Menus.Modal;
-using WaywardBeyond.Server.Core.Streaming;
 
 namespace WaywardBeyond.Client.Core;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal sealed class Entry : IAutoActivate, IDisposable
+internal sealed class Entry : IAutoActivate
 {
     private readonly IWindowContext _windowContext;
     private readonly ModalMenu _modalMenu;
-    private readonly PersistentNatsProcess _natsProcess;
 
     public Entry(
         in ILogger<Entry> logger,
@@ -29,12 +27,10 @@ internal sealed class Entry : IAutoActivate, IDisposable
         in RenderSettings renderSettings,
         in IFileParseService fileParseService,
         in IShortcutService shortcutService,
-        in ModalMenu modalMenu,
-        in PersistentNatsProcess natsProcess
+        in ModalMenu modalMenu
     ) {
         _windowContext = windowContext;
         _modalMenu = modalMenu;
-        _natsProcess = natsProcess;
 
         windowSettings.Title.Set("Wayward Beyond");
         logger.LogInformation("Starting Wayward Beyond {version}", WaywardBeyond.Version.Name);
@@ -66,17 +62,6 @@ internal sealed class Entry : IAutoActivate, IDisposable
             action: OpenFeedbackForm
         );
         shortcutService.RegisterShortcut(feedbackShortcut);
-
-        Result natsStartResult = natsProcess.Start();
-        if (!natsStartResult.Success)
-        {
-            logger.LogError(natsStartResult.Exception, "Failed to start NATS process. {message}", natsStartResult.Message);
-        }
-    }
-    
-    public void Dispose()
-    {
-        _natsProcess.Dispose();
     }
 
     internal void Quit()

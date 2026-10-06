@@ -81,22 +81,21 @@ process boundary detail.
 
 ## Persistence schema
 
-All save data persists through a local NATS JetStream server (launched by
-`PersistentNatsProcess`) wrapped by `KeyValueStore` (NATS KV, sync-over-async)
-in `WaywardBeyond.Shared.Data/KeyValueStore.cs`. Env config: `NATS_URL`,
-`NATS_JWT`, `NATS_NKEY_SEED`; default `nats://127.0.0.1:4222`. Buckets are
-auto-created on first use.
+All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
+`StoragePaths` (`WaywardBeyond.Shared.Data/StoragePaths.cs`) resolves the
+layout under `StorageSettings.DataRoot` (default `saves/`, file
+`storage.toml`). The client owns `profile.db` (characters and save-listing
+metadata). The server owns one database per level. The dedicated server can
+override the data root with `--data`.
 
 The source of truth for full details is [specs/persistence](specs/persistence.md).
 
-### Buckets
+### Levels
 
-| Bucket | Owner | Key pattern | Payload |
-|---|---|---|---|
-| `characters` | Client | `<characterId>` | `Character` |
-| `levels` | Server | `<levelGuid>` | `Level` meta |
-| `levels` | Server | `<guid>.entity.<uuid>` | `VoxelEntityData` |
-| `levels` | Server | `<guid>.character.<characterId>` | `CharacterEntityData` (location) |
+| Database | Owner | Tables |
+|---|---|---|
+| `saves/profile.db` | Client | `characters`, `save_meta` |
+| `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations` |
 
 ## CLI surface
 
@@ -123,11 +122,12 @@ only implementations are tests (`Swordfish.Tests/CommandTests.cs`).
 
 ## SQL integration (legacy/parallel)
 
-`Swordfish.Integrations/SQL/` provides an optional SQLite/SqlClient layer:
+`Swordfish.Integrations/SQL/` provides an optional SqlClient layer:
 - `Database.cs` — SqlClient wrapper.
 - `Query.cs` — fluent builder (`Select/From/Where/Equals/And/InsertInto/Update/Set/Columns/Values/End`).
 
-This is not used by the game's save path, which uses NATS KV.
+This is not used by the game's save path, which uses SQLite directly in
+`WaywardBeyond.Shared.Data`.
 
 ## Notable dependencies
 
@@ -135,6 +135,7 @@ This is not used by the game's save path, which uses NATS KV.
 - **JoltPhysicsSharp** 2.17.5 — 3D physics
 - **DryIoc** 5.3.3 — DI container
 - **Needlefish** 1.2.0 — binary serializer (custom)
+- **Microsoft.Data.Sqlite** 8.0.6 — save store
 - **Currents/CRNT** — UDP protocol (custom)
 - **Tomlet** 6.2.0 — TOML parsing
 - **SmartFormat.NET** — localization formatting

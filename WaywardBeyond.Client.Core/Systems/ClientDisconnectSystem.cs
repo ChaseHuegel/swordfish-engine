@@ -24,7 +24,7 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
     private readonly ClientCleanupSystem _cleanupSystem;
     private readonly NotificationService _notificationService;
     private readonly ILocalization _localization;
-    private readonly WorldsClient _worlds;
+    private readonly LevelsClient _levels;
 
     private readonly ConcurrentQueue<byte> _disconnects = new();
 
@@ -34,14 +34,14 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         in ClientCleanupSystem cleanupSystem,
         in NotificationService notificationService,
         in ILocalization localization,
-        in WorldsClient worlds
+        in LevelsClient levels
     ) {
         _transport = transport;
         _characterSaveManager = characterSaveManager;
         _cleanupSystem = cleanupSystem;
         _notificationService = notificationService;
         _localization = localization;
-        _worlds = worlds;
+        _levels = levels;
 
         _transport.RemoteDisconnected += () => _disconnects.Enqueue(0);
     }
@@ -59,9 +59,9 @@ internal sealed class ClientDisconnectSystem : IEntitySystem
         _cleanupSystem.RequestCleanup();
         WaywardBeyond.GameState.Set(GameState.MainMenu);
 
-        //  World-management requests in flight will never be answered by the vanished server: complete
-        //  them as failures so the save screen and world UI never await them forever.
-        _worlds.FaultPending();
+        //  Level-management requests in flight will never be answered by the vanished server: complete
+        //  them as failures so the save screen and level UI never await them forever.
+        _levels.FaultPending();
 
         _notificationService.Push(new Notification(_localization.GetString("notification.connection.lost")!, NotificationType.Toast));
         _transport.Disconnect();

@@ -7,6 +7,7 @@ using Shoal.Modularity;
 using Swordfish.ECS;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Util;
+using WaywardBeyond.Server.Core.Saves;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Networking.Transport;
@@ -41,8 +42,10 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     public int WorldCount => _worlds.Count;
 
     private readonly IContainer _container;
-    private readonly ServerWorldManager _worldManager;
+    private readonly ServerLevelManager _levelManager;
     private readonly PendingJoins _pendingJoins;
+    private readonly PendingLevelDeletes _pendingDeletes;
+    private readonly ILevelCatalog _levelCatalog;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
@@ -53,14 +56,18 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
 
     public ServerWorldHost(
         in IContainer container,
-        in ServerWorldManager worldManager,
+        in ServerLevelManager levelManager,
         in PendingJoins pendingJoins,
+        in PendingLevelDeletes pendingDeletes,
+        in ILevelCatalog levelCatalog,
         in NetworkingSettings settings,
         ILoggerFactory loggerFactory
     ) {
         _container = container;
-        _worldManager = worldManager;
+        _levelManager = levelManager;
         _pendingJoins = pendingJoins;
+        _pendingDeletes = pendingDeletes;
+        _levelCatalog = levelCatalog;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
         _idleUnloadMs = Math.Max(1, settings.WorldIdleUnloadMs.Get());
         _threadWorker = new ThreadWorker(Update, "Server");
@@ -117,7 +124,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _threadWorker.Join();
 
         //  The server thread owns the stores; once stopped, shutdown may safely flush them before the
-        //  world containers and the local NATS backing are disposed. The list is snapshotted so a world
+        //  world containers are disposed. The list is snapshotted so a world
         //  container disposal can never invalidate the enumerator.
         foreach (WorldEntry entry in _worlds.ToArray())
         {
@@ -127,7 +134,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
                 entry.World.Hub.Remove(clientId);
             }
 
-            entry.World.WorldService.Flush(entry.World.Store);
+            entry.World.SaveService.Flush(entry.World.Store);
             entry.World.Dispose();
         }
 
@@ -140,7 +147,8 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     {
         try
         {
-            _worldManager.Tick();
+            _levelManager.Tick();
+            ProcessPendingLevelDeletes();
             RoutePendingJoins();
 
             //  Unloads are deferred until after the world iteration: removing from _worlds during the
@@ -186,6 +194,49 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         }
     }
 
+    /// <summary>
+    /// Deletes requested levels on the server thread. A loaded level is torn down first, without a final
+    /// save: the data is being discarded and a queued save could recreate the files after deletion.
+    /// </summary>
+    private void ProcessPendingLevelDeletes()
+    {
+        while (_pendingDeletes.TryDequeue(out PendingLevelDelete delete))
+        {
+            WorldEntry? loaded = null;
+            foreach (WorldEntry entry in _worlds)
+            {
+                if (entry.LevelGuid == delete.LevelGuid)
+                {
+                    loaded = entry;
+                    break;
+                }
+            }
+
+            if (loaded != null)
+            {
+                foreach (IServerConnection connection in _bindings.Keys)
+                {
+                    if (_bindings.TryGetValue(connection, out WorldBinding binding) && binding.World == loaded.World)
+                    {
+                        _bindings.TryRemove(connection, out _);
+                        _pendingJoins.Add(connection);
+                    }
+                }
+
+                loaded.World.Dispose();
+                _worlds.Remove(loaded);
+                _logger.LogInformation("Unloaded level {level} for deletion.", delete.LevelGuid);
+            }
+
+            bool success = _levelCatalog.Delete(delete.LevelGuid);
+            Result send = delete.Connection.Send(new DeleteLevelResponse { Success = success });
+            if (!send.Success)
+            {
+                _logger.LogWarning("Failed to send level-delete response: {message}.", send.Message);
+            }
+        }
+    }
+
     private ServerWorld GetOrCreate(string levelGuid)
     {
         foreach (WorldEntry entry in _worlds)
@@ -210,7 +261,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
 
         try
         {
-            world.WorldService.LoadLevel(levelGuid, world.Store);
+            world.SaveService.LoadLevel(levelGuid, world.Store);
         }
         catch (Exception ex)
         {
@@ -258,7 +309,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private void UnloadWorld(WorldEntry entry)
     {
         //  Final authoritative flush: captured on the server thread, persisted in the background.
-        entry.World.WorldService.QueueWorldSave(entry.World.Store);
+        entry.World.SaveService.QueueSave(entry.World.Store);
 
         //  Its connections are unbound and await a future join; the singleplayer loopback returns here.
         foreach (IServerConnection connection in _bindings.Keys)

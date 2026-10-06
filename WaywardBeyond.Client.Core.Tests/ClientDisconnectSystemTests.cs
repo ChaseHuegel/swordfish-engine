@@ -91,7 +91,7 @@ public class ClientDisconnectSystemTests
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         saves.ActiveSave = new Character { Id = 1, Name = "Tester" };
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var worlds = new WorldsClient(transportManager);
+        var worlds = new LevelsClient(transportManager);
         var system = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, localization, worlds);
 
         GameState prior = WaywardBeyond.GameState.Get();
@@ -140,8 +140,8 @@ public class ClientDisconnectSystemTests
         var transportManager = new TransportManager(
             new INetworkSerializer[]
             {
-                new NsdMessageSerializer<SaveWorldRequest>(),
-                new NsdMessageSerializer<SaveWorldResponse>(),
+                new NsdMessageSerializer<SaveLevelRequest>(),
+                new NsdMessageSerializer<SaveLevelResponse>(),
             },
             NullLoggerFactory.Instance,
             new NetworkingSettings()
@@ -155,7 +155,7 @@ public class ClientDisconnectSystemTests
         var notifications = new NotificationService(NullLogger<NotificationService>.Instance, window);
         var saves = new CharacterSaveManager(NullLogger<CharacterSaveManager>.Instance, new StubCharacterStorage(), new ActiveCharacterSave());
         var cleanup = new ClientCleanupSystem(NullLogger<ClientCleanupSystem>.Instance);
-        var worlds = new WorldsClient(transportManager);
+        var worlds = new LevelsClient(transportManager);
         var system = new ClientDisconnectSystem(transportManager, saves, cleanup, notifications, localization, worlds);
 
         GameState prior = WaywardBeyond.GameState.Get();
@@ -168,7 +168,7 @@ public class ClientDisconnectSystemTests
             using TcpClient serverSide = listener.AcceptTcpClient();
 
             //  A save request goes out; the server never answers and then dies.
-            Task<bool> pending = worlds.SaveWorldAsync();
+            Task<bool> pending = worlds.SaveLevelAsync();
             Assert.That(pending.IsCompleted, Is.False, "The request must be outstanding until the connection drops.");
 
             serverSide.Close();

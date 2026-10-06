@@ -29,13 +29,13 @@ public class TcpTransportTests
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
         new NsdMessageSerializer<WorldSnapshot>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
         new NsdMessageSerializer<ChatMessage>(),
         new NsdMessageSerializer<VoxelEditMessage>(),
         new NsdMessageSerializer<NotificationMessage>(),
         new NsdMessageSerializer<SkillStateUpdateMessage>(),
-        new NsdMessageSerializer<WorldEntityAdd>(),
+        new NsdMessageSerializer<LevelEntityAdd>(),
         new NsdMessageSerializer<ServerHeartbeatMessage>(),
         new NsdMessageSerializer<ClientHeartbeatMessage>(),
     ];
@@ -76,7 +76,7 @@ public class TcpTransportTests
         using TcpTransport client = CreateClient(server.LocalPort);
 
         client.Send(new JoinRequest { CharacterId = 11, PublicView = new PublicView { CharacterId = 11, Name = "P", Body = "wb:m_human" } });
-        client.Send(new WorldStreamComplete { Dummy = 5 });
+        client.Send(new LevelStreamComplete { Dummy = 5 });
         client.Send(new LeaveGameRequest { Dummy = 9 });
 
         //  Each type arrives on its own queue; nothing was reordered into another type's slot.
@@ -87,7 +87,7 @@ public class TcpTransportTests
         Assert.True(join.Success);
         Assert.Equal(11ul, join.Value.CharacterId);
 
-        Result<WorldStreamComplete> stream = PollFor<WorldStreamComplete>(server);
+        Result<LevelStreamComplete> stream = PollFor<LevelStreamComplete>(server);
         Assert.True(stream.Success);
         Assert.Equal(5, stream.Value.Dummy);
 
@@ -97,7 +97,7 @@ public class TcpTransportTests
 
         //  Everything consumed; no leftover frames of any kind.
         Assert.False(server.Receive<JoinRequest>().Success);
-        Assert.False(server.Receive<WorldStreamComplete>().Success);
+        Assert.False(server.Receive<LevelStreamComplete>().Success);
         Assert.False(server.Receive<LeaveGameRequest>().Success);
     }
 
@@ -115,7 +115,7 @@ public class TcpTransportTests
             RemovedEntities = [0x333],
         });
         server.Send(new JoinAccept { PlayerEntity = 0xABCD });
-        server.Send(new WorldStreamComplete { Dummy = 3 });
+        server.Send(new LevelStreamComplete { Dummy = 3 });
 
         Result<JoinRequest> stray = PollFor<JoinRequest>(client, timeoutMs: 300);
         Assert.False(stray.Success);
@@ -132,7 +132,7 @@ public class TcpTransportTests
         Assert.True(accept.Success);
         Assert.Equal(0xABCDul, accept.Value.PlayerEntity);
 
-        Result<WorldStreamComplete> stream = PollFor<WorldStreamComplete>(client);
+        Result<LevelStreamComplete> stream = PollFor<LevelStreamComplete>(client);
         Assert.True(stream.Success);
         Assert.Equal(3, stream.Value.Dummy);
 
@@ -279,7 +279,7 @@ public class TcpTransportTests
         //  One control message per class: none may be dropped by the overloaded queue.
         Assert.True(client.Send(new JoinRequest { CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "A", Body = "wb:m_human" } }).Success);
         Assert.True(client.Send(new JoinAccept { PlayerEntity = 2 }).Success);
-        Assert.True(client.Send(new WorldStreamComplete { Dummy = 3 }).Success);
+        Assert.True(client.Send(new LevelStreamComplete { Dummy = 3 }).Success);
         Assert.True(client.Send(new LeaveGameRequest { Dummy = 4 }).Success);
         Assert.True(client.Send(new ChatMessage { CharacterId = 5, SenderName = "A", Value = "hello" }).Success);
         Assert.True(client.Send(new VoxelEditMessage { EntityUuid = 6, X = 1, Y = 2, Z = 3, Sequence = 7, BrickId = "brick" }).Success);
@@ -340,7 +340,7 @@ public class TcpTransportTests
 
         Assert.Equal(1, counts.GetValueOrDefault(typeof(JoinRequest).FullName!));
         Assert.Equal(1, counts.GetValueOrDefault(typeof(JoinAccept).FullName!));
-        Assert.Equal(1, counts.GetValueOrDefault(typeof(WorldStreamComplete).FullName!));
+        Assert.Equal(1, counts.GetValueOrDefault(typeof(LevelStreamComplete).FullName!));
         Assert.Equal(1, counts.GetValueOrDefault(typeof(LeaveGameRequest).FullName!));
         Assert.Equal(1, counts.GetValueOrDefault(typeof(ChatMessage).FullName!));
         Assert.Equal(1, counts.GetValueOrDefault(typeof(VoxelEditMessage).FullName!));
@@ -353,8 +353,8 @@ public class TcpTransportTests
     }
 
     /// <summary>
-    /// A world stream over a congested transport must deliver every <see cref="WorldEntityAdd"/> in
-    /// order plus the final <see cref="WorldStreamComplete"/>, even while the per-tick queue floods
+    /// A world stream over a congested transport must deliver every <see cref="LevelEntityAdd"/> in
+    /// order plus the final <see cref="LevelStreamComplete"/>, even while the per-tick queue floods
     /// snapshot frames into the same socket.
     /// </summary>
     [Fact]
@@ -368,12 +368,12 @@ public class TcpTransportTests
         const int entityCount = 40;
         for (var i = 1; i <= entityCount; i++)
         {
-            server.Send(new WorldEntityAdd
+            server.Send(new LevelEntityAdd
             {
                 VoxelEntity = new VoxelEntityData { Uuid = (ulong)i, X = i, Y = 0, Z = 0, Chunks = [] },
             });
         }
-        server.Send(new WorldStreamComplete { Dummy = 0 });
+        server.Send(new LevelStreamComplete { Dummy = 0 });
 
         //  Flood the per-tick queue while the stream is in flight.
         for (var i = 0; i < 200; i++)
@@ -383,12 +383,12 @@ public class TcpTransportTests
 
         for (var i = 1; i <= entityCount; i++)
         {
-            Result<WorldEntityAdd> add = PollFor<WorldEntityAdd>(client);
+            Result<LevelEntityAdd> add = PollFor<LevelEntityAdd>(client);
             Assert.True(add.Success, $"World entity {i} must arrive.");
             Assert.Equal((ulong)i, add.Value.VoxelEntity.Uuid);
         }
 
-        Result<WorldStreamComplete> complete = PollFor<WorldStreamComplete>(client);
+        Result<LevelStreamComplete> complete = PollFor<LevelStreamComplete>(client);
         Assert.True(complete.Success, "The stream complete marker must arrive after the entities.");
     }
 

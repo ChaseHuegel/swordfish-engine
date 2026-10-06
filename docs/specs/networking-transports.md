@@ -225,18 +225,18 @@ already provide the per-peer bytes/rates needed for that measurement).
 A headless dedicated server is a Shoal embedding without the client module:
 `WaywardBeyond.Server.Launcher` (console `Exe`) loads the server and shared
 modules only (`shared.bricks`, `shared.skills`, `shared.bodies`,
-`server.core`) - no window, input, or client-world services. It registers the
+`server.core`) - no window, input, or client-level services. It registers the
 same shared host wire-up as the embedded client host
 (`Server.Core/HostComposition.cs`): the serializer set, `NetworkRegistry`
-init, hub (no loopback seed), NATS-backed persistence, `NetworkingSettings`,
-and `PhysicsSettings`; `ServerModule`'s host registrations add
+init, hub (no loopback seed), save storage, `NetworkingSettings`, and
+`PhysicsSettings`; `ServerModule`'s host registrations add
 `ServerWorldHost` + `LanHost` + the beacon. Interaction content is the
 embedding's choice: the client module registers its item-backed content, the
 launcher registers `ServerInteractionContent` (breaks and loot; place
-resolution needs shared item content). Lifecycle: NATS start (per
-[persistence](persistence.md)), `Ctrl+C`/SIGTERM → clean shutdown (world
-flush, session teardown, NATS stop). CLI: `--name`, `--port` override the
-`NetworkingSettings` defaults.
+resolution needs shared item content). Lifecycle: `Ctrl+C`/SIGTERM → clean
+shutdown (level flush, session teardown, store disposal, per
+[persistence](persistence.md)). CLI: `--name`, `--port` override the
+`NetworkingSettings` defaults, and `--data` overrides `StorageSettings.DataRoot`.
 
 ## Source of truth
 

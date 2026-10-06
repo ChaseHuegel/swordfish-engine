@@ -37,7 +37,7 @@ public class RemotePlayerVisualTests
     {
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
     };
@@ -70,7 +70,7 @@ public class RemotePlayerVisualTests
         var system = new ServerJoinSystem(
             fixture.Hub,
             fixture.Sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
             new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,

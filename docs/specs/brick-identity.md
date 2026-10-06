@@ -45,7 +45,7 @@ name), `Name(id)`, `Count`. It is injected, never a global static.
 | Consumer | Resolves through |
 |---|---|
 | `SkillDatabase` | an injected `IBrickIdMap` |
-| `WorldGenerator` / `WorldMaterialCatalog` | an `IBrickIdMap` constructor argument |
+| `LevelGenerator` / `WorldMaterialCatalog` | an `IBrickIdMap` constructor argument |
 | `PlaceableBrick.ToVoxel` / `SharedInteractionResolver` | the caller's `IBrickIdMap` |
 | `VoxelEntityDataCodec` | an `IBrickIdMap` argument |
 | `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickIdMap` |
@@ -75,7 +75,7 @@ owns the boundary:
   a local registry built from its own names.
 - `DecodeToLocal` resolves a palette name to the caller's local id space.
 
-`WorldSaveService` encodes palettes when it writes and decodes when it loads.
+`LevelSaveService` encodes palettes when it writes and decodes when it loads.
 On join the server attaches a palette to each streamed structure, and the client
 decodes it in `ClientJoinSystem` before building its view world.
 

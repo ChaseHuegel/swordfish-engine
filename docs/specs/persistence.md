@@ -1,186 +1,136 @@
-# Persistence — NATS KV Buckets
+# Persistence — SQLite Level Databases
 
 One subject: how save data persists.
 
 ## Substrate
 
-All save data flows through a NATS JetStream server wrapped by `KeyValueStore`
-(NATS KV, sync-over-async) in `WaywardBeyond.Shared.Data/KeyValueStore.cs`.
-`PersistentNatsProcess` (`Server.Core/Streaming/PersistentNatsProcess.cs`,
-started from the client `Entry`) ensures a server is reachable at the
-`NATS_URL` address: it uses an existing server or starts a bundled child (see
-[Embedded NATS process lifecycle](#embedded-nats-process-lifecycle)).
+All save data lives in SQLite databases through `Microsoft.Data.Sqlite`.
+`StoragePaths` (`WaywardBeyond.Shared.Data/StoragePaths.cs`) resolves the file
+layout under a data root. The root defaults to the relative `saves/` directory
+and comes from `StorageSettings` (`WaywardBeyond.Shared.Config/StorageSettings.cs`,
+file `storage.toml`). The dedicated server can override it with `--data`
+(`WaywardBeyond.Server.Launcher/Program.cs`).
 
-Environment config: `NATS_URL` (server address), `NATS_EXTRA_ARGS` (extra
-`nats-server` arguments), `NATS_JWT` and `NATS_NKEY_SEED` (auth). The default
-address is `nats://127.0.0.1:4222`. Buckets are auto-created on first use.
-`KeyValueStore` retries the initial connect (`KeyValueStore.cs:38`), so a first
-operation can survive a server handoff.
+Connections are never pooled (`SqliteDatabase`, `Shared.Data/SqliteDatabase.cs`),
+so a disposed store releases its file handle and a level directory can be
+removed on every platform. Each database runs with WAL, `synchronous=NORMAL`,
+and a 5 second busy timeout.
 
-`KeyValueStore` operations: `Put<T>`, `Get<T>`, `GetKeys`, `Delete` (single and
-bulk). It is sync-over-async (blocks on `.Task.Result`), so a full-world save
-must be throttled/submitted to a worker and not run inline on the server tick.
+## Layout
 
-## Buckets
+| Path | Owner | Tables |
+|---|---|---|
+| `saves/profile.db` | Client | `characters`, `save_meta` |
+| `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations` |
 
-| Bucket | Owner | Key pattern | Payload |
-|---|---|---|---|
-| `characters` | Client | `<characterId>` | `Character` |
-| `saves` | Client | `<levelGuid>` | `SaveMeta` |
-| `levels` | Server | `<levelGuid>` | `Level` meta |
-| `levels` | Server | `<guid>.entity.<uuid>` | `VoxelEntityData` |
-| `levels` | Server | `<guid>.character.<characterId>` | `CharacterEntityData` (spawn location) |
+The client owns `profile.db`. `characters` stores one raw nsd blobs per
+character id. `save_meta` stores one raw nsd blob per level guid. The client
+registers the stores behind the existing interfaces (`ICharacterStorage`,
+`ISaveMetaStorage`) in `WaywardBeyond.Client.Core/Injector.cs`.
 
-## `saves` bucket
+The server owns one database per level. `SqliteLevelCatalog`
+(`WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`) creates, lists,
+deletes, and opens them. `SqliteLevelStore`
+(`WaywardBeyond.Shared.Data/SqliteLevelStore.cs`) implements `ILevelStore`
+over one level database.
 
-`NatsSaveMetaStorage` (`WaywardBeyond.Shared.Data/NatsSaveMetaStorage.cs`,
-`BUCKET_NAME = "saves"` at line 9). Key = `<levelGuid>`, value = serialized
-`SaveMeta` (`LastPlayedMs`, `AgeMs`).
+## `level.db` schema
 
-Client-owned. Processes on one machine can share one NATS server, so this
-bucket can be shared too: two clients then share one save meta per level. This
-sharing is accepted. `ISaveMetaStorage` is the interface contract, mirrored on
-the `characters` bucket.
+| Table | Key | Payload |
+|---|---|---|
+| `level` | one row, guid column | serialized `Level` metadata |
+| `entities` | entity uuid (text) | serialized `VoxelEntityData` |
+| `character_locations` | character id (text) | serialized `CharacterEntityData` |
 
-## `characters` bucket
+Keys are decimal strings because SQLite integers are signed 64-bit and the
+ids are `ulong`.
 
-`NatsCharacterStorage` (`WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`,
-`BUCKET_NAME = "characters"` at line 8). Key = `id.ToString()`, value =
-serialized `Character` (via `Character.Serialize()`).
+## Save semantics
 
-Owned by the client. It is the source of the join-time seed — see
-[join](networking-join.md). `ICharacterStorage` is the interface contract.
+A full level save commits one transaction (`ILevelStore.WriteSave`):
 
-The character record carries its own playtime clock (`LastPlayedMs`, `AgeMs`),
-accumulated with the same `SaveTime.Accumulate` rule. The clock re-stamps to the
-current wall-clock at session start. `CharacterSaveManager.Load` does the stamp,
-called from `GameSaveManager.Load` when a character joins a world. The stamp
-means the character's time played measures session time only. It never counts
-the idle gap since the previous session.
+- The `level` row upserts.
+- Every `entities` row is replaced by the captured snapshot. A structure
+  removed from the world no longer persists.
+- Each captured `character_locations` row upserts. Rows absent from the
+  capture are never deleted. A character not present in the world at save time
+  keeps its last location.
 
-Skill XP persists only here, as `Character.Statistics` entries (skill id → total
-XP). The client writes the server-authoritative totals from each
-`SkillStateUpdateMessage` (see [skills](skills.md)); the server stores no skill
-data of its own.
+`LevelSaveService` (`Server.Core/Saves/LevelSaveService.cs`) captures the
+authoritative world on the server thread and submits the blocking writes to a
+worker. It tracks the in-flight save. `Flush` awaits it and then writes, so a
+pending capture can never land after a newer snapshot. `Dispose` awaits the
+pending save and closes the store handle. The world unload path is:
+`Unload` disposes the store, a level switch opens the next level through the
+catalog, and server shutdown flushes each world before its container is
+disposed.
 
-## `levels` bucket
+`SaveLocation`, `MarkActive`, and `EndSessionStamp` are small writes that only
+touch the `level` or `character_locations` rows. The playtime stamping rules
+are unchanged (`SaveTime.Accumulate`).
 
-`WorldSaveService` (`Server.Core/Saves/WorldSaveService.cs`,
-`BUCKET_NAME = "levels"` at line 26). Server-owned.
+## Level delete
 
-Key layout (confirmed at the cited source-of-truth lines):
-
-- `<levelGuid>` → serialized `Level` meta (Version, Seed, spawn, GameMode, Name).
-  Written at `WorldSaveService.cs:77`.
-- `<guid>.entity.<uuid>` → serialized `VoxelEntityData` (chunked voxels +
-  transform), one per structure. Written at `WorldSaveService.cs:81`.
-- `<guid>.character.<characterId>` → serialized `CharacterEntityData`
-  (authoritative location). Written at `WorldSaveService.cs:198`.
-
-Operations: `CreateWorld` (runs the shared `WorldGenerator`, persists Level meta
-+ one entity per structure; the seed string is normalized to an int via
-+ `WorldGenerator.HashSeed`, so typed, randomized, and non-numeric seeds all
-+ create a deterministic world), `ListLevels`, `DeleteLevel`, `LoadLevel` (builds
-authority bodies via `VoxelWorldEntityFactory`), `SaveLocation` (sampled from
-the server-authoritative transform), `QueueWorldSave`/`Flush` (autosave + flush
-on server stop).
-
-The server owns the save's aggregate playtime metadata. `LastPlayedMs` stamps
-to the current wall-clock when anyone joins (`MarkActive`, called from
-`ServerJoinSystem`). `AgeMs` accumulates through every world save (the level
-meta rides the `QueueWorldSave`/`Flush` capture) and whenever a player leaves
-or disconnects (`EndSessionStamp`, called from `ServerJoinSystem`)). The aggregate `AgeMs` therefore represents a total across all
-players' sessions. The in-memory stamp is synchronous; the metadata KV write is
-submitted to a worker, so the server tick never blocks on the store. Share the
-stamping rule via `SaveTime.Accumulate`; a zero last-played stamps no time, so
-the epoch never leaks into the age.
-
-## Server shutdown cascade
-
-The sequencing point is explicit: client window close → client requests server
-stop → server flushes world save → server thread exits → NATS process stops →
-process exits. The flush must be awaited before `PersistentNatsProcess` dispose
-(Shoal dispose order is unspecified), to avoid a save-vs-teardown race.
-
-## Embedded NATS process lifecycle
-
-`PersistentNatsProcess` (`Server.Core/Streaming/`) ensures a NATS server is
-reachable at the `NATS_URL` address. At start it probes the address (`PersistentNatsProcess.cs:104`). A
-reachable address selects shared mode: the process uses the existing server and
-starts no child. An unreachable loopback address starts the bundled
-`nats-server` child, bound to the URL port.
-
-A supervisor thread keeps the address covered (`PersistentNatsProcess.cs:206`). In shared mode it promotes to
-owner when the server goes away: it starts the child with backoff until it
-binds. An owned child that exits is restarted the same way. The restart never
-throws out of the exit handler. A client that shared another process's server
-therefore takes over when that process closes.
-
-Dispose is deterministic: it stops the supervisor, detaches the event handlers,
-stops the child gracefully, and force-kills it after a bounded wait
-(`PersistentNatsProcess.cs:320`). On Linux
-the graceful step sends SIGTERM so JetStream closes cleanly. On Windows the
-child also rides a Job object. `Process.Dispose` alone only releases the handle.
-
-The close path is: window close → `SwordfishEngine.Run` returns → `AppEngine.Dispose`
-→ container dispose → `PersistentNatsProcess.Dispose`. Verify manually after a
-change that no `nats-server` process remains after app close (Linux: `pgrep
-nats-server`; Windows: Task Manager).
+Menu-time delete requests flow through `ServerLevelManager`
+(`Server.Core/ServerLevelManager.cs`) into `PendingLevelDeletes`
+(`Server.Core/PendingLevelDeletes.cs`). `ServerWorldHost` drains the queue on
+the server thread. A loaded level is torn down without a final save, because a
+queued save would recreate the files after deletion. Bound connections return
+to `PendingJoins`. The catalog then deletes the level directory and the host
+answers `DeleteLevelResponse`.
 
 ## Client facade
 
-`GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached save
-listing from `ListWorldsRequest`, with `CreateSave`/`Delete`/`TriggerServerSave`
-routed to the server via `WorldsClient`. The client tracks its own per-save
-"last played" and "time played" in the `saves` bucket, merged over the server's
-level metadata in `GameSaveService.GetSaves()` (no client meta uses a
-never-stamped save) and updated on join and on every save/leave by
-`GameSaveManager`. Character save is handled by `CharacterSaveManager` +
-`NatsCharacterStorage`. The old world-gen/load/save stages are gone.
+`GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached
+save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
+`TriggerServerSave` routed to the server via `LevelsClient`
+(`Client.Core/Networking/LevelsClient.cs`). The client tracks its own per-save
+"last played" and "time played" in the `save_meta` table, merged over the
+server's level metadata in `GameSaveService.GetSaves()`. Character save is
+handled by `CharacterSaveManager` + `SqliteCharacterStorage`.
 
-## Serialization
+## Serialization and data versioning
 
-Shared DTOs live in `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
-(`Character`, `Level`, `VoxelEntityData`/`Chunk`/`Voxel`,
-`CharacterEntityData`). No sqlite, no loose files (except a legacy disk-migration
-path retained in `GameSaveService`).
+`SaveMigrator` (`Shared.Data/Saves/SaveMigrator.cs`) gates on
+`SaveVersion.CurrentDataVersion` and runs per-record forward migrations.
+`SqliteCharacterStorage` and `SqliteLevelCatalog` refuse records stamped by a
+newer build. Structure data carries a brick palette since data version 4;
+`VoxelEntityDataCodec` encodes live FNV voxel ids to a palette on write and
+decodes on load. See [brick-identity](brick-identity.md).
 
-### Brick palette and data versioning
+The previous NATS JetStream store is no longer read. Existing `saves/`
+JetStream data is ignored; the game is pre-release and this change is a clean
+break. No importer ships.
 
-A world structure (`VoxelEntityData`) carries a brick palette since data version
-4: `BrickPalette[n]` is the brick name for voxel id `n`
-(`voxels.nsd`). `WorldSaveService` encodes live FNV voxel ids into a palette on
-write and decodes a palette back to the local id space on load, via
-`VoxelEntityDataCodec` (`Shared.Gameplay/Saves/`). The palette makes saved voxel
-ids self-describing and stable across content changes. See
-[brick-identity](brick-identity.md).
+## Multi-process behavior
 
-`SaveMigrator` (`WaywardBeyond.Shared.Data/Saves/SaveMigrator.cs`) gates on
-`SaveVersion.CurrentDataVersion` (`Shared.Data/SaveVersion.cs`, value `4`) and
-runs per-record forward migrations. `WorldSaveService.LoadLevel` refuses a level
-stamped by a newer build, migrates and decodes each loaded structure, and
-`ListLevels` skips newer-format levels. `NatsCharacterStorage` gates and migrates
-characters. The v3→v4 structure migration is
-`VoxelEntityDataV3ToV4Migration` (`Shared.Gameplay/Saves/`).
-
-The optional SQL layer (`Swordfish.Integrations/SQL/`) is not used by the save
-path.
+Two game processes that share a data root can both open `profile.db` and the
+per-level databases. SQLite locking makes concurrent access safe. Delete is
+coordinated on the owning server thread within one process; two processes
+managing the same root must not delete each other's loaded levels. There is
+no shared broker process to manage.
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Data/KeyValueStore.cs`
-- `WaywardBeyond.Shared.Data/NatsCharacterStorage.cs`
-- `WaywardBeyond.Shared.Data/NatsSaveMetaStorage.cs`
-- `WaywardBeyond.Shared.Data/SaveTime.cs`
-- `WaywardBeyond.Shared.Data/SaveVersion.cs`
-- `WaywardBeyond.Shared.Data/Saves/SaveMigrator.cs`
-- `WaywardBeyond.Shared.Gameplay/Saves/VoxelEntityDataCodec.cs`
-- `WaywardBeyond.Server.Core/Saves/WorldSaveService.cs`
-- `WaywardBeyond.Server.Core/Streaming/PersistentNatsProcess.cs`
-- `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,world}.nsd`
+- `WaywardBeyond.Shared.Config/StorageSettings.cs`
+- `WaywardBeyond.Shared.Data/StoragePaths.cs`
+- `WaywardBeyond.Shared.Data/SqliteDatabase.cs`
+- `WaywardBeyond.Shared.Data/SqliteLevelStore.cs`
+- `WaywardBeyond.Shared.Data/SqliteCharacterStorage.cs`
+- `WaywardBeyond.Shared.Data/SqliteSaveMetaStorage.cs`
+- `WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`
+- `WaywardBeyond.Server.Core/Saves/LevelSaveService.cs`
+- `WaywardBeyond.Server.Core/ServerLevelManager.cs`
+- `WaywardBeyond.Server.Core/PendingLevelDeletes.cs`
+- `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,levels}.nsd`
 
 ## Tests that pin this
 
-- Save-meta accumulation rules in `WaywardBeyond.Client.Core.Tests/SaveTimeTests.cs`.
-- Character playtime frames in `WaywardBeyond.Client.Core.Tests/CharacterSaveManagerTests.cs`.
-- Character save/load round-trips in `WaywardBeyond.Client.Core.Tests`.
+- Store round trips, snapshot entity replacement, and location preservation in
+  `Swordfish.Tests/SqliteStorageTests.cs`.
+- Server-owned level save/load and the join stream in
+  `Swordfish.Tests/ServerJoinStreamTests.cs`.
+- Save-meta accumulation rules in
+  `WaywardBeyond.Client.Core.Tests/SaveTimeTests.cs`.
+- Character playtime frames in
+  `WaywardBeyond.Client.Core.Tests/CharacterSaveManagerTests.cs`.

@@ -1,11 +1,9 @@
 using System;
-using System.Threading;
 using DryIoc;
 using Shoal.Extensions.Swordfish;
 using Swordfish.Library.Util;
 using Swordfish.ECS;
 using Swordfish.Settings;
-using WaywardBeyond.Server.Core.Streaming;
 using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Data;
 using WaywardBeyond.Shared.Gameplay;
@@ -45,18 +43,18 @@ public static class HostComposition
         Require(NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec()));
 
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<NewWorldResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<ListWorldsResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteWorldResponse>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldRequest>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<SaveWorldResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<NewLevelRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<NewLevelResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ListLevelsRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ListLevelsResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteLevelRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<DeleteLevelResponse>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<SaveLevelRequest>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<SaveLevelResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<JoinRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<JoinAccept>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<WorldEntityAdd>>();
-        container.Register<INetworkSerializer, NsdMessageSerializer<WorldStreamComplete>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<LevelEntityAdd>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<LevelStreamComplete>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<VoxelEditMessage>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<LeaveGameRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NotificationMessage>>();
@@ -76,20 +74,9 @@ public static class HostComposition
 
         container.RegisterConfig<NetworkingSettings>(file: "network.toml");
         container.RegisterConfig<PhysicsSettings>(file: "physics.toml");
-        container.Register<IConfiguration, EnvCmdConfiguration>(Reuse.Singleton);
+        container.RegisterConfig<StorageSettings>(file: "storage.toml");
 
-        //  The server resolves the NATS-backed KeyValueStore lazily, only when it first loads a level.
-        container.RegisterDelegate<Func<KeyValueStore>>(context =>
-        {
-            var lazy = new Lazy<KeyValueStore>(
-                () => context.Resolve<KeyValueStore>(),
-                LazyThreadSafetyMode.ExecutionAndPublication
-            );
-            return () => lazy.Value;
-        });
-
-        container.Register<KeyValueStore>(setup: Setup.With(allowDisposableTransient: true));
-        container.Register<PersistentNatsProcess>(setup: Setup.With(allowDisposableTransient: true));
+        container.Register<StoragePaths>(Reuse.Singleton);
 
         container.Register<LanHostInfo>(Reuse.Singleton);
     }

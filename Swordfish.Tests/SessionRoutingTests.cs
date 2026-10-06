@@ -81,7 +81,7 @@ public class SessionRoutingTests
     {
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
     };
@@ -115,7 +115,7 @@ public class SessionRoutingTests
         var system = new ServerJoinSystem(
             fixture.Hub,
             fixture.Sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
             new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,
@@ -143,7 +143,7 @@ public class SessionRoutingTests
             Assert.NotEqual((ulong)0, accept.Value.PlayerEntity);
             assigned.Add((fixture.ClientIds[i], accept.Value.PlayerEntity));
 
-            Assert.True(fixture.Client(i).Receive<WorldStreamComplete>().Success, $"Client {i} should receive a world stream complete.");
+            Assert.True(fixture.Client(i).Receive<LevelStreamComplete>().Success, $"Client {i} should receive a world stream complete.");
         }
 
         //  No client received another client's join accept.
@@ -482,7 +482,7 @@ public class SessionRoutingTests
         var system = new ServerJoinSystem(
             fixture.Hub,
             fixture.Sessions,
-            new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
             new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,

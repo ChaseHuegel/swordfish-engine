@@ -198,12 +198,12 @@ server stamps the sender identity from the player mirror and broadcasts the
 relay to every client, including the sender. See [chat](chat.md) for the relay
 rules, the log line, and the client behavior.
 
-## Join and world-stream messages
+## Join and level-stream messages
 
-`WaywardBeyond.Shared.Data/CodeGen/world.nsd`: `JoinRequest`,
-`JoinAccept`, `WorldEntityAdd`, `WorldStreamComplete`, `PublicView`,
-`CharacterSeed`, and the save-listing pair
-(`NewWorldRequest`/`Response`, `ListWorlds*`, `DeleteWorld*`, `SaveWorld*`).
+`WaywardBeyond.Shared.Data/CodeGen/levels.nsd`: `JoinRequest`,
+`JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `PublicView`,
+`CharacterSeed`, and the save-listing set
+(`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
 See [join](networking-join.md) and [persistence](persistence.md).
 
 `CharacterSeed` carries the client's authoritative **initial** character
@@ -263,7 +263,7 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 ## Source of truth
 
 - Schema files: `WaywardBeyond.Shared.Networking/CodeGen/network.nsd`,
-  `.../components.nsd`, `WaywardBeyond.Shared.Data/CodeGen/{voxels,world,saves}.nsd`.
+  `.../components.nsd`, `WaywardBeyond.Shared.Data/CodeGen/{voxels,levels,saves}.nsd`.
 - `nsdc` build wiring: the Exec targets in each `.csproj`
   (e.g. `WaywardBeyond.Shared.Networking.csproj`, `WaywardBeyond.Shared.Data.csproj`).
 

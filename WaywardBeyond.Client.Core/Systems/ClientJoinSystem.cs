@@ -19,8 +19,8 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// Runs the client side of the join handshake and full-world stream, driving
 /// <c>MainMenu → Loading → Playing</c>. The menu enqueues a join request; on the ECS thread the system
 /// sends a <see cref="JoinRequest"/>, courts the <see cref="JoinAccept"/>, builds view entities as each
-/// <see cref="WorldEntityAdd"/> arrives, and only transitions to <c>Playing</c> once the server's
-/// <see cref="WorldStreamComplete"/> lands. Because <see cref="ClientReconcileSystem"/> gates on
+/// <see cref="LevelEntityAdd"/> arrives, and only transitions to <c>Playing</c> once the server's
+/// <see cref="LevelStreamComplete"/> lands. Because <see cref="ClientReconcileSystem"/> gates on
 /// <c>Playing</c>, authoritative snapshots stay inert until the world is fully streamed - the join-time
 /// ordering guard. View entities are built here (on the ECS thread), never the menu/UI thread.
 /// </summary>
@@ -126,14 +126,14 @@ internal sealed class ClientJoinSystem : IEntitySystem
             }
         }
 
-        Result<WorldEntityAdd> addResult;
-        while ((addResult = _transport.Receive<WorldEntityAdd>()).Success)
+        Result<LevelEntityAdd> addResult;
+        while ((addResult = _transport.Receive<LevelEntityAdd>()).Success)
         {
             BuildViewEntity(addResult.Value, store);
         }
 
-        Result<WorldStreamComplete> completeResult;
-        while ((completeResult = _transport.Receive<WorldStreamComplete>()).Success)
+        Result<LevelStreamComplete> completeResult;
+        while ((completeResult = _transport.Receive<LevelStreamComplete>()).Success)
         {
             WaywardBeyond.GameState.Set(GameState.Playing);
             _request = null;
@@ -141,7 +141,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
             _logger.LogInformation("World stream complete; beginning play.");
         }
 
-        //  A join that never completes (undelivered WorldStreamComplete, dying link, or a world too
+        //  A join that never completes (undelivered LevelStreamComplete, dying link, or a world too
         //  large to drain) must not stall Loading forever: abort and return to the menu with the
         //  connection-lost notice.
         if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _settings.JoinStreamTimeoutMs.Get())
@@ -168,7 +168,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         _logger.LogInformation("Seated local player entity {uuid}.", playerUuid);
     }
 
-    private void BuildViewEntity(in WorldEntityAdd add, DataStore store)
+    private void BuildViewEntity(in LevelEntityAdd add, DataStore store)
     {
         VoxelEntityData data = add.VoxelEntity;
         if (data.Uuid == 0 || data.Chunks == null || data.Chunks.Length == 0)

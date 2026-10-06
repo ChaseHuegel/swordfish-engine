@@ -11,3 +11,5 @@
 
 *.log
 NuGet.config
+
+**/saves/

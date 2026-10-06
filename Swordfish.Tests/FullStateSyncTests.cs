@@ -63,14 +63,14 @@ public class FullStateSyncTests
     {
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
     };
 
-    private static WorldSaveService FailingWorldService()
+    private static LevelSaveService FailingWorldService()
     {
-        return new WorldSaveService(NullLogger<WorldSaveService>.Instance, () => throw new NotImplementedException(), TestBricks.Map);
+        return new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public class FullStateSyncTests
         replication.PublishStage(0f, store);
 
         Assert.True(guestConnection.Client.Receive<JoinAccept>().Success);
-        Assert.True(guestConnection.Client.Receive<WorldStreamComplete>().Success);
+        Assert.True(guestConnection.Client.Receive<LevelStreamComplete>().Success);
 
         Result<WorldSnapshot> received = guestConnection.Client.Receive<WorldSnapshot>();
         Assert.True(received.Success, "The late joiner should receive a full-state snapshot.");

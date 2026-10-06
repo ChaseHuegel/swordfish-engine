@@ -110,7 +110,7 @@ public class SpawnAndMirrorTests
         {
             new NsdMessageSerializer<JoinRequest>(),
             new NsdMessageSerializer<JoinAccept>(),
-            new NsdMessageSerializer<WorldStreamComplete>(),
+            new NsdMessageSerializer<LevelStreamComplete>(),
         });
         var hub = new ServerConnectionHub();
         hub.Add(connection.Server);
@@ -119,9 +119,9 @@ public class SpawnAndMirrorTests
         var system = new WaywardBeyond.Server.Core.Systems.ServerJoinSystem(
             hub,
             sessions,
-            new WaywardBeyond.Server.Core.Saves.WorldSaveService(
-                NullLogger<WaywardBeyond.Server.Core.Saves.WorldSaveService>.Instance,
-                () => throw new NotImplementedException(),
+            new WaywardBeyond.Server.Core.Saves.LevelSaveService(
+                NullLogger<WaywardBeyond.Server.Core.Saves.LevelSaveService>.Instance,
+                new StubLevelCatalog(),
                 TestBricks.Map
             ),
             new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
@@ -145,7 +145,7 @@ public class SpawnAndMirrorTests
         Result<JoinAccept> accept = connection.Client.Receive<JoinAccept>();
         Assert.True(accept.Success);
         Assert.NotEqual((ulong)0, accept.Value.PlayerEntity);
-        Assert.True(connection.Client.Receive<WorldStreamComplete>().Success);
+        Assert.True(connection.Client.Receive<LevelStreamComplete>().Success);
 
         Assert.True(serverStore.TryGet(Uuid.FromValue(accept.Value.PlayerEntity), out int entity));
         Assert.True(serverStore.TryGet(entity, out NetworkComponent net));

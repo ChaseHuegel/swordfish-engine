@@ -21,11 +21,14 @@ longer tears down the first world.
    the engine `World`, with a per-world sim counter owned by each world's
    `SharedSimulationStep`.
 5. A world whose `SessionManager.Count == 0` for `WorldIdleUnloadMs`
-   (`NetworkingSettings`, default 60000) unloads: final flush via
-   `WorldSaveService.QueueWorldSave` (captured on the server thread, persisted
-   in the background), connections unbound back into `PendingJoins`, world
+   (`NetworkingSettings`, default 60000) unloads: final flush via the world's
+   `LevelSaveService.QueueSave` (captured on the server thread, persisted in
+   the background), connections unbound back into `PendingJoins`, world
    container disposed.
 6. A late join recreates the world before any other processing of that client.
+7. A menu-time delete requests the world be torn down: `ServerWorldHost`
+   drains `PendingLevelDeletes` on the server thread, disposes the loaded
+   world without a final save, and the `ILevelCatalog` removes its files.
 
 ## DI: per-world graphs from module templates
 
@@ -36,7 +39,7 @@ pins it into an **exclusive child container** per world
 (`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`,
 `withDisposables: false`); every system's constructor dependencies then resolve
 to that world's own instance graph. Shared singletons (registry, codecs,
-`SkillDatabase`, `IBrickIdMap`, `IInteractionContent`, `WorldSaveService`'s KV
+`SkillDatabase`, `IBrickIdMap`, `IInteractionContent`, the `ILevelCatalog`
 backing, `NetworkingSettings`, `TcpServerHost`, `LocalConnection`) resolve
 through the child fall-through.
 `withDisposables: false` is required: a child-container disposal cascades to
@@ -63,7 +66,7 @@ pinned instances (registered into the child) still dispose on world unload.
 ## What is per-world
 
 - `World`/`DataStore`, `ServerConnectionHub`, `SessionManager`,
-  `WorldSaveService`, `SharedSimulationStep`, `JoltPhysicsSystem`,
+  `LevelSaveService`, `SharedSimulationStep`, `JoltPhysicsSystem`,
   `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`, the
   interaction world factory.
 - World systems, in canonical tick order:
@@ -74,9 +77,10 @@ pinned instances (registered into the child) still dispose on world unload.
   systems so physics and the shared motion step run between them
   (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`). The per-world
   `ServerWorldSystem` serves only the in-world save request.
-- **Server-level** (not per-world): `ServerWorldManager` serves the menu-time
+- **Server-level** (not per-world): `ServerLevelManager` serves the menu-time
   create/list/delete requests on connections that have not joined a world yet;
-  the host ticks it before world routing.
+  the host ticks it before world routing. Deletes defer to
+  `PendingLevelDeletes` so the host can tear down a loaded world first.
 - Replication state: `NetworkReplicationSystem` is per world, so full-sync
   sets, streaming gates, pending snapshots, and acks cannot leak between
   worlds. Publish reads the world's sim tick from the injected
@@ -87,7 +91,8 @@ pinned instances (registered into the child) still dispose on world unload.
 `NetworkRegistry`, codecs/serializers, `SkillDatabase`, `IBrickIdMap`,
 `IInteractionContent` + handler registry, `NetworkingSettings`,
 `TcpServerHost`/`LanHost` (one listen socket), `LocalConnection`,
-`Func<KeyValueStore>` and the NATS-backed `KeyValueStore`.
+`ILevelCatalog` + `StoragePaths` (the level save databases),
+`PendingLevelDeletes`.
 
 ## World-routed joins
 
@@ -115,13 +120,14 @@ hub → join path when it joins a world.
 
 ## Persistence and failure modes
 
-`WorldSaveService` is per world (its per-level state such as
-`CurrentLevelGuid` cannot be shared) over the shared KV. Character location
-resolves against the joining world. A world's load failure is handled in its
-own tick: a failed `LoadLevel` leaves a fresh empty world, the join continues
-at the default spawn, and other worlds are untouched. A mid-stream unload
-cannot occur: joins atomically (re)create the world first, and the idle
-window covers load.
+`LevelSaveService` is per world (its per-level state such as
+`CurrentLevelGuid` cannot be shared) over the shared level catalog. Character
+location resolves against the joining world. A world's load failure is handled
+in its own tick: a failed `LoadLevel` leaves a fresh empty world, the join
+continues at the default spawn, and other worlds are untouched. A mid-stream
+unload cannot occur: joins atomically (re)create the world first, and the idle
+window covers load. A forced delete never queues a final save: the write would
+recreate the removed files.
 
 ## Threading and determinism
 
@@ -145,6 +151,7 @@ measured pressure from scaling work).
 
 - `WaywardBeyond.Server.Core/ServerWorldHost.cs`
 - `WaywardBeyond.Server.Core/ServerWorld.cs`
-- `WaywardBeyond.Server.Core/ServerWorldManager.cs`
+- `WaywardBeyond.Server.Core/ServerLevelManager.cs`
 - `WaywardBeyond.Server.Core/ServerComposition.cs`
 - `docs/specs/networking-join.md` (world-routed joins)
+- `docs/specs/persistence.md` (level save data)

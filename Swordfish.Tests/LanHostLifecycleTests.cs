@@ -26,7 +26,7 @@ public class LanHostLifecycleTests
     [
         new NsdMessageSerializer<JoinRequest>(),
         new NsdMessageSerializer<JoinAccept>(),
-        new NsdMessageSerializer<WorldStreamComplete>(),
+        new NsdMessageSerializer<LevelStreamComplete>(),
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
     ];
@@ -39,8 +39,10 @@ public class LanHostLifecycleTests
         settings.LanDiscovery.Set(false);
 
         var pendingJoins = new PendingJoins();
-        var worldManager = new ServerWorldManager(pendingJoins, () => throw new NotImplementedException(), TestBricks.Map, NullLoggerFactory.Instance);
-        var worldHost = new ServerWorldHost(new Container(), worldManager, pendingJoins, settings, NullLoggerFactory.Instance);
+        var pendingDeletes = new PendingLevelDeletes();
+        var levelCatalog = new StubLevelCatalog();
+        var levelManager = new ServerLevelManager(pendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+        var worldHost = new ServerWorldHost(new Container(), levelManager, pendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
         var lanHost = new LanHost(_serializers, pendingJoins, worldHost, settings, new LanHostInfo(), NullLoggerFactory.Instance);
 
         //  The host's own transport registry and LanHost's id map are private; reflection reads them to

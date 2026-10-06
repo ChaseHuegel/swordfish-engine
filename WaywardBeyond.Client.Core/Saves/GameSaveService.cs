@@ -11,8 +11,8 @@ using WaywardBeyond.Shared.Data;
 namespace WaywardBeyond.Client.Core.Saves;
 
 /// <summary>
-/// The client's thin view over world persistence. The server owns the <c>levels</c> bucket, world
-/// generation and the authoritative world; this service only maintains a cached save listing for the menu
+/// The client's thin view over level persistence. The server owns the authoritative level, its
+/// generation, and its save database; this service only maintains a cached save listing for the menu
 /// (queried from the server) and issues create/delete/save requests. "Last played" and "time played" shown
 /// in the listing are the client's own per-save stats, tracked in <see cref="ISaveMetaStorage"/> and merged
 /// over the server's level metadata here. Characters remain client-owned and are handled separately by
@@ -22,13 +22,13 @@ internal sealed class GameSaveService(
     in ILogger<GameSaveService> logger,
     in LocalizedFormatter localizedFormatter,
     in NotificationService notificationService,
-    in WorldsClient worldsClient,
+    in LevelsClient levelsClient,
     in ISaveMetaStorage saveMetaStorage
 ) {
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly NotificationService _notificationService = notificationService;
-    private readonly WorldsClient _worldsClient = worldsClient;
+    private readonly LevelsClient _levelsClient = levelsClient;
     private readonly ISaveMetaStorage _saveMetaStorage = saveMetaStorage;
 
     private readonly object _savesGate = new();
@@ -101,14 +101,14 @@ internal sealed class GameSaveService(
 
     /// <summary>
     /// Refreshes the cached save listing from the server-owned <c>levels</c> bucket (via a
-    /// <see cref="ListWorldsRequest"/>). The client no longer owns world metadata; it holds only this
+    /// <see cref="ListLevelsRequest"/>). The client no longer owns level metadata; it holds only this
     /// cached view for the menu, merged with its own per-save stats.
     /// </summary>
-    public async Task RefreshWorldsAsync()
+    public async Task RefreshLevelsAsync()
     {
         try
         {
-            Level[] levels = await _worldsClient.GetLevelsAsync();
+            Level[] levels = await _levelsClient.GetLevelsAsync();
 
             lock (_savesGate)
             {
@@ -123,35 +123,35 @@ internal sealed class GameSaveService(
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to refresh the world listing from the server.");
+            _logger.LogError(ex, "Failed to refresh the level listing from the server.");
         }
     }
 
     public void CreateSave(GameOptions options)
     {
         _notificationService.Push(_localizedFormatter.GetString("notification.save.creating", options.Name));
-        _ = CreateWorldAsync(options.Name, options.Seed);
+        _ = CreateLevelAsync(options.Name, options.Seed);
     }
 
     /// <summary>
-    /// Asks the server to flush its authoritative world to the <c>levels</c> bucket. The client no longer
-    /// stores world state; quicksave/autosave/pause/close all delegate persistence to the server.
+    /// Asks the server to flush its authoritative level to the <c>levels</c> bucket. The client no longer
+    /// stores level state; quicksave/autosave/pause/close all delegate persistence to the server.
     /// </summary>
     public Task TriggerServerSave()
     {
-        return _worldsClient.SaveWorldAsync();
+        return _levelsClient.SaveLevelAsync();
     }
 
     /// <summary>Notifies the server the player is returning to the menu (end session, free mirror).</summary>
     public void LeaveGame()
     {
-        _worldsClient.SendLeaveGame();
+        _levelsClient.SendLeaveGame();
     }
 
-    private async Task CreateWorldAsync(string name, string seed)
+    private async Task CreateLevelAsync(string name, string seed)
     {
-        bool success = await _worldsClient.CreateWorldAsync(name, seed, GameMode.Creative);
-        await RefreshWorldsAsync();
+        bool success = await _levelsClient.CreateLevelAsync(name, seed, GameMode.Creative);
+        await RefreshLevelsAsync();
 
         _notificationService.Push(_localizedFormatter.GetString(
             success ? "notification.save.created" : "notification.save.creating.failed",
@@ -161,12 +161,12 @@ internal sealed class GameSaveService(
 
     public void Delete(GameSave save)
     {
-        _ = DeleteWorldAsync(save.Level.Guid, save.Name);
+        _ = DeleteLevelAsync(save.Level.Guid, save.Name);
     }
 
-    private async Task DeleteWorldAsync(string levelGuid, string name)
+    private async Task DeleteLevelAsync(string levelGuid, string name)
     {
-        bool success = await _worldsClient.DeleteWorldAsync(levelGuid);
+        bool success = await _levelsClient.DeleteLevelAsync(levelGuid);
 
         lock (_savesGate)
         {
@@ -174,7 +174,7 @@ internal sealed class GameSaveService(
         }
         _saveMetaStorage.Delete(levelGuid);
 
-        await RefreshWorldsAsync();
+        await RefreshLevelsAsync();
 
         _notificationService.Push(_localizedFormatter.GetString(
             success ? "notification.save.deleted" : "notification.save.deleting.failed",

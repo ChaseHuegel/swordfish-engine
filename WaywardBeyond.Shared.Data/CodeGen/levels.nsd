@@ -1,45 +1,45 @@
 #version 1.0;
 #namespace WaywardBeyond.Shared.Data;
 
-message NewWorldRequest
+message NewLevelRequest
 {
     string Name = 0;
     string Seed = 1;
     int GameMode = 2;
 }
 
-message NewWorldResponse
+message NewLevelResponse
 {
     string LevelGuid = 1;
     bool Success = 2;
 }
 
-message ListWorldsRequest
+message ListLevelsRequest
 {
     uint Dummy = 0;
 }
 
-message ListWorldsResponse
+message ListLevelsResponse
 {
     Level[] Levels = 50;
 }
 
-message DeleteWorldRequest
+message DeleteLevelRequest
 {
     string LevelGuid = 0;
 }
 
-message DeleteWorldResponse
+message DeleteLevelResponse
 {
     bool Success = 1;
 }
 
-message SaveWorldRequest
+message SaveLevelRequest
 {
     uint Dummy = 0;
 }
 
-message SaveWorldResponse
+message SaveLevelResponse
 {
     bool Success = 1;
 }
@@ -83,12 +83,12 @@ message JoinAccept
     ulong PlayerEntity = 8;
 }
 
-message WorldEntityAdd
+message LevelEntityAdd
 {
     VoxelEntityData VoxelEntity = 0;
 }
 
-message WorldStreamComplete
+message LevelStreamComplete
 {
     byte Dummy = 0;
 }
