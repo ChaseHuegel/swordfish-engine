@@ -96,7 +96,28 @@ internal sealed class PlayerViewModelSystem(
 
     public void Tick(float delta, DataStore store)
     {
+        //  The view model entity is owned by this system, not by a gameplay tag, so the tag-based world
+        //  teardown never frees it. Free it here once play ends (menu or loading) and rebuild it on the
+        //  next join. Only the renderer is disposed: the mesh is shared from the asset database.
+        if (_viewModelEntity.HasValue && !WaywardBeyond.IsInGame())
+        {
+            FreeViewModel(store);
+        }
+
         ForEachAction action = new() { Owner = this };
         store.Query<PlayerComponent, InventoryComponent, ForEachAction>(delta, ref action);
+    }
+
+    private void FreeViewModel(DataStore store)
+    {
+        if (_viewModelEntity.HasValue)
+        {
+            MeshRendererComponent? meshRenderer = _viewModelEntity.Value.Get<MeshRendererComponent>();
+            meshRenderer?.MeshRenderer?.Dispose();
+            store.Free(_viewModelEntity.Value.Ptr);
+        }
+
+        _viewModelEntity = null;
+        _currentViewModel = default;
     }
 }

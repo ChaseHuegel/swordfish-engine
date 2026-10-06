@@ -235,9 +235,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  Relay the joining client's minimal public character view: the appearance index is replicated
         //  so remote clients can materialize this player, and the name rides on the reused
         //  IdentifierComponent (mirroring the client's local player). Inventory/attributes/statistics
-        //  are not relayed for remote rendering.
+        //  are not relayed for remote rendering. The "game" tag is the client teardown key: it lets the
+        //  remote client free the mirror with the rest of its gameplay entities on exit.
         store.AddOrUpdate(entity, new BodyViewComponent { Body = request.PublicView.Body });
-        store.AddOrUpdate(entity, new IdentifierComponent(request.PublicView.Name, tag: PlayerBodyConfig.PLAYER_TAG));
+        store.AddOrUpdate(entity, new IdentifierComponent(request.PublicView.Name, tag: "game"));
 
         //  Seed the server-authoritative interaction context from the joining client's local save. The
         //  client owns its initial save; from here the server owns these components and replicates them.

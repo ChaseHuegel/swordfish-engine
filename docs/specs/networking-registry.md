@@ -71,7 +71,8 @@ grouping of 10–16 are reserved; do not reuse.
 engine `IdentifierComponent` (its `Name`) carry a joining client's minimal
 public character view on the server player mirror. This is the appearance that
 drives a remote player's billboard, plus the name. It never carries inventory
-or attributes.
+or attributes. The `IdentifierComponent` tag is `"game"`, the client teardown
+key, so the mirror is freed with the rest of the gameplay world on exit.
 
 The client renders any remote player (an entity with `BodyViewComponent` but no
 `PlayerComponent`) through the general billboard path. `RemotePlayerVisualSystem`

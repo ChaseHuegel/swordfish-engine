@@ -76,10 +76,12 @@ A remote disconnect during join or loading is handled the same as one during
 play: `ClientDisconnectSystem` drops the dead transport and returns the client
 to the menu with a connection-lost toast. The character save is gated on
 `Playing`, so a mid-join disconnect simply abandons the stream. The teardown
-also faults every in-flight world-management operation (`WorldsClient`), so the
-save screen and world list never await a vanished server, and it runs for any
-menu state - a server death on the save screen returns the client to the main
-menu. A join attempt with no active connection fails fast through the same
+frees every entity tagged `"game"` - the local player, the remote player
+mirrors, and the world geometry - so no gameplay entity survives into the menu.
+It also faults every in-flight world-management operation (`WorldsClient`), so
+the save screen and world list never await a vanished server, and it runs for
+any menu state - a server death on the save screen returns the client to the
+main menu. A join attempt with no active connection fails fast through the same
 teardown instead of entering Loading.
 
 ## Join-stream timeout

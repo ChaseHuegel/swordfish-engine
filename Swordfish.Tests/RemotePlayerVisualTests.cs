@@ -95,7 +95,7 @@ public class RemotePlayerVisualTests
 
         Assert.True(fixture.Store.TryGet(entity, out IdentifierComponent identifier));
         Assert.Equal("Ada", identifier.Name);
-        Assert.Equal(PlayerBodyConfig.PLAYER_TAG, identifier.Tag);
+        Assert.Equal("game", identifier.Tag);
     }
 
     [Fact]

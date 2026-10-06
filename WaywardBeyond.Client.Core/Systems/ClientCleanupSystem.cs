@@ -8,12 +8,13 @@ namespace WaywardBeyond.Client.Core.Systems;
 
 /// <summary>
 /// Tears down the client world when the player returns to the menu. The teardown must run on the ECS
-/// thread (its Tick), never the UI thread: it frees every game entity and the player while disposing
-/// their renderers and physics bodies. Disposing bodies posts their native destruction to the physics
-/// <see cref="System.Threading.ThreadContext"/> on the same thread, and freeing entities here avoids
-/// racing the ECS physics/render systems - a UI-thread teardown that raced the solver corrupted Jolt and
-/// crashed on rejoin. <see cref="ClientReconcileSystem"/> is already gated off by the menu state, so
-/// nothing re-allocates entities during this clean.
+/// thread (its Tick), never the UI thread: it frees every entity tagged "game" while disposing their
+/// renderers and physics bodies. The tag covers the local player, the remote player mirrors, and the
+/// world geometry, so one query tears the whole gameplay world down. Disposing bodies posts their native
+/// destruction to the physics <see cref="System.Threading.ThreadContext"/> on the same thread, and
+/// freeing entities here avoids racing the ECS physics/render systems - a UI-thread teardown that raced
+/// the solver corrupted Jolt and crashed on rejoin. <see cref="ClientReconcileSystem"/> is already gated
+/// off by the menu state, so nothing re-allocates entities during this clean.
 /// </summary>
 internal sealed class ClientCleanupSystem : IEntitySystem
 {
@@ -41,9 +42,6 @@ internal sealed class ClientCleanupSystem : IEntitySystem
         FreeGameAction game = new();
         store.Query<IdentifierComponent, FreeGameAction>(0f, ref game);
 
-        FreePlayerAction player = new();
-        store.Query<PlayerComponent, FreePlayerAction>(0f, ref player);
-
         _logger.LogInformation("Cleaned up the client world on the ECS thread.");
     }
 
@@ -62,19 +60,6 @@ internal sealed class ClientCleanupSystem : IEntitySystem
                 mesh.MeshRenderer.Mesh.Dispose();
             }
 
-            if (store.TryGet(entity, out PhysicsComponent physics))
-            {
-                physics.Dispose();
-            }
-
-            store.Free(entity);
-        }
-    }
-
-    private struct FreePlayerAction : IForEach<PlayerComponent>
-    {
-        public void Execute(float delta, DataStore store, int entity, in PlayerComponent player)
-        {
             if (store.TryGet(entity, out PhysicsComponent physics))
             {
                 physics.Dispose();
