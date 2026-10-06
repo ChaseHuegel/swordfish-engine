@@ -63,12 +63,12 @@ internal sealed class RemotePlayerVisualSystem : IEntitySystem
 
         //  Scale the quad to the texture's aspect so the sprite is not squashed, sized to the player's body height.
         Texture texture = materials[0].Textures[0];
-        float height = PlayerBodyConfig.PLAYER_BODY_HEIGHT * transform.Scale.Y;
+        float height = PlayerBodyConfig.PLAYER_STANDING_HEIGHT * transform.Scale.Y;
         float width = texture.Width > 0 ? height * (texture.Width / (float)texture.Height) : height;
 
         store.AddOrUpdate(entity, new BillboardComponent
         {
-            Offset = new Vector3(0f, height * 0.5f, 0f),
+            Offset = new Vector3(0f, PlayerBodyConfig.PLAYER_FLYING_EYE_OFFSET, 0f),
             Size = new Vector2(width, height),
             Materials = materials,
         });

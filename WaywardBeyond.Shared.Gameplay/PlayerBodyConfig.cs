@@ -22,13 +22,11 @@ public static class PlayerBodyConfig
     public static readonly Vector3 PLAYER_SCALE = Vector3.One;
     public static readonly Vector3 DEFAULT_SPAWN_POSITION = new(0f, 1f, 5f);
 
-    /// <summary>World height of the standing visual body above the origin (feet). Drives the remote-player body billboard and nameplate.</summary>
-    public const float PLAYER_BODY_HEIGHT = 1.8f;
-
-    private const float PLAYER_STANDING_HEIGHT = 1.7f;
-    private const float PLAYER_STANDING_OFFSET = -0.75f;
-    private const float PLAYER_FLYING_HEIGHT = 0.75f;
-    private const float PLAYER_FLYING_OFFSET = -0.2f;
+    public const float PLAYER_STANDING_HEIGHT = 1.8f;
+    public const float PLAYER_STANDING_OFFSET = -0.75f;
+    public const float PLAYER_FLYING_HEIGHT = 0.75f;
+    public const float PLAYER_FLYING_OFFSET = -0.2f;
+    public const float PLAYER_FLYING_EYE_OFFSET = -0.5f;
 
     public static PhysicsComponent CreatePhysics()
     {
