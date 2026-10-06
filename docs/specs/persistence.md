@@ -143,6 +143,8 @@ no shared broker process to manage.
 
 - Store round trips, snapshot entity replacement, and location preservation in
   `Swordfish.Tests/SqliteStorageTests.cs`.
+- Server autosave cadence, completion reporting, and save authorization in
+  `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs`.
 - Server-owned level save/load and the join stream in
   `Swordfish.Tests/ServerJoinStreamTests.cs`.
 - Save-meta accumulation rules in

@@ -67,7 +67,7 @@ Group names, user ids, and permission keys are case-insensitive. `Inherits`,
 ## Cycle safety
 
 `PermissionCompiler.ResolveClosure`
-(`WaywardBeyond.Shared.Permissions/PermissionCompiler.cs:178`) resolves
+(`WaywardBeyond.Shared.Permissions/PermissionCompiler.cs:179`) resolves
 inheritance with an explicit stack. It never recurses. A cycle contributes every
 acyclic edge. The compiler skips the edge that closes the cycle and records one
 warning with the cycle path and the source files. Depth is capped at 64. The
@@ -135,3 +135,9 @@ never sends a request; this check protects against a modified client.
 - `Swordfish.Tests/Permissions/PermissionPolicyTests.cs` — default set sharing.
 - `Swordfish.Tests/Permissions/PermissionFileLoaderTests.cs` — asset and config
   roots, parse-failure skip.
+- `Swordfish.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
+  host override, deny on unbind.
+- `Swordfish.Tests/Permissions/ServerJoinPermissionTests.cs` — join binds the
+  claim, leave unbinds.
+- `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs` — autosave cadence, save
+  authorization, notification broadcast.
