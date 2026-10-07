@@ -33,15 +33,4 @@
       <ProjectReference Include="..\WaywardBeyond.Shared.Skills\WaywardBeyond.Shared.Skills.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
     </ItemGroup>
 
-    <PropertyGroup>
-        <!-- Generate code is being explicitly included, don't also implicitly include it -->
-        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
-    </PropertyGroup>
-    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
-        <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output" />
-        <ItemGroup>
-            <Compile Include="CodeGen/Output/**/*.cs" />
-        </ItemGroup>
-    </Target>
-
 </Project>

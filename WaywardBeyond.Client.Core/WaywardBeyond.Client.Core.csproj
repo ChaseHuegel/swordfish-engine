@@ -49,9 +49,4 @@
       </Compile>
     </ItemGroup>
 
-    <PropertyGroup>
-        <!-- Generate code is being explicitly included, don't also implicitly include it -->
-        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
-    </PropertyGroup>
-
 </Project>
