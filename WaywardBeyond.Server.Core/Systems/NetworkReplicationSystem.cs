@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -49,7 +50,8 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     public uint SimTick { get; set; }
 
-    private readonly uint _snapshotIntervalTicks;
+    private readonly NetworkingSettings _settings;
+    private float _sincePublish;
 
     //  The server-owned component enumeration is cached per system instance: the replication hot path
     //  runs at least once per tick, and the registry's per-call list allocation would otherwise scale
@@ -63,13 +65,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         in ServerConnectionHub hub,
         SessionManager sessions,
         in ILogger<NetworkReplicationSystem> logger,
-        int snapshotHz = 0
+        in NetworkingSettings settings
     ) {
         _hub = hub;
         _sessions = sessions;
         _logger = logger;
-        //  0 = uncapped (every tick); the server wiring passes the configured cadence.
-        _snapshotIntervalTicks = snapshotHz <= 0 ? 1 : (uint)Math.Max(1, 60 / snapshotHz);
+        _settings = settings;
         _serverOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ServerOwned)];
         _snapshotTypeTag = System.Text.Encoding.UTF8.GetBytes(typeof(WorldSnapshot).FullName!);
     }
@@ -166,17 +167,22 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// Collects authoritative server-owned snapshots once, then publishes to each client a per-client
     /// snapshot carrying that client's own <see cref="WorldSnapshot.LastProcessedInput"/>. Despawns are
     /// those queued via <see cref="RequestDespawn"/>. Publishes at the configured snapshot cadence
-    /// (<c>SnapshotHz</c>): the tick semantics are unchanged and despawns/full-syncs ride the same
-    /// cadence, at most one interval of delay.
+    /// (<see cref="NetworkingSettings.SnapshotHz"/>), measured in wall-clock time: the tick semantics are
+    /// unchanged and despawns/full-syncs ride the same cadence, at most one interval of delay.
     /// </summary>
     public void PublishStage(float delta, DataStore store)
     {
-        //  Snapshot cadence: emit only on interval ticks (60 / SnapshotHz). All publish effects ride
-        //  the cadence, so nothing on the wire waits more than one interval.
-        if (SimTick % _snapshotIntervalTicks != 0)
+        //  Snapshot cadence: publish once per SnapshotHz, measured from the tick deltas so it does not
+        //  depend on the server tick rate. Subtracting, not resetting, keeps the average exact. All
+        //  publish effects ride the cadence, so nothing on the wire waits more than one interval.
+        float interval = 1f / Math.Max(1, _settings.SnapshotHz.Get());
+        _sincePublish += delta;
+        if (_sincePublish < interval)
         {
             return;
         }
+
+        _sincePublish -= interval;
 
         _pending.Clear();
         _pendingRemovals.Clear();

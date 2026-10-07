@@ -14,6 +14,8 @@ using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 public class SpawnAndMirrorTests
@@ -70,7 +72,7 @@ public class SpawnAndMirrorTests
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
             hub,
             sessions,
-            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
+            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
 
         //  A snapshot addressed at an unknown (never allocated) uuid must not materialize an entity.
@@ -127,7 +129,7 @@ public class SpawnAndMirrorTests
             new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
                 hub,
                 sessions,
-                NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
+                NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
             ),
             TestInteractionSystem.Create(hub),
             NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance,
@@ -184,7 +186,7 @@ public class SpawnAndMirrorTests
         var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
             hub,
             new SessionManager(),
-            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance
+            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
         system.ApplyStage(0f, serverStore);
 

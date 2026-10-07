@@ -25,6 +25,8 @@ using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
 using NUnit.Framework;
 
+using WaywardBeyond.Shared.Config;
+
 namespace WaywardBeyond.Client.Core.Tests;
 
 /// <summary>
@@ -54,7 +56,7 @@ public class ClientInventoryEchoTests
         var sessions = new SessionManager();
         var store = new DataStore();
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var interaction = new ServerInteractionSystem(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(), new StubBrickIdMap());
         var join = new ServerJoinSystem(
             hub,
@@ -74,7 +76,7 @@ public class ClientInventoryEchoTests
         join.Tick(0f, store);
         replication.ApplyStage(0f, store);
         replication.SimTick = 2;
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Result<JoinAccept> accept = connection.Client.Receive<JoinAccept>();
         Assert.That(accept.Success, Is.True, "Join must complete.");

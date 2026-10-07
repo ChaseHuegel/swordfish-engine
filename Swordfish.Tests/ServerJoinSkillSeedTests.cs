@@ -10,6 +10,8 @@ using WaywardBeyond.Shared.Networking.Transport;
 using WaywardBeyond.Shared.Skills;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -25,7 +27,7 @@ public class ServerJoinSkillSeedTests
             hub,
             sessions,
             new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
-            new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance),
+            new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()),
             TestInteractionSystem.Create(hub),
             NullLogger<ServerJoinSystem>.Instance,
             TestBricks.Map,

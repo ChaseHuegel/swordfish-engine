@@ -11,6 +11,8 @@ using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -71,7 +73,7 @@ public class ServerInventorySystemTests
         var sessions = new SessionManager();
         sessions.Register(store, entity, clientId, new Session(1u));
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var inventorySystem = new ServerInventorySystem(NullLogger<ServerInventorySystem>.Instance);
 
         IPayloadCodec<InventoryEvent> inventoryCodec = new NsdComponentCodec<InventoryEvent>();

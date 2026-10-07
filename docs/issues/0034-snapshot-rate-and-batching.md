@@ -55,3 +55,12 @@ issue if judged steppy.
       is acceptable; a follow-up interpolation issue is opened if not.
 - [x] New config keys documented in `networking-transports.md` and
       `networking-replication.md` (docs pass).
+
+## Follow-up
+
+The first cut never wired `SnapshotHz`. `NetworkReplicationSystem` defaulted
+`snapshotHz` to 0, which means publish every tick, so the server emitted at its
+tick rate (64 Hz). The `60 / SnapshotHz` tick formula also assumed a 60 Hz sim.
+The cadence is now time-based. It reads `NetworkingSettings.SnapshotHz` through
+DI, and the client upload shares the same cadence. See
+[replication](../specs/networking-replication.md).

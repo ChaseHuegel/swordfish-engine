@@ -14,6 +14,8 @@ using WaywardBeyond.Shared.Networking.Serialization;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 public class InventoryWireProbeTests
@@ -37,7 +39,7 @@ public class InventoryWireProbeTests
         var sessions = new SessionManager();
         var store = new DataStore();
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var interaction = TestInteractionSystem.Create(hub);
         var join = new ServerJoinSystem(
             hub,
@@ -58,7 +60,7 @@ public class InventoryWireProbeTests
         join.Tick(0f, store);
         replication.ApplyStage(0f, store);
         replication.SimTick = 1;
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Result<WorldSnapshot> snapshot = connection.Client.Receive<WorldSnapshot>();
         Assert.True(snapshot.Success);

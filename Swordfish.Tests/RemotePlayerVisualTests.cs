@@ -16,6 +16,8 @@ using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -71,7 +73,7 @@ public class RemotePlayerVisualTests
             fixture.Hub,
             fixture.Sessions,
             new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
-            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
+            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,
             TestBricks.Map

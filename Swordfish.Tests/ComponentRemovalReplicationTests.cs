@@ -12,6 +12,8 @@ using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -64,13 +66,13 @@ public class ComponentRemovalReplicationTests
         var sessions = new SessionManager();
         sessions.Register(store, entity, clientId, new Session(1u));
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         replication.SimTick = 1;
 
         //  The component is removed server-side; the next publish must emit only a removal.
         Assert.True(store.Remove<MarkerComponent>(entity));
         replication.ApplyStage(0f, store);
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Result<WorldSnapshot> removalResult = connection.Client.Receive<WorldSnapshot>();
         Assert.True(removalResult.Success);
@@ -84,7 +86,7 @@ public class ComponentRemovalReplicationTests
         //  The entity survives removal; a later update publishes a delta, not another removal.
         store.AddOrUpdate(entity, new MarkerComponent { Value = 9 });
         replication.SimTick = 2;
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Result<WorldSnapshot> update = connection.Client.Receive<WorldSnapshot>();
         Assert.True(update.Success);

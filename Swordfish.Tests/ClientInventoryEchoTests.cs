@@ -124,11 +124,23 @@ public class ClientInventoryEchoTests
         int player = store.Alloc(Uuid.FromValue(accept.Value.PlayerEntity));
         store.AddOrUpdate(player, new InventoryComponent());
 
+        //  Publish rides the SnapshotHz cadence, so keep ticking until the full-sync snapshot lands.
         WorldSnapshot? newest = null;
-        Result<WorldSnapshot> snapshot;
-        while ((snapshot = local.Client.Receive<WorldSnapshot>()).Success)
+        long snapshotDeadline = Environment.TickCount64 + 5000;
+        while (newest == null && snapshotDeadline > Environment.TickCount64)
         {
-            newest = snapshot.Value;
+            _update.Invoke(fixture.Host, [1f / 64f]);
+
+            Result<WorldSnapshot> snapshot;
+            while ((snapshot = local.Client.Receive<WorldSnapshot>()).Success)
+            {
+                newest = snapshot.Value;
+            }
+
+            if (newest == null)
+            {
+                System.Threading.Thread.Sleep(5);
+            }
         }
 
         Assert.NotNull(newest);

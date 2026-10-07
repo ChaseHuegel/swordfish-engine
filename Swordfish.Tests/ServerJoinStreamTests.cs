@@ -76,7 +76,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
+        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         connection.Client.Send(new JoinRequest
         {
@@ -127,7 +127,7 @@ public class ServerJoinStreamTests : IDisposable
 
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
+        ServerJoinSystem join = new(hub, sessions, level, new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()), TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         //  Join level A.
         connection.Client.Send(new JoinRequest { LevelGuid = levelA, CharacterId = 1, PublicView = new PublicView { CharacterId = 1 } });
@@ -173,7 +173,7 @@ public class ServerJoinStreamTests : IDisposable
         var hub = new ServerConnectionHub();
         var sessions = new SessionManager();
         var serverStore = new DataStore();
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var join = new ServerJoinSystem(hub, sessions, level, replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         //  The host joins the level first and plays.
@@ -181,7 +181,7 @@ public class ServerJoinStreamTests : IDisposable
         Uuid hostClient = hub.Add(hostConnection.Server);
         hostConnection.Client.Send(new JoinRequest { LevelGuid = levelGuid, CharacterId = 1, PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = "wb:m_human" } });
         join.Tick(0f, serverStore);
-        replication.PublishStage(0f, serverStore);
+        replication.PublishStage(1f, serverStore);
 
         Assert.True(sessions.TryGetEntity(hostClient, out int hostEntity));
         Uuid hostUuid = serverStore.GetUuid(hostEntity);
@@ -197,7 +197,7 @@ public class ServerJoinStreamTests : IDisposable
         Assert.Equal(hostEntity, hostAfter);
         Assert.True(serverStore.TryGet(hostUuid, out _), "The host's mirror must survive a joiner joining the same level.");
 
-        replication.PublishStage(0f, serverStore);
+        replication.PublishStage(1f, serverStore);
 
         //  The joiner still completes the handshake and receives the full-state sync.
         Assert.True(guestConnection.Client.Receive<JoinAccept>().Success, "The joiner should receive its join accept.");

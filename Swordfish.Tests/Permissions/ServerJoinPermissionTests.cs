@@ -11,6 +11,8 @@ using WaywardBeyond.Shared.Networking.Transport;
 using WaywardBeyond.Shared.Permissions;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 public class ServerJoinPermissionTests
@@ -76,7 +78,7 @@ public class ServerJoinPermissionTests
         var hub = new ServerConnectionHub();
         var sessions = new SessionManager();
         var permissions = new UserPermissionService(PermissionPolicy.Create([]));
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var level = new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map);
         var join = new ServerJoinSystem(
             hub,

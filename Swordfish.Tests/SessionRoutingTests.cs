@@ -16,6 +16,8 @@ using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -116,7 +118,7 @@ public class SessionRoutingTests
             fixture.Hub,
             fixture.Sessions,
             new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
-            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
+            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,
             TestBricks.Map
@@ -185,10 +187,10 @@ public class SessionRoutingTests
         var replication = new NetworkReplicationSystem(
             fixture.Hub,
             fixture.Sessions,
-            NullLogger<NetworkReplicationSystem>.Instance
+            NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
         replication.SimTick = 42;
-        replication.PublishStage(0f, fixture.Store);
+        replication.PublishStage(1f, fixture.Store);
 
         //  Each client's snapshot reports its own ack, not a shared server-wide value.
         for (var i = 0; i < count; i++)
@@ -221,7 +223,7 @@ public class SessionRoutingTests
         var replication = new NetworkReplicationSystem(
             fixture.Hub,
             fixture.Sessions,
-            NullLogger<NetworkReplicationSystem>.Instance
+            NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
 
         //  Client drops: the server ends its session, disposes the body, captures the uuid, and frees the
@@ -239,7 +241,7 @@ public class SessionRoutingTests
 
         Assert.False(fixture.Sessions.TryGetEntity(dropped, out _));
 
-        replication.PublishStage(0f, fixture.Store);
+        replication.PublishStage(1f, fixture.Store);
 
         //  Remaining clients observe the despawn; the dropped client is no longer served.
         Assert.False(fixture.Client(0).Receive<WorldSnapshot>().Success, "Dropped client should receive nothing.");
@@ -270,7 +272,7 @@ public class SessionRoutingTests
         var replication = new NetworkReplicationSystem(
             fixture.Hub,
             fixture.Sessions,
-            NullLogger<NetworkReplicationSystem>.Instance
+            NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
 
         Uuid victimUuid = fixture.Store.GetUuid(entities[0]);
@@ -345,7 +347,7 @@ public class SessionRoutingTests
         var replication = new NetworkReplicationSystem(
             fixture.Hub,
             fixture.Sessions,
-            NullLogger<NetworkReplicationSystem>.Instance
+            NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
 
         Uuid attackerUuid = fixture.Store.GetUuid(entities[1]);
@@ -452,7 +454,7 @@ public class SessionRoutingTests
         var replication = new NetworkReplicationSystem(
             fixture.Hub,
             fixture.Sessions,
-            NullLogger<NetworkReplicationSystem>.Instance
+            NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
         replication.SimTick = 5;
 
@@ -461,7 +463,7 @@ public class SessionRoutingTests
         replication.BeginStream(fixture.ClientIds[0]);
         replication.RequestFullSync(fixture.ClientIds[0]);
         replication.EndStream(fixture.ClientIds[0]);
-        replication.PublishStage(0f, fixture.Store);
+        replication.PublishStage(1f, fixture.Store);
 
         //  Exactly one snapshot arrives while streaming: the full sync, never a per-tick delta.
         Result<WorldSnapshot> first = fixture.Client(0).Receive<WorldSnapshot>();
@@ -470,7 +472,7 @@ public class SessionRoutingTests
 
         //  The next publish sends deltas again (the gate lifted when the join tick's stage ended).
         fixture.Store.AddOrUpdate(entity, new MarkerComponent { Value = 2 });
-        replication.PublishStage(0f, fixture.Store);
+        replication.PublishStage(1f, fixture.Store);
 
         Assert.True(fixture.Client(0).Receive<WorldSnapshot>().Success, "Deltas resume after the stream completes.");
     }
@@ -483,7 +485,7 @@ public class SessionRoutingTests
             fixture.Hub,
             fixture.Sessions,
             new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map),
-            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance),
+            new NetworkReplicationSystem(fixture.Hub, fixture.Sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings()),
             TestInteractionSystem.Create(fixture.Hub),
             NullLogger<ServerJoinSystem>.Instance,
             TestBricks.Map

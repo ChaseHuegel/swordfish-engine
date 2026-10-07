@@ -14,6 +14,8 @@ using WaywardBeyond.Shared.Networking.Sessions;
 using WaywardBeyond.Shared.Networking.Transport;
 using Xunit;
 
+using WaywardBeyond.Shared.Config;
+
 namespace Swordfish.Tests;
 
 /// <summary>
@@ -79,7 +81,7 @@ public class FullStateSyncTests
         var hub = new ServerConnectionHub();
         var sessions = new SessionManager();
         var store = new DataStore();
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var join = new ServerJoinSystem(hub, sessions, FailingWorldService(), replication, TestInteractionSystem.Create(hub), NullLogger<ServerJoinSystem>.Instance, TestBricks.Map);
 
         //  The host connects and joins while it is the only client, then its server-owned state is
@@ -98,7 +100,7 @@ public class FullStateSyncTests
         Uuid hostUuid = store.GetUuid(hostEntity);
 
         store.AddOrUpdate(hostEntity, new PresenceComponent { Value = 7 });
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
         Assert.True(hostConnection.Client.Receive<WorldSnapshot>().Success, "The host should receive its own dirty snapshot.");
 
         //  A late joiner connects and joins. The host's components are no longer dirty, so they can
@@ -112,7 +114,7 @@ public class FullStateSyncTests
             PublicView = new PublicView { CharacterId = 2, Name = "Guest", Body = "wb:m_human" },
         });
         join.Tick(0f, store);
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Assert.True(guestConnection.Client.Receive<JoinAccept>().Success);
         Assert.True(guestConnection.Client.Receive<LevelStreamComplete>().Success);
@@ -140,7 +142,7 @@ public class FullStateSyncTests
         var hub = new ServerConnectionHub();
         var sessions = new SessionManager();
         var store = new DataStore();
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance);
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
 
         var connection = new LocalConnection(Serializers);
         Uuid clientId = hub.Add(connection.Server);
@@ -152,7 +154,7 @@ public class FullStateSyncTests
         sessions.Register(store, mirror, clientId, new Session(1u));
 
         //  Publish once so the mirror's dirty BodyView is consumed and cleared.
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
         Assert.True(connection.Client.Receive<WorldSnapshot>().Success);
 
         //  An unload frees the mirror, leaving its slot with a stale BodyView DIRTY flag.
@@ -164,7 +166,7 @@ public class FullStateSyncTests
         store.AddOrUpdate(world, new NetworkComponent());
         store.AddOrUpdate(world, new PresenceComponent { Value = 5 });
 
-        replication.PublishStage(0f, store);
+        replication.PublishStage(1f, store);
 
         Result<WorldSnapshot> snapshot = connection.Client.Receive<WorldSnapshot>();
         Assert.True(snapshot.Success, "The rebuilt entity's own dirty marker should still publish.");
