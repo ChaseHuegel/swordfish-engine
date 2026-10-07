@@ -66,21 +66,23 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
         Sample bytesInSample = _bytesInSampler.GetSnapshot();
         Sample bytesOutSample = _bytesOutSampler.GetSnapshot();
 
-        using (ui.Text($"NET IN M:{packetsInSample.Median:F0} pkt/s / {Format(bytesInSample.Median)}/s")) { }
-        using (ui.Text($"NET OUT M:{packetsOutSample.Median:F0} pkt/s / {Format(bytesOutSample.Median)}/s")) { }
-        using (ui.Text($"NET TOTAL {Format(bytesIn)} in / {Format(bytesOut)} out")) { }
+        using (ui.Text("NETWORK")) { }
+        using (ui.Text($"   IN     M:{packetsInSample.Median:F0} pkt/s / {Format(bytesInSample.Median)}/s")) { }
+        using (ui.Text($"   OUT    M:{packetsOutSample.Median:F0} pkt/s / {Format(bytesOutSample.Median)}/s")) { }
+        using (ui.Text($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out")) { }
+        using (ui.Text($"   PKTS   {packetsIn} in / {packetsOut} out")) { }
 
         //  Session heartbeat signal: live server TPS and player count, never stale.
         if (_serverStats.IsStale(2000))
         {
-            using (ui.Text("NET: no server signal"))
+            using (ui.Text("No server signal"))
             {
                 ui.Color = new Vector4(1f, 0f, 0f, 1f);
             }
         }
         else
         {
-            using (ui.Text($"NET: server TPS {_serverStats.TPS} / {_serverStats.PlayerCount} players / tick {_serverStats.ServerTick}")) { }
+            using (ui.Text($"   SERVER {_serverStats.TPS} tps / tick {_serverStats.ServerTick} / {_serverStats.PlayerCount} players")) { }
         }
 
         return Result.FromSuccess();
