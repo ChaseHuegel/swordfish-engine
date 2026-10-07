@@ -23,7 +23,7 @@ namespace WaywardBeyond.Shared.Networking.Transport;
 /// peer can poll for several distinct message kinds independently without one polling loop stealing
 /// another's frames. Transport framing only: no ack, ordering, or reliability.
 /// </summary>
-public sealed class TcpTransport : IClientConnection, IServerConnection, IDisposable
+public sealed class TcpTransport : IClientConnection, IServerConnection, IConnectionCounters, IDisposable
 {
     private readonly SerializerCache _serializers;
     private readonly ILogger _logger;
