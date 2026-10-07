@@ -110,7 +110,7 @@ internal class Inventory : IUILayer
                 //  Whole-stack move to the hotbar slot; occupied-destination resolution is deterministic
                 //  (stack if the same item with capacity, otherwise swap) on both the prediction and the
                 //  server.
-                ApplyAndStage(new SlotMoveOp
+                ApplyMove(new SlotMoveOp
                 {
                     Mode = SlotMoveOp.MODE_EXACT,
                     FromSlot = _selectedSlot,
@@ -164,7 +164,7 @@ internal class Inventory : IUILayer
                 if (dragItemStack.ID == selectedItemStack.ID)
                 {
                     int available = selectedItemStack.MaxSize - selectedItemStack.Count;
-                    ApplyAndStage(new SlotMoveOp
+                    ApplyMove(new SlotMoveOp
                     {
                         Mode = SlotMoveOp.MODE_EXACT,
                         FromSlot = _draggingSlot,
@@ -174,7 +174,7 @@ internal class Inventory : IUILayer
                 }
                 else
                 {
-                    ApplyAndStage(new SlotMoveOp
+                    ApplyMove(new SlotMoveOp
                     {
                         Mode = SlotMoveOp.MODE_EXACT,
                         FromSlot = _draggingSlot,
@@ -269,7 +269,7 @@ internal class Inventory : IUILayer
                                 //  Right-clicking a slot while dragging an item drops 1 count
                                 if (_dragging && rightClicked)
                                 {
-                                    ApplyAndStage(new SlotMoveOp
+                                    ApplyMove(new SlotMoveOp
                                     {
                                         Mode = SlotMoveOp.MODE_EXACT,
                                         FromSlot = _draggingSlot,
@@ -285,7 +285,7 @@ internal class Inventory : IUILayer
                                     int destinationSlot = scroll > 0f ? inventorySlot : _draggingSlot;
                                     var amount = (int)Math.Abs(scroll);
                                     
-                                    ApplyAndStage(new SlotMoveOp
+                                    ApplyMove(new SlotMoveOp
                                     {
                                         Mode = SlotMoveOp.MODE_EXACT,
                                         FromSlot = sourceSlot,
@@ -339,7 +339,7 @@ internal class Inventory : IUILayer
                                     //  server-resolved AutoStack op.
                                     if (clicked || held)
                                     {
-                                        ApplyAndStage(new SlotMoveOp
+                                        ApplyMove(new SlotMoveOp
                                         {
                                             Mode = SlotMoveOp.MODE_AUTO_STACK,
                                             FromSlot = inventorySlot,
@@ -357,7 +357,7 @@ internal class Inventory : IUILayer
                                         int splitTarget = SharedInventoryResolver.FindFirstEmptySlot(in inventory);
                                         if (splitTarget >= 0)
                                         {
-                                            ApplyAndStage(new SlotMoveOp
+                                            ApplyMove(new SlotMoveOp
                                             {
                                                 Mode = SlotMoveOp.MODE_EXACT,
                                                 FromSlot = inventorySlot,
@@ -431,17 +431,12 @@ internal class Inventory : IUILayer
     }
     
     /// <summary>
-    /// Applies a move op to the local inventory as prediction (via the shared resolver, so the result
-    /// matches what the server will apply) and stages it for upstream replication.
+    /// Applies a move op to the local inventory as prediction and stages it for upstream replication,
+    /// through the shared <see cref="PlayerData.ApplyMove"/> entry point.
     /// </summary>
-    private void ApplyAndStage(in SlotMoveOp moveOp)
+    private void ApplyMove(in SlotMoveOp moveOp)
     {
-        SlotMoveOp move = moveOp;
-        _playerData.MutateInventory(_ecsContext.World.DataStore, (ref InventoryComponent inventory) =>
-        {
-            SharedInventoryResolver.Apply(ref inventory, move);
-        });
-        _playerData.StageInventoryOp(_ecsContext.World.DataStore, move);
+        _playerData.ApplyMove(_ecsContext.World.DataStore, moveOp);
     }
 
     private void OnToggleInventoryPressed()

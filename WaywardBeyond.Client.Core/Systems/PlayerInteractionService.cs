@@ -458,59 +458,61 @@ in IInteractionContent content,
         //  Clone the target brick's shape
         ShapeLight shapeLight = clickedVoxel.ShapeLight;
         _interactionState.SelectedShape.Set(shapeLight.Shape);
-        
-        //  If the player has a valid item, select it
-        (_store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.")).Query<PlayerComponent, InventoryComponent>(0f, PlayerInventoryQuery);
-        void PlayerInventoryQuery(float delta, DataStore store, int playerEntity, in PlayerComponent player, in InventoryComponent inventory)
+
+        //  If the player has a matching pickable item, equip it: select it when it is already in the
+        //  hotbar, otherwise move the whole stack into the active hotbar slot. Both paths replicate
+        //  upstream - an active-slot change rides the dirty ClientOwned EquipmentComponent, a hotbar
+        //  move rides an InventoryEvent via PlayerData.ApplyMove - so the server stays authoritative.
+        DataStore store = _store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available.");
+        int pickSlot = FindPickSlot(store, clickedVoxel.ID);
+        if (pickSlot < 0)
         {
-            Result<BrickInfo> brickInfoResult = _brickDatabase.Get(clickedVoxel.ID);
-            if (!brickInfoResult.Success)
+            return;
+        }
+
+        int activeSlot = _playerData.GetActiveSlot(store).Value;
+        if (pickSlot >= Hotbar.SLOT_COUNT)
+        {
+            _playerData.ApplyMove(store, new SlotMoveOp
             {
-                return;
+                Mode = SlotMoveOp.MODE_EXACT,
+                FromSlot = pickSlot,
+                ToSlot = activeSlot,
+                Count = null,
+            });
+        }
+        else
+        {
+            _playerData.SetActiveSlot(store, pickSlot);
+        }
+    }
+
+    private int FindPickSlot(DataStore store, int brickID)
+    {
+        Result<InventoryComponent> inventoryResult = _playerData.GetInventory(store);
+        if (!inventoryResult.Success || inventoryResult.Value.Contents == null)
+        {
+            return -1;
+        }
+
+        ItemData[] contents = inventoryResult.Value.Contents;
+        for (var i = 0; i < contents.Length; i++)
+        {
+            string itemID = contents[i].ID;
+            Result<Item> itemResult = _itemDatabase.Get(itemID);
+            if (!itemResult.Success || itemResult.Value.Placeable == null)
+            {
+                continue;
             }
 
-            for (var i = 0; i < inventory.Contents.Length; i++)
+            Result<BrickInfo> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
+            if (placeableBrickResult.Success && placeableBrickResult.Value.DataID == brickID)
             {
-                string itemID = inventory.Contents[i].ID;
-                Result<Item> itemResult = _itemDatabase.Get(itemID);
-                if (!itemResult.Success)
-                {
-                    continue;
-                }
-
-                if (itemResult.Value.Placeable == null)
-                {
-                    continue;
-                }
-
-                Result<BrickInfo> placeableBrickResult =  _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
-                if (!placeableBrickResult.Success)
-                {
-                    continue;
-                }
-
-                if (placeableBrickResult.Value.DataID != clickedVoxel.ID)
-                {
-                    continue;
-                }
-
-                InventoryComponent playerInventory = inventory;
-                store.QueryRef<EquipmentComponent>(playerEntity, 0f, UpdateActiveSlotQuery);
-                void UpdateActiveSlotQuery(float _, DataStore dataStore, int entity, ref Ref<EquipmentComponent> equipment)
-                {
-                    if (i >= Hotbar.SLOT_COUNT)
-                    {
-                        playerInventory.Swap(equipment.Read.ActiveInventorySlot, i);
-                        dataStore.MarkDirty<InventoryComponent>(entity);
-                    }
-                    else
-                    {
-                        equipment.Write.ActiveInventorySlot = i;
-                    }
-                }
-                break;
+                return i;
             }
         }
+
+        return -1;
     }
 
     private void OnFixedUpdate(object? sender, EventArgs e)

@@ -4,6 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Shared.Gameplay;
 using WaywardBeyond.Shared.Networking.Components;
 
 namespace WaywardBeyond.Client.Core.Player;
@@ -90,6 +91,19 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         
         var itemSlot = new ItemSlot(equipment.ActiveInventorySlot, itemResult);
         return Result<ItemSlot>.FromSuccess(itemSlot);
+    }
+
+    /// <summary>
+    /// Applies a move op as local prediction via the shared resolver, then stages it for upstream
+    /// replication. This is the single supported client entry point for changing a server-owned
+    /// inventory: the prediction keeps presentation instant, and the staged op drives the server's
+    /// authoritative apply and echo.
+    /// </summary>
+    public void ApplyMove(DataStore store, in SlotMoveOp op)
+    {
+        SlotMoveOp move = op;
+        MutateInventory(store, (ref InventoryComponent inventory) => SharedInventoryResolver.Apply(ref inventory, move));
+        StageInventoryOp(store, move);
     }
 
     public delegate void InventoryMutation(ref InventoryComponent inventory);

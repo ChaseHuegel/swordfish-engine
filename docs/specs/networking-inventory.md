@@ -77,6 +77,22 @@ The client computes Exact targets for split (first empty slot via
 `FindFirstEmptySlot`) and partial drags; the server revalidates the same op
 against its own copy, so drift is corrected by the echo.
 
+## The client producer: one mutation entry point
+
+The client applies a move through a single entry point,
+`PlayerData.ApplyMove`, which couples the two required steps into one call:
+it predicts the move onto the local server-owned inventory through the shared
+resolver, then stages the same op on the outbound buffer. Both the inventory
+UI and middle-click brick picking go through it. A move that mutates
+`InventoryComponent` without `PlayerData.ApplyMove` is a local-only change
+that never replicates; production client code must not do this. The
+`InventoryComponent` mutation helpers serve server authority and
+local-construction only.
+
+Brick picking (middle click) sends a whole-stack Exact move from the found
+slot into the active hotbar slot. The active-slot change is separate: it
+rides the dirty ClientOwned `EquipmentComponent`, not an inventory op.
+
 ## Member reservation table
 
 Reserved op members follow the nullable-union pattern; no code is written for
@@ -97,7 +113,9 @@ them until the behavior is designed.
    server apply must call the same path).
 4. Stage it: no new server machinery — the envelope already rides
    `NetworkComponent.StagedInventoryOps`.
-5. Extend the client producer (inventory UI) to stage the op after predicting.
+5. Extend the client producer to stage the op after predicting: route it
+   through `PlayerData.ApplyMove` (the single entry point), never by mutating
+   `InventoryComponent` directly.
 6. Test: resolver cases + a server e2e apply + echo, mirroring
    `Swordfish.Tests/SharedInventoryResolverTests.cs` and
    `ServerInventorySystemTests.cs`.
@@ -108,7 +126,9 @@ them until the behavior is designed.
 - `WaywardBeyond.Shared.Networking/Components/{InventoryEvent,SlotMoveOp,InventoryOpStageBuffer,NetworkComponent}.cs`
 - `WaywardBeyond.Shared.Gameplay/Interactions/SharedInventoryResolver.cs`
 - `WaywardBeyond.Server.Core/Systems/ServerInventorySystem.cs`
-- `WaywardBeyond.Client.Core/{Player/PlayerData.cs,Systems/ClientReplicationSystem.cs,UI/Layers/Inventory.cs}`
+- `WaywardBeyond.Client.Core/Player/PlayerData.cs` (`ApplyMove`)
+- `WaywardBeyond.Client.Core/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
+- `WaywardBeyond.Client.Core/UI/Layers/Inventory.cs`
 
 ## Tests that pin this
 
@@ -116,3 +136,5 @@ them until the behavior is designed.
 - `Swordfish.Tests/ServerInventorySystemTests.cs` — staged apply, dedupe, echo.
 - `WaywardBeyond.Client.Core.Tests/ClientReplicationInteractionTests.cs` —
   outbound op drain and clear-on-success.
+- `WaywardBeyond.Client.Core.Tests/PlayerDataInventoryMutationTests.cs` —
+  `ApplyMove` predict-and-stage coupling and wire emission.
