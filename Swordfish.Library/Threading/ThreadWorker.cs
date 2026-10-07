@@ -20,7 +20,7 @@ public class ThreadWorker
     public int TargetTickRate = 64;
 
     public float DeltaTime { get; private set; }
-    private float _elapsedTime;
+    private double _lastTickTime;
 
     public static ThreadWorker Start(Action handler, string name = "")
     {
@@ -100,6 +100,8 @@ public class ThreadWorker
 
     private void Tick()
     {
+        _stopwatch.Start();
+
         while (_stop == false)
         {
             while (_pause == false && _stop == false)
@@ -110,30 +112,28 @@ public class ThreadWorker
                     Stop();
                 }
 
-                _stopwatch.Restart();
+                double tickStart = _stopwatch.Elapsed.TotalSeconds;
+                DeltaTime = (float)(tickStart - _lastTickTime);
+                _lastTickTime = tickStart;
+
                 _handle(DeltaTime);
 
                 //	Limit thread by target tick rate to save resources. Rate of 0 is unlimited.
                 if (TargetTickRate > 0)
                 {
-                    _elapsedTime += DeltaTime;
+                    double targetTickDelta = 1.0 / TargetTickRate;
+                    double tickTime = _stopwatch.Elapsed.TotalSeconds - tickStart;
+                    double remaining = targetTickDelta - tickTime;
 
-                    float targetTickDelta = 1f / TargetTickRate;
-
-                    if (_elapsedTime < targetTickDelta)
+                    if (remaining > 0)
                     {
-                        Thread.Sleep((int)((targetTickDelta - _elapsedTime) * 1000));
-                    }
-                    else
-                    {
-                        _elapsedTime = 0f;
+                        Thread.Sleep((int)(remaining * 1000));
                     }
                 }
-
-                DeltaTime = (float)_stopwatch.ElapsedTicks / Stopwatch.Frequency;
             }
 
             Thread.Sleep(200);  //	Sleep when paused
+            _lastTickTime = _stopwatch.Elapsed.TotalSeconds;
         }
         //	Stopped thread safely
     }
