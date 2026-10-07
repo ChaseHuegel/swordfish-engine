@@ -6,6 +6,7 @@ using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Items;
 using WaywardBeyond.Client.Core.Player;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -116,8 +117,8 @@ public class PlayerDataInventoryMutationTests
 
         //  The staged pick rides the next replication snapshot as an InventoryEvent and clears.
         var connection = new CapturingConnection();
-        var system = new ClientReplicationSystem(connection);
-        system.Tick(0f, store);
+        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
+        system.Tick(1f, store);
 
         Assert.That(connection.Received, Has.Count.EqualTo(1));
         Assert.That(connection.Received[0].Components, Has.Length.EqualTo(1));

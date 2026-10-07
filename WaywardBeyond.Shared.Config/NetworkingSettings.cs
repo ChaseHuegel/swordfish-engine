@@ -23,7 +23,7 @@ public sealed class NetworkingSettings : Config<NetworkingSettings>
     public DataBinding<int> HeartbeatIntervalMs { get; private set; } = new(1000);
     /// <summary>Sim-tick lag past which a client's reported tick logs a warn.</summary>
     public DataBinding<int> TickLagWarnThreshold { get; private set; } = new(10);
-    /// <summary>World snapshot publishes per second (server publish cadence).</summary>
+    /// <summary>World snapshot cadence per second: the server publish rate and the client upload rate.</summary>
     public DataBinding<int> SnapshotHz { get; private set; } = new(30);
     /// <summary>How often the TCP send thread drains both queues into coalesced socket writes, in milliseconds (clamped to one snapshot interval).</summary>
     public DataBinding<int> SendIntervalMs { get; private set; } = new(16);

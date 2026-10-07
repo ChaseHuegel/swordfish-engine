@@ -59,6 +59,11 @@ edge and op delivery trades latency, never drops. Client-owned components that
 are not packet-level (e.g. the active inventory slot) flow as dirty deltas,
 where clearing is best-effort per tick.
 
+Upload is paced to `NetworkingSettings.SnapshotHz` (default 30 Hz), **not** the
+ECS tick rate. The system accumulates tick deltas and only collects and sends
+once per interval. Dirty components persist across skipped ticks, and staged
+edges and ops stay buffered, so the cadence trades latency, never delivery.
+
 ## Dirty tracking
 
 Store-mediated writes (`Alloc<T...>`, `AddOrUpdate`, `Entity.Add`) auto-mark a

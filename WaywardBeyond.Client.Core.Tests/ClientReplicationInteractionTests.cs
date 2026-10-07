@@ -4,6 +4,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Core.Components;
 using WaywardBeyond.Client.Core.Systems;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -60,7 +61,7 @@ public class ClientReplicationInteractionTests
     public void FailedSendRetainsStagedEdgesAndDeliversExactlyOnce()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection);
+        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
         var store = new DataStore();
 
         int entity = store.Alloc();
@@ -77,21 +78,21 @@ public class ClientReplicationInteractionTests
 
         //  Tick 1: the transport fails; the edge must stay staged.
         connection.SendsFail = true;
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.SnapshotsSent, Is.Zero);
         store.TryGet(entity, out pending);
         Assert.That(pending.Outbound.Snapshot(), Has.Length.EqualTo(1), "A failed send must retain the staged edge.");
 
         //  Tick 2: the transport recovers; the edge goes out exactly once and the buffer clears.
         connection.SendsFail = false;
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.SnapshotsSent, Is.EqualTo(1));
         Assert.That(connection.Received[0].Components, Has.Length.EqualTo(1));
         store.TryGet(entity, out pending);
         Assert.That(pending.Outbound.Snapshot(), Is.Empty, "A successful send clears the outbound buffer.");
 
         //  Tick 3: nothing left to send; no duplicate edge ever went out.
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.SnapshotsSent, Is.EqualTo(1));
     }
 
@@ -99,7 +100,7 @@ public class ClientReplicationInteractionTests
     public void NoInputWorldSendsNothingRegardlessOfEntityCount()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection);
+        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
         var store = new DataStore();
 
         //  Thousands of untouched world structures plus a player with no client-owned components:
@@ -110,7 +111,7 @@ public class ClientReplicationInteractionTests
         }
         store.AddOrUpdate(store.Alloc(), new PlayerComponent());
 
-        system.Tick(0f, store);
+        system.Tick(1f, store);
 
         Assert.That(connection.SnapshotsSent, Is.Zero);
     }
@@ -119,7 +120,7 @@ public class ClientReplicationInteractionTests
     public void InventoryOpsDrainIntoSnapshotsAndClearOnSuccess()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection);
+        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
         var store = new DataStore();
 
         int entity = store.Alloc();
@@ -135,19 +136,19 @@ public class ClientReplicationInteractionTests
 
         //  A failed send retains both ops.
         connection.SendsFail = true;
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.SnapshotsSent, Is.Zero);
         store.TryGet(entity, out PendingInventoryComponent pending);
         Assert.That(pending.Outbound.Snapshot(), Has.Length.EqualTo(2));
 
         //  A successful send emits one InventoryEvent snapshot per op and clears the buffer.
         connection.SendsFail = false;
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.Received[0].Components, Has.Length.EqualTo(2));
         store.TryGet(entity, out pending);
         Assert.That(pending.Outbound.Snapshot(), Is.Empty);
 
-        system.Tick(0f, store);
+        system.Tick(1f, store);
         Assert.That(connection.SnapshotsSent, Is.EqualTo(1));
     }
 }

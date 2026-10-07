@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Client.Core.Components;
+using WaywardBeyond.Shared.Config;
 using WaywardBeyond.Shared.Networking;
 using WaywardBeyond.Shared.Networking.Components;
 using WaywardBeyond.Shared.Networking.Registry;
@@ -13,11 +14,14 @@ namespace WaywardBeyond.Client.Core.Systems;
 /// Client-side replication. Publishes dirty client-owned components (e.g. input) upstream to the
 /// server, automatically driven by ECS dirty tracking. Discrete <see cref="InteractionEvent"/> edges are
 /// drained from the player's outbound <see cref="InteractionStageBuffer"/> and emitted as one snapshot
-/// per edge, so rapid clicks between sends survive.
+/// per edge, so rapid clicks between sends survive. Uploads are paced to
+/// <see cref="NetworkingSettings.SnapshotHz"/>, not the ECS tick rate.
 /// </summary>
 internal sealed class ClientReplicationSystem : IEntitySystem
 {
     private readonly IClientConnection _transport;
+    private readonly NetworkingSettings _settings;
+    private float _sinceSend;
     private readonly List<ComponentSnapshot> _pending = [];
 
     //  Entities whose staged (interaction-edge or inventory-op) buffers rode this tick's snapshot; their
@@ -28,14 +32,24 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     //  fresh list on every tick of the replication hot path.
     private readonly NetworkComponentInfo[] _clientOwnedComponents;
 
-    public ClientReplicationSystem(in IClientConnection transport)
+    public ClientReplicationSystem(in IClientConnection transport, in NetworkingSettings settings)
     {
         _transport = transport;
+        _settings = settings;
         _clientOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ClientOwned)];
     }
 
     public void Tick(float delta, DataStore store)
     {
+        //  Upload at SnapshotHz, decoupled from the ECS tick rate. Dirty flags persist across skipped
+        //  ticks and staged interaction/inventory edges stay buffered, so nothing is lost.
+        _sinceSend += delta;
+        if (_sinceSend < 1f / Math.Max(1, _settings.SnapshotHz.Get()))
+        {
+            return;
+        }
+
+        _sinceSend = 0f;
         _pending.Clear();
         _stagedEntities.Clear();
 
