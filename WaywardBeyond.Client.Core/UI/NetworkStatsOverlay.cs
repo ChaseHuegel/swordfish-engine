@@ -10,10 +10,11 @@ using WaywardBeyond.Shared.Networking.Transport;
 namespace WaywardBeyond.Client.Core.UI;
 
 /// <summary>
-/// F3 network section: per-second packets and bytes in/out (from the active transport's counters,
-/// sampled into <see cref="Sampler"/>s), plain totals, and the live server TPS + player count from the
-/// session-heartbeat consumer, with a clear no-signal state when heartbeats stop or nothing is
-/// connected.
+/// F3 network section: average per-second packets and bytes in/out (from the active transport's
+/// counters, sampled into <see cref="Sampler"/>s), plain totals, and the live server TPS + player count
+/// from the session-heartbeat consumer, with a clear no-signal state when heartbeats stop or nothing is
+/// connected. Rates use the average, not the median: network traffic is bursty, so the median of
+/// per-frame samples reads zero whenever packets arrive in fewer frames than the render loop runs.
 /// </summary>
 internal sealed class NetworkStatsOverlay(in TransportManager transportManager, in ServerStats serverStats) : IDebugOverlay
 {
@@ -31,6 +32,7 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
     private long _lastPacketsOut;
     private long _lastBytesIn;
     private long _lastBytesOut;
+    private bool _primed;
 
     public bool IsVisible() => true;
 
@@ -52,10 +54,16 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
         long bytesIn = counters.BytesReceived;
         long bytesOut = counters.BytesSent;
 
-        _packetsInSampler.Record((packetsIn - _lastPacketsIn) / deltaSeconds);
-        _packetsOutSampler.Record((packetsOut - _lastPacketsOut) / deltaSeconds);
-        _bytesInSampler.Record((bytesIn - _lastBytesIn) / deltaSeconds);
-        _bytesOutSampler.Record((bytesOut - _lastBytesOut) / deltaSeconds);
+        //  Seed from the live totals on the first render so the whole pre-existing count does not fold into one sample.
+        if (_primed)
+        {
+            _packetsInSampler.Record((packetsIn - _lastPacketsIn) / deltaSeconds);
+            _packetsOutSampler.Record((packetsOut - _lastPacketsOut) / deltaSeconds);
+            _bytesInSampler.Record((bytesIn - _lastBytesIn) / deltaSeconds);
+            _bytesOutSampler.Record((bytesOut - _lastBytesOut) / deltaSeconds);
+        }
+
+        _primed = true;
         _lastPacketsIn = packetsIn;
         _lastPacketsOut = packetsOut;
         _lastBytesIn = bytesIn;
@@ -67,8 +75,8 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
         Sample bytesOutSample = _bytesOutSampler.GetSnapshot();
 
         using (ui.Text("NETWORK")) { }
-        using (ui.Text($"   IN     M:{packetsInSample.Median:F0} pkt/s / {Format(bytesInSample.Median)}/s")) { }
-        using (ui.Text($"   OUT    M:{packetsOutSample.Median:F0} pkt/s / {Format(bytesOutSample.Median)}/s")) { }
+        using (ui.Text($"   IN     A:{packetsInSample.Average:F0} pkt/s / {Format(bytesInSample.Average)}/s")) { }
+        using (ui.Text($"   OUT    A:{packetsOutSample.Average:F0} pkt/s / {Format(bytesOutSample.Average)}/s")) { }
         using (ui.Text($"   BYTES  {Format(bytesIn)} in / {Format(bytesOut)} out")) { }
         using (ui.Text($"   PKTS   {packetsIn} in / {packetsOut} out")) { }
 

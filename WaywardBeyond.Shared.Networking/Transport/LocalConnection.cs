@@ -24,19 +24,17 @@ public sealed class LocalConnection
     public IServerConnection Server { get; }
     public IClientConnection Client { get; }
 
-    //  Aggregate counters for the pair; each endpoint's counters are the same object (in-process frames
-    //  are counted once, at the queueing boundary).
-    public IConnectionCounters Counters { get; }
-
     public LocalConnection(IEnumerable<INetworkSerializer> serializers)
     {
         _serializers = new SerializerCache(serializers);
 
-        var counters = new LocalConnectionCounters();
-        Counters = counters;
+        //  Per-endpoint counters; each direction is recorded once by the endpoint that sends or receives,
+        //  so one endpoint's counters describe that side's traffic only.
+        var serverCounters = new LocalConnectionCounters();
+        var clientCounters = new LocalConnectionCounters();
 
-        var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer, counters: counters);
-        var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient, counters: counters);
+        var serverEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _serverToClient, receiveQueues: _clientToServer, counters: serverCounters);
+        var clientEndpoint = new LocalConnectionEndpoint(_serializers, sendQueues: _clientToServer, receiveQueues: _serverToClient, counters: clientCounters);
         Server = serverEndpoint;
         Client = clientEndpoint;
     }

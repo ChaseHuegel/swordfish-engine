@@ -531,6 +531,11 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
                     break;
                 }
 
+                //  Count at the I/O boundary: a frame that arrived is received traffic even when its tag is
+                //  unknown or malformed and the payload is dropped.
+                Interlocked.Increment(ref _packetsReceived);
+                Interlocked.Add(ref _bytesReceived, 4 + frameLength);
+
                 int typeTagLength = BitConverter.ToInt32(frame, 0);
                 if (typeTagLength < 0 || 4 + typeTagLength > frameLength)
                 {
@@ -560,8 +565,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
                     _logger.LogTrace("Received {type} frame ({bytes} bytes).", typeName, payloadLength);
                 }
 
-                Interlocked.Increment(ref _packetsReceived);
-                Interlocked.Add(ref _bytesReceived, 4 + frameLength);
                 _receiveQueues.GetOrAdd(type, static _ => new ConcurrentQueue<QueuedFrame>()).Enqueue(new QueuedFrame(payload, payloadLength, pooled: false));
             }
             catch (Exception ex)

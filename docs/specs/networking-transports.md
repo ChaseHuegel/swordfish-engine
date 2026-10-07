@@ -95,6 +95,30 @@ server-side, `TransportManager` client-side) disposes the dead transport —
 closing the socket exactly once — and `IsConnected` flips to false. The
 transport never disposes itself.
 
+## Transport counters
+
+`Transport/IConnectionCounters.cs` exposes four monotonic counters:
+`PacketsSent`, `PacketsReceived`, `BytesSent`, and `BytesReceived`. Both
+`LocalConnection` endpoints and `TcpTransport` implement the interface.
+
+- `TcpTransport` counts on the real I/O paths. The send loop adds one packet
+  and the summed byte length per socket write (`TcpTransport.cs:492`); the
+  receive loop counts every frame that arrives at the I/O boundary
+  (`TcpTransport.cs:536`), including a frame it drops for an unknown or
+  malformed type tag. The 4-byte length prefix is included on both sides, so a
+  peer's `BytesSent` matches the other peer's `BytesReceived`.
+- `LocalConnection` keeps counters per endpoint, so each side reports its own
+  direction: the client endpoint counts client-to-server sends and
+  server-to-client receives, and the server endpoint counts the reverse
+  (`LocalConnection.cs:33-34`).
+
+The F3 `NetworkStatsOverlay`
+(`WaywardBeyond.Client.Core/UI/NetworkStatsOverlay.cs`) reads the active
+transport's counters. It shows the **average** packets and bytes per second and
+the plain totals. It uses the average, not the median, because network traffic
+is bursty and the median of per-frame samples reads zero when packets arrive in
+fewer frames than the render loop runs.
+
 ## `ServerConnectionHub` (multi-client)
 
 `Transport/ServerConnectionHub.cs` aggregates one `IServerConnection` per

@@ -20,17 +20,22 @@ established by `PerformanceStatsOverlay`.
 - **Counters.** `TcpTransport` and `LocalConnection` expose four monotonic
   counters each: `PacketsSent`/`PacketsReceived`, `BytesSent`/
   `BytesReceived`, with `Interlocked` increments on the actual send and
-  receive paths. No sampling logic inside the transports.
+  receive paths. No sampling logic inside the transports. `TcpTransport`
+  counts every frame at the I/O boundary, even a frame it later drops for an
+  unknown or malformed type tag. `LocalConnection` counters are per endpoint
+  and per direction, so one endpoint reports only its own traffic.
 - **Samplers.** A new `NetworkStatsOverlay : IDebugOverlay` owns four
   `Sampler`s (length 120, matching `PerformanceStatsOverlay`) and records
   per-second rates each render frame from counter deltas divided by the
   frame delta (the same math the existing overlay uses for FPS,
   `PerformanceStatsOverlay.cs:24-25`).
-- **Display.** The overlay renders its own F3 section in the established
-  `M:/A:/L:/H:` idiom: packets in/out per second, bytes in/out per
-  second, plain totals, and player count plus server TPS read from the
-  #0032 heartbeat consumer (shared client singleton - coupling with
-  #0032). A clear no-signal state when disconnected.
+- **Display.** The overlay renders its own F3 section: average packets and
+  bytes in/out per second, plain totals, and player count plus server TPS read
+  from the #0032 heartbeat consumer (shared client singleton - coupling with
+  #0032). Rates use the `Sampler` average, not the median: network traffic is
+  bursty, so the median of per-frame samples reads zero when packets arrive in
+  fewer frames than the render loop runs. A clear no-signal state when
+  disconnected.
 - **Player count** comes over the wire, not by guessing:
   `ServerHeartbeatMessage` from #0032 gains `uint PlayerCount`
   (server-stamped from `ServerConnectionHub.Count`). Land this alongside

@@ -42,17 +42,21 @@ public class NetworkCountersAndHeartbeatTests
             PublicView = new PublicView { CharacterId = 7, Name = "C", Body = "wb:m_human" },
         });
 
+        var client = (IConnectionCounters)connection.Client;
+        var server = (IConnectionCounters)connection.Server;
+
         connection.Client.Send(new JoinRequest { CharacterId = 7, PublicView = new PublicView { CharacterId = 7, Name = "C", Body = "wb:m_human" } });
         connection.Client.Send(new JoinRequest { CharacterId = 7, PublicView = new PublicView { CharacterId = 7, Name = "C", Body = "wb:m_human" } });
 
-        Assert.Equal(2, connection.Counters.PacketsSent);
-        Assert.Equal(2 * payload.Length, connection.Counters.BytesSent);
+        Assert.Equal(2, client.PacketsSent);
+        Assert.Equal(2 * payload.Length, client.BytesSent);
+        Assert.Equal(0, server.PacketsSent);
 
         Assert.True(connection.Server.Receive<JoinRequest>().Success);
         Assert.True(connection.Server.Receive<JoinRequest>().Success);
 
-        Assert.Equal(2, connection.Counters.PacketsReceived);
-        Assert.Equal(2 * payload.Length, connection.Counters.BytesReceived);
+        Assert.Equal(2, server.PacketsReceived);
+        Assert.Equal(2 * payload.Length, server.BytesReceived);
     }
 
     [Fact]
