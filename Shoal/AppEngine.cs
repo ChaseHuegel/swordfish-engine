@@ -201,10 +201,6 @@ public sealed class AppEngine : IDisposable
         container.RegisterDataBinding<object>();
         container.RegisterDataBinding<string>();
 
-        //  Vector3 payloads (e.g. physics.gravity) need the dedicated mapper: Tomlet's composite
-        //  serializer cannot map System.Numerics.Vector3 directly.
-        container.RegisterTomlMapper<Vector3DataBindingTomlMapper>();
-
         container.RegisterDelegate(SmartFormatterProvider.Resolve);
         container.Register<Localization>(Reuse.Singleton);
         container.RegisterMapping<ILocalization, Localization>();

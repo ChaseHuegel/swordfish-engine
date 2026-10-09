@@ -16,18 +16,15 @@ namespace Swordfish.Physics.Jolt;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
-    private static readonly object _foundationLock = new();
-    private static bool _foundationInitialized;
-
     /// <summary>
-    /// Serializes the native solver across all physics worlds in this process. Jolt's convenience
-    /// <c>PhysicsSystem::Update(dt, steps, jobSystem)</c> overload uses a shared function-local temp
-    /// allocator, so two worlds simulating concurrently on two threads corrupt it and abort. Holding a
-    /// single lock around each fixed step keeps every native solve mutually exclusive (each world keeps
-    /// its own thread, store, and shared step; only the native update is serialized).
+    /// Jolt's <c>PhysicsSystem.Update(dt, steps, jobSystem)</c> overload uses a shared
+    /// temp allocator, so two worlds simulating concurrently on two threads corrupt it and abort.
     /// </summary>
     private static readonly object _solverLock = new();
-
+    
+    private static readonly object _foundationLock = new();
+    private static bool _foundationInitialized;
+    
     private static class Layers
     {
         public static readonly ObjectLayer NonMoving = Physics.Layers.NON_MOVING;
@@ -69,7 +66,22 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     {
         _physicsSettings = physicsSettings;
 
-        InitializeFoundation(logger);
+        if (!_foundationInitialized)
+        {
+            lock (_foundationLock)
+            {
+                if (!_foundationInitialized)
+                {
+                    if (!Foundation.Init(doublePrecision: false))
+                    {
+                        logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
+                        throw new Exception("Unable to initialize Jolt Foundation.");
+                    }
+
+                    _foundationInitialized = true;
+                }
+            }
+        }
 
 #if DEBUG
         Foundation.SetTraceHandler(message => logger.LogDebug("Jolt debug: {message}", message));
@@ -88,8 +100,6 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         _jobSystem = new JobSystemThreadPool();
         _bodyInterface = System.BodyInterface;
 
-        //  Apply the configured gravity immediately, then react to runtime changes (config reloads, CLI
-        //  overrides, per-world settings) rather than sampling it per tick.
         System.Gravity = _physicsSettings.Gravity.Get();
         _physicsSettings.Gravity.Changed += OnGravityChanged;
     }
@@ -186,30 +196,6 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
                 _accumulator -= physicsDelta;
             }
-        }
-    }
-
-    private static void InitializeFoundation(ILogger logger)
-    {
-        if (_foundationInitialized)
-        {
-            return;
-        }
-
-        lock (_foundationLock)
-        {
-            if (_foundationInitialized)
-            {
-                return;
-            }
-
-            if (!Foundation.Init(doublePrecision: false))
-            {
-                logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
-                throw new Exception("Unable to initialize Jolt Foundation.");
-            }
-
-            _foundationInitialized = true;
         }
     }
 

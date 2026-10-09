@@ -107,13 +107,7 @@ public partial class DataStore
             }
         }
     }
-
-    /// <summary>
-    /// Runtime-type removal (the generated <c>Remove&lt;T&gt;</c> covers compile-time types): removes a
-    /// component from a live entity, preserving the value for readers (last-known data), clearing the
-    /// <c>EXISTS</c> flag, and setting <c>DIRTY</c> so removal flows through the same dirty polling as
-    /// updates. The entity itself survives removal.
-    /// </summary>
+    
     public bool Remove(Type type, int entity)
     {
         (int chunkIndex, int localEntity) = ToChunkSpace(entity);
@@ -129,7 +123,6 @@ public partial class DataStore
         }
     }
 
-    /// <summary>Runtime-type existence probe (the generated <c>Get</c>/<c>TryGet</c> cover compile-time types).</summary>
     public bool Has(Type type, int entity)
     {
         (int chunkIndex, int localEntity) = ToChunkSpace(entity);

@@ -20,6 +20,7 @@ using Swordfish.Input;
 using Swordfish.IO;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
+using Swordfish.Library.Serialization.Toml.Mappers;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
 using Swordfish.UI.Reef;
@@ -104,6 +105,8 @@ public class EngineContainer(in IWindow window, in SynchronizationContext mainTh
         container.RegisterMany<MeshDatabase>(Reuse.Singleton);
         container.RegisterMany<MaterialDatabase>(Reuse.Singleton);
         container.RegisterMany<AudioStreamDatabase>(Reuse.Singleton);
+        
+        container.RegisterTomlMapper<Vector3DataBindingTomlMapper>();
         
         var debugSettings = new DebugSettings();
         container.RegisterInstance(debugSettings);

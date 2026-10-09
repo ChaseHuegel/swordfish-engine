@@ -60,7 +60,6 @@ public class ThreadWorker
         _stop = true;
     }
 
-    /// <summary>Blocks until the worker thread has exited; pair with <see cref="Stop"/> before teardown.</summary>
     public void Join()
     {
         if (_started)

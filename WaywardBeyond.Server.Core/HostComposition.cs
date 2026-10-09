@@ -73,7 +73,6 @@ public static class HostComposition
         }
 
         container.RegisterConfig<NetworkingSettings>(file: "network.toml");
-        container.RegisterConfig<PhysicsSettings>(file: "physics.toml");
         container.RegisterConfig<StorageSettings>(file: "storage.toml");
 
         container.Register<StoragePaths>(Reuse.Singleton);
