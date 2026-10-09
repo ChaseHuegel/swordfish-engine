@@ -73,11 +73,12 @@ free), and the send box stays focused even when the user clicks elsewhere.
 Enter with non-empty text sends and closes the box. Escape or Enter with
 empty text closes without sending.
 
-The scroll viewport caps at 150 pixels and shrinks to the content, so the
-newest messages hug its bottom edge. Closed chat sticks to the newest message
-and ignores the wheel. Open chat starts stuck to the newest message; the
-wheel breaks the stick to read older messages, and scrolling back to the
-bottom re-sticks it. A stuck scroller follows new arrivals.
+Each message wraps to the overlay width. Its full wrapped height counts toward
+the scroll extent. The scroll viewport caps at 200 pixels and shrinks to the
+content, so the newest messages hug its bottom edge. Closed chat sticks to the
+newest message and ignores the wheel. Open chat starts stuck to the newest
+message; the wheel breaks the stick to read older messages, and scrolling back
+to the bottom re-sticks it. A stuck scroller follows new arrivals.
 
 The fade is per message, not per window. Each message shows at full alpha for
 `TimeoutSeconds` after its arrival, then fades over one second. Closed chat

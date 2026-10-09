@@ -252,22 +252,15 @@ internal sealed class ChatLayer : IUILayer
 
     private void RenderMessage(UIBuilder<Material> ui, in ChatMessage message, float alpha, int index = -1)
     {
-        using (ui.Element())
+        using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
         {
             ui.Passthrough = true;
-            ui.LayoutDirection = LayoutDirection.Horizontal;
-            ui.Spacing = SPACING;
-
-            using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
+            ui.FontSize = FONT_SIZE;
+            ui.Color = new Vector4(1f, 1f, 1f, alpha);
+            
+            if (index >= 0)
             {
-                ui.Passthrough = true;
-                ui.FontSize = FONT_SIZE;
-                ui.Color = new Vector4(1f, 1f, 1f, alpha);
-                
-                if (index >= 0)
-                {
-                    ui.ID = $"ChatMessage_{index}";
-                }
+                ui.ID = $"ChatMessage_{index}";
             }
         }
     }
