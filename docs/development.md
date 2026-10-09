@@ -20,7 +20,7 @@ docs pass. It folds in what used to live in root `STYLE_GUIDE.md` and
 dotnet build                                        # Debug default; runs nsdc codegen
 dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
-dotnet test WaywardBeyond.Client.Core.Tests         # NUnit game tests
+dotnet test WaywardBeyond.Client.Tests         # NUnit game tests
 dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
@@ -30,7 +30,7 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 - `Reef.Tests` targets `net8.0-windows` and cannot run on Linux.
 - No CI workflows exist (`.github/workflows/` is empty).
 - `nsdc` codegen runs automatically during build, driven by Exec targets in each
-  `.csproj` (e.g. `WaywardBeyond.Shared.Data.csproj`, `WaywardBeyond.Shared.Networking.csproj`).
+  `.csproj` (e.g. `WaywardBeyond.Data.csproj`, `WaywardBeyond.Networking.csproj`).
 
 ## Code style
 
@@ -131,7 +131,7 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 ### Testing
 
 - **xunit** for `Swordfish.Tests` and `Reef.Tests`.
-- **NUnit** for `WaywardBeyond.Client.Core.Tests`.
+- **NUnit** for `WaywardBeyond.Client.Tests`.
 - Descriptive PascalCase test names: `SetMaxValueDoesScale`, `LightPropagationTest`.
 - Arrange/Act/Assert structure.
 - xunit tests inherit `TestBase` for DI container + `ITestOutputHelper`.

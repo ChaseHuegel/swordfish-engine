@@ -1,0 +1,46 @@
+﻿using System;
+using System.Numerics;
+using Swordfish.ECS;
+using Swordfish.Library.Serialization;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Data;
+
+namespace WaywardBeyond.Client.Serialization;
+
+internal class VoxelEntityModelSerializer : ISerializer<VoxelEntityModel>
+{
+    public byte[] Serialize(VoxelEntityModel value)
+    {
+        ChunkInfo[] chunkInfos = value.VoxelObject.GetChunkInfos();
+
+        var voxelEntityData = new VoxelEntityData(
+            value.Uuid.ToValue(),
+            value.Position.X,
+            value.Position.Y,
+            value.Position.Z,
+            value.Orientation.X,
+            value.Orientation.Y,
+            value.Orientation.Z,
+            value.Orientation.W,
+            value.Scale.X,
+            value.Scale.Y,
+            value.Scale.Z,
+            chunkInfos,
+            _BrickPalette: null
+        );
+        
+        return voxelEntityData.Serialize();
+    }
+    
+    public VoxelEntityModel Deserialize(byte[] data)
+    {
+        VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(data);
+
+        var position = new Vector3((float)voxelEntityData.X, (float)voxelEntityData.Y, (float)voxelEntityData.Z);
+        var orientation = new Quaternion(voxelEntityData.OrientationX, voxelEntityData.OrientationY, voxelEntityData.OrientationZ, voxelEntityData.OrientationW);
+        var voxelObject = new VoxelObject(chunkSize: 16, voxelEntityData.Chunks);
+        
+        return new VoxelEntityModel(Uuid.FromValue(voxelEntityData.Uuid), position, orientation, voxelObject);
+    }
+}

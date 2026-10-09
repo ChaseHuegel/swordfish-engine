@@ -113,7 +113,7 @@ transport never disposes itself.
   (`LocalConnection.cs:33-34`).
 
 The F3 `NetworkStatsOverlay`
-(`WaywardBeyond.Client.Core/UI/NetworkStatsOverlay.cs`) reads the active
+(`WaywardBeyond.Client/UI/NetworkStatsOverlay.cs`) reads the active
 transport's counters. It shows the **average** packets and bytes per second and
 the plain totals. It uses the average, not the median, because network traffic
 is bursty and the median of per-frame samples reads zero when packets arrive in
@@ -171,7 +171,7 @@ plane and never carries game state.
 
 ## Configuration
 
-`NetworkingSettings` (`WaywardBeyond.Shared.Config/NetworkingSettings.cs`),
+`NetworkingSettings` (`WaywardBeyond.Config/NetworkingSettings.cs`),
 loaded from `network.toml`:
 
 | Key | Default |
@@ -271,14 +271,14 @@ shutdown (level flush, session teardown, store disposal, per
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
-- `WaywardBeyond.Server.Core/SessionManager.cs`
-- `WaywardBeyond.Server.Core/LanHost.cs`
-- `WaywardBeyond.Server.Core/ServerHostHeartbeat.cs`
-- `WaywardBeyond.Client.Core/Networking/LanDiscoveryService.cs`
-- `WaywardBeyond.Client.Core/Networking/TransportManager.cs`
-- `WaywardBeyond.Client.Core/Systems/ClientDisconnectSystem.cs`
-- `WaywardBeyond.Shared.Config/NetworkingSettings.cs`
+- `WaywardBeyond.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
+- `WaywardBeyond.Server/SessionManager.cs`
+- `WaywardBeyond.Server/LanHost.cs`
+- `WaywardBeyond.Server/ServerHostHeartbeat.cs`
+- `WaywardBeyond.Client/Networking/LanDiscoveryService.cs`
+- `WaywardBeyond.Client/Networking/TransportManager.cs`
+- `WaywardBeyond.Client/Systems/ClientDisconnectSystem.cs`
+- `WaywardBeyond.Config/NetworkingSettings.cs`
 
 ## Tests that pin this
 

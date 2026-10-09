@@ -46,7 +46,7 @@ Two independent ECS worlds run concurrently in the process:
 - **Client world** — `Swordfish/ECS/ECSContext.cs`, ticked on the `"ECS"`
   thread. Runs engine systems plus client gameplay systems.
 - **Server worlds** — one per loaded level, ticked sequentially on the
-  `"Server"` thread by `ServerWorldHost` (`WaywardBeyond.Server.Core/`). Each
+  `"Server"` thread by `ServerWorldHost` (`WaywardBeyond.Server/`). Each
   world is its own per-world DI graph; see
   [networking-worlds](networking-worlds.md).
 
@@ -79,7 +79,7 @@ The design and invariants were formerly tracked in root plan docs. That content
 now lives split across the sibling networking specs. The code is always the
 authority.
 
-- Implementing code: `WaywardBeyond.Shared.Networking/` and the game client/server
+- Implementing code: `WaywardBeyond.Networking/` and the game client/server
   systems that consume it.
 
 ## Known gaps

@@ -4,11 +4,11 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
 namespace Swordfish.Tests;

@@ -1,7 +1,7 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Shared.Networking.Registry;
+using WaywardBeyond.Networking.Registry;
 using Xunit;
 
 namespace Swordfish.Tests;

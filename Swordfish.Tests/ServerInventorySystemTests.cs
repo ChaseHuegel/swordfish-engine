@@ -1,17 +1,17 @@
 using System;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Systems;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Registry;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Sessions;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Sessions;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
-using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Config;
 
 namespace Swordfish.Tests;
 
@@ -63,7 +63,7 @@ public class ServerInventorySystemTests
         inventory.Contents[7] = InventoryComponent.Stack("glass", 1, 10);
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new NetworkComponent());
-        store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.InputComponent());
+        store.AddOrUpdate(entity, new WaywardBeyond.Networking.Components.InputComponent());
 
         //  One client session with a mirror; the client predicts a whole-stack move 7 -> 0 and sends it
         //  as an InventoryEvent.

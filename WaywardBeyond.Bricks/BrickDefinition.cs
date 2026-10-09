@@ -1,0 +1,12 @@
+namespace WaywardBeyond.Bricks;
+
+public struct BrickDefinition()
+{
+    public string ID;
+    public bool Transparent;
+    public bool Passable;
+    public string? Mesh;
+    public BrickShape Shape;
+    public BrickTextures Textures;
+    public string[] Tags;
+}

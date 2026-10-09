@@ -5,13 +5,13 @@ One subject: how save data persists.
 ## Substrate
 
 All save data lives in SQLite databases through `Microsoft.Data.Sqlite`.
-`StoragePaths` (`WaywardBeyond.Shared.Data/StoragePaths.cs`) resolves the file
+`StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the file
 layout under a data root. The root defaults to the relative `saves/` directory
-and comes from `StorageSettings` (`WaywardBeyond.Shared.Config/StorageSettings.cs`,
+and comes from `StorageSettings` (`WaywardBeyond.Config/StorageSettings.cs`,
 file `storage.toml`). The dedicated server can override it with `--data`
 (`WaywardBeyond.Server.Launcher/Program.cs`).
 
-Connections are never pooled (`SqliteDatabase`, `Shared.Data/SqliteDatabase.cs`),
+Connections are never pooled (`SqliteDatabase`, `WaywardBeyond.Data/SqliteDatabase.cs`),
 so a disposed store releases its file handle and a level directory can be
 removed on every platform. Each database runs with WAL, `synchronous=NORMAL`,
 and a 5 second busy timeout.
@@ -26,12 +26,12 @@ and a 5 second busy timeout.
 The client owns `profile.db`. `characters` stores one raw nsd blobs per
 character id. `save_meta` stores one raw nsd blob per level guid. The client
 registers the stores behind the existing interfaces (`ICharacterStorage`,
-`ISaveMetaStorage`) in `WaywardBeyond.Client.Core/Injector.cs`.
+`ISaveMetaStorage`) in `WaywardBeyond.Client/Injector.cs`.
 
 The server owns one database per level. `SqliteLevelCatalog`
-(`WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`) creates, lists,
+(`WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`) creates, lists,
 deletes, and opens them. `SqliteLevelStore`
-(`WaywardBeyond.Shared.Data/SqliteLevelStore.cs`) implements `ILevelStore`
+(`WaywardBeyond.Data/SqliteLevelStore.cs`) implements `ILevelStore`
 over one level database.
 
 ## `level.db` schema
@@ -106,7 +106,7 @@ autosaves the level.
 
 ## Serialization and data versioning
 
-`SaveMigrator` (`Shared.Data/Saves/SaveMigrator.cs`) gates on
+`SaveMigrator` (`WaywardBeyond.Data/Saves/SaveMigrator.cs`) gates on
 `SaveVersion.CurrentDataVersion` and runs per-record forward migrations.
 `SqliteCharacterStorage` and `SqliteLevelCatalog` refuse records stamped by a
 newer build. Structure data carries a brick palette since data version 4;
@@ -127,17 +127,17 @@ no shared broker process to manage.
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Config/StorageSettings.cs`
-- `WaywardBeyond.Shared.Data/StoragePaths.cs`
-- `WaywardBeyond.Shared.Data/SqliteDatabase.cs`
-- `WaywardBeyond.Shared.Data/SqliteLevelStore.cs`
-- `WaywardBeyond.Shared.Data/SqliteCharacterStorage.cs`
-- `WaywardBeyond.Shared.Data/SqliteSaveMetaStorage.cs`
-- `WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`
-- `WaywardBeyond.Server.Core/Saves/LevelSaveService.cs`
-- `WaywardBeyond.Server.Core/ServerLevelManager.cs`
-- `WaywardBeyond.Server.Core/PendingLevelDeletes.cs`
-- `WaywardBeyond.Shared.Data/CodeGen/{saves,voxels,levels}.nsd`
+- `WaywardBeyond.Config/StorageSettings.cs`
+- `WaywardBeyond.Data/StoragePaths.cs`
+- `WaywardBeyond.Data/SqliteDatabase.cs`
+- `WaywardBeyond.Data/SqliteLevelStore.cs`
+- `WaywardBeyond.Data/SqliteCharacterStorage.cs`
+- `WaywardBeyond.Data/SqliteSaveMetaStorage.cs`
+- `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
+- `WaywardBeyond.Server/Saves/LevelSaveService.cs`
+- `WaywardBeyond.Server/ServerLevelManager.cs`
+- `WaywardBeyond.Server/PendingLevelDeletes.cs`
+- `WaywardBeyond.Data/CodeGen/{saves,voxels,levels}.nsd`
 
 ## Tests that pin this
 
@@ -148,6 +148,6 @@ no shared broker process to manage.
 - Server-owned level save/load and the join stream in
   `Swordfish.Tests/ServerJoinStreamTests.cs`.
 - Save-meta accumulation rules in
-  `WaywardBeyond.Client.Core.Tests/SaveTimeTests.cs`.
+  `WaywardBeyond.Client.Tests/SaveTimeTests.cs`.
 - Character playtime frames in
-  `WaywardBeyond.Client.Core.Tests/CharacterSaveManagerTests.cs`.
+  `WaywardBeyond.Client.Tests/CharacterSaveManagerTests.cs`.

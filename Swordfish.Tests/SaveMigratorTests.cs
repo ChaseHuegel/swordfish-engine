@@ -1,5 +1,5 @@
 using System;
-using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Data;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -65,7 +65,7 @@ public class SaveMigratorTests
         //  Character has no registered migration, so an older same-shaped record is a no-op.
         SaveMigrator migrator = new([]);
         var character = new Character(
-            new WaywardBeyond.Shared.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),
+            new WaywardBeyond.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),
             1, 0, 0, "n", 1, 1, 1, 1, 1, 1, "wb:m_human", 0, GameMode.Creative, _Statistics: null, _Inventory: null
         );
 

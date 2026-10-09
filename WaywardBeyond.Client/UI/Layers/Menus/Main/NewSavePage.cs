@@ -1,0 +1,243 @@
+using System;
+using System.Linq;
+using System.Numerics;
+using System.Threading.Tasks;
+using Reef;
+using Reef.Constraints;
+using Reef.UI;
+using Swordfish.Graphics;
+using Swordfish.Library.Globalization;
+using Swordfish.Library.IO;
+using Swordfish.Library.Util;
+using WaywardBeyond.Client.Saves;
+using WaywardBeyond.Client.Services;
+
+namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
+
+internal sealed class NewSavePage : IMenuPage<MenuPage>
+{
+    private static readonly char[] _saveNameTrimChars = [' ', '\t', '.', '\n', '\r'];
+
+    public MenuPage ID => MenuPage.NewSave;
+    
+    private readonly GameSaveService _gameSaveService;
+    private readonly IInputService _inputService;
+    private readonly SoundEffectService _soundEffectService;
+    private readonly ILocalization _localization;
+    private readonly NameGenerator _nameGenerator;
+
+    private readonly Widgets.ButtonOptions _menuButtonOptions;
+    private readonly Widgets.ButtonOptions _buttonOptions;
+    private readonly Widgets.ButtonOptions _smallIconOptions;
+
+    private TextBoxState _saveNameTextBox;
+    private TextBoxState _seedTextBox;
+
+    public NewSavePage(
+        in GameSaveService gameSaveService,
+        in IInputService inputService,
+        in SoundEffectService soundEffectService,
+        in ILocalization localization,
+        in NameGenerator nameGenerator
+    ) {
+        _gameSaveService = gameSaveService;
+        _inputService = inputService;
+        _soundEffectService = soundEffectService;
+        _localization = localization;
+        _nameGenerator = nameGenerator;
+
+        _menuButtonOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                Size = 32,
+            },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+        
+        _buttonOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                Size = 20,
+            },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+        
+        _smallIconOptions = new Widgets.ButtonOptions(
+            new FontOptions {
+                ID = "Font Awesome 6 Free Solid",
+                Size = 20,
+            },
+            new Widgets.AudioOptions(soundEffectService)
+        );
+
+        var saveNameTextBoxOptions = new TextBoxState.Options(
+            Placeholder: localization.GetString("ui.field.saveName"),
+            MaxCharacters: 20,
+            DisallowedCharacters: ['\0', '\\', '/', ':', '*', '?', '"', '<', '>', '|'],
+            Constraints: new Constraints
+            {
+                Width = new Fixed(300),
+            }
+        );
+        _saveNameTextBox = new TextBoxState(initialValue: string.Empty, options: saveNameTextBoxOptions);
+        
+        var saveSeedTextBoxOptions = new TextBoxState.Options(
+            Placeholder: localization.GetString("ui.field.saveSeed"),
+            MaxCharacters: 20,
+            Constraints: new Constraints
+            {
+                Width = new Fixed(300),
+            }
+        );
+        
+        _seedTextBox = new TextBoxState(initialValue: string.Empty, saveSeedTextBoxOptions);
+    }
+
+    public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
+    {
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            using (ui.Text(_localization.GetString("ui.menu.createSave")!))
+            {
+                ui.FontSize = 24;
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Spacing = 8;
+            ui.LayoutDirection = LayoutDirection.Vertical;
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                
+                ui.TextBox(id: "TextBox_SaveName", state: ref _saveNameTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+
+                using (ui.TextButton(id: "Button_RandomSaveName", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                {
+                    if (interactions.Has(Widgets.Interactions.Click))
+                    {
+                        NameGenerator.Options nameGeneratorOptions = new NameGenerator.Options(
+                            TitleChance: 0.7f,
+                            FirstNameChance: 0.7f,
+                            LastNameChance: 1.0f,
+                            SubtitleChance: 0.9f,
+                            NicknameChance: 0.7f
+                        );
+
+                        string generatedName = _nameGenerator.Generate(key: "save", nameGeneratorOptions);
+
+                        var attempts = 0;
+                        while (attempts < 10 && (generatedName.Length > _saveNameTextBox.Settings.MaxCharacters || generatedName == _saveNameTextBox.Text.ToString()))
+                        {
+                            generatedName = _nameGenerator.Generate(key: "save", nameGeneratorOptions);
+                            attempts++;
+                        }
+                        
+                        _saveNameTextBox.Text.Clear();
+                        _saveNameTextBox.Text.Append(generatedName);
+                    }
+                }
+            }
+
+            var validSaveName = true;
+            string saveNameValue = _saveNameTextBox.Text.ToString().Trim(_saveNameTrimChars);
+            if (string.IsNullOrWhiteSpace(saveNameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.required")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validSaveName = false;
+            }
+            else if (_gameSaveService.GetSaves().Any(save => save.Name == saveNameValue))
+            {
+                using (ui.Text(_localization.GetString("ui.notification.name.taken")!))
+                {
+                    ui.Color = new Vector4(1f, 0f, 0f, 1f);
+                }
+                validSaveName = false;
+            }
+
+            using (ui.Element())
+            {
+                ui.Spacing = 8;
+                
+                ui.TextBox(id: "TextBox_SaveSeed", state: ref _seedTextBox, _buttonOptions.FontOptions, _inputService, _soundEffectService);
+
+                using (ui.TextButton(id: "Button_RandomSeed", text: "\uf074", _smallIconOptions, out Widgets.Interactions interactions))
+                {
+                    if (interactions.Has(Widgets.Interactions.Click))
+                    {
+                        _seedTextBox.Text.Clear();
+                        _seedTextBox.Text.Append(Random.Shared.NextInt64());
+                    }
+                }
+            }
+
+            using (ui.TextButton(id: "Button_NewGame", text: _localization.GetString("ui.button.newGame")!, _buttonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+                
+                if (validSaveName && interactions.Has(Widgets.Interactions.Click))
+                {
+                    var seedValue = _seedTextBox.Text.ToString();
+                    string seed = string.IsNullOrWhiteSpace(seedValue) ? Random.Shared.NextInt64().ToString() : seedValue;
+                    var options = new GameOptions(saveNameValue, seed);
+                    Task.Run(() => _gameSaveService.CreateSave(options));
+                    menu.GoToPage(MenuPage.SelectSave);
+                    ResetState();
+                }
+            }
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Width = new Fill(),
+                Height = new Fill(),
+            };
+        }
+        
+        using (ui.Element())
+        {
+            ui.Constraints = new Constraints
+            {
+                Anchors = Anchors.Center,
+            };
+            
+            using (ui.TextButton(id: "Button_Back", text: _localization.GetString("ui.button.back")!, _menuButtonOptions, out Widgets.Interactions interactions))
+            {
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoBack();
+                }
+            }
+        }
+        
+        return Result.FromSuccess();
+    }
+    
+    private void ResetState()
+    {
+        _saveNameTextBox.Text.Clear();
+        _seedTextBox.Text.Clear();
+    }
+}

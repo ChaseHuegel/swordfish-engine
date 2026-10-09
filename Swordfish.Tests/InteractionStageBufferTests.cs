@@ -1,4 +1,4 @@
-using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Networking.Components;
 using Xunit;
 
 namespace Swordfish.Tests;

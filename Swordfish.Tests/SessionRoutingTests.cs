@@ -4,19 +4,19 @@ using System.Linq;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Server.Core.Systems;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Registry;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Sessions;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Data;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Sessions;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
-using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Config;
 
 namespace Swordfish.Tests;
 
@@ -160,7 +160,7 @@ public class SessionRoutingTests
         {
             Assert.True(fixture.Sessions.TryGetEntity(clientId, out int playerEntity));
             Assert.Equal(entity, fixture.Store.GetUuid(playerEntity).ToValue());
-            Assert.True(fixture.Store.TryGet(playerEntity, out WaywardBeyond.Shared.Networking.Components.NetworkComponent net));
+            Assert.True(fixture.Store.TryGet(playerEntity, out WaywardBeyond.Networking.Components.NetworkComponent net));
             Assert.True(fixture.Sessions.TryGetSession(clientId, out Session session));
             Assert.Equal(session, net.Session);
         }
@@ -179,7 +179,7 @@ public class SessionRoutingTests
         {
             acks[i] = (uint)(10 + i * 100);
             int entity = fixture.Store.Alloc();
-            fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.NetworkComponent { LastAckedInput = acks[i] });
+            fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Networking.Components.NetworkComponent { LastAckedInput = acks[i] });
             fixture.Store.AddOrUpdate(entity, new MarkerComponent { Value = i });
             fixture.Sessions.Register(fixture.Store, entity, fixture.ClientIds[i], new Session((uint)i));
         }
@@ -213,7 +213,7 @@ public class SessionRoutingTests
         for (var i = 0; i < count; i++)
         {
             entities[i] = fixture.Store.Alloc();
-            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Networking.Components.NetworkComponent());
             fixture.Sessions.Register(fixture.Store, entities[i], fixture.ClientIds[i], new Session((uint)i));
         }
 
@@ -265,7 +265,7 @@ public class SessionRoutingTests
         for (var i = 0; i < count; i++)
         {
             entities[i] = fixture.Store.Alloc();
-            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Networking.Components.NetworkComponent());
             fixture.Sessions.Register(fixture.Store, entities[i], fixture.ClientIds[i], new Session((uint)i));
         }
 
@@ -290,7 +290,7 @@ public class SessionRoutingTests
         replication.ApplyStage(0f, fixture.Store);
 
         //  The victim's mirror staged nothing: no input, no interactions, untouched ack state.
-        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Shared.Networking.Components.NetworkComponent victim));
+        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Networking.Components.NetworkComponent victim));
         Assert.Null(victim.StagedInputs);
         Assert.Null(victim.StagedInteractions);
         Assert.Equal(0u, victim.LastAckedInput);
@@ -306,7 +306,7 @@ public class SessionRoutingTests
 
         replication.ApplyStage(0f, fixture.Store);
 
-        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Shared.Networking.Components.NetworkComponent attacker));
+        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Networking.Components.NetworkComponent attacker));
         Assert.NotNull(attacker.StagedInputs);
         Assert.Equal(9u, attacker.LastAckedInput);
     }
@@ -340,7 +340,7 @@ public class SessionRoutingTests
         for (var i = 0; i < count; i++)
         {
             entities[i] = fixture.Store.Alloc();
-            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+            fixture.Store.AddOrUpdate(entities[i], new WaywardBeyond.Networking.Components.NetworkComponent());
             fixture.Sessions.Register(fixture.Store, entities[i], fixture.ClientIds[i], new Session((uint)i));
         }
 
@@ -373,11 +373,11 @@ public class SessionRoutingTests
         //  and the healthy client's input still stages.
         replication.ApplyStage(0f, fixture.Store);
 
-        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Shared.Networking.Components.NetworkComponent victim));
+        Assert.True(fixture.Store.TryGet(entities[0], out WaywardBeyond.Networking.Components.NetworkComponent victim));
         Assert.NotNull(victim.StagedInputs);
         Assert.Equal(7u, victim.LastAckedInput);
 
-        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Shared.Networking.Components.NetworkComponent attacker));
+        Assert.True(fixture.Store.TryGet(entities[1], out WaywardBeyond.Networking.Components.NetworkComponent attacker));
         Assert.Null(attacker.StagedInputs);
     }
 
@@ -447,7 +447,7 @@ public class SessionRoutingTests
         Fixture fixture = new(1);
 
         int entity = fixture.Store.Alloc();
-        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Networking.Components.NetworkComponent());
         fixture.Store.AddOrUpdate(entity, new MarkerComponent { Value = 1 });
         fixture.Sessions.Register(fixture.Store, entity, fixture.ClientIds[0], new Session(1u));
 
@@ -493,7 +493,7 @@ public class SessionRoutingTests
 
         int entity = fixture.Store.Alloc();
         Uuid entityUuid = fixture.Store.GetUuid(entity);
-        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Shared.Networking.Components.NetworkComponent());
+        fixture.Store.AddOrUpdate(entity, new WaywardBeyond.Networking.Components.NetworkComponent());
         fixture.Sessions.Register(fixture.Store, entity, fixture.ClientIds[0], new Session(1u));
 
         fixture.Client(0).Send(new LeaveGameRequest { Dummy = 0 });

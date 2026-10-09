@@ -1,16 +1,16 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Server.Core.Systems;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
-using WaywardBeyond.Shared.Skills;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Data;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Skills;
 using Xunit;
 
-using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Config;
 
 namespace Swordfish.Tests;
 

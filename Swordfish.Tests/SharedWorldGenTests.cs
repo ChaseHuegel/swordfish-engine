@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using System.Numerics;
-using WaywardBeyond.Shared.Bricks;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
 using Xunit;
 
 namespace Swordfish.Tests;

@@ -146,13 +146,13 @@ stages were removed in favor of join.
 
 ## Source of truth
 
-- `WaywardBeyond.Client.Core/Systems/ClientJoinSystem.cs`
-- `WaywardBeyond.Server.Core/Systems/ServerJoinSystem.cs`
-- `WaywardBeyond.Server.Core/Saves/LevelSaveService.cs`
-- `WaywardBeyond.Server.Core/Saves/SqliteLevelCatalog.cs`
-- `WaywardBeyond.Shared.Data/CodeGen/levels.nsd` (the join/stream messages)
+- `WaywardBeyond.Client/Systems/ClientJoinSystem.cs`
+- `WaywardBeyond.Server/Systems/ServerJoinSystem.cs`
+- `WaywardBeyond.Server/Saves/LevelSaveService.cs`
+- `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
+- `WaywardBeyond.Data/CodeGen/levels.nsd` (the join/stream messages)
 
 ## Tests that pin this
 
 - `Swordfish.Tests` codec/seed tests for `CharacterSeed`.
-- `WaywardBeyond.Client.Core.Tests` join/stream client behavior.
+- `WaywardBeyond.Client.Tests` join/stream client behavior.

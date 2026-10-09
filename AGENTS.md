@@ -11,7 +11,7 @@ short sentences, no semicolons, no contractions.
 ```bash
 dotnet build                                        # Debug default; runs nsdc codegen
 dotnet test Swordfish.Tests                         # xunit engine tests
-dotnet test WaywardBeyond.Client.Core.Tests         # NUnit game tests
+dotnet test WaywardBeyond.Client.Tests              # NUnit game tests
 dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
@@ -48,17 +48,19 @@ Every top-level path and what it is:
 | `Reef.Benchmarks/` | Reef BenchmarkDotNet benchmarks |
 | `Reef.Tests/` | Reef tests (Windows only) |
 | `Reef.Text.Tests/` | Reef rich-text parser tests (cross-platform) |
-| `WaywardBeyond.Client.Core/` | Game client module |
-| `WaywardBeyond.Client.Core.Tests/` | Game client tests (NUnit) |
-| `WaywardBeyond.Discovery/` | (empty) |
+| `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database |
+| `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry |
+| `WaywardBeyond.Client/` | Game client module |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher |
-| `WaywardBeyond.Server.Core/` | Game server module |
-| `WaywardBeyond.Shared.Config/` | Shared config types |
-| `WaywardBeyond.Shared.Data/` | Shared data models |
-| `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation |
-| `WaywardBeyond.Shared.Skills/` | Shared skill module: definitions, headless loader, server skill state |
-| `WaywardBeyond.Shared.Networking/` | Standalone networking layer over the ECS |
-| `WaywardBeyond.Shared.Permissions/` | Shared dot-key permission policy and file loader |
+| `WaywardBeyond.Client.Tests/` | Game client tests (NUnit) |
+| `WaywardBeyond.Config/` | Shared config types |
+| `WaywardBeyond.Data/` | Shared data models |
+| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation |
+| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS |
+| `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
+| `WaywardBeyond.Server/` | Game server module |
+| `WaywardBeyond.Server.Launcher/` | Game server launcher |
+| `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, server skill state |
 | `docs/` | Self-documenting doc system (subject index in `docs/README.md`) |
 | `README.md`, `LICENSE` | Project docs |
 
@@ -99,7 +101,7 @@ Before you finish a change, run:
 
 1. `dotnet build` — must compile clean.
 2. `dotnet test Swordfish.Tests` — engine tests.
-3. `dotnet test WaywardBeyond.Client.Core.Tests` — game tests (cross-platform).
+3. `dotnet test WaywardBeyond.Client.Tests` — game tests (cross-platform).
 4. `dotnet test Reef.Tests` — Windows only; run when on Windows.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a

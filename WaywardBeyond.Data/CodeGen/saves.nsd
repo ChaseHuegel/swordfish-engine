@@ -1,0 +1,101 @@
+#version 1.0;
+#namespace WaywardBeyond.Data;
+
+enum GameMode
+{
+    Creative;
+    Adventure;
+}
+
+message Version
+{
+    uint DataVersion   = 0;
+    string Name        = 1;
+    string Environment = 2;
+}
+
+message Level
+{
+    Version Version = 0;
+    
+    int Seed = 1;
+    
+    long LastPlayedMs = 2;
+    long AgeMs        = 3;
+    
+    int SpawnX = 4;
+    int SpawnY = 5;
+    int SpawnZ = 6;
+
+    GameMode DefaultGameMode = 7;
+    
+    string Guid = 8;
+    string Name = 9;
+}
+
+message Character
+{
+    Version Version = 0;
+    
+    ulong Id = 1;
+    
+    long LastPlayedMs = 2;
+    long AgeMs        = 3;
+    
+    string Name = 4;
+    
+    int Strength = 5;
+    int Precision = 6;
+    int Awareness = 7;
+    int Charisma = 8;
+    int Education = 9;
+    int Resolve = 10;
+    
+    string Body = 11;
+    
+    int ActiveInventorySlot = 12;
+    GameMode GameMode = 13;
+    
+    Statistic[]? Statistics = 15;
+    
+    ItemData[]? Inventory = 20;
+}
+
+message ItemData
+{
+    string ID = 0;
+    int Count = 1;
+    int MaxSize = 2;
+}
+
+message Statistic
+{
+    string ID = 0;
+    long Value = 1;
+}
+
+message SaveMeta
+{
+    long LastPlayedMs = 0;
+    long AgeMs        = 1;
+}
+
+message CharacterEntityData
+{
+    ulong Uuid = 0;
+    
+    double X = 1;
+    double Y = 2;
+    double Z = 3;
+    
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    
+    float ScaleX = 8;
+    float ScaleY = 9;
+    float ScaleZ = 10;
+    
+    GameMode GameMode = 11;
+}

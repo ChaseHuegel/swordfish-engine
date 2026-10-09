@@ -2,17 +2,17 @@
 
 One subject: the TOML config types that define game content (items, bricks,
 materials, skills). Item and brick definitions live under
-`WaywardBeyond.Client.Core/assets/`; skills moved to the shared
-`WaywardBeyond.Shared.Skills/assets/` module, while brick/item localization stays
+`WaywardBeyond.Client/assets/`; skills moved to the shared
+`WaywardBeyond.Skills/assets/` module, while brick/item localization stays
 client-owned.
 
-Parser registration: `WaywardBeyond.Client.Core/Injector.cs:315-317`
+Parser registration: `WaywardBeyond.Client/Injector.cs:315-317`
 (`RegisterTomlParser<BrickDefinitions/ItemDefinitions>`) and
-`WaywardBeyond.Shared.Skills/Injector.cs` (`RegisterTomlParser<SkillDefinitions/>`).
+`WaywardBeyond.Skills/Injector.cs` (`RegisterTomlParser<SkillDefinitions/>`).
 
 ## Items (`assets/items/*.toml`)
 
-Schema: `WaywardBeyond.Client.Core/Items/ItemDefinitions.cs` (collection),
+Schema: `WaywardBeyond.Client/Items/ItemDefinitions.cs` (collection),
 `ItemDefinition.cs` (row).
 
 Each row is a `[[Items]]` table followed by optional sub-tables:
@@ -63,8 +63,8 @@ Scale.X    = 0.25
 
 ## Bricks (`assets/bricks/*.toml`)
 
-Schema: `WaywardBeyond.Shared.Bricks/BrickDefinitions.cs` (collection),
-`BrickDefinition.cs` (row). The brick tomls live in the `WaywardBeyond.Shared.Bricks`
+Schema: `WaywardBeyond.Bricks/BrickDefinitions.cs` (collection),
+`BrickDefinition.cs` (row). The brick tomls live in the `WaywardBeyond.Bricks`
 module (mirroring the skills module), so the block sides author and the headless
 server share one database.
 
@@ -76,7 +76,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Transparent` | bool | |
 | `Passable` | bool | |
 | `Mesh` | string? | |
-| `Shape` | `BrickShape` enum | `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs` |
+| `Shape` | `BrickShape` enum | `WaywardBeyond.Gameplay/Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
 
@@ -113,9 +113,9 @@ definitions, not game content tables.
 
 ## Skills (`assets/skills/*.toml`)
 
-Skills moved to the shared `WaywardBeyond.Shared.Skills` module; the client no
+Skills moved to the shared `WaywardBeyond.Skills` module; the client no
 longer owns skill definitions or runs any skill logic. Schema:
-`WaywardBeyond.Shared.Skills/Skills/SkillDefinitions.cs` (collection),
+`WaywardBeyond.Skills/Skills/SkillDefinitions.cs` (collection),
 `SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
 
 Each row is a `[[Skills]]` table:
@@ -135,7 +135,7 @@ on load. `Name` and `Category` are localization keys resolved client-side (see
 
 ## Bodies (`assets/bodies/*.toml`)
 
-Bodies live in the shared `WaywardBeyond.Shared.Bodies` module. Schema:
+Bodies live in the shared `WaywardBeyond.Bodies` module. Schema:
 `BodyModels.cs` (collection), `BodyModel.cs` (row).
 
 Each body is a `[[Bodies]]` table carrying a stable namespaced string ID
@@ -150,7 +150,7 @@ Character-name generation keys its localized tags and formats by the same body
 ID. `NameGenerator.Generate(key)` resolves `names.{title,first,last,subtitle,nickname}.{key}`
 and `formats.name.{key}` (see `NameGenerator.cs:30`). The client passes the
 current body ID, so a character named against a body reuses those strings.
-Body-named tag lists live in `WaywardBeyond.Client.Core/assets/lang/en/tags/`
+Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 (`names_*.en.csv`); the shared `names_save.en.csv` uses the fixed `save` key.
 
 | Field | Type | Notes |
@@ -166,16 +166,16 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 
 ## Source of truth
 
-- `WaywardBeyond.Client.Core/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
-- `WaywardBeyond.Client.Core/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
-- `WaywardBeyond.Shared.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
-- `WaywardBeyond.Shared.Bodies/{BodyModels,BodyModel,BodyDirectionOrder,BodyDatabase}.cs`
-- `WaywardBeyond.Shared.Gameplay/Bricks/BrickShape.cs`
+- `WaywardBeyond.Client/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
+- `WaywardBeyond.Client/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
+- `WaywardBeyond.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
+- `WaywardBeyond.Bodies/{BodyModels,BodyModel,BodyDirectionOrder,BodyDatabase}.cs`
+- `WaywardBeyond.Gameplay/Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
-- Parser registration: `WaywardBeyond.Shared.Skills/Injector.cs`,
-  `WaywardBeyond.Client.Core/Injector.cs`
+- Parser registration: `WaywardBeyond.Skills/Injector.cs`,
+  `WaywardBeyond.Client/Injector.cs`
 
 ## Tests that pin this
 
-- `WaywardBeyond.Client.Core.Tests` validate brick/item/skill definition
+- `WaywardBeyond.Client.Tests` validate brick/item/skill definition
   parsing from the asset TOML.

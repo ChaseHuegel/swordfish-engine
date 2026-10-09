@@ -1,4 +1,4 @@
-using WaywardBeyond.Shared.Permissions;
+using WaywardBeyond.Permissions;
 
 namespace Swordfish.Tests;
 

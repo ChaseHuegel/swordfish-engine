@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Data;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
 namespace Swordfish.Tests;

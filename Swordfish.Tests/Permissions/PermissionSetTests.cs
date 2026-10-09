@@ -1,6 +1,6 @@
 using System;
 using Swordfish.Library.Serialization.Toml;
-using WaywardBeyond.Shared.Permissions;
+using WaywardBeyond.Permissions;
 using Xunit;
 
 namespace Swordfish.Tests;

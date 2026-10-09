@@ -4,8 +4,8 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking.Components;
 using Xunit;
 
 namespace Swordfish.Tests;

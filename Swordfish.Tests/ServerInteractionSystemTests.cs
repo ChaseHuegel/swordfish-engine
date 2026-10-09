@@ -3,17 +3,17 @@ using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Core.Numerics;
-using WaywardBeyond.Client.Core.Voxels;
-using WaywardBeyond.Server.Core.Components;
-using WaywardBeyond.Server.Core.Systems;
-using WaywardBeyond.Shared.Bricks;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -127,7 +127,7 @@ public class ServerInteractionSystemTests
         //  Simulate a rejoin reusing the mirror index: the join path clears the watermark and the client
         //  restarts its sequence at 1 over a fresh stage buffer (as HandleJoin builds a fresh mirror).
         system.ResetPlayerSequence(player);
-        store.AddOrUpdate(player, new WaywardBeyond.Shared.Networking.Components.NetworkComponent { StagedInteractions = new InteractionStageBuffer() });
+        store.AddOrUpdate(player, new WaywardBeyond.Networking.Components.NetworkComponent { StagedInteractions = new InteractionStageBuffer() });
         StoreInitialVoxel(voxelObject, 0, 0, 0);
         StageInteraction(store, player, kind: InteractionKind.PrimaryPressed, hint: Hint(0, 0, 0), sequence: 1);
 
@@ -444,7 +444,7 @@ public class ServerInteractionSystemTests
     {
         public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
         {
-            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Shared.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
+            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
             return true;
         }
 

@@ -1,5 +1,5 @@
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Data;
 
 namespace Swordfish.Tests;
 

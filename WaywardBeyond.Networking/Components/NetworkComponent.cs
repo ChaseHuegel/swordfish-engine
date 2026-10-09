@@ -1,0 +1,21 @@
+using Swordfish.ECS;
+using WaywardBeyond.Networking.Sessions;
+
+namespace WaywardBeyond.Networking.Components;
+
+public struct NetworkComponent : IDataComponent
+{
+    public Session Session;
+    public uint LastAckedInput;
+    public uint LastAckedSnapshot;
+    public uint ServerTPS;
+
+    /// <summary>Sim-tick-keyed inbound command staging, populated server-side.</summary>
+    public InputStageBuffer? StagedInputs;
+
+    /// <summary>Sim-tick-keyed inbound interaction-edge staging, populated server-side.</summary>
+    public InteractionStageBuffer? StagedInteractions;
+
+    /// <summary>Sequence-keyed inbound inventory-op staging, populated server-side.</summary>
+    public InventoryOpStageBuffer? StagedInventoryOps;
+}

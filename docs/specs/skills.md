@@ -20,7 +20,7 @@ data:
 
 ## Definitions
 
-`WaywardBeyond.Shared.Skills/` is a Shoal module (`waywardbeyond.shared.skills`)
+`WaywardBeyond.Skills/` is a Shoal module (`waywardbeyond.skills`)
 that owns the headless models and the tomls:
 
 - `Skills/XPSource.cs` — `Source { Place, Break }`.
@@ -73,13 +73,13 @@ progress bar; `notification.skill.levelUp` renders the level-up toast.
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Skills/{Skills,Components}/*.cs`
-- `WaywardBeyond.Shared.Skills/assets/{skills,lang/tags}/**`
-- `WaywardBeyond.Server.Core/Systems/ServerSkillSystem.cs`
-- `WaywardBeyond.Server.Core/Systems/ServerJoinSystem.cs` (seed)
-- `WaywardBeyond.Client.Core/Systems/ClientNotificationSystem.cs`
-- `WaywardBeyond.Client.Core/assets/lang/en/{skills,notification}.toml`
-- `WaywardBeyond.Shared.Data/CodeGen/saves.nsd` (`Statistic`)
+- `WaywardBeyond.Skills/{Skills,Components}/*.cs`
+- `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
+- `WaywardBeyond.Server/Systems/ServerSkillSystem.cs`
+- `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)
+- `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs`
+- `WaywardBeyond.Client/assets/lang/en/{skills,notification}.toml`
+- `WaywardBeyond.Data/CodeGen/saves.nsd` (`Statistic`)
 
 ## Tests that pin this
 
@@ -87,5 +87,5 @@ progress bar; `notification.skill.levelUp` renders the level-up toast.
   parity, level curve edges.
 - `Swordfish.Tests/ServerSkillSystemTests.cs` — grant math and per-grant totals.
 - `Swordfish.Tests/ServerJoinSkillSeedTests.cs` — join-time seeding.
-- `WaywardBeyond.Client.Core.Tests/ClientNotificationSystemTests.cs` — key
+- `WaywardBeyond.Client.Tests/ClientNotificationSystemTests.cs` — key
   resolution, formatting, totals persistence.

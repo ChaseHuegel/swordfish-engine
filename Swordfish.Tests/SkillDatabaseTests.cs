@@ -5,10 +5,10 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
-using WaywardBeyond.Shared.Bricks;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Skills;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Skills;
 using Xunit;
 
 namespace Swordfish.Tests;

@@ -1,4 +1,4 @@
-using WaywardBeyond.Shared.Bricks;
+using WaywardBeyond.Bricks;
 
 namespace Swordfish.Tests;
 

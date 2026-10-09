@@ -1,0 +1,105 @@
+#version 1.0;
+#namespace WaywardBeyond.Networking;
+
+message ComponentSnapshot
+{
+    ulong Entity    = 0;
+    ulong TypeUuid  = 1;
+    byte[] Payload  = 2;
+}
+
+message ComponentRemoval
+{
+    ulong Entity   = 0;
+    ulong TypeUuid = 1;
+}
+
+message WorldSnapshot
+{
+    uint TickNumber           = 0;
+    uint LastProcessedInput   = 1;
+    ComponentSnapshot[] Components     = 2;
+    ulong[] RemovedEntities   = 3;
+    ComponentRemoval[] RemovedComponents = 4;
+}
+
+message TransformMessage
+{
+    float PositionX      = 0;
+    float PositionY      = 1;
+    float PositionZ      = 2;
+    float OrientationX   = 3;
+    float OrientationY   = 4;
+    float OrientationZ   = 5;
+    float OrientationW   = 6;
+    float ScaleX         = 7;
+    float ScaleY         = 8;
+    float ScaleZ         = 9;
+}
+
+message PhysicsMessage
+{
+    float VelocityX          = 0;
+    float VelocityY          = 1;
+    float VelocityZ          = 2;
+    float AngularVelocityX   = 3;
+    float AngularVelocityY   = 4;
+    float AngularVelocityZ   = 5;
+}
+
+message VoxelEditMessage
+{
+    ulong EntityUuid = 0;
+    int X = 1;
+    int Y = 2;
+    int Z = 3;
+    WaywardBeyond.Data.Voxel Voxel = 4;
+    uint Sequence = 5;
+    string? BrickId = 6;
+}
+
+message NotificationMessage
+{
+    byte Type = 0;
+    string Key = 1;
+    string[] Args = 2;
+    string? ID = 3;
+    float? Amount = 4;
+}
+
+message SkillStateUpdateMessage
+{
+    string SkillId = 0;
+    long TotalXP = 1;
+    int Level = 2;
+    long XPIntoLevel = 3;
+    long GainedXP = 4;
+}
+
+message ChatMessage
+{
+    ulong CharacterId = 0;
+    string SenderName = 1;
+    string Value = 2;
+}
+
+message ServerHeartbeatMessage
+{
+    uint TPS = 0;
+    uint TickNumber = 1;
+    uint PlayerCount = 2;
+}
+
+message ClientHeartbeatMessage
+{
+    uint TickNumber = 0;
+    uint LastAppliedSnapshotTick = 1;
+}
+
+message LanBeacon
+{
+    string ServerName    = 0;
+    int    TcpPort       = 1;
+    int    ProtocolVersion = 2;
+    int    PlayerCount   = 3;
+}

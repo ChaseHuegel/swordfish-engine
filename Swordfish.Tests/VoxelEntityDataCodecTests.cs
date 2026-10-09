@@ -1,7 +1,7 @@
-using WaywardBeyond.Shared.Bricks;
+using WaywardBeyond.Bricks;
 using System;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
 using Xunit;
 
 namespace Swordfish.Tests;

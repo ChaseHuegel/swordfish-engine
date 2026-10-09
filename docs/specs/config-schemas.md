@@ -7,7 +7,7 @@ configs live in [asset-definitions](asset-definitions.md); networking config in
 ## `manifest.toml` (per module)
 
 One per module (e.g. `Swordfish/manifest.toml`,
-`WaywardBeyond.Client.Core/manifest.toml`). Schema:
+`WaywardBeyond.Client/manifest.toml`). Schema:
 `Shoal/Modularity/ModuleManifest.cs`.
 
 | Key | Type | Required | Purpose |
@@ -26,11 +26,11 @@ One per module (e.g. `Swordfish/manifest.toml`,
 Example:
 
 ```toml
-ID = "waywardbeyond.client.core"
+ID = "waywardbeyond.client"
 Name = "Wayward Beyond"
 Description = "The space sandbox RPG."
 Assemblies = [
-    "WaywardBeyond.Client.Core.dll",
+    "WaywardBeyond.Client.dll",
 ]
 ```
 
@@ -55,7 +55,7 @@ Example:
 AllowScriptCompilation = false
 LoadOrder = [
     "swordfish",
-    "waywardbeyond.client.core",
+    "waywardbeyond.client",
 ]
 ```
 
@@ -63,7 +63,7 @@ LoadOrder = [
 
 Runtime chat tunables. Registered by the client module via
 `RegisterConfig<ChatSettings>`. Defaults live in
-`WaywardBeyond.Shared.Config/ChatSettings.cs`. See [chat](chat.md).
+`WaywardBeyond.Config/ChatSettings.cs`. See [chat](chat.md).
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -83,7 +83,7 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 Gameplay tunables shared by the client and the server, registered via
 `RegisterConfig<GameplaySettings>` (client `Injector.cs`, server
 `ServerComposition.cs`). Schema:
-`WaywardBeyond.Shared.Config/GameplaySettings.cs`.
+`WaywardBeyond.Config/GameplaySettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -96,7 +96,7 @@ Gameplay tunables shared by the client and the server, registered via
 
 Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by
 the engine (`Swordfish/EngineContainer.cs:115`) and the shared host wire-up
-(`WaywardBeyond.Server.Core/HostComposition.cs:80`). Defaults live in
+(`WaywardBeyond.Server/HostComposition.cs:80`). Defaults live in
 `Swordfish/Settings/PhysicsSettings.cs`.
 
 | Key | Type | Default | Purpose |
@@ -122,7 +122,7 @@ lives in `profile.toml` (`LastServerMode`).
 ## `storage.toml` (per app)
 
 Save-data root, registered via `RegisterConfig<StorageSettings>`.
-Schema: `WaywardBeyond.Shared.Config/StorageSettings.cs`.
+Schema: `WaywardBeyond.Config/StorageSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -133,7 +133,7 @@ A dedicated server can override the root with `--data`.
 ## `profile.toml` (per app)
 
 Client-local state and preferences, registered via `RegisterConfig<ProfileSettings>`.
-Schema: `WaywardBeyond.Client.Core/Configuration/ProfileSettings.cs`.
+Schema: `WaywardBeyond.Client/Configuration/ProfileSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|

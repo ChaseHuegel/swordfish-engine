@@ -4,7 +4,7 @@ using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
-using WaywardBeyond.Shared.Permissions;
+using WaywardBeyond.Permissions;
 using Xunit;
 
 namespace Swordfish.Tests;

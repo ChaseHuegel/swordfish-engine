@@ -1,0 +1,350 @@
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using Microsoft.Extensions.Logging;
+using Swordfish.ECS;
+using Swordfish.Library.Util;
+using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Skills;
+
+namespace WaywardBeyond.Server.Systems;
+
+/// <summary>
+/// The authoritative interaction system. Runs once per server tick, between the replication apply stage
+/// (which drains inbound client interaction events into each player mirror's staged buffer) and the
+/// publish stage. For each staged interaction at or below the current sim tick it:
+/// builds an authority ray from the mirror's settled transform + look, resolves the interaction with the
+/// shared <see cref="SharedInteractionResolver"/>, and applies the outcome on the target structure's live
+/// <see cref="VoxelWorldComponent"/> - rebuilding the collider and re-deriving the persisted chunks.
+/// Survival consumption/loot is applied against the server-owned <see cref="InventoryComponent"/>;
+/// creative mode is free. A hint-less or rejected interaction resolves to <see cref="InteractionAction.None"/>
+/// and is simply skipped.
+/// </summary>
+public sealed class ServerInteractionSystem : IServerWorldSystem
+{
+    private readonly ILogger<ServerInteractionSystem> _logger;
+    private readonly ServerConnectionHub _hub;
+    private readonly IInteractionContent _content;
+    private readonly IInteractionHandlerRegistry _handlerRegistry;
+    private readonly IBrickIdMap _brickIdMap;
+    private readonly ServerSkillSystem? _skills;
+    private readonly SharedSimulationStep? _simulationStep;
+    private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
+
+    private readonly Dictionary<int, uint> _lastConsumedSequences = [];
+
+    public ServerInteractionSystem(
+        in ServerConnectionHub hub,
+        in IInteractionContent content,
+        ILogger<ServerInteractionSystem> logger,
+        IBrickIdMap brickIdMap
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), CreateWorldFactory(), brickIdMap) { }
+
+    public ServerInteractionSystem(
+        in ServerConnectionHub hub,
+        in IInteractionContent content,
+        ILogger<ServerInteractionSystem> logger,
+        Func<DataStore, IVoxelInteractionWorld> worldFactory,
+        IBrickIdMap brickIdMap
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory, brickIdMap) { }
+
+    public ServerInteractionSystem(
+        in ServerConnectionHub hub,
+        in IInteractionContent content,
+        ILogger<ServerInteractionSystem> logger,
+        IInteractionHandlerRegistry handlerRegistry,
+        Func<DataStore, IVoxelInteractionWorld> worldFactory,
+        IBrickIdMap brickIdMap,
+        ServerSkillSystem? skills = null,
+        in SharedSimulationStep? simulationStep = null
+    ) {
+        _hub = hub;
+        _content = content;
+        _handlerRegistry = handlerRegistry;
+        _logger = logger;
+        _worldFactory = worldFactory;
+        _skills = skills;
+        _simulationStep = simulationStep;
+        _brickIdMap = brickIdMap;
+    }
+
+    public void Tick(float delta, DataStore store)
+    {
+        Tick(delta, store, _simulationStep?.CurrentSimTick ?? 0);
+    }
+
+    private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()
+    {
+        return store => new ServerVoxelInteractionWorld(store);
+    }
+
+    /// <summary>Processes staged interactions for the given sim tick on the authoritative server world.</summary>
+    public void Tick(float delta, DataStore store, uint simTick)
+    {
+        ConsumeAction action = new() { Owner = this, Store = store, SimTick = simTick };
+        store.Query<NetworkComponent, OwnedCharacterComponent, TransformComponent, ConsumeAction>(0f, ref action);
+    }
+
+    private void Consume(DataStore store, int entity, uint simTick, in NetworkComponent net, in TransformComponent transform)
+    {
+        if (net.StagedInteractions == null)
+        {
+            return;
+        }
+
+        uint lastSequence = _lastConsumedSequences.GetValueOrDefault(entity);
+        InteractionStageBuffer buffer = net.StagedInteractions;
+
+        while (buffer.TryConsume(simTick, lastSequence, out InteractionEvent interaction))
+        {
+            lastSequence = interaction.SequenceNumber;
+            ProcessInteraction(store, entity, in interaction, in transform);
+        }
+
+        _lastConsumedSequences[entity] = lastSequence;
+    }
+
+    /// <summary>
+    /// Clears the per-entity sequence watermark so a reused mirror index from a prior session does not
+    /// cause <see cref="InteractionStageBuffer.TryConsume"/> to skip a fresh session's low sequence numbers.
+    /// Called by the server when a player mirror is freed or reallocated (leave, rejoin, disconnect).
+    /// </summary>
+    public void ResetPlayerSequence(int entity)
+    {
+        _lastConsumedSequences.Remove(entity);
+    }
+
+    private void ProcessInteraction(DataStore store, int player, in InteractionEvent interaction, in TransformComponent mirror)
+    {
+        var kind = (InteractionKind)interaction.Kind;
+
+        //  Resolve the held item to the placeable brick it places, if any (the resolver rejects a
+        //  place hint without one; a break never needs it).
+        string? heldItemID = GetHeldItemID(store, player);
+        PlaceableBrick? placeable = null;
+        if (heldItemID != null && _content.TryGetPlaceable(heldItemID, out PlaceableBrick resolved))
+        {
+            placeable = resolved;
+        }
+
+        GameMode mode = GameMode.Creative;
+        if (store.TryGet(player, out GameModeComponent gameMode))
+        {
+            mode = gameMode.Mode;
+        }
+
+        //  Validate the hinted structure + cell against the authority store purely by identity and reach;
+        //  no raycasting is needed (the client's screen-aim targeting produced the hint).
+        Vector3 origin = mirror.Position;
+        IVoxelInteractionWorld world = _worldFactory(store);
+
+        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickIdMap);
+        if (resolution.Action == InteractionAction.None)
+        {
+            return;
+        }
+
+        //  Server-side mod hook: registered handlers run after base validation and may reject/override.
+        resolution = _handlerRegistry.Apply(request, resolution, heldItemID);
+        if (resolution.Action == InteractionAction.None)
+        {
+            return;
+        }
+
+        if (!store.TryGet(resolution.Entity, out VoxelWorldComponent voxelWorldComponent))
+        {
+            _logger.LogWarning("Resolved interaction on entity {entity} but it no longer has a live voxel container.", resolution.Entity);
+            return;
+        }
+
+        VoxelObject voxelObject = voxelWorldComponent.VoxelObject;
+        Int3 coordinate = resolution.Coordinate;
+
+        switch (resolution.Action)
+        {
+            case InteractionAction.Break:
+                voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, new Voxel());
+                GrantLoot(store, player, mode, resolution.Voxel.ID);
+                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
+                break;
+
+            case InteractionAction.Place:
+                voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, resolution.Voxel);
+                ConsumeHeldItem(store, player, mode);
+                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
+                break;
+        }
+
+        //  Rebuild the structure's collider so subsequent authority raycasts see the change, and
+        //  re-derive the persisted chunks so the next level save reflects the edit.
+        store.AddOrUpdate(resolution.Entity, new ColliderComponent(VoxelColliderBuilder.BuildCollition(voxelObject.GetChunkInfos())));
+        store.AddOrUpdate(resolution.Entity, new VoxelEntityDataComponent(voxelObject.GetChunkInfos()));
+        store.MarkDirty<VoxelEntityDataComponent>(resolution.Entity);
+
+        Voxel newVoxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
+        BroadcastEdit(store, resolution.Entity, coordinate, newVoxel, interaction.SequenceNumber);
+
+        _logger.LogDebug("Applied {action} on entity {entity} at {coordinate} for player {player}.", resolution.Action, resolution.Entity, coordinate, player);
+    }
+
+    /// <summary>
+    /// Broadcasts an authoritative voxel edit to every connected client so both the origin client and
+    /// remote witnesses apply the delta via the same shared voxel container. Carries the originating
+    /// interaction's <paramref name="sequence"/> so the origin client can resolve the exact prediction
+    /// it echoed, instead of correlating by (entity, coordinate).
+    /// </summary>
+    private void BroadcastEdit(DataStore store, int entity, Int3 coordinate, in Voxel voxel, uint sequence)
+    {
+        var message = new VoxelEditMessage
+        {
+            EntityUuid = store.GetUuid(entity).ToValue(),
+            X = coordinate.X,
+            Y = coordinate.Y,
+            Z = coordinate.Z,
+            Voxel = voxel,
+            Sequence = sequence,
+            BrickId = _brickIdMap.Name(voxel.ID),
+        };
+
+        foreach ((Uuid clientId, _) in _hub.Clients)
+        {
+            Result send = _hub.Send(clientId, message);
+            if (!send.Success)
+            {
+                _logger.LogWarning("Failed to broadcast voxel edit to client {clientId}: {message}.", clientId, send.Message);
+            }
+        }
+    }
+
+    private string? GetHeldItemID(DataStore store, int player)
+    {
+        if (!store.TryGet(player, out EquipmentComponent equipment) ||
+            !store.TryGet(player, out InventoryComponent inventory))
+        {
+            return null;
+        }
+
+        int slot = equipment.ActiveInventorySlot;
+        if (slot < 0 || slot >= inventory.Contents.Length)
+        {
+            return null;
+        }
+
+        return inventory.Contents[slot].ID;
+    }
+
+    /// <summary>
+    /// Applies the survival-mode break loot against the server-owned inventory. Creative mode is free.
+    /// </summary>
+    private void GrantLoot(DataStore store, int player, GameMode mode, ushort brokenBrickDataID)
+    {
+        if (mode == GameMode.Creative)
+        {
+            return;
+        }
+
+        if (!store.TryGet(player, out InventoryComponent inventory) ||
+            !_content.TryGetLoot(brokenBrickDataID, out ItemData loot))
+        {
+            return;
+        }
+
+        InventoryComponent updated = inventory;
+        updated.Add(loot);
+        store.AddOrUpdate(player, updated);
+        store.MarkDirty<InventoryComponent>(player);
+    }
+
+    /// <summary>
+    /// Applies the survival-mode place consumption against the server-owned inventory. Creative is free.
+    /// </summary>
+    private void ConsumeHeldItem(DataStore store, int player, GameMode mode)
+    {
+        if (mode == GameMode.Creative)
+        {
+            return;
+        }
+
+        if (!store.TryGet(player, out EquipmentComponent equipment) ||
+            !store.TryGet(player, out InventoryComponent inventory))
+        {
+            return;
+        }
+
+        int slot = equipment.ActiveInventorySlot;
+        if (slot < 0 || slot >= inventory.Contents.Length)
+        {
+            return;
+        }
+
+        InventoryComponent updated = inventory;
+        updated.Remove(slot, 1);
+        store.AddOrUpdate(player, updated);
+        store.MarkDirty<InventoryComponent>(player);
+    }
+
+    private struct ConsumeAction : IForEach<NetworkComponent, OwnedCharacterComponent, TransformComponent>
+    {
+        public ServerInteractionSystem Owner;
+        public DataStore Store;
+        public uint SimTick;
+
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net, in OwnedCharacterComponent owned, in TransformComponent transform)
+        {
+            if (net.StagedInteractions == null)
+            {
+                return;
+            }
+
+            Owner.Consume(Store, entity, SimTick, in net, in transform);
+        }
+    }
+}
+
+/// <summary>
+/// Server-side <see cref="IVoxelInteractionWorld"/>: reads a structure's live voxel container + transform
+/// from the authority store by its stable identity or local entity index. Validation never raycasts - the
+/// client's screen-aim targeting produced the hint.
+/// </summary>
+public sealed class ServerVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
+{
+    public bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    {
+        if (store.TryGet(entity, out VoxelWorldComponent world) && store.TryGet(entity, out TransformComponent transformComponent))
+        {
+            voxelObject = world.VoxelObject;
+            transform = transformComponent;
+            return true;
+        }
+
+        voxelObject = null;
+        transform = default;
+        return false;
+    }
+
+    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    {
+        if (store.TryGet(entityUuid, out entity) &&
+            store.TryGet(entity, out VoxelWorldComponent world) &&
+            store.TryGet(entity, out TransformComponent transformComponent))
+        {
+            voxelObject = world.VoxelObject;
+            transform = transformComponent;
+            return true;
+        }
+
+        entity = default;
+        voxelObject = null;
+        transform = default;
+        return false;
+    }
+}

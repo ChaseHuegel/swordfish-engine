@@ -1,11 +1,11 @@
 using System;
 using System.Numerics;
 using Swordfish.Physics;
-using WaywardBeyond.Client.Core.Numerics;
-using WaywardBeyond.Client.Core.Voxels;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking.Components;
 using Xunit;
 
 namespace Swordfish.Tests;

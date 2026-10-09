@@ -1,0 +1,100 @@
+#version 1.0;
+#namespace WaywardBeyond.Data;
+
+message NewLevelRequest
+{
+    string Name = 0;
+    string Seed = 1;
+    int GameMode = 2;
+}
+
+message NewLevelResponse
+{
+    string LevelGuid = 1;
+    bool Success = 2;
+}
+
+message ListLevelsRequest
+{
+    uint Dummy = 0;
+}
+
+message ListLevelsResponse
+{
+    Level[] Levels = 50;
+}
+
+message DeleteLevelRequest
+{
+    string LevelGuid = 0;
+}
+
+message DeleteLevelResponse
+{
+    bool Success = 1;
+}
+
+message SaveLevelRequest
+{
+    uint Dummy = 0;
+}
+
+message SaveLevelResponse
+{
+    bool Success = 1;
+}
+
+message PublicView
+{
+    ulong CharacterId = 0;
+    string Name = 1;
+    string Body = 2;
+}
+
+message JoinRequest
+{
+    string LevelGuid = 0;
+    ulong CharacterId = 1;
+    PublicView PublicView = 2;
+    CharacterSeed Seed = 3;
+    string UserId = 4;
+}
+
+message CharacterSeed
+{
+    ulong CharacterId = 0;
+    string Name = 1;
+    string Body = 2;
+    ItemData[]? InventoryContents = 3;
+    int ActiveInventorySlot = 4;
+    int GameMode = 5;
+    Statistic[]? Statistics = 6;
+}
+
+message JoinAccept
+{
+    Level Level = 0;
+    float SpawnX = 1;
+    float SpawnY = 2;
+    float SpawnZ = 3;
+    float OrientationX = 4;
+    float OrientationY = 5;
+    float OrientationZ = 6;
+    float OrientationW = 7;
+    ulong PlayerEntity = 8;
+}
+
+message LevelEntityAdd
+{
+    VoxelEntityData VoxelEntity = 0;
+}
+
+message LevelStreamComplete
+{
+    byte Dummy = 0;
+}
+
+message LeaveGameRequest
+{
+    byte Dummy = 0;
+}

@@ -30,7 +30,7 @@ hint presence is. A hint-less event is valid and resolves to `Action.None`. See
 ## Shared resolution
 
 Targeting and outcome logic lives in shared code
-(`WaywardBeyond.Shared.Gameplay/Interactions`), called identically by client
+(`WaywardBeyond.Gameplay/Interactions`), called identically by client
 prediction and server authority:
 
 - `SharedInteractionResolver` takes a ready world ray + optional `BrickInteraction`
@@ -66,7 +66,7 @@ Every applied edit broadcasts to **all** clients as a `VoxelEditMessage` delta
 (ordered/lossless by the transport):
 
 ```nsd
-message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Shared.Data.Voxel Voxel; uint Sequence; string? BrickId; }
+message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Data.Voxel Voxel; uint Sequence; string? BrickId; }
 ```
 
 The `BrickId` carries the canonical brick name so the client reconciles by name
@@ -117,10 +117,10 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Gameplay/Interactions/` — resolver, handlers, registry
-- `WaywardBeyond.Server.Core/Systems/ServerInteractionSystem.cs`
-- `WaywardBeyond.Client.Core/Systems/*InteractionSystem.cs`
-- `WaywardBeyond.Shared.Networking/Components/NetworkComponent.cs`
+- `WaywardBeyond.Gameplay/Interactions/` — resolver, handlers, registry
+- `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
+- `WaywardBeyond.Client/Systems/*InteractionSystem.cs`
+- `WaywardBeyond.Networking/Components/NetworkComponent.cs`
   (`StagedInteractions`)
 
 ## Tests that pin this
@@ -132,5 +132,5 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
   creative free, hint-less/rejected no-op + consumed-once.
 - Registry tests — reject, override, filter, registration-order override.
 - `Swordfish.Tests` — `AppliedEditIsBroadcastToEveryClient`.
-- `WaywardBeyond.Client.Core.Tests` — apply, `Playing` gate, confirm-as-no-op,
+- `WaywardBeyond.Client.Tests` — apply, `Playing` gate, confirm-as-no-op,
   snap-to-authority, expired-revert.

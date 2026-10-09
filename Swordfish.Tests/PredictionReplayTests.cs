@@ -3,8 +3,8 @@ using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Physics;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking.Components;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking.Components;
 using Xunit;
 
 namespace Swordfish.Tests;

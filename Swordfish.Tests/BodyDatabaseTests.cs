@@ -2,7 +2,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Serialization.Toml;
 using Swordfish.Library.Util;
-using WaywardBeyond.Shared.Bodies;
+using WaywardBeyond.Bodies;
 using Xunit;
 
 namespace Swordfish.Tests;

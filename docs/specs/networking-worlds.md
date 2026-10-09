@@ -8,7 +8,7 @@ longer tears down the first world.
 
 ## World lifecycle
 
-1. `ServerWorldHost` (`WaywardBeyond.Server.Core/ServerWorldHost.cs`, `IEntryPoint`)
+1. `ServerWorldHost` (`WaywardBeyond.Server/ServerWorldHost.cs`, `IEntryPoint`)
    receives a join: it drains `PendingJoins` and polls each connection's
    `JoinRequest`.
 2. `GetOrCreate(levelGuid)` loads the authoritative world once into a fresh
@@ -32,7 +32,7 @@ longer tears down the first world.
 
 ## DI: per-world graphs from module templates
 
-The server module (`WaywardBeyond.Server.Core/ServerComposition.cs`) registers
+The server module (`WaywardBeyond.Server/ServerComposition.cs`) registers
 every per-world service and system as a **transient template** in the root
 container. `ServerWorld` (`ServerWorld.cs`) resolves each template once and
 pins it into an **exclusive child container** per world
@@ -151,9 +151,9 @@ measured pressure from scaling work).
 
 ## Source of truth
 
-- `WaywardBeyond.Server.Core/ServerWorldHost.cs`
-- `WaywardBeyond.Server.Core/ServerWorld.cs`
-- `WaywardBeyond.Server.Core/ServerLevelManager.cs`
-- `WaywardBeyond.Server.Core/ServerComposition.cs`
+- `WaywardBeyond.Server/ServerWorldHost.cs`
+- `WaywardBeyond.Server/ServerWorld.cs`
+- `WaywardBeyond.Server/ServerLevelManager.cs`
+- `WaywardBeyond.Server/ServerComposition.cs`
 - `docs/specs/networking-join.md` (world-routed joins)
 - `docs/specs/persistence.md` (level save data)

@@ -7,7 +7,7 @@ for user review. The decision is recorded here (issue #0036).
 ## Current layout (before the decision)
 
 - **Store.** Every save flowed through a NATS-backed `KeyValueStore`
-  (`WaywardBeyond.Shared.Data/KeyValueStore.cs`) with an embedded
+  (`WaywardBeyond.Data/KeyValueStore.cs`) with an embedded
   `PersistentNatsProcess` (bundled `nats-server`, `saves/` storage dir). Two
   buckets: `levels` (level data, per level guid) and `characters`
   (per character id), plus save metadata.
@@ -25,7 +25,7 @@ for user review. The decision is recorded here (issue #0036).
   `saves/`, firewall prompts on Windows, orphan-process risk, and shared
   process takeover between clients on one machine.
 - **sqlite:** `Microsoft.Data.Sqlite` is already referenced by
-  `WaywardBeyond.Shared.Data`, giving transactions and atomic single-file
+  `WaywardBeyond.Data`, giving transactions and atomic single-file
   storage with no process. The planned live-streaming guarantees were never
   on the wire path: NATS KV is per-key atomic, not cross-key, and the save
   path uses no JetStream consumers.

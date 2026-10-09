@@ -1,7 +1,7 @@
 using Swordfish.ECS;
 using Swordfish.Library.Serialization.Toml;
-using WaywardBeyond.Server.Core.Permissions;
-using WaywardBeyond.Shared.Permissions;
+using WaywardBeyond.Server.Permissions;
+using WaywardBeyond.Permissions;
 using Xunit;
 
 namespace Swordfish.Tests;

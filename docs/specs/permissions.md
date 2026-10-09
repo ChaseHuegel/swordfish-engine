@@ -17,7 +17,7 @@ then the admin root `config/permissions/`. Both roots are recursive. Only `.toml
 files load. All files merge into one policy.
 
 `PermissionFileLoader.Load`
-(`WaywardBeyond.Shared.Permissions/PermissionFileLoader.cs:33`) sorts the paths
+(`WaywardBeyond.Permissions/PermissionFileLoader.cs:33`) sorts the paths
 before parsing, so the load order is deterministic. A parse failure logs an error
 and skips the file. Startup continues.
 
@@ -67,7 +67,7 @@ Group names, user ids, and permission keys are case-insensitive. `Inherits`,
 ## Cycle safety
 
 `PermissionCompiler.ResolveClosure`
-(`WaywardBeyond.Shared.Permissions/PermissionCompiler.cs:179`) resolves
+(`WaywardBeyond.Permissions/PermissionCompiler.cs:179`) resolves
 inheritance with an explicit stack. It never recurses. A cycle contributes every
 acyclic edge. The compiler skips the edge that closes the cycle and records one
 warning with the cycle path and the source files. Depth is capped at 64. The
@@ -77,13 +77,13 @@ the branch. Compilation always terminates and never throws.
 ## Load and query
 
 `PermissionPolicy.Create`
-(`WaywardBeyond.Shared.Permissions/PermissionPolicy.cs:73`) merges, resolves,
+(`WaywardBeyond.Permissions/PermissionPolicy.cs:73`) merges, resolves,
 and compiles at startup. Every user declared in a file compiles once. Every
 unlisted user shares the compiled default set.
 `PermissionPolicy.DEFAULT_ROLE` is `default`.
 
 `PermissionSet.HasPermission`
-(`WaywardBeyond.Shared.Permissions/PermissionSet.cs:56`) walks the query as a
+(`WaywardBeyond.Permissions/PermissionSet.cs:56`) walks the query as a
 `ReadOnlySpan<char>`. It uses cached alternate lookups on an exact map and a
 wildcard map. It does not allocate. Prefer `PermissionPolicy.GetPermissions`
 when code checks many keys, so the user lookup happens once.
@@ -102,18 +102,18 @@ when code checks many keys, so the user lookup happens once.
 
 ## Server integration
 
-`UserPermissionService` (`WaywardBeyond.Server.Core/Permissions/UserPermissionService.cs`)
+`UserPermissionService` (`WaywardBeyond.Server/Permissions/UserPermissionService.cs`)
 binds a session to a claim and resolves the compiled set once at bind time.
 `ServerJoinSystem` binds at join and unbinds on leave or disconnect. The local
 host connection gets `PermissionSet.AllowAll`. An unbound client is denied.
 
 `PermissionEntryPoint`
-(`WaywardBeyond.Server.Core/Permissions/PermissionEntryPoint.cs`) resolves the
+(`WaywardBeyond.Server/Permissions/PermissionEntryPoint.cs`) resolves the
 policy at startup and logs the counts and every diagnostic.
-`GamePermissions` (`WaywardBeyond.Server.Core/Permissions/GamePermissions.cs`)
+`GamePermissions` (`WaywardBeyond.Server/Permissions/GamePermissions.cs`)
 declares the built-in feature keys.
 
-The game ships `WaywardBeyond.Server.Core/assets/permissions/default.toml`. It
+The game ships `WaywardBeyond.Server/assets/permissions/default.toml`. It
 declares the `default` and `admin` groups. Mods ship defaults under their own
 `assets/permissions/` root.
 

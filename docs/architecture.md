@@ -18,17 +18,17 @@ and world split, the persistence schema, and the CLI surface.
 | `Swordfish.Launcher/` | Dev launcher for Swordfish modules | `net9.0` | — |
 | `Swordfish.Demo/` | Sandbox / tech demo module | — | — |
 | `Swordfish.Editor/` | Visual editor module (inspector, hierarchy, file browser) | — | — |
-| `WaywardBeyond.Client.Core/` | Game client module | `net9.0` | — |
-| `WaywardBeyond.Server.Core/` | Game server module | `net9.0` | — |
-| `WaywardBeyond.Shared.Data/` | Shared data models (client+server) | — | — |
-| `WaywardBeyond.Shared.Config/` | Shared config types | — | — |
-| `WaywardBeyond.Shared.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
+| `WaywardBeyond.Client/` | Game client module | `net9.0` | — |
+| `WaywardBeyond.Server/` | Game server module | `net9.0` | — |
+| `WaywardBeyond.Data/` | Shared data models (client+server) | — | — |
+| `WaywardBeyond.Config/` | Shared config types | — | — |
+| `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
-| `WaywardBeyond.Shared.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
-| `WaywardBeyond.Shared.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |
-| `WaywardBeyond.Shared.Skills/` | Shared skill module: definitions, headless loader, skill state | `net9.0` | — |
-| `WaywardBeyond.Shared.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
-| `WaywardBeyond.Shared.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
+| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
+| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |
+| `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, skill state | `net9.0` | — |
+| `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
+| `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
 
 **Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`)
 and `WaywardBeyond.Client.Launcher/Program.cs`.
@@ -62,7 +62,7 @@ The game process runs one client world and N server worlds concurrently:
 - **Client world** — `Swordfish/ECS/ECSContext.cs`, ticked on the `"ECS"`
   thread. Runs engine systems plus client gameplay systems.
 - **Server worlds** — one per loaded level, ticked sequentially on the
-  `"Server"` thread by `WaywardBeyond.Server.Core/ServerWorldHost.cs`. Each
+  `"Server"` thread by `WaywardBeyond.Server/ServerWorldHost.cs`. Each
   world is a per-world DI graph (`ServerWorld.cs`) holding its own store,
   physics, hub, sessions, and systems, with idle unload. See
   [specs/networking-worlds](specs/networking-worlds.md).
@@ -83,7 +83,7 @@ process boundary detail.
 ## Persistence schema
 
 All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
-`StoragePaths` (`WaywardBeyond.Shared.Data/StoragePaths.cs`) resolves the
+`StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the
 layout under `StorageSettings.DataRoot` (default `saves/`, file
 `storage.toml`). The client owns `profile.db` (characters and save-listing
 metadata). The server owns one database per level. The dedicated server can
@@ -128,7 +128,7 @@ only implementations are tests (`Swordfish.Tests/CommandTests.cs`).
 - `Query.cs` — fluent builder (`Select/From/Where/Equals/And/InsertInto/Update/Set/Columns/Values/End`).
 
 This is not used by the game's save path, which uses SQLite directly in
-`WaywardBeyond.Shared.Data`.
+`WaywardBeyond.Data`.
 
 ## Notable dependencies
 

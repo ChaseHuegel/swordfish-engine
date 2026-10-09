@@ -5,9 +5,9 @@ using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
 using Shoal.DependencyInjection;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Shared.Config;
-using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Server;
+using WaywardBeyond.Config;
+using WaywardBeyond.Gameplay;
 
 namespace WaywardBeyond.Server.Launcher;
 

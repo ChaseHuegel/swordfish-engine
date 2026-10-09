@@ -1,8 +1,8 @@
 using Swordfish.ECS;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Registry;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Registry;
 using Xunit;
 
 namespace Swordfish.Tests;

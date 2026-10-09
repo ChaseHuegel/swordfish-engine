@@ -7,16 +7,16 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Settings;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Server.Core.Systems;
-using WaywardBeyond.Shared.Config;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
-using WaywardBeyond.Shared.Skills;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Server.Systems;
+using WaywardBeyond.Config;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Skills;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -63,7 +63,7 @@ public class ServerWorldCompositionTests
     {
         public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
         {
-            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Shared.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
+            placeable = new PlaceableBrick("wb:panel", WaywardBeyond.Bricks.BrickShape.Block, shapeable: false, hasOrientableTag: false, brightness: 0);
             return true;
         }
 

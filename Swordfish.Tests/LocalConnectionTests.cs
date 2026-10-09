@@ -1,7 +1,7 @@
 using System;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
 using Swordfish.Library.Util;
 using Xunit;
 

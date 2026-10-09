@@ -2,9 +2,9 @@ using System;
 using System.IO;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Shared.Config;
-using WaywardBeyond.Shared.Data;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Config;
+using WaywardBeyond.Data;
 using Xunit;
 
 namespace Swordfish.Tests;
@@ -119,7 +119,7 @@ public class SqliteStorageTests
     private static Character CreateCharacter(ulong id, string name)
     {
         return new Character(
-            new WaywardBeyond.Shared.Data.Version(SaveVersion.CurrentDataVersion, "test", "test"),
+            new WaywardBeyond.Data.Version(SaveVersion.CurrentDataVersion, "test", "test"),
             id,
             0,
             0,

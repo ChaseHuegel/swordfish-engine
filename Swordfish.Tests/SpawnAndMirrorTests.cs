@@ -3,18 +3,18 @@ using System.Numerics;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Server.Core;
-using WaywardBeyond.Server.Core.Components;
-using WaywardBeyond.Server.Core.Saves;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Networking;
-using WaywardBeyond.Shared.Networking.Components;
-using WaywardBeyond.Shared.Networking.Registry;
-using WaywardBeyond.Shared.Networking.Serialization;
-using WaywardBeyond.Shared.Networking.Transport;
+using WaywardBeyond.Server;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Saves;
+using WaywardBeyond.Data;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Networking.Transport;
 using Xunit;
 
-using WaywardBeyond.Shared.Config;
+using WaywardBeyond.Config;
 
 namespace Swordfish.Tests;
 
@@ -67,12 +67,12 @@ public class SpawnAndMirrorTests
         //  The client's session owns a spawned player entity.
         int sessionEntity = serverStore.Alloc();
         Uuid sessionUuid = serverStore.GetUuid(sessionEntity);
-        sessions.Register(serverStore, sessionEntity, clientId, new WaywardBeyond.Shared.Networking.Sessions.Session(1u));
+        sessions.Register(serverStore, sessionEntity, clientId, new WaywardBeyond.Networking.Sessions.Session(1u));
 
-        var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
+        var system = new WaywardBeyond.Server.Systems.NetworkReplicationSystem(
             hub,
             sessions,
-            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
+            NullLogger<WaywardBeyond.Server.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
 
         //  A snapshot addressed at an unknown (never allocated) uuid must not materialize an entity.
@@ -118,21 +118,21 @@ public class SpawnAndMirrorTests
         hub.Add(connection.Server);
         var serverStore = new DataStore();
         var sessions = new SessionManager();
-        var system = new WaywardBeyond.Server.Core.Systems.ServerJoinSystem(
+        var system = new WaywardBeyond.Server.Systems.ServerJoinSystem(
             hub,
             sessions,
-            new WaywardBeyond.Server.Core.Saves.LevelSaveService(
-                NullLogger<WaywardBeyond.Server.Core.Saves.LevelSaveService>.Instance,
+            new WaywardBeyond.Server.Saves.LevelSaveService(
+                NullLogger<WaywardBeyond.Server.Saves.LevelSaveService>.Instance,
                 new StubLevelCatalog(),
                 TestBricks.Map
             ),
-            new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
+            new WaywardBeyond.Server.Systems.NetworkReplicationSystem(
                 hub,
                 sessions,
-                NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
+                NullLogger<WaywardBeyond.Server.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
             ),
             TestInteractionSystem.Create(hub),
-            NullLogger<WaywardBeyond.Server.Core.Systems.ServerJoinSystem>.Instance,
+            NullLogger<WaywardBeyond.Server.Systems.ServerJoinSystem>.Instance,
             TestBricks.Map
         );
 
@@ -183,10 +183,10 @@ public class SpawnAndMirrorTests
         };
         connection.Client.Send(placement);
 
-        var system = new WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem(
+        var system = new WaywardBeyond.Server.Systems.NetworkReplicationSystem(
             hub,
             new SessionManager(),
-            NullLogger<WaywardBeyond.Server.Core.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
+            NullLogger<WaywardBeyond.Server.Systems.NetworkReplicationSystem>.Instance, new NetworkingSettings()
         );
         system.ApplyStage(0f, serverStore);
 

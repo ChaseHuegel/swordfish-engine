@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
-using WaywardBeyond.Shared.Gameplay;
+using WaywardBeyond.Gameplay;
 using Xunit;
 using Xunit.Abstractions;
 

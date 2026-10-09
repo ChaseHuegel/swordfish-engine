@@ -14,8 +14,8 @@ corrected automatically. The client reports a move as a discrete
 resolver.
 
 Wire and staging live in `CodeGen/components.nsd` and
-`WaywardBeyond.Shared.Networking/Components/`. The resolver is
-`WaywardBeyond.Shared.Gameplay/Interactions/SharedInventoryResolver.cs`.
+`WaywardBeyond.Networking/Components/`. The resolver is
+`WaywardBeyond.Gameplay/Interactions/SharedInventoryResolver.cs`.
 
 ## The envelope: `InventoryEvent`
 
@@ -122,19 +122,19 @@ them until the behavior is designed.
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Networking/CodeGen/components.nsd`
-- `WaywardBeyond.Shared.Networking/Components/{InventoryEvent,SlotMoveOp,InventoryOpStageBuffer,NetworkComponent}.cs`
-- `WaywardBeyond.Shared.Gameplay/Interactions/SharedInventoryResolver.cs`
-- `WaywardBeyond.Server.Core/Systems/ServerInventorySystem.cs`
-- `WaywardBeyond.Client.Core/Player/PlayerData.cs` (`ApplyMove`)
-- `WaywardBeyond.Client.Core/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
-- `WaywardBeyond.Client.Core/UI/Layers/Inventory.cs`
+- `WaywardBeyond.Networking/CodeGen/components.nsd`
+- `WaywardBeyond.Networking/Components/{InventoryEvent,SlotMoveOp,InventoryOpStageBuffer,NetworkComponent}.cs`
+- `WaywardBeyond.Gameplay/Interactions/SharedInventoryResolver.cs`
+- `WaywardBeyond.Server/Systems/ServerInventorySystem.cs`
+- `WaywardBeyond.Client/Player/PlayerData.cs` (`ApplyMove`)
+- `WaywardBeyond.Client/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
+- `WaywardBeyond.Client/UI/Layers/Inventory.cs`
 
 ## Tests that pin this
 
 - `Swordfish.Tests/SharedInventoryResolverTests.cs` — op resolution cases.
 - `Swordfish.Tests/ServerInventorySystemTests.cs` — staged apply, dedupe, echo.
-- `WaywardBeyond.Client.Core.Tests/ClientReplicationInteractionTests.cs` —
+- `WaywardBeyond.Client.Tests/ClientReplicationInteractionTests.cs` —
   outbound op drain and clear-on-success.
-- `WaywardBeyond.Client.Core.Tests/PlayerDataInventoryMutationTests.cs` —
+- `WaywardBeyond.Client.Tests/PlayerDataInventoryMutationTests.cs` —
   `ApplyMove` predict-and-stage coupling and wire emission.

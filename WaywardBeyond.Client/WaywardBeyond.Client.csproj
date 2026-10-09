@@ -1,0 +1,52 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <IsPackable>false</IsPackable>
+        <Nullable>enable</Nullable>
+        <Version>0.1.0-alpha</Version>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <!--  Modules carry a <manifest.toml>; when published alongside transitively-referenced modules the
+              copied manifests collide in publish output. Mirrors the module-publish duplicate suppression in
+              Shoal.Build.targets. -->
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <Content Include="assets\**\*.*" CopyToOutputDirectory="Always"/>
+        <EmbeddedResource Include="manifest\**\*.*" />
+        <None Update="manifest.toml">
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="CsvHelper" Version="33.1.0" />
+        <PackageReference Include="SmartFormat.NET" Version="3.6.1" />
+        <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile"/>
+      <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+      <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+      <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Server\WaywardBeyond.Server.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+        <PackageReference Include="HardwareInformation" Version="5.0.2" />
+        <PackageReference Include="LibNoise" Version="0.2.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Update="UI\Widgets.NumberControl.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.Checkbox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.TextButton.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+      <Compile Update="UI\Widgets.TextBox.cs">
+        <DependentUpon>Widgets.cs</DependentUpon>
+      </Compile>
+    </ItemGroup>
+
+</Project>

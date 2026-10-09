@@ -20,7 +20,7 @@ DI-provided serializers by message type.
 
 ## Snapshots
 
-`WaywardBeyond.Shared.Networking/CodeGen/network.nsd`:
+`WaywardBeyond.Networking/CodeGen/network.nsd`:
 
 ```nsd
 message ComponentSnapshot
@@ -133,7 +133,7 @@ the body view:
 
 ```nsd
 message EquipmentComponent   { int ActiveInventorySlot = 0; }
-message InventoryComponent   { WaywardBeyond.Shared.Data.ItemData[] Contents = 0; }
+message InventoryComponent   { WaywardBeyond.Data.ItemData[] Contents = 0; }
 message GameModeComponent    { int Value = 0; }
 message BodyViewComponent    { int Body = 0; }
 message IdentifierMessage    { string Name; string Tag; }
@@ -151,7 +151,7 @@ message VoxelEditMessage
 {
     ulong EntityUuid = 0;
     int X, Y, Z;
-    WaywardBeyond.Shared.Data.Voxel Voxel;
+    WaywardBeyond.Data.Voxel Voxel;
     uint Sequence = 5;
 }
 ```
@@ -186,7 +186,7 @@ reliable frame per second per connection.
 
 ## Chat
 
-`WaywardBeyond.Shared.Networking/CodeGen/network.nsd`:
+`WaywardBeyond.Networking/CodeGen/network.nsd`:
 
 ```nsd
 message ChatMessage
@@ -204,7 +204,7 @@ rules, the log line, and the client behavior.
 
 ## Join and level-stream messages
 
-`WaywardBeyond.Shared.Data/CodeGen/levels.nsd`: `JoinRequest`,
+`WaywardBeyond.Data/CodeGen/levels.nsd`: `JoinRequest`,
 `JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `PublicView`,
 `CharacterSeed`, and the save-listing set
 (`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
@@ -255,7 +255,7 @@ message SkillStateUpdateMessage
 }
 ```
 
-`NotificationType` is a shared enum (`WaywardBeyond.Shared.Networking/
+`NotificationType` is a shared enum (`WaywardBeyond.Networking/
 NotificationType.cs`); its byte values are a wire contract. `ClientNotificationSystem`
 writes each `SkillStateUpdateMessage` total into the client-owned character save.
 See [skills](skills.md) for the authority model.
@@ -270,13 +270,13 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 
 ## Source of truth
 
-- Schema files: `WaywardBeyond.Shared.Networking/CodeGen/network.nsd`,
-  `.../components.nsd`, `WaywardBeyond.Shared.Data/CodeGen/{voxels,levels,saves}.nsd`.
+- Schema files: `WaywardBeyond.Networking/CodeGen/network.nsd`,
+  `.../components.nsd`, `WaywardBeyond.Data/CodeGen/{voxels,levels,saves}.nsd`.
 - `nsdc` build wiring: the Exec targets in each `.csproj`
-  (e.g. `WaywardBeyond.Shared.Networking.csproj`, `WaywardBeyond.Shared.Data.csproj`).
+  (e.g. `WaywardBeyond.Networking.csproj`, `WaywardBeyond.Data.csproj`).
 
 ## Tests that pin this
 
 - `Swordfish.Tests` codec / round-trip tests for `InteractionEvent`,
   `CharacterSeed`, and the component codecs.
-- `WaywardBeyond.Client.Core.Tests` cover voxel-object processing.
+- `WaywardBeyond.Client.Tests` cover voxel-object processing.

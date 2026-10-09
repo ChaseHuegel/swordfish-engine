@@ -1,11 +1,11 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.ECS;
-using WaywardBeyond.Shared.Bricks;
-using WaywardBeyond.Client.Core.Voxels;
-using WaywardBeyond.Shared.Data;
-using WaywardBeyond.Shared.Gameplay;
-using WaywardBeyond.Shared.Networking.Transport;
-using WaywardBeyond.Server.Core.Systems;
+using WaywardBeyond.Bricks;
+using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Data;
+using WaywardBeyond.Gameplay;
+using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Server.Systems;
 
 namespace Swordfish.Tests;
 

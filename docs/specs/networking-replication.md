@@ -86,9 +86,9 @@ once per step. See [prediction](networking-prediction.md).
 
 ## Source of truth
 
-- `WaywardBeyond.Server.Core/Systems/NetworkReplicationSystem.cs`
-- `WaywardBeyond.Client.Core/Systems/ClientReplicationSystem.cs`
-- `WaywardBeyond.Shared.Networking/Components/NetworkComponent.cs`
+- `WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`
+- `WaywardBeyond.Client/Systems/ClientReplicationSystem.cs`
+- `WaywardBeyond.Networking/Components/NetworkComponent.cs`
 
 ## Tests that pin this
 

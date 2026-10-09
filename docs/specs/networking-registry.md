@@ -4,7 +4,7 @@ One subject: stable wire identity for networked components.
 
 ## `NetworkRegistry`
 
-`WaywardBeyond.Shared.Networking/Registry/NetworkRegistry.cs` maps networked
+`WaywardBeyond.Networking/Registry/NetworkRegistry.cs` maps networked
 component types to a stable wire identity.
 
 - `Initialize(assemblies)` scans assemblies for value-type `IDataComponent`
@@ -88,9 +88,9 @@ and is server-owned thereafter. See [join](networking-join.md) and
 
 ## Source of truth
 
-- `WaywardBeyond.Shared.Networking/Registry/NetworkRegistry.cs`
-- `WaywardBeyond.Shared.Networking/Registry/NsdComponentCodec.cs`
-- `WaywardBeyond.Shared.Networking/Registry/{IPayloadCodec,NetworkComponentAttribute,NetworkComponentInfo,NetworkDirection}.cs`
+- `WaywardBeyond.Networking/Registry/NetworkRegistry.cs`
+- `WaywardBeyond.Networking/Registry/NsdComponentCodec.cs`
+- `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentAttribute,NetworkComponentInfo,NetworkDirection}.cs`
 - Wiring: `Client.Core/Injector.cs` (`RegisterNetworking`)
 
 ## Tests that pin this
