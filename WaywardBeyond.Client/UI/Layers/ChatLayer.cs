@@ -34,7 +34,7 @@ internal sealed class ChatLayer : IUILayer
     private const int WIDTH = 600;
     private const int FONT_SIZE = 16;
     private const int LINE_HEIGHT = 22;
-    private const int SPACING = 4;
+    private const int SPACING = 0;
     private const int TEXT_BOX_HEIGHT = 26;
     private const int HISTORY_VIEWPORT_HEIGHT = 200;
     private const int MAX_INPUT_CHARACTERS = 512;
@@ -210,10 +210,15 @@ internal sealed class ChatLayer : IUILayer
                         Height = new Fixed(viewportHeight),
                     };
 
+                    if (open)
+                    {
+                        ui.Color = new Vector4(0.5f, 0.5f, 0.5f, 0.1f);
+                    }
+
                     for (var index = 0; index < history.Length; index++)
                     {
                         float alpha = open ? 1f : GetMessageAlpha(now - history[index].ReceivedAt, timeoutSeconds);
-                        RenderMessage(ui, history[index].Message, alpha, index);
+                        RenderMessage(ui, history[index].Message, alpha, !open, index);
                     }
 
                     //  Measure the rows this frame renders so next frame's scroll extent matches the real
@@ -250,7 +255,7 @@ internal sealed class ChatLayer : IUILayer
         }
     }
 
-    private void RenderMessage(UIBuilder<Material> ui, in ChatMessage message, float alpha, int index = -1)
+    private void RenderMessage(UIBuilder<Material> ui, in ChatMessage message, float alpha, bool renderBackground, int index = -1)
     {
         using (ui.Text($"#8AEBF1 {message.SenderName}: #R {message.Value}"))
         {
@@ -258,6 +263,11 @@ internal sealed class ChatLayer : IUILayer
             ui.FontSize = FONT_SIZE;
             ui.Color = new Vector4(1f, 1f, 1f, alpha);
             
+            if (renderBackground)
+            {
+                ui.BackgroundColor = new Vector4(0.5f, 0.5f, 0.5f, 0.1f * alpha);
+            }
+
             if (index >= 0)
             {
                 ui.ID = $"ChatMessage_{index}";
