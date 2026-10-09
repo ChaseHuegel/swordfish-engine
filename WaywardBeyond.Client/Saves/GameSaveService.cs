@@ -35,6 +35,19 @@ internal sealed class GameSaveService(
     private Level[] _levels = [];
     private Dictionary<string, SaveMeta> _clientMeta = new();
     private bool _metaLoaded;
+    private bool _canCreateSave;
+
+    /// <summary>True when the server reports that this client may create saves.</summary>
+    public bool CanCreateSave
+    {
+        get
+        {
+            lock (_savesGate)
+            {
+                return _canCreateSave;
+            }
+        }
+    }
 
     public GameSave[] GetSaves()
     {
@@ -108,11 +121,12 @@ internal sealed class GameSaveService(
     {
         try
         {
-            Level[] levels = await _levelsClient.GetLevelsAsync();
+            LevelListing listing = await _levelsClient.GetLevelsAsync();
 
             lock (_savesGate)
             {
-                _levels = levels;
+                _levels = listing.Levels;
+                _canCreateSave = listing.CanCreateSave;
                 if (!_metaLoaded)
                 {
                     _clientMeta = _saveMetaStorage.GetAll()

@@ -4,6 +4,7 @@ using System.Reflection;
 using DryIoc;
 using Microsoft.Extensions.Logging.Abstractions;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -40,7 +41,7 @@ public class LevelDeleteTests
             var pendingJoins = new PendingJoins();
             var pendingDeletes = new PendingLevelDeletes();
             var networkingSettings = new NetworkingSettings();
-            var manager = new ServerLevelManager(pendingJoins, pendingDeletes, catalog, NullLoggerFactory.Instance);
+            var manager = new ServerLevelManager(pendingJoins, pendingDeletes, catalog, TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
             var hostHeartbeat = new ServerHostHeartbeat(pendingJoins, networkingSettings, NullLogger<ServerHostHeartbeat>.Instance);
             var host = new ServerWorldHost(new Container(), manager, hostHeartbeat, pendingJoins, pendingDeletes, catalog, networkingSettings, NullLoggerFactory.Instance);
 

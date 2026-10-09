@@ -59,16 +59,19 @@ internal sealed class HomePage(
             }
         }
 
-        using (ui.TextButton(id: "Button_NewSave", text: _localization.GetString("ui.button.newSave")!, _buttonOptions, out Widgets.Interactions interactions))
+        if (_gameSaveService.CanCreateSave)
         {
-            ui.Constraints = new Constraints
+            using (ui.TextButton(id: "Button_NewSave", text: _localization.GetString("ui.button.newSave")!, _buttonOptions, out Widgets.Interactions interactions))
             {
-                Anchors = Anchors.Center,
-            };
-            
-            if (interactions.Has(Widgets.Interactions.Click))
-            {
-                menu.GoToPage(MenuPage.NewSave);
+                ui.Constraints = new Constraints
+                {
+                    Anchors = Anchors.Center,
+                };
+
+                if (interactions.Has(Widgets.Interactions.Click))
+                {
+                    menu.GoToPage(MenuPage.NewSave);
+                }
             }
         }
         

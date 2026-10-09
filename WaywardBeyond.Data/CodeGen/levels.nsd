@@ -22,6 +22,7 @@ message ListLevelsRequest
 message ListLevelsResponse
 {
     Level[] Levels = 50;
+    bool CanCreateSave = 51;
 }
 
 message DeleteLevelRequest
@@ -42,6 +43,11 @@ message SaveLevelRequest
 message SaveLevelResponse
 {
     bool Success = 1;
+}
+
+message ClientHello
+{
+    string UserId = 0;
 }
 
 message PublicView

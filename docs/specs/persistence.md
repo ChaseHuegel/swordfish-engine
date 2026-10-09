@@ -95,10 +95,13 @@ cached save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
 `TriggerServerSave` routed to the server via `LevelsClient`
 (`WaywardBeyond.Client/Networking/LevelsClient.cs`). `SelectSavePage` pulls the
 listing when it opens and re-pulls it every second while it stays visible, so a
-level another client creates appears without leaving the page. The client tracks
-its own per-save "last played" and "time played" in the `save_meta` table, merged
-over the server's level metadata in `GameSaveService.GetSaves()`. Character save
-is handled by `CharacterSaveManager` + `SqliteCharacterStorage`.
+level another client creates appears without leaving the page. The listing
+response also carries `CanCreateSave`, which `GameSaveService.CanCreateSave`
+exposes so `HomePage` hides "Create save" when the server denies the
+`waywardbeyond.level.create` key. The client tracks its own per-save "last
+played" and "time played" in the `save_meta` table, merged over the server's
+level metadata in `GameSaveService.GetSaves()`. Character save is handled by
+`CharacterSaveManager` + `SqliteCharacterStorage`.
 
 `LevelsClient` matches each response to its request in FIFO order per response
 type. A send that fails (no active transport, or a dropped connection) cancels

@@ -10,6 +10,13 @@ save levels. Level data is streamed to the client during join.
 
 ## Join flow
 
+0. **Connection hello** — when a connection opens, `TransportManager`
+   (`WaywardBeyond.Client/Networking/TransportManager.cs`) sends
+   `ClientHello { UserId }` with the stable user id from `profile.toml`. The
+   server binds it to the connection (`ConnectionClaims`), so menu-time requests
+   such as `NewLevelRequest` and `ListLevelsRequest` resolve the user before a
+   join. See [permissions](permissions.md).
+
 1. **`ClientJoinSystem`** (`Client.Core/Systems/`) submits a
    `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed, UserId }`.
    - `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`)

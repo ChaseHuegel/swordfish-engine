@@ -7,6 +7,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -53,7 +54,7 @@ public class ClientInventoryEchoTests
             PendingJoins = new PendingJoins();
             var pendingDeletes = new PendingLevelDeletes();
             var levelCatalog = new StubLevelCatalog();
-            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
             var hostHeartbeat = new ServerHostHeartbeat(PendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
             Host = new ServerWorldHost(container, levelManager, hostHeartbeat, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 

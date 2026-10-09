@@ -4,6 +4,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -40,7 +41,7 @@ public class ServerLevelListingTests
             var catalog = new SqliteLevelCatalog(NullLogger<SqliteLevelCatalog>.Instance, paths, TestBricks.Map);
 
             var pendingJoins = new PendingJoins();
-            var manager = new ServerLevelManager(pendingJoins, new PendingLevelDeletes(), catalog, NullLoggerFactory.Instance);
+            var manager = new ServerLevelManager(pendingJoins, new PendingLevelDeletes(), catalog, TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
 
             var creator = new LocalConnection(Serializers);
             var observer = new LocalConnection(Serializers);

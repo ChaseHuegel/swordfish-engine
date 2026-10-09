@@ -8,6 +8,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using Swordfish.Settings;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -76,7 +77,7 @@ public class ServerWorldDisposalTests : IDisposable
         var pendingDeletes = new PendingLevelDeletes();
         var levelCatalog = new StubLevelCatalog();
         var settings = new NetworkingSettings();
-        var levelManager = new ServerLevelManager(_pendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+        var levelManager = new ServerLevelManager(_pendingJoins, pendingDeletes, levelCatalog, TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
         var hostHeartbeat = new ServerHostHeartbeat(_pendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
         _host = new ServerWorldHost(_container, levelManager, hostHeartbeat, _pendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
     }

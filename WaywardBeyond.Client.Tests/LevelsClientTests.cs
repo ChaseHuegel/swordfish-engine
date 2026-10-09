@@ -23,17 +23,17 @@ public class LevelsClientTests
         var connection = new ScriptedConnection { Connected = false };
         var client = new LevelsClient(connection);
 
-        Task<Level[]> beforeConnect = client.GetLevelsAsync();
+        Task<LevelListing> beforeConnect = client.GetLevelsAsync();
         Assert.That(beforeConnect.IsCompleted, Is.True, "A request with no active transport must fail fast.");
-        Assert.That(await beforeConnect, Is.Empty);
+        Assert.That((await beforeConnect).Levels, Is.Empty);
 
         connection.Connected = true;
 
-        Task<Level[]> afterConnect = client.GetLevelsAsync();
+        Task<LevelListing> afterConnect = client.GetLevelsAsync();
         client.Poll();
 
         Assert.That(afterConnect.IsCompleted, Is.True, "The response must reach the request that was actually sent.");
-        Assert.That(afterConnect.Result, Is.Empty, "No levels exist yet.");
+        Assert.That(afterConnect.Result.Levels, Is.Empty, "No levels exist yet.");
     }
 
     [Test]
@@ -43,8 +43,8 @@ public class LevelsClientTests
         var client = new LevelsClient(connection);
 
         //  The startup refresh fires before any transport exists; it must not poison the response queue.
-        Task<Level[]> startup = client.GetLevelsAsync();
-        Assert.That(await startup, Is.Empty);
+        Task<LevelListing> startup = client.GetLevelsAsync();
+        Assert.That((await startup).Levels, Is.Empty);
 
         connection.Connected = true;
 
@@ -53,11 +53,12 @@ public class LevelsClientTests
         Assert.That(create.IsCompleted, Is.True, "The create response must complete the request.");
         Assert.That(create.Result, Is.True);
 
-        Task<Level[]> list = client.GetLevelsAsync();
+        Task<LevelListing> list = client.GetLevelsAsync();
         client.Poll();
         Assert.That(list.IsCompleted, Is.True, "The list response must complete the request.");
+        Assert.That(list.Result.CanCreateSave, Is.True, "The server's create capability must reach the caller.");
 
-        Level[] levels = list.Result;
+        Level[] levels = list.Result.Levels;
         Assert.That(levels, Has.Length.EqualTo(1));
         Assert.That(levels[0].Name, Is.EqualTo("New Save"));
     }
@@ -91,7 +92,7 @@ public class LevelsClientTests
                     break;
                 }
                 case ListLevelsRequest:
-                    Enqueue(new ListLevelsResponse { Levels = _levels.ToArray() });
+                    Enqueue(new ListLevelsResponse { Levels = _levels.ToArray(), CanCreateSave = true });
                     break;
                 case DeleteLevelRequest delete:
                     _levels.RemoveAll(level => level.Guid == delete.LevelGuid);

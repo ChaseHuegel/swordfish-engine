@@ -8,6 +8,7 @@ using Swordfish.Library.Util;
 using Swordfish.ECS;
 using Swordfish.Settings;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
@@ -56,7 +57,7 @@ public class ServerWorldHostTests
             PendingJoins = new PendingJoins();
             var pendingDeletes = new PendingLevelDeletes();
             var levelCatalog = new StubLevelCatalog();
-            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, NullLoggerFactory.Instance);
+            var levelManager = new ServerLevelManager(PendingJoins, pendingDeletes, levelCatalog, TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
             var hostHeartbeat = new ServerHostHeartbeat(PendingJoins, settings, NullLogger<ServerHostHeartbeat>.Instance);
             Host = new ServerWorldHost(container, levelManager, hostHeartbeat, PendingJoins, pendingDeletes, levelCatalog, settings, NullLoggerFactory.Instance);
 
@@ -81,6 +82,7 @@ public class ServerWorldHostTests
         new NsdMessageSerializer<WorldSnapshot>(),
         new NsdMessageSerializer<LeaveGameRequest>(),
         new NsdMessageSerializer<ServerHeartbeatMessage>(),
+        new NsdMessageSerializer<ClientHello>(),
         new NsdMessageSerializer<NewLevelRequest>(),
         new NsdMessageSerializer<NewLevelResponse>(),
         new NsdMessageSerializer<ListLevelsRequest>(),
@@ -147,7 +149,7 @@ public class ServerWorldHostTests
     public void MenuRequestsAreServedToPendingConnections()
     {
         var pendingJoins = new PendingJoins();
-        var manager = new ServerLevelManager(pendingJoins, new PendingLevelDeletes(), new StubLevelCatalog(), NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(pendingJoins, new PendingLevelDeletes(), new StubLevelCatalog(), TestPermissions.EmptyPolicy, new ConnectionClaims(), NullLoggerFactory.Instance);
         var connection = new LocalConnection(Serializers);
         pendingJoins.Add(connection.Server);
         connection.Client.Send(new NewLevelRequest { Name = "T", Seed = "s", GameMode = 0 });

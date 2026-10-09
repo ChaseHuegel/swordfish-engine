@@ -79,7 +79,8 @@ public class ClientDisconnectSystemTests
         var transportManager = new TransportManager(
             new INetworkSerializer[] { new NsdMessageSerializer<LeaveGameRequest>() },
             NullLoggerFactory.Instance,
-            new NetworkingSettings()
+            new NetworkingSettings(),
+            new TestUserClaimProvider()
         );
 
         var localization = new FakeLocalization(new Dictionary<string, string>
@@ -144,7 +145,8 @@ public class ClientDisconnectSystemTests
                 new NsdMessageSerializer<SaveLevelResponse>(),
             },
             NullLoggerFactory.Instance,
-            new NetworkingSettings()
+            new NetworkingSettings(),
+            new TestUserClaimProvider()
         );
 
         var localization = new FakeLocalization(new Dictionary<string, string>

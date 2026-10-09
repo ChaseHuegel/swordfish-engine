@@ -93,6 +93,12 @@ internal sealed class NewSavePage : IMenuPage<MenuPage>
 
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
+        if (!_gameSaveService.CanCreateSave)
+        {
+            menu.GoToPage(MenuPage.Home);
+            return Result.FromSuccess();
+        }
+
         using (ui.Element())
         {
             ui.Constraints = new Constraints

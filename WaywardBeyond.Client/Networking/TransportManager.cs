@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
 using WaywardBeyond.Config;
+using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Serialization;
 using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Client.Networking;
 
@@ -21,6 +23,7 @@ internal sealed class TransportManager : IClientConnection
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILoggerFactory _loggerFactory;
     private readonly NetworkingSettings _settings;
+    private readonly IUserClaimProvider _userClaimProvider;
     private readonly ILogger _logger;
     private TcpTransport? _remote;
     private IClientConnection? _active;
@@ -31,11 +34,13 @@ internal sealed class TransportManager : IClientConnection
     public TransportManager(
         in IEnumerable<INetworkSerializer> serializers,
         in ILoggerFactory loggerFactory,
-        in NetworkingSettings settings
+        in NetworkingSettings settings,
+        in IUserClaimProvider userClaimProvider
     ) {
         _serializers = serializers;
         _loggerFactory = loggerFactory;
         _settings = settings;
+        _userClaimProvider = userClaimProvider;
         _logger = loggerFactory.CreateLogger<TransportManager>();
     }
 
@@ -48,6 +53,7 @@ internal sealed class TransportManager : IClientConnection
         _remote?.Dispose();
         _remote = null;
         _active = localConnection;
+        SendHello();
     }
 
     /// <summary>Connects the transport to a remote host over TCP and drops any prior connection.</summary>
@@ -77,6 +83,7 @@ internal sealed class TransportManager : IClientConnection
             _remote?.Dispose();
             _remote = transport;
             _active = transport;
+            SendHello();
             return Result.FromSuccess();
         }
         catch (Exception ex)
@@ -101,6 +108,21 @@ internal sealed class TransportManager : IClientConnection
     private void RaiseRemoteDisconnected()
     {
         RemoteDisconnected?.Invoke();
+    }
+
+    /// <summary>Sends the connection claim once so the server can resolve permissions before menu requests.</summary>
+    private void SendHello()
+    {
+        if (_active == null)
+        {
+            return;
+        }
+
+        Result send = _active.Send(new ClientHello { UserId = _userClaimProvider.GetClaim().UserId });
+        if (!send.Success)
+        {
+            _logger.LogWarning("Failed to send client hello: {message}.", send.Message);
+        }
     }
 
     public bool IsLocal => _active?.IsLocal ?? false;

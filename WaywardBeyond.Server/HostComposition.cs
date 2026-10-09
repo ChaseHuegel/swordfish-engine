@@ -43,6 +43,7 @@ public static class HostComposition
         Require(NetworkRegistry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec()));
 
         container.Register<INetworkSerializer, NsdMessageSerializer<WorldSnapshot>>();
+        container.Register<INetworkSerializer, NsdMessageSerializer<ClientHello>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewLevelRequest>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<NewLevelResponse>>();
         container.Register<INetworkSerializer, NsdMessageSerializer<ListLevelsRequest>>();

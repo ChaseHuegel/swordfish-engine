@@ -99,6 +99,7 @@ when code checks many keys, so the user lookup happens once.
 | `PermissionLoadOptions` | `AssetRoot` (default `permissions/`), `ConfigRoot` (default `config/permissions/`) |
 | `PermissionDiagnostics` | `Warnings` and `Errors` from load and compile |
 | `UserClaim`, `IUserClaimProvider` | The user identity seam |
+| `ConnectionClaims` | Pre-join claims keyed by `IServerConnection`; `Bind`, `TryGet`, `Clear` |
 
 ## Server integration
 
@@ -113,6 +114,13 @@ policy at startup and logs the counts and every diagnostic.
 `GamePermissions` (`WaywardBeyond.Server/Permissions/GamePermissions.cs`)
 declares the built-in feature keys.
 
+`ConnectionClaims`
+(`WaywardBeyond.Server/Permissions/ConnectionClaims.cs`) binds a claim to a
+connection before a join. The client sends `ClientHello { UserId }` once when
+the connection opens. `ServerLevelManager.Tick` drains the hello and binds it,
+so menu-time requests can resolve the user without carrying an id. The claim
+lives for the connection and clears on disconnect (`LanHost.RemoveClient`).
+
 The game ships `WaywardBeyond.Server/assets/permissions/default.toml`. It
 declares the `default` and `admin` groups. Mods ship defaults under their own
 `assets/permissions/` root.
@@ -125,6 +133,19 @@ sends `SaveLevelResponse { Success = false }` and a targeted
 `notification.save.denied` toast. The server logs the denial at information
 level. The server autosave does not need the permission. The stock remote client
 never sends a request; this check protects against a modified client.
+
+### Create authorization
+
+`ServerLevelManager` (`WaywardBeyond.Server/ServerLevelManager.cs`) requires
+`GamePermissions.LevelCreate` (`waywardbeyond.level.create`) for a client
+`NewLevelRequest`. A local host connection is always allowed. A remote
+connection is allowed only after its `ClientHello` claim is bound and the key
+is granted. A denied request sends `NewLevelResponse { Success = false }` and
+logs at information level. The stock client hides the "Create save" option when
+it lacks the key, so the check protects against a modified client. The server
+also reports the same verdict in `ListLevelsResponse.CanCreateSave`, which the
+client caches in `GameSaveService.CanCreateSave` and uses to gate the menu
+button (`HomePage`).
 
 ## Tests that pin this
 
@@ -141,3 +162,5 @@ never sends a request; this check protects against a modified client.
   claim, leave unbinds.
 - `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs` — autosave cadence, save
   authorization, notification broadcast.
+- `Swordfish.Tests/Permissions/ServerLevelCreatePermissionTests.cs` — host
+  allow, remote grant and deny, create capability on the listing.

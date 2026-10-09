@@ -10,6 +10,7 @@ using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Discovery;
 using WaywardBeyond.Networking.Serialization;
 using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Server.Permissions;
 
 namespace WaywardBeyond.Server;
 
@@ -28,6 +29,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
     private readonly ServerWorldHost _worldHost;
     private readonly NetworkingSettings _settings;
     private readonly LanHostInfo _hostInfo;
+    private readonly ConnectionClaims _claims;
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly ConcurrentDictionary<TcpTransport, byte> _clientIds = new();
@@ -41,6 +43,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         in ServerWorldHost worldHost,
         in NetworkingSettings settings,
         in LanHostInfo hostInfo,
+        in ConnectionClaims claims,
         ILoggerFactory loggerFactory
     ) {
         _serializers = serializers;
@@ -48,6 +51,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _worldHost = worldHost;
         _settings = settings;
         _hostInfo = hostInfo;
+        _claims = claims;
         _logger = loggerFactory.CreateLogger<LanHost>();
         _loggerFactory = loggerFactory;
     }
@@ -177,6 +181,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         //  binding), pruning the id map, and closing the socket exactly once per transport.
         if (_clientIds.TryRemove(transport, out _))
         {
+            _claims.Clear(transport);
             if (!_pendingJoins.Remove(transport))
             {
                 _worldHost.DetachConnection(transport);

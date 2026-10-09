@@ -204,7 +204,7 @@ rules, the log line, and the client behavior.
 
 ## Join and level-stream messages
 
-`WaywardBeyond.Data/CodeGen/levels.nsd`: `JoinRequest`,
+`WaywardBeyond.Data/CodeGen/levels.nsd`: `ClientHello`, `JoinRequest`,
 `JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `PublicView`,
 `CharacterSeed`, and the save-listing set
 (`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
@@ -229,9 +229,17 @@ message CharacterSeed
 }
 ```
 
-`JoinRequest.UserId` is the client's stable user id. The server treats it as an
+`ClientHello.UserId` is the client's stable user id. The client sends it once
+when the connection opens. The server keeps it as the connection's claim
+(`ConnectionClaims`) so menu-time requests resolve permissions before a join.
+See [permissions](permissions.md).
+
+`JoinRequest.UserId` is the same stable user id. The server treats it as an
 unauthenticated claim and binds it to the session for permission checks. See
 [permissions](permissions.md).
+
+`ListLevelsResponse.CanCreateSave` tells the client whether the server permits
+it to create a save. See [persistence](persistence.md).
 
 ## Notifications and skill state
 

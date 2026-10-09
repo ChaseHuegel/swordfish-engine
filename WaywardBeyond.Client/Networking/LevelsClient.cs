@@ -67,13 +67,13 @@ internal sealed class LevelsClient
         }
     }
 
-    public Task<Level[]> GetLevelsAsync()
+    public Task<LevelListing> GetLevelsAsync()
     {
-        var completion = new TaskCompletionSource<Level[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var completion = new TaskCompletionSource<LevelListing>(TaskCreationOptions.RunContinuationsAsynchronously);
         Request(
             new ListLevelsRequest { Dummy = 0 },
-            (ListLevelsResponse response) => completion.TrySetResult(response.Levels ?? []),
-            () => completion.TrySetResult([])
+            (ListLevelsResponse response) => completion.TrySetResult(new LevelListing(response.Levels ?? [], response.CanCreateSave)),
+            () => completion.TrySetResult(new LevelListing([], false))
         );
         return completion.Task;
     }

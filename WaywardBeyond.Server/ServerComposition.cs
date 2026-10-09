@@ -50,6 +50,7 @@ public static class ServerComposition
             IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
             return PermissionPolicy.Create(files, diagnostics);
         }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<ConnectionClaims>(Reuse.Singleton);
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 

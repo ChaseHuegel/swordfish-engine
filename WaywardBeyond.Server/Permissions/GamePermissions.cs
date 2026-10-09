@@ -5,4 +5,7 @@ public static class GamePermissions
 {
     /// <summary>Trigger a manual level save.</summary>
     public const string LevelSave = "waywardbeyond.level.save";
+
+    /// <summary>Create a new saved level.</summary>
+    public const string LevelCreate = "waywardbeyond.level.create";
 }

@@ -33,6 +33,7 @@ public static class SendPriority
         typeof(SkillStateUpdateMessage),
         typeof(ServerHeartbeatMessage),
         typeof(ClientHeartbeatMessage),
+        typeof(ClientHello),
     };
 
     /// <summary>True for control/state messages that must never be silently dropped.</summary>

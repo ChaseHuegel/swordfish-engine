@@ -40,7 +40,7 @@ public class GameSaveManagerSaveTests
     public void HostSaveRequestsAServerSave()
     {
         var connection = new LocalConnection(Serializers);
-        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings());
+        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings(), new TestUserClaimProvider());
         transport.UseLocal(connection.Client);
         var storage = new RecordingCharacterStorage();
         GameSaveManager manager = CreateManager(transport, storage, new FakeWindowContext());
@@ -58,7 +58,7 @@ public class GameSaveManagerSaveTests
     public void AutosaveSavesTheCharacterWithoutRequestingAServerSave()
     {
         var connection = new LocalConnection(Serializers);
-        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings());
+        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings(), new TestUserClaimProvider());
         transport.UseLocal(connection.Client);
         var storage = new RecordingCharacterStorage();
         GameSaveManager manager = CreateManager(transport, storage, new FakeWindowContext());
@@ -77,7 +77,7 @@ public class GameSaveManagerSaveTests
     public void RemoteClientDoesNotRequestAServerSave()
     {
         var connection = new LocalConnection(Serializers);
-        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings());
+        var transport = new TransportManager(Serializers, NullLoggerFactory.Instance, new NetworkingSettings(), new TestUserClaimProvider());
         transport.UseLocal(new RemoteConnection(connection.Client));
         var storage = new RecordingCharacterStorage();
         GameSaveManager manager = CreateManager(transport, storage, new FakeWindowContext());

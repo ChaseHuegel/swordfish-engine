@@ -100,11 +100,6 @@ public class ClientJoinTimeoutTests
         public Result DeleteCharacter(ulong id) => Result.FromSuccess();
     }
 
-    private sealed class StubUserClaimProvider : IUserClaimProvider
-    {
-        public UserClaim GetClaim() => new("test-user");
-    }
-
     [Test]
     public void JoinThatNeverCompletesReturnsToMenuAfterTimeout()
     {
@@ -114,7 +109,8 @@ public class ClientJoinTimeoutTests
         var transportManager = new TransportManager(
             new INetworkSerializer[] { new NsdMessageSerializer<JoinRequest>() },
             NullLoggerFactory.Instance,
-            settings
+            settings,
+            new TestUserClaimProvider()
         );
 
         var window = new FakeWindowContext();
@@ -132,7 +128,7 @@ public class ClientJoinTimeoutTests
             new StubBrickIdMap(),
             disconnectSystem,
             settings,
-            new StubUserClaimProvider()
+            new TestUserClaimProvider()
         );
 
         GameState prior = WaywardBeyond.GameState.Get();
@@ -174,7 +170,8 @@ public class ClientJoinTimeoutTests
         var transportManager = new TransportManager(
             new INetworkSerializer[] { new NsdMessageSerializer<JoinRequest>() },
             NullLoggerFactory.Instance,
-            settings
+            settings,
+            new TestUserClaimProvider()
         );
 
         var notifications = new NotificationService(NullLogger<NotificationService>.Instance, new FakeWindowContext());
@@ -190,7 +187,7 @@ public class ClientJoinTimeoutTests
             new StubBrickIdMap(),
             disconnectSystem,
             settings,
-            new StubUserClaimProvider()
+            new TestUserClaimProvider()
         );
 
         GameState prior = WaywardBeyond.GameState.Get();
