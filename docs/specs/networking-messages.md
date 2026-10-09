@@ -231,11 +231,8 @@ message CharacterSeed
 
 `ClientHello.UserId` is the client's stable user id. The client sends it once
 when the connection opens. The server keeps it as the connection's claim
-(`ConnectionClaims`) so menu-time requests resolve permissions before a join.
-See [permissions](permissions.md).
-
-`JoinRequest.UserId` is the same stable user id. The server treats it as an
-unauthenticated claim and binds it to the session for permission checks. See
+(`ConnectionClaims`). Menu-time requests resolve permissions from it, and
+`ServerJoinSystem` binds the same claim to the session at join. See
 [permissions](permissions.md).
 
 `ListLevelsResponse.CanCreateSave` tells the client whether the server permits

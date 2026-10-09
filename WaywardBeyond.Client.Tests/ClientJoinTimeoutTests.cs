@@ -127,8 +127,7 @@ public class ClientJoinTimeoutTests
             NullLogger<ClientJoinSystem>.Instance,
             new StubBrickIdMap(),
             disconnectSystem,
-            settings,
-            new TestUserClaimProvider()
+            settings
         );
 
         GameState prior = WaywardBeyond.GameState.Get();
@@ -186,8 +185,7 @@ public class ClientJoinTimeoutTests
             NullLogger<ClientJoinSystem>.Instance,
             new StubBrickIdMap(),
             disconnectSystem,
-            settings,
-            new TestUserClaimProvider()
+            settings
         );
 
         GameState prior = WaywardBeyond.GameState.Get();

@@ -18,11 +18,11 @@ save levels. Level data is streamed to the client during join.
    join. See [permissions](permissions.md).
 
 1. **`ClientJoinSystem`** (`Client.Core/Systems/`) submits a
-   `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed, UserId }`.
+   `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed }`.
    - `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`)
      used for remote rendering.
-   - `UserId` is the client's stable user id from `profile.toml`. The server
-     binds it to the session as the permission claim. See
+   - The permission claim is not in the join message; the server binds the
+     connection's `ClientHello` claim at join. See
      [permissions](permissions.md).
 - `CharacterSeed` is a separate optional field carrying the client's
       authoritative **initial** interaction context (inventory, equipment/active
@@ -45,9 +45,9 @@ save levels. Level data is streamed to the client during join.
    transform (the persisted per-character location, else
    `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
    server mirror, seeds the server's interaction context from `CharacterSeed`,
-   binds it to a fresh `Session`, and binds the `UserId` claim to the session's
-   `IUserPermissionService` (the local host connection gets the all-granting
-   set), and replies `JoinAccept { Level, SpawnTransform,
+   binds it to a fresh `Session`, and binds the connection's `ClientHello`
+   claim to the session's `IUserPermissionService` (the local host connection
+   gets the all-granting set), and replies `JoinAccept { Level, SpawnTransform,
    PlayerEntity }`. Worlds are isolated per level; see
    [networking-worlds](networking-worlds.md).
 

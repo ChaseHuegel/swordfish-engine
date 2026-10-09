@@ -105,8 +105,9 @@ when code checks many keys, so the user lookup happens once.
 
 `UserPermissionService` (`WaywardBeyond.Server/Permissions/UserPermissionService.cs`)
 binds a session to a claim and resolves the compiled set once at bind time.
-`ServerJoinSystem` binds at join and unbinds on leave or disconnect. The local
-host connection gets `PermissionSet.AllowAll`. An unbound client is denied.
+`ServerJoinSystem` reads the connection's `ClientHello` claim at join and
+unbinds on leave or disconnect. The local host connection gets
+`PermissionSet.AllowAll`. A connection with no hello joins anonymous.
 
 `PermissionEntryPoint`
 (`WaywardBeyond.Server/Permissions/PermissionEntryPoint.cs`) resolves the
@@ -159,7 +160,7 @@ button (`HomePage`).
 - `Swordfish.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
   host override, deny on unbind.
 - `Swordfish.Tests/Permissions/ServerJoinPermissionTests.cs` — join binds the
-  claim, leave unbinds.
+  connection claim, anonymous without one, leave unbinds.
 - `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs` — autosave cadence, save
   authorization, notification broadcast.
 - `Swordfish.Tests/Permissions/ServerLevelCreatePermissionTests.cs` — host

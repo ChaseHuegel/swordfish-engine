@@ -30,15 +30,15 @@ public class ServerJoinPermissionTests
     [Fact]
     public void JoinBindsTheClientClaimAndTreatsTheLoopbackAsHost()
     {
-        (ServerJoinSystem join, UserPermissionService permissions, ServerConnectionHub hub) = CreateJoinSystem();
+        (ServerJoinSystem join, UserPermissionService permissions, ConnectionClaims claims, ServerConnectionHub hub) = CreateJoinSystem();
 
         var connection = new LocalConnection(Serializers);
         Uuid clientId = hub.Add(connection.Server);
+        claims.Bind(connection.Server, new UserClaim("host-user"));
         connection.Client.Send(new JoinRequest
         {
             CharacterId = 1,
             PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = "wb:m_human" },
-            UserId = "host-user",
         });
 
         join.Tick(0f, new DataStore());
@@ -50,17 +50,36 @@ public class ServerJoinPermissionTests
     }
 
     [Fact]
-    public void LeaveUnbindsTheClientClaim()
+    public void JoinWithoutAConnectionClaimBindsAnonymous()
     {
-        (ServerJoinSystem join, UserPermissionService permissions, ServerConnectionHub hub) = CreateJoinSystem();
+        (ServerJoinSystem join, UserPermissionService permissions, _, ServerConnectionHub hub) = CreateJoinSystem();
 
         var connection = new LocalConnection(Serializers);
         Uuid clientId = hub.Add(connection.Server);
         connection.Client.Send(new JoinRequest
         {
             CharacterId = 1,
+            PublicView = new PublicView { CharacterId = 1, Name = "Guest", Body = "wb:m_human" },
+        });
+
+        join.Tick(0f, new DataStore());
+
+        Assert.True(permissions.TryGetClaim(clientId, out UserClaim claim));
+        Assert.True(claim.IsAnonymous);
+    }
+
+    [Fact]
+    public void LeaveUnbindsTheClientClaim()
+    {
+        (ServerJoinSystem join, UserPermissionService permissions, ConnectionClaims claims, ServerConnectionHub hub) = CreateJoinSystem();
+
+        var connection = new LocalConnection(Serializers);
+        Uuid clientId = hub.Add(connection.Server);
+        claims.Bind(connection.Server, new UserClaim("host-user"));
+        connection.Client.Send(new JoinRequest
+        {
+            CharacterId = 1,
             PublicView = new PublicView { CharacterId = 1, Name = "Host", Body = "wb:m_human" },
-            UserId = "host-user",
         });
 
         var store = new DataStore();
@@ -73,11 +92,12 @@ public class ServerJoinPermissionTests
         Assert.False(permissions.TryGetClaim(clientId, out _));
     }
 
-    private static (ServerJoinSystem Join, UserPermissionService Permissions, ServerConnectionHub Hub) CreateJoinSystem()
+    private static (ServerJoinSystem Join, UserPermissionService Permissions, ConnectionClaims Claims, ServerConnectionHub Hub) CreateJoinSystem()
     {
         var hub = new ServerConnectionHub();
         var sessions = new SessionManager();
         var permissions = new UserPermissionService(PermissionPolicy.Create([]));
+        var claims = new ConnectionClaims();
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
         var level = new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), TestBricks.Map);
         var join = new ServerJoinSystem(
@@ -88,8 +108,9 @@ public class ServerJoinPermissionTests
             TestInteractionSystem.Create(hub),
             NullLogger<ServerJoinSystem>.Instance,
             TestBricks.Map,
-            permissions: permissions
+            permissions: permissions,
+            connectionClaims: claims
         );
-        return (join, permissions, hub);
+        return (join, permissions, claims, hub);
     }
 }

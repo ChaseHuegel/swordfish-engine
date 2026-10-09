@@ -38,6 +38,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly SkillDatabase? _skillDatabase;
     private readonly IBrickIdMap _brickIdMap;
     private readonly IUserPermissionService? _permissions;
+    private readonly ConnectionClaims? _connectionClaims;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -52,7 +53,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         IBrickIdMap brickIdMap,
         in SkillDatabase? skillDatabase = null,
         in ServerJoinQueue? joinQueue = null,
-        in IUserPermissionService? permissions = null
+        in IUserPermissionService? permissions = null,
+        in ConnectionClaims? connectionClaims = null
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -64,6 +66,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _logger = logger;
         _joinQueue = joinQueue ?? new ServerJoinQueue();
         _permissions = permissions;
+        _connectionClaims = connectionClaims;
     }
 
     public void Tick(float delta, DataStore store)
@@ -257,11 +260,18 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
 
-        //  Bind the joining client's claim so permission checks resolve against this session.
+        //  Bind the joining client's claim so permission checks resolve against this session. The
+        //  claim arrives once in the connection's ClientHello; an unbound connection joins anonymous.
         if (_permissions != null)
         {
             bool isHost = _hub.TryGet(clientId, out IServerConnection connection) && connection.IsLocal;
-            _permissions.Bind(clientId, new UserClaim(request.UserId ?? string.Empty), isHost);
+            UserClaim claim = UserClaim.Anonymous;
+            if (connection != null && _connectionClaims != null && _connectionClaims.TryGet(connection, out UserClaim bound))
+            {
+                claim = bound;
+            }
+
+            _permissions.Bind(clientId, claim, isHost);
         }
 
         //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
