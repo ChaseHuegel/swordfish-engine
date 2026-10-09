@@ -47,7 +47,11 @@ internal sealed class SelectSavePage(
     private readonly NetworkingSettings _networkingSettings = networkingSettings;
     private readonly ProfileSettings _profileSettings = profileSettings;
 
+    private const int RefreshIntervalMs = 1000;
+
     private bool _remoteConnectTried;
+    private long _lastRenderMs;
+    private long _lastRefreshMs;
 
     private readonly Widgets.ButtonOptions _menuButtonOptions = new(
         new FontOptions 
@@ -86,6 +90,7 @@ internal sealed class SelectSavePage(
     public Result RenderPage(double delta, UIBuilder<Material> ui, Menu<MenuPage> menu)
     {
         EnsureRemoteConnection();
+        RefreshSaveListIfDue();
 
         using (ui.Element())
         {
@@ -287,6 +292,28 @@ internal sealed class SelectSavePage(
         }
         
         return Result.FromSuccess();
+    }
+
+    /// <summary>
+    /// Pulls the save listing so the page reflects the server's current levels. <see cref="RenderPage"/>
+    /// only runs while this page is current, so a gap since the last render means the page was just
+    /// (re)entered and must refresh at once. While the page stays open it re-pulls on the throttle, which
+    /// is what surfaces levels another client created.
+    /// </summary>
+    private void RefreshSaveListIfDue()
+    {
+        long now = Environment.TickCount64;
+
+        bool entered = now - _lastRenderMs > 250;
+        _lastRenderMs = now;
+
+        if (!entered && now - _lastRefreshMs < RefreshIntervalMs)
+        {
+            return;
+        }
+
+        _lastRefreshMs = now;
+        _ = _gameSaveService.RefreshLevelsAsync();
     }
 
     /// <summary>

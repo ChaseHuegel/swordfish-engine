@@ -90,13 +90,21 @@ answers `DeleteLevelResponse`.
 
 ## Client facade
 
-`GameSaveService` (`Client.Core/Saves/`) is a thin client facade: a cached
-save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
+`GameSaveService` (`WaywardBeyond.Client/Saves/`) is a thin client facade: a
+cached save listing from `ListLevelsRequest`, with `CreateSave`/`Delete`/
 `TriggerServerSave` routed to the server via `LevelsClient`
-(`Client.Core/Networking/LevelsClient.cs`). The client tracks its own per-save
-"last played" and "time played" in the `save_meta` table, merged over the
-server's level metadata in `GameSaveService.GetSaves()`. Character save is
-handled by `CharacterSaveManager` + `SqliteCharacterStorage`.
+(`WaywardBeyond.Client/Networking/LevelsClient.cs`). `SelectSavePage` pulls the
+listing when it opens and re-pulls it every second while it stays visible, so a
+level another client creates appears without leaving the page. The client tracks
+its own per-save "last played" and "time played" in the `save_meta` table, merged
+over the server's level metadata in `GameSaveService.GetSaves()`. Character save
+is handled by `CharacterSaveManager` + `SqliteCharacterStorage`.
+
+`LevelsClient` matches each response to its request in FIFO order per response
+type. A send that fails (no active transport, or a dropped connection) cancels
+its waiter at once, so a refresh issued before a remote client connects cannot
+consume a later response. Every level-management message rides the reliable send
+queue (`SendPriority`), so a create, list, or delete is never silently dropped.
 
 `GameSaveManager` (`Client.Core/Saves/GameSaveManager.cs`) owns the client save
 cadence. Its autosave timer saves the character only. Pause, F5, and close call
@@ -151,3 +159,6 @@ no shared broker process to manage.
   `WaywardBeyond.Client.Tests/SaveTimeTests.cs`.
 - Character playtime frames in
   `WaywardBeyond.Client.Tests/CharacterSaveManagerTests.cs`.
+- Level create-then-list against the shared server catalog in
+  `Swordfish.Tests/ServerLevelListingTests.cs`, and the failed-send waiter rule
+  in `WaywardBeyond.Client.Tests/LevelsClientTests.cs`.

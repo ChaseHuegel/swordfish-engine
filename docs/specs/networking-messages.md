@@ -208,7 +208,10 @@ rules, the log line, and the client behavior.
 `JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `PublicView`,
 `CharacterSeed`, and the save-listing set
 (`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
-See [join](networking-join.md) and [persistence](persistence.md).
+Every message in the save-listing set rides the reliable send queue
+(`SendPriority`), because a dropped create, list, or delete would silently lose
+a save operation. See [join](networking-join.md) and
+[persistence](persistence.md).
 
 `CharacterSeed` carries the client's authoritative **initial** character
 context, including its saved skill statistics:

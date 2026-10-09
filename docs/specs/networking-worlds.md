@@ -82,7 +82,9 @@ pinned instances (registered into the child) still dispose on world unload.
 - **Server-level** (not per-world): `ServerLevelManager` serves the menu-time
   create/list/delete requests on connections that have not joined a world yet;
   the host ticks it before world routing. Deletes defer to
-  `PendingLevelDeletes` so the host can tear down a loaded world first.
+  `PendingLevelDeletes` so the host can tear down a loaded world first. The
+  client pulls the listing while the save-select page is visible, so a level
+  another client creates appears without a reconnect.
 - Replication state: `NetworkReplicationSystem` is per world, so full-sync
   sets, streaming gates, pending snapshots, and acks cannot leak between
   worlds. Publish reads the world's sim tick from the injected

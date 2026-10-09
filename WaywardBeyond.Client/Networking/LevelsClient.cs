@@ -13,15 +13,25 @@ namespace WaywardBeyond.Client.Networking;
 /// in-process server (list/create/delete/save a level) and awaits the matching response, which is
 /// delivered asynchronously and completed by <see cref="Poll"/> - driven on the client ECS thread by a
 /// dedicated system, so the menu never blocks a thread spinning on the transport. Responses are matched
-/// to requests strictly in FIFO order per response type, which is correct here because the menu issues
-/// at most one outstanding operation of each kind at a time. A dropped connection faults every pending
+/// to requests strictly in FIFO order per response type. A send is only queued when it succeeds; a
+/// failed send cancels its waiter (<see cref="Request{TRequest, TResponse}"/>) so a request issued
+/// before a transport exists cannot consume a later response. A dropped connection faults every pending
 /// operation (<see cref="FaultPending"/>) so no waiter hangs on a vanished server.
 /// </summary>
 internal sealed class LevelsClient
 {
     private readonly IClientConnection _transport;
     private readonly object _gate = new();
-    private readonly Dictionary<Type, Queue<(Action<object> onComplete, Action onFailure)>> _pending = [];
+    private readonly Dictionary<Type, Queue<Waiter>> _pending = [];
+
+    /// <summary>A single outstanding request's completion callbacks. Canceled waiters are skipped when a
+    /// response arrives, so they can never be matched to a response they did not request.</summary>
+    private sealed class Waiter(Action<object> onComplete, Action onFailure)
+    {
+        public readonly Action<object> OnComplete = onComplete;
+        public readonly Action OnFailure = onFailure;
+        public bool Canceled;
+    }
 
     public LevelsClient(in IClientConnection transport)
     {
@@ -45,11 +55,11 @@ internal sealed class LevelsClient
     {
         lock (_gate)
         {
-            foreach (Queue<(Action<object>, Action)> queue in _pending.Values)
+            foreach (Queue<Waiter> queue in _pending.Values)
             {
                 while (queue.Count > 0)
                 {
-                    queue.Dequeue().Item2();
+                    queue.Dequeue().OnFailure();
                 }
             }
 
@@ -121,32 +131,56 @@ internal sealed class LevelsClient
 
     private void Complete<TResponse>(TResponse response)
     {
-        (Action<object> onComplete, Action _)? waiter = null;
+        Waiter? waiter = null;
         lock (_gate)
         {
-            if (_pending.TryGetValue(typeof(TResponse), out Queue<(Action<object>, Action)>? queue) && queue.Count > 0)
+            if (_pending.TryGetValue(typeof(TResponse), out Queue<Waiter>? queue))
             {
-                waiter = queue.Dequeue();
+                while (queue.Count > 0)
+                {
+                    Waiter candidate = queue.Dequeue();
+                    if (candidate.Canceled)
+                    {
+                        continue;
+                    }
+
+                    waiter = candidate;
+                    break;
+                }
             }
         }
 
-        waiter?.Item1(response!);
+        waiter?.OnComplete(response!);
     }
 
     private void Request<TRequest, TResponse>(TRequest request, Action<TResponse> onComplete, Action onFailure)
         where TRequest : struct
     {
+        var waiter = new Waiter(response => onComplete((TResponse)response!), onFailure);
         lock (_gate)
         {
-            if (!_pending.TryGetValue(typeof(TResponse), out Queue<(Action<object>, Action)>? queue))
+            if (!_pending.TryGetValue(typeof(TResponse), out Queue<Waiter>? queue))
             {
-                queue = new Queue<(Action<object>, Action)>();
+                queue = new Queue<Waiter>();
                 _pending[typeof(TResponse)] = queue;
             }
 
-            queue.Enqueue((response => onComplete((TResponse)response!), onFailure));
+            queue.Enqueue(waiter);
         }
 
-        _transport.Send(request);
+        Result send = _transport.Send(request);
+        if (send.Success)
+        {
+            return;
+        }
+
+        //  The request never left: cancel the waiter so it cannot consume a response meant for another
+        //  request, and let the caller fail fast instead of awaiting forever.
+        lock (_gate)
+        {
+            waiter.Canceled = true;
+        }
+
+        onFailure();
     }
 }

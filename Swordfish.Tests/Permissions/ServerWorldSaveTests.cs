@@ -130,6 +130,19 @@ public class ServerWorldSaveTests : IDisposable
         Assert.True(SendPriority.IsReliable(typeof(SaveLevelRequest)));
     }
 
+    [Fact]
+    public void LevelListingRequestsRideTheReliableQueue()
+    {
+        //  A dropped create/list/delete silently loses a save operation on a remote client, so every
+        //  menu-time level-management message must never be evicted from the send queue.
+        Assert.True(SendPriority.IsReliable(typeof(NewLevelRequest)));
+        Assert.True(SendPriority.IsReliable(typeof(ListLevelsRequest)));
+        Assert.True(SendPriority.IsReliable(typeof(DeleteLevelRequest)));
+        Assert.True(SendPriority.IsReliable(typeof(NewLevelResponse)));
+        Assert.True(SendPriority.IsReliable(typeof(ListLevelsResponse)));
+        Assert.True(SendPriority.IsReliable(typeof(DeleteLevelResponse)));
+    }
+
     private World CreateWorld(string levelGuid)
     {
         var settings = new GameplaySettings();
