@@ -18,8 +18,8 @@ save levels. Level data is streamed to the client during join.
    join. See [permissions](permissions.md).
 
 1. **`ClientJoinSystem`** (`Client.Core/Systems/`) submits a
-   `JoinRequest { LevelGuid, CharacterId, PublicView, CharacterSeed }`.
-   - `PublicView` is the minimal identity relay (`CharacterId`, `Name`, `Body`)
+   `JoinRequest { LevelGuid, CharacterUuid, PublicView, CharacterSeed }`.
+   - `PublicView` is the minimal identity relay (`CharacterUuid`, `Name`, `Body`)
      used for remote rendering.
    - The permission claim is not in the join message; the server binds the
      connection's `ClientHello` claim at join. See
@@ -158,8 +158,3 @@ stages were removed in favor of join.
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Data/CodeGen/levels.nsd` (the join/stream messages)
-
-## Tests that pin this
-
-- `Swordfish.Tests` codec/seed tests for `CharacterSeed`.
-- `WaywardBeyond.Client.Tests` join/stream client behavior.

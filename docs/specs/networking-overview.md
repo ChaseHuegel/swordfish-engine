@@ -70,7 +70,7 @@ The two sides never touch each other's `DataStore`. They exchange
 | Client prediction + reconciliation | Implemented (server-authoritative, sim-tick driven) |
 | Authoritative server simulation | Implemented (shared deterministic step on the server world) |
 | Multi-client sessions & disconnect | Implemented (`ServerConnectionHub` + `SessionManager`) |
-| Peer transport (`TcpTransport`) | Implemented (per-type demux, `TcpTransportTests`) |
+| Peer transport (`TcpTransport`) | Implemented (per-type demux) |
 | LAN server discovery (UDP beacon) | Implemented |
 
 ## Source of truth

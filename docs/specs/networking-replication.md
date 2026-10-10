@@ -94,4 +94,3 @@ once per step. See [prediction](networking-prediction.md).
 
 - `Swordfish.Tests` interaction-staging tests (consume-per-sim-tick,
   newest-per-tick collapse, sequence dedupe).
-- `Swordfish.Tests/SessionRoutingTests.cs` (per-client acks across N clients).

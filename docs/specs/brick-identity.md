@@ -106,10 +106,5 @@ refuses records stamped by a newer build. See [persistence](persistence.md).
 
 ## Tests that pin this
 
-- `Swordfish.Tests/BrickIdRegistryTests.cs` — id ordering, determinism, round-trip.
-- `Swordfish.Tests/VoxelEntityDataCodecTests.cs` — palette encode/decode and the
-  legacy bare-name reverse map.
-- `Swordfish.Tests/SaveMigratorTests.cs` — migration ordering, gate, and refusal.
-- `Swordfish.Tests/SharedWorldGenTests.cs` — worldgen ids follow the registry rule.
 - `WaywardBeyond.Client.Tests/ClientVoxelReconcileSystemTests.cs` —
   reconcile by brick name across differing registries.

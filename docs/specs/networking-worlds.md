@@ -143,13 +143,8 @@ measured pressure from scaling work).
 
 ## Test strategy
 
-- `Swordfish.Tests/ChatTests.cs` exercises multi-client routing over the
-  `ServerConnectionHub`.
-- `Swordfish.Tests/TcpServerHostTests.cs` exercises socket accept, independent
-  per-peer routing, and disconnect detection.
 - `Swordfish.Tests/RejoinConcurrencyTests.cs` drives the client and server world
   teardown and rebuild concurrently.
-  (pending-set pruning), and the full networking suite stay green.
 
 ## Source of truth
 

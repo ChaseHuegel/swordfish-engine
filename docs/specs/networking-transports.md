@@ -31,7 +31,7 @@ backed by per-type `ConcurrentQueue<byte[]>`s. Every `Send<T>` serializes
 through the wire format and enqueues the resulting bytes; `Receive<T>` dequeues
 and deserializes. It exercises the wire **serialization** fully with zero
 network I/O; framing, keepalive replacement (session heartbeats), and per-type
-demux are `TcpTransport` behavior covered by `TcpTransportTests`.
+demux are `TcpTransport` behavior.
 
 ## `TcpTransport` (peer / LAN / dedicated)
 
@@ -306,5 +306,5 @@ shutdown (level flush, session teardown, store disposal, per
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SessionRoutingTests.cs` exercises N-client routing over the
-  hub + `LocalConnection` fixture without a socket.
+- `Swordfish.Tests/LocalConnectionTests.cs` covers the local serialize/dequeue
+  round trips without a socket.

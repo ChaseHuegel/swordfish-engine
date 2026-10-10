@@ -23,8 +23,8 @@ and a 5 second busy timeout.
 | `saves/profile.db` | Client | `characters`, `save_meta` |
 | `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations` |
 
-The client owns `profile.db`. `characters` stores one raw nsd blobs per
-character id. `save_meta` stores one raw nsd blob per level guid. The client
+The client owns `profile.db`. `characters` stores one raw nsd blob per
+character uuid. `save_meta` stores one raw nsd blob per level guid. The client
 registers the stores behind the existing interfaces (`ICharacterStorage`,
 `ISaveMetaStorage`) in `WaywardBeyond.Client/Injector.cs`.
 
@@ -40,10 +40,10 @@ over one level database.
 |---|---|---|
 | `level` | one row, guid column | serialized `Level` metadata |
 | `entities` | entity uuid (text) | serialized `VoxelEntityData` |
-| `character_locations` | character id (text) | serialized `CharacterEntityData` |
+| `character_locations` | character uuid (text) | serialized `CharacterEntityData` |
 
 Keys are decimal strings because SQLite integers are signed 64-bit and the
-ids are `ulong`.
+uuids are `ulong`.
 
 ## Save semantics
 
@@ -152,16 +152,9 @@ no shared broker process to manage.
 
 ## Tests that pin this
 
-- Store round trips, snapshot entity replacement, and location preservation in
-  `Swordfish.Tests/SqliteStorageTests.cs`.
-- Server autosave cadence, completion reporting, and save authorization in
-  `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs`.
-- Server-owned level save/load and the join stream in
-  `Swordfish.Tests/ServerJoinStreamTests.cs`.
 - Save-meta accumulation rules in
   `WaywardBeyond.Client.Tests/SaveTimeTests.cs`.
 - Character playtime frames in
   `WaywardBeyond.Client.Tests/CharacterSaveManagerTests.cs`.
-- Level create-then-list against the shared server catalog in
-  `Swordfish.Tests/ServerLevelListingTests.cs`, and the failed-send waiter rule
-  in `WaywardBeyond.Client.Tests/LevelsClientTests.cs`.
+- The failed-send waiter rule in
+  `WaywardBeyond.Client.Tests/LevelsClientTests.cs`.

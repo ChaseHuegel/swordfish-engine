@@ -83,9 +83,4 @@ progress bar; `notification.skill.levelUp` renders the level-up toast.
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SkillDatabaseTests.cs` — real tomls, tag expansion, data-id
-  parity, level curve edges.
-- `Swordfish.Tests/ServerSkillSystemTests.cs` — grant math and per-grant totals.
-- `Swordfish.Tests/ServerJoinSkillSeedTests.cs` — join-time seeding.
-- `WaywardBeyond.Client.Tests/ClientNotificationSystemTests.cs` — key
-  resolution, formatting, totals persistence.
+This module has no surviving tests.

@@ -191,7 +191,7 @@ reliable frame per second per connection.
 ```nsd
 message ChatMessage
 {
-    ulong  CharacterId = 0;  // server-stamped
+    ulong  CharacterUuid = 0;  // server-stamped
     string SenderName  = 1;  // server-stamped
     string Value       = 2;  // client-authored text
 }
@@ -219,7 +219,7 @@ context, including its saved skill statistics:
 ```nsd
 message CharacterSeed
 {
-    ulong CharacterId = 0;
+    ulong CharacterUuid = 0;
     string Name = 1;
     int Body = 2;
     ItemData[]? InventoryContents = 3;
@@ -285,6 +285,7 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 
 ## Tests that pin this
 
-- `Swordfish.Tests` codec / round-trip tests for `InteractionEvent`,
-  `CharacterSeed`, and the component codecs.
+- `Swordfish.Tests/InputCodecTests.cs` covers the component codecs
+  (`InputComponent`, `BodyViewComponent`, `IdentifierComponent`,
+  `InteractionEvent`, and world snapshots).
 - `WaywardBeyond.Client.Tests` cover voxel-object processing.

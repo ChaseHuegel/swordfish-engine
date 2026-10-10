@@ -8,7 +8,7 @@ complements [networking-messages](networking-messages.md).
 
 `ChatMessage` lives in
 `WaywardBeyond.Networking/CodeGen/network.nsd`. Fields:
-`CharacterId`, `SenderName`, `Value`.
+`CharacterUuid`, `SenderName`, `Value`.
 
 The client sends `Value` only. The server never trusts client-supplied
 identity.
@@ -23,7 +23,7 @@ after the interaction step and before replication publish (see
 [networking-worlds](networking-worlds.md)). For each inbound `ChatMessage` it applies these rules:
 
 - Drop the message if the client has no session (it did not join).
-- Stamp `CharacterId` from the player mirror's `OwnedCharacterComponent`.
+- Stamp `CharacterUuid` from the player mirror's `OwnedCharacterComponent`.
 - Stamp `SenderName` from the player mirror's `IdentifierComponent`.
 - Strip control characters and truncate `Value` to 512 characters.
 - Broadcast the relay to every connected client, including the sender.
@@ -34,11 +34,11 @@ Every relayed message logs one line through the standard engine log (MEL:
 console and `logs/latest.log`):
 
 ```
-[Chat] {CharacterId} {SenderName}: {Value}
+[Chat] {CharacterUuid} {SenderName}: {Value}
 ```
 
 The literal `[Chat]` prefix marks chat lines for parsing. Sanitization keeps
-the line single-line. `CharacterId` is the character GUID.
+the line single-line. `CharacterUuid` is the character uuid.
 
 The log is plain text. It has no dedicated chat log file.
 
@@ -108,9 +108,5 @@ edit.
 
 ## Tests that pin this
 
-- `Swordfish.Tests/ChatTests.cs` covers the round trip, the relay stamping and
-  sanitization, the broadcast, and the unjoined-client drop rule.
 - `WaywardBeyond.Client.Tests/ChatServiceTests.cs` covers the ring buffer
   bounds and the send queue.
-- `WaywardBeyond.Client.Tests/ClientChatSystemTests.cs` covers the inbound
-  drain and the outbound flush.

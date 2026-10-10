@@ -96,5 +96,3 @@ mapping is unchanged. Color tags in an editable text box are not supported.
 - `Reef.Text.Tests/RichTextTests.cs` covers parsing: stripped text, color
   alignment, reset, the literal escape, the trailing-space rule, and invalid
   control characters.
-- `Reef.Text.Tests/GlyphLayoutTests.cs` covers color resolution: element color
-  fallback and run-alpha by element-alpha mixing.

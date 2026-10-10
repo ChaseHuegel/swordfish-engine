@@ -159,9 +159,5 @@ button (`HomePage`).
   roots, parse-failure skip.
 - `Swordfish.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
   host override, deny on unbind.
-- `Swordfish.Tests/Permissions/ServerJoinPermissionTests.cs` — join binds the
-  connection claim, anonymous without one, leave unbinds.
-- `Swordfish.Tests/Permissions/ServerWorldSaveTests.cs` — autosave cadence, save
-  authorization, notification broadcast.
 - `Swordfish.Tests/Permissions/ServerLevelCreatePermissionTests.cs` — host
   allow, remote grant and deny, create capability on the listing.

@@ -10,7 +10,7 @@ for user review. The decision is recorded here (issue #0036).
   (`WaywardBeyond.Data/KeyValueStore.cs`) with an embedded
   `PersistentNatsProcess` (bundled `nats-server`, `saves/` storage dir). Two
   buckets: `levels` (level data, per level guid) and `characters`
-  (per character id), plus save metadata.
+  (per character uuid), plus save metadata.
 - **Game saves.** Owned by `WorldSaveService` (`Server.Core/Saves`): the
   authoritative world flushed on save requests, leave, disconnect, and server
   shutdown. Save frequency: on-demand (menu save), autosave interval, and
