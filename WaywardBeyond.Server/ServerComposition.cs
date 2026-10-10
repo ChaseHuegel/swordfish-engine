@@ -121,7 +121,7 @@ public static class ServerComposition
 
     private static ServerConnectionHub CreateConnectionHub(in NetworkingConfig config)
     {
-        return new ServerConnectionHub(config.MaxReceiveWindow.Get());
+        return new ServerConnectionHub(config.Server.MaxReceiveWindow.Get());
     }
 
     private static SharedSimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)

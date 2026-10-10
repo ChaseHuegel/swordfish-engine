@@ -72,7 +72,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _pendingDeletes = pendingDeletes;
         _levelCatalog = levelCatalog;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
-        _idleUnloadMs = Math.Max(1, config.WorldIdleUnloadMs.Get());
+        _idleUnloadMs = Math.Max(1, config.Server.IdleUnloadMs.Get());
         _threadWorker = new ThreadWorker(Update, "Server");
     }
 

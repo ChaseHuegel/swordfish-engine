@@ -43,7 +43,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     {
         //  Upload at SnapshotHz, decoupled from the ECS tick rate. Dirty flags persist across skipped
         //  ticks and staged interaction/inventory edges stay buffered, so nothing is lost.
-        float interval = 1f / Math.Max(1, _config.SnapshotHz.Get());
+        float interval = 1f / Math.Max(1, _config.Protocol.SnapshotHz.Get());
         _sinceSend += delta;
         if (_sinceSend < interval)
         {

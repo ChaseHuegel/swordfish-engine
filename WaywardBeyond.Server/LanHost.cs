@@ -58,8 +58,8 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
     public void Run()
     {
-        int port = _config.ServerPort.Get();
-        _host = new TcpServerHost(_serializers, _loggerFactory, _config.ConnectionTimeoutMs.Get(), _config.SendQueueSize.Get(), _config.MaxFrameBytes.Get(), _config.ReliableQueueConcernThreshold.Get(), _config.ReliableQueueDisconnectThreshold.Get(), _config.ReliableQueueDisconnectMs.Get(), _config.TraceLogging.Get(), _config.SendIntervalMs.Get());
+        int port = _config.Server.Port.Get();
+        _host = new TcpServerHost(_serializers, _loggerFactory, _config.Transport.TimeoutMs.Get(), _config.Transport.SendQueueSize.Get(), _config.Transport.MaxFrameBytes.Get(), _config.Transport.ReliableQueueConcernThreshold.Get(), _config.Transport.ReliableQueueDisconnectThreshold.Get(), _config.Transport.ReliableQueueDisconnectMs.Get(), _config.Transport.TraceLogging.Get(), _config.Transport.SendIntervalMs.Get());
         _host.OnClientAccepted = transport =>
         {
             _clientIds[transport] = 0;
@@ -97,7 +97,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
     /// </summary>
     private void StartBeacon()
     {
-        if (!_config.DiscoveryBroadcasting.Get())
+        if (!_config.Discovery.Enabled.Get())
         {
             return;
         }
@@ -112,7 +112,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
         {
             _beacon = new UdpClient { EnableBroadcast = true };
             _beaconRunning = true;
-            int intervalMs = Math.Max(100, _config.DiscoveryBroadcastSeconds.Get() * 1000);
+            int intervalMs = Math.Max(100, _config.Discovery.BroadcastSeconds.Get() * 1000);
             int tcpPort = _host!.LocalPort;
             var thread = new Thread(() => BroadcastBeacons(tcpPort, intervalMs))
             {
@@ -120,7 +120,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
                 Name = "LAN BEACON",
             };
             thread.Start();
-            _logger.LogInformation("LAN discovery beacon started on port {port}.", _config.DiscoveryPort.Get());
+            _logger.LogInformation("LAN discovery beacon started on port {port}.", _config.Discovery.Port.Get());
         }
         catch (Exception ex)
         {
@@ -131,8 +131,8 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
     private void BroadcastBeacons(int tcpPort, int intervalMs)
     {
-        int discoveryPort = _config.DiscoveryPort.Get();
-        string serverName = _config.ServerName.Get();
+        int discoveryPort = _config.Discovery.Port.Get();
+        string serverName = _config.Server.Name.Get();
 
         while (_beaconRunning)
         {

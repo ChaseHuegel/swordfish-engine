@@ -44,8 +44,8 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         _hub = hub;
         _logger = logger;
         _simulationStep = simulationStep;
-        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.HeartbeatIntervalMs.Get(), Math.Max(1, config.ConnectionTimeoutMs.Get() / 2)));
-        _lagWarnThreshold = (uint)Math.Max(1, config.TickLagWarnThreshold.Get());
+        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, config.Transport.TimeoutMs.Get() / 2)));
+        _lagWarnThreshold = (uint)Math.Max(1, config.Server.TickLagWarnThreshold.Get());
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
     }

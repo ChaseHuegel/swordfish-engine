@@ -175,7 +175,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         //  Snapshot cadence: publish once per SnapshotHz, measured from the tick deltas so it does not
         //  depend on the server tick rate. Subtracting, not resetting, keeps the average exact. All
         //  publish effects ride the cadence, so nothing on the wire waits more than one interval.
-        float interval = 1f / Math.Max(1, _config.SnapshotHz.Get());
+        float interval = 1f / Math.Max(1, _config.Protocol.SnapshotHz.Get());
         _sincePublish += delta;
         if (_sincePublish < interval)
         {

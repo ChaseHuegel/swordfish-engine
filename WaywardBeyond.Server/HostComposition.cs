@@ -74,6 +74,11 @@ public static class HostComposition
         }
 
         container.RegisterConfig<NetworkingConfig>(file: "network.toml");
+        container.RegisterDelegate<DiscoveryConfig>(context => context.Resolve<NetworkingConfig>().Discovery, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterDelegate<ProtocolConfig>(context => context.Resolve<NetworkingConfig>().Protocol, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterDelegate<ServerConfig>(context => context.Resolve<NetworkingConfig>().Server, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterDelegate<TransportConfig>(context => context.Resolve<NetworkingConfig>().Transport, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        
         container.RegisterConfig<StorageSettings>(file: "storage.toml");
 
         container.Register<StoragePaths>(Reuse.Singleton);

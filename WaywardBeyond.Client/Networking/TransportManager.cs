@@ -64,14 +64,14 @@ internal sealed class TransportManager : IClientConnection
             var transport = new TcpTransport(
                 _serializers,
                 _loggerFactory,
-                _config.ConnectionTimeoutMs.Get(),
-                _config.SendQueueSize.Get(),
-                _config.MaxFrameBytes.Get(),
-                _config.ReliableQueueConcernThreshold.Get(),
-                _config.ReliableQueueDisconnectThreshold.Get(),
-                _config.ReliableQueueDisconnectMs.Get(),
-                _config.TraceLogging.Get(),
-                _config.SendIntervalMs.Get()
+                _config.Transport.TimeoutMs.Get(),
+                _config.Transport.SendQueueSize.Get(),
+                _config.Transport.MaxFrameBytes.Get(),
+                _config.Transport.ReliableQueueConcernThreshold.Get(),
+                _config.Transport.ReliableQueueDisconnectThreshold.Get(),
+                _config.Transport.ReliableQueueDisconnectMs.Get(),
+                _config.Transport.TraceLogging.Get(),
+                _config.Transport.SendIntervalMs.Get()
             );
             transport.OnDisconnected += reason =>
             {

@@ -46,8 +46,8 @@ internal sealed class LanDiscoveryService
     /// </summary>
     public async IAsyncEnumerable<DiscoveredServer> ScanAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        int windowMs = Math.Max(100, _config.DiscoveryScanDurationSeconds.Get() * 1000);
-        int discoveryPort = _config.DiscoveryPort.Get();
+        int windowMs = Math.Max(100, _config.Discovery.ScanDurationSeconds.Get() * 1000);
+        int discoveryPort = _config.Discovery.Port.Get();
 
         UdpClient udp;
         try

@@ -57,7 +57,7 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
             _stats.Record(heartbeat.Value);
         }
 
-        int intervalMs = Math.Max(250, Math.Min(_config.HeartbeatIntervalMs.Get(), Math.Max(1, _config.ConnectionTimeoutMs.Get() / 2)));
+        int intervalMs = Math.Max(250, Math.Min(_config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, _config.Transport.TimeoutMs.Get() / 2)));
         if (Environment.TickCount - _nextHeartbeatTicks < intervalMs)
         {
             return;

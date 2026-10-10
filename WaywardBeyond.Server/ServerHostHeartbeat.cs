@@ -35,7 +35,7 @@ public sealed class ServerHostHeartbeat
     ) {
         _pendingJoins = pendingJoins;
         _logger = logger;
-        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.HeartbeatIntervalMs.Get(), Math.Max(1, config.ConnectionTimeoutMs.Get() / 2)));
+        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, config.Transport.TimeoutMs.Get() / 2)));
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
     }

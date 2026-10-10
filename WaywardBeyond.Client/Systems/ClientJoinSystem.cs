@@ -144,9 +144,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
         //  A join that never completes (undelivered LevelStreamComplete, dying link, or a world too
         //  large to drain) must not stall Loading forever: abort and return to the menu with the
         //  connection-lost notice.
-        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _config.JoinStreamTimeoutMs.Get())
+        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _config.Protocol.JoinStreamTimeoutMs.Get())
         {
-            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _config.JoinStreamTimeoutMs.Get());
+            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _config.Protocol.JoinStreamTimeoutMs.Get());
             _request = null;
             _sent = false;
             _disconnectSystem.RequestDisconnect();
