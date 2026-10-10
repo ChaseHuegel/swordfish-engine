@@ -2,28 +2,21 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Bodies;
 
-/// <summary>
-/// The headless, render-free view of a loaded body model. Carries the stable string ID and the ordered
-/// directional texture paths for each state. It does not reference a graphics material or mesh, so the
-/// server and headless consumers share it; the client resolves texture paths to renderable materials.
-/// </summary>
-public sealed class BodyInfo
+/// <summary>Asset information used to display a body.</summary>
+public sealed class BodyInfo(in string id, in Dictionary<string, string[]> states)
 {
-    public readonly string ID;
-    public readonly Dictionary<string, string[]> States;
-
-    public BodyInfo(in string id, in Dictionary<string, string[]> states)
-    {
-        ID = id;
-        States = states;
-    }
+    /// <inheritdoc cref="BodyDefinition.ID"/>
+    public readonly string ID = id;
+    
+    /// <inheritdoc cref="BodyDefinition.States"/>
+    private readonly Dictionary<string, string[]> _states = states;
 
     /// <summary>
-    /// The ordered directional texture paths for a state tag, in canonical
-    /// <see cref="BodyDirectionOrder"/>. Empty when the body defines no such state.
+    /// The ordered directional texture paths for a state tag.
+    /// Empty when the body defines no such state.
     /// </summary>
-    public string[] GetState(string stateTag)
+    public string[] GetTextures(string tag)
     {
-        return States.TryGetValue(stateTag, out string[]? values) ? values : [];
+        return _states.TryGetValue(tag, out string[]? values) ? values : [];
     }
 }

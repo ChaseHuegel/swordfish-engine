@@ -6,18 +6,15 @@ using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Bodies;
 
-/// <summary>
-/// Provides headless access to body model definitions from virtual resources. Exposes each body as a
-/// <see cref="BodyInfo"/> carrying its stable string ID and per-state directional texture paths. It carries
-/// no render-coupled material types, so the client, the server, and headless consumers share one database.
-/// </summary>
-public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, BodyInfo>, IBodyDatabase
+/// <inheritdoc/>
+internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyDefinition, BodyInfo>, IBodyDatabase
 {
-    private readonly Dictionary<string, BodyModel> _models = [];
+    /// <summary>The direction tags from forward-facing, iterating clockwise around the up axis.</summary>
+    private static readonly string[] _orderedDirections = ["front", "back", "left", "right"];
+    
+    private readonly Dictionary<string, BodyDefinition> _models = [];
 
-    /// <summary>The ID of the first loaded body, used as a default when a referenced body is unknown.</summary>
-    public string? DefaultId { get; private set; }
-
+    /// <summary>Constructs a body database.</summary>
     public BodyDatabase(
         in ILogger<BodyDatabase> logger,
         in IFileParseService fileParseService,
@@ -26,48 +23,38 @@ public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, B
     {
         Load();
     }
+    
+    /// <inheritdoc/>
+    public string? DefaultId { get; private set; }
 
-    /// <summary>The number of loaded bodies.</summary>
+    /// <inheritdoc/>
     public int Count => _models.Count;
 
-    /// <summary>The IDs of every loaded body, in insertion (parse) order.</summary>
+    /// <inheritdoc/>
     public IEnumerable<string> Ids => _models.Keys;
-
-    /// <summary>
-    /// Whether a body with the provided ID is loaded. Callers reference a body's string ID; this is the
-    /// guard a client uses to fall back to a default body when an ID is unknown.
-    /// </summary>
-    public bool Contains(string id)
-    {
-        if (string.IsNullOrEmpty(id))
-        {
-            return false;
-        }
-
-        return _models.ContainsKey(id);
-    }
 
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
 
     /// <inheritdoc/>
-    protected override PathInfo GetRootPath() => new PathInfo("bodies/");
+    protected override PathInfo GetRootPath() => new("bodies/");
 
     /// <inheritdoc/>
-    protected override IEnumerable<BodyModel> GetAssetInfo(PathInfo path, BodyModels resource) => resource.Bodies ?? [];
+    protected override IEnumerable<BodyDefinition> GetAssetInfo(PathInfo path, BodyDefinitions resource) => resource.Bodies ?? [];
 
     /// <inheritdoc/>
-    protected override string GetAssetID(BodyModel assetInfo) => assetInfo.ID;
+    protected override string GetAssetID(BodyDefinition assetInfo) => assetInfo.ID ?? string.Empty;
 
     /// <inheritdoc/>
-    protected override Result<BodyInfo> LoadAsset(string id, BodyModel assetInfo)
+    protected override Result<BodyInfo> LoadAsset(string id, BodyDefinition assetInfo)
     {
         var states = new Dictionary<string, string[]>();
         if (assetInfo.States != null)
         {
-            foreach ((string stateTag, Dictionary<string, string?[]> directions) in assetInfo.States)
+            foreach ((string tag, Dictionary<string, string?[]> directions) in assetInfo.States)
             {
-                states[stateTag] = BodyDirectionOrder.Resolve(in directions);
+                string normalizedTag = tag.ToLowerInvariant();
+                states[normalizedTag] = ResolveOrderedTextures(in directions);
             }
         }
 
@@ -75,5 +62,33 @@ public sealed class BodyDatabase : VirtualAssetDatabase<BodyModels, BodyModel, B
         _models[id] = assetInfo;
         DefaultId ??= id;
         return Result<BodyInfo>.FromSuccess(info);
+    }
+    
+    /// <summary>
+    /// Reads keys as direction tags and values as texture paths.
+    /// Multiple texture paths for one direction are flattened.
+    /// </summary>
+    /// <returns>An array of texture paths in order of supported directions as defined by <see cref="_orderedDirections"/>.</returns>
+    private static string[] ResolveOrderedTextures(in Dictionary<string, string?[]> directions)
+    {
+        var textures = new List<string>();
+        foreach (string direction in _orderedDirections)
+        {
+            string normalizedDirection = direction.ToLowerInvariant();
+            if (!directions.TryGetValue(normalizedDirection, out string?[]? paths))
+            {
+                continue;
+            }
+
+            foreach (string? path in paths)
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    textures.Add(path);
+                }
+            }
+        }
+
+        return [.. textures];
     }
 }

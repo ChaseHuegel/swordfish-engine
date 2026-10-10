@@ -72,14 +72,14 @@ internal sealed class CharacterAssetService
 
     private string ResolveId(string bodyId)
     {
-        return _bodyDatabase.Contains(bodyId) ? bodyId : (_bodyDatabase.DefaultId ?? bodyId);
+        return _bodyDatabase.Get(bodyId) ? bodyId : (_bodyDatabase.DefaultId ?? bodyId);
     }
 
     private Material BuildStandingMaterial(string bodyId)
     {
         string resolved = ResolveId(bodyId);
         //  Standing is the default state; if absent, fall back to the first floating state's texture.
-        string[] textures = _bodyDatabase.Get(resolved).Value.GetState("standing");
+        string[] textures = _bodyDatabase.Get(resolved).Value.GetTextures("standing");
         Texture texture = LoadFirstTexture(resolved, textures);
         return new Material(_uiShader, texture) { Transparent = true };
     }
@@ -87,11 +87,11 @@ internal sealed class CharacterAssetService
     private Material[] BuildFloatingMaterials(string bodyId)
     {
         string resolved = ResolveId(bodyId);
-        string[] textures = _bodyDatabase.Get(resolved).Value.GetState("floating");
+        string[] textures = _bodyDatabase.Get(resolved).Value.GetTextures("floating");
         if (textures.Length == 0)
         {
             //  No floating pose: render the standing pose as a single-direction billboard.
-            string texturePath = _bodyDatabase.Get(resolved).Value.GetState("standing").FirstOrDefault() ?? string.Empty;
+            string texturePath = _bodyDatabase.Get(resolved).Value.GetTextures("standing").FirstOrDefault() ?? string.Empty;
             if (string.IsNullOrEmpty(texturePath))
             {
                 return [];
