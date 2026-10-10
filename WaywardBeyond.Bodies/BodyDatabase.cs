@@ -8,7 +8,7 @@ using Swordfish.Library.Util;
 namespace WaywardBeyond.Bodies;
 
 /// <inheritdoc/>
-internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyDefinition, BodyInfo>, IBodyDatabase
+internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyDefinition, Body>, IBodyDatabase
 {
     /// <summary>The direction tags from forward-facing, iterating clockwise around the up axis.</summary>
     private static readonly string[] _orderedDirections = ["front", "back", "left", "right"];
@@ -47,7 +47,7 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
     protected override string GetAssetID(BodyDefinition assetInfo) => assetInfo.ID ?? string.Empty;
 
     /// <inheritdoc/>
-    protected override Result<BodyInfo> LoadAsset(string id, BodyDefinition assetInfo)
+    protected override Result<Body> LoadAsset(string id, BodyDefinition assetInfo)
     {
         var states = new Dictionary<string, string[]>();
         if (assetInfo.States != null)
@@ -59,10 +59,10 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
             }
         }
 
-        var info = new BodyInfo(id, states);
+        var info = new Body(id, states);
         _ids.Add(id);
         DefaultId ??= id;
-        return Result<BodyInfo>.FromSuccess(info);
+        return Result<Body>.FromSuccess(info);
     }
     
     /// <summary>

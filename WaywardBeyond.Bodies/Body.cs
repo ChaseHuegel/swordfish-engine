@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Bodies;
 
-/// <summary>Asset information used to display a body.</summary>
-public sealed class BodyInfo(in string id, in Dictionary<string, string[]> states)
+/// <summary>An asset for displaying a character's body.</summary>
+public sealed class Body(in string id, in Dictionary<string, string[]> states)
 {
     /// <inheritdoc cref="BodyDefinition.ID"/>
     public readonly string ID = id;

@@ -3,8 +3,8 @@ using Swordfish.Library.Collections;
 
 namespace WaywardBeyond.Bodies;
 
-/// <summary>Provides access to all loaded <see cref="BodyInfo"/>s.</summary>
-public interface IBodyDatabase : IAssetDatabase<BodyInfo>
+/// <summary>Provides access to all loaded <see cref="Body"/>s.</summary>
+public interface IBodyDatabase : IAssetDatabase<Body>
 {
     /// <summary>The ID of the default body.</summary>
     string? DefaultId { get; }
