@@ -7,11 +7,10 @@ namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Shoal module entry point for the server. Loaded through the standard module discovery path rather
-/// than a hard-wired registration from the client. In <see cref="NetworkMode.Host"/> (the default, e.g.
-/// singleplayer) it registers the authoritative server composition, the <see cref="ServerWorldHost"/>
-/// entry point, and a <see cref="LanHost"/> LAN listener. In <see cref="NetworkMode.Client"/> it
-/// registers none of them, so a pure client never spins up an in-process server and simply joins a
-/// remote host over a socket.
+/// than a hard-wired registration from the client. It registers the authoritative server composition,
+/// the <see cref="ServerWorldHost"/> entry point, and a <see cref="LanHost"/> LAN listener. A dedicated
+/// server loads this module without the client module, so it never starts a window, input, or
+/// client-world services.
 /// </summary>
 public sealed class ServerModule : IDryIocInjector
 {

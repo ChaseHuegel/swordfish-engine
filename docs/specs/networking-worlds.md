@@ -20,8 +20,8 @@ longer tears down the first world.
 4. Every server tick the host ticks each live world in creation order through
    the engine `World`, with a per-world sim counter owned by each world's
    `SharedSimulationStep`.
-5. A world whose `SessionManager.Count == 0` for `WorldIdleUnloadMs`
-   (`NetworkingSettings`, default 60000) unloads: final flush via the world's
+5. A world whose `SessionManager.Count == 0` for `Server.IdleUnloadMs`
+   (`NetworkingConfig.Server`, default 60000) unloads: final flush via the world's
    `LevelSaveService.QueueSave` (captured on the server thread, persisted in
    the background), connections unbound back into `PendingJoins`, world
    container disposed.
@@ -40,7 +40,7 @@ pins it into an **exclusive child container** per world
 `withDisposables: false`); every system's constructor dependencies then resolve
 to that world's own instance graph. Shared singletons (registry, codecs,
 `SkillDatabase`, `IBrickIdMap`, `IInteractionContent`, the `ILevelCatalog`
-backing, `NetworkingSettings`, `TcpServerHost`, `LocalConnection`) resolve
+backing, `NetworkingConfig`, `TcpServerHost`, `LocalConnection`) resolve
 through the child fall-through.
 `withDisposables: false` is required: a child-container disposal cascades to
 the root's singleton disposables otherwise, so unloading a world would dispose
@@ -93,7 +93,7 @@ pinned instances (registered into the child) still dispose on world unload.
 ## What stays shared
 
 `NetworkRegistry`, codecs/serializers, `SkillDatabase`, `IBrickIdMap`,
-`IInteractionContent` + handler registry, `NetworkingSettings`,
+`IInteractionContent` + handler registry, `NetworkingConfig`,
 `TcpServerHost`/`LanHost` (one listen socket), `LocalConnection`,
 `ILevelCatalog` + `StoragePaths` (the level save databases),
 `PendingLevelDeletes`.
@@ -143,12 +143,12 @@ measured pressure from scaling work).
 
 ## Test strategy
 
-- `Swordfish.Tests/ServerWorldCompositionTests.cs`: per-scope graph isolation,
-  canonical registration order, joins delivered only to the owning world.
-- `Swordfish.Tests/ServerWorldHostTests.cs`: multi-world join/depart through
-  the pending route, idle unload with persistence flush, rejoin that recreates
-  the world and resumes.
-- Regression: `SessionRoutingTests` (same-level multi-client), `LanHostLifecycleTests`
+- `Swordfish.Tests/ChatTests.cs` exercises multi-client routing over the
+  `ServerConnectionHub`.
+- `Swordfish.Tests/TcpServerHostTests.cs` exercises socket accept, independent
+  per-peer routing, and disconnect detection.
+- `Swordfish.Tests/RejoinConcurrencyTests.cs` drives the client and server world
+  teardown and rebuild concurrently.
   (pending-set pruning), and the full networking suite stay green.
 
 ## Source of truth

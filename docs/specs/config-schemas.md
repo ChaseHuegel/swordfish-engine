@@ -62,13 +62,13 @@ LoadOrder = [
 ## `chat.toml` (per app)
 
 Runtime chat tunables. Registered by the client module via
-`RegisterConfig<ChatSettings>`. Defaults live in
-`WaywardBeyond.Config/ChatSettings.cs`. See [chat](chat.md).
+`RegisterConfig<ChatConfig>`. Defaults live in
+`WaywardBeyond.Config/ChatConfig.cs`. See [chat](chat.md).
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `TimeoutSeconds` | int | 10 | seconds the closed chat overlay lingers after last activity |
-| `MaxHistory` | int | 100 | client scrollback message capacity |
+| `StaleMs` | int | `10000` | milliseconds until new chats become stale; the closed chat overlay lingers this long after activity |
+| `MaxHistory` | int | `100` | client scrollback message capacity |
 
 ## `ui.toml` (per app)
 
@@ -81,9 +81,9 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 ## `gameplay.toml` (per app)
 
 Gameplay tunables shared by the client and the server, registered via
-`RegisterConfig<GameplaySettings>` (client `Injector.cs`, server
+`RegisterConfig<GameplayConfig>` (client `Injector.cs`, server
 `ServerComposition.cs`). Schema:
-`WaywardBeyond.Config/GameplaySettings.cs`.
+`WaywardBeyond.Config/GameplayConfig.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -112,12 +112,16 @@ Applying gravity happens on change, not per tick:
 
 ## `network.toml` last-used endpoint
 
-`NetworkingSettings.DefaultHost`/`DefaultConnectPort` double as the **last-used
+`NetworkingConfig.RemoteHost`/`RemotePort` double as the **last-used
 endpoint**: the multiplayer page writes the entered address/port to them on
 every connect attempt and persists them (`network.toml`, `SettingsManager`
 save path), and the page prefill reads them back on launch. Singleplayer never
 writes them, so they cannot encode how a session was joined — the mode marker
 lives in `profile.toml` (`LastServerMode`).
+
+`NetworkingConfig` groups its keys into the nested `[Server]`, `[Discovery]`,
+`[Transport]`, and `[Protocol]` tables. The full key list lives in
+[networking-transports](networking-transports.md).
 
 ## `storage.toml` (per app)
 
@@ -126,7 +130,7 @@ Schema: `WaywardBeyond.Config/StorageSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
-| `DataRoot` | string | `saves/` | root for `profile.db` and the per-level databases; relative paths resolve against the process working directory |
+| `SaveRoot` | PathInfo | `saves/` | root for `profile.db` and the per-level databases; relative paths resolve against the process working directory |
 
 A dedicated server can override the root with `--data`.
 

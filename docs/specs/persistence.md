@@ -72,7 +72,7 @@ are unchanged (`SaveTime.Accumulate`).
 ### Server autosave
 
 `ServerWorldSystem` (`Server.Core/Systems/ServerWorldSystem.cs`) queues a level
-flush every `GameplaySettings.AutosaveIntervalMs` while a world has sessions. It
+flush every `GameplayConfig.AutosaveIntervalMs` while a world has sessions. It
 broadcasts `notification.save.saving` when the capture is queued, then
 `notification.save.saved` or `notification.save.saving.failed` when the
 background write finishes. A world with no sessions does not autosave; the

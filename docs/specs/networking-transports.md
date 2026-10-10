@@ -36,7 +36,7 @@ demux are `TcpTransport` behavior covered by `TcpTransportTests`.
 ## `TcpTransport` (peer / LAN / dedicated)
 
 `Transport/TcpTransport.cs` is a socket peer usable as a client
-(`Connect(host, port)`; the async connect is bounded by `ConnectionTimeoutMs`
+(`Connect(host, port)`; the async connect is bounded by `Transport.TimeoutMs`
 so an unreachable host fails the join attempt instead of freezing the caller
 through the OS connect retry schedule) or a server peer (`Listen(port)`; the
 multi-peer acceptor is `TcpServerHost`). It length-prefixes each serialized
@@ -70,8 +70,8 @@ join-stream timeout).
 A keepalive heartbeat keeps a live-but-idle peer from being dropped. There is
 no transport-level keepalive frame: the **session heartbeat** is the liveness
 signal. Both sides emit an app-level heartbeat per connection at
-`NetworkingSettings.HeartbeatIntervalMs` (clamped below `ConnectionTimeoutMs`)
-from connection establishment - server → client `ServerHeartbeatMessage`
+`NetworkingConfig.Protocol.HeartbeatIntervalMs` (clamped below
+`Transport.TimeoutMs`) from connection establishment - server → client `ServerHeartbeatMessage`
 (carrying the averaged `TPS`, the current sim `TickNumber`, and
 `PlayerCount`), client → server `ClientHeartbeatMessage` (carrying the client's
 sim tick and last applied snapshot tick). The receive loop no longer skips any
@@ -82,8 +82,8 @@ host-level `ServerHostHeartbeat` (`Server.Core/ServerHostHeartbeat.cs`) for
 connections still in the pending set - the menu and character-creation window,
 before any world exists. The host-level pump also drains the pending
 connection's client heartbeats, so they cannot pile up unread. The server
-tracks each client's reported tick and logs a warn when it falls behind by more
-than `TickLagWarnThreshold` sim ticks (once per crossing).
+tracks each client's reported tick and logs a warn when it falls behind by
+more than `Server.TickLagWarnThreshold` sim ticks (once per crossing).
 
 Disconnect detection is symmetric. Either the receive or the send thread can
 observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
@@ -126,7 +126,7 @@ connected client under an opaque `Uuid` (`clientId`) assigned on `Add`. It is
 shared code because the shared transports feed it and every world side consumes it.
 
 - `Receive<T>()` polls every client connection, draining at most
-  `NetworkingSettings.MaxReceiveWindow` frames per client per poll so one
+  `NetworkingConfig.Server.MaxReceiveWindow` frames per client per poll so one
   chatty client cannot starve the rest of a server tick, and tags each
   inbound message with the `clientId` it arrived on.
 - `Send<T>(clientId, ...)` addresses a single client.
@@ -149,21 +149,21 @@ shared code because the shared transports feed it and every world side consumes 
 
 ## LAN server discovery
 
-Hosts in `NetworkMode.Host` advertise an open server over **UDP broadcast**
+Hosts advertise an open server over **UDP broadcast**
 so a LAN client can auto-populate the multiplayer page. This is the one
 permitted UDP exception to the TCP-only rule; the beacon is a pure control
 plane and never carries game state.
 
 - **Server broadcast.** `LanHost` (`Server.Core/LanHost.cs`) starts a
   `"LAN BEACON"` thread that sends an nsd `LanBeacon` to `255.255.255.255`
-  every `NetworkingSettings.DiscoveryBroadcastSeconds`. `PlayerCount` is read
+  every `NetworkingConfig.Discovery.BroadcastSeconds`. `PlayerCount` is read
   live from `ServerWorldHost.PlayerCount` (the sum over world hubs; each
   accepted peer awaits its join in the pending set until it binds to a world).
   A `SocketException` (broadcast blocked) kills the loop permanently.
 - **Client scan.** `LanDiscoveryService` (`Client.Core/Networking/`) opens a
   `UdpClient` on the same port and streams each discovered server as an
   `IAsyncEnumerable<DiscoveredServer>` while listening for
-  `DiscoveryScanSeconds`. It drops non-matching protocol versions, dedupes by
+  `Discovery.ScanDurationSeconds`. It drops non-matching protocol versions, dedupes by
   endpoint, and reads off the UI thread. It ignores a beacon from its own
   in-process server by source address + advertised TCP port.
 - `MultiplayerPage` pre-fills host/port so the normal
@@ -171,33 +171,56 @@ plane and never carries game state.
 
 ## Configuration
 
-`NetworkingSettings` (`WaywardBeyond.Config/NetworkingSettings.cs`),
-loaded from `network.toml`:
+`NetworkingConfig` (`WaywardBeyond.Config/NetworkingConfig.cs`), loaded from
+`network.toml`. The remote endpoint keys are top-level. The rest group into
+nested `[Server]`, `[Discovery]`, `[Transport]`, and `[Protocol]` tables.
+
+Top-level:
 
 | Key | Default |
 |---|---|
-| `ServerPort` | `0` |
-| `DefaultHost` | `127.0.0.1` |
-| `DefaultConnectPort` | `7777` |
-| `ServerName` | `LAN Server` |
-| `DiscoveryPort` | `47777` |
-| `LanDiscovery` | `true` |
-| `DiscoveryBroadcastSeconds` | `5` |
-| `DiscoveryScanSeconds` | `20` |
-| `ConnectionTimeoutMs` | `5000` |
-| `HeartbeatIntervalMs` | `1000` |
+| `RemoteHost` | `127.0.0.1` |
+| `RemotePort` | `7777` |
+
+`[Server]` (`ServerConfig`):
+
+| Key | Default |
+|---|---|
+| `Port` | `0` |
+| `Name` | `LAN Server` |
+| `IdleUnloadMs` | `60000` |
 | `TickLagWarnThreshold` | `10` |
-| `SnapshotHz` | `30` |
+| `MaxReceiveWindow` | `10` |
+
+`[Discovery]` (`DiscoveryConfig`):
+
+| Key | Default |
+|---|---|
+| `Enabled` | `true` |
+| `Port` | `47777` |
+| `BroadcastSeconds` | `5` |
+| `ScanDurationSeconds` | `20` |
+
+`[Transport]` (`TransportConfig`):
+
+| Key | Default |
+|---|---|
+| `TraceLogging` | `false` |
+| `TimeoutMs` | `5000` |
+| `MaxFrameBytes` | `16777216` |
 | `SendIntervalMs` | `16` |
 | `SendQueueSize` | `256` |
-| `MaxFrameBytes` | `16777216` |
 | `ReliableQueueConcernThreshold` | `64` |
 | `ReliableQueueDisconnectThreshold` | `128` |
 | `ReliableQueueDisconnectMs` | `10000` |
+
+`[Protocol]` (`ProtocolConfig`):
+
+| Key | Default |
+|---|---|
+| `HeartbeatIntervalMs` | `1000` |
+| `SnapshotHz` | `30` |
 | `JoinStreamTimeoutMs` | `60000` |
-| `WorldIdleUnloadMs` | `60000` |
-| `MaxReceiveWindow` | `10` |
-| `TraceLogging` | `false` |
 
 Disconnect detection is reason-carrying: `TcpTransport.OnDisconnected` reports
 a `DisconnectReason` (peer-closed EOF, read/write error, read/write timeout, or
@@ -259,15 +282,16 @@ modules only (`shared.bricks`, `shared.skills`, `shared.bodies`,
 `server.core`) - no window, input, or client-level services. It registers the
 same shared host wire-up as the embedded client host
 (`Server.Core/HostComposition.cs`): the serializer set, `NetworkRegistry`
-init, hub (no loopback seed), save storage, `NetworkingSettings`, and
+init, hub (no loopback seed), save storage, `NetworkingConfig`, and
 `PhysicsSettings`; `ServerModule`'s host registrations add
 `ServerWorldHost` + `LanHost` + the beacon. Interaction content is the
 embedding's choice: the client module registers its item-backed content, the
 launcher registers `ServerInteractionContent` (breaks and loot; place
 resolution needs shared item content). Lifecycle: `Ctrl+C`/SIGTERM → clean
 shutdown (level flush, session teardown, store disposal, per
-[persistence](persistence.md)). CLI: `--name`, `--port` override the
-`NetworkingSettings` defaults, and `--data` overrides `StorageSettings.DataRoot`.
+[persistence](persistence.md)). CLI: `--name` and `--port` override
+`NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
+`StorageSettings.SaveRoot`.
 
 ## Source of truth
 
@@ -278,7 +302,7 @@ shutdown (level flush, session teardown, store disposal, per
 - `WaywardBeyond.Client/Networking/LanDiscoveryService.cs`
 - `WaywardBeyond.Client/Networking/TransportManager.cs`
 - `WaywardBeyond.Client/Systems/ClientDisconnectSystem.cs`
-- `WaywardBeyond.Config/NetworkingSettings.cs`
+- `WaywardBeyond.Config/NetworkingConfig.cs`
 
 ## Tests that pin this
 

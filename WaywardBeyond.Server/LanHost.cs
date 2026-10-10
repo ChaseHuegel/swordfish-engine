@@ -16,7 +16,7 @@ namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Opens the in-process authoritative server to LAN peers over TCP. Runs alongside <see cref="ServerWorldHost"/>
-/// in host mode: it listens on <see cref="NetworkingConfig.ServerPort"/>, routes each accepted peer
+/// in host mode: it listens on <see cref="NetworkingConfig.Server.Port"/>, routes each accepted peer
 /// into the pending-join set (the host binds it to its world's hub when its <c>JoinRequest</c> arrives),
 /// and on socket disconnect releases the peer from the world host. When LAN discovery is enabled, a
 /// background thread also broadcasts a <see cref="LanBeacon"/> so LAN clients can auto-detect the server

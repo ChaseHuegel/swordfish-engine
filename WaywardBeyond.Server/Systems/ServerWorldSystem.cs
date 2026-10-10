@@ -12,7 +12,7 @@ namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
 /// Serves the in-world level save path. The server owns the autosave cadence: while a world has
-/// sessions it queues an authoritative flush every <c>GameplaySettings.AutosaveIntervalMs</c>. A client
+/// sessions it queues an authoritative flush every <c>GameplayConfig.AutosaveIntervalMs</c>. A client
 /// <see cref="SaveLevelRequest"/> is accepted only with the <see cref="GamePermissions.LevelSave"/>
 /// permission; the local host always qualifies. Every queued save broadcasts a start toast to the
 /// world, and each finished database write broadcasts the result.

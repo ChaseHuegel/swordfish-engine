@@ -44,7 +44,7 @@ NATS is removed entirely. The game persists to SQLite:
 - The old JetStream store is not migrated: the game is pre-release, so this
   is a clean break.
 
-The data root is `StorageSettings.DataRoot`, default `saves/`, overridable by
+The data root is `StorageSettings.SaveRoot`, default `saves/`, overridable by
 config (`storage.toml`) and by the dedicated server's `--data` flag.
 
 The implementation details, layout, and semantics live in

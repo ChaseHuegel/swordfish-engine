@@ -61,21 +61,21 @@ internal static class Program
 
         //  CLI overrides for the default LAN and storage configuration.
         CommandLineArgs args = container.Resolve<CommandLineArgs>();
-        NetworkingSettings networkingSettings = container.Resolve<NetworkingSettings>();
+        NetworkingConfig networkingConfig = container.Resolve<NetworkingConfig>();
         if (args.TryGetValue("name", out string? name) && !string.IsNullOrWhiteSpace(name))
         {
-            networkingSettings.ServerName.Set(name);
+            networkingConfig.Server.Name.Set(name);
         }
         if (args.TryGetValue("port", out string? port) && int.TryParse(port, out int parsedPort) && parsedPort is >= 1 and <= 65535)
         {
-            networkingSettings.ServerPort.Set(parsedPort);
+            networkingConfig.Server.Port.Set(parsedPort);
         }
-        networkingSettings.Save();
+        networkingConfig.Save();
 
         StorageSettings storageSettings = container.Resolve<StorageSettings>();
         if (args.TryGetValue("data", out string? dataRoot) && !string.IsNullOrWhiteSpace(dataRoot))
         {
-            storageSettings.DataRoot.Set(dataRoot);
+            storageSettings.SaveRoot.Set(dataRoot);
         }
         storageSettings.Save();
     }

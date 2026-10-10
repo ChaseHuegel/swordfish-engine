@@ -15,7 +15,7 @@ namespace WaywardBeyond.Client.Systems;
 /// server, automatically driven by ECS dirty tracking. Discrete <see cref="InteractionEvent"/> edges are
 /// drained from the player's outbound <see cref="InteractionStageBuffer"/> and emitted as one snapshot
 /// per edge, so rapid clicks between sends survive. Uploads are paced to
-/// <see cref="NetworkingConfig.SnapshotHz"/>, not the ECS tick rate.
+/// <see cref="NetworkingConfig.Protocol.SnapshotHz"/>, not the ECS tick rate.
 /// </summary>
 internal sealed class ClientReplicationSystem : IEntitySystem
 {

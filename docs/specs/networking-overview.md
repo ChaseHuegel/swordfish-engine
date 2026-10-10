@@ -51,9 +51,9 @@ Two independent ECS worlds run concurrently in the process:
   [networking-worlds](networking-worlds.md).
 
 The server is hosted inside the client app. `Server.Core/ServerModule.cs`
-calls `ServerComposition.Register(container)` and registers `LanHost` unless
-the process runs in `NetworkMode.Client`. The module loads through the
-standard module discovery path.
+calls `ServerComposition.Register(container)` and registers `ServerWorldHost`
+and `LanHost`. The module loads through the standard module discovery path. A
+dedicated server process loads the server module without the client module.
 
 The two sides never touch each other's `DataStore`. They exchange
 `ComponentSnapshot` payloads on the wire.

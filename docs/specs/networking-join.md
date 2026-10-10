@@ -101,7 +101,7 @@ teardown instead of entering Loading.
 A join whose `LevelStreamComplete` never arrives (undelivered marker, dying
 link, or a world too large to drain) must not stall `Loading` forever.
 `ClientJoinSystem` starts a clock when the `JoinRequest` is sent; if the stream
-does not complete within `NetworkingSettings.JoinStreamTimeoutMs`, it aborts the
+does not complete within `NetworkingConfig.Protocol.JoinStreamTimeoutMs`, it aborts the
 join and asks `ClientDisconnectSystem` for the normal connection-lost teardown:
 menu, toast, transport down. The server bounds the other side of the stream:
 a client whose reliable send backlog stays over
@@ -140,7 +140,7 @@ a world yet; the in-world `SaveLevelRequest` is served by the world's
   persisted endpoint on the save page before the save list and join flow target
   that server; a `Local` marker (written when a host-mode session loads) uses
   the in-process server. The endpoint itself is the last-used
-  `NetworkingSettings.DefaultHost`/`DefaultConnectPort` (see
+  `NetworkingConfig.RemoteHost`/`RemotePort` (see
   [config-schemas](config-schemas.md)).
 - **Saved servers** (the multiplayer page's saved list, capped at 32, deduped
   by host:port) connect through the standard `ConnectRemote` + join flow and

@@ -159,7 +159,7 @@ message VoxelEditMessage
 ## Session heartbeats
 
 `ServerHeartbeatMessage` (server → client, reliable, per connection at
-`HeartbeatIntervalMs`) and `ClientHeartbeatMessage` (client → server, same
+`NetworkingConfig.Protocol.HeartbeatIntervalMs`) and `ClientHeartbeatMessage` (client → server, same
 cadence) carry the liveness + lag signal. The server emits to every accepted
 connection from establishment: the per-world `ServerHeartbeatService` covers
 connections bound to a world hub, and the host-level `ServerHostHeartbeat`

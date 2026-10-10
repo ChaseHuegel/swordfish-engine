@@ -12,7 +12,7 @@ namespace WaywardBeyond.Server;
 /// character-creation window. The per-world <see cref="ServerHeartbeatService"/> only reaches hub
 /// clients, so a pre-join connection would otherwise receive nothing and time out its read socket.
 /// This pump emits <see cref="ServerHeartbeatMessage"/> per pending connection at
-/// <c>NetworkingSettings.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
+/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
 /// connection establishment - not gated on join - and drains the <see cref="ClientHeartbeatMessage"/>s
 /// they send so no world's lag tracking has to.
 /// </summary>

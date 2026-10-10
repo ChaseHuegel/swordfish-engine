@@ -12,7 +12,7 @@ namespace WaywardBeyond.Client;
 
 /// <summary>
 /// Session heartbeats, client side. Emits <see cref="ClientHeartbeatMessage"/> at
-/// <c>NetworkingSettings.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
+/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
 /// connection establishment - not gated on join - so the heartbeat doubles as the transport keepalive.
 /// Consumes <see cref="ServerHeartbeatMessage"/>s into <see cref="ServerStats"/> for the F3 screen.
 /// </summary>

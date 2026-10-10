@@ -81,7 +81,7 @@ message; the wheel breaks the stick to read older messages, and scrolling back
 to the bottom re-sticks it. A stuck scroller follows new arrivals.
 
 The fade is per message, not per window. Each message shows at full alpha for
-`TimeoutSeconds` after its arrival, then fades over one second. Closed chat
+`StaleMs` after its arrival, then fades over one second. Closed chat
 hides a message once its fade completes. Because messages fade in arrival
 order, the faded messages are always an oldest prefix, and the overlay
 renders nothing once every message has faded. Open chat shows every message
@@ -104,7 +104,7 @@ edit.
 - `WaywardBeyond.Client/Systems/ChatService.cs`
 - `WaywardBeyond.Client/Systems/ClientChatSystem.cs`
 - `WaywardBeyond.Client/UI/Layers/ChatLayer.cs`
-- `WaywardBeyond.Config/ChatSettings.cs`
+- `WaywardBeyond.Config/ChatConfig.cs`
 
 ## Tests that pin this
 

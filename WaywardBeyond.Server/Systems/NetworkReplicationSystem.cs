@@ -167,7 +167,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// Collects authoritative server-owned snapshots once, then publishes to each client a per-client
     /// snapshot carrying that client's own <see cref="WorldSnapshot.LastProcessedInput"/>. Despawns are
     /// those queued via <see cref="RequestDespawn"/>. Publishes at the configured snapshot cadence
-    /// (<see cref="NetworkingConfig.SnapshotHz"/>), measured in wall-clock time: the tick semantics are
+    /// (<see cref="NetworkingConfig.Protocol.SnapshotHz"/>), measured in wall-clock time: the tick semantics are
     /// unchanged and despawns/full-syncs ride the same cadence, at most one interval of delay.
     /// </summary>
     public void PublishStage(float delta, DataStore store)

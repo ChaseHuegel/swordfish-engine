@@ -84,7 +84,7 @@ process boundary detail.
 
 All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the
-layout under `StorageSettings.DataRoot` (default `saves/`, file
+layout under `StorageSettings.SaveRoot` (default `saves/`, file
 `storage.toml`). The client owns `profile.db` (characters and save-listing
 metadata). The server owns one database per level. The dedicated server can
 override the data root with `--data`.

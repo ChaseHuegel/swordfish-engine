@@ -1,21 +1,30 @@
-ServerPort = 0
-DefaultHost = "127.0.0.1"
-DefaultConnectPort = 7777
-ServerName = "LAN Server"
-DiscoveryPort = 47777
-LanDiscovery = true
-DiscoveryBroadcastSeconds = 5
-DiscoveryScanSeconds = 20
-ConnectionTimeoutMs = 5000
-HeartbeatIntervalMs = 1000
+RemoteHost = "127.0.0.1"
+RemotePort = 7777
+
+[Server]
+Port = 0
+Name = "LAN Server"
+IdleUnloadMs = 60000
 TickLagWarnThreshold = 10
-SnapshotHz = 30
+MaxReceiveWindow = 10
+
+[Discovery]
+Enabled = true
+Port = 47777
+BroadcastSeconds = 5
+ScanDurationSeconds = 20
+
+[Transport]
+TraceLogging = false
+TimeoutMs = 5000
+MaxFrameBytes = 16777216
 SendIntervalMs = 16
 SendQueueSize = 256
-MaxFrameBytes = 16777216
 ReliableQueueConcernThreshold = 64
 ReliableQueueDisconnectThreshold = 128
 ReliableQueueDisconnectMs = 10000
+
+[Protocol]
+HeartbeatIntervalMs = 1000
+SnapshotHz = 30
 JoinStreamTimeoutMs = 60000
-MaxReceiveWindow = 10
-TraceLogging = false

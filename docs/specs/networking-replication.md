@@ -21,7 +21,7 @@ One subject: dirty-driven replication between server and client.
   entity is freed, since `DataStore.Free` clears the uuid) and broadcast in
   `RemovedEntities`.
 - **Publish cadence.** The publish stage emits once per
-  `NetworkingSettings.SnapshotHz` (default 30 Hz), measured in wall-clock time
+  `NetworkingConfig.Protocol.SnapshotHz` (default 30 Hz), measured in wall-clock time
   from the tick deltas, not every tick. `TickNumber`/`LastProcessedInput`
   semantics are unchanged; despawns and the full-sync publish ride the same
   cadence, at most one interval of delay. The transport additionally coalesces
@@ -60,7 +60,7 @@ edge and op delivery trades latency, never drops. Client-owned components that
 are not packet-level (e.g. the active inventory slot) flow as dirty deltas,
 where clearing is best-effort per tick.
 
-Upload is paced to `NetworkingSettings.SnapshotHz` (default 30 Hz), **not** the
+Upload is paced to `NetworkingConfig.Protocol.SnapshotHz` (default 30 Hz), **not** the
 ECS tick rate. The system accumulates tick deltas and only collects and sends
 once per interval. Dirty components persist across skipped ticks, and staged
 edges and ops stay buffered, so the cadence trades latency, never delivery.

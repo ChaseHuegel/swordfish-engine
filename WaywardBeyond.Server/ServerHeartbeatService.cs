@@ -12,11 +12,11 @@ namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Session heartbeats, server side. Emits <see cref="ServerHeartbeatMessage"/> per connected client at
-/// <c>NetworkingSettings.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout so the
+/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout so the
 /// heartbeat doubles as the transport keepalive - a live link always delivers a readable message within
 /// the timeout window). Consumes <see cref="ClientHeartbeatMessage"/>s, tracking each client's reported
 /// sim tick and logging a warn when it falls behind the server by more than
-/// <c>NetworkingSettings.TickLagWarnThreshold</c> (once per crossing).
+/// <c>NetworkingConfig.Server.TickLagWarnThreshold</c> (once per crossing).
 /// </summary>
 public sealed class ServerHeartbeatService : IServerWorldSystem
 {
