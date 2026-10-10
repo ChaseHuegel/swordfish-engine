@@ -45,7 +45,7 @@ internal sealed class CharacterAssetService
     /// <summary>Returns the stable string ID of the body at the provided cycle index, or the default body when out of range.</summary>
     public string GetBodyId(int index)
     {
-        string? id = _bodyDatabase.Ids.ElementAtOrDefault(index);
+        string? id = _bodyDatabase.Ids.Count > index ? _bodyDatabase.Ids[index] : null;
         return id ?? _bodyDatabase.DefaultId ?? string.Empty;
     }
 

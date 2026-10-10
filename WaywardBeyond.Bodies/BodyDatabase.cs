@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Collections;
@@ -12,7 +13,7 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
     /// <summary>The direction tags from forward-facing, iterating clockwise around the up axis.</summary>
     private static readonly string[] _orderedDirections = ["front", "back", "left", "right"];
     
-    private readonly Dictionary<string, BodyDefinition> _models = [];
+    private readonly List<string> _ids = [];
 
     /// <summary>Constructs a body database.</summary>
     public BodyDatabase(
@@ -28,10 +29,10 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
     public string? DefaultId { get; private set; }
 
     /// <inheritdoc/>
-    public int Count => _models.Count;
+    public int Count => _ids.Count;
 
     /// <inheritdoc/>
-    public IEnumerable<string> Ids => _models.Keys;
+    public IReadOnlyList<string> Ids => _ids;
 
     /// <inheritdoc/>
     protected override bool IsValidFile(PathInfo path) => path.HasExtension(".toml");
@@ -59,7 +60,7 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
         }
 
         var info = new BodyInfo(id, states);
-        _models[id] = assetInfo;
+        _ids.Add(id);
         DefaultId ??= id;
         return Result<BodyInfo>.FromSuccess(info);
     }
@@ -71,11 +72,11 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
     /// <returns>An array of texture paths in order of supported directions as defined by <see cref="_orderedDirections"/>.</returns>
     private static string[] ResolveOrderedTextures(in Dictionary<string, string?[]> directions)
     {
+        var normalizedDirections = new Dictionary<string, string?[]>(directions, StringComparer.InvariantCultureIgnoreCase);
         var textures = new List<string>();
-        foreach (string direction in _orderedDirections)
+        foreach (string orderedDirection in _orderedDirections)
         {
-            string normalizedDirection = direction.ToLowerInvariant();
-            if (!directions.TryGetValue(normalizedDirection, out string?[]? paths))
+            if (!normalizedDirections.TryGetValue(orderedDirection, out string?[]? paths))
             {
                 continue;
             }

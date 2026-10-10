@@ -13,5 +13,5 @@ public interface IBodyDatabase : IAssetDatabase<BodyInfo>
     int Count { get; }
 
     /// <summary>The IDs of every loaded body.</summary>
-    IEnumerable<string> Ids { get; }
+    IReadOnlyList<string> Ids { get; }
 }
