@@ -56,10 +56,10 @@ public static class ServerComposition
 
         //  The server reads the level autosave cadence from gameplay.toml. The client registers the
         //  same file earlier in host mode, so the first registration is kept.
-        container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
+        container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
 
         container.Register<World>();
-        container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingSettings>())));
+        container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingConfig>())));
         container.Register<SessionManager>();
         //  The level save service holds an open save database; each world pins and disposes its own.
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
@@ -119,9 +119,9 @@ public static class ServerComposition
         container.Register<IServerWorldSystem, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
-    private static ServerConnectionHub CreateConnectionHub(in NetworkingSettings settings)
+    private static ServerConnectionHub CreateConnectionHub(in NetworkingConfig config)
     {
-        return new ServerConnectionHub(settings.MaxReceiveWindow.Get());
+        return new ServerConnectionHub(config.MaxReceiveWindow.Get());
     }
 
     private static SharedSimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)

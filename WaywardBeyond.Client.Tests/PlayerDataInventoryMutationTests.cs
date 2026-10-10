@@ -117,7 +117,7 @@ public class PlayerDataInventoryMutationTests
 
         //  The staged pick rides the next replication snapshot as an InventoryEvent and clears.
         var connection = new CapturingConnection();
-        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
+        var system = new ClientReplicationSystem(connection, new NetworkingConfig());
         system.Tick(1f, store);
 
         Assert.That(connection.Received, Has.Count.EqualTo(1));

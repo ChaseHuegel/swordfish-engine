@@ -73,7 +73,7 @@ public class ServerInventorySystemTests
         var sessions = new SessionManager();
         sessions.Register(store, entity, clientId, new Session(1u));
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingConfig());
         var inventorySystem = new ServerInventorySystem(NullLogger<ServerInventorySystem>.Instance);
 
         IPayloadCodec<InventoryEvent> inventoryCodec = new NsdComponentCodec<InventoryEvent>();

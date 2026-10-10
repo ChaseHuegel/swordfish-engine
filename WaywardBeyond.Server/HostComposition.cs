@@ -73,7 +73,7 @@ public static class HostComposition
             container.Resolve<PendingJoins>().Add(container.Resolve<LocalConnection>().Server);
         }
 
-        container.RegisterConfig<NetworkingSettings>(file: "network.toml");
+        container.RegisterConfig<NetworkingConfig>(file: "network.toml");
         container.RegisterConfig<StorageSettings>(file: "storage.toml");
 
         container.Register<StoragePaths>(Reuse.Singleton);

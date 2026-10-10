@@ -27,15 +27,13 @@ internal readonly record struct DiscoveredServer(string Name, string Host, int P
 internal sealed class LanDiscoveryService
 {
     private static readonly HashSet<IPAddress> _localAddresses = GetLocalAddresses();
-    private readonly NetworkingSettings _settings;
+    private readonly NetworkingConfig _config;
     private readonly LanHostInfo _hostInfo;
-    private readonly bool _isHost;
 
-    public LanDiscoveryService(in NetworkingSettings settings, in LanHostInfo hostInfo)
+    public LanDiscoveryService(in NetworkingConfig config, in LanHostInfo hostInfo)
     {
-        _settings = settings;
+        _config = config;
         _hostInfo = hostInfo;
-        _isHost = NetworkModeResolver.Resolve() == NetworkMode.Host;
     }
 
     /// <summary>True when the discovery socket could not bind (e.g. another game instance holds the port).</summary>
@@ -43,13 +41,13 @@ internal sealed class LanDiscoveryService
 
     /// <summary>
     /// Streams every unique server discovered within the scan window. The window is bounded by
-    /// <see cref="NetworkingSettings.DiscoveryScanSeconds"/>; the enumeration completes normally when it
+    /// <see cref="NetworkingConfig.DiscoveryScanDurationSeconds"/>; the enumeration completes normally when it
     /// elapses or when <paramref name="cancellationToken"/> is cancelled.
     /// </summary>
     public async IAsyncEnumerable<DiscoveredServer> ScanAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        int windowMs = Math.Max(100, _settings.DiscoveryScanSeconds.Get() * 1000);
-        int discoveryPort = _settings.DiscoveryPort.Get();
+        int windowMs = Math.Max(100, _config.DiscoveryScanDurationSeconds.Get() * 1000);
+        int discoveryPort = _config.DiscoveryPort.Get();
 
         UdpClient udp;
         try
@@ -107,7 +105,7 @@ internal sealed class LanDiscoveryService
                 return null;
             }
 
-            if (_isHost && IsLocalAddress(datagram.RemoteEndPoint.Address) && beacon.TcpPort == _hostInfo.ListenPort)
+            if (IsLocalAddress(datagram.RemoteEndPoint.Address) && beacon.TcpPort == _hostInfo.ListenPort)
             {
                 return null; //  Own hosted server on this machine.
             }

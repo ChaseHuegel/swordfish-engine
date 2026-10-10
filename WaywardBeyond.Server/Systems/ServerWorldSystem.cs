@@ -23,7 +23,7 @@ public sealed class ServerWorldSystem : IServerWorldSystem
     private readonly SessionManager _sessions;
     private readonly LevelSaveService _saveService;
     private readonly IUserPermissionService _permissions;
-    private readonly GameplaySettings _gameplaySettings;
+    private readonly GameplayConfig _gameplayConfig;
     private readonly ILogger<ServerWorldSystem> _logger;
 
     private float _autosaveElapsedSeconds;
@@ -33,14 +33,14 @@ public sealed class ServerWorldSystem : IServerWorldSystem
         SessionManager sessions,
         in LevelSaveService saveService,
         in IUserPermissionService permissions,
-        in GameplaySettings gameplaySettings,
+        in GameplayConfig gameplayConfig,
         in ILogger<ServerWorldSystem> logger
     ) {
         _hub = hub;
         _sessions = sessions;
         _saveService = saveService;
         _permissions = permissions;
-        _gameplaySettings = gameplaySettings;
+        _gameplayConfig = gameplayConfig;
         _logger = logger;
     }
 
@@ -63,13 +63,13 @@ public sealed class ServerWorldSystem : IServerWorldSystem
             return;
         }
 
-        if (!_gameplaySettings.Autosave.Get())
+        if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }
 
         _autosaveElapsedSeconds += delta;
-        float intervalSeconds = _gameplaySettings.AutosaveIntervalMs.Get() / 1000f;
+        float intervalSeconds = _gameplayConfig.AutosaveIntervalMs.Get() / 1000f;
         if (intervalSeconds <= 0f || _autosaveElapsedSeconds < intervalSeconds)
         {
             return;

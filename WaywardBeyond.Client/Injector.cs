@@ -121,10 +121,7 @@ public class Injector : IDryIocInjector
         container.RegisterDelegate<IClientConnection>(context =>
         {
             TransportManager transport = context.Resolve<TransportManager>();
-            if (NetworkModeResolver.Resolve(context.Resolve<CommandLineArgs>()) == NetworkMode.Host)
-            {
-                transport.UseLocal(context.Resolve<LocalConnection>().Client);
-            }
+            transport.UseLocal(context.Resolve<LocalConnection>().Client);
             return transport;
         }, Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
@@ -185,10 +182,10 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<VolumeSettings>(file: "volume.toml");
         container.RegisterConfig<DebugSettings>(file: "debug.toml");
         container.RegisterConfig<UISettings>(file: "ui.toml");
-        container.RegisterConfig<GameplaySettings>(file: "gameplay.toml");
-        container.RegisterConfig<NetworkingSettings>(file: "network.toml");
+        container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
+        container.RegisterConfig<NetworkingConfig>(file: "network.toml");
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
-        container.RegisterConfig<ChatSettings>(file: "chat.toml");
+        container.RegisterConfig<ChatConfig>(file: "chat.toml");
     }
 
     private static void RegisterUI(IContainer container)

@@ -10,7 +10,7 @@ public class ChatServiceTests
     [Test]
     public void BoundsHistoryToCapacity()
     {
-        var settings = new ChatSettings();
+        var settings = new ChatConfig();
         settings.MaxHistory.Set(2);
         var service = new ChatService(settings);
 
@@ -27,7 +27,7 @@ public class ChatServiceTests
     [Test]
     public void StampsNonDecreasingArrivalTimes()
     {
-        var service = new ChatService(new ChatSettings());
+        var service = new ChatService(new ChatConfig());
 
         service.Add(new ChatMessage { Value = "first" });
         service.Add(new ChatMessage { Value = "second" });
@@ -40,7 +40,7 @@ public class ChatServiceTests
     [Test]
     public void SnapshotPreservesChronologicalOrder()
     {
-        var service = new ChatService(new ChatSettings());
+        var service = new ChatService(new ChatConfig());
 
         service.Add(new ChatMessage { Value = "first" });
         service.Add(new ChatMessage { Value = "second" });
@@ -52,7 +52,7 @@ public class ChatServiceTests
     [Test]
     public void SendQueueFlushesInOrder()
     {
-        var service = new ChatService(new ChatSettings());
+        var service = new ChatService(new ChatConfig());
 
         service.EnqueueSend("a");
         service.EnqueueSend("b");

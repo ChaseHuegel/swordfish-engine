@@ -1,13 +1,14 @@
 using Swordfish.Library.Configuration;
+using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 
 namespace WaywardBeyond.Config;
 
-/// <summary>
-/// Save-data root configuration. The root is relative to the process working directory unless set to
-/// an absolute path.
-/// </summary>
+/// <summary>Storage configuration.</summary>
 public sealed class StorageSettings : Config<StorageSettings>
 {
-    public DataBinding<string> DataRoot { get; private set; } = new("saves/");
+    /// <summary>
+    /// The save data root path.
+    /// </summary>
+    public DataBinding<PathInfo> SaveRoot { get; private set; } = new("saves/");
 }

@@ -16,12 +16,12 @@ public readonly record struct ChatLine(ChatMessage Message, long ReceivedAt);
 /// <summary>
 /// Client-side chat state shared between the ECS thread (<see cref="ClientChatSystem"/>) and the UI thread
 /// (the chat layer): a bounded ring buffer of received messages for scrollback and a queue of outbound
-/// messages waiting for the transport. The buffer capacity comes from <see cref="ChatSettings.MaxHistory"/>.
+/// messages waiting for the transport. The buffer capacity comes from <see cref="ChatConfig.MaxHistory"/>.
 /// </summary>
-public sealed class ChatService(in ChatSettings settings)
+public sealed class ChatService(in ChatConfig config)
 {
     private readonly Lock _sync = new();
-    private readonly ChatLine[] _messages = new ChatLine[Math.Max(1, settings.MaxHistory.Get())];
+    private readonly ChatLine[] _messages = new ChatLine[Math.Max(1, config.MaxHistory.Get())];
     private readonly ConcurrentQueue<string> _pendingSends = new();
     private int _head;
     private int _count;

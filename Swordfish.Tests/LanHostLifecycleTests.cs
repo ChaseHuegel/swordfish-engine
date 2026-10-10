@@ -35,9 +35,9 @@ public class LanHostLifecycleTests
     [Fact]
     public void RepeatedPeerDropsLeaveNoRegistryGrowth()
     {
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.ServerPort.Set(0);
-        settings.LanDiscovery.Set(false);
+        settings.DiscoveryBroadcasting.Set(false);
 
         var pendingJoins = new PendingJoins();
         var pendingDeletes = new PendingLevelDeletes();

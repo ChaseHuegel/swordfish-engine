@@ -50,7 +50,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
     public uint SimTick { get; set; }
 
-    private readonly NetworkingSettings _settings;
+    private readonly NetworkingConfig _config;
     private float _sincePublish;
 
     //  The server-owned component enumeration is cached per system instance: the replication hot path
@@ -65,12 +65,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         in ServerConnectionHub hub,
         SessionManager sessions,
         in ILogger<NetworkReplicationSystem> logger,
-        in NetworkingSettings settings
+        in NetworkingConfig config
     ) {
         _hub = hub;
         _sessions = sessions;
         _logger = logger;
-        _settings = settings;
+        _config = config;
         _serverOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ServerOwned)];
         _snapshotTypeTag = System.Text.Encoding.UTF8.GetBytes(typeof(WorldSnapshot).FullName!);
     }
@@ -167,7 +167,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// Collects authoritative server-owned snapshots once, then publishes to each client a per-client
     /// snapshot carrying that client's own <see cref="WorldSnapshot.LastProcessedInput"/>. Despawns are
     /// those queued via <see cref="RequestDespawn"/>. Publishes at the configured snapshot cadence
-    /// (<see cref="NetworkingSettings.SnapshotHz"/>), measured in wall-clock time: the tick semantics are
+    /// (<see cref="NetworkingConfig.SnapshotHz"/>), measured in wall-clock time: the tick semantics are
     /// unchanged and despawns/full-syncs ride the same cadence, at most one interval of delay.
     /// </summary>
     public void PublishStage(float delta, DataStore store)
@@ -175,7 +175,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         //  Snapshot cadence: publish once per SnapshotHz, measured from the tick deltas so it does not
         //  depend on the server tick rate. Subtracting, not resetting, keeps the average exact. All
         //  publish effects ride the cadence, so nothing on the wire waits more than one interval.
-        float interval = 1f / Math.Max(1, _settings.SnapshotHz.Get());
+        float interval = 1f / Math.Max(1, _config.SnapshotHz.Get());
         _sincePublish += delta;
         if (_sincePublish < interval)
         {

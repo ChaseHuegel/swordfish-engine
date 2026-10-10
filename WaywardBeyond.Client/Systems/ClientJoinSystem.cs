@@ -31,7 +31,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly IBrickRegistry _brickRegistry;
     private readonly ClientDisconnectSystem _disconnectSystem;
-    private readonly NetworkingSettings _settings;
+    private readonly NetworkingConfig _config;
     private readonly ILogger<ClientJoinSystem> _logger;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
@@ -48,14 +48,14 @@ internal sealed class ClientJoinSystem : IEntitySystem
         ILogger<ClientJoinSystem> logger,
         IBrickRegistry brickRegistry,
         in ClientDisconnectSystem disconnectSystem,
-        in NetworkingSettings settings
+        in NetworkingConfig config
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
         _brickRegistry = brickRegistry;
         _disconnectSystem = disconnectSystem;
-        _settings = settings;
+        _config = config;
         _logger = logger;
     }
 
@@ -144,9 +144,9 @@ internal sealed class ClientJoinSystem : IEntitySystem
         //  A join that never completes (undelivered LevelStreamComplete, dying link, or a world too
         //  large to drain) must not stall Loading forever: abort and return to the menu with the
         //  connection-lost notice.
-        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _settings.JoinStreamTimeoutMs.Get())
+        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _config.JoinStreamTimeoutMs.Get())
         {
-            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _settings.JoinStreamTimeoutMs.Get());
+            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _config.JoinStreamTimeoutMs.Get());
             _request = null;
             _sent = false;
             _disconnectSystem.RequestDisconnect();

@@ -79,7 +79,7 @@ public class ClientDisconnectSystemTests
         var transportManager = new TransportManager(
             new INetworkSerializer[] { new NsdMessageSerializer<LeaveGameRequest>() },
             NullLoggerFactory.Instance,
-            new NetworkingSettings(),
+            new NetworkingConfig(),
             new TestUserClaimProvider()
         );
 
@@ -145,7 +145,7 @@ public class ClientDisconnectSystemTests
                 new NsdMessageSerializer<SaveLevelResponse>(),
             },
             NullLoggerFactory.Instance,
-            new NetworkingSettings(),
+            new NetworkingConfig(),
             new TestUserClaimProvider()
         );
 

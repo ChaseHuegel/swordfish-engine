@@ -26,7 +26,7 @@ namespace WaywardBeyond.Client.UI.Layers;
 /// chat starts stuck, the wheel breaks the stick, and scrolling back to the bottom re-sticks it.
 /// While open, the send box keeps focus even when the user clicks elsewhere, and every message shows
 /// at full alpha. When closed, each message fades on its own clock: full alpha for
-/// <see cref="ChatSettings.TimeoutSeconds"/> after arrival, then a one-second fade.
+/// <see cref="ChatConfig.StaleMs"/> after arrival, then a one-second fade.
 /// </summary>
 internal sealed class ChatLayer : IUILayer
 {
@@ -43,7 +43,7 @@ internal sealed class ChatLayer : IUILayer
     private readonly IInputService _inputService;
     private readonly InteractionState _interactionState;
     private readonly ChatService _chat;
-    private readonly ChatSettings _settings;
+    private readonly ChatConfig _config;
 
     private readonly FontOptions _fieldFontOptions = new()
     {
@@ -63,13 +63,13 @@ internal sealed class ChatLayer : IUILayer
         in IInputService inputService,
         in InteractionState interactionState,
         in ChatService chat,
-        in ChatSettings settings,
+        in ChatConfig config,
         in ILocalization localization
     ) {
         _inputService = inputService;
         _interactionState = interactionState;
         _chat = chat;
-        _settings = settings;
+        _config = config;
 
         _textBox = new TextBoxState(
             initialValue: string.Empty,
@@ -172,8 +172,8 @@ internal sealed class ChatLayer : IUILayer
         //  Each message fades on its own clock; the overlay renders nothing once its newest message
         //  has fully faded. Messages fade in arrival order, so the faded ones are always an oldest prefix.
         long now = Stopwatch.GetTimestamp();
-        int timeoutSeconds = Math.Max(0, _settings.TimeoutSeconds.Get());
-        if (!open && (history.Length == 0 || GetMessageAlpha(now - history[history.Length - 1].ReceivedAt, timeoutSeconds) <= 0f))
+        double timeoutSeconds = Math.Max(0, _config.StaleMs.Get()) / 1000d;
+        if (!open && (history.Length == 0 || GetMessageAlpha(now - history[^1].ReceivedAt, timeoutSeconds) <= 0f))
         {
             return;
         }
@@ -302,7 +302,7 @@ internal sealed class ChatLayer : IUILayer
         CloseChat();
     }
 
-    private static float GetMessageAlpha(long ageTicks, int timeoutSeconds)
+    private static float GetMessageAlpha(long ageTicks, double timeoutSeconds)
     {
         double elapsed = ageTicks / (double)Stopwatch.Frequency;
         if (elapsed < timeoutSeconds)

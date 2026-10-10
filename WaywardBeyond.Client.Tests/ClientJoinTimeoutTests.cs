@@ -103,7 +103,7 @@ public class ClientJoinTimeoutTests
     [Test]
     public void JoinThatNeverCompletesReturnsToMenuAfterTimeout()
     {
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.JoinStreamTimeoutMs.Set(100);
 
         var transportManager = new TransportManager(
@@ -164,7 +164,7 @@ public class ClientJoinTimeoutTests
     [Test]
     public void JoinWithNoActiveConnectionFailsFastInsteadOfLoading()
     {
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
 
         var transportManager = new TransportManager(
             new INetworkSerializer[] { new NsdMessageSerializer<JoinRequest>() },

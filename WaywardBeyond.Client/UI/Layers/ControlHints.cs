@@ -13,17 +13,17 @@ internal class ControlHints(
     in OrientationSelector orientationSelector,
     in ShapeSelector shapeSelector,
     in ILocalization localization,
-    in GameplaySettings gameplaySettings
+    in GameplayConfig gameplayConfig
 ) : IUILayer
 {
     private readonly OrientationSelector _orientationSelector = orientationSelector;
     private readonly ShapeSelector _shapeSelector = shapeSelector;
     private readonly ILocalization _localization = localization;
-    private readonly GameplaySettings _gameplaySettings = gameplaySettings;
+    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
 
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing && _gameplaySettings.ControlHints.Get();
+        return WaywardBeyond.GameState == GameState.Playing && _gameplayConfig.ControlHints.Get();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)

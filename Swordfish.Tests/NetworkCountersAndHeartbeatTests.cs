@@ -90,7 +90,7 @@ public class NetworkCountersAndHeartbeatTests
     {
         NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
 
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.ConnectionTimeoutMs.Set(4000);
         settings.HeartbeatIntervalMs.Set(250);
 
@@ -123,7 +123,7 @@ public class NetworkCountersAndHeartbeatTests
     [Fact]
     public void HostHeartbeatKeepsPendingConnectionLive()
     {
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.ConnectionTimeoutMs.Set(4000);
         settings.HeartbeatIntervalMs.Set(250);
 
@@ -158,7 +158,7 @@ public class NetworkCountersAndHeartbeatTests
     [Fact]
     public void LaggingClientWarnsOncePerCrossing()
     {
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.ConnectionTimeoutMs.Set(4000);
         settings.HeartbeatIntervalMs.Set(250);
         settings.TickLagWarnThreshold.Set(10);

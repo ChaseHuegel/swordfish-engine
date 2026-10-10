@@ -56,7 +56,7 @@ public class ClientInventoryEchoTests
         var sessions = new SessionManager();
         var store = new DataStore();
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingConfig());
         var interaction = new ServerInteractionSystem(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(), new StubBrickRegistry());
         var join = new ServerJoinSystem(
             hub,

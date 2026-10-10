@@ -37,7 +37,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly GameSaveService _gameSaveService;
     private readonly IWindowContext _windowContext;
     private readonly CharacterSaveManager _characterSaveManager;
-    private readonly GameplaySettings _gameplaySettings;
+    private readonly GameplayConfig _gameplayConfig;
     private readonly ClientJoinSystem _joinSystem;
     private readonly ClientCleanupSystem _cleanupSystem;
     private readonly DataStore _dataStore;
@@ -57,7 +57,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in IWindowContext windowContext,
         in IShortcutService shortcutService,
         in CharacterSaveManager characterSaveManager,
-        in GameplaySettings gameplaySettings,
+        in GameplayConfig gameplayConfig,
         in ClientJoinSystem joinSystem,
         in ClientCleanupSystem cleanupSystem,
         in TransportManager transportManager,
@@ -68,7 +68,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameSaveService = gameSaveService;
         _windowContext = windowContext;
         _characterSaveManager = characterSaveManager;
-        _gameplaySettings = gameplaySettings;
+        _gameplayConfig = gameplayConfig;
         _joinSystem = joinSystem;
         _cleanupSystem = cleanupSystem;
         _transportManager = transportManager;
@@ -90,9 +90,9 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         WaywardBeyond.GameState.Changed += OnGameStateChanged;
         
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
-        int autosaveIntervalMs = gameplaySettings.AutosaveIntervalMs.Get();
+        int autosaveIntervalMs = gameplayConfig.AutosaveIntervalMs.Get();
         _autosaveTimer = new Timer(OnAutosave, state: null, autosaveIntervalMs, autosaveIntervalMs);
-        gameplaySettings.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
+        gameplayConfig.AutosaveIntervalMs.Changed += OnAutosaveIntervalChanged;
 
         //  The save listing is served from the server; start loading it so the menu populates promptly.
         _ = _gameSaveService.RefreshLevelsAsync();
@@ -102,7 +102,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     {
         _windowContext.Closed -= OnWindowClosed;
         WaywardBeyond.GameState.Changed -= OnGameStateChanged;
-        _gameplaySettings.AutosaveIntervalMs.Changed -= OnAutosaveIntervalChanged;
+        _gameplayConfig.AutosaveIntervalMs.Changed -= OnAutosaveIntervalChanged;
 
         using Lock.Scope autosaveTimerScope = _autosaveTimerLock.EnterScope();
         _autosaveTimer.Dispose();
@@ -229,7 +229,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
     private void OnWindowClosed()
     {
-        if (!_gameplaySettings.Autosave.Get())
+        if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }
@@ -244,7 +244,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     
     private void OnAutosave(object? state)
     {
-        if (!_gameplaySettings.Autosave.Get())
+        if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }
@@ -260,7 +260,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             return;
         }
         
-        if (!_gameplaySettings.Autosave.Get())
+        if (!_gameplayConfig.Autosave.Get())
         {
             return;
         }

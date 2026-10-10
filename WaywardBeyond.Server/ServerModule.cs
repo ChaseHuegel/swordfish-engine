@@ -17,12 +17,6 @@ public sealed class ServerModule : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
-        NetworkMode mode = NetworkModeResolver.Resolve(container.Resolve<CommandLineArgs>());
-        if (mode == NetworkMode.Client)
-        {
-            return;
-        }
-
         ServerComposition.Register(container);
         container.RegisterMany<ServerWorldHost>(Reuse.Singleton);
         container.RegisterMany<LanHost>(Reuse.Singleton);

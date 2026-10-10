@@ -37,15 +37,15 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 
     public ServerHeartbeatService(
         in ServerConnectionHub hub,
-        in NetworkingSettings settings,
+        in NetworkingConfig config,
         in ILogger<ServerHeartbeatService> logger,
         in SharedSimulationStep? simulationStep = null
     ) {
         _hub = hub;
         _logger = logger;
         _simulationStep = simulationStep;
-        _heartbeatIntervalMs = Math.Max(250, Math.Min(settings.HeartbeatIntervalMs.Get(), Math.Max(1, settings.ConnectionTimeoutMs.Get() / 2)));
-        _lagWarnThreshold = (uint)Math.Max(1, settings.TickLagWarnThreshold.Get());
+        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.HeartbeatIntervalMs.Get(), Math.Max(1, config.ConnectionTimeoutMs.Get() / 2)));
+        _lagWarnThreshold = (uint)Math.Max(1, config.TickLagWarnThreshold.Get());
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
     }

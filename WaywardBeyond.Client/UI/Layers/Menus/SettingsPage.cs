@@ -18,7 +18,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
     in VolumeSettings volumeSettings,
-    in GameplaySettings gameplaySettings,
+    in GameplayConfig gameplayConfig,
     in UISettings uiSettings,
     in SoundEffectService soundEffectService,
     in ILocalization localization
@@ -29,7 +29,7 @@ internal abstract class SettingsPage<TIdentifier>(
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
     private readonly VolumeSettings _volumeSettings = volumeSettings;
-    private readonly GameplaySettings _gameplaySettings = gameplaySettings;
+    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly UISettings _uiSettings = uiSettings;
     private readonly SoundEffectService _soundEffectService = soundEffectService;
     private readonly ILocalization _localization = localization;
@@ -116,21 +116,21 @@ internal abstract class SettingsPage<TIdentifier>(
                 Width = new Fixed(300),
             };
             
-            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplaySettings.ControlHints, _soundEffectService);
-            _gameplaySettings.ControlHints.Set(controlHints);
+            bool controlHints = ui.Checkbox(id: "Checkbox_ControlHints", text: _localization.GetString("ui.setting.controlHints")!, isChecked: _gameplayConfig.ControlHints, _soundEffectService);
+            _gameplayConfig.ControlHints.Set(controlHints);
             
-            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplaySettings.Crosshair, _soundEffectService);
-            _gameplaySettings.Crosshair.Set(crosshair);
+            bool crosshair = ui.Checkbox(id: "Checkbox_Crosshair", text: _localization.GetString("ui.setting.crosshair")!, isChecked: _gameplayConfig.Crosshair, _soundEffectService);
+            _gameplayConfig.Crosshair.Set(crosshair);
             
-            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplaySettings.Autosave, _soundEffectService);
-            _gameplaySettings.Autosave.Set(autosave);
+            bool autosave = ui.Checkbox(id: "Checkbox_Autosave", text: _localization.GetString("ui.setting.autosave")!, isChecked: _gameplayConfig.Autosave, _soundEffectService);
+            _gameplayConfig.Autosave.Set(autosave);
 
             if (autosave)
             {
                 ui.NumberControl(
                     id: "Control_AutosaveMinutes",
                     text: _localization.GetString("ui.setting.autosave.interval.minutes")!,
-                    _gameplaySettings.AutosaveIntervalMs,
+                    _gameplayConfig.AutosaveIntervalMs,
                     constraints: new Int2(1000 * 60, 1000 * 60 * 60), //  1 minute to 1 hour
                     display: new Int2(1, 60),
                     steps: 59,
@@ -357,7 +357,7 @@ internal abstract class SettingsPage<TIdentifier>(
     
     private void OnAutosaveIntervalChanged(int oldValue, int newValue, int change)
     {
-        _gameplaySettings.AutosaveIntervalMs.Set(newValue);
+        _gameplayConfig.AutosaveIntervalMs.Set(newValue);
     }
     
     private void OnRenderDistanceChanged(float oldValue, float newValue, float change)

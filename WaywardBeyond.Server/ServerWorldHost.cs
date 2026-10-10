@@ -62,7 +62,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         in PendingJoins pendingJoins,
         in PendingLevelDeletes pendingDeletes,
         in ILevelCatalog levelCatalog,
-        in NetworkingSettings settings,
+        in NetworkingConfig config,
         ILoggerFactory loggerFactory
     ) {
         _container = container;
@@ -72,7 +72,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _pendingDeletes = pendingDeletes;
         _levelCatalog = levelCatalog;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
-        _idleUnloadMs = Math.Max(1, settings.WorldIdleUnloadMs.Get());
+        _idleUnloadMs = Math.Max(1, config.WorldIdleUnloadMs.Get());
         _threadWorker = new ThreadWorker(Update, "Server");
     }
 

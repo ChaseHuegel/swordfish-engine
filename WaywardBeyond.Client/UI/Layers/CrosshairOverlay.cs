@@ -12,12 +12,12 @@ namespace WaywardBeyond.Client.UI.Layers;
 
 internal class CrosshairOverlay : IUILayer
 {
-    private readonly GameplaySettings _gameplaySettings;
+    private readonly GameplayConfig _gameplayConfig;
     private readonly Material? _crosshairMaterial;
     
-    public CrosshairOverlay(ILogger<CrosshairOverlay> logger, IAssetDatabase<Material> materialDatabase, GameplaySettings gameplaySettings)
+    public CrosshairOverlay(ILogger<CrosshairOverlay> logger, IAssetDatabase<Material> materialDatabase, GameplayConfig gameplayConfig)
     {
-        _gameplaySettings = gameplaySettings;
+        _gameplayConfig = gameplayConfig;
         
         Result<Material> materialResult = materialDatabase.Get("ui/crosshair");
         if (!materialResult)
@@ -31,7 +31,7 @@ internal class CrosshairOverlay : IUILayer
     
     public bool IsVisible()
     {
-        return WaywardBeyond.GameState == GameState.Playing && _gameplaySettings.Crosshair.Get();
+        return WaywardBeyond.GameState == GameState.Playing && _gameplayConfig.Crosshair.Get();
     }
 
     public Result RenderUI(double delta, UIBuilder<Material> ui)

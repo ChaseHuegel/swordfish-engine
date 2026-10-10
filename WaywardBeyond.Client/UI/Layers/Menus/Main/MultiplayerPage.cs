@@ -24,7 +24,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
     private readonly TransportManager _transportManager;
     private readonly GameSaveService _gameSaveService;
-    private readonly NetworkingSettings _networkingSettings;
+    private readonly NetworkingConfig _networkingConfig;
     private readonly ProfileSettings _profileSettings;
     private readonly LanDiscoveryService _discovery;
     private readonly IInputService _inputService;
@@ -48,7 +48,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     public MultiplayerPage(
         in TransportManager transportManager,
         in GameSaveService gameSaveService,
-        in NetworkingSettings networkingSettings,
+        in NetworkingConfig networkingConfig,
         in ProfileSettings profileSettings,
         in LanDiscoveryService discovery,
         in IInputService inputService,
@@ -57,7 +57,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     ) {
         _transportManager = transportManager;
         _gameSaveService = gameSaveService;
-        _networkingSettings = networkingSettings;
+        _networkingConfig = networkingConfig;
         _profileSettings = profileSettings;
         _discovery = discovery;
         _inputService = inputService;
@@ -86,7 +86,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 
         //  The persisted last-used endpoint prefills the page (the #0028 prefill).
         _hostTextBox = new TextBoxState(
-            initialValue: networkingSettings.DefaultHost.Get(),
+            initialValue: networkingConfig.RemoteHost.Get(),
             new TextBoxState.Options(
                 Placeholder: localization.GetString("ui.field.host"),
                 MaxCharacters: 253,
@@ -94,7 +94,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             )
         );
 
-        int defaultPort = networkingSettings.DefaultConnectPort.Get();
+        int defaultPort = networkingConfig.RemotePort.Get();
         _portTextBox = new TextBoxState(
             initialValue: defaultPort.ToString(),
             new TextBoxState.Options(
@@ -335,9 +335,9 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         _errorMessage = null;
 
         //  The connect attempt becomes the persisted last-used endpoint (and the remote continue marker).
-        _networkingSettings.DefaultHost.Set(host);
-        _networkingSettings.DefaultConnectPort.Set(port);
-        _networkingSettings.Save();
+        _networkingConfig.RemoteHost.Set(host);
+        _networkingConfig.RemotePort.Set(port);
+        _networkingConfig.Save();
         _profileSettings.LastServerMode.Set(LastServerMode.Remote);
         _profileSettings.Save();
 

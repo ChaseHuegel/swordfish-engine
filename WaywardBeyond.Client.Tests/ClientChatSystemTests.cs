@@ -18,7 +18,7 @@ public class ClientChatSystemTests
         {
             new NsdMessageSerializer<ChatMessage>(),
         });
-        var service = new ChatService(new ChatSettings());
+        var service = new ChatService(new ChatConfig());
         var system = new ClientChatSystem(connection.Client, service);
 
         connection.Server.Send(new ChatMessage { CharacterId = 1, SenderName = "Alice", Value = "Hi" });

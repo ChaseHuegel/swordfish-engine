@@ -22,7 +22,7 @@ internal sealed class TransportManager : IClientConnection
 {
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILoggerFactory _loggerFactory;
-    private readonly NetworkingSettings _settings;
+    private readonly NetworkingConfig _config;
     private readonly IUserClaimProvider _userClaimProvider;
     private readonly ILogger _logger;
     private TcpTransport? _remote;
@@ -34,12 +34,12 @@ internal sealed class TransportManager : IClientConnection
     public TransportManager(
         in IEnumerable<INetworkSerializer> serializers,
         in ILoggerFactory loggerFactory,
-        in NetworkingSettings settings,
+        in NetworkingConfig config,
         in IUserClaimProvider userClaimProvider
     ) {
         _serializers = serializers;
         _loggerFactory = loggerFactory;
-        _settings = settings;
+        _config = config;
         _userClaimProvider = userClaimProvider;
         _logger = loggerFactory.CreateLogger<TransportManager>();
     }
@@ -64,14 +64,14 @@ internal sealed class TransportManager : IClientConnection
             var transport = new TcpTransport(
                 _serializers,
                 _loggerFactory,
-                _settings.ConnectionTimeoutMs.Get(),
-                _settings.SendQueueSize.Get(),
-                _settings.MaxFrameBytes.Get(),
-                _settings.ReliableQueueConcernThreshold.Get(),
-                _settings.ReliableQueueDisconnectThreshold.Get(),
-                _settings.ReliableQueueDisconnectMs.Get(),
-                _settings.TraceLogging.Get(),
-                _settings.SendIntervalMs.Get()
+                _config.ConnectionTimeoutMs.Get(),
+                _config.SendQueueSize.Get(),
+                _config.MaxFrameBytes.Get(),
+                _config.ReliableQueueConcernThreshold.Get(),
+                _config.ReliableQueueDisconnectThreshold.Get(),
+                _config.ReliableQueueDisconnectMs.Get(),
+                _config.TraceLogging.Get(),
+                _config.SendIntervalMs.Get()
             );
             transport.OnDisconnected += reason =>
             {

@@ -66,7 +66,7 @@ public class ComponentRemovalReplicationTests
         var sessions = new SessionManager();
         sessions.Register(store, entity, clientId, new Session(1u));
 
-        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
+        var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingConfig());
         replication.SimTick = 1;
 
         //  The component is removed server-side; the next publish must emit only a removal.

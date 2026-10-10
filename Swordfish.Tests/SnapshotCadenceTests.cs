@@ -16,7 +16,7 @@ using Xunit;
 namespace Swordfish.Tests;
 
 /// <summary>
-/// The publish stage honors <see cref="NetworkingSettings.SnapshotHz"/> measured in wall-clock time,
+/// The publish stage honors <see cref="NetworkingConfig.SnapshotHz"/> measured in wall-clock time,
 /// instead of publishing on every server tick.
 /// </summary>
 public class SnapshotCadenceTests
@@ -63,7 +63,7 @@ public class SnapshotCadenceTests
         var sessions = new SessionManager();
         sessions.Register(store, entity, clientId, new Session(1u));
 
-        var settings = new NetworkingSettings();
+        var settings = new NetworkingConfig();
         settings.SnapshotHz.Set(30);
 
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, settings);

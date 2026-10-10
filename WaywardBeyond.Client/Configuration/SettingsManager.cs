@@ -12,8 +12,8 @@ internal sealed class SettingsManager : IAutoActivate
     private readonly RenderSettings _renderSettings;
     private readonly AudioSettings _audioSettings;
     private readonly VolumeSettings _volumeSettings;
-    private readonly GameplaySettings _gameplaySettings;
-    private readonly NetworkingSettings _networkingSettings;
+    private readonly GameplayConfig _gameplayConfig;
+    private readonly NetworkingConfig _networkingConfig;
     private readonly UISettings _uiSettings;
 
     public SettingsManager(
@@ -23,8 +23,8 @@ internal sealed class SettingsManager : IAutoActivate
         in RenderSettings renderSettings,
         in AudioSettings audioSettings,
         in VolumeSettings volumeSettings,
-        in GameplaySettings gameplaySettings,
-        in NetworkingSettings networkingSettings,
+        in GameplayConfig gameplayConfig,
+        in NetworkingConfig networkingConfig,
         in UISettings uiSettings
     ) {
         _controlSettings = controlSettings;
@@ -32,8 +32,8 @@ internal sealed class SettingsManager : IAutoActivate
         _renderSettings = renderSettings;
         _audioSettings = audioSettings;
         _volumeSettings = volumeSettings;
-        _gameplaySettings = gameplaySettings;
-        _networkingSettings = networkingSettings;
+        _gameplayConfig = gameplayConfig;
+        _networkingConfig = networkingConfig;
         _uiSettings = uiSettings;
 
         windowContext.Closed += OnWindowClosed;
@@ -47,8 +47,8 @@ internal sealed class SettingsManager : IAutoActivate
         _controlSettings.Save();
         _audioSettings.Save();
         _volumeSettings.Save();
-        _gameplaySettings.Save();
-        _networkingSettings.Save();
+        _gameplayConfig.Save();
+        _networkingConfig.Save();
         _uiSettings.Save();
     }
 

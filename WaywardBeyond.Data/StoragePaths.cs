@@ -12,7 +12,7 @@ public sealed class StoragePaths(in StorageSettings settings)
     private const string PROFILE_DATABASE_NAME = "profile.db";
     private const string LEVEL_DATABASE_NAME = "level.db";
 
-    public string DataRoot { get; } = Path.GetFullPath(settings.DataRoot.Get());
+    public string DataRoot { get; } = Path.GetFullPath(settings.SaveRoot.Get());
 
     public string ProfileDatabasePath => Path.Combine(DataRoot, PROFILE_DATABASE_NAME);
 

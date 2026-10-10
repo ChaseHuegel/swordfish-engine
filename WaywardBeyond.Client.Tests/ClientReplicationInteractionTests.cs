@@ -61,7 +61,7 @@ public class ClientReplicationInteractionTests
     public void FailedSendRetainsStagedEdgesAndDeliversExactlyOnce()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
+        var system = new ClientReplicationSystem(connection, new NetworkingConfig());
         var store = new DataStore();
 
         int entity = store.Alloc();
@@ -100,7 +100,7 @@ public class ClientReplicationInteractionTests
     public void NoInputWorldSendsNothingRegardlessOfEntityCount()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
+        var system = new ClientReplicationSystem(connection, new NetworkingConfig());
         var store = new DataStore();
 
         //  Thousands of untouched world structures plus a player with no client-owned components:
@@ -120,7 +120,7 @@ public class ClientReplicationInteractionTests
     public void InventoryOpsDrainIntoSnapshotsAndClearOnSuccess()
     {
         var connection = new FlakyConnection();
-        var system = new ClientReplicationSystem(connection, new NetworkingSettings());
+        var system = new ClientReplicationSystem(connection, new NetworkingConfig());
         var store = new DataStore();
 
         int entity = store.Alloc();

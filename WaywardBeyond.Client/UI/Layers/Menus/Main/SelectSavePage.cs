@@ -30,7 +30,7 @@ internal sealed class SelectSavePage(
     in ModalMenu modalMenu,
     in ConfirmModal confirmModal,
     in TransportManager transportManager,
-    in NetworkingSettings networkingSettings,
+    in NetworkingConfig networkingConfig,
     in ProfileSettings profileSettings
 ) : IMenuPage<MenuPage>
 {
@@ -44,7 +44,7 @@ internal sealed class SelectSavePage(
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
     private readonly TransportManager _transportManager = transportManager;
-    private readonly NetworkingSettings _networkingSettings = networkingSettings;
+    private readonly NetworkingConfig _networkingConfig = networkingConfig;
     private readonly ProfileSettings _profileSettings = profileSettings;
 
     private const int RefreshIntervalMs = 1000;
@@ -331,7 +331,7 @@ internal sealed class SelectSavePage(
         }
 
         _remoteConnectTried = true;
-        Result result = _transportManager.ConnectRemote(_networkingSettings.DefaultHost.Get(), _networkingSettings.DefaultConnectPort.Get());
+        Result result = _transportManager.ConnectRemote(_networkingConfig.RemoteHost.Get(), _networkingConfig.RemotePort.Get());
         if (result.Success)
         {
             _ = _gameSaveService.RefreshLevelsAsync();

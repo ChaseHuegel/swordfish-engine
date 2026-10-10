@@ -21,7 +21,7 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
     private readonly TransportManager _transport;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
-    private readonly NetworkingSettings _settings;
+    private readonly NetworkingConfig _config;
     private readonly ServerStats _stats;
     private readonly ILogger<ClientHeartbeatSystem> _logger;
 
@@ -31,14 +31,14 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
         in TransportManager transport,
         in SnapshotAckTracker snapshotAck,
         in ClientPlayerMotionProcessor motionProcessor,
-        in NetworkingSettings settings,
+        in NetworkingConfig config,
         in ServerStats stats,
         in ILogger<ClientHeartbeatSystem> logger
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
-        _settings = settings;
+        _config = config;
         _stats = stats;
         _logger = logger;
         _nextHeartbeatTicks = Environment.TickCount;
@@ -57,7 +57,7 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
             _stats.Record(heartbeat.Value);
         }
 
-        int intervalMs = Math.Max(250, Math.Min(_settings.HeartbeatIntervalMs.Get(), Math.Max(1, _settings.ConnectionTimeoutMs.Get() / 2)));
+        int intervalMs = Math.Max(250, Math.Min(_config.HeartbeatIntervalMs.Get(), Math.Max(1, _config.ConnectionTimeoutMs.Get() / 2)));
         if (Environment.TickCount - _nextHeartbeatTicks < intervalMs)
         {
             return;
