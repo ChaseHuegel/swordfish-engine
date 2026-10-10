@@ -5,6 +5,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Saves;

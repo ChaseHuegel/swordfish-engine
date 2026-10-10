@@ -121,8 +121,9 @@ autosaves the level.
 `SaveVersion.CurrentDataVersion` and runs per-record forward migrations.
 `SqliteCharacterStorage` and `SqliteLevelCatalog` refuse records stamped by a
 newer build. Structure data carries a brick palette since data version 4;
-`VoxelEntityDataCodec` encodes live FNV voxel ids to a palette on write and
-decodes on load. See [brick-identity](brick-identity.md).
+`VoxelEntityDataCodec` encodes live registry-id data to a palette on write and
+decodes on load. The `Character` and `Level` records stamp their format via the
+`Version` message. See [brick-identity](brick-identity.md).
 
 The previous NATS JetStream store is no longer read. Existing `saves/`
 JetStream data is ignored; the game is pre-release and this change is a clean
@@ -144,6 +145,7 @@ no shared broker process to manage.
 - `WaywardBeyond.Data/SqliteLevelStore.cs`
 - `WaywardBeyond.Data/SqliteCharacterStorage.cs`
 - `WaywardBeyond.Data/SqliteSaveMetaStorage.cs`
+- `WaywardBeyond.Data/SqliteProfileInitializer.cs`
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`

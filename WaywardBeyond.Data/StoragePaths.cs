@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.IO;
+using Swordfish.Library.IO;
 using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Data;
@@ -7,32 +9,33 @@ namespace WaywardBeyond.Data;
 /// Resolves the save-data file layout under the configured data root. The client profile database and
 /// the per-level server databases share the root.
 /// </summary>
-public sealed class StoragePaths(in StorageSettings settings)
+public sealed class StoragePaths(StorageSettings settings)
 {
     private const string PROFILE_DATABASE_NAME = "profile.db";
     private const string LEVEL_DATABASE_NAME = "level.db";
 
-    public string DataRoot { get; } = Path.GetFullPath(settings.SaveRoot.Get());
+    private PathInfo DataRoot => settings.SaveRoot.Get();
 
-    public string ProfileDatabasePath => Path.Combine(DataRoot, PROFILE_DATABASE_NAME);
+    public PathInfo ProfileDatabasePath => DataRoot.At(PROFILE_DATABASE_NAME);
 
-    public string LevelDirectory(string levelGuid) => Path.Combine(DataRoot, levelGuid);
+    public PathInfo LevelDirectory(string levelGuid) => DataRoot.At(levelGuid);
 
-    public string LevelDatabasePath(string levelGuid) => Path.Combine(LevelDirectory(levelGuid), LEVEL_DATABASE_NAME);
+    public PathInfo LevelDatabasePath(string levelGuid) => LevelDirectory(levelGuid).At(LEVEL_DATABASE_NAME);
 
     public bool LevelExists(string levelGuid)
     {
-        return File.Exists(LevelDatabasePath(levelGuid));
+        PathInfo levelDatabasePath = LevelDatabasePath(levelGuid);
+        return levelDatabasePath.IsFile() && levelDatabasePath.FileExists();
     }
 
     public string[] ListLevelGuids()
     {
-        if (!Directory.Exists(DataRoot))
+        if (!DataRoot.IsDirectory() || !DataRoot.DirectoryExists())
         {
             return [];
         }
 
-        var guids = new System.Collections.Generic.List<string>();
+        var guids = new List<string>();
         foreach (string directory in Directory.EnumerateDirectories(DataRoot))
         {
             string guid = Path.GetFileName(directory);

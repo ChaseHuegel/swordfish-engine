@@ -119,7 +119,7 @@ public sealed class LevelSaveService : IDisposable
         }
 
         Level level = Level.Deserialize(levelData);
-        if (!GameSaveMigrations.Migrator.IsSupported(level.Version.DataVersion))
+        if (!GameSaveMigrations.Migrator.IsSupported<Level>(level.Version.DataVersion))
         {
             _logger.LogError(
                 "Refusing to load level \"{level}\" stamped with data version {version}: it was created by a newer build.",

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
 using Microsoft.Data.Sqlite;
+using WaywardBeyond.Data.Sqlite;
 
 namespace WaywardBeyond.Data;
 
@@ -37,6 +38,8 @@ public sealed class SqliteLevelStore : ILevelStore
 
     public byte[]? ReadLevel()
     {
+        ThrowIfDisposed();
+
         using SqliteConnection connection = SqliteDatabase.Open(_databasePath);
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT data FROM level LIMIT 1;";
@@ -45,6 +48,8 @@ public sealed class SqliteLevelStore : ILevelStore
 
     public IReadOnlyList<LevelEntityRecord> ReadEntities()
     {
+        ThrowIfDisposed();
+
         using SqliteConnection connection = SqliteDatabase.Open(_databasePath);
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT uuid, data FROM entities;";
@@ -67,10 +72,12 @@ public sealed class SqliteLevelStore : ILevelStore
 
     public byte[]? ReadLocation(ulong characterUuid)
     {
+        ThrowIfDisposed();
+
         using SqliteConnection connection = SqliteDatabase.Open(_databasePath);
         using SqliteCommand command = connection.CreateCommand();
         command.CommandText = "SELECT data FROM character_locations WHERE character_uuid = $characterUuid LIMIT 1;";
-        command.Parameters.AddWithValue("$characterUuid", ToKey(characterUuid));
+        command.Parameters.AddWithValue("$characterUuid", SqliteDatabase.EncodeKey(characterUuid));
         return command.ExecuteScalar() as byte[];
     }
 
@@ -91,14 +98,19 @@ public sealed class SqliteLevelStore : ILevelStore
             delete.ExecuteNonQuery();
         }
 
-        foreach (LevelEntityRecord entity in entities)
+        using (SqliteCommand insert = connection.CreateCommand())
         {
-            using SqliteCommand insert = connection.CreateCommand();
             insert.Transaction = transaction;
             insert.CommandText = "INSERT INTO entities (uuid, data) VALUES ($uuid, $data);";
-            insert.Parameters.AddWithValue("$uuid", ToKey(entity.Uuid));
-            insert.Parameters.AddWithValue("$data", entity.Data);
-            insert.ExecuteNonQuery();
+            insert.Parameters.Add("$uuid", SqliteType.Text);
+            insert.Parameters.Add("$data", SqliteType.Blob);
+
+            foreach (LevelEntityRecord entity in entities)
+            {
+                insert.Parameters["$uuid"].Value = SqliteDatabase.EncodeKey(entity.Uuid);
+                insert.Parameters["$data"].Value = entity.Data;
+                insert.ExecuteNonQuery();
+            }
         }
 
         foreach (LevelLocationRecord location in locations)
@@ -154,7 +166,7 @@ public sealed class SqliteLevelStore : ILevelStore
             INSERT INTO character_locations (character_uuid, data) VALUES ($characterUuid, $data)
             ON CONFLICT(character_uuid) DO UPDATE SET data = excluded.data;
             """;
-        command.Parameters.AddWithValue("$characterUuid", ToKey(characterUuid));
+        command.Parameters.AddWithValue("$characterUuid", SqliteDatabase.EncodeKey(characterUuid));
         command.Parameters.AddWithValue("$data", data);
         command.ExecuteNonQuery();
     }
@@ -165,10 +177,5 @@ public sealed class SqliteLevelStore : ILevelStore
         {
             throw new ObjectDisposedException(nameof(SqliteLevelStore));
         }
-    }
-
-    private static string ToKey(ulong value)
-    {
-        return value.ToString(CultureInfo.InvariantCulture);
     }
 }

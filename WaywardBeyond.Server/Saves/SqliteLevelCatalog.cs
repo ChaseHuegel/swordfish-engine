@@ -15,7 +15,7 @@ namespace WaywardBeyond.Server.Saves;
 /// </summary>
 public sealed class SqliteLevelCatalog : ILevelCatalog
 {
-    private static readonly WaywardBeyond.Data.Version _gameVersion = new(_DataVersion: SaveVersion.CURRENT_DATA_VERSION, _Name: "Wayward Beyond", _Environment: "Development");
+    private static readonly Data.Version _gameVersion = new(_DataVersion: SaveVersion.CURRENT_DATA_VERSION, _Name: "Wayward Beyond", _Environment: "Development");
 
     private readonly ILogger _logger;
     private readonly StoragePaths _paths;
@@ -93,7 +93,7 @@ public sealed class SqliteLevelCatalog : ILevelCatalog
                 }
 
                 Level level = Level.Deserialize(data);
-                if (!GameSaveMigrations.Migrator.IsSupported(level.Version.DataVersion))
+                if (!GameSaveMigrations.Migrator.IsSupported<Level>(level.Version.DataVersion))
                 {
                     _logger.LogWarning(
                         "Skipping level \"{level}\" with newer data version {version} in the save list.",

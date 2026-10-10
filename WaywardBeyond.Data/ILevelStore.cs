@@ -3,12 +3,10 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Data;
 
-/// <summary>
-/// One level's save database: level metadata, voxel entities, and per-character locations. Records are
-/// raw nsd blobs; the caller owns serialization and migration.
-/// </summary>
+/// <summary>Provides access to a level's data.</summary>
 public interface ILevelStore : IDisposable
 {
+    /// <summary></summary>
     byte[]? ReadLevel();
 
     IReadOnlyList<LevelEntityRecord> ReadEntities();

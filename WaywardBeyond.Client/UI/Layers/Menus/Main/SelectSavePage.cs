@@ -17,6 +17,7 @@ using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI.Layers.Menus.Modal;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 

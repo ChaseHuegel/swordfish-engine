@@ -15,6 +15,7 @@ using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Characters;
 
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 

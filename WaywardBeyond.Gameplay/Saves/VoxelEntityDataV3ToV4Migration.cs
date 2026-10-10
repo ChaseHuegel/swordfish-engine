@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Migrations;
 
 namespace WaywardBeyond.Gameplay;
 
@@ -11,12 +12,12 @@ namespace WaywardBeyond.Gameplay;
 /// self-describing. The legacy bare-name reverse map is the only hardcoded brick data, and it is private
 /// to this migration on purpose (see <see cref="LegacyNames"/>).
 /// </summary>
-internal sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntityData>
+internal sealed class VoxelEntityDataV3ToV4Migration : Migration<VoxelEntityData>
 {
     public override uint FromVersion => 3;
     public override uint ToVersion => 4;
 
-    public override VoxelEntityData ApplyValue(VoxelEntityData value)
+    protected override VoxelEntityData ApplyValue(VoxelEntityData value)
     {
         return VoxelEntityDataCodec.EncodeLegacyToPalette(in value, LegacyNames.LegacyNameFromDataId);
     }
@@ -58,7 +59,7 @@ internal sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntity
             var map = new Dictionary<ushort, string>(_bareNames.Length);
             foreach (string bare in _bareNames)
             {
-                ushort id = FNV1a.ComputeDataID(bare);
+                ushort id = ComputeDataID(bare);
                 map.TryAdd(id, $"wb:{bare}");
             }
             return map;
@@ -69,14 +70,25 @@ internal sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntity
             return _byDataId.TryGetValue(dataId, out string name) ? name : null;
         }
     }
+    
+    /// <summary>
+    /// Reproduces the legacy (data version 3) bare-name brick id: the FNV1a hash of the un-namespaced
+    /// brick name reduced to 16 bits. Runtime voxel ids today come from a sorted <c>BrickRegistry</c>;
+    /// this is used only by the v3 to v4 save migration to reverse-map the raw ids a legacy structure
+    /// carried. The mod-65535 reduction must stay as-is so legacy ids still round-trip.
+    /// </summary>
+    public static ushort ComputeDataID(string str)
+    {
+        return (ushort)(FNV1a.ComputeHash32(str) % ushort.MaxValue);
+    }
 }
 
 /// <summary>
 /// The standard data-format migrator for game-save records. Registers every forward migration shipping
-/// with this build. Provides the single <see cref="SaveMigrator"/> used by the persistence paths.
+/// with this build. Provides the single <see cref="Data.Migrations.Migrator"/> used by the persistence paths.
 /// </summary>
 public static class GameSaveMigrations
 {
     /// <summary>A migrator carrying every game-save record migration for this build.</summary>
-    public static SaveMigrator Migrator { get; } = new([new VoxelEntityDataV3ToV4Migration()]);
+    public static Migrator Migrator { get; } = new([new VoxelEntityDataV3ToV4Migration()]);
 }

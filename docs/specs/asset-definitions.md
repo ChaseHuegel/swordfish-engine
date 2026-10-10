@@ -82,9 +82,11 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 
 Base-game brick ids are prefixed with the `wb` namespace. A mod uses its own
 namespace so no two content authors can collide by name. A brick's voxel id is
-`FNV1a.ComputeDataID(ID)` — a pure, deterministic hash of the namespaced id. The
-client, server, worldgen, and skills all derive the same id from the same string,
-and a genuine FNV collision between two brick ids is a hard load error. See
+assigned by the sorted registry at database load (ordinal by name, id 0 reserved
+for the empty voxel), so ids depend only on the name set, never on load order.
+Persisted structures carry a brick palette so a saved id stays self-describing
+across content changes; the legacy `FNV1a.ComputeDataID` hash is used only to
+reverse-map pre-palette (data version 3) saves. See
 [brick-identity](brick-identity.md).
 
 Example:

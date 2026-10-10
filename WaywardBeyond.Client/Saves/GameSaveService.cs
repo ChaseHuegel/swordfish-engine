@@ -7,6 +7,7 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Levels;
 
 namespace WaywardBeyond.Client.Saves;
 
@@ -14,7 +15,7 @@ namespace WaywardBeyond.Client.Saves;
 /// The client's thin view over level persistence. The server owns the authoritative level, its
 /// generation, and its save database; this service only maintains a cached save listing for the menu
 /// (queried from the server) and issues create/delete/save requests. "Last played" and "time played" shown
-/// in the listing are the client's own per-save stats, tracked in <see cref="ISaveMetaStorage"/> and merged
+/// in the listing are the client's own per-save stats, tracked in <see cref="ILevelMetadataStorage"/> and merged
 /// over the server's level metadata here. Characters remain client-owned and are handled separately by
 /// <see cref="CharacterSaveManager"/>.
 /// </summary>
@@ -23,13 +24,13 @@ internal sealed class GameSaveService(
     in LocalizedFormatter localizedFormatter,
     in NotificationService notificationService,
     in LevelsClient levelsClient,
-    in ISaveMetaStorage saveMetaStorage
+    in ILevelMetadataStorage levelMetadataStorage
 ) {
     private readonly ILogger _logger = logger;
     private readonly LocalizedFormatter _localizedFormatter = localizedFormatter;
     private readonly NotificationService _notificationService = notificationService;
     private readonly LevelsClient _levelsClient = levelsClient;
-    private readonly ISaveMetaStorage _saveMetaStorage = saveMetaStorage;
+    private readonly ILevelMetadataStorage _levelMetadataStorage = levelMetadataStorage;
 
     private readonly object _savesGate = new();
     private Level[] _levels = [];
@@ -89,7 +90,7 @@ internal sealed class GameSaveService(
             _clientMeta[levelGuid] = meta;
         }
 
-        _saveMetaStorage.Save(levelGuid, meta);
+        _levelMetadataStorage.Save(levelGuid, meta);
     }
 
     /// <summary>Ends a save's session on this client by stamping the current wall-clock as last played.</summary>
@@ -129,8 +130,7 @@ internal sealed class GameSaveService(
                 _canCreateSave = listing.CanCreateSave;
                 if (!_metaLoaded)
                 {
-                    _clientMeta = _saveMetaStorage.GetAll()
-                        .ToDictionary(pair => pair.Key, pair => pair.Value);
+                    _clientMeta = new(_levelMetadataStorage.GetAll());
                     _metaLoaded = true;
                 }
             }
@@ -186,7 +186,7 @@ internal sealed class GameSaveService(
         {
             _clientMeta.Remove(levelGuid);
         }
-        _saveMetaStorage.Delete(levelGuid);
+        _levelMetadataStorage.Delete(levelGuid);
 
         await RefreshLevelsAsync();
 
