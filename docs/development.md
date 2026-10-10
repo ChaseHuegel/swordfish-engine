@@ -37,6 +37,7 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 These are observed conventions extracted from the codebase. Follow them.
 
 ### Names & formatting
+Conventions for common type patterns such as assets, config, and ECS live in [specs/naming](specs/naming.md).
 
 | Element | Convention | Example |
 |---|---|---|
@@ -105,6 +106,14 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
   (`Swordfish.Library`, `Swordfish.Compilation`). Prefer `readonly record struct`
   for immutable value data.
 - One type per file unless nested within another type.
+- Use the most concrete type that fits. Reach for an abstraction only when the
+  value is real: a public API prone to churn, multiple implementations or
+  sources, or genuinely heterogeneous data. Prefer near-concrete types
+  (`T[]`, `List<T>`, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`) over
+  `IEnumerable<T>` as a declared type. Do not abstract to wrap a collection
+  that stays private or internal, and never expose a collection a caller can
+  mutate (a database must not hand out a mutable list). Avoid abstractions that
+  add allocation or virtualization on hot paths.
 
 ### DI & architecture
 

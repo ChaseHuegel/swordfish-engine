@@ -32,6 +32,8 @@ change touches a subject, run the docs pass (see `development.md`).
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
+| Self-review and peer-review checklist | [specs/code-review](specs/code-review.md) |
+| Naming conventions common type patterns | [specs/naming](specs/naming.md) |
 | Local issue index and agent workflow | [specs/issues](specs/issues.md) |
 
 ## Conventions
