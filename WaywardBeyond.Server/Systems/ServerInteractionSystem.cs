@@ -34,7 +34,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
     private readonly ServerConnectionHub _hub;
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly ServerSkillSystem? _skills;
     private readonly SharedSimulationStep? _simulationStep;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
@@ -45,16 +45,16 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         in ServerConnectionHub hub,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
-        IBrickIdMap brickIdMap
-    ) : this(hub, content, logger, new InteractionHandlerRegistry(), CreateWorldFactory(), brickIdMap) { }
+        IBrickRegistry brickRegistry
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), CreateWorldFactory(), brickRegistry) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
         in IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        IBrickIdMap brickIdMap
-    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory, brickIdMap) { }
+        IBrickRegistry brickRegistry
+    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory, brickRegistry) { }
 
     public ServerInteractionSystem(
         in ServerConnectionHub hub,
@@ -62,7 +62,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        IBrickIdMap brickIdMap,
+        IBrickRegistry brickRegistry,
         ServerSkillSystem? skills = null,
         in SharedSimulationStep? simulationStep = null
     ) {
@@ -73,7 +73,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         _worldFactory = worldFactory;
         _skills = skills;
         _simulationStep = simulationStep;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
     }
 
     public void Tick(float delta, DataStore store)
@@ -147,7 +147,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         IVoxelInteractionWorld world = _worldFactory(store);
 
         InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickIdMap);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -212,7 +212,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             Z = coordinate.Z,
             Voxel = voxel,
             Sequence = sequence,
-            BrickId = _brickIdMap.Name(voxel.ID),
+            BrickId = _brickRegistry.Name(voxel.ID),
         };
 
         foreach ((Uuid clientId, _) in _hub.Clients)

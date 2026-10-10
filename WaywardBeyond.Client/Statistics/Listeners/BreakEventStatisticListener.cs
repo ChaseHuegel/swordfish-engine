@@ -22,7 +22,7 @@ internal class BreakEventStatisticListener(in CharacterSaveManager characterSave
         Character character = activeSave.Value;
         
         character.AddStatistic("bricks.broken", 1);
-        character.AddStatistic($"bricks.broken:{e.BrickInfo.ID}", 1);
+        character.AddStatistic($"bricks.broken:{e.Brick.ID}", 1);
         
         _characterSaveManager.ActiveSave = character;
         

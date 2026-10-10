@@ -143,59 +143,61 @@ public class VoxelObjectProcessorTests
     
     private class TestBrickDatabase : IBrickDatabase
     {
-        private readonly BrickInfo _emptyBrickInfo =  new(
+        private readonly Brick _emptyBrick = new(
             id: string.Empty,
-            dataID: 0,
             transparent: false,
             passable: false,
             meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: null
-        );
-        
-        private readonly BrickInfo _solidBrickInfo =  new(
+        ) { DataID = 0 };
+
+        private readonly Brick _solidBrick = new(
             id: string.Empty,
-            dataID: SOLID_VOXEL,
             transparent: false,
             passable: false,
             meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: null
-        );
-        
-        private readonly BrickInfo _lightBrickInfo =  new(
+        ) { DataID = SOLID_VOXEL };
+
+        private readonly Brick _lightBrick = new(
             id: string.Empty,
-            dataID: LIGHT_VOXEL,
             transparent: false,
             passable: false,
             meshID: null,
             BrickShape.Block,
             new BrickTextures(),
             tags: ["wb:light"]
-        );
+        ) { DataID = LIGHT_VOXEL };
         
         public bool IsCuller(in Voxel voxel, BrickShape shape)
         {
             return voxel.ID != 0;
         }
 
-        public Result<BrickInfo> Get(ushort id)
+        public Result<Brick> Get(ushort id)
         {
-            BrickInfo info = id switch
+            Brick info = id switch
             {
-                SOLID_VOXEL => _solidBrickInfo,
-                LIGHT_VOXEL => _lightBrickInfo,
-                _ => _emptyBrickInfo,
+                SOLID_VOXEL => _solidBrick,
+                LIGHT_VOXEL => _lightBrick,
+                _ => _emptyBrick,
             };
 
-            return Result<BrickInfo>.FromSuccess(info);
+            return Result<Brick>.FromSuccess(info);
         }
 
-        public List<BrickInfo> Get(Func<BrickInfo, bool> predicate)
+        public List<Brick> Get(Func<Brick, bool> predicate)
         {
-            return [_lightBrickInfo];
+            return [_lightBrick];
+        }
+
+        public Result<Brick> Get(string id)
+        {
+            return Result<Brick>.FromFailure($"Unknown brick \"{id}\"");
         }
     }
 }

@@ -35,7 +35,7 @@ public sealed class ServerInteractionContent : IInteractionContent
     {
         loot = default;
 
-        Result<BrickInfo> brickResult = _brickLookup.Get(brickDataID);
+        Result<Brick> brickResult = _brickLookup.Get(brickDataID);
         if (!brickResult.Success)
         {
             return false;

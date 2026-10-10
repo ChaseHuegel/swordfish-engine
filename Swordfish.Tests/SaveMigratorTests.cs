@@ -21,7 +21,7 @@ public class SaveMigratorTests
         SaveMigrator migrator = new([new V3ToV4Dummy()]);
         var record = new DummyRecord(false);
 
-        DummyRecord result = migrator.Migrate(record, SaveVersion.CurrentDataVersion);
+        DummyRecord result = migrator.Migrate(record, SaveVersion.CURRENT_DATA_VERSION);
 
         Assert.False(result.Migrated);
     }
@@ -42,7 +42,7 @@ public class SaveMigratorTests
     {
         SaveMigrator migrator = new([new V3ToV4Dummy()]);
 
-        Assert.Throws<SaveDataNotSupportedException>(() => migrator.Migrate(new DummyRecord(false), SaveVersion.CurrentDataVersion + 5));
+        Assert.Throws<SaveDataNotSupportedException>(() => migrator.Migrate(new DummyRecord(false), SaveVersion.CURRENT_DATA_VERSION + 5));
     }
 
     [Fact]
@@ -65,7 +65,7 @@ public class SaveMigratorTests
         //  Character has no registered migration, so an older same-shaped record is a no-op.
         SaveMigrator migrator = new([]);
         var character = new Character(
-            new WaywardBeyond.Data.Version(SaveVersion.CurrentDataVersion, "t", "Development"),
+            new WaywardBeyond.Data.Version(SaveVersion.CURRENT_DATA_VERSION, "t", "Development"),
             1, 0, 0, "n", 1, 1, 1, 1, 1, 1, "wb:m_human", 0, GameMode.Creative, _Statistics: null, _Inventory: null
         );
 
@@ -81,7 +81,7 @@ public class SaveMigratorTests
         SaveMigrator migrator = new([new V3ToV4Dummy()]);
 
         Assert.True(migrator.IsSupported(3));
-        Assert.True(migrator.IsSupported(SaveVersion.CurrentDataVersion));
-        Assert.False(migrator.IsSupported(SaveVersion.CurrentDataVersion + 1));
+        Assert.True(migrator.IsSupported(SaveVersion.CURRENT_DATA_VERSION));
+        Assert.False(migrator.IsSupported(SaveVersion.CURRENT_DATA_VERSION + 1));
     }
 }

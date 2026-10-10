@@ -28,10 +28,10 @@ public sealed class LevelGenerator
     private readonly AsteroidGenerator _asteroidGenerator;
     private readonly Randomizer _randomizer;
 
-    public LevelGenerator(in int seed, in IBrickIdMap brickIdMap)
+    public LevelGenerator(in int seed, in IBrickRegistry brickRegistry)
     {
         _seed = seed;
-        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName(BrickId.Namespaced("rock"), brickIdMap), WorldMaterialCatalog.FromName(BrickId.Namespaced("ice"), brickIdMap));
+        _asteroidGenerator = new AsteroidGenerator(seed, WorldMaterialCatalog.FromName("wb:rock", brickRegistry), WorldMaterialCatalog.FromName("wb:ice", brickRegistry));
         _randomizer = new Randomizer(seed);
     }
 

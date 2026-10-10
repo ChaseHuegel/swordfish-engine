@@ -1,6 +1,7 @@
 namespace WaywardBeyond.Bricks;
 
-public struct BrickDefinition()
+/// <summary>Defines a brick asset.</summary>
+internal struct BrickDefinition()
 {
     public string ID;
     public bool Transparent;

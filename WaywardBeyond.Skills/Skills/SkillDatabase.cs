@@ -15,13 +15,13 @@ namespace WaywardBeyond.Skills;
 /// Headless, shared skill database. Loads the skill definition tomls from the virtual <c>skills/</c> root
 /// and expands each skill's sources into brick data ids: a <c>tag:&lt;name&gt;</c> key is expanded through
 /// the invariant tag lists under <c>lang/tags/</c>, and every brick id maps through an
-/// <see cref="IBrickIdMap"/> to its voxel data id. Never touches localization, textures, or icons - it
+/// <see cref="IBrickRegistry"/> to its voxel data id. Never touches localization, textures, or icons - it
 /// exists so the authoritative server can run skill mechanics without any client-coupled asset pipeline.
 /// </summary>
 public sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, SkillDefinition, SkillData>, IAutoActivate
 {
     private readonly ILogger<SkillDatabase> _logger;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly Dictionary<string, List<string>> _invariantTags = [];
     private readonly Dictionary<XPSource, HashSet<string>> _skillIDByXPSource =
         new()
@@ -34,11 +34,11 @@ public sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Skill
         in ILogger<SkillDatabase> logger,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
-        IBrickIdMap brickIdMap
+        IBrickRegistry brickRegistry
     ) : base(logger, fileParseService, vfs)
     {
         _logger = logger;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
         LoadInvariantTags();
         Load();
     }
@@ -130,7 +130,7 @@ public sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Skill
 
     private void AddDataIDSource(Dictionary<ushort, int> dataIDSources, string brickID, int xp, string skillID)
     {
-        ushort dataID = _brickIdMap.Id(brickID);
+        ushort dataID = _brickRegistry.Id(brickID);
         if (dataIDSources.TryGetValue(dataID, out int existing))
         {
             if (existing != xp)

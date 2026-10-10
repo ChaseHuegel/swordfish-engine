@@ -134,7 +134,7 @@ public class SqliteCharacterStorage : ICharacterStorage
             if (!_migrator.IsSupported(character.Version.DataVersion))
             {
                 return Result<Character>.FromFailure(
-                    $"Character {character.Id} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CurrentDataVersion}.");
+                    $"Character {character.Id} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CURRENT_DATA_VERSION}.");
             }
 
             return Result<Character>.FromSuccess(_migrator.Migrate(character, character.Version.DataVersion));

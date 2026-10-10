@@ -60,7 +60,7 @@ public class ClientJoinTimeoutTests
         }
     }
 
-    private sealed class StubBrickIdMap : IBrickIdMap
+    private sealed class StubBrickRegistry : IBrickRegistry
     {
         public ushort Id(string name) => 0;
         public string? Name(ushort id) => null;
@@ -125,7 +125,7 @@ public class ClientJoinTimeoutTests
             new PlayerCharacterEntityBuilder(null!),
             new VoxelEntityBuilder(null!, new Shader("test"), new PBRTextureArrays(null!, null!, null!, null!, null!), null!, []),
             NullLogger<ClientJoinSystem>.Instance,
-            new StubBrickIdMap(),
+            new StubBrickRegistry(),
             disconnectSystem,
             settings
         );
@@ -183,7 +183,7 @@ public class ClientJoinTimeoutTests
             new PlayerCharacterEntityBuilder(null!),
             new VoxelEntityBuilder(null!, new Shader("test"), new PBRTextureArrays(null!, null!, null!, null!, null!), null!, []),
             NullLogger<ClientJoinSystem>.Instance,
-            new StubBrickIdMap(),
+            new StubBrickRegistry(),
             disconnectSystem,
             settings
         );

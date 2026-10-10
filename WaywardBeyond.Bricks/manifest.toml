@@ -1,6 +1,6 @@
 ID = "waywardbeyond.bricks"
 Name = "Wayward Beyond Bricks"
-Description = "Shared, headless brick definitions, database, and id registry for Wayward Beyond."
+Description = "Brick asset API and definitions for Wayward Beyond."
 Author = "Chase Huegel"
 Website = "https://github.com/ChaseHuegel"
 Source = "https://github.com/ChaseHuegel/swordfish-engine"

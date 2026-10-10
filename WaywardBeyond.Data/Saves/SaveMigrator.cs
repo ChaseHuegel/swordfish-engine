@@ -6,14 +6,14 @@ namespace WaywardBeyond.Data;
 
 /// <summary>
 /// Applies forward data-format migrations to save-bearing records. Holds the ordered chain of
-/// <see cref="ISaveMigration"/>s per record type and gates on <see cref="SaveVersion.CurrentDataVersion"/>:
+/// <see cref="ISaveMigration"/>s per record type and gates on <see cref="SaveVersion.CURRENT_DATA_VERSION"/>:
 /// a record at current version passes through unchanged, one at an older version runs each step up to
 /// current, and one at a newer version is refused via <see cref="SaveDataNotSupportedException"/>.
 /// </summary>
 public sealed class SaveMigrator
 {
     /// <summary>The data format version every migration chain targets.</summary>
-    public uint CurrentDataVersion => SaveVersion.CurrentDataVersion;
+    public uint CurrentDataVersion => SaveVersion.CURRENT_DATA_VERSION;
 
     private readonly IReadOnlyDictionary<Type, List<ISaveMigration>> _migrations;
 
@@ -35,7 +35,7 @@ public sealed class SaveMigrator
     /// <summary>Whether a record stamped at <paramref name="fromVersion"/> can be loaded (not newer than current).</summary>
     public bool IsSupported(uint fromVersion)
     {
-        return fromVersion <= SaveVersion.CurrentDataVersion;
+        return fromVersion <= SaveVersion.CURRENT_DATA_VERSION;
     }
 
     /// <summary>
@@ -44,9 +44,9 @@ public sealed class SaveMigrator
     /// </summary>
     public T Migrate<T>(T value, uint fromVersion)
     {
-        if (fromVersion > SaveVersion.CurrentDataVersion)
+        if (fromVersion > SaveVersion.CURRENT_DATA_VERSION)
         {
-            throw new SaveDataNotSupportedException(fromVersion, SaveVersion.CurrentDataVersion);
+            throw new SaveDataNotSupportedException(fromVersion, SaveVersion.CURRENT_DATA_VERSION);
         }
 
         if (!_migrations.TryGetValue(typeof(T), out List<ISaveMigration>? chain) || chain.Count == 0)
@@ -90,10 +90,10 @@ public sealed class SaveMigrator
             expected = migration.ToVersion;
         }
 
-        if (expected != SaveVersion.CurrentDataVersion)
+        if (expected != SaveVersion.CURRENT_DATA_VERSION)
         {
             throw new InvalidOperationException(
-                $"Migration chain for {type.Name} ends at {expected}, not the current version {SaveVersion.CurrentDataVersion}.");
+                $"Migration chain for {type.Name} ends at {expected}, not the current version {SaveVersion.CURRENT_DATA_VERSION}.");
         }
     }
 }

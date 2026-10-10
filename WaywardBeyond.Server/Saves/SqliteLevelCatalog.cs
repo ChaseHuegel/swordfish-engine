@@ -15,17 +15,17 @@ namespace WaywardBeyond.Server.Saves;
 /// </summary>
 public sealed class SqliteLevelCatalog : ILevelCatalog
 {
-    private static readonly WaywardBeyond.Data.Version _gameVersion = new(_DataVersion: SaveVersion.CurrentDataVersion, _Name: "Wayward Beyond", _Environment: "Development");
+    private static readonly WaywardBeyond.Data.Version _gameVersion = new(_DataVersion: SaveVersion.CURRENT_DATA_VERSION, _Name: "Wayward Beyond", _Environment: "Development");
 
     private readonly ILogger _logger;
     private readonly StoragePaths _paths;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
 
-    public SqliteLevelCatalog(in ILogger<SqliteLevelCatalog> logger, in StoragePaths paths, IBrickIdMap brickIdMap)
+    public SqliteLevelCatalog(in ILogger<SqliteLevelCatalog> logger, in StoragePaths paths, IBrickRegistry brickRegistry)
     {
         _logger = logger;
         _paths = paths;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
     }
 
     public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
@@ -49,7 +49,7 @@ public sealed class SqliteLevelCatalog : ILevelCatalog
             name
         );
 
-        GeneratedVoxelEntity[] entities = new LevelGenerator(seedValue, _brickIdMap).Generate();
+        GeneratedVoxelEntity[] entities = new LevelGenerator(seedValue, _brickRegistry).Generate();
         string directory = _paths.LevelDirectory(guidText);
 
         try
@@ -60,7 +60,7 @@ public sealed class SqliteLevelCatalog : ILevelCatalog
             var records = new List<LevelEntityRecord>(entities.Length);
             foreach (GeneratedVoxelEntity entity in entities)
             {
-                VoxelEntityData data = ToVoxelEntityData(entity, _brickIdMap);
+                VoxelEntityData data = ToVoxelEntityData(entity, _brickRegistry);
                 records.Add(new LevelEntityRecord(entity.Uuid.ToValue(), data.Serialize()));
             }
 
@@ -170,7 +170,7 @@ public sealed class SqliteLevelCatalog : ILevelCatalog
         }
     }
 
-    private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity, IBrickIdMap brickIdMap)
+    private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity, IBrickRegistry brickRegistry)
     {
         return VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
             entity.Uuid.ToValue(),
@@ -186,6 +186,6 @@ public sealed class SqliteLevelCatalog : ILevelCatalog
             _ScaleZ: 1,
             entity.Chunks,
             _BrickPalette: null
-        ), brickIdMap);
+        ), brickRegistry);
     }
 }

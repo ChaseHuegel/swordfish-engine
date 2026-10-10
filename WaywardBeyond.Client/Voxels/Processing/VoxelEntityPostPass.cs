@@ -18,8 +18,8 @@ internal sealed class VoxelEntityPostPass(IBrickDatabase brickDatabase, EntitySt
 
     public void Process(VoxelSample sample)
     {
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(sample.Center.ID);
-        BrickInfo brickInfo = brickInfoResult.Value;
+        Result<Brick> brickInfoResult = _brickDatabase.Get(sample.Center.ID);
+        Brick brickInfo = brickInfoResult.Value;
         if (!brickInfoResult.Success || !brickInfo.Entity)
         {
             return;

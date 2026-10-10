@@ -59,7 +59,7 @@ internal sealed class VoxelEntityDataV3ToV4Migration : SaveMigration<VoxelEntity
             foreach (string bare in _bareNames)
             {
                 ushort id = FNV1a.ComputeDataID(bare);
-                map.TryAdd(id, BrickId.Namespaced(bare));
+                map.TryAdd(id, $"wb:{bare}");
             }
             return map;
         }

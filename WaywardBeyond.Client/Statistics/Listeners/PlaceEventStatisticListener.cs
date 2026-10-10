@@ -22,7 +22,7 @@ internal class PlaceEventStatisticListener(in CharacterSaveManager characterSave
         Character character = activeSave.Value;
         
         character.AddStatistic("bricks.placed", 1);
-        character.AddStatistic($"bricks.placed:{e.BrickInfo.ID}", 1);
+        character.AddStatistic($"bricks.placed:{e.Brick.ID}", 1);
         
         _characterSaveManager.ActiveSave = character;
         

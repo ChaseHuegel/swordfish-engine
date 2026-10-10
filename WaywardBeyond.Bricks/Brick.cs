@@ -1,23 +1,28 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace WaywardBeyond.Bricks;
 
-/// <summary>
-/// The headless, render-free view of a loaded brick definition. Carries the voxel id, shape, textures,
-/// tags, and the custom mesh id (a string handle; the client resolves it to a renderable mesh). It does
-/// not reference a graphics mesh, so it is usable by the server and headless consumers.
-/// </summary>
-public sealed class BrickInfo
+/// <summary>An asset representing a brick's type information.</summary>
+public sealed class Brick
 {
+    /// <summary>The minimum ID value.</summary>
+    public const ushort MinID = 1;
+    
+    /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
-    public readonly ushort DataID;
+
+    /// <summary>The voxel id for this brick. Bound once at database load.</summary>
+    public ushort DataID { get; internal set; }
+
+    /// <summary>All brick tags are case-insensitive.</summary>
+    public readonly IReadOnlySet<string> Tags;
+
     public readonly bool Transparent;
     public readonly bool Passable;
     public readonly string? MeshID;
     public readonly BrickShape Shape;
     public readonly BrickTextures Textures;
-    public readonly HashSet<string> Tags;
 
     public readonly bool Shapeable;
     public readonly bool LightSource;
@@ -26,29 +31,27 @@ public sealed class BrickInfo
 
     private readonly bool _hasOrientableTag;
 
-    public BrickInfo(
+    public Brick(
         in string id,
-        in ushort dataID,
         in bool transparent,
         in bool passable,
         in string? meshID,
         in BrickShape shape,
         in BrickTextures textures,
-        in string[]? tags)
-    {
+        in string[]? tags
+    ) {
         ID = id;
-        DataID = dataID;
         Transparent = transparent;
         Passable = passable;
         MeshID = meshID;
         Shape = shape;
         Textures = textures;
-        Tags = new HashSet<string>(tags ?? []);
+        Tags = new HashSet<string>(tags ?? [], StringComparer.OrdinalIgnoreCase);
         Shapeable = shape == BrickShape.Any;
-        LightSource = tags?.Contains("light") ?? false;
+        LightSource = Tags.Contains("light");
         Brightness = LightSource ? 15 : 0;
-        Entity = tags?.Contains("entity") ?? false;
-        _hasOrientableTag = tags?.Contains("orientable") ?? false;
+        Entity = Tags.Contains("entity");
+        _hasOrientableTag = Tags.Contains("orientable");
     }
 
     /// <summary>Returns whether the provided shape is orientable for this brick.</summary>
@@ -63,8 +66,12 @@ public sealed class BrickInfo
         bool isShapeableBrick = Shape == BrickShape.Any;
 
         //  Shapeable bricks are implicitly orientable, unless the desired shape is a block.
-        bool isOrientableShape = isShapeableBrick && !isBlockShape;
+        return isShapeableBrick && !isBlockShape;
+    }
 
-        return isOrientableShape;
+    /// <summary>Binds the voxel id assigned by the sorted registry. Called once at database load.</summary>
+    internal void BindDataID(ushort dataID)
+    {
+        DataID = dataID;
     }
 }

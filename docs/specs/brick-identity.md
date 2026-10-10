@@ -27,16 +27,19 @@ bare brick names privately in `VoxelEntityDataV3ToV4Migration`
 
 ## Runtime voxel id
 
-A voxel packs a `ushort ID` (`WaywardBeyond.Data/CodeGen/voxels.nsd:39`).
+A voxel packs a `ushort ID` (`WaywardBeyond.Data/CodeGen/voxels.nsd:40`).
 That id comes from a sorted, collision-free registry. `BrickIdRegistry`
 (`WaywardBeyond.Bricks/BrickIdRegistry.cs`) assigns ids by sorting
 the present brick names, so id 0 (the empty voxel) is reserved and ids depend
 only on the name set, never on load order. `BrickDatabase`
 (`WaywardBeyond.Bricks/BrickDatabase.cs`) builds the id space purely from
-its loaded toml content and owns it as the process `IBrickIdMap`.
-`BrickDatabase.BuildRegistry` uses `BrickIdRegistry.FromNames(loadedIds)`, so a
-brick's id shifts only when the present content set changes. That is safe
-because edits reconcile by name and saved structures carry a palette.
+its loaded toml content and owns it as the process `IBrickIdMap`. It parses each
+toml once through the base `VirtualAssetDatabase`, stages the definitions, then
+builds the sorted registry with `BrickIdRegistry.FromNames` and binds each
+brick's id. Name lookups use the base store; id lookups index a lock-free array,
+so the per-voxel path takes no lock. A brick's id shifts only when the present
+content set changes, which is safe because edits reconcile by name and saved
+structures carry a palette.
 
 `IBrickIdMap` (`WaywardBeyond.Bricks/IBrickIdMap.cs`) is the single
 name-to-id lens every consumer resolves through: `Id(name)` (0 for an unknown
@@ -50,11 +53,12 @@ name), `Name(id)`, `Count`. It is injected, never a global static.
 | `VoxelEntityDataCodec` | an `IBrickIdMap` argument |
 | `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickIdMap` |
 
-`BrickInfo` (`WaywardBeyond.Bricks/BrickInfo.cs`) is the headless view of
+`Brick` (`WaywardBeyond.Bricks/Brick.cs`) is the headless view of
 a loaded brick: it carries the voxel id, shape, textures, tags, and the custom
 mesh **id** (a string). It holds no renderable mesh and builds no voxel, so it
 is reusable by the server. The client resolves the mesh id to a renderable mesh
-through an `IAssetDatabase<Mesh>` in the mesh-build and gizmo paths.
+through an `IAssetDatabase<Mesh>` in the mesh-build and gizmo paths. Brick tags
+are case-insensitive.
 
 ## Persistent voxel data
 

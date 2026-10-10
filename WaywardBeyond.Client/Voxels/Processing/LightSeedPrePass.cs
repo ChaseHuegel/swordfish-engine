@@ -18,10 +18,10 @@ internal sealed class LightSeedPrePass(IBrickDatabase brickDatabase) : VoxelObje
 
     public void Process(ref Voxel voxel)
     {
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(voxel.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(voxel.ID);
         
         ShapeLight shapeLight = voxel.ShapeLight;
-        BrickInfo brickInfo = brickInfoResult.Value;
+        Brick brickInfo = brickInfoResult.Value;
         
         // If this isn't a light, clear any stale light level
         if (!brickInfoResult.Success || !brickInfo.LightSource)

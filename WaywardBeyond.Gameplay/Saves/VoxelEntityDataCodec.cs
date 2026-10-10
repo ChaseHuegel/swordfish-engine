@@ -10,7 +10,7 @@ namespace WaywardBeyond.Gameplay;
 /// <see cref="VoxelEntityData"/> at the save boundary. Since data version 4 a saved structure carries a
 /// brick palette (<c>BrickPalette[n]</c> = the brick name for voxel id n) so saved voxel ids are stable
 /// and self-describing regardless of the in-memory id scheme. In-memory voxel ids are registry ids from an
-/// <see cref="IBrickIdMap"/>; version 3 structures had no palette and carried raw FNV1a brick ids, which
+/// <see cref="IBrickRegistry"/>; version 3 structures had no palette and carried raw FNV1a brick ids, which
 /// the <c>VoxelEntityDataV3ToV4Migration</c> re-indexes.
 /// </summary>
 public static class VoxelEntityDataCodec
@@ -20,7 +20,7 @@ public static class VoxelEntityDataCodec
     /// Voxel ids are unchanged; the palette records a name for each present id so the structure persists
     /// self-describing identities.
     /// </summary>
-    public static VoxelEntityData EncodeToPalette(in VoxelEntityData source, IBrickIdMap map)
+    public static VoxelEntityData EncodeToPalette(in VoxelEntityData source, IBrickRegistry map)
     {
         if (HasPalette(in source))
         {
@@ -72,7 +72,7 @@ public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source, F
             }
         }
 
-        BrickIdRegistry local = BrickIdRegistry.FromNames(names);
+        BrickRegistry local = BrickRegistry.FromNames(names);
         ChunkInfo[] chunks = RemapVoxels(source.Chunks, id => LegacyIdToLocalId(id, legacyIdToName, local));
         string[]? palette = BuildPalette(chunks, local.Name);
         return new VoxelEntityData(
@@ -90,7 +90,7 @@ public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source, F
         return legacyId == 0 ? null : legacyIdToName(legacyId);
     }
 
-    private static ushort LegacyIdToLocalId(ushort legacyId, Func<ushort, string?> legacyIdToName, BrickIdRegistry local)
+    private static ushort LegacyIdToLocalId(ushort legacyId, Func<ushort, string?> legacyIdToName, BrickRegistry local)
     {
         string? name = LegacyNameOf(legacyId, legacyIdToName);
         return name == null ? (ushort)0 : local.Id(name);
@@ -101,7 +101,7 @@ public static VoxelEntityData EncodeLegacyToPalette(in VoxelEntityData source, F
     /// (version 4+) map each voxel through its palette name to <paramref name="map"/>; structures without
     /// a palette already carry local ids and are returned unchanged.
     /// </summary>
-    public static VoxelEntityData DecodeToLocal(in VoxelEntityData source, IBrickIdMap map)
+    public static VoxelEntityData DecodeToLocal(in VoxelEntityData source, IBrickRegistry map)
     {
         if (!HasPalette(in source))
         {

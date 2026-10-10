@@ -35,30 +35,37 @@ namespace WaywardBeyond.Client.Tests;
 public class ClientVoxelReconcileSystemTests
 {
     /// <summary>Reconcile compares by canonical name, so a small, fixture-local map suffices.</summary>
-    private static readonly BrickIdRegistry _brickMap = BrickIdRegistry.FromNames(["wb:panel", "wb:rock"]);
+    private static readonly BrickRegistry _brickMap = BrickRegistry.FromNames(["wb:panel", "wb:rock"]);
 
     private const ulong STRUCTURE_UUID = 0xBEEF;
     private const ushort BRICK_ID = 7;
 
     private sealed class StubBrickDatabase : IBrickDatabase
     {
-        private readonly Dictionary<ushort, BrickInfo> _bricks;
+        private readonly Dictionary<ushort, Brick> _bricks;
 
-        public StubBrickDatabase(params BrickInfo[] bricks)
+        public StubBrickDatabase(params Brick[] bricks)
         {
             _bricks = bricks.ToDictionary(brick => brick.DataID);
         }
 
         public bool IsCuller(in Voxel voxel, BrickShape shape) => false;
 
-        public Result<BrickInfo> Get(ushort id)
+        public Result<Brick> Get(ushort id)
         {
-            return _bricks.TryGetValue(id, out BrickInfo? info)
-                ? Result<BrickInfo>.FromSuccess(info)
-                : Result<BrickInfo>.FromFailure("Not registered.");
+            return _bricks.TryGetValue(id, out Brick? info)
+                ? Result<Brick>.FromSuccess(info)
+                : Result<Brick>.FromFailure("Not registered.");
         }
 
-        public List<BrickInfo> Get(Func<BrickInfo, bool> predicate) => _bricks.Values.Where(predicate).ToList();
+        public List<Brick> Get(Func<Brick, bool> predicate) => _bricks.Values.Where(predicate).ToList();
+
+        public Result<Brick> Get(string id)
+        {
+            return _bricks.Values.FirstOrDefault(brick => brick.ID == id) is { } brick
+                ? Result<Brick>.FromSuccess(brick)
+                : Result<Brick>.FromFailure($"Unknown brick \"{id}\"");
+        }
     }
 
     /// <summary>
@@ -72,7 +79,7 @@ public class ClientVoxelReconcileSystemTests
         public AudioChannelSystem Channels { get; }
         public SoundEffectService Sounds { get; }
         public StubBrickDatabase Bricks { get; } = new(
-            new BrickInfo("wb:rock", BRICK_ID, transparent: false, passable: true, meshID: null, BrickShape.Block, new BrickTextures(), ["environment"])
+            new Brick("wb:rock", transparent: false, passable: true, meshID: null, BrickShape.Block, new BrickTextures(), ["environment"]) { DataID = BRICK_ID }
         );
 
         public SoundFixture()

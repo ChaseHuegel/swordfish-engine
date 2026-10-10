@@ -29,7 +29,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly VoxelEntityBuilder _voxelBuilder;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly ClientDisconnectSystem _disconnectSystem;
     private readonly NetworkingSettings _settings;
     private readonly ILogger<ClientJoinSystem> _logger;
@@ -46,14 +46,14 @@ internal sealed class ClientJoinSystem : IEntitySystem
         in PlayerCharacterEntityBuilder playerBuilder,
         in VoxelEntityBuilder voxelBuilder,
         ILogger<ClientJoinSystem> logger,
-        IBrickIdMap brickIdMap,
+        IBrickRegistry brickRegistry,
         in ClientDisconnectSystem disconnectSystem,
         in NetworkingSettings settings
     ) {
         _transport = transport;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
         _disconnectSystem = disconnectSystem;
         _settings = settings;
         _logger = logger;
@@ -183,7 +183,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         }
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.
-        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(data, _brickIdMap);
+        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(data, _brickRegistry);
         var voxelObject = new VoxelObject(chunkSize, local.Chunks);
         _voxelBuilder.Create(
             store,

@@ -57,15 +57,15 @@ public class ClientInventoryEchoTests
         var store = new DataStore();
 
         var replication = new NetworkReplicationSystem(hub, sessions, NullLogger<NetworkReplicationSystem>.Instance, new NetworkingSettings());
-        var interaction = new ServerInteractionSystem(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(), new StubBrickIdMap());
+        var interaction = new ServerInteractionSystem(hub, new StubContent(), NullLogger<ServerInteractionSystem>.Instance, _ => new StubWorld(), new StubBrickRegistry());
         var join = new ServerJoinSystem(
             hub,
             sessions,
-            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), new StubBrickIdMap()),
+            new LevelSaveService(NullLogger<LevelSaveService>.Instance, new StubLevelCatalog(), new StubBrickRegistry()),
             replication,
             interaction,
             NullLogger<ServerJoinSystem>.Instance,
-            new StubBrickIdMap()
+            new StubBrickRegistry()
         );
 
         connection.Client.Send(new JoinRequest
@@ -112,7 +112,7 @@ public class ClientInventoryEchoTests
             Is.True, "The server-granted starter inventory must land on the local player.");
     }
 
-    private sealed class StubBrickIdMap : IBrickIdMap
+    private sealed class StubBrickRegistry : IBrickRegistry
     {
         public int Count => 0;
         public ushort Id(string name) => 0;

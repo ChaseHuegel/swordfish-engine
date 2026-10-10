@@ -31,20 +31,20 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
 
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly SoundEffectService _soundEffectService;
     private readonly IBrickDatabase _brickDatabase;
 
     public ClientVoxelReconcileSystem(
         in IClientConnection transport,
         in SnapshotAckTracker snapshotAck,
-        IBrickIdMap brickIdMap,
+        IBrickRegistry brickRegistry,
         in SoundEffectService soundEffectService,
         in IBrickDatabase brickDatabase
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
         _soundEffectService = soundEffectService;
         _brickDatabase = brickDatabase;
     }
@@ -118,7 +118,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         Voxel authority = message.Voxel;
         if (!string.IsNullOrEmpty(message.BrickId))
         {
-            authority.ID = _brickIdMap.Id(message.BrickId);
+            authority.ID = _brickRegistry.Id(message.BrickId);
         }
 
         //  The pre-edit voxel survives only for an unpredicted edit's sound material: a break's result is
@@ -254,7 +254,7 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
         //  different numeric ids for the same brick. Fall back to the raw id when the echo carries no name.
         if (!string.IsNullOrEmpty(serverBrickId))
         {
-            return _brickIdMap.Name(predicted.ID) == serverBrickId;
+            return _brickRegistry.Name(predicted.ID) == serverBrickId;
         }
 
         return predicted.ID == server.ID;

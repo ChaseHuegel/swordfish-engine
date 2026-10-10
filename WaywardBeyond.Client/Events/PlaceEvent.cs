@@ -2,7 +2,7 @@ using WaywardBeyond.Bricks;
 
 namespace WaywardBeyond.Client.Events;
 
-internal readonly struct PlaceEvent(BrickInfo brickInfo)
+internal readonly struct PlaceEvent(Brick brick)
 {
-    public readonly BrickInfo BrickInfo = brickInfo;
+    public readonly Brick Brick = brick;
 }

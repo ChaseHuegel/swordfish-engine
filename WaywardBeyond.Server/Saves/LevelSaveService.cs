@@ -27,7 +27,7 @@ public sealed class LevelSaveService : IDisposable
 {
     private readonly ILogger _logger;
     private readonly ILevelCatalog _levelCatalog;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
 
@@ -42,11 +42,11 @@ public sealed class LevelSaveService : IDisposable
     public LevelSaveService(
         in ILogger logger,
         in ILevelCatalog levelCatalog,
-        IBrickIdMap brickIdMap
+        IBrickRegistry brickRegistry
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ public sealed class LevelSaveService : IDisposable
             {
                 VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(record.Data);
                 VoxelEntityData migrated = GameSaveMigrations.Migrator.Migrate(voxelEntityData, levelVersion);
-                VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, _brickIdMap);
+                VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, _brickRegistry);
                 VoxelWorldEntityFactory.CreateAuthority(store, local);
             }
             catch (Exception ex)
@@ -383,7 +383,7 @@ public sealed class LevelSaveService : IDisposable
         CaptureStructureAction structureAction = new()
         {
             Entries = entities,
-            BrickIdMap = _brickIdMap,
+            BrickRegistry = _brickRegistry,
         };
         store.Query<VoxelEntityDataComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
 
@@ -430,7 +430,7 @@ public sealed class LevelSaveService : IDisposable
     private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
     {
         public List<LevelEntityRecord> Entries;
-        public IBrickIdMap BrickIdMap;
+        public IBrickRegistry BrickRegistry;
 
         public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
         {
@@ -449,7 +449,7 @@ public sealed class LevelSaveService : IDisposable
                 transform.Scale.Z,
                 data.Chunks,
                 _BrickPalette: null
-            ), BrickIdMap);
+            ), BrickRegistry);
 
             Entries.Add(new LevelEntityRecord(uuid.ToValue(), voxel.Serialize()));
         }

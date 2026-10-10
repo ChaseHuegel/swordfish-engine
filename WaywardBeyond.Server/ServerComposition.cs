@@ -95,7 +95,7 @@ public static class ServerComposition
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
-                Arg.Of<IBrickIdMap>(),
+                Arg.Of<IBrickRegistry>(),
                 Arg.Of<ServerSkillSystem>(),
                 Arg.Of<SharedSimulationStep>()
             ))

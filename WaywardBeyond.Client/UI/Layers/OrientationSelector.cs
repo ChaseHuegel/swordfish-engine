@@ -24,7 +24,7 @@ internal class OrientationSelector : IUILayer, IActionIndicator
     
     private readonly InteractionState _interactionState;
     private readonly PlayerData _playerData;
-    private readonly BrickDatabase _brickDatabase;
+    private readonly IBrickDatabase _brickDatabase;
     private readonly IECSContext _ecsContext;
     
     private readonly Material _backgroundImage;
@@ -45,7 +45,7 @@ internal class OrientationSelector : IUILayer, IActionIndicator
         IAssetDatabase<Shader> shaderDatabase,
         InteractionState interactionState,
         PlayerData playerData,
-        BrickDatabase brickDatabase,
+        IBrickDatabase brickDatabase,
         IECSContext ecsContext
     ) {
         _interactionState = interactionState;
@@ -229,13 +229,13 @@ internal class OrientationSelector : IUILayer, IActionIndicator
         }
         
         PlaceableDefinition placeable = mainHandResult.Value.Item.Placeable.Value;
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(placeable.ID);
         if (!brickInfoResult.Success)
         {
             return false;
         }
 
-        BrickInfo brickInfo = brickInfoResult.Value;
+        Brick brickInfo = brickInfoResult.Value;
         BrickShape brickShape = _interactionState.SelectedShape.Get();
         return brickInfo.IsOrientable(brickShape);
     }

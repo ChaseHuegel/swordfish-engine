@@ -5,7 +5,7 @@ namespace WaywardBeyond.Data;
 /// <summary>
 /// A single forward migration of a save-bearing record from one data format version to the next.
 /// Migrations run in ascending <see cref="FromVersion"/> order up to
-/// <see cref="SaveVersion.CurrentDataVersion"/>. Apply must be deterministic and idempotent so a
+/// <see cref="SaveVersion.CURRENT_DATA_VERSION"/>. Apply must be deterministic and idempotent so a
 /// partially-migrated record can be safely re-processed.
 /// </summary>
 public interface ISaveMigration

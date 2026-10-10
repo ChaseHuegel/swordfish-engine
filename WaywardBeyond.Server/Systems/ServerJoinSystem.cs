@@ -36,7 +36,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerJoinQueue _joinQueue;
     private readonly SkillDatabase? _skillDatabase;
-    private readonly IBrickIdMap _brickIdMap;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly IUserPermissionService? _permissions;
     private readonly ConnectionClaims? _connectionClaims;
     private readonly ILogger<ServerJoinSystem> _logger;
@@ -50,7 +50,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         in NetworkReplicationSystem replication,
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
-        IBrickIdMap brickIdMap,
+        IBrickRegistry brickRegistry,
         in SkillDatabase? skillDatabase = null,
         in ServerJoinQueue? joinQueue = null,
         in IUserPermissionService? permissions = null,
@@ -62,7 +62,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _replication = replication;
         _interaction = interaction;
         _skillDatabase = skillDatabase;
-        _brickIdMap = brickIdMap;
+        _brickRegistry = brickRegistry;
         _logger = logger;
         _joinQueue = joinQueue ?? new ServerJoinQueue();
         _permissions = permissions;
@@ -365,7 +365,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             }
 
             //  Attach the brick palette so the client can resolve the server's registry ids locally.
-            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickIdMap) });
+            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickRegistry) });
             if (!send.Success)
             {
                 _logger.LogWarning("Failed to stream world entity to client {clientId}: {message}.", clientId, send.Message);

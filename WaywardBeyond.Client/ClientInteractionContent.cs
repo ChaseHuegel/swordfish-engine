@@ -21,12 +21,12 @@ internal sealed class ClientInteractionContent : IInteractionContent
     private const int DEFAULT_STACK_SIZE = 100;
 
     private readonly IAssetDatabase<Item> _itemDatabase;
-    private readonly IAssetDatabase<BrickInfo> _brickDatabase;
+    private readonly IAssetDatabase<Brick> _brickDatabase;
     private readonly IBrickDatabase _brickLookup;
 
     public ClientInteractionContent(
         in IAssetDatabase<Item> itemDatabase,
-        in IAssetDatabase<BrickInfo> brickDatabase,
+        in IAssetDatabase<Brick> brickDatabase,
         in IBrickDatabase brickLookup
     ) {
         _itemDatabase = itemDatabase;
@@ -50,13 +50,13 @@ internal sealed class ClientInteractionContent : IInteractionContent
         }
 
         string brickID = itemResult.Value.Placeable.Value.ID;
-        Result<BrickInfo> brickResult = _brickDatabase.Get(brickID);
+        Result<Brick> brickResult = _brickDatabase.Get(brickID);
         if (!brickResult.Success)
         {
             return false;
         }
 
-        BrickInfo brick = brickResult.Value;
+        Brick brick = brickResult.Value;
         placeable = new PlaceableBrick(
             brick.ID,
             brick.Shape,
@@ -71,7 +71,7 @@ internal sealed class ClientInteractionContent : IInteractionContent
     {
         loot = default;
 
-        Result<BrickInfo> brickResult = _brickLookup.Get(brickDataID);
+        Result<Brick> brickResult = _brickLookup.Get(brickDataID);
         if (!brickResult.Success)
         {
             return false;

@@ -126,7 +126,7 @@ internal readonly struct CubeMeshBuilder
         _meshData = meshData;
     }
 
-    public void AddTopFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddTopFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Top ?? brickInfo.Textures.Default);
         AddFace(
@@ -140,7 +140,7 @@ internal readonly struct CubeMeshBuilder
         );
     }
     
-    public void AddBottomFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddBottomFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Bottom ?? brickInfo.Textures.Default);
         AddFace(
@@ -154,7 +154,7 @@ internal readonly struct CubeMeshBuilder
         );
     }
     
-    public void AddFrontFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddFrontFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Front ?? brickInfo.Textures.Default);
         AddFace(
@@ -168,7 +168,7 @@ internal readonly struct CubeMeshBuilder
         );
     }
     
-    public void AddBackFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddBackFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Back ?? brickInfo.Textures.Default);
         AddFace(
@@ -182,7 +182,7 @@ internal readonly struct CubeMeshBuilder
         );
     }
     
-    public void AddRightFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddRightFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Right ?? brickInfo.Textures.Default);
         AddFace(
@@ -196,7 +196,7 @@ internal readonly struct CubeMeshBuilder
         );
     }
     
-    public void AddLeftFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, BrickInfo brickInfo)
+    public void AddLeftFace(Vector3 origin, Quaternion orientation, in VoxelSample sample, Brick brickInfo)
     {
         string? textureName = GetTextureName(origin, brickInfo.Textures.Left ?? brickInfo.Textures.Default);
         AddFace(
@@ -216,7 +216,7 @@ internal readonly struct CubeMeshBuilder
         FaceInfo faceInfo,
         Vector3 origin,
         Quaternion orientation,
-        BrickInfo brickInfo,
+        Brick brickInfo,
         string? textureName
     ) {
         var vertexStart = (uint)_meshData.Vertices.Count;
@@ -269,7 +269,7 @@ internal readonly struct CubeMeshBuilder
     /// </summary>
     private int GetTextureIndex(
         in VoxelSample sample,
-        BrickInfo brickInfo,
+        Brick brickInfo,
         string? textureName,
         Face face
     ) {

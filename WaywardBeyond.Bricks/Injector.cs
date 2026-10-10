@@ -5,19 +5,16 @@ using Swordfish.Library.Collections;
 
 namespace WaywardBeyond.Bricks;
 
-/// <summary>
-/// Shoal module entry point for the shared brick definitions. Registers the headless brick database so
-/// the client, the server, and headless consumers all resolve brick definitions, brick ids, and the
-/// brick palette from one module without a render-coupled asset pipeline.
-/// </summary>
+/// <summary>Module injector for Wayward Beyond brick API and assets.</summary>
+// ReSharper disable once UnusedType.Global
 public sealed class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
         container.RegisterTomlParser<BrickDefinitions>();
         container.Register<BrickDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IBrickIdMap, BrickDatabase>();
+        container.RegisterMapping<IBrickRegistry, BrickDatabase>();
         container.RegisterMapping<IBrickDatabase, BrickDatabase>();
-        container.RegisterMapping<IAssetDatabase<BrickInfo>, BrickDatabase>();
+        container.RegisterMapping<IAssetDatabase<Brick>, BrickDatabase>();
     }
 }

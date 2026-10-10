@@ -57,7 +57,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
     private readonly IRenderContext _renderContext;
     private readonly IWindowContext _windowContext;
     private readonly PlayerData _playerData;
-    private readonly BrickDatabase _brickDatabase;
+    private readonly IBrickDatabase _brickDatabase;
+    private readonly IBrickRegistry _brickRegistry;
     private readonly ItemDatabase _itemDatabase;
     private readonly IAssetDatabase<Mesh> _meshDatabase;
     private readonly Dictionary<BrickShape, MeshGizmo> _shapeGizmos;
@@ -93,7 +94,8 @@ internal sealed class PlayerInteractionService : IEntryPoint, IEntitySystem, IDe
         in IRenderContext renderContext,
         in IWindowContext windowContext,
         in PlayerData playerData,
-        in BrickDatabase brickDatabase,
+        in IBrickDatabase brickDatabase,
+        in IBrickRegistry brickRegistry,
         in ItemDatabase itemDatabase,
         in DebugSettings debugSettings,
         in IAssetDatabase<Mesh> meshDatabase,
@@ -112,6 +114,7 @@ in IInteractionContent content,
         _windowContext = windowContext;
         _playerData = playerData;
         _brickDatabase = brickDatabase;
+        _brickRegistry = brickRegistry;
         _itemDatabase = itemDatabase;
         _meshDatabase = meshDatabase;
         _debugSettings = debugSettings;
@@ -283,7 +286,7 @@ in IInteractionContent content,
         BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickDatabase);
+        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -335,7 +338,7 @@ in IInteractionContent content,
 
     private bool FirePresentationHook(in InteractionResolution resolution, InteractionKind kind)
     {
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(resolution.Voxel.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(resolution.Voxel.ID);
         if (!brickInfoResult.Success)
         {
             return true;
@@ -505,7 +508,7 @@ in IInteractionContent content,
                 continue;
             }
 
-            Result<BrickInfo> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
+            Result<Brick> placeableBrickResult = _brickDatabase.Get(itemResult.Value.Placeable.Value.ID);
             if (placeableBrickResult.Success && placeableBrickResult.Value.DataID == brickID)
             {
                 return i;
@@ -526,7 +529,7 @@ in IInteractionContent content,
             return;
         }
         
-        Result<BrickInfo> placeableResult = TryGetPlaceableBrickInfo();
+        Result<Brick> placeableResult = TryGetPlaceableBrick();
         bool holdingPlaceable = placeableResult.Success;
         if (!TryGetBrickFromScreenSpace(holdingPlaceable, true, out Entity entity, out Voxel clickedVoxel, out Int3 brickPos, out VoxelComponent voxelComponent, out TransformComponent transformComponent, out Vector3 clickedPoint) 
             || !holdingPlaceable && clickedVoxel.ID == 0)
@@ -571,11 +574,11 @@ in IInteractionContent content,
         }
 
         BrickShape placeableShape;
-        BrickInfo placeableBrickInfo;
+        Brick placeableBrick;
         if (holdingPlaceable)
         {
-            placeableBrickInfo = placeableResult.Value;
-            placeableShape = placeableBrickInfo.Shapeable ? _interactionState.SelectedShape.Get() : placeableBrickInfo.Shape;
+            placeableBrick = placeableResult.Value;
+            placeableShape = placeableBrick.Shapeable ? _interactionState.SelectedShape.Get() : placeableBrick.Shape;
         }
         else
         {
@@ -586,13 +589,13 @@ in IInteractionContent content,
                 return;
             }
             
-            placeableBrickInfo = placeableResult.Value;
+            placeableBrick = placeableResult.Value;
             placeableShape = new ShapeLight(clickedVoxel.ShapeLight).Shape;
         }
         
         if (placeableShape == BrickShape.Custom)
         {
-            Mesh? gizmoMesh = ResolveMesh(placeableBrickInfo);
+            Mesh? gizmoMesh = ResolveMesh(placeableBrick);
             if (gizmoMesh != null)
             {
                 if (!_meshGizmos.TryGetValue(gizmoMesh, out MeshGizmo? meshGizmo))
@@ -618,7 +621,7 @@ in IInteractionContent content,
         _activeGizmo.Render(delta: 0.016f, new TransformComponent(worldPos, placeableOrientation, holdingPlaceable ? Vector3.One : new Vector3(1.0625f)));
     }
     
-    private Mesh? ResolveMesh(in BrickInfo brickInfo)
+    private Mesh? ResolveMesh(in Brick brickInfo)
     {
         if (brickInfo.MeshID == null)
         {
@@ -788,7 +791,7 @@ in IInteractionContent content,
     {
         DebugInfo debugInfo = _debugInfo;
 
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(debugInfo.Voxel.ID);
         string brickID = brickInfoResult.Success ? brickInfoResult.Value.ID : "UNKNOWN";
         var shapeLight = new ShapeLight(debugInfo.Voxel.ShapeLight);
         
@@ -979,12 +982,12 @@ in IInteractionContent content,
         return SharedInteractionResolver.BrickToWorldSpace(coordinate, origin, orientation);
     }
     
-    private Result<BrickInfo> TryGetPlaceableBrickInfo()
+    private Result<Brick> TryGetPlaceableBrick()
     {
         Result<ItemSlot> mainHandResult = _playerData.GetMainHand(_store ?? throw new InvalidOperationException("Interaction attempted before the ECS store was available."));
         if (!mainHandResult.Success || mainHandResult.Value.Item.Placeable == null)
         {
-            return new Result<BrickInfo>(success: false, null!, mainHandResult.Message, mainHandResult.Exception);
+            return new Result<Brick>(success: false, null!, mainHandResult.Message, mainHandResult.Exception);
         }
         
         ItemSlot mainHand = mainHandResult.Value;
@@ -993,15 +996,15 @@ in IInteractionContent content,
 
         if (placeable.Type != PlaceableType.Brick)
         {
-            return new Result<BrickInfo>(success: false, null!);
+            return new Result<Brick>(success: false, null!);
         }
 
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(placeable.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(placeable.ID);
         if (!brickInfoResult.Success)
         {
-            return new Result<BrickInfo>(success: false, null!, brickInfoResult.Message, brickInfoResult.Exception);
+            return new Result<Brick>(success: false, null!, brickInfoResult.Message, brickInfoResult.Exception);
         }
         
-        return Result<BrickInfo>.FromSuccess(brickInfoResult.Value);
+        return Result<Brick>.FromSuccess(brickInfoResult.Value);
     }
 }

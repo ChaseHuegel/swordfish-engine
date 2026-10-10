@@ -13,13 +13,13 @@ namespace WaywardBeyond.Client.Voxels.Processing;
 
 internal sealed class MeshPostPass(
     MeshState meshState,
-    BrickDatabase brickDatabase,
+    IBrickDatabase brickDatabase,
     PBRTextureArrays textureArrays,
     IAssetDatabase<Mesh> meshDatabase
 ) : VoxelObjectProcessor.ISamplePass
 {
     private readonly MeshState _meshState = meshState;
-    private readonly BrickDatabase _brickDatabase = brickDatabase;
+    private readonly IBrickDatabase _brickDatabase = brickDatabase;
     private readonly PBRTextureArrays _textureArrays = textureArrays;
     private readonly IAssetDatabase<Mesh> _meshDatabase = meshDatabase;
 
@@ -45,13 +45,13 @@ internal sealed class MeshPostPass(
             return;
         }
         
-        Result<BrickInfo> brickInfoResult = _brickDatabase.Get(sample.Center.ID);
+        Result<Brick> brickInfoResult = _brickDatabase.Get(sample.Center.ID);
         if (!brickInfoResult.Success)
         {
             return;
         }
         
-        BrickInfo brickInfo = brickInfoResult.Value;
+        Brick brickInfo = brickInfoResult.Value;
         
         bool culledRight = IsCulledBy(target: sample.Center, neighbor: sample.Right);
         bool culledLeft = IsCulledBy(target: sample.Center, neighbor: sample.Left);
@@ -121,7 +121,7 @@ internal sealed class MeshPostPass(
     }
 
     /// <summary>Resolves a custom brick's mesh id to a renderable mesh, or null when absent or missing.</summary>
-    private Mesh? ResolveMesh(in BrickInfo brickInfo)
+    private Mesh? ResolveMesh(in Brick brickInfo)
     {
         if (brickInfo.MeshID == null)
         {
@@ -138,7 +138,7 @@ internal sealed class MeshPostPass(
         Vector3 offset,
         Quaternion orientation,
         in VoxelSample sample,
-        BrickInfo brickInfo,
+        Brick brickInfo,
         bool culledAbove,
         bool culledBelow,
         bool culledAhead,
@@ -179,7 +179,7 @@ internal sealed class MeshPostPass(
         }
     }
     
-    private void AddMesh(MeshState.MeshData meshData, Int3 coords, Vector3 offset, BrickInfo brickInfo, Mesh mesh, Quaternion orientation, int lightLevel)
+    private void AddMesh(MeshState.MeshData meshData, Int3 coords, Vector3 offset, Brick brickInfo, Mesh mesh, Quaternion orientation, int lightLevel)
     {
         float light = Math.Clamp(lightLevel / 15f, 0.1f, 1f);
         var color = new Vector4(light, light, light, 1f);
