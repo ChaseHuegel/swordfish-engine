@@ -81,16 +81,16 @@ internal sealed class ClientJoinSystem : IEntitySystem
             Result send = _transport.Send(new JoinRequest
             {
                 LevelGuid = pending.LevelGuid,
-                CharacterId = character.Id,
+                CharacterUuid = character.Uuid,
                 PublicView = new PublicView
                 {
-                    CharacterId = character.Id,
+                    CharacterUuid = character.Uuid,
                     Name = character.Name,
                     Body = character.Body,
                 },
                 Seed = new CharacterSeed
                 {
-                    CharacterId = character.Id,
+                    CharacterUuid = character.Uuid,
                     Name = character.Name,
                     Body = character.Body,
                     //  Null for a client-authored new character: the server grants the starter loadout.

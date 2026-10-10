@@ -48,12 +48,12 @@ public sealed class ServerChatSystem : IServerWorldSystem
 
             var relay = new ChatMessage
             {
-                CharacterId = character.CharacterId,
+                CharacterUuid = character.CharacterUuid,
                 SenderName = senderName,
                 Value = Sanitize(message.Value),
             };
 
-            _logger.LogInformation("[Chat] {CharacterId} {SenderName}: {Value}", relay.CharacterId, relay.SenderName, relay.Value);
+            _logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
 
             foreach ((Uuid client, _) in _hub.Clients)
             {

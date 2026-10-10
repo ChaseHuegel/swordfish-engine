@@ -558,7 +558,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                             var notification = new Notification("Failed to create character!");
                             _notificationService.Push(notification);
                             
-                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Id, saveResult.Message);
+                            _logger.LogError(saveResult.Exception, "Failed to save character \"{name}\" ({id}): {message}", character.Name, character.Uuid, saveResult.Message);
                         }
                     }
                 );

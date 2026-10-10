@@ -37,7 +37,7 @@ message Character
 {
     Version Version = 0;
     
-    ulong Id = 1;
+    ulong Uuid = 1;
     
     long LastPlayedMs = 2;
     long AgeMs        = 3;

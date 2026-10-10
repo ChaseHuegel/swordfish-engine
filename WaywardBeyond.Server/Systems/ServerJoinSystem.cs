@@ -205,7 +205,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                bool restored = _saveService.TryGetSpawnPoint(levelGuid, request.CharacterId, store, out position, out orientation);
+                bool restored = _saveService.TryGetSpawnPoint(levelGuid, request.CharacterUuid, store, out position, out orientation);
                 if (!restored)
                 {
                     //  Restored per-character location (or the level spawn point).
@@ -216,7 +216,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             catch (Exception ex)
             {
                 //  A save hiccup never drops a join: fall back to the level spawn.
-                _logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterId, levelGuid);
+                _logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterUuid, levelGuid);
                 position = _saveService.LevelSpawn;
                 orientation = Quaternion.Identity;
             }
@@ -242,7 +242,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         store.AddOrUpdate(entity, new TransformComponent(position, orientation, PlayerBodyConfig.PLAYER_SCALE));
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
-        store.AddOrUpdate(entity, new OwnedCharacterComponent(request.CharacterId));
+        store.AddOrUpdate(entity, new OwnedCharacterComponent(request.CharacterUuid));
 
         //  Relay the joining client's minimal public character view: the appearance index is replicated
         //  so remote clients can materialize this player, and the name rides on the reused
@@ -308,7 +308,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }
         _replication.EndStream(clientId);
 
-        _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterId, levelGuid, session.ID);
+        _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterUuid, levelGuid, session.ID);
     }
 
     /// <summary>

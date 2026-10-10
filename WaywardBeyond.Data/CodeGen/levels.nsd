@@ -52,7 +52,7 @@ message ClientHello
 
 message PublicView
 {
-    ulong CharacterId = 0;
+    ulong CharacterUuid = 0;
     string Name = 1;
     string Body = 2;
 }
@@ -60,14 +60,14 @@ message PublicView
 message JoinRequest
 {
     string LevelGuid = 0;
-    ulong CharacterId = 1;
+    ulong CharacterUuid = 1;
     PublicView PublicView = 2;
     CharacterSeed Seed = 3;
 }
 
 message CharacterSeed
 {
-    ulong CharacterId = 0;
+    ulong CharacterUuid = 0;
     string Name = 1;
     string Body = 2;
     ItemData[]? InventoryContents = 3;

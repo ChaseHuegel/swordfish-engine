@@ -13,7 +13,7 @@ namespace WaywardBeyond.Data;
 /// </summary>
 public class SqliteCharacterStorage : ICharacterStorage
 {
-    private const string CREATE_SCHEMA = "CREATE TABLE IF NOT EXISTS characters (id TEXT PRIMARY KEY, data BLOB NOT NULL);";
+    private const string CREATE_SCHEMA = "CREATE TABLE IF NOT EXISTS characters (uuid TEXT PRIMARY KEY, data BLOB NOT NULL);";
 
     private readonly StoragePaths _paths;
     private readonly SaveMigrator _migrator;
@@ -26,7 +26,7 @@ public class SqliteCharacterStorage : ICharacterStorage
         _migrator = migrator ?? CharacterSaveMigrations.Create();
     }
 
-    public Result<Character> GetCharacter(ulong id)
+    public Result<Character> GetCharacter(ulong uuid)
     {
         try
         {
@@ -34,8 +34,8 @@ public class SqliteCharacterStorage : ICharacterStorage
 
             using SqliteConnection connection = SqliteDatabase.Open(_paths.ProfileDatabasePath);
             using SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT data FROM characters WHERE id = $id LIMIT 1;";
-            command.Parameters.AddWithValue("$id", ToKey(id));
+            command.CommandText = "SELECT data FROM characters WHERE uuid = $uuid LIMIT 1;";
+            command.Parameters.AddWithValue("$uuid", ToKey(uuid));
 
             if (command.ExecuteScalar() is not byte[] data || data.Length == 0)
             {
@@ -91,10 +91,10 @@ public class SqliteCharacterStorage : ICharacterStorage
             using SqliteConnection connection = SqliteDatabase.Open(_paths.ProfileDatabasePath);
             using SqliteCommand command = connection.CreateCommand();
             command.CommandText = """
-                INSERT INTO characters (id, data) VALUES ($id, $data)
-                ON CONFLICT(id) DO UPDATE SET data = excluded.data;
+                INSERT INTO characters (uuid, data) VALUES ($uuid, $data)
+                ON CONFLICT(uuid) DO UPDATE SET data = excluded.data;
                 """;
-            command.Parameters.AddWithValue("$id", ToKey(character.Id));
+            command.Parameters.AddWithValue("$uuid", ToKey(character.Uuid));
             command.Parameters.AddWithValue("$data", data);
             command.ExecuteNonQuery();
 
@@ -106,7 +106,7 @@ public class SqliteCharacterStorage : ICharacterStorage
         }
     }
 
-    public Result DeleteCharacter(ulong id)
+    public Result DeleteCharacter(ulong uuid)
     {
         try
         {
@@ -114,8 +114,8 @@ public class SqliteCharacterStorage : ICharacterStorage
 
             using SqliteConnection connection = SqliteDatabase.Open(_paths.ProfileDatabasePath);
             using SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "DELETE FROM characters WHERE id = $id;";
-            command.Parameters.AddWithValue("$id", ToKey(id));
+            command.CommandText = "DELETE FROM characters WHERE uuid = $uuid;";
+            command.Parameters.AddWithValue("$uuid", ToKey(uuid));
             command.ExecuteNonQuery();
 
             return Result.FromSuccess();
@@ -134,7 +134,7 @@ public class SqliteCharacterStorage : ICharacterStorage
             if (!_migrator.IsSupported(character.Version.DataVersion))
             {
                 return Result<Character>.FromFailure(
-                    $"Character {character.Id} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CURRENT_DATA_VERSION}.");
+                    $"Character {character.Uuid} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CURRENT_DATA_VERSION}.");
             }
 
             return Result<Character>.FromSuccess(_migrator.Migrate(character, character.Version.DataVersion));

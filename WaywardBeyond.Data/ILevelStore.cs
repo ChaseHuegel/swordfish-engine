@@ -13,7 +13,7 @@ public interface ILevelStore : IDisposable
 
     IReadOnlyList<LevelEntityRecord> ReadEntities();
 
-    byte[]? ReadLocation(ulong characterId);
+    byte[]? ReadLocation(ulong characterUuid);
 
     /// <summary>
     /// Commits a full snapshot in one transaction: upserts the level, replaces every entity row with
@@ -24,5 +24,5 @@ public interface ILevelStore : IDisposable
 
     void WriteLevel(byte[] levelData);
 
-    void WriteLocation(ulong characterId, byte[] data);
+    void WriteLocation(ulong characterUuid, byte[] data);
 }

@@ -54,7 +54,7 @@ public sealed class LevelSaveService : IDisposable
     /// returning player resumes where they left off. Falling back to the level spawn happens at spawn
     /// resolution. No-op when no level is loaded.
     /// </summary>
-    public void SaveLocation(string levelGuid, ulong characterId, in Vector3 position, in Quaternion orientation)
+    public void SaveLocation(string levelGuid, ulong characterUuid, in Vector3 position, in Quaternion orientation)
     {
         ILevelStore? levelStore = _levelStore;
         if (levelStore == null)
@@ -79,11 +79,11 @@ public sealed class LevelSaveService : IDisposable
 
         try
         {
-            levelStore.WriteLocation(characterId, data.Serialize());
+            levelStore.WriteLocation(characterUuid, data.Serialize());
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to persist location for character {character} in level {level}.", characterId, levelGuid);
+            _logger.LogError(ex, "Failed to persist location for character {character} in level {level}.", characterUuid, levelGuid);
         }
     }
 
@@ -183,9 +183,9 @@ public sealed class LevelSaveService : IDisposable
     /// Resolves the spawn transform for a character: the persisted per-character location in the level if
     /// one exists (written by the authoritative server), otherwise the level's spawn point.
     /// </summary>
-    public bool TryGetSpawnPoint(string levelGuid, ulong characterId, in DataStore store, out Vector3 position, out Quaternion orientation)
+    public bool TryGetSpawnPoint(string levelGuid, ulong characterUuid, in DataStore store, out Vector3 position, out Quaternion orientation)
     {
-        byte[]? locationData = _levelStore?.ReadLocation(characterId);
+        byte[]? locationData = _levelStore?.ReadLocation(characterUuid);
         if (locationData != null && locationData.Length > 0)
         {
             CharacterEntityData location = CharacterEntityData.Deserialize(locationData);
@@ -477,7 +477,7 @@ public sealed class LevelSaveService : IDisposable
                 _GameMode: 0
             );
 
-            Entries.Add(new LevelLocationRecord(owned.CharacterId, data.Serialize()));
+            Entries.Add(new LevelLocationRecord(owned.CharacterUuid, data.Serialize()));
         }
     }
 

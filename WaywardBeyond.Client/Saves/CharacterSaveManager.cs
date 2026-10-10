@@ -61,9 +61,9 @@ internal sealed class CharacterSaveManager(
         store.Query<CharacterComponent, TransformComponent>(0f, UpdateInventory);
         void UpdateInventory(float delta, DataStore store, int entity, in CharacterComponent characterComponent, in TransformComponent transform)
         {
-            //  The local player entity carries the server mirror uuid, not the character's own id, so
+            //  The local player entity carries the server mirror uuid, not the character's own uuid, so
             //  match through the Character the component holds rather than the entity uuid.
-            if (characterComponent.Character.Id != character.Id)
+            if (characterComponent.Character.Uuid != character.Uuid)
             {
                 return;
             }
@@ -97,15 +97,15 @@ internal sealed class CharacterSaveManager(
         }
         else
         {
-            logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Id, saveResult.Message);
+            logger.LogError(saveResult.Exception, "Failed to save character {Name} ({Id}): {Message}", character.Name, character.Uuid, saveResult.Message);
         }
     }
     
     public void Delete(Character character)
     {
-        if (!characterStorage.DeleteCharacter(character.Id))
+        if (!characterStorage.DeleteCharacter(character.Uuid))
         {
-            logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Id);
+            logger.LogError("Failed to delete character {Name} ({Id})", character.Name, character.Uuid);
         }
     }
     

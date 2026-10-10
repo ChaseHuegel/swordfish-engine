@@ -16,7 +16,7 @@ public sealed class SqliteLevelStore : ILevelStore
     private const string CREATE_SCHEMA = """
         CREATE TABLE IF NOT EXISTS level (guid TEXT PRIMARY KEY, data BLOB NOT NULL);
         CREATE TABLE IF NOT EXISTS entities (uuid TEXT PRIMARY KEY, data BLOB NOT NULL);
-        CREATE TABLE IF NOT EXISTS character_locations (character_id TEXT PRIMARY KEY, data BLOB NOT NULL);
+        CREATE TABLE IF NOT EXISTS character_locations (character_uuid TEXT PRIMARY KEY, data BLOB NOT NULL);
         """;
 
     private readonly string _levelGuid;
@@ -65,12 +65,12 @@ public sealed class SqliteLevelStore : ILevelStore
         return records;
     }
 
-    public byte[]? ReadLocation(ulong characterId)
+    public byte[]? ReadLocation(ulong characterUuid)
     {
         using SqliteConnection connection = SqliteDatabase.Open(_databasePath);
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = "SELECT data FROM character_locations WHERE character_id = $characterId LIMIT 1;";
-        command.Parameters.AddWithValue("$characterId", ToKey(characterId));
+        command.CommandText = "SELECT data FROM character_locations WHERE character_uuid = $characterUuid LIMIT 1;";
+        command.Parameters.AddWithValue("$characterUuid", ToKey(characterUuid));
         return command.ExecuteScalar() as byte[];
     }
 
@@ -103,7 +103,7 @@ public sealed class SqliteLevelStore : ILevelStore
 
         foreach (LevelLocationRecord location in locations)
         {
-            WriteLocation(connection, transaction, location.CharacterId, location.Data);
+            WriteLocation(connection, transaction, location.CharacterUuid, location.Data);
         }
 
         transaction.Commit();
@@ -118,13 +118,13 @@ public sealed class SqliteLevelStore : ILevelStore
         WriteLevel(connection, null, levelData);
     }
 
-    public void WriteLocation(ulong characterId, byte[] data)
+    public void WriteLocation(ulong characterUuid, byte[] data)
     {
         using Lock.Scope _ = _writeLock.EnterScope();
         ThrowIfDisposed();
 
         using SqliteConnection connection = SqliteDatabase.Open(_databasePath);
-        WriteLocation(connection, null, characterId, data);
+        WriteLocation(connection, null, characterUuid, data);
     }
 
     public void Dispose()
@@ -146,15 +146,15 @@ public sealed class SqliteLevelStore : ILevelStore
         command.ExecuteNonQuery();
     }
 
-    private static void WriteLocation(SqliteConnection connection, SqliteTransaction? transaction, ulong characterId, byte[] data)
+    private static void WriteLocation(SqliteConnection connection, SqliteTransaction? transaction, ulong characterUuid, byte[] data)
     {
         using SqliteCommand command = connection.CreateCommand();
         command.Transaction = transaction;
         command.CommandText = """
-            INSERT INTO character_locations (character_id, data) VALUES ($characterId, $data)
-            ON CONFLICT(character_id) DO UPDATE SET data = excluded.data;
+            INSERT INTO character_locations (character_uuid, data) VALUES ($characterUuid, $data)
+            ON CONFLICT(character_uuid) DO UPDATE SET data = excluded.data;
             """;
-        command.Parameters.AddWithValue("$characterId", ToKey(characterId));
+        command.Parameters.AddWithValue("$characterUuid", ToKey(characterUuid));
         command.Parameters.AddWithValue("$data", data);
         command.ExecuteNonQuery();
     }

@@ -8,7 +8,7 @@ namespace WaywardBeyond.Server.Components;
 /// key on autosave/disconnect/shutdown. Clients own the <c>characters</c> bucket; the server only ever
 /// stores the location of whoever is playing on a connection.
 /// </summary>
-public struct OwnedCharacterComponent(in ulong characterId) : IDataComponent
+public struct OwnedCharacterComponent(in ulong characterUuid) : IDataComponent
 {
-    public ulong CharacterId = characterId;
+    public ulong CharacterUuid = characterUuid;
 }

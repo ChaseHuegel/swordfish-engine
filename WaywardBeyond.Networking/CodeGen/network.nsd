@@ -78,7 +78,7 @@ message SkillStateUpdateMessage
 
 message ChatMessage
 {
-    ulong CharacterId = 0;
+    ulong CharacterUuid = 0;
     string SenderName = 1;
     string Value = 2;
 }
