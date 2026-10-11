@@ -20,7 +20,7 @@ internal sealed class SqliteDatabase(PathInfo path)
     /// <exception cref="SqliteException">A SQLite error occurs while opening the connection.</exception>
     public SqliteConnection Open()
     {
-        path.CreateDirectory();
+        path.GetDirectory().CreateDirectory();
         var connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = path,

@@ -11,6 +11,7 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
+using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
@@ -33,6 +34,8 @@ public static class ServerComposition
 {
     public static void Register(IContainer container)
     {
+        container.Register<Migrator>();
+        
         //  Server-level menu facade: create/list/delete saved levels for connections that have not
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
