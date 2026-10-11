@@ -18,6 +18,8 @@ internal class ActiveSlotNotificationSystem(
     private readonly IAssetDatabase<Item> _itemDatabase = itemDatabase;
     private readonly NotificationService _notificationService = notificationService;
 
+    //  TODO it should be possible to update this system to use dirty tracking to pick up
+    //       when the slot changes instead of it being stateful and tracking changes itself
     private int _lastActiveSlot;
 
     private struct ForEachAction : IForEach<PlayerComponent, EquipmentComponent>
