@@ -448,7 +448,8 @@ in IInteractionContent content,
             return null;
         }
 
-        return inventory.Contents[slot].ID;
+        ItemData itemData = inventory.Contents[slot];
+        return itemData.Count > 0 ? itemData.ID : null;
     }
     
     private void OnMiddleClick()

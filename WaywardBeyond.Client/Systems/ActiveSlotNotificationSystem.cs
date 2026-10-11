@@ -43,6 +43,12 @@ internal class ActiveSlotNotificationSystem(
             }
 
             ItemData activeStack = Owner._lastActiveSlot < inventory.Contents.Length ? inventory.Contents[Owner._lastActiveSlot] : default;
+            
+            if (activeStack.Count <= 0)
+            {
+                return;
+            }
+            
             Result<Item> activeItemResult = Owner._itemDatabase.Get(activeStack.ID);
             if (activeItemResult.Success)
             {

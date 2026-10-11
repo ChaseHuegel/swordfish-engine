@@ -54,7 +54,8 @@ public static class SharedInventoryResolver
         if (destinationEmpty)
         {
             inventory.Contents[op.ToSlot] = taken;
-            inventory.Contents[op.FromSlot] = source with { Count = source.Count - taken.Count };
+            int newCount = source.Count - taken.Count;
+            inventory.Contents[op.FromSlot] = newCount > 0 ? source with { Count = newCount } : default;
             return true;
         }
 
@@ -70,7 +71,8 @@ public static class SharedInventoryResolver
 
             ItemData stacked = destination with { Count = destination.Count + moved };
             inventory.Contents[op.ToSlot] = stacked;
-            inventory.Contents[op.FromSlot] = source with { Count = source.Count - moved };
+            int newCount = source.Count - moved;
+            inventory.Contents[op.FromSlot] = newCount > 0 ? source with { Count = newCount } : default;
             return true;
         }
 
@@ -127,7 +129,8 @@ public static class SharedInventoryResolver
 
             int moved = Math.Min(source.Count, available);
             inventory.Contents[i] = slotItem with { Count = slotItem.Count + moved };
-            inventory.Contents[fromSlot] = source with { Count = source.Count - moved };
+            int newCount = source.Count - moved;
+            inventory.Contents[fromSlot] = newCount > 0 ? source with { Count = newCount } : default;
             return true;
         }
 

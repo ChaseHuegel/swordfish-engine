@@ -83,6 +83,12 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
         ItemData itemStack = equipment.ActiveInventorySlot >= 0 && equipment.ActiveInventorySlot < inventory.Contents.Length
             ? inventory.Contents[equipment.ActiveInventorySlot]
             : default;
+
+        if (itemStack.Count <= 0)
+        {
+            return Result<ItemSlot>.FromFailure(message: null);
+        }
+        
         Result<Item> itemResult = _itemDatabase.Get(itemStack.ID);
         if (!itemResult.Success)
         {
