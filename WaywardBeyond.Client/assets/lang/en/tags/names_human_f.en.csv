@@ -1,4 +1,4 @@
-names.title.wb:f_human,names.first.wb:f_human,names.last.wb:f_human,names.subtitle.wb:f_human,names.nickname.wb:f_human
+names.title.wb:human_f,names.first.wb:human_f,names.last.wb:human_f,names.subtitle.wb:human_f,names.nickname.wb:human_f
 Captain,Aja,Bishop,,"""Cypher"""
 Privateer,Naomi,Hicks,,"""Nova"""
 Commander,Alia,Jones,,"""Ghost"""

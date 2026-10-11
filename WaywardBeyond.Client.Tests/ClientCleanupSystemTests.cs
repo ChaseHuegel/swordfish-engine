@@ -26,7 +26,7 @@ public class ClientCleanupSystemTests
 
         int remotePlayer = store.Alloc();
         store.AddOrUpdate(remotePlayer, new IdentifierComponent("Remote", "game"));
-        store.AddOrUpdate(remotePlayer, new BodyViewComponent { Body = "wb:m_human" });
+        store.AddOrUpdate(remotePlayer, new BodyViewComponent { Body = "wb:human_m" });
 
         int worldEntity = store.Alloc();
         store.AddOrUpdate(worldEntity, new IdentifierComponent(null, "game"));

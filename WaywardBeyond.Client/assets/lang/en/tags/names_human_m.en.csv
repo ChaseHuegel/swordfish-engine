@@ -1,4 +1,4 @@
-names.title.wb:m_human,names.first.wb:m_human,names.last.wb:m_human,names.subtitle.wb:m_human,names.nickname.wb:m_human
+names.title.wb:human_m,names.first.wb:human_m,names.last.wb:human_m,names.subtitle.wb:human_m,names.nickname.wb:human_m
 Captain,John,Bishop,Sr.,"""Cypher"""
 Privateer,Jack,Hicks,Jr.,"""Vector"""
 Commander,Frank,Jones,II,"""Jonnie"""

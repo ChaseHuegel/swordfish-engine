@@ -23,6 +23,8 @@ internal sealed class BodyDatabase : VirtualAssetDatabase<BodyDefinitions, BodyD
     ) : base(logger, fileParseService, vfs)
     {
         Load();
+        _ids.Sort(new NaturalComparer());
+        _ids.Reverse();
     }
     
     /// <inheritdoc/>

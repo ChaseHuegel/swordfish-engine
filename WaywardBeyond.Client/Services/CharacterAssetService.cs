@@ -118,7 +118,7 @@ internal sealed class CharacterAssetService
     private Texture LoadTexture(string path)
     {
         Result<Texture> textureResult = _textureDatabase.Get(path);
-        return textureResult ? textureResult : _textureDatabase.Get("characters/m_human_standing.png");
+        return textureResult ? textureResult : _textureDatabase.Get("characters/human_m_standing.png");
     }
 
     private static T Resolve<T>(string bodyId, Dictionary<string, T> cache, System.Func<string, T> build)

@@ -142,18 +142,18 @@ Bodies live in the shared `WaywardBeyond.Bodies` module. Schema:
 runtime asset).
 
 Each body is a `[[Bodies]]` table carrying a stable namespaced string ID
-(`wb:m_human`). The `States` member is a tag-keyed map of state variants
+(`wb:human_m`). The `States` member is a tag-keyed map of state variants
 (`standing`, `floating`, ...); each state maps direction tags (`front`, `back`,
 ... , free-form for future sets) to texture paths. Direction display order is
 canonical, not the asset order: `front` is index 0, then `back`/`left`/`right`
 (`BodyDatabase._orderedDirections`, `BodyDatabase.cs:14`). An unknown body ID
 falls back to the first loaded body at resolution
 
-Each body defines its own gender and lineage via a distinct ID. The current set
-is `wb:m_human`, `wb:f_human`, `wb:bot` (industrial drone), `wb:m_bot2` /
-`wb:f_bot2` (anthropoid android), and the alien lineages `wb:m_alien` /
-`wb:f_alien`, plus `wb:{m,f}_alien2` (purple, cylinder head), `wb:{m,f}_alien3`
-(grey), and `wb:{m,f}_alien4` (orange, cyclopean). Each gender carries its own
+Each body defines its own lineage and gender via a distinct ID. The current set
+is `wb:human_m`, `wb:human_f`, `wb:bot` (industrial drone), `wb:bot2_m` /
+`wb:bot2_f` (anthropoid android), and the alien lineages `wb:alien_m` /
+`wb:alien_f`, plus `wb:alien2_{m,f}` (purple, cylinder head), `wb:alien3_{m,f}`
+(grey), and `wb:alien4_{m,f}` (orange, cyclopean). Each gender carries its own
 ID so name themes and preview sprites key cleanly.
 
 Character-name generation keys its localized tags and formats by the same body
@@ -165,7 +165,7 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 
 | Field | Type | Notes |
 |---|---|---|
-| `ID` | string | namespaced body asset ID (e.g. `wb:m_human`) |
+| `ID` | string | namespaced body asset ID (e.g. `wb:human_m`) |
 | `[Bodies.States.<state>]` | map: direction tag → texture path list | state tag free-form (`standing`, `floating`, ...) |
 
 ## Localization
