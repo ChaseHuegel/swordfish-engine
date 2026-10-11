@@ -20,18 +20,21 @@ and a 5 second busy timeout.
 
 | Path | Owner | Tables |
 |---|---|---|
-| `saves/profile.db` | Client | `characters`, `save_meta` |
+| `saves/profile.db` | Client | `characters`, `level_metadata` |
 | `saves/<levelGuid>/level.db` | Server | `level`, `entities`, `character_locations` |
 
 The client owns `profile.db`. `characters` stores one raw nsd blob per
-character uuid. `save_meta` stores one raw nsd blob per level guid. The client
-registers the stores behind the existing interfaces (`ICharacterStorage`,
-`ISaveMetaStorage`) in `WaywardBeyond.Client/Injector.cs`.
+character uuid. `level_metadata` stores one raw nsd blob per level guid; the
+model is `LevelMetadata` (`WaywardBeyond.Data/CodeGen/saves.nsd`), a wrapper
+around the shared `Playtime` value so client-local per-level fields can be
+added later without touching the authoritative records. The client registers
+the stores behind the existing interfaces (`ICharacterStorage`,
+`ILevelMetadataStorage`) in `WaywardBeyond.Client/Injector.cs`.
 
 The server owns one database per level. `SqliteLevelCatalog`
 (`WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`) creates, lists,
-deletes, and opens them. `SqliteLevelStore`
-(`WaywardBeyond.Data/SqliteLevelStore.cs`) implements `ILevelStore`
+deletes, and opens them. `SqliteLevelStorage`
+(`WaywardBeyond.Data/Levels/SqliteLevelStorage.cs`) implements `ILevelStorage`
 over one level database.
 
 ## `level.db` schema
@@ -47,16 +50,21 @@ uuids are `ulong`.
 
 ## Save semantics
 
-A full level save commits one transaction (`ILevelStore.WriteSave`):
-
-- The `level` row upserts.
-- Every `entities` row is replaced by the captured snapshot. A structure
+A full level save commits one transaction (`ILevelStorage.Save`):
+  - The `level` row upserts.
+  - Every `entities` row is replaced by the captured snapshot. A structure
   removed from the world no longer persists.
-- Each captured `character_locations` row upserts. Rows absent from the
+  - Each captured `character_locations` row upserts. Rows absent from the
   capture are never deleted. A character not present in the world at save time
   keeps its last location.
 
-`LevelSaveService` (`Server.Core/Saves/LevelSaveService.cs`) captures the
+The store hands out deserialized models, not bytes. `ILevelStorage.GetLevel`
+returns the level, `GetEntities` returns the level's registered voxel entities,
+and `GetLocation` returns a character's location. Each read is version-guarded
+and migrated forward by the injected `Migrator`, so callers do not deserialize
+or migrate.
+
+`LevelSaveService` (`WaywardBeyond.Server/Saves/LevelSaveService.cs`) captures the
 authoritative world on the server thread and submits the blocking writes to a
 worker. It tracks the in-flight save. `Flush` awaits it and then writes, so a
 pending capture can never land after a newer snapshot. `Dispose` awaits the
@@ -67,11 +75,11 @@ disposed.
 
 `SaveLocation`, `MarkActive`, and `EndSessionStamp` are small writes that only
 touch the `level` or `character_locations` rows. The playtime stamping rules
-are unchanged (`SaveTime.Accumulate`).
+are unchanged (`PlayClock.Advance`).
 
 ### Server autosave
 
-`ServerWorldSystem` (`Server.Core/Systems/ServerWorldSystem.cs`) queues a level
+`ServerWorldSystem` (`WaywardBeyond.Server/Systems/ServerWorldSystem.cs`) queues a level
 flush every `GameplayConfig.AutosaveIntervalMs` while a world has sessions. It
 broadcasts `notification.save.saving` when the capture is queued, then
 `notification.save.saved` or `notification.save.saving.failed` when the
@@ -81,8 +89,8 @@ unload path flushes it.
 ## Level delete
 
 Menu-time delete requests flow through `ServerLevelManager`
-(`Server.Core/ServerLevelManager.cs`) into `PendingLevelDeletes`
-(`Server.Core/PendingLevelDeletes.cs`). `ServerWorldHost` drains the queue on
+(`WaywardBeyond.Server/ServerLevelManager.cs`) into `PendingLevelDeletes`
+(`WaywardBeyond.Server/PendingLevelDeletes.cs`). `ServerWorldHost` drains the queue on
 the server thread. A loaded level is torn down without a final save, because a
 queued save would recreate the files after deletion. Bound connections return
 to `PendingJoins`. The catalog then deletes the level directory and the host
@@ -99,7 +107,7 @@ level another client creates appears without leaving the page. The listing
 response also carries `CanCreateSave`, which `GameSaveService.CanCreateSave`
 exposes so `HomePage` hides "Create save" when the server denies the
 `waywardbeyond.level.create` key. The client tracks its own per-save "last
-played" and "time played" in the `save_meta` table, merged over the server's
+played" and "time played" in the `level_metadata` table, merged over the server's
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by
 `CharacterSaveManager` + `SqliteCharacterStorage`.
 
@@ -109,7 +117,7 @@ its waiter at once, so a refresh issued before a remote client connects cannot
 consume a later response. Every level-management message rides the reliable send
 queue (`SendPriority`), so a create, list, or delete is never silently dropped.
 
-`GameSaveManager` (`Client.Core/Saves/GameSaveManager.cs`) owns the client save
+`GameSaveManager` (`WaywardBeyond.Client/Saves/GameSaveManager.cs`) owns the client save
 cadence. Its autosave timer saves the character only. Pause, F5, and close call
 `Save()`, which saves the character and, on the local host only, sends a
 `SaveLevelRequest`. Remote clients never request a level save; the server
@@ -117,13 +125,14 @@ autosaves the level.
 
 ## Serialization and data versioning
 
-`SaveMigrator` (`WaywardBeyond.Data/Saves/SaveMigrator.cs`) gates on
-`SaveVersion.CurrentDataVersion` and runs per-record forward migrations.
-`SqliteCharacterStorage` and `SqliteLevelCatalog` refuse records stamped by a
-newer build. Structure data carries a brick palette since data version 4;
-`VoxelEntityDataCodec` encodes live registry-id data to a palette on write and
-decodes on load. The `Character` and `Level` records stamp their format via the
-`Version` message. See [brick-identity](brick-identity.md).
+`Migrator` (`WaywardBeyond.Data/Migrations/Migrator.cs`) gates on
+`DataVersion.CURRENT` and runs per-record forward migrations. Storage types
+guard and migrate on read: `SqliteCharacterStorage`, `SqliteLevelMetadataStorage`,
+and `SqliteLevelStorage` all refuse records stamped by a newer build. Structure
+data carries a brick palette since data version 4; `VoxelEntityDataCodec`
+encodes live registry-id data to a palette on write and decodes on load. The
+`Character` and `Level` records stamp their format via the `Version` message.
+See [brick-identity](brick-identity.md).
 
 The previous NATS JetStream store is no longer read. Existing `saves/`
 JetStream data is ignored; the game is pre-release and this change is a clean
@@ -141,11 +150,10 @@ no shared broker process to manage.
 
 - `WaywardBeyond.Config/StorageSettings.cs`
 - `WaywardBeyond.Data/StoragePaths.cs`
-- `WaywardBeyond.Data/SqliteDatabase.cs`
-- `WaywardBeyond.Data/SqliteLevelStore.cs`
-- `WaywardBeyond.Data/SqliteCharacterStorage.cs`
-- `WaywardBeyond.Data/SqliteSaveMetaStorage.cs`
-- `WaywardBeyond.Data/SqliteProfileInitializer.cs`
+- `WaywardBeyond.Data/Sqlite/SqliteDatabase.cs`
+- `WaywardBeyond.Data/Levels/SqliteLevelStorage.cs`
+- `WaywardBeyond.Data/Characters/SqliteCharacterStorage.cs`
+- `WaywardBeyond.Data/Levels/SqliteLevelMetadataStorage.cs`
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
@@ -154,9 +162,7 @@ no shared broker process to manage.
 
 ## Tests that pin this
 
-- Save-meta accumulation rules in
-  `WaywardBeyond.Client.Tests/SaveTimeTests.cs`.
-- Character playtime frames in
-  `WaywardBeyond.Client.Tests/CharacterSaveManagerTests.cs`.
+- Playtime accumulation rules in
+  `WaywardBeyond.Client.Tests/PlayClockTests.cs`.
 - The failed-send waiter rule in
   `WaywardBeyond.Client.Tests/LevelsClientTests.cs`.

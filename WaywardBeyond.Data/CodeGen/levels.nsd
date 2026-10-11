@@ -50,7 +50,7 @@ message ClientHello
     string UserId = 0;
 }
 
-message PublicView
+message CharacterView
 {
     ulong CharacterUuid = 0;
     string Name = 1;
@@ -61,16 +61,16 @@ message JoinRequest
 {
     string LevelGuid = 0;
     ulong CharacterUuid = 1;
-    PublicView PublicView = 2;
-    CharacterSeed Seed = 3;
+    CharacterView View = 2;
+    CharacterState State = 3;
 }
 
-message CharacterSeed
+message CharacterState
 {
     ulong CharacterUuid = 0;
     string Name = 1;
     string Body = 2;
-    ItemData[]? InventoryContents = 3;
+    ItemData[]? Inventory = 3;
     int ActiveInventorySlot = 4;
     int GameMode = 5;
     Statistic[]? Statistics = 6;

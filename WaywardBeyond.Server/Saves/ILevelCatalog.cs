@@ -1,4 +1,5 @@
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Levels;
 
 namespace WaywardBeyond.Server.Saves;
 
@@ -22,5 +23,5 @@ public interface ILevelCatalog
     bool Exists(string levelGuid);
 
     /// <summary>Opens the level's store, or returns null when no such level exists on disk.</summary>
-    ILevelStore? Open(string levelGuid);
+    ILevelStorage? Open(string levelGuid);
 }

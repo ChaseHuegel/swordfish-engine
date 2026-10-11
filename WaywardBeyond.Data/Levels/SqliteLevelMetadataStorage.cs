@@ -10,42 +10,45 @@ namespace WaywardBeyond.Data.Levels;
 /// <summary>Provides access to sqlite-based level metadata.</summary>
 public sealed class SqliteLevelMetadataStorage(in ILogger<SqliteLevelMetadataStorage> logger, in StoragePaths paths) : ILevelMetadataStorage
 {
-    private const string CREATE_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS save_meta (level_guid TEXT PRIMARY KEY, data BLOB NOT NULL);";
+    private const string CREATE_TABLE_COMMAND = "CREATE TABLE IF NOT EXISTS level_metadata (level_guid TEXT PRIMARY KEY, data BLOB NOT NULL);";
 
     private readonly ILogger _logger = logger;
-    private readonly SqliteTable _table = new(paths.ProfileDatabasePath, CREATE_TABLE_COMMAND);
+    private readonly SqliteDatabase _database = new(paths.GetProfileDatabase());
+    private readonly SqliteTable _table = new(CREATE_TABLE_COMMAND);
 
     /// <inheritdoc/>
-    public Result<SaveMeta> Get(string levelGuid)
+    public Result<LevelMetadata> Get(string levelGuid)
     {
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
-            command.CommandText = "SELECT data FROM save_meta WHERE level_guid = $guid LIMIT 1;";
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
+            command.CommandText = "SELECT data FROM level_metadata WHERE level_guid = $guid LIMIT 1;";
             command.Parameters.AddWithValue("$guid", levelGuid);
 
             if (command.ExecuteScalar() is not byte[] data || data.Length == 0)
             {
-                return Result<SaveMeta>.FromFailure("Save meta not found.");
+                return Result<LevelMetadata>.FromFailure("Level metadata not found.");
             }
 
-            return Result<SaveMeta>.FromSuccess(SaveMeta.Deserialize(data));
+            return Result<LevelMetadata>.FromSuccess(LevelMetadata.Deserialize(data));
         }
         catch (Exception ex)
         {
-            return Result<SaveMeta>.FromFailure(ex);
+            return Result<LevelMetadata>.FromFailure(ex);
         }
     }
 
     /// <inheritdoc/>
-    public IReadOnlyDictionary<string, SaveMeta> GetAll()
+    public IReadOnlyDictionary<string, LevelMetadata> GetAll()
     {
-        var metas = new Dictionary<string, SaveMeta>();
+        var metas = new Dictionary<string, LevelMetadata>();
 
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
-            command.CommandText = "SELECT level_guid, data FROM save_meta;";
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
+            command.CommandText = "SELECT level_guid, data FROM level_metadata;";
 
             using SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
@@ -53,7 +56,7 @@ public sealed class SqliteLevelMetadataStorage(in ILogger<SqliteLevelMetadataSto
                 string levelGuid = reader.GetString(0);
                 try
                 {
-                    SaveMeta meta = SaveMeta.Deserialize((byte[])reader["data"]);
+                    LevelMetadata meta = LevelMetadata.Deserialize((byte[])reader["data"]);
                     metas[levelGuid] = meta;
                 }
                 catch (Exception ex)
@@ -71,15 +74,16 @@ public sealed class SqliteLevelMetadataStorage(in ILogger<SqliteLevelMetadataSto
     }
 
     /// <inheritdoc/>
-    public Result Save(string levelGuid, SaveMeta meta)
+    public Result Save(string levelGuid, LevelMetadata meta)
     {
         try
         {
             byte[] data = meta.Serialize();
-            
-            using SqliteCommand command = _table.CreateCommand();
+
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
             command.CommandText = """
-                INSERT INTO save_meta (level_guid, data) VALUES ($guid, $data)
+                INSERT INTO level_metadata (level_guid, data) VALUES ($guid, $data)
                 ON CONFLICT(level_guid) DO UPDATE SET data = excluded.data;
                 """;
             command.Parameters.AddWithValue("$guid", levelGuid);
@@ -99,8 +103,9 @@ public sealed class SqliteLevelMetadataStorage(in ILogger<SqliteLevelMetadataSto
     {
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
-            command.CommandText = "DELETE FROM save_meta WHERE level_guid = $guid;";
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
+            command.CommandText = "DELETE FROM level_metadata WHERE level_guid = $guid;";
             command.Parameters.AddWithValue("$guid", levelGuid);
             command.ExecuteNonQuery();
 

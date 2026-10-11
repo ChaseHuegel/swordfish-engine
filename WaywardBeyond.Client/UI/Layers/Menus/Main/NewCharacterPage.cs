@@ -529,8 +529,7 @@ internal sealed class NewCharacterPage : IMenuPage<MenuPage>
                 var character = new Character(
                     WaywardBeyond.Version,
                     Uuid.NewUuid().ToValue(),
-                    _LastPlayedMs: 0,
-                    _AgeMs: 0,
+                    _Playtime: new Playtime(),
                     nameValue,
                     _strength,
                     _precision,

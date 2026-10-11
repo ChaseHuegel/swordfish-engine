@@ -79,7 +79,7 @@ public static class HostComposition
         container.RegisterDelegate<ServerConfig>(context => context.Resolve<NetworkingConfig>().Server, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterDelegate<TransportConfig>(context => context.Resolve<NetworkingConfig>().Transport, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         
-        container.RegisterConfig<StorageSettings>(file: "storage.toml");
+        container.RegisterConfig<StorageConfig>(file: "storage.toml");
 
         container.Register<StoragePaths>(Reuse.Singleton);
 

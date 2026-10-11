@@ -7,13 +7,13 @@ namespace WaywardBeyond.Data.Levels;
 public interface ILevelMetadataStorage
 {
     /// <summary>Attempts to get metadata for the provided level.</summary>
-    Result<SaveMeta> Get(string levelGuid);
+    Result<LevelMetadata> Get(string levelGuid);
 
     /// <summary>Gets metadata for all levels.</summary>
-    IReadOnlyDictionary<string, SaveMeta> GetAll();
+    IReadOnlyDictionary<string, LevelMetadata> GetAll();
 
     /// <summary>Attempts to save metadata for the provided level.</summary>
-    Result Save(string levelGuid, SaveMeta meta);
+    Result Save(string levelGuid, LevelMetadata meta);
 
     /// <summary>Attempts to delete metadata for the provided level.</summary>
     Result Delete(string levelGuid);

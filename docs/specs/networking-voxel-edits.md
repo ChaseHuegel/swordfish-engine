@@ -112,7 +112,7 @@ Because every outcome resolves server-side, mods customize interactions
 
 The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 `GameModeComponent`) are seeded from the client save via
-`JoinRequest.CharacterSeed` at join and server-owned thereafter. See
+`JoinRequest.CharacterState` at join and server-owned thereafter. See
 [join](networking-join.md).
 
 ## Source of truth

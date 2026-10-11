@@ -155,7 +155,7 @@ internal sealed class SelectSavePage(
                         ui.LayoutDirection = LayoutDirection.Vertical;
                         ui.Spacing = 12;
                         
-                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.LastPlayedMs))
+                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
                         {
                             using (ui.TextButton(id: $"Button_DeleteSave_{save.Name}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
                             {
@@ -177,7 +177,7 @@ internal sealed class SelectSavePage(
                     {
                         ui.LayoutDirection = LayoutDirection.Vertical;
                         
-                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.LastPlayedMs))
+                        foreach (GameSave save in saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs))
                         {
                             using (ui.TextButton(id: $"Button_SelectSave_{save.Name}", text: save.Name, _buttonOptions, out Widgets.Interactions interactions))
                             {
@@ -219,8 +219,8 @@ internal sealed class SelectSavePage(
                         Anchors = Anchors.Center,
                     };
 
-                    string lastPlayedStr = activeSave.Level.LastPlayedMs > 0
-                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.LastPlayedMs).ToLocalTime().ToString(format: "g")
+                    string lastPlayedStr = activeSave.Level.Playtime.LastPlayedMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
                         : _localization.GetString("ui.label.never")!;
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
                     using (ui.Text(lastPlayedStr))
@@ -229,7 +229,7 @@ internal sealed class SelectSavePage(
                     }
                 }
 
-                TimeSpan age = TimeSpan.FromMilliseconds(activeSave.Level.AgeMs);
+                TimeSpan age = TimeSpan.FromMilliseconds(activeSave.Level.Playtime.AgeMs);
                 string timePlayedStr = _localization.GetLongString(age);
                 using (ui.Element())
                 {

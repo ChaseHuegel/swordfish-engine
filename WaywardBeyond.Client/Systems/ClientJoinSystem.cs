@@ -81,21 +81,23 @@ internal sealed class ClientJoinSystem : IEntitySystem
             Result send = _transport.Send(new JoinRequest
             {
                 LevelGuid = pending.LevelGuid,
+                //  TODO uuid is redundant with the one in view and state. Lean towards removing the one in state + view and keeping this one.
+                //       Maybe even introduce a type to wrap all of these? Or, why not just use Character on the wire here? Maybe View should be moved into Character.
                 CharacterUuid = character.Uuid,
-                PublicView = new PublicView
+                View = new CharacterView
                 {
                     CharacterUuid = character.Uuid,
                     Name = character.Name,
                     Body = character.Body,
                 },
-                Seed = new CharacterSeed
+                State = new CharacterState
                 {
                     CharacterUuid = character.Uuid,
                     Name = character.Name,
                     Body = character.Body,
                     //  Null for a client-authored new character: the server grants the starter loadout.
                     //  A saved inventory is sent as-is and is never restocked server-side.
-                    InventoryContents = character.Inventory,
+                    Inventory = character.Inventory,
                     ActiveInventorySlot = character.ActiveInventorySlot,
                     GameMode = (int)character.GameMode,
                     //  The client owns the initial skill seed: its saved statistics seed the server's

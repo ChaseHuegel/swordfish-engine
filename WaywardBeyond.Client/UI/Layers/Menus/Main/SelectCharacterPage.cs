@@ -306,7 +306,7 @@ internal sealed class SelectCharacterPage(
                             ui.LayoutDirection = LayoutDirection.Vertical;
                             ui.Spacing = 12;
                         
-                            foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
+                            foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                             {
                                 using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Uuid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
                                 {
@@ -329,7 +329,7 @@ internal sealed class SelectCharacterPage(
                         {
                             ui.LayoutDirection = LayoutDirection.Vertical;
 
-                            foreach (Character character in characters.OrderByDescending(character => character.LastPlayedMs))
+                            foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                             {
                                 using (ui.TextButton(id: $"Button_SelectCharacter_{character.Uuid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
                                 {
@@ -378,8 +378,8 @@ internal sealed class SelectCharacterPage(
                         Anchors = Anchors.Center,
                     };
 
-                    string lastPlayedStr = activeCharacter.LastPlayedMs > 0
-                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.LastPlayedMs).ToLocalTime().ToString(format: "g")
+                    string lastPlayedStr = activeCharacter.Playtime.LastPlayedMs > 0
+                        ? DateTimeOffset.FromUnixTimeMilliseconds(activeCharacter.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
                         : _localization.GetString("ui.label.never")!;
                     using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
                     using (ui.Text(lastPlayedStr))
@@ -388,7 +388,7 @@ internal sealed class SelectCharacterPage(
                     }
                 }
 
-                TimeSpan age = TimeSpan.FromMilliseconds(activeCharacter.AgeMs);
+                TimeSpan age = TimeSpan.FromMilliseconds(activeCharacter.Playtime.AgeMs);
                 string timePlayedStr = _localization.GetLongString(age);
                 using (ui.Element())
                 {

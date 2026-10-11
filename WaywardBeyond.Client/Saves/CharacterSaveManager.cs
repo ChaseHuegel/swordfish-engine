@@ -31,7 +31,10 @@ internal sealed class CharacterSaveManager(
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Character character = ActiveSave.Value with
         {
-            LastPlayedMs = nowUtcMs,
+            Playtime = ActiveSave.Value.Playtime with
+            {
+                LastPlayedMs = nowUtcMs
+            },
         };
         
         ActiveSave = character;
@@ -54,8 +57,7 @@ internal sealed class CharacterSaveManager(
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         Character character = ActiveSave.Value with
         {
-            AgeMs = SaveTime.Accumulate(ActiveSave.Value.AgeMs, ActiveSave.Value.LastPlayedMs, nowUtcMs),
-            LastPlayedMs = nowUtcMs,
+            Playtime = ActiveSave.Value.Playtime.Advance(nowUtcMs),
         };
 
         //  Fetch the character's inventory data
@@ -113,7 +115,7 @@ internal sealed class CharacterSaveManager(
     internal Character? GetMostRecentSave()
     {
         return characterStorage.GetAllCharacters()
-            .OrderByDescending(c => c.LastPlayedMs)
+            .OrderByDescending(c => c.Playtime.LastPlayedMs)
             .FirstOrDefault();
     }
 }

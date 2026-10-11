@@ -10,6 +10,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
 
@@ -31,7 +32,7 @@ public sealed class LevelSaveService : IDisposable
     private readonly Lock _saveLock = new();
     private readonly ConcurrentQueue<bool> _completions = new();
 
-    private ILevelStore? _levelStore;
+    private ILevelStorage? _levelStorage;
     private Task _pendingSave = Task.CompletedTask;
     private bool _disposed;
 
@@ -56,8 +57,8 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public void SaveLocation(string levelGuid, ulong characterUuid, in Vector3 position, in Quaternion orientation)
     {
-        ILevelStore? levelStore = _levelStore;
-        if (levelStore == null)
+        ILevelStorage? levelStorage = _levelStorage;
+        if (levelStorage == null)
         {
             return;
         }
@@ -77,13 +78,10 @@ public sealed class LevelSaveService : IDisposable
             _GameMode: 0
         );
 
-        try
+        Result result = levelStorage.Save(data);
+        if (!result.Success)
         {
-            levelStore.WriteLocation(characterUuid, data.Serialize());
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to persist location for character {character} in level {level}.", characterUuid, levelGuid);
+            _logger.LogError(result.Exception, "Failed to persist location for character {character} in level {level}: {message}", characterUuid, levelGuid, result.Message);
         }
     }
 
@@ -103,54 +101,43 @@ public sealed class LevelSaveService : IDisposable
 
         Unload(store);
 
-        ILevelStore? levelStore = _levelCatalog.Open(levelGuid);
-        if (levelStore == null)
+        ILevelStorage? levelStorage = _levelCatalog.Open(levelGuid);
+        if (levelStorage == null)
         {
             _logger.LogWarning("Tried to load level \"{level}\" but found no save database.", levelGuid);
             return false;
         }
 
-        byte[]? levelData = levelStore.ReadLevel();
-        if (levelData == null || levelData.Length == 0)
+        Result<Level> levelResult = levelStorage.GetLevel();
+        if (!levelResult.Success)
         {
-            _logger.LogWarning("Tried to load level \"{level}\" but found no level metadata.", levelGuid);
-            levelStore.Dispose();
+            _logger.LogWarning("Tried to load level \"{level}\" but found no readable level metadata: {message}", levelGuid, levelResult.Message);
+            levelStorage.Dispose();
             return false;
         }
 
-        Level level = Level.Deserialize(levelData);
-        if (!GameSaveMigrations.Migrator.IsSupported<Level>(level.Version.DataVersion))
-        {
-            _logger.LogError(
-                "Refusing to load level \"{level}\" stamped with data version {version}: it was created by a newer build.",
-                levelGuid, level.Version.DataVersion);
-            levelStore.Dispose();
-            return false;
-        }
+        Level level = levelResult.Value;
 
         lock (_saveLock)
         {
-            _levelStore = levelStore;
+            _levelStorage = levelStorage;
         }
 
         CurrentLevel = level;
         LevelSpawn = new Vector3(level.SpawnX, level.SpawnY, level.SpawnZ);
 
-        //  Data version of the level governs every structure it persists (structures carry no version of
-        //  their own). Migrate each one forward, then resolve it into the in-memory local id space.
-        uint levelVersion = level.Version.DataVersion;
-        foreach (LevelEntityRecord record in levelStore.ReadEntities())
+        //  Resolve each persisted structure into the in-memory local id space. The store has already
+        //  deserialized and migrated every entity to the level's data version.
+        foreach (VoxelEntityData entity in levelStorage.GetVoxelEntities(level.Version.DataVersion))
         {
             try
             {
-                VoxelEntityData voxelEntityData = VoxelEntityData.Deserialize(record.Data);
-                VoxelEntityData migrated = GameSaveMigrations.Migrator.Migrate(voxelEntityData, levelVersion);
-                VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in migrated, _brickRegistry);
+                VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in entity, _brickRegistry);
                 VoxelWorldEntityFactory.CreateAuthority(store, local);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to build authority voxel entity {uuid}.", record.Uuid);
+                _logger.LogError(ex, "Failed to build authority voxel entity {uuid}.", entity.Uuid);
             }
         }
 
@@ -170,8 +157,8 @@ public sealed class LevelSaveService : IDisposable
 
         lock (_saveLock)
         {
-            _levelStore?.Dispose();
-            _levelStore = null;
+            _levelStorage?.Dispose();
+            _levelStorage = null;
         }
 
         CurrentLevelGuid = null;
@@ -185,10 +172,10 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public bool TryGetSpawnPoint(string levelGuid, ulong characterUuid, in DataStore store, out Vector3 position, out Quaternion orientation)
     {
-        byte[]? locationData = _levelStore?.ReadLocation(characterUuid);
-        if (locationData != null && locationData.Length > 0)
+        Result<CharacterEntityData> locationResult = _levelStorage?.GetCharacterEntity(characterUuid) ?? Result<CharacterEntityData>.FromFailure("No level loaded.");
+        if (locationResult.Success)
         {
-            CharacterEntityData location = CharacterEntityData.Deserialize(locationData);
+            CharacterEntityData location = locationResult.Value;
             position = new Vector3((float)location.X, (float)location.Y, (float)location.Z);
             orientation = new Quaternion(location.OrientationX, location.OrientationY, location.OrientationZ, location.OrientationW);
             return true;
@@ -206,7 +193,7 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public void QueueSave(in DataStore store)
     {
-        if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStore == null)
+        if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
             return;
         }
@@ -236,7 +223,7 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     public void Flush(in DataStore store)
     {
-        if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStore == null)
+        if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
             return;
         }
@@ -263,8 +250,8 @@ public sealed class LevelSaveService : IDisposable
             }
 
             _disposed = true;
-            _levelStore?.Dispose();
-            _levelStore = null;
+            _levelStorage?.Dispose();
+            _levelStorage = null;
         }
     }
 
@@ -283,7 +270,7 @@ public sealed class LevelSaveService : IDisposable
         }
 
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        Level level = CurrentLevel.Value with { LastPlayedMs = nowMs };
+        Level level = CurrentLevel.Value with { Playtime = CurrentLevel.Value.Playtime with { LastPlayedMs = nowMs } };
         CurrentLevel = level;
         QueuePersistLevelMeta(level);
     }
@@ -340,18 +327,15 @@ public sealed class LevelSaveService : IDisposable
     {
         lock (_saveLock)
         {
-            if (_levelStore == null)
+            if (_levelStorage == null)
             {
                 return;
             }
 
-            try
+            Result result = _levelStorage.Save(level);
+            if (!result.Success)
             {
-                _levelStore.WriteLevel(level.Serialize());
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to persist level metadata for \"{guid}\".", level.Guid);
+                _logger.LogError(result.Exception, "Failed to persist level metadata for \"{guid}\": {message}", level.Guid, result.Message);
             }
         }
     }
@@ -360,8 +344,7 @@ public sealed class LevelSaveService : IDisposable
     {
         return level with
         {
-            AgeMs = SaveTime.Accumulate(level.AgeMs, level.LastPlayedMs, nowMs),
-            LastPlayedMs = nowMs,
+            Playtime = level.Playtime.Advance(nowMs)
         };
     }
 
@@ -373,13 +356,11 @@ public sealed class LevelSaveService : IDisposable
     /// </summary>
     private CapturedSave Capture(in DataStore store)
     {
-        string levelGuid = CurrentLevelGuid!;
-
         //  Stamp and carry the level metadata so the save persists the aggregate playtime.
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         CurrentLevel = StampMeta(CurrentLevel!.Value, nowMs);
 
-        var entities = new List<LevelEntityRecord>();
+        var entities = new List<VoxelEntityData>();
         CaptureStructureAction structureAction = new()
         {
             Entries = entities,
@@ -387,14 +368,14 @@ public sealed class LevelSaveService : IDisposable
         };
         store.Query<VoxelEntityDataComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
 
-        var locations = new List<LevelLocationRecord>();
+        var locations = new List<CharacterEntityData>();
         CaptureLocationAction locationAction = new()
         {
             Entries = locations,
         };
         store.Query<OwnedCharacterComponent, TransformComponent, CaptureLocationAction>(0f, ref locationAction);
 
-        return new CapturedSave(CurrentLevel.Value.Serialize(), entities.ToArray(), locations.ToArray());
+        return new CapturedSave(CurrentLevel.Value, entities.ToArray(), locations.ToArray());
     }
 
     private void Persist(in CapturedSave save)
@@ -410,15 +391,15 @@ public sealed class LevelSaveService : IDisposable
 
     private bool PersistLocked(in CapturedSave save)
     {
-        if (_levelStore == null)
+        if (_levelStorage == null)
         {
             return false;
         }
 
         try
         {
-            _levelStore.WriteSave(save.LevelData, save.Entities, save.Locations);
-            return true;
+            Result result = _levelStorage.Save(save.Level, save.Entities, save.Locations);
+            return result.Success;
         }
         catch (Exception ex)
         {
@@ -429,7 +410,7 @@ public sealed class LevelSaveService : IDisposable
 
     private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
     {
-        public List<LevelEntityRecord> Entries;
+        public List<VoxelEntityData> Entries;
         public IBrickRegistry BrickRegistry;
 
         public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
@@ -451,13 +432,13 @@ public sealed class LevelSaveService : IDisposable
                 _BrickPalette: null
             ), BrickRegistry);
 
-            Entries.Add(new LevelEntityRecord(uuid.ToValue(), voxel.Serialize()));
+            Entries.Add(voxel);
         }
     }
 
     private struct CaptureLocationAction : IForEach<OwnedCharacterComponent, TransformComponent>
     {
-        public List<LevelLocationRecord> Entries;
+        public List<CharacterEntityData> Entries;
 
         public void Execute(float delta, DataStore store, int entity, in OwnedCharacterComponent owned, in TransformComponent transform)
         {
@@ -477,20 +458,20 @@ public sealed class LevelSaveService : IDisposable
                 _GameMode: 0
             );
 
-            Entries.Add(new LevelLocationRecord(owned.CharacterUuid, data.Serialize()));
+            Entries.Add(data);
         }
     }
 
-    private readonly struct CapturedSave(in byte[] levelData, in LevelEntityRecord[] entities, in LevelLocationRecord[] locations)
+    private readonly struct CapturedSave(in Level level, in VoxelEntityData[] entities, in CharacterEntityData[] locations)
     {
-        public readonly byte[] LevelData = levelData;
-        public readonly LevelEntityRecord[] Entities = entities;
-        public readonly LevelLocationRecord[] Locations = locations;
+        public readonly Level Level = level;
+        public readonly VoxelEntityData[] Entities = entities;
+        public readonly CharacterEntityData[] Locations = locations;
     }
 
     private struct UnloadAction : IForEach<NetworkComponent>
     {
-        public void Execute(float delta, DataStore store, int entity, in WaywardBeyond.Networking.Components.NetworkComponent component)
+        public void Execute(float delta, DataStore store, int entity, in NetworkComponent component)
         {
             if (store.TryGet(entity, out PhysicsComponent physics))
             {

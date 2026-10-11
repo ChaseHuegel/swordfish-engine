@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace WaywardBeyond.Data.Migrations;
 
-/// <summary>Applies forward data <see cref="IMigration"/>s to records up to the <see cref="SaveVersion.CURRENT_DATA_VERSION"/>.</summary>
+/// <summary>Applies forward data <see cref="IMigration"/>s to records up to the <see cref="DataVersion.CURRENT"/>.</summary>
 public sealed class Migrator
 {
     private readonly Dictionary<Type, List<IMigration>> _migrations;
@@ -45,10 +45,10 @@ public sealed class Migrator
             return false;
         }
         
-        return fromVersion <= SaveVersion.CURRENT_DATA_VERSION;
+        return fromVersion <= DataVersion.CURRENT;
     }
 
-    /// <summary>Migrates a record stamped at <paramref name="fromVersion"/> up to the <see cref="SaveVersion.CURRENT_DATA_VERSION"/>.</summary>
+    /// <summary>Migrates a record stamped at <paramref name="fromVersion"/> up to the <see cref="DataVersion.CURRENT"/>.</summary>
     /// <exception cref="NotSupportedException">Thrown when the record is out of range of the migrations' supported versions.</exception>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="value"/> is null.</exception>
     public T Migrate<T>(T value, uint fromVersion)
@@ -58,9 +58,9 @@ public sealed class Migrator
             throw new ArgumentNullException(nameof(value));
         }
         
-        if (fromVersion > SaveVersion.CURRENT_DATA_VERSION)
+        if (fromVersion > DataVersion.CURRENT)
         {
-            throw new NotSupportedException($"Record of type {typeof(T)} at version {fromVersion} is newer than the current version (version {SaveVersion.CURRENT_DATA_VERSION}) and cannot be safely migrated.");
+            throw new NotSupportedException($"Record of type {typeof(T)} at version {fromVersion} is newer than the current version (version {DataVersion.CURRENT}) and cannot be safely migrated.");
         }
 
         if (!_migrations.TryGetValue(typeof(T), out List<IMigration>? chain) || chain.Count == 0)
@@ -107,9 +107,9 @@ public sealed class Migrator
             expected = migration.ToVersion;
         }
 
-        if (expected != SaveVersion.CURRENT_DATA_VERSION)
+        if (expected != DataVersion.CURRENT)
         {
-            throw new InvalidOperationException($"Migration chain for {type.Name} ends at {expected}, not the current version {SaveVersion.CURRENT_DATA_VERSION}.");
+            throw new InvalidOperationException($"Migration chain for {type.Name} ends at {expected}, not the current version {DataVersion.CURRENT}.");
         }
     }
 }

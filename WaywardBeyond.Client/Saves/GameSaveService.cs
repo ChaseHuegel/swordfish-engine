@@ -34,7 +34,7 @@ internal sealed class GameSaveService(
 
     private readonly object _savesGate = new();
     private Level[] _levels = [];
-    private Dictionary<string, SaveMeta> _clientMeta = new();
+    private Dictionary<string, LevelMetadata> _clientMeta = new();
     private bool _metaLoaded;
     private bool _canCreateSave;
 
@@ -58,13 +58,19 @@ internal sealed class GameSaveService(
             for (var i = 0; i < _levels.Length; i++)
             {
                 Level level = _levels[i];
-                if (_clientMeta.TryGetValue(level.Guid, out SaveMeta meta))
+                if (_clientMeta.TryGetValue(level.Guid, out LevelMetadata meta))
                 {
-                    level = level with { LastPlayedMs = meta.LastPlayedMs, AgeMs = meta.AgeMs };
+                    level = level with
+                    {
+                        Playtime = meta.Playtime
+                    };
                 }
                 else
                 {
-                    level = level with { LastPlayedMs = 0, AgeMs = 0 };
+                    level = level with
+                    {
+                        Playtime = default
+                    };
                 }
 
                 saves[i] = new GameSave(level.Name, level);
@@ -74,16 +80,16 @@ internal sealed class GameSaveService(
         }
     }
 
-    public SaveMeta? GetSaveMeta(string levelGuid)
+    public LevelMetadata? GetMetadata(string levelGuid)
     {
         lock (_savesGate)
         {
-            return _clientMeta.TryGetValue(levelGuid, out SaveMeta meta) ? meta : null;
+            return _clientMeta.TryGetValue(levelGuid, out LevelMetadata meta) ? meta : null;
         }
     }
 
     /// <summary>Records a client save's metadata and persists it to the client's own bucket.</summary>
-    public void UpdateSaveMeta(string levelGuid, SaveMeta meta)
+    public void UpdateMetadata(string levelGuid, LevelMetadata meta)
     {
         lock (_savesGate)
         {
@@ -104,11 +110,13 @@ internal sealed class GameSaveService(
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         lock (_savesGate)
         {
-            _clientMeta.TryGetValue(levelGuid, out SaveMeta meta);
-            _clientMeta[levelGuid] = new SaveMeta
+            _clientMeta.TryGetValue(levelGuid, out LevelMetadata meta);
+            _clientMeta[levelGuid] = new LevelMetadata
             {
-                LastPlayedMs = nowMs,
-                AgeMs = meta.AgeMs,
+                Playtime = meta.Playtime with
+                {
+                    LastPlayedMs = nowMs
+                },
             };
         }
     }

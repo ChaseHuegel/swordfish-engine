@@ -34,7 +34,7 @@ internal static partial class Widgets
     /// </summary>
     public static UIBuilder<T>.Scope TextButton<T>(this UIBuilder<T> ui, string id, string text, ButtonOptions options, out Interactions interactions)
     {
-        UIBuilder<T>.Scope scope = TextButton(ui, id, text, options.FontOptions, out interactions); 
+        UIBuilder<T>.Scope scope = ui.TextButton(id, text, options.FontOptions, out interactions); 
         interactions.WithButtonAudio(options.AudioOptions.SoundEffectService);
         return scope;
     }

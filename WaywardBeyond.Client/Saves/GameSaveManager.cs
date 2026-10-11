@@ -175,13 +175,12 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         GameSave save = ActiveSave.Value;
 
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        SaveMeta meta = _gameSaveService.GetSaveMeta(save.Level.Guid) ?? new SaveMeta();
-        meta = new SaveMeta
+        LevelMetadata metadata = _gameSaveService.GetMetadata(save.Level.Guid) ?? new LevelMetadata();
+        metadata = new LevelMetadata
         {
-            AgeMs = SaveTime.Accumulate(meta.AgeMs, meta.LastPlayedMs, nowUtcMs),
-            LastPlayedMs = nowUtcMs,
+            Playtime = metadata.Playtime.Advance(nowUtcMs),
         };
-        _gameSaveService.UpdateSaveMeta(save.Level.Guid, meta);
+        _gameSaveService.UpdateMetadata(save.Level.Guid, metadata);
 
         _characterSaveManager.Save(_dataStore);
     }
@@ -224,7 +223,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             return null;
         }
         
-        return saves.OrderByDescending(save => save.Level.LastPlayedMs).FirstOrDefault();
+        return saves.OrderByDescending(save => save.Level.Playtime.LastPlayedMs).FirstOrDefault();
     }
 
     private void OnWindowClosed()

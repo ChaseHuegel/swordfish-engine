@@ -18,18 +18,18 @@ save levels. Level data is streamed to the client during join.
    join. See [permissions](permissions.md).
 
 1. **`ClientJoinSystem`** (`Client.Core/Systems/`) submits a
-   `JoinRequest { LevelGuid, CharacterUuid, PublicView, CharacterSeed }`.
-   - `PublicView` is the minimal identity relay (`CharacterUuid`, `Name`, `Body`)
-     used for remote rendering.
+   `JoinRequest { LevelGuid, CharacterUuid, CharacterView, CharacterState }`.
+   - `CharacterView` is the minimal identity relay (`CharacterUuid`, `Name`,
+     `Body`) used for remote rendering.
    - The permission claim is not in the join message; the server binds the
      connection's `ClientHello` claim at join. See
      [permissions](permissions.md).
-- `CharacterSeed` is a separate optional field carrying the client's
+- `CharacterState` is a separate optional field carrying the client's
       authoritative **initial** interaction context (inventory, equipment/active
       slot, game mode) from its local save. It is **non-nullable**; an older
       client omitting it receives the struct default (empty/creative), which is
       the desired backward-compat behavior.
-   - `CharacterSeed.Statistics` carries the client's saved skill XP; the server
+   - `CharacterState.Statistics` carries the client's saved skill XP; the server
       keeps only statistics that name a known skill (see
       [skills](skills.md)).
    - It drives `MainMenu → Loading → Playing` and is queued from the menu so
@@ -44,7 +44,7 @@ save levels. Level data is streamed to the client during join.
    from its save database into that world's store, resolves the spawn
    transform (the persisted per-character location, else
    `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
-   server mirror, seeds the server's interaction context from `CharacterSeed`,
+   server mirror, seeds the server's interaction context from `CharacterState`,
    binds it to a fresh `Session`, and binds the connection's `ClientHello`
    claim to the session's `IUserPermissionService` (the local host connection
    gets the all-granting set), and replies `JoinAccept { Level, SpawnTransform,

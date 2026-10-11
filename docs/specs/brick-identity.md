@@ -96,12 +96,12 @@ so each side uses its own id space.
 ## Data format versioning and migration
 
 Every save-bearing record stamps a data version. The current version is
-`SaveVersion.CurrentDataVersion` (`WaywardBeyond.Data/SaveVersion.cs`),
+`DataVersion.CURRENT` (`WaywardBeyond.Data/DataVersion.cs`),
 now `4`. The v3→v4 migration, `VoxelEntityDataV3ToV4Migration`
 (`WaywardBeyond.Gameplay/Saves/`), re-indexes a legacy bare-name FNV
 palette-less structure into a v4 palette. It owns the only hardcoded brick names
-in the codebase, privately, to reverse-map legacy FNV ids. `SaveMigrator`
-(`WaywardBeyond.Data/Saves/SaveMigrator.cs`) gates on the version and
+in the codebase, privately, to reverse-map legacy FNV ids. `Migrator`
+(`WaywardBeyond.Data/Migrations/Migrator.cs`) gates on the version and
 refuses records stamped by a newer build. See [persistence](persistence.md).
 
 ## Tests that pin this

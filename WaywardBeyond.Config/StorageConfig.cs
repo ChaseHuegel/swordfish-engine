@@ -5,7 +5,7 @@ using Swordfish.Library.Types;
 namespace WaywardBeyond.Config;
 
 /// <summary>Storage configuration.</summary>
-public sealed class StorageSettings : Config<StorageSettings>
+public sealed class StorageConfig : Config<StorageConfig>
 {
     /// <summary>
     /// The save data root path.

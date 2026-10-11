@@ -249,13 +249,13 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  IdentifierComponent (mirroring the client's local player). Inventory/attributes/statistics
         //  are not relayed for remote rendering. The "game" tag is the client teardown key: it lets the
         //  remote client free the mirror with the rest of its gameplay entities on exit.
-        store.AddOrUpdate(entity, new BodyViewComponent { Body = request.PublicView.Body });
-        store.AddOrUpdate(entity, new IdentifierComponent(request.PublicView.Name, tag: "game"));
+        store.AddOrUpdate(entity, new BodyViewComponent { Body = request.View.Body });
+        store.AddOrUpdate(entity, new IdentifierComponent(request.View.Name, tag: "game"));
 
         //  Seed the server-authoritative interaction context from the joining client's local save. The
         //  client owns its initial save; from here the server owns these components and replicates them.
-        SeedInteractionContext(store, entity, request.Seed);
-        SeedSkillState(store, entity, request.Seed, _skillDatabase);
+        SeedInteractionContext(store, entity, request.State);
+        SeedSkillState(store, entity, request.State, _skillDatabase);
 
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
@@ -319,10 +319,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// is never restocked). The inventory is normalized to the canonical slot count so the replicated
     /// array is always full-size and the active slot is always in bounds.
     /// </summary>
-    private static void SeedInteractionContext(DataStore store, int entity, in CharacterSeed seed)
+    private static void SeedInteractionContext(DataStore store, int entity, in CharacterState seed)
     {
         var inventory = new InventoryComponent();
-        inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.InventoryContents));
+        inventory.CopyFrom(PlayerInitialInventory.Resolve(seed.Inventory));
         store.AddOrUpdate(entity, inventory);
         store.AddOrUpdate(entity, new EquipmentComponent(InventoryComponent.ClampSlot(seed.ActiveInventorySlot)));
         store.AddOrUpdate(entity, new GameModeComponent((GameMode)seed.GameMode));
@@ -334,7 +334,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// carried, and the whole component lives in memory for the session and is freed with the player
     /// mirror. The server never persists character skill data.
     /// </summary>
-    private static void SeedSkillState(DataStore store, int entity, in CharacterSeed seed, in SkillDatabase? skillDatabase)
+    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, in SkillDatabase? skillDatabase)
     {
         var xpBySkillId = new Dictionary<string, long>();
         if (skillDatabase != null && seed.Statistics != null)

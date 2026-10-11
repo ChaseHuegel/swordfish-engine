@@ -4,7 +4,7 @@ namespace WaywardBeyond.Data.Migrations;
 
 /// <summary>
 ///     An interface representing a single forward migration of a data record from one schema version to the next.
-///     Migrations run in ascending <see cref="FromVersion"/> order up to <see cref="SaveVersion.CURRENT_DATA_VERSION"/>.
+///     Migrations run in ascending <see cref="FromVersion"/> order up to <see cref="DataVersion.CURRENT"/>.
 /// </summary>
 public interface IMigration
 {

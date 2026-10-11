@@ -47,7 +47,7 @@ client's `assets/lang/en/skills.toml` holds the display strings.
 
 ## Authority
 
-- **Join seed**: the client sends its saved statistics on the `CharacterSeed`
+- **Join seed**: the client sends its saved statistics on the `CharacterState`
   (`Statistic[]? Statistics`). `ServerJoinSystem` filters them to known skill ids
   and stores them in the player's transient `SkillStateComponent`. New characters
   seed an empty component.

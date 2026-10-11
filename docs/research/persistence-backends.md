@@ -34,11 +34,11 @@ for user review. The decision is recorded here (issue #0036).
 
 NATS is removed entirely. The game persists to SQLite:
 
-- `saves/profile.db` holds the client-owned `characters` and `save_meta`
+- `saves/profile.db` holds the client-owned `characters` and `level_metadata`
   tables.
 - One `saves/<levelGuid>/level.db` per level holds `level`, `entities`, and
   `character_locations`.
-- `LevelSaveService`/`SqliteLevelCatalog`/`SqliteLevelStore` replace
+- `LevelSaveService`/`SqliteLevelCatalog`/`SqliteLevelStorage` replace
   `WorldSaveService`/`KeyValueStore`.
 - The bundled `nats-server` and `PersistentNatsProcess` are deleted.
 - The old JetStream store is not migrated: the game is pre-release, so this

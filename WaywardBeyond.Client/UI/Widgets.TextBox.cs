@@ -30,7 +30,7 @@ internal static partial class Widgets
     /// <returns>True if the text box was submitted; otherwise false.</returns>
     public static bool TextButton<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService)
     {
-        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && (interactions & Interactions.Submit) == Interactions.Submit;
+        return ui.TextBox(id, ref state, fontOptions, inputService, out Interactions interactions) && (interactions & Interactions.Submit) == Interactions.Submit;
     }
     
     /// <summary>
@@ -39,7 +39,7 @@ internal static partial class Widgets
     /// <returns>True if the text box was submitted; otherwise false.</returns>
     public static bool TextBox<T>(this UIBuilder<T> ui, string id, ref TextBoxState state, FontOptions fontOptions, IInputService inputService, SoundEffectService soundEffectService)
     {
-        return TextBox(ui, id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(soundEffectService);
+        return ui.TextBox(id, ref state, fontOptions, inputService, out Interactions interactions) && interactions.WithTextInputAudio(soundEffectService);
     }
 
     /// <summary>

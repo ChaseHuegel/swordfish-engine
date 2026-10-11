@@ -205,24 +205,24 @@ rules, the log line, and the client behavior.
 ## Join and level-stream messages
 
 `WaywardBeyond.Data/CodeGen/levels.nsd`: `ClientHello`, `JoinRequest`,
-`JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `PublicView`,
-`CharacterSeed`, and the save-listing set
+`JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `CharacterView`,
+`CharacterState`, and the save-listing set
 (`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
 Every message in the save-listing set rides the reliable send queue
 (`SendPriority`), because a dropped create, list, or delete would silently lose
 a save operation. See [join](networking-join.md) and
 [persistence](persistence.md).
 
-`CharacterSeed` carries the client's authoritative **initial** character
+`CharacterState` carries the client's authoritative **initial** character
 context, including its saved skill statistics:
 
 ```nsd
-message CharacterSeed
+message CharacterState
 {
     ulong CharacterUuid = 0;
     string Name = 1;
     int Body = 2;
-    ItemData[]? InventoryContents = 3;
+    ItemData[]? Inventory = 3;
     int ActiveInventorySlot = 4;
     int GameMode = 5;
     Statistic[]? Statistics = 6;   // skill XP seed; server keeps only what matches a skill id

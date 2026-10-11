@@ -9,26 +9,31 @@ namespace WaywardBeyond.Data;
 /// Resolves the save-data file layout under the configured data root. The client profile database and
 /// the per-level server databases share the root.
 /// </summary>
-public sealed class StoragePaths(StorageSettings settings)
+public sealed class StoragePaths(StorageConfig config)
 {
     private const string PROFILE_DATABASE_NAME = "profile.db";
     private const string LEVEL_DATABASE_NAME = "level.db";
 
-    private PathInfo DataRoot => settings.SaveRoot.Get();
+    private PathInfo DataRoot => config.SaveRoot.Get();
 
-    public PathInfo ProfileDatabasePath => DataRoot.At(PROFILE_DATABASE_NAME);
+    /// <summary>Gets the path to the client profile database.</summary>
+    public PathInfo GetProfileDatabase() => DataRoot.At(PROFILE_DATABASE_NAME);
 
-    public PathInfo LevelDirectory(string levelGuid) => DataRoot.At(levelGuid);
+    /// <summary>Gets the directory holding a level's server database.</summary>
+    public PathInfo GetLevelDirectory(string levelGuid) => DataRoot.At(levelGuid);
 
-    public PathInfo LevelDatabasePath(string levelGuid) => LevelDirectory(levelGuid).At(LEVEL_DATABASE_NAME);
+    /// <summary>Gets the path to a level's server database.</summary>
+    public PathInfo GetLevelDatabase(string levelGuid) => GetLevelDirectory(levelGuid).At(LEVEL_DATABASE_NAME);
 
+    /// <summary>Whether a save database exists for the provided level.</summary>
     public bool LevelExists(string levelGuid)
     {
-        PathInfo levelDatabasePath = LevelDatabasePath(levelGuid);
+        PathInfo levelDatabasePath = GetLevelDatabase(levelGuid);
         return levelDatabasePath.IsFile() && levelDatabasePath.FileExists();
     }
 
-    public string[] ListLevelGuids()
+    /// <summary>Gets the guid of every level that has a save database under the data root.</summary>
+    public string[] GetLevelGuids()
     {
         if (!DataRoot.IsDirectory() || !DataRoot.DirectoryExists())
         {

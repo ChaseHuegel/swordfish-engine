@@ -40,3 +40,14 @@ One config model per subject. The base class is `Config<T>` in
 |---|---|
 | `<thing>System` | an ECS system (`EntitySystem`) |
 | `<thing>Component` | an ECS component (`readonly struct : IDataComponent`) |
+
+## Storage
+
+The persistence layer returns models.
+The model is named for the domain, not its current content.
+
+| Suffix | Meaning |
+|---|---|
+| `I<thing>Storage` | persistence contract over one database |
+| `Sqlite<thing>Storage` | the SQLite implementation of the contract |
+| `<thing>Storage` model | named for the domain it stores, not one of its fields |

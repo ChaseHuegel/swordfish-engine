@@ -14,7 +14,7 @@ internal static partial class Widgets
     /// <returns>True if the box is currently checked; otherwise false.</returns>
     public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked)
     {
-        return Checkbox<T>(ui, id, text, isChecked, out _);
+        return ui.Checkbox<T>(id, text, isChecked, out _);
     }
 
     /// <summary>
@@ -23,7 +23,7 @@ internal static partial class Widgets
     /// <returns>True if the box is currently checked; otherwise false.</returns>
     public static bool Checkbox<T>(this UIBuilder<T> ui, string id, string text, bool isChecked, SoundEffectService soundEffectService)
     {
-        bool value = Checkbox(ui, id, text, isChecked, out Interactions interactions);
+        bool value = ui.Checkbox(id, text, isChecked, out Interactions interactions);
         interactions.WithButtonToggleAudio(soundEffectService);
         return value;
     }

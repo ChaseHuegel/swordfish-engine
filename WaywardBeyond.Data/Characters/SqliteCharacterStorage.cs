@@ -19,14 +19,16 @@ public sealed class SqliteCharacterStorage(
 
     private readonly Migrator _migrator = migrator;
     private readonly ILogger _logger = logger;
-    private readonly SqliteTable _table = new(paths.ProfileDatabasePath, CREATE_TABLE_COMMAND);
+    private readonly SqliteDatabase _database = new(paths.GetProfileDatabase());
+    private readonly SqliteTable _table = new(CREATE_TABLE_COMMAND);
 
     /// <inheritdoc/>
     public Result<Character> GetCharacter(ulong uuid)
     {
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
             command.CommandText = "SELECT data FROM characters WHERE uuid = $uuid LIMIT 1;";
             command.Parameters.AddWithValue("$uuid", SqliteDatabase.EncodeKey(uuid));
 
@@ -50,7 +52,8 @@ public sealed class SqliteCharacterStorage(
 
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
             command.CommandText = "SELECT data FROM characters;";
 
             using SqliteDataReader reader = command.ExecuteReader();
@@ -83,7 +86,8 @@ public sealed class SqliteCharacterStorage(
         {
             byte[] data = character.Serialize();
             
-            using SqliteCommand command = _table.CreateCommand();
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
             command.CommandText = """
                 INSERT INTO characters (uuid, data) VALUES ($uuid, $data)
                 ON CONFLICT(uuid) DO UPDATE SET data = excluded.data;
@@ -105,7 +109,8 @@ public sealed class SqliteCharacterStorage(
     {
         try
         {
-            using SqliteCommand command = _table.CreateCommand();
+            using SqliteConnection connection = _database.Open();
+            using SqliteCommand command = _table.CreateCommand(connection);
             command.CommandText = "DELETE FROM characters WHERE uuid = $uuid;";
             command.Parameters.AddWithValue("$uuid", SqliteDatabase.EncodeKey(uuid));
             command.ExecuteNonQuery();
@@ -125,7 +130,7 @@ public sealed class SqliteCharacterStorage(
             Character character = Character.Deserialize(data);
             if (!_migrator.IsSupported<Character>(character.Version.DataVersion))
             {
-                return Result<Character>.FromFailure($"Character {character.Uuid} uses data version {character.Version.DataVersion}, which is newer than the supported format version {SaveVersion.CURRENT_DATA_VERSION}.");
+                return Result<Character>.FromFailure($"Character {character.Uuid} uses data version {character.Version.DataVersion}, which is newer than the supported format version {DataVersion.CURRENT}.");
             }
 
             return Result<Character>.FromSuccess(_migrator.Migrate(character, character.Version.DataVersion));
