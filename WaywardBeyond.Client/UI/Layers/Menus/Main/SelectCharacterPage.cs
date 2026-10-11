@@ -261,22 +261,13 @@ internal sealed class SelectCharacterPage(
             {
                 ui.VerticalScroll = true;
 
-                ui.Constraints = new Constraints
-                {
-                    Width = new Fixed(332),
-                    Height = new Fixed(196),
-                };
-
                 ui.ClipConstraints = new Constraints
                 {
                     Width = new Relative(1f),
                     Height = new Relative(1f),
                 };
 
-                if (_characterSaveManager.ActiveSave == null)
-                {
-                    _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-                }
+                _characterSaveManager.ActiveSave ??= _characterSaveManager.GetMostRecentSave();
 
                 List<Character> characters = _characterStorage.GetAllCharacters().ToList();
                 if (characters.Count == 0)
@@ -296,58 +287,54 @@ internal sealed class SelectCharacterPage(
                     float scroll = _inputService.GetMouseScroll();
                     _scrollY = Math.Clamp(_scrollY + (int)scroll, -(characters.Count - 1), 0);
                     ui.ScrollY = _scrollY * 30;
+                    ui.Spacing = 20;
 
                     using (ui.Element())
                     {
-                        ui.Spacing = 20;
-
-                        using (ui.Element())
+                        ui.LayoutDirection = LayoutDirection.Vertical;
+                        ui.Spacing = 12;
+                    
+                        foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                         {
-                            ui.LayoutDirection = LayoutDirection.Vertical;
-                            ui.Spacing = 12;
-                        
-                            foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
+                            using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Uuid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
                             {
-                                using (ui.TextButton(id: $"Button_DeleteCharacter_{character.Uuid}", text: "\uf2ed", _smallIconOptions, out Widgets.Interactions interactions))
+                                if (interactions.Has(Widgets.Interactions.Click))
                                 {
-                                    if (interactions.Has(Widgets.Interactions.Click))
-                                    {
-                                        _characterSaveManager.ActiveSave = character;
-                                        _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
+                                    _characterSaveManager.ActiveSave = character;
+                                    _modalMenu.GoToPage(_confirmModal.Create(DeleteSave));
 
-                                        void DeleteSave()
-                                        {
-                                            _characterSaveManager.Delete(character);
-                                            _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
-                                        }
+                                    void DeleteSave()
+                                    {
+                                        _characterSaveManager.Delete(character);
+                                        _characterSaveManager.ActiveSave = _characterSaveManager.GetMostRecentSave();
                                     }
                                 }
                             }
                         }
-                        
-                        using (ui.Element())
+                    }
+                    
+                    using (ui.Element())
+                    {
+                        ui.LayoutDirection = LayoutDirection.Vertical;
+
+                        foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
                         {
-                            ui.LayoutDirection = LayoutDirection.Vertical;
-
-                            foreach (Character character in characters.OrderByDescending(character => character.Playtime.LastPlayedMs))
+                            using (ui.TextButton(id: $"Button_SelectCharacter_{character.Uuid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
                             {
-                                using (ui.TextButton(id: $"Button_SelectCharacter_{character.Uuid}", text: character.Name, _buttonOptions, out Widgets.Interactions interactions))
+                                ui.Constraints = new Constraints
                                 {
-                                    ui.Constraints = new Constraints
-                                    {
-                                        Anchors = Anchors.Center | Anchors.Left,
-                                    };
+                                    Anchors = Anchors.Center | Anchors.Left,
+                                };
 
-                                    if (_characterSaveManager.ActiveSave != null &&
-                                        _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid)
-                                    {
-                                        ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
-                                    }
+                                if (_characterSaveManager.ActiveSave != null &&
+                                    _characterSaveManager.ActiveSave.Value.Uuid == character.Uuid)
+                                {
+                                    ui.Color = new Vector4(0f, 0.455f, 1f, 0.5f);
+                                }
 
-                                    if (interactions.Has(Widgets.Interactions.Click))
-                                    {
-                                        _characterSaveManager.ActiveSave = character;
-                                    }
+                                if (interactions.Has(Widgets.Interactions.Click))
+                                {
+                                    _characterSaveManager.ActiveSave = character;
                                 }
                             }
                         }
