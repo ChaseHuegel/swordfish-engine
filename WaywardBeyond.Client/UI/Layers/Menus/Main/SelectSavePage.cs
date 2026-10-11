@@ -222,11 +222,8 @@ internal sealed class SelectSavePage(
                     string lastPlayedStr = activeSave.Level.Playtime.LastPlayedMs > 0
                         ? DateTimeOffset.FromUnixTimeMilliseconds(activeSave.Level.Playtime.LastPlayedMs).ToLocalTime().ToString(format: "g")
                         : _localization.GetString("ui.label.never")!;
-                    using (ui.Text(_localization.GetString("ui.label.lastPlayed")!)) { }
-                    using (ui.Text(lastPlayedStr))
-                    {
-                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
-                    }
+                    
+                    using (ui.Text($"{_localization.GetString("ui.label.lastPlayed")!} #BFBFBFFF {lastPlayedStr}")) { }
                 }
 
                 TimeSpan age = TimeSpan.FromMilliseconds(activeSave.Level.Playtime.AgeMs);
@@ -239,11 +236,7 @@ internal sealed class SelectSavePage(
                         Anchors = Anchors.Center,
                     };
                     
-                    using (ui.Text(_localization.GetString("ui.label.timePlayed")!)) { }
-                    using (ui.Text(timePlayedStr))
-                    {
-                        ui.Color = new Vector4(0.75f, 0.75f, 0.75f, 1f);
-                    }
+                    using (ui.Text($"{_localization.GetString("ui.label.timePlayed")!} #BFBFBFFF {timePlayedStr}")) { }
                 }
             }
             
