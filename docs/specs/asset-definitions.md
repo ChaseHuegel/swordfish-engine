@@ -138,15 +138,23 @@ on load. `Name` and `Category` are localization keys resolved client-side (see
 ## Bodies (`assets/bodies/*.toml`)
 
 Bodies live in the shared `WaywardBeyond.Bodies` module. Schema:
-`BodyModels.cs` (collection), `BodyModel.cs` (row).
+`BodyDefinitions.cs` (collection), `BodyDefinition.cs` (row), `Body.cs` (loaded
+runtime asset).
 
 Each body is a `[[Bodies]]` table carrying a stable namespaced string ID
 (`wb:m_human`). The `States` member is a tag-keyed map of state variants
 (`standing`, `floating`, ...); each state maps direction tags (`front`, `back`,
 ... , free-form for future sets) to texture paths. Direction display order is
 canonical, not the asset order: `front` is index 0, then `back`/`left`/`right`
-(`BodyDirectionOrder.cs`). An unknown body ID falls back to the first loaded
-body at resolution.
+(`BodyDatabase._orderedDirections`, `BodyDatabase.cs:14`). An unknown body ID
+falls back to the first loaded body at resolution
+
+Each body defines its own gender and lineage via a distinct ID. The current set
+is `wb:m_human`, `wb:f_human`, `wb:bot` (industrial drone), `wb:m_bot2` /
+`wb:f_bot2` (anthropoid android), and the alien lineages `wb:m_alien` /
+`wb:f_alien`, plus `wb:{m,f}_alien2` (purple, cylinder head), `wb:{m,f}_alien3`
+(grey), and `wb:{m,f}_alien4` (orange, cyclopean). Each gender carries its own
+ID so name themes and preview sprites key cleanly.
 
 Character-name generation keys its localized tags and formats by the same body
 ID. `NameGenerator.Generate(key)` resolves `names.{title,first,last,subtitle,nickname}.{key}`
@@ -171,7 +179,7 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 - `WaywardBeyond.Client/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
 - `WaywardBeyond.Client/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
-- `WaywardBeyond.Bodies/{BodyModels,BodyModel,BodyDirectionOrder,BodyDatabase}.cs`
+- `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,BodyDatabase}.cs`
 - `WaywardBeyond.Gameplay/Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Skills/Injector.cs`,
