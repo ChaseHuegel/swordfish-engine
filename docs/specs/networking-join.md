@@ -44,7 +44,9 @@ save levels. Level data is streamed to the client during join.
    from its save database into that world's store, resolves the spawn
    transform (the persisted per-character location, else
    `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
-   server mirror, seeds the server's interaction context from `CharacterState`,
+   server mirror **with the character's uuid** (so the character id and the
+   mirror's entity uuid are one value), seeds the server's interaction context
+   from `CharacterState`,
    binds it to a fresh `Session`, and binds the connection's `ClientHello`
    claim to the session's `IUserPermissionService` (the local host connection
    gets the all-granting set), and replies `JoinAccept { Level, SpawnTransform,

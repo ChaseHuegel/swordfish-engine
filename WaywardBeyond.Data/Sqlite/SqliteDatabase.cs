@@ -6,12 +6,10 @@ using Swordfish.Library.IO;
 namespace WaywardBeyond.Data.Sqlite;
 
 /// <summary>A wrapper type for creating and interacting with sqlite databases.</summary>
-internal class SqliteDatabase(PathInfo path, string? createCommand = null)
+internal sealed class SqliteDatabase(PathInfo path)
 {
-    private const string DEFAULT_CREATE_COMMAND = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
-    
-    private readonly string _createCommand = createCommand ?? DEFAULT_CREATE_COMMAND;
-    
+    private const string CONNECTION_COMMAND = "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;";
+
     /// <summary>Encodes a value for use as a <c>TEXT PRIMARY KEY</c>.</summary>
     public static string EncodeKey(ulong value)
     {
@@ -33,7 +31,7 @@ internal class SqliteDatabase(PathInfo path, string? createCommand = null)
         connection.Open();
 
         using SqliteCommand command = connection.CreateCommand();
-        command.CommandText = _createCommand;
+        command.CommandText = CONNECTION_COMMAND;
         command.ExecuteNonQuery();
         return connection;
     }
@@ -60,5 +58,5 @@ internal class SqliteDatabase(PathInfo path, string? createCommand = null)
             await Value.DisposeAsync();
             await Connection.DisposeAsync();
         }
-    };
+    }
 }

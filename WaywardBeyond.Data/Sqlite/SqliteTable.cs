@@ -10,7 +10,7 @@ namespace WaywardBeyond.Data.Sqlite;
 internal sealed class SqliteTable(string createCommandText)
 {
     private readonly Lock _createLock = new();
-    private bool _created;
+    private volatile bool _created;
 
     /// <inheritdoc cref="SqliteConnection.CreateCommand"/>
     public SqliteCommand CreateCommand(SqliteConnection connection)

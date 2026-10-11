@@ -48,7 +48,7 @@ public sealed class ServerChatSystem : IServerWorldSystem
 
             var relay = new ChatMessage
             {
-                CharacterUuid = character.CharacterUuid,
+                CharacterUuid = store.GetUuid(entity).ToValue(),
                 SenderName = senderName,
                 Value = Sanitize(message.Value),
             };

@@ -233,8 +233,8 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _saveService.MarkActive();
         }
 
-        int entity = store.Alloc();
-        Uuid uuid = store.GetUuid(entity);
+        Uuid uuid = Uuid.FromValue(request.CharacterUuid);
+        int entity = store.Alloc(uuid);
         _interaction.ResetPlayerSequence(entity);
 
         store.AddOrUpdate(entity, new NetworkComponent());
@@ -242,7 +242,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         store.AddOrUpdate(entity, new TransformComponent(position, orientation, PlayerBodyConfig.PLAYER_SCALE));
         store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
         store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
-        store.AddOrUpdate(entity, new OwnedCharacterComponent(request.CharacterUuid));
+        store.AddOrUpdate(entity, new OwnedCharacterComponent());
 
         //  Relay the joining client's minimal public character view: the appearance index is replicated
         //  so remote clients can materialize this player, and the name rides on the reused

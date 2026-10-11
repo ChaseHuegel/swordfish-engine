@@ -11,7 +11,7 @@ and comes from `StorageSettings` (`WaywardBeyond.Config/StorageSettings.cs`,
 file `storage.toml`). The dedicated server can override it with `--data`
 (`WaywardBeyond.Server.Launcher/Program.cs`).
 
-Connections are never pooled (`SqliteDatabase`, `WaywardBeyond.Data/SqliteDatabase.cs`),
+Connections are never pooled (`SqliteDatabase`, `WaywardBeyond.Data/Sqlite/SqliteDatabase.cs`),
 so a disposed store releases its file handle and a level directory can be
 removed on every platform. Each database runs with WAL, `synchronous=NORMAL`,
 and a 5 second busy timeout.
@@ -46,7 +46,10 @@ over one level database.
 | `character_locations` | character uuid (text) | serialized `CharacterEntityData` |
 
 Keys are decimal strings because SQLite integers are signed 64-bit and the
-uuids are `ulong`.
+uuids are `ulong`. A player mirror is allocated with the character's uuid, so
+the character id and the mirror's entity uuid are one value. `character_locations`
+carries that value in `CharacterEntityData.Uuid`, so the row key and the payload
+identity agree (`ILevelStorage.Save` keys on it; `GetCharacterEntity` reads by it).
 
 ## Save semantics
 
@@ -59,10 +62,10 @@ A full level save commits one transaction (`ILevelStorage.Save`):
   keeps its last location.
 
 The store hands out deserialized models, not bytes. `ILevelStorage.GetLevel`
-returns the level, `GetEntities` returns the level's registered voxel entities,
-and `GetLocation` returns a character's location. Each read is version-guarded
-and migrated forward by the injected `Migrator`, so callers do not deserialize
-or migrate.
+returns the level, `GetVoxelEntities` returns the level's registered voxel
+entities, and `GetCharacterEntity` returns a character's location. Each read is
+version-guarded and migrated forward by the injected `Migrator`, so callers do
+not deserialize or migrate.
 
 `LevelSaveService` (`WaywardBeyond.Server/Saves/LevelSaveService.cs`) captures the
 authoritative world on the server thread and submits the blocking writes to a

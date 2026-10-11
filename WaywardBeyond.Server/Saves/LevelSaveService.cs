@@ -64,7 +64,7 @@ public sealed class LevelSaveService : IDisposable
         }
 
         var data = new CharacterEntityData(
-            _Uuid: 0,
+            _Uuid: characterUuid,
             position.X,
             position.Y,
             position.Z,
