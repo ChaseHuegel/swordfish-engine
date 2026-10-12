@@ -2,6 +2,11 @@ using Swordfish.ECS;
 
 namespace WaywardBeyond.Networking.Components;
 
+/// <summary>
+/// The client-side ring of outbound input samples awaiting server acknowledgment, replayed for
+/// prediction each sim tick. Mirrors the server's <see cref="InputStageBuffer"/> ordering so the client
+/// replays the same command-per-sim-tick sequence the server staged.
+/// </summary>
 public struct PendingInputComponent : IDataComponent
 {
     private const int BUFFER_CAPACITY = 256;

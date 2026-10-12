@@ -8,12 +8,10 @@ using Swordfish.Library.Util;
 namespace WaywardBeyond.Networking.Transport;
 
 /// <summary>
-/// Server-side aggregation of one <see cref="IServerConnection"/> per connected client. Each client is
-/// addressed by an opaque <see cref="Uuid"/> (<c>clientId</c>) assigned on <see cref="Add"/>; inbound
-/// messages are tagged with the connection they arrived on so the server can route responses (spawn,
-/// per-client snapshots) back to the correct client and key sessions. The hub lives in shared code (not
-/// server core) because <see cref="LocalConnection"/> and <see cref="TcpTransport"/> are shared transport
-/// implementations that feed it, and every world side (server core, tests) consumes it.
+/// Server-side aggregation of one <see cref="IServerConnection"/> per connected client, each addressed
+/// by an opaque <see cref="Uuid"/> (<c>clientId</c>) assigned on <see cref="Add"/>. Inbound messages
+/// are tagged with the connection they arrived on so the server can route responses back to the
+/// correct client and key sessions.
 /// </summary>
 public sealed class ServerConnectionHub
 {

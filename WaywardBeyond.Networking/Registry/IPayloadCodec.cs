@@ -1,5 +1,6 @@
 using System;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Networking.Registry;
 
@@ -13,7 +14,7 @@ public interface IPayloadCodec
     Type ComponentType { get; }
 
     /// <summary>Serializes the component present on <paramref name="entity"/> into a payload byte blob.</summary>
-    byte[] Serialize(DataStore store, int entity);
+    Result<byte[]> Serialize(DataStore store, int entity);
 
     /// <summary>Applies a deserialized payload onto <paramref name="entity"/>.</summary>
     void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload);

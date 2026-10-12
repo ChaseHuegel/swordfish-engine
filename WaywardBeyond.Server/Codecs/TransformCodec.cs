@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Registry;
 
@@ -12,13 +13,15 @@ namespace WaywardBeyond.Server.Codecs;
 /// </summary>
 public sealed class TransformCodec : IPayloadCodec
 {
+    /// <inheritdoc/>
     public Type ComponentType => typeof(TransformComponent);
 
-    public byte[] Serialize(DataStore store, int entity)
+    /// <inheritdoc/>
+    public Result<byte[]> Serialize(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out TransformComponent transform))
         {
-            return [];
+            return Result<byte[]>.FromFailure($"Entity {entity} has no TransformComponent.");
         }
 
         var message = new TransformMessage(
@@ -26,9 +29,10 @@ public sealed class TransformCodec : IPayloadCodec
             transform.Orientation.X, transform.Orientation.Y, transform.Orientation.Z, transform.Orientation.W,
             transform.Scale.X, transform.Scale.Y, transform.Scale.Z
         );
-        return message.Serialize();
+        return Result<byte[]>.FromSuccess(message.Serialize());
     }
 
+    /// <inheritdoc/>
     public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         TransformMessage message = TransformMessage.Deserialize(payload);

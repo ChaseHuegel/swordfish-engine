@@ -13,12 +13,13 @@ namespace WaywardBeyond.Networking.Registry;
 /// <summary>
 /// Maps networked ECS component types to a stable on-wire <see cref="Uuid"/> identity, an
 /// authoritative <see cref="NetworkDirection"/>, and the <see cref="IPayloadCodec"/> used to
-/// (de)serialize their snapshots.
+/// (de)serialize their snapshots. Registrations happen at startup (module composition) and the
+/// mappings are read lock-free on the replication hot path; do not register concurrently with reads.
 /// </summary>
 public static class NetworkRegistry
 {
-    private static readonly Dictionary<Type, NetworkComponentInfo> _byType = [];
-    private static readonly Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
+    private static volatile Dictionary<Type, NetworkComponentInfo> _byType = [];
+    private static volatile Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
     private static readonly Lock _lock = new();
 
     public static Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
@@ -111,18 +112,12 @@ public static class NetworkRegistry
 
     public static bool TryGetInfo(Type type, out NetworkComponentInfo info)
     {
-        lock (_lock)
-        {
-            return _byType.TryGetValue(type, out info);
-        }
+        return _byType.TryGetValue(type, out info);
     }
 
     public static bool TryGetInfo(Uuid uuid, out NetworkComponentInfo info)
     {
-        lock (_lock)
-        {
-            return _byUuid.TryGetValue(uuid, out info);
-        }
+        return _byUuid.TryGetValue(uuid, out info);
     }
 
     public static bool TryGetInfo<T>([NotNullWhen(true)] out NetworkComponentInfo info)
@@ -134,18 +129,15 @@ public static class NetworkRegistry
     /// <summary>Enumerates every registered component in the given <paramref name="direction"/>.</summary>
     public static IReadOnlyCollection<NetworkComponentInfo> GetComponents(NetworkDirection direction)
     {
-        lock (_lock)
+        var result = new List<NetworkComponentInfo>(_byType.Count);
+        foreach (NetworkComponentInfo info in _byType.Values)
         {
-            var result = new List<NetworkComponentInfo>(_byType.Count);
-            foreach (NetworkComponentInfo info in _byType.Values)
+            if (info.Direction == direction)
             {
-                if (info.Direction == direction)
-                {
-                    result.Add(info);
-                }
+                result.Add(info);
             }
-
-            return result;
         }
+
+        return result;
     }
 }

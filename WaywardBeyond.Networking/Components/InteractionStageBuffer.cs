@@ -2,11 +2,10 @@ namespace WaywardBeyond.Networking.Components;
 
 /// <summary>
 /// Server-side per-entity ring buffer of inbound interaction edges, keyed by the target sim tick each
-/// <see cref="InteractionEvent.ServerTickAtSample"/> carries. Mirrors <see cref="InputStageBuffer"/>: a
-/// retransmitted packet carrying the same <see cref="InteractionEvent.SequenceNumber"/> overwrites its
-/// slot instead of being staged twice, but every distinct interaction edge is kept. Unlike continuous
-/// input heads, a click is a discrete edit - collapsing same-tick events to the newest would silently
-/// drop valid placements that share a snapshot tick.
+/// <see cref="InteractionEvent.ServerTickAtSample"/> carries. A retransmitted packet carrying the same
+/// <see cref="InteractionEvent.SequenceNumber"/> overwrites its slot instead of being staged twice, but
+/// every distinct interaction edge is kept so discrete clicks sharing a snapshot tick are never
+/// collapsed.
 /// </summary>
 public sealed class InteractionStageBuffer
 {

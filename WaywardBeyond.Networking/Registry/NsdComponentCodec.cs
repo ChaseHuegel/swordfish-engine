@@ -2,6 +2,7 @@ using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Networking.Registry;
 
@@ -30,25 +31,30 @@ public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
         _deserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
     }
 
+    /// <inheritdoc/>
     public Type ComponentType => typeof(T);
 
-    public byte[] Serialize(DataStore store, int entity)
+    /// <inheritdoc/>
+    public Result<byte[]> Serialize(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out T component))
         {
-            return [];
+            return Result<byte[]>.FromFailure($"Entity {entity} has no {typeof(T).Name} component.");
         }
 
-        return _serializeDelegate(component);
+        return Result<byte[]>.FromSuccess(_serializeDelegate(component));
     }
 
+    /// <inheritdoc/>
     public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         store.AddOrUpdate(entity, _deserializeDelegate(payload));
     }
 
+    /// <inheritdoc/>
     byte[] IPayloadCodec<T>.Serialize(in T value) => _serializeDelegate(value) ?? Array.Empty<byte>();
 
+    /// <inheritdoc/>
     T IPayloadCodec<T>.Deserialize(ReadOnlySpan<byte> payload) => _deserializeDelegate(payload);
 
     private static InvalidOperationException CreateMissingSerializer()

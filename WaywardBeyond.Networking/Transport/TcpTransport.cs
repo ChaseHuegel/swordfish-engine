@@ -45,9 +45,16 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
     private long _bytesSent;
     private long _bytesReceived;
 
+    /// <inheritdoc/>
     public long PacketsSent => Interlocked.Read(ref _packetsSent);
+
+    /// <inheritdoc/>
     public long PacketsReceived => Interlocked.Read(ref _packetsReceived);
+
+    /// <inheritdoc/>
     public long BytesSent => Interlocked.Read(ref _bytesSent);
+
+    /// <inheritdoc/>
     public long BytesReceived => Interlocked.Read(ref _bytesReceived);
     private TcpClient? _client;
     private NetworkStream? _stream;

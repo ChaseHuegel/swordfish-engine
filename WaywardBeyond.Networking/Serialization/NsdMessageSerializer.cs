@@ -31,7 +31,9 @@ public sealed class NsdMessageSerializer<T> : ISerializer<T>, INetworkSerializer
         _deserializeDelegate = Expression.Lambda<Func<ReadOnlySpan<byte>, T>>(Expression.Call(deserialize, buffer), buffer).Compile();
     }
 
+    /// <inheritdoc/>
     public byte[] Serialize(T message) => _serializeDelegate(message);
 
+    /// <inheritdoc/>
     public T Deserialize(byte[] data) => _deserializeDelegate(data);
 }

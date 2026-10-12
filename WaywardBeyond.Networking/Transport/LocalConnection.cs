@@ -64,9 +64,16 @@ public sealed class LocalConnection
         public bool IsConnected => true;
         public bool IsLocal => true;
 
+        /// <inheritdoc/>
         public long PacketsSent => _counters.PacketsSent;
+
+        /// <inheritdoc/>
         public long PacketsReceived => _counters.PacketsReceived;
+
+        /// <inheritdoc/>
         public long BytesSent => _counters.BytesSent;
+
+        /// <inheritdoc/>
         public long BytesReceived => _counters.BytesReceived;
 
         public LocalConnectionEndpoint(
@@ -81,6 +88,7 @@ public sealed class LocalConnection
             _counters = counters;
         }
 
+        /// <inheritdoc/>
         public Result Send<T>(in T message)
         {
             if (!_serializers.TryGet<T>(out ISerializer<T> serializer))
@@ -96,6 +104,7 @@ public sealed class LocalConnection
             return Result.FromSuccess();
         }
 
+        /// <inheritdoc/>
         public Result SendRaw(in byte[] frame)
         {
             //  A raw frame carries its own type tag; route the payload into that type's queue.
@@ -113,6 +122,7 @@ public sealed class LocalConnection
             return Result.FromSuccess();
         }
 
+        /// <inheritdoc/>
         public Result<T> Receive<T>()
         {
             if (!_serializers.TryGet<T>(out ISerializer<T> serializer))

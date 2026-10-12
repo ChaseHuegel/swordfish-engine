@@ -1,5 +1,6 @@
 ﻿using System;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
 
@@ -13,19 +14,22 @@ namespace WaywardBeyond.Server.Codecs;
 /// </summary>
 public sealed class IdentifierCodec : IPayloadCodec
 {
+    /// <inheritdoc/>
     public Type ComponentType => typeof(IdentifierComponent);
 
-    public byte[] Serialize(DataStore store, int entity)
+    /// <inheritdoc/>
+    public Result<byte[]> Serialize(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out IdentifierComponent identifier))
         {
-            return [];
+            return Result<byte[]>.FromFailure($"Entity {entity} has no IdentifierComponent.");
         }
 
         var message = new IdentifierMessage(identifier.Name, identifier.Tag);
-        return message.Serialize();
+        return Result<byte[]>.FromSuccess(message.Serialize());
     }
 
+    /// <inheritdoc/>
     public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         IdentifierMessage message = IdentifierMessage.Deserialize(payload);

@@ -3,6 +3,10 @@ using WaywardBeyond.Networking.Sessions;
 
 namespace WaywardBeyond.Networking.Components;
 
+/// <summary>
+/// The per-client networking state bound to a session entity: the owning <see cref="Session"/>, the
+/// client's acknowledged input/snapshot ticks, and the server-side inbound staging buffers.
+/// </summary>
 public struct NetworkComponent : IDataComponent
 {
     public Session Session;

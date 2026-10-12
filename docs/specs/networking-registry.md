@@ -25,6 +25,9 @@ component types to a stable wire identity.
 - Enumeration by direction via `GetComponents(NetworkDirection)`. Replication
   systems cache the enumeration per instance so the per-tick hot path does not
   allocate (see [replication](networking-replication.md)).
+- Reads are lock-free: registration happens at startup (module composition) and
+  the mappings are not written afterward. Do not register concurrently with
+  reads.
 
 Engine/third-party components are registered explicitly from the game wiring,
 never from the engine.
@@ -38,16 +41,18 @@ never from the engine.
 ## Codecs
 
 `IPayloadCodec` serializes a component into the opaque `byte[]` payload of a
-`ComponentSnapshot` and applies a payload back onto an entity.
+`ComponentSnapshot` and applies a payload back onto an entity. Serialization
+returns `Result<byte[]>`: a codec fails when the entity carries no such
+component, so callers never treat an empty payload as a valid snapshot.
 
 - `NsdComponentCodec<T>` — the default; requires the component to be an nsd
   message. Delegates to the generated `Serialize()`/`Deserialize`.
 - Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`
-  (in `Client.Core/Networking/`).
+  (in `WaywardBeyond.Server/Codecs/`).
 
 ## Registered components
 
-Wired in `Client.Core/Injector.cs` (`RegisterNetworking`).
+Wired in `WaywardBeyond.Client/Injector.cs` (`RegisterNetworking`).
 
 | Component | Uuid | Direction | Codec |
 |---|---|---|---|
@@ -91,9 +96,9 @@ and is server-owned thereafter. See [join](networking-join.md) and
 - `WaywardBeyond.Networking/Registry/NetworkRegistry.cs`
 - `WaywardBeyond.Networking/Registry/NsdComponentCodec.cs`
 - `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentAttribute,NetworkComponentInfo,NetworkDirection}.cs`
-- Wiring: `Client.Core/Injector.cs` (`RegisterNetworking`)
+- Wiring: `WaywardBeyond.Client/Injector.cs` (`RegisterNetworking`)
 
 ## Tests that pin this
 
-- `Swordfish.Tests` codec/registry tests register + round-trip the networked
-  components.
+- `Swordfish.Tests/InputCodecTests.cs` — registry lookup and nsd-component
+  codec round-trips.

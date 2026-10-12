@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Registry;
 
@@ -15,22 +16,25 @@ namespace WaywardBeyond.Server.Codecs;
 /// </summary>
 public sealed class PhysicsCodec : IPayloadCodec
 {
+    /// <inheritdoc/>
     public Type ComponentType => typeof(PhysicsComponent);
 
-    public byte[] Serialize(DataStore store, int entity)
+    /// <inheritdoc/>
+    public Result<byte[]> Serialize(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out PhysicsComponent physics))
         {
-            return [];
+            return Result<byte[]>.FromFailure($"Entity {entity} has no PhysicsComponent.");
         }
 
         var message = new PhysicsMessage(
             physics.Velocity.X, physics.Velocity.Y, physics.Velocity.Z,
             physics.Torque.X, physics.Torque.Y, physics.Torque.Z
         );
-        return message.Serialize();
+        return Result<byte[]>.FromSuccess(message.Serialize());
     }
 
+    /// <inheritdoc/>
     public void Apply(DataStore store, int entity, ReadOnlySpan<byte> payload)
     {
         PhysicsMessage message = PhysicsMessage.Deserialize(payload);

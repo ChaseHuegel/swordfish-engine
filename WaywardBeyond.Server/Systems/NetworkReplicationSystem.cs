@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
@@ -382,15 +383,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                     continue;
                 }
 
-                byte[] payload = info.Codec.Serialize(store, entity);
+                Result<byte[]> serialize = info.Codec.Serialize(store, entity);
                 store.ClearDirty(info.Type, entity);
 
-                if (payload.Length == 0)
+                if (!serialize.Success)
                 {
                     continue;
                 }
 
-                Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
+                Owner._pending.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value));
             }
         }
     }
@@ -446,8 +447,11 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                     continue;
                 }
 
-                byte[] payload = info.Codec.Serialize(store, entity);
-                Components.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), payload));
+                Result<byte[]> serialize = info.Codec.Serialize(store, entity);
+                if (serialize.Success)
+                {
+                    Components.Add(new ComponentSnapshot(entityUuid.ToValue(), info.Uuid.ToValue(), serialize.Value));
+                }
             }
         }
 

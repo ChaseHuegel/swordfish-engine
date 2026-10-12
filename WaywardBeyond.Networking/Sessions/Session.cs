@@ -2,6 +2,7 @@ using System;
 
 namespace WaywardBeyond.Networking.Sessions;
 
+/// <summary>The opaque gameplay handle a server world binds to one connected client.</summary>
 public readonly struct Session(uint id) : IEquatable<Session>
 {
     public readonly uint ID = id;
