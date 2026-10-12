@@ -278,27 +278,32 @@ already provide the per-peer bytes/rates needed for that measurement).
 
 A headless dedicated server is a Shoal embedding without the client module:
 `WaywardBeyond.Server.Launcher` (console `Exe`) loads the server and shared
-modules only (`shared.bricks`, `shared.skills`, `shared.bodies`,
-`server.core`) - no window, input, or client-level services. It registers the
-same shared host wire-up as the embedded client host
-(`WaywardBeyond.Server/HostComposition.cs`): the serializer set, `NetworkRegistry`
-init, hub (no loopback seed), save storage, `NetworkingConfig`, and
-`PhysicsSettings`; `ServerModule`'s host registrations add
-`ServerWorldHost` + `LanHost` + the beacon. Interaction content is the
-embedding's choice: the client module registers its item-backed content, the
-launcher registers `ServerInteractionContent` (breaks and loot; place
-resolution needs shared item content). Lifecycle: `Ctrl+C`/SIGTERM → clean
-shutdown (level flush, session teardown, store disposal, per
-[persistence](persistence.md)). CLI: `--name` and `--port` override
-`NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
-`StorageConfig.SaveRoot`.
+modules only (`waywardbeyond.bricks`, `waywardbeyond.skills`,
+`waywardbeyond.bodies`, `waywardbeyond.server`) - no window, input, or
+client-level services. It registers the same shared host wire-up as the
+embedded client host (`WaywardBeyond.Server/HostComposition.cs`): the
+serializer set, `NetworkRegistry` init, hub (no loopback seed), save storage,
+`NetworkingConfig`, and `PhysicsSettings` (`physics.toml`, plus the Vector3
+mapper when the engine host did not register it); `ServerModule`'s host
+registrations add `ServerWorldHost` + `LanHost` + the beacon. Interaction
+content is the embedding's choice: the client module registers its
+item-backed content, the launcher registers `ServerInteractionContent` (breaks
+and loot; place resolution needs shared item content). Lifecycle:
+`Ctrl+C`/SIGTERM → clean shutdown (level flush, session teardown, store
+disposal, per [persistence](persistence.md)). A LAN listen failure exits
+non-zero instead of running without a listener. CLI: `--name` and `--port`
+override `NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
+`StorageConfig.SaveRoot`; applied overrides persist to the saved
+`config/network.toml` and `config/storage.toml`.
 
 ## Source of truth
 
 - `WaywardBeyond.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
 - `WaywardBeyond.Server/LanHost.cs`
+- `WaywardBeyond.Server/HostComposition.cs`
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
+- `WaywardBeyond.Server.Launcher/Program.cs`
 - `WaywardBeyond.Client/Networking/LanDiscoveryService.cs`
 - `WaywardBeyond.Client/Networking/TransportManager.cs`
 - `WaywardBeyond.Client/Systems/ClientDisconnectSystem.cs`

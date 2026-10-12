@@ -123,8 +123,9 @@ created; changing tuning after creation does not rewrite existing levels.
 ## `physics.toml` (per app)
 
 Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by
-the engine (`Swordfish/EngineContainer.cs:118`). Defaults live in
-`Swordfish/Settings/PhysicsSettings.cs`.
+the engine (`Swordfish/EngineContainer.cs:118`) and by the shared server host
+(`WaywardBeyond.Server/HostComposition.cs`), so a dedicated server loads it
+without an engine container. Defaults live in `Swordfish/Settings/PhysicsSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
@@ -150,6 +151,10 @@ lives in `profile.toml` (`LastServerMode`).
 `NetworkingConfig` groups its keys into the nested `[Server]`, `[Discovery]`,
 `[Transport]`, and `[Protocol]` tables. The full key list lives in
 [networking-transports](networking-transports.md).
+
+The dedicated server ships its own `config/network.toml` with LAN defaults;
+`--name`/`--port` overrides persist to it (see
+[networking-transports](networking-transports.md)).
 
 ## `storage.toml` (per app)
 

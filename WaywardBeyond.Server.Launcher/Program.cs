@@ -1,23 +1,15 @@
-using System;
 using System.Runtime.InteropServices;
-using System.Threading;
 using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
-using Shoal.DependencyInjection;
-using WaywardBeyond.Server;
 using WaywardBeyond.Config;
-using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
+using WaywardBeyond.Networking.Discovery;
+using WaywardBeyond.Server;
 
 namespace WaywardBeyond.Server.Launcher;
 
-/// <summary>
-/// Headless dedicated server entry point: builds the Shoal application with the server and shared
-/// modules only (no client module - no window, input, or client-level services), registers the shared
-/// host composition and the dedicated interaction content, runs the server + LAN host, and shuts down
-/// cleanly on Ctrl+C or SIGTERM (level flush, session teardown, store disposal).
-/// </summary>
+/// <summary>Headless dedicated server entry point.</summary>
 internal static class Program
 {
     private static readonly ManualResetEventSlim _shutdown = new();
@@ -31,12 +23,15 @@ internal static class Program
             e.Cancel = true;
             _shutdown.Set();
         };
-        PosixSignalRegistration.Create(PosixSignal.SIGTERM, _ => _shutdown.Set());
+        using PosixSignalRegistration sigterm = PosixSignalRegistration.Create(PosixSignal.SIGTERM, context =>
+        {
+            context.Cancel = true;
+            _shutdown.Set();
+        });
 
         try
         {
             engine.Start();
-            Console.WriteLine("Dedicated server started. Press Ctrl+C to stop.");
         }
         catch (Exception ex)
         {
@@ -44,6 +39,15 @@ internal static class Program
             engine.Dispose();
             return 1;
         }
+
+        if (engine.Container.Resolve<LanHostInfo>().ListenPort == 0)
+        {
+            Console.Error.WriteLine("Failed to start the dedicated server: the LAN listener did not bind.");
+            engine.Dispose();
+            return 1;
+        }
+
+        Console.WriteLine("Dedicated server started. Press Ctrl+C to stop.");
 
         _shutdown.Wait();
         engine.Dispose();
@@ -53,31 +57,42 @@ internal static class Program
 
     private static void RegisterDedicatedServices(IContainer container)
     {
-        //  The shared host wire-up: registry, serializers, hub (no loopback), save storage,
-        //  networking + physics config. The server module's own injector adds ServerContext + LanHost.
+        //  The shared host wire-up: registry, serializers, hub (no loopback), save storage, and config.
+        //  The server module's own injector adds ServerWorldHost + LanHost.
         HostComposition.RegisterNetworking(container, seedLocalLoopback: false);
 
         //  Headless interaction content: breaks and loot work; place requires client item content.
         container.Register<IInteractionContent, ServerInteractionContent>(Reuse.Singleton);
 
-        //  CLI overrides for the default LAN and storage configuration.
+        ApplyCliOverrides(container);
+    }
+
+    private static void ApplyCliOverrides(IContainer container)
+    {
         CommandLineArgs args = container.Resolve<CommandLineArgs>();
+
         NetworkingConfig networkingConfig = container.Resolve<NetworkingConfig>();
+        bool networkingChanged = false;
         if (args.TryGetValue("name", out string? name) && !string.IsNullOrWhiteSpace(name))
         {
             networkingConfig.Server.Name.Set(name);
+            networkingChanged = true;
         }
         if (args.TryGetValue("port", out string? port) && int.TryParse(port, out int parsedPort) && parsedPort is >= 1 and <= 65535)
         {
             networkingConfig.Server.Port.Set(parsedPort);
+            networkingChanged = true;
         }
-        networkingConfig.Save();
+        if (networkingChanged)
+        {
+            networkingConfig.Save();
+        }
 
-        StorageConfig storageSettings = container.Resolve<StorageConfig>();
+        StorageConfig storageConfig = container.Resolve<StorageConfig>();
         if (args.TryGetValue("data", out string? dataRoot) && !string.IsNullOrWhiteSpace(dataRoot))
         {
-            storageSettings.SaveRoot.Set(dataRoot);
+            storageConfig.SaveRoot.Set(dataRoot);
+            storageConfig.Save();
         }
-        storageSettings.Save();
     }
 }

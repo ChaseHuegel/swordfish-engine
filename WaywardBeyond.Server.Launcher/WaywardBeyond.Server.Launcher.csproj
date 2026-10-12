@@ -14,8 +14,12 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Shoal\Shoal.csproj" />
-        <ProjectReference Include="..\Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj" />
+        <!--  Root assembly: WaywardBeyond.Server compiles against Swordfish with ExcludeAssets=runtime,
+              so the launcher places the engine assemblies at the app root for the server module. -->
         <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Config\WaywardBeyond.Config.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" ModulePath="waywardbeyond.bricks" />
         <ProjectReference Include="..\WaywardBeyond.Skills\WaywardBeyond.Skills.csproj" ModulePath="waywardbeyond.skills" />
         <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" ModulePath="waywardbeyond.bodies" />
@@ -30,6 +34,9 @@
 
     <ItemGroup>
         <None Update="config\modules.toml">
+            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+        </None>
+        <None Update="config\network.toml">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </None>
         <None Update="config\physics.toml">

@@ -1,8 +1,10 @@
 using System;
 using DryIoc;
 using Shoal.Extensions.Swordfish;
+using Swordfish.Library.Serialization.Toml.Mappers;
 using Swordfish.Library.Util;
 using Swordfish.ECS;
+using Swordfish.Settings;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;
@@ -73,6 +75,14 @@ public static class HostComposition
         }
 
         container.RegisterConfig<NetworkingConfig>(file: "network.toml");
+        //  Physics config and its vector mapper are engine-owned. The client host registers both from
+        //  EngineContainer, so re-registration keeps that config and skips the mapper it already added.
+        container.RegisterConfig<PhysicsSettings>(file: "physics.toml");
+        if (!container.IsRegistered<Vector3DataBindingTomlMapper>())
+        {
+            container.RegisterTomlMapper<Vector3DataBindingTomlMapper>();
+        }
+
         container.RegisterDelegate<DiscoveryConfig>(context => context.Resolve<NetworkingConfig>().Discovery, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterDelegate<ProtocolConfig>(context => context.Resolve<NetworkingConfig>().Protocol, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.RegisterDelegate<ServerConfig>(context => context.Resolve<NetworkingConfig>().Server, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
