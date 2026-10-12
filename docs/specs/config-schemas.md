@@ -95,13 +95,13 @@ Gameplay tunables shared by the client and the server, registered via
 ## `physics.toml` (per app)
 
 Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by
-the engine (`Swordfish/EngineContainer.cs:115`) and the shared host wire-up
-(`WaywardBeyond.Server/HostComposition.cs:80`). Defaults live in
+the engine (`Swordfish/EngineContainer.cs:118`). Defaults live in
 `Swordfish/Settings/PhysicsSettings.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|
 | `AccumulateUpdates` | bool | `true` | whether physics steps accumulate to catch up a lagging world |
+| `FixedTimestamp` | float | `0.016` | the fixed timestep of the physics solver in seconds; changes apply on the next tick |
 | `Gravity` | float[3] | `[0, -9.81, 0]` | world gravity as `[x, y, z]`; zero-G runtimes set it to `[0, 0, 0]` |
 
 `gravity` rides a dedicated mapper because Tomlet cannot map
