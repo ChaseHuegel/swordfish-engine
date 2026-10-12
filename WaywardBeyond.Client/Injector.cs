@@ -170,8 +170,8 @@ public class Injector : IDryIocInjector
 
     private static void RegisterConfiguration(IContainer container)
     {
-        container.Register<SettingsManager>(Reuse.Singleton);
-        container.RegisterMapping<IAutoActivate, SettingsManager>();
+        container.Register<ConfigManager>(Reuse.Singleton);
+        container.RegisterMapping<IAutoActivate, ConfigManager>();
         
         container.RegisterConfig<ControlSettings>(file: "control.toml");
         container.RegisterConfig<VolumeSettings>(file: "volume.toml");

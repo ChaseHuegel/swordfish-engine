@@ -5,7 +5,7 @@ using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Client.Configuration;
 
-internal sealed class SettingsManager : IAutoActivate
+internal sealed class ConfigManager : IAutoActivate
 {
     private readonly ControlSettings _controlSettings;
     private readonly WindowSettings _windowSettings;
@@ -15,8 +15,11 @@ internal sealed class SettingsManager : IAutoActivate
     private readonly GameplayConfig _gameplayConfig;
     private readonly NetworkingConfig _networkingConfig;
     private readonly UISettings _uiSettings;
+    private readonly LevelGeneratorConfig _levelGeneratorConfig;
+    private readonly ChatConfig _chatConfig;
+    private readonly ChatConfig _storageConfig;
 
-    public SettingsManager(
+    public ConfigManager(
         in IWindowContext windowContext,
         in ControlSettings controlSettings,
         in WindowSettings windowSettings,
@@ -25,7 +28,10 @@ internal sealed class SettingsManager : IAutoActivate
         in VolumeSettings volumeSettings,
         in GameplayConfig gameplayConfig,
         in NetworkingConfig networkingConfig,
-        in UISettings uiSettings
+        in UISettings uiSettings,
+        in LevelGeneratorConfig levelGeneratorConfig,
+        in ChatConfig chatConfig,
+        in ChatConfig storageConfig
     ) {
         _controlSettings = controlSettings;
         _windowSettings = windowSettings;
@@ -35,6 +41,9 @@ internal sealed class SettingsManager : IAutoActivate
         _gameplayConfig = gameplayConfig;
         _networkingConfig = networkingConfig;
         _uiSettings = uiSettings;
+        _levelGeneratorConfig = levelGeneratorConfig;
+        _chatConfig = chatConfig;
+        _storageConfig = storageConfig;
 
         windowContext.Closed += OnWindowClosed;
         ApplySettings();
@@ -50,6 +59,9 @@ internal sealed class SettingsManager : IAutoActivate
         _gameplayConfig.Save();
         _networkingConfig.Save();
         _uiSettings.Save();
+        _levelGeneratorConfig.Save();
+        _chatConfig.Save();
+        _storageConfig.Save();
     }
 
     private void OnWindowClosed()

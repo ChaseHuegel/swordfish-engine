@@ -7,7 +7,7 @@ using WaywardBeyond.Config;
 namespace WaywardBeyond.Client.UI.Layers.Menus.Pause;
 
 internal sealed class PauseMenuSettingsPage(
-    in SettingsManager settingsManager,
+    in ConfigManager configManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
@@ -17,7 +17,7 @@ internal sealed class PauseMenuSettingsPage(
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : SettingsPage<PausePage>(
-    in settingsManager,
+    in configManager,
     in controlSettings,
     in windowSettings,
     in renderSettings,

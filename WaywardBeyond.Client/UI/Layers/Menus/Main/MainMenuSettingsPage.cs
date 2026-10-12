@@ -7,7 +7,7 @@ using WaywardBeyond.Config;
 namespace WaywardBeyond.Client.UI.Layers.Menus.Main;
 
 internal sealed class MainMenuSettingsPage(
-    in SettingsManager settingsManager,
+    in ConfigManager configManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
@@ -17,7 +17,7 @@ internal sealed class MainMenuSettingsPage(
     in SoundEffectService soundEffectService,
     in ILocalization localization
 ) : SettingsPage<MenuPage>(
-    in settingsManager,
+    in configManager,
     in controlSettings,
     in windowSettings,
     in renderSettings,

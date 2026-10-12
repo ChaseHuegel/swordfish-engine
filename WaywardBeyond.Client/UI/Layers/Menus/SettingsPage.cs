@@ -13,7 +13,7 @@ using WaywardBeyond.Config;
 namespace WaywardBeyond.Client.UI.Layers.Menus;
 
 internal abstract class SettingsPage<TIdentifier>(
-    in SettingsManager settingsManager,
+    in ConfigManager configManager,
     in ControlSettings controlSettings,
     in WindowSettings windowSettings,
     in RenderSettings renderSettings,
@@ -24,7 +24,7 @@ internal abstract class SettingsPage<TIdentifier>(
     in ILocalization localization
 ) : IMenuPage<TIdentifier> where TIdentifier : notnull
 {
-    private readonly SettingsManager _settingsManager = settingsManager;
+    private readonly ConfigManager _configManager = configManager;
     private readonly ControlSettings _controlSettings = controlSettings;
     private readonly WindowSettings _windowSettings = windowSettings;
     private readonly RenderSettings _renderSettings = renderSettings;
@@ -317,7 +317,7 @@ internal abstract class SettingsPage<TIdentifier>(
 
             if (interactions.Has(Widgets.Interactions.Click))
             {
-                _settingsManager.ApplySettings();
+                _configManager.ApplySettings();
                 menu.GoBack();
             }
         }
