@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 

@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using WaywardBeyond.Client.Numerics;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;

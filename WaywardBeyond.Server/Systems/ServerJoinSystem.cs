@@ -10,12 +10,12 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Gameplay.Saves;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Sessions;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Skills;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
 

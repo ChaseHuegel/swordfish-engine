@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 using Swordfish.ECS;
-using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Components;
 

@@ -12,7 +12,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.UI.Layers;
 

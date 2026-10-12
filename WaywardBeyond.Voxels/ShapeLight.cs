@@ -1,6 +1,6 @@
 using WaywardBeyond.Bricks;
 
-namespace WaywardBeyond.Voxels.Models;
+namespace WaywardBeyond.Voxels;
 
 public readonly struct ShapeLight
 {

@@ -16,9 +16,9 @@ using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.UI.Layers;
 

@@ -9,7 +9,6 @@ using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay.Saves;
 using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client.Systems;

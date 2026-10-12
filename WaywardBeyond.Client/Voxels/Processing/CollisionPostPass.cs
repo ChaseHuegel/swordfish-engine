@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Numerics;
 using Swordfish.Library.Types.Shapes;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;

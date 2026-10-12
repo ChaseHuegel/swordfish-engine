@@ -5,7 +5,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay.Saves;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Generation;
 

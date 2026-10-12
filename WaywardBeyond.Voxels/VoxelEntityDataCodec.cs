@@ -2,7 +2,7 @@ using System;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 
-namespace WaywardBeyond.Gameplay.Saves;
+namespace WaywardBeyond.Voxels;
 
 /// <summary>Normalizes voxel ids between a live structure and its persisted <see cref="VoxelEntityData"/> brick palette.</summary>
 public static class VoxelEntityDataCodec

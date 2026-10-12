@@ -2,7 +2,6 @@
 using System.Numerics;
 using Swordfish.Graphics;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 using FaceVertices = (System.Numerics.Vector3 V0, System.Numerics.Vector3 V1, System.Numerics.Vector3 V2, System.Numerics.Vector3 V3);

@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Types;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels.Models;
-using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
 

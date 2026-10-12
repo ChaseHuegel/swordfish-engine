@@ -4,8 +4,6 @@ using System.Linq;
 using System.Numerics;
 using System.Threading;
 using WaywardBeyond.Data;
-using WaywardBeyond.Voxels.Models;
-using WaywardBeyond.Voxels.Numerics;
 
 namespace WaywardBeyond.Voxels;
 

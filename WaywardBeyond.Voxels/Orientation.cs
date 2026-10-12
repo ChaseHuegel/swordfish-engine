@@ -1,7 +1,7 @@
 using System;
 using System.Numerics;
 
-namespace WaywardBeyond.Voxels.Models;
+namespace WaywardBeyond.Voxels;
 
 public struct Orientation : IEquatable<Orientation>
 {

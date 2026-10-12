@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace WaywardBeyond.Voxels.Models;
+namespace WaywardBeyond.Voxels;
 
 public readonly struct VoxelPalette()
 {

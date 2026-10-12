@@ -1,6 +1,5 @@
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Voxels.Models;
 
 namespace WaywardBeyond.Voxels;
 

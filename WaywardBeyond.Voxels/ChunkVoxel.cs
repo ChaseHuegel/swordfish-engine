@@ -1,6 +1,6 @@
 ﻿using WaywardBeyond.Data;
 
-namespace WaywardBeyond.Voxels.Models;
+namespace WaywardBeyond.Voxels;
 
 public readonly ref struct ChunkVoxel(ChunkData chunkData, ref Voxel voxel)
 {

@@ -5,8 +5,6 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
-using WaywardBeyond.Voxels.Numerics;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 

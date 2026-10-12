@@ -1,7 +1,6 @@
 ﻿using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels.Models;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;

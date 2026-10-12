@@ -1,5 +1,5 @@
 ﻿using WaywardBeyond.Data;
-using WaywardBeyond.Voxels.Numerics;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 

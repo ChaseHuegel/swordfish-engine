@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;

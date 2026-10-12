@@ -6,8 +6,6 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Voxels;
-using WaywardBeyond.Voxels.Models;
-using WaywardBeyond.Voxels.Numerics;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 

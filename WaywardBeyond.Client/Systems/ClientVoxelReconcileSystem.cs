@@ -2,12 +2,12 @@
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
 

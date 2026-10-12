@@ -1,5 +1,4 @@
 ﻿using WaywardBeyond.Data;
-using WaywardBeyond.Voxels.Numerics;
 
 namespace WaywardBeyond.Voxels;
 
