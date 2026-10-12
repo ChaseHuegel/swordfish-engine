@@ -93,6 +93,33 @@ Gameplay tunables shared by the client and the server, registered via
 | `Crosshair` | bool | `true` | show the crosshair |
 | `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |
 
+## `levelgen.toml` (per app)
+
+Server-side level generation tunables, registered via
+`RegisterConfig<LevelGeneratorConfig>` (`WaywardBeyond.Server/ServerComposition.cs`).
+Schema: `WaywardBeyond.Config/LevelGeneratorConfig.cs`. The `Asteroid` sub-table
+maps `AsteroidConfig` (`WaywardBeyond.Config/AsteroidConfig.cs`), registered by a
+`RegisterDelegate` from the config, like the `NetworkingConfig` sub-configs.
+
+Generation is deterministic for a seed plus the values present when a level is
+created; changing tuning after creation does not rewrite existing levels.
+
+| Key | Type | Default | Purpose |
+|---|---|---|---|
+| `AsteroidCount` | int | `20` | number of asteroid structures generated per level |
+| `AsteroidMinRadius` | int | `10` | minimum asteroid radius |
+| `AsteroidMaxRadius` | int | `75` | maximum asteroid radius |
+| `WorldHeight` | int | `100` | world half-span along the Y axis |
+| `WorldSpan` | int | `300` | world half-span along the X and Z axes |
+| `Asteroid.NoiseOctaves` | int | `2` | simplex noise octaves per sample |
+| `Asteroid.NoiseFrequencyMin` | float | `0.02` | base noise frequency |
+| `Asteroid.NoiseFrequencyRange` | float | `0.03` | random frequency added per world |
+| `Asteroid.NoiseAmplitudeMin` | float | `0.2` | base noise amplitude |
+| `Asteroid.NoiseAmplitudeRange` | float | `0.5` | random amplitude added per world |
+| `Asteroid.NoiseOffsetRange` | int | `1000` | range of the per-world noise offset |
+| `Asteroid.RadiusMinDivisor` | int | `5` | divides an asteroid's width to bound its random radius |
+| `Asteroid.Materials` | string[] | `["wb:rock", "wb:ice"]` | brick names a generated asteroid may be built from |
+
 ## `physics.toml` (per app)
 
 Runtime physics tunables. Registered via `RegisterConfig<PhysicsSettings>` by

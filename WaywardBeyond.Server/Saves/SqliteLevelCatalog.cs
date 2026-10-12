@@ -24,7 +24,8 @@ public sealed class SqliteLevelCatalog(
     IBrickRegistry brickRegistry,
     ILoggerFactory loggerFactory,
     in Migrator migrator,
-    in GameplayConfig gameplayConfig
+    in GameplayConfig gameplayConfig,
+    in LevelGeneratorConfig levelGeneratorConfig
 ) : ILevelCatalog
 {
     //  TODO unify with WaywardBeyond.Version to introduce a single source of truth. Currently this can drift too easily.
@@ -33,6 +34,7 @@ public sealed class SqliteLevelCatalog(
     private readonly ILogger _logger = logger;
     private readonly StoragePaths _paths = paths;
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
+    private readonly LevelGeneratorConfig _levelGeneratorConfig = levelGeneratorConfig;
     private readonly Migrator _migrator = migrator;
 
     public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
@@ -56,7 +58,7 @@ public sealed class SqliteLevelCatalog(
             name
         );
 
-        VoxelEntityData[] entities = new LevelGenerator(seedValue, brickRegistry).Generate();
+        VoxelEntityData[] entities = new LevelGenerator(seedValue, brickRegistry, _levelGeneratorConfig).Generate();
         string directory = _paths.GetLevelDirectory(guidText);
 
         try

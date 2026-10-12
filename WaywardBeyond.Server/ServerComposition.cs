@@ -62,6 +62,11 @@ public static class ServerComposition
         //  same file earlier in host mode, so the first registration is kept.
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
 
+        //  Level generation tuning is server-side; the client never generates worlds.
+        container.RegisterConfig<LevelGeneratorConfig>(file: "levelgen.toml");
+        container.RegisterDelegate<AsteroidConfig>(context => context.Resolve<LevelGeneratorConfig>().Asteroid, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.RegisterDataBinding<string[]>();
+
         container.Register<World>();
         container.Register(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingConfig>())));
         container.Register<SessionManager>();

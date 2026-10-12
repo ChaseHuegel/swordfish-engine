@@ -1,32 +1,36 @@
+﻿using System;
 using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Generation;
 
 /// <summary>A type for generating voxel asteroid structures.</summary>
-internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, Voxel rockVoxel, Voxel iceVoxel)
+internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, in AsteroidConfig config)
 {
+    private readonly AsteroidConfig _config = config;
     private readonly Randomizer _randomizer = new(seed);
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
+    private readonly Voxel[] _materialVoxels = ResolveMaterials(brickRegistry, config);
 
     /// <summary>Generate an asteroid using the provided parameters.</summary>
     public VoxelEntityData GenerateAt(Vector3 position, int diameter, Uuid uuid)
     {
         var writer = new VoxelChunkWriter(chunkSize: 16);
-        Voxel voxel = _randomizer.NextFloat() > 0.5f ? rockVoxel : iceVoxel;
+        Voxel voxel = _materialVoxels[_randomizer.NextInt(_materialVoxels.Length)];
 
         int width = diameter / 2;
-        int radius = _randomizer.NextInt(width / 5, width);
+        int radius = _randomizer.NextInt(Math.Max(1, width / _config.RadiusMinDivisor), width);
         var origin = new Vector3(width);
-        int offset = _randomizer.NextInt(1000);
-        float frequency = _randomizer.NextFloat() * 0.03f + 0.02f;
-        float amplitude = _randomizer.NextFloat() * 0.5f + 0.2f;
+        int offset = _randomizer.NextInt(_config.NoiseOffsetRange);
+        float frequency = _randomizer.NextFloat() * _config.NoiseFrequencyRange + _config.NoiseFrequencyMin;
+        float amplitude = _randomizer.NextFloat() * _config.NoiseAmplitudeRange + _config.NoiseAmplitudeMin;
 
         for (var x = 0; x < diameter; x++)
         for (var y = 0; y < diameter; y++)
@@ -37,7 +41,7 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
 
             float percentDistance = distance / radius;
 
-            float value = _simplexPerlin.GetLayeredNoiseValue(2, frequency, amplitude, x + offset * diameter, y, z);
+            float value = _simplexPerlin.GetLayeredNoiseValue(_config.NoiseOctaves, frequency, amplitude, x + offset * diameter, y, z);
 
             bool solid = percentDistance < value;
             if (!solid)
@@ -64,5 +68,22 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
         );
         
         return VoxelCodec.Encode(voxelEntityData, brickRegistry);
+    }
+
+    private static Voxel[] ResolveMaterials(IBrickRegistry brickRegistry, in AsteroidConfig config)
+    {
+        string[] names = config.Materials;
+        if (names.Length == 0)
+        {
+            throw new InvalidOperationException("Level generation requires at least one asteroid material.");
+        }
+
+        var voxels = new Voxel[names.Length];
+        for (var i = 0; i < names.Length; i++)
+        {
+            voxels[i] = new Voxel(brickRegistry.Id(names[i]), _ShapeLight: 0, _Orientation: 0);
+        }
+
+        return voxels;
     }
 }

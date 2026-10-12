@@ -21,9 +21,9 @@ The `wb` prefix is purely a string convention. It does not change voxel id
 values. It makes name collisions between content authors impossible.
 
 Bricks are defined only in toml. Nothing hardcodes the brick set in the runtime
-API. Two content seeds reference known base names in code: the starter loadout
-in `PlayerInitialInventory` (`WaywardBeyond.Server/Systems/`) and the worldgen
-materials in `LevelGenerator` (`WaywardBeyond.Server/Generation/`).
+API. One content seed references known base names in code: the starter loadout
+in `PlayerInitialInventory` (`WaywardBeyond.Server/Systems/`). The worldgen
+material names ship as `levelgen.toml` defaults (`Asteroid.Materials`).
 
 ## Runtime voxel id
 

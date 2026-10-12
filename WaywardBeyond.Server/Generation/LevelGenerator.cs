@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -7,6 +7,7 @@ using System.Text;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Server.Generation;
@@ -16,19 +17,15 @@ using AsteroidStructure = (Vector3 Position, int Radius);
 /// <summary>
 ///     Deterministic level generation: produces the fixed set of asteroid structures for a seed as
 ///     serialized <see cref="VoxelEntityData"/>. Rendered/server-agnostic - it neither constructs ECS
-///     entities nor meshes. The server runs it to author a new world, and the same seed always derives
+///     entities nor meshes. The server runs it to author a new world, and the same seed derives
 ///     identical data, so a level can be regenerated.
 /// </summary>
-public sealed class LevelGenerator(in int seed, in IBrickRegistry brickRegistry)
+public sealed class LevelGenerator(in int seed, in IBrickRegistry brickRegistry, in LevelGeneratorConfig config)
 {
+    private readonly LevelGeneratorConfig _config = config;
     private readonly int _seed = seed;
     private readonly Randomizer _randomizer = new(seed);
-    private readonly AsteroidGenerator _asteroidGenerator = new(
-        brickRegistry,
-        seed,
-        new Voxel(brickRegistry.Id("wb:rock"), _ShapeLight: 0, _Orientation: 0),
-        new Voxel(brickRegistry.Id("wb:ice"), _ShapeLight: 0, _Orientation: 0)
-    );
+    private readonly AsteroidGenerator _asteroidGenerator = new(brickRegistry, seed, config.Asteroid);
 
     public static int HashSeed(string seed)
     {
@@ -44,12 +41,12 @@ public sealed class LevelGenerator(in int seed, in IBrickRegistry brickRegistry)
 
     public VoxelEntityData[] Generate()
     {
-        const int asteroidCount = 20;
-        const int asteroidMinRadius = 10;
-        const int asteroidMaxRadius = 75;
+        int asteroidCount = _config.AsteroidCount;
+        int asteroidMinRadius = _config.AsteroidMinRadius;
+        int asteroidMaxRadius = _config.AsteroidMaxRadius;
 
-        const int worldHeight = 100;
-        const int worldSpan = 300;
+        int worldHeight = _config.WorldHeight;
+        int worldSpan = _config.WorldSpan;
 
         var asteroids = new List<AsteroidStructure>(asteroidCount);
         while (asteroids.Count < asteroidCount)
