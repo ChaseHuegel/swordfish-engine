@@ -133,7 +133,7 @@ public sealed class LevelSaveService : IDisposable
         {
             try
             {
-                VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(in entity, _brickRegistry);
+                VoxelEntityData local = VoxelCodec.Decode(in entity, _brickRegistry);
                 VoxelWorldEntityFactory.CreateAuthority(store, local);
             }
             catch (Exception ex)
@@ -417,7 +417,8 @@ public sealed class LevelSaveService : IDisposable
         public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in TransformComponent transform)
         {
             Uuid uuid = store.GetUuid(entity);
-            var voxel = VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
+
+            var voxelEntityData = new VoxelEntityData(
                 uuid.ToValue(),
                 transform.Position.X,
                 transform.Position.Y,
@@ -431,9 +432,10 @@ public sealed class LevelSaveService : IDisposable
                 transform.Scale.Z,
                 world.VoxelObject.GetChunkInfos(),
                 _BrickPalette: null
-            ), BrickRegistry);
-
-            Entries.Add(voxel);
+            );
+            
+            voxelEntityData = VoxelCodec.Encode(voxelEntityData, BrickRegistry);
+            Entries.Add(voxelEntityData);
         }
     }
 

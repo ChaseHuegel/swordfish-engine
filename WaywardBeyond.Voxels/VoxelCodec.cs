@@ -4,17 +4,11 @@ using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Voxels;
 
-/// <summary>Normalizes voxel ids between a live structure and its persisted <see cref="VoxelEntityData"/> brick palette.</summary>
-public static class VoxelEntityDataCodec
+/// <summary>Normalizes voxel data between the local transient format (in-memory) and the persistent format (wire/disk).</summary>
+public static class VoxelCodec
 {
-    /// <summary>Encodes a brick palette from chunks whose voxel ids already come from <paramref name="map"/>.</summary>
-    public static string[]? EncodePalette(in ChunkInfo[] chunkInfos, IBrickRegistry map)
-    {
-        return BuildPalette(chunkInfos, map.Name);
-    }
-    
-    /// <summary>Attaches a brick palette to a live structure whose voxel ids come from <paramref name="map"/>; returns the data unchanged when it already has one.</summary>
-    public static VoxelEntityData EncodeToPalette(in VoxelEntityData source, IBrickRegistry map)
+    /// <summary>Encodes voxel data from the local format into the persistent format.</summary>
+    public static VoxelEntityData Encode(in VoxelEntityData source, IBrickRegistry map)
     {
         if (HasPalette(in source))
         {
@@ -32,8 +26,8 @@ public static class VoxelEntityDataCodec
         );
     }
 
-    /// <summary>Resolves a persisted palette structure into the caller's local voxel id space; palette-less data is returned unchanged.</summary>
-    public static VoxelEntityData DecodeToLocal(in VoxelEntityData source, IBrickRegistry map)
+    /// <summary>Decodes voxel data from the persistent format into the local format.</summary>
+    public static VoxelEntityData Decode(in VoxelEntityData source, IBrickRegistry map)
     {
         if (!HasPalette(in source))
         {

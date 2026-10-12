@@ -366,7 +366,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             }
 
             //  Attach the brick palette so the client can resolve the server's registry ids locally.
-            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelEntityDataCodec.EncodeToPalette(data, _brickRegistry) });
+            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelCodec.Encode(data, _brickRegistry) });
             if (!send.Success)
             {
                 _logger.LogWarning("Failed to stream world entity to client {clientId}: {message}.", clientId, send.Message);

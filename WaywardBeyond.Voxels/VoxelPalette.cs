@@ -63,7 +63,7 @@ public readonly struct VoxelPalette()
     {
         lock (_voxelCounts)
         {
-            return _voxelCounts.TryGetValue(id, out int value) ? value : 0;
+            return _voxelCounts.GetValueOrDefault(id, 0);
         }
     }
 }

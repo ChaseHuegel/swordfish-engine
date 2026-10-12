@@ -53,15 +53,16 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
         float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
         ChunkInfo[] chunkInfos = writer.GetChunkInfos();
-        string[]? brickPalette = VoxelEntityDataCodec.EncodePalette(chunkInfos, brickRegistry);
-
-        return new VoxelEntityData(
+        
+        var voxelEntityData = new VoxelEntityData(
             uuid.ToValue(),
             position.X, position.Y, position.Z,
             orientation.X, orientation.Y, orientation.Z, orientation.W,
             _ScaleX: 1, _ScaleY: 1, _ScaleZ: 1,
             chunkInfos,
-            brickPalette
+            _BrickPalette: null
         );
+        
+        return VoxelCodec.Encode(voxelEntityData, brickRegistry);
     }
 }

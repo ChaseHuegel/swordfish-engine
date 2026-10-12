@@ -183,7 +183,7 @@ internal sealed class ClientJoinSystem : IEntitySystem
         }
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.
-        VoxelEntityData local = VoxelEntityDataCodec.DecodeToLocal(data, _brickRegistry);
+        VoxelEntityData local = VoxelCodec.Decode(data, _brickRegistry);
         var voxelObject = new VoxelObject(chunkSize, local.Chunks);
         _voxelBuilder.Create(
             store,
