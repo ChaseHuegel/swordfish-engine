@@ -37,8 +37,10 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         public static readonly BroadPhaseLayer Moving = Physics.Layers.MOVING;
     };
 
-    private const float FIXED_TIMESTEP = 0.016f;
     private const float TIMESCALE = 1f;
+
+    /// <summary>The fixed timestep the solver runs at, in seconds.</summary>
+    public float FixedTimestamp => _physicsSettings.FixedTimestamp.Get();
 
     public event EventHandler<EventArgs>? FixedUpdate;
 
@@ -151,7 +153,7 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 
         _accumulator += delta;
 
-        const float physicsDelta = FIXED_TIMESTEP * TIMESCALE;  //  TODO allow modifying TIMESCALE
+        float physicsDelta = FixedTimestamp * TIMESCALE;  //  TODO allow modifying TIMESCALE
         int steps = Math.Max(1, (int)(1f * TIMESCALE));
         if (_physicsSettings.AccumulateUpdates.Get())
         {
