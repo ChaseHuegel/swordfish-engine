@@ -9,6 +9,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Gameplay;
@@ -39,16 +40,21 @@ public sealed class LevelSaveService : IDisposable
 
     public string? CurrentLevelGuid { get; private set; }
     public Level? CurrentLevel { get; private set; }
-    public Vector3 LevelSpawn { get; private set; } = CharacterDefaults.DefaultSpawnPosition;
+    public Vector3 LevelSpawn { get; private set; }
+
+    private readonly GameplayConfig _gameplayConfig;
 
     public LevelSaveService(
         in ILogger logger,
         in ILevelCatalog levelCatalog,
-        IBrickRegistry brickRegistry
+        IBrickRegistry brickRegistry,
+        in GameplayConfig gameplayConfig
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
         _brickRegistry = brickRegistry;
+        _gameplayConfig = gameplayConfig;
+        LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
 
     /// <summary>
@@ -164,7 +170,7 @@ public sealed class LevelSaveService : IDisposable
 
         CurrentLevelGuid = null;
         CurrentLevel = null;
-        LevelSpawn = CharacterDefaults.DefaultSpawnPosition;
+        LevelSpawn = _gameplayConfig.DefaultSpawnPosition;
     }
 
     /// <summary>

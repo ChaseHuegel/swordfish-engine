@@ -2,15 +2,17 @@
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 
-internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext)
+internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderContext, in GameplayConfig gameplayConfig)
 {
     private readonly IRenderContext _renderContext = renderContext;
+    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
 
     public void Decorate(Entity player, Character character)
     {
@@ -19,7 +21,7 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         player.AddOrUpdate(new EquipmentComponent(character.ActiveInventorySlot));
         player.AddOrUpdate(new IdentifierComponent(character.Name, "game"));
         player.AddOrUpdate(new TransformComponent(
-            CharacterDefaults.DefaultSpawnPosition,
+            _gameplayConfig.DefaultSpawnPosition,
             Quaternion.Identity,
             CharacterDefaults.PlayerScale
         ));

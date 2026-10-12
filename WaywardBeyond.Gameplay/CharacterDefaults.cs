@@ -23,9 +23,6 @@ public static class CharacterDefaults
     /// <summary>The character's scale.</summary>
     public static readonly Vector3 PlayerScale = Vector3.One;
 
-    /// <summary>The position a character spawns at.</summary>
-    public static readonly Vector3 DefaultSpawnPosition = new(0f, 1f, 5f);
-
     /// <summary>The standing character height.</summary>
     public const float PLAYER_STANDING_HEIGHT = 1.8f;
 

@@ -8,6 +8,7 @@ using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
@@ -40,6 +41,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly IBrickRegistry _brickRegistry;
     private readonly IUserPermissionService? _permissions;
     private readonly ConnectionClaims? _connectionClaims;
+    private readonly GameplayConfig _gameplayConfig;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
@@ -52,6 +54,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         in ServerInteractionSystem interaction,
         in ILogger<ServerJoinSystem> logger,
         IBrickRegistry brickRegistry,
+        in GameplayConfig gameplayConfig,
         in SkillDatabase? skillDatabase = null,
         in ServerJoinQueue? joinQueue = null,
         in IUserPermissionService? permissions = null,
@@ -65,6 +68,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _skillDatabase = skillDatabase;
         _brickRegistry = brickRegistry;
         _logger = logger;
+        _gameplayConfig = gameplayConfig;
         _joinQueue = joinQueue ?? new ServerJoinQueue();
         _permissions = permissions;
         _connectionClaims = connectionClaims;
@@ -224,7 +228,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }
         else
         {
-            position = CharacterDefaults.DefaultSpawnPosition;
+            position = _gameplayConfig.DefaultSpawnPosition;
             orientation = Quaternion.Identity;
         }
 

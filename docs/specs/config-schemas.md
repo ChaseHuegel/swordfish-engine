@@ -91,6 +91,7 @@ Gameplay tunables shared by the client and the server, registered via
 | `AutosaveIntervalMs` | int | `300000` | autosave cadence in milliseconds; the settings page edits it as minutes (1-60) |
 | `ControlHints` | bool | `true` | show the control hints overlay |
 | `Crosshair` | bool | `true` | show the crosshair |
+| `DefaultSpawnPosition` | float[3] | `[0, 1, 5]` | the position a character spawns at; the level-creation spawn row derives from it |
 
 ## `physics.toml` (per app)
 

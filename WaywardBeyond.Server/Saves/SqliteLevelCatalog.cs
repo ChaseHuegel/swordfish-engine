@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
+using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Migrations;
@@ -21,7 +23,8 @@ public sealed class SqliteLevelCatalog(
     in StoragePaths paths,
     IBrickRegistry brickRegistry,
     ILoggerFactory loggerFactory,
-    in Migrator migrator
+    in Migrator migrator,
+    in GameplayConfig gameplayConfig
 ) : ILevelCatalog
 {
     //  TODO unify with WaywardBeyond.Version to introduce a single source of truth. Currently this can drift too easily.
@@ -29,6 +32,7 @@ public sealed class SqliteLevelCatalog(
 
     private readonly ILogger _logger = logger;
     private readonly StoragePaths _paths = paths;
+    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly Migrator _migrator = migrator;
 
     public bool Create(string name, string seed, GameMode gameMode, out string levelGuid)
@@ -39,13 +43,14 @@ public sealed class SqliteLevelCatalog(
         Guid guid = Guid.NewGuid();
         string guidText = guid.ToString();
         long nowUtcMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        Vector3 spawnPosition = _gameplayConfig.DefaultSpawnPosition;
         var level = new Level(
             _gameVersion,
             seedValue,
             _Playtime: new Playtime { LastPlayedMs = nowUtcMs },
-            _SpawnX: 0,
-            _SpawnY: 1,
-            _SpawnZ: 5,
+            _SpawnX: (int)spawnPosition.X,
+            _SpawnY: (int)spawnPosition.Y,
+            _SpawnZ: (int)spawnPosition.Z,
             gameMode,
             guidText,
             name
