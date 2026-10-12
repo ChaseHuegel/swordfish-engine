@@ -133,7 +133,7 @@ public sealed class LocalConnection
             ConcurrentQueue<byte[]> queue = _receiveQueues.GetOrAdd(typeof(T), static _ => new ConcurrentQueue<byte[]>());
             if (!queue.TryDequeue(out byte[]? data))
             {
-                return Result<T>.FromFailure("No messages available.");
+                return Result<T>.FromFailure((string?)null);
             }
 
             _counters.RecordReceived(data.Length);

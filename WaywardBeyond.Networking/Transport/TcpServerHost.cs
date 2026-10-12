@@ -87,9 +87,16 @@ public sealed class TcpServerHost : IDisposable
             {
                 client = _listener!.AcceptTcpClient();
             }
-            catch
+            catch (Exception ex)
             {
-                break; //  Listener stopped (Dispose).
+                //  Listener stopped (Dispose); any other accept failure logs and retries.
+                if (!_isRunning)
+                {
+                    break;
+                }
+
+                _logger.LogWarning(ex, "Accept failed; retrying.");
+                continue;
             }
 
             TcpTransport transport = TcpTransport.Accepted(_serializers, client, null, _connectionTimeoutMs, _sendQueueSize, _maxFrameBytes, _reliableQueueConcernThreshold, _reliableQueueDisconnectThreshold, _reliableQueueDisconnectMs, _traceLogging, _sendIntervalMs);
@@ -117,5 +124,10 @@ public sealed class TcpServerHost : IDisposable
         }
 
         _clients.Clear();
+
+        if (_acceptThread != null && _acceptThread != Thread.CurrentThread && _acceptThread.IsAlive)
+        {
+            _acceptThread.Join(2000);
+        }
     }
 }

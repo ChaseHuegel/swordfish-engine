@@ -341,7 +341,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
 
         if (!_receiveQueues.TryGetValue(typeof(T), out ConcurrentQueue<QueuedFrame>? queue) || !queue.TryDequeue(out QueuedFrame frame))
         {
-            return Result<T>.FromFailure("No messages available.");
+            return Result<T>.FromFailure((string?)null);
         }
 
         try
