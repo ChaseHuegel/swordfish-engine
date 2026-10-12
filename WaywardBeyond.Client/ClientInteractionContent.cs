@@ -54,6 +54,6 @@ internal sealed class ClientInteractionContent(
             return Result<ItemData>.FromFailure(message: null);
         }
 
-        return Result<ItemData>.FromSuccess(InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE));
+        return Result<ItemData>.FromSuccess(new ItemData(brickResult.Value.ID, 1, DEFAULT_STACK_SIZE));
     }
 }

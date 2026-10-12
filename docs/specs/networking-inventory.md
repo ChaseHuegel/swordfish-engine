@@ -117,8 +117,7 @@ them until the behavior is designed.
    through `PlayerData.ApplyMove` (the single entry point), never by mutating
    `InventoryComponent` directly.
 6. Test: resolver cases + a server e2e apply + echo, mirroring
-   `Swordfish.Tests/InventoryResolverTests.cs` and
-   `ServerInventorySystemTests.cs`.
+   `Swordfish.Tests/InventoryResolverTests.cs`.
 
 ## Source of truth
 
@@ -133,7 +132,6 @@ them until the behavior is designed.
 ## Tests that pin this
 
 - `Swordfish.Tests/InventoryResolverTests.cs` — op resolution cases.
-- `Swordfish.Tests/ServerInventorySystemTests.cs` — staged apply, dedupe, echo.
 - `WaywardBeyond.Client.Tests/ClientReplicationInteractionTests.cs` —
   outbound op drain and clear-on-success.
 - `WaywardBeyond.Client.Tests/PlayerDataInventoryMutationTests.cs` —

@@ -28,6 +28,6 @@ public sealed class ServerInteractionContent(IBrickDatabase brickLookup) : IInte
         }
 
         //  A broken brick grants a stack of that brick's own item, like the client-hosted handler.
-        return Result<ItemData>.FromSuccess(InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE));
+        return Result<ItemData>.FromSuccess(new ItemData(brickResult.Value.ID, 1, DEFAULT_STACK_SIZE));
     }
 }
