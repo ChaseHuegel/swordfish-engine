@@ -5,7 +5,6 @@
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
         <Version>0.1.0-alpha</Version>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>

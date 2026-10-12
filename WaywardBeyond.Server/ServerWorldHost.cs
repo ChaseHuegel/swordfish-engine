@@ -28,8 +28,10 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     {
         get
         {
+            //  Read from the server thread and the LAN beacon thread: snapshot so a concurrent
+            //  join/unload cannot invalidate the enumeration.
             int count = 0;
-            foreach (WorldEntry entry in _worlds)
+            foreach (WorldEntry entry in _worlds.ToArray())
             {
                 count += entry.World.Hub.Count;
             }
@@ -38,12 +40,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         }
     }
 
-    /// <summary>Number of live worlds (one per loaded level).</summary>
-    public int WorldCount => _worlds.Count;
-
     private readonly IContainer _container;
     private readonly ServerLevelManager _levelManager;
-    private readonly ServerHostHeartbeat _hostHeartbeat;
+    private readonly PendingConnectionHeartbeat _hostHeartbeat;
     private readonly PendingJoins _pendingJoins;
     private readonly PendingLevelDeletes _pendingDeletes;
     private readonly ILevelCatalog _levelCatalog;
@@ -56,13 +55,13 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     private bool _disposed;
 
     public ServerWorldHost(
-        in IContainer container,
-        in ServerLevelManager levelManager,
-        in ServerHostHeartbeat hostHeartbeat,
-        in PendingJoins pendingJoins,
-        in PendingLevelDeletes pendingDeletes,
-        in ILevelCatalog levelCatalog,
-        in NetworkingConfig config,
+        IContainer container,
+        ServerLevelManager levelManager,
+        PendingConnectionHeartbeat hostHeartbeat,
+        PendingJoins pendingJoins,
+        PendingLevelDeletes pendingDeletes,
+        ILevelCatalog levelCatalog,
+        NetworkingConfig config,
         ILoggerFactory loggerFactory
     ) {
         _container = container;
@@ -83,7 +82,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     }
 
     /// <summary>Releases a connection from its world (accepted peer disconnect). A pending connection is unchanged.</summary>
-    public void DetachConnection(in IServerConnection connection)
+    public void DetachConnection(IServerConnection connection)
     {
         if (_bindings.TryRemove(connection, out WorldBinding binding))
         {

@@ -14,16 +14,11 @@ namespace WaywardBeyond.Server.Systems;
 /// client prediction. Ops are sequence-deduped by <see cref="InventoryOpStageBuffer"/>; the server
 /// tracks the last consumed sequence per entity.
 /// </summary>
-public sealed class ServerInventorySystem : IServerWorldSystem
+public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger) : IServerWorldSystem
 {
-    private readonly ILogger<ServerInventorySystem> _logger;
+    private readonly ILogger<ServerInventorySystem> _logger = logger;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
-
-    public ServerInventorySystem(in ILogger<ServerInventorySystem> logger)
-    {
-        _logger = logger;
-    }
 
     public void Tick(float delta, DataStore store)
     {
@@ -60,7 +55,6 @@ public sealed class ServerInventorySystem : IServerWorldSystem
             if (InventoryResolver.Apply(ref updated, op.SlotMove))
             {
                 store.AddOrUpdate(entity, updated);
-                store.MarkDirty<InventoryComponent>(entity);
             }
         }
 

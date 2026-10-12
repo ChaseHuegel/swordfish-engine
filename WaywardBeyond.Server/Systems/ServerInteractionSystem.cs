@@ -34,36 +34,21 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
     private readonly IBrickRegistry _brickRegistry;
-    private readonly ServerSkillSystem? _skills;
-    private readonly SimulationStep? _simulationStep;
+    private readonly ServerSkillSystem _skills;
+    private readonly SimulationStep _simulationStep;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
 
     public ServerInteractionSystem(
-        in ServerConnectionHub hub,
-        in IInteractionContent content,
-        ILogger<ServerInteractionSystem> logger,
-        IBrickRegistry brickRegistry
-    ) : this(hub, content, logger, new InteractionHandlerRegistry(), CreateWorldFactory(), brickRegistry) { }
-
-    public ServerInteractionSystem(
-        in ServerConnectionHub hub,
-        in IInteractionContent content,
-        ILogger<ServerInteractionSystem> logger,
-        Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        IBrickRegistry brickRegistry
-    ) : this(hub, content, logger, new InteractionHandlerRegistry(), worldFactory, brickRegistry) { }
-
-    public ServerInteractionSystem(
-        in ServerConnectionHub hub,
-        in IInteractionContent content,
+        ServerConnectionHub hub,
+        IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
         IBrickRegistry brickRegistry,
-        ServerSkillSystem? skills = null,
-        in SimulationStep? simulationStep = null
+        ServerSkillSystem skills,
+        SimulationStep simulationStep
     ) {
         _hub = hub;
         _content = content;
@@ -77,12 +62,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
 
     public void Tick(float delta, DataStore store)
     {
-        Tick(delta, store, _simulationStep?.CurrentSimTick ?? 0);
-    }
-
-    private static Func<DataStore, IVoxelInteractionWorld> CreateWorldFactory()
-    {
-        return store => new ServerVoxelInteractionWorld(store);
+        Tick(delta, store, _simulationStep.CurrentSimTick);
     }
 
     /// <summary>Processes staged interactions for the given sim tick on the authoritative server world.</summary>
@@ -177,13 +157,13 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             case InteractionAction.Break:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, new Voxel());
                 GrantLoot(store, player, mode, resolution.Voxel.ID);
-                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
+                _skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
                 break;
 
             case InteractionAction.Place:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, resolution.Voxel);
                 ConsumeHeldItem(store, player, mode);
-                _skills?.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
+                _skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
                 break;
         }
 
@@ -267,7 +247,6 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         InventoryComponent updated = inventory;
         updated.Add(lootResult.Value);
         store.AddOrUpdate(player, updated);
-        store.MarkDirty<InventoryComponent>(player);
     }
 
     /// <summary>
@@ -295,7 +274,6 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         InventoryComponent updated = inventory;
         updated.Remove(slot, 1);
         store.AddOrUpdate(player, updated);
-        store.MarkDirty<InventoryComponent>(player);
     }
 
     private struct ConsumeAction : IForEach<NetworkComponent, OwnedCharacterComponent, TransformComponent>

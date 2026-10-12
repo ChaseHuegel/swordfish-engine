@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
@@ -14,34 +16,26 @@ namespace WaywardBeyond.Server;
 /// The server-level level-management facade for menu-time operations: create, list, and delete saved
 /// levels. These requests arrive on connections that have not joined a level yet (they live in the
 /// pending set), so no per-level system can serve them. Runs once per server tick before level routing.
-/// Each reply goes directly to the requesting connection; responses are matched FIFO on the client.
-/// Delete requests are handed to <see cref="PendingLevelDeletes"/> because they must run on the server
-/// thread, which owns the loaded levels.
+/// Each reply goes directly to the requesting connection in request order; responses are matched FIFO
+/// on the client. Delete requests are handed to <see cref="PendingLevelDeletes"/> because they must run
+/// on the server thread, which owns the loaded levels.
 /// </summary>
-public sealed class ServerLevelManager
+public sealed class ServerLevelManager(
+    PendingJoins pendingJoins,
+    PendingLevelDeletes pendingDeletes,
+    ILevelCatalog levelCatalog,
+    PermissionPolicy policy,
+    ConnectionClaims claims,
+    ILoggerFactory loggerFactory
+)
 {
-    private readonly PendingJoins _pendingJoins;
-    private readonly PendingLevelDeletes _pendingDeletes;
-    private readonly ILevelCatalog _levelCatalog;
-    private readonly PermissionPolicy _policy;
-    private readonly ConnectionClaims _claims;
-    private readonly ILogger _logger;
-
-    public ServerLevelManager(
-        in PendingJoins pendingJoins,
-        in PendingLevelDeletes pendingDeletes,
-        in ILevelCatalog levelCatalog,
-        in PermissionPolicy policy,
-        in ConnectionClaims claims,
-        ILoggerFactory loggerFactory
-    ) {
-        _pendingJoins = pendingJoins;
-        _pendingDeletes = pendingDeletes;
-        _levelCatalog = levelCatalog;
-        _policy = policy;
-        _claims = claims;
-        _logger = loggerFactory.CreateLogger<ServerLevelManager>();
-    }
+    private readonly PendingJoins _pendingJoins = pendingJoins;
+    private readonly PendingLevelDeletes _pendingDeletes = pendingDeletes;
+    private readonly ILevelCatalog _levelCatalog = levelCatalog;
+    private readonly PermissionPolicy _policy = policy;
+    private readonly ConnectionClaims _claims = claims;
+    private readonly ILogger _logger = loggerFactory.CreateLogger<ServerLevelManager>();
+    private readonly ConcurrentDictionary<IServerConnection, Task> _replyChains = new();
 
     /// <summary>Drains menu-time level-management requests from pending connections. Runs on the server thread.</summary>
     public void Tick()
@@ -59,13 +53,13 @@ public sealed class ServerLevelManager
             while ((newLevel = connection.Receive<NewLevelRequest>()).Success)
             {
                 NewLevelRequest request = newLevel.Value;
-                _ = Task.Run(() => HandleNewLevel(connection, request));
+                QueueReply(connection, () => HandleNewLevel(connection, request));
             }
 
             Result<ListLevelsRequest> listLevels;
             while ((listLevels = connection.Receive<ListLevelsRequest>()).Success)
             {
-                _ = Task.Run(() => HandleListLevels(connection));
+                QueueReply(connection, () => HandleListLevels(connection));
             }
 
             Result<DeleteLevelRequest> deleteLevel;
@@ -75,6 +69,25 @@ public sealed class ServerLevelManager
                 _pendingDeletes.Enqueue(connection, request.LevelGuid ?? string.Empty);
             }
         }
+    }
+
+    /// <summary>
+    /// Runs menu work off the server thread, serialized per connection, so replies to one connection go
+    /// out in request order (matched FIFO by the client). The chain entry drops itself when it
+    /// completes, unless newer work already replaced it.
+    /// </summary>
+    private void QueueReply(IServerConnection connection, Action work)
+    {
+        Task next = _replyChains.AddOrUpdate(
+            connection,
+            _ => Task.Run(work),
+            (_, chain) => chain.ContinueWith(_ => work())
+        );
+
+        _ = next.ContinueWith(_ =>
+        {
+            _replyChains.TryRemove(new KeyValuePair<IServerConnection, Task>(connection, next));
+        });
     }
 
     private void SendOrLog<T>(IServerConnection connection, in T message)

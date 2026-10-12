@@ -38,12 +38,12 @@ public sealed class LanHost : IEntryPoint, IDisposable
     private volatile bool _beaconRunning;
 
     public LanHost(
-        in IEnumerable<INetworkSerializer> serializers,
-        in PendingJoins pendingJoins,
-        in ServerWorldHost worldHost,
-        in NetworkingConfig config,
-        in LanHostInfo hostInfo,
-        in ConnectionClaims claims,
+        IEnumerable<INetworkSerializer> serializers,
+        PendingJoins pendingJoins,
+        ServerWorldHost worldHost,
+        NetworkingConfig config,
+        LanHostInfo hostInfo,
+        ConnectionClaims claims,
         ILoggerFactory loggerFactory
     ) {
         _serializers = serializers;
@@ -59,7 +59,18 @@ public sealed class LanHost : IEntryPoint, IDisposable
     public void Run()
     {
         int port = _config.Server.Port.Get();
-        _host = new TcpServerHost(_serializers, _loggerFactory, _config.Transport.TimeoutMs.Get(), _config.Transport.SendQueueSize.Get(), _config.Transport.MaxFrameBytes.Get(), _config.Transport.ReliableQueueConcernThreshold.Get(), _config.Transport.ReliableQueueDisconnectThreshold.Get(), _config.Transport.ReliableQueueDisconnectMs.Get(), _config.Transport.TraceLogging.Get(), _config.Transport.SendIntervalMs.Get());
+        _host = new TcpServerHost(
+            _serializers,
+            _loggerFactory,
+            connectionTimeoutMs: _config.Transport.TimeoutMs.Get(),
+            sendQueueSize: _config.Transport.SendQueueSize.Get(),
+            maxFrameBytes: _config.Transport.MaxFrameBytes.Get(),
+            reliableQueueConcernThreshold: _config.Transport.ReliableQueueConcernThreshold.Get(),
+            reliableQueueDisconnectThreshold: _config.Transport.ReliableQueueDisconnectThreshold.Get(),
+            reliableQueueDisconnectMs: _config.Transport.ReliableQueueDisconnectMs.Get(),
+            traceLogging: _config.Transport.TraceLogging.Get(),
+            sendIntervalMs: _config.Transport.SendIntervalMs.Get()
+        );
         _host.OnClientAccepted = transport =>
         {
             _clientIds[transport] = 0;

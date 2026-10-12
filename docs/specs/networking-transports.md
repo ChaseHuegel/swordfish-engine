@@ -78,7 +78,7 @@ sim tick and last applied snapshot tick). The receive loop no longer skips any
 frame kind; a genuinely idle link times out. The server emits its half from two
 pumps so every accepted connection stays readable: the per-world
 `ServerHeartbeatService` for connections bound to a world hub, and the
-host-level `ServerHostHeartbeat` (`Server.Core/ServerHostHeartbeat.cs`) for
+host-level `PendingConnectionHeartbeat` (`WaywardBeyond.Server/PendingConnectionHeartbeat.cs`) for
 connections still in the pending set - the menu and character-creation window,
 before any world exists. The host-level pump also drains the pending
 connection's client heartbeats, so they cannot pile up unread. The server
@@ -135,7 +135,7 @@ shared code because the shared transports feed it and every world side consumes 
 
 ## Sessions
 
-`Server.Core/SessionManager.cs` binds the full
+`WaywardBeyond.Server/SessionManager.cs` binds the full
 `clientId ↔ Session ↔ player entity` chain, stamping `NetworkComponent.Session`.
 
 - `ServerJoinSystem` allocates a `Session` per connection and calls `Register`.
@@ -154,7 +154,7 @@ so a LAN client can auto-populate the multiplayer page. This is the one
 permitted UDP exception to the TCP-only rule; the beacon is a pure control
 plane and never carries game state.
 
-- **Server broadcast.** `LanHost` (`Server.Core/LanHost.cs`) starts a
+- **Server broadcast.** `LanHost` (`WaywardBeyond.Server/LanHost.cs`) starts a
   `"LAN BEACON"` thread that sends an nsd `LanBeacon` to `255.255.255.255`
   every `NetworkingConfig.Discovery.BroadcastSeconds`. `PlayerCount` is read
   live from `ServerWorldHost.PlayerCount` (the sum over world hubs; each
@@ -281,7 +281,7 @@ A headless dedicated server is a Shoal embedding without the client module:
 modules only (`shared.bricks`, `shared.skills`, `shared.bodies`,
 `server.core`) - no window, input, or client-level services. It registers the
 same shared host wire-up as the embedded client host
-(`Server.Core/HostComposition.cs`): the serializer set, `NetworkRegistry`
+(`WaywardBeyond.Server/HostComposition.cs`): the serializer set, `NetworkRegistry`
 init, hub (no loopback seed), save storage, `NetworkingConfig`, and
 `PhysicsSettings`; `ServerModule`'s host registrations add
 `ServerWorldHost` + `LanHost` + the beacon. Interaction content is the
@@ -298,7 +298,7 @@ shutdown (level flush, session teardown, store disposal, per
 - `WaywardBeyond.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
 - `WaywardBeyond.Server/LanHost.cs`
-- `WaywardBeyond.Server/ServerHostHeartbeat.cs`
+- `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
 - `WaywardBeyond.Client/Networking/LanDiscoveryService.cs`
 - `WaywardBeyond.Client/Networking/TransportManager.cs`
 - `WaywardBeyond.Client/Systems/ClientDisconnectSystem.cs`

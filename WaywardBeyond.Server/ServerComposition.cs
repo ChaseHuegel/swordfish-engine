@@ -25,11 +25,9 @@ namespace WaywardBeyond.Server;
 /// container (see <see cref="ServerWorld"/>), so no world's graph can leak into another or into the
 /// client runtime. Systems register under the <see cref="IServerWorldSystem"/> marker (never
 /// <see cref="IEntitySystem"/>), so the client's ECS context cannot resolve them; third-party modules
-/// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after the
-/// built-ins. Registration order is the world's tick order: join/disconnect → level management →
+/// contribute world systems through <see cref="RegisterServerSystem{T}"/>, which appends them after
+/// the built-ins. Registration order is the world's tick order: join/disconnect → saves →
 /// replication apply → inventory → heartbeats → physics → interaction → chat → replication publish.
-/// Per-world services are wired with <c>Made.Of</c> factories rather than scoped <c>RegisterDelegate</c>
-/// or <c>Reuse.Scoped</c>: DryIoc's compiled scoped-factory path is unusable on current runtimes.
 /// </summary>
 public static class ServerComposition
 {
@@ -40,7 +38,7 @@ public static class ServerComposition
         //  Server-level menu facade: create/list/delete saved levels for connections that have not
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
-        container.Register<ServerHostHeartbeat>(Reuse.Singleton);
+        container.Register<PendingConnectionHeartbeat>(Reuse.Singleton);
         container.Register<PendingLevelDeletes>(Reuse.Singleton);
         container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
 
@@ -88,15 +86,12 @@ public static class ServerComposition
 
         //  World systems in canonical tick order.
         RegisterServerSystem<ServerJoinSystem>(container);
-        RegisterServerSystem<ServerWorldSystem>(container);
+        RegisterServerSystem<ServerSaveSystem>(container);
         RegisterServerSystem<NetworkApplySystem>(container);
         RegisterServerSystem<ServerInventorySystem>(container);
         RegisterServerSystem<ServerHeartbeatService>(container);
         //  The physics slot is the world's physics bundle itself (same per-world instance as the step's).
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        //  ServerInteractionSystem keeps public convenience ctors for tests; the world graph pins the
-        //  full one explicitly, and its marker registration passes the same concrete instance through
-        //  (the join system depends on the concrete type).
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
                 Arg.Of<ServerConnectionHub>(),
@@ -128,22 +123,22 @@ public static class ServerComposition
         container.Register<IServerWorldSystem, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
-    private static ServerConnectionHub CreateConnectionHub(in NetworkingConfig config)
+    private static ServerConnectionHub CreateConnectionHub(NetworkingConfig config)
     {
         return new ServerConnectionHub(config.Server.MaxReceiveWindow.Get());
     }
 
-    private static SimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)
+    private static SimulationStep CreateSimulationStep(World world, IServerWorldPhysics physics)
     {
         return new SimulationStep(world.DataStore, physics);
     }
 
-    private static IServerWorldPhysics CreateWorldPhysics(ILoggerFactory loggerFactory, in PhysicsSettings physicsSettings)
+    private static IServerWorldPhysics CreateWorldPhysics(ILoggerFactory loggerFactory, PhysicsSettings physicsSettings)
     {
         return new ServerPhysicsSystem(loggerFactory, physicsSettings);
     }
 
-    private static IServerWorldSystem CreatePhysicsSlot(in IServerWorldPhysics physics)
+    private static IServerWorldSystem CreatePhysicsSlot(IServerWorldPhysics physics)
     {
         return (IServerWorldSystem)physics;
     }
@@ -153,7 +148,7 @@ public static class ServerComposition
         return store => new ServerVoxelInteractionWorld(store);
     }
 
-    private static IServerWorldSystem CreateInteractionSystem(in ServerInteractionSystem interaction)
+    private static IServerWorldSystem CreateInteractionSystem(ServerInteractionSystem interaction)
     {
         return interaction;
     }

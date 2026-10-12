@@ -37,28 +37,28 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerJoinQueue _joinQueue;
-    private readonly ISkillDatabase? _skillDatabase;
+    private readonly ISkillDatabase _skillDatabase;
     private readonly IBrickRegistry _brickRegistry;
-    private readonly IUserPermissionService? _permissions;
-    private readonly ConnectionClaims? _connectionClaims;
+    private readonly IUserPermissionService _permissions;
+    private readonly ConnectionClaims _connectionClaims;
     private readonly GameplayConfig _gameplayConfig;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
 
     public ServerJoinSystem(
-        in ServerConnectionHub hub,
+        ServerConnectionHub hub,
         SessionManager sessions,
-        in LevelSaveService saveService,
-        in NetworkReplicationSystem replication,
-        in ServerInteractionSystem interaction,
-        in ILogger<ServerJoinSystem> logger,
+        LevelSaveService saveService,
+        NetworkReplicationSystem replication,
+        ServerInteractionSystem interaction,
+        ILogger<ServerJoinSystem> logger,
         IBrickRegistry brickRegistry,
-        in GameplayConfig gameplayConfig,
-        in ISkillDatabase? skillDatabase = null,
-        in ServerJoinQueue? joinQueue = null,
-        in IUserPermissionService? permissions = null,
-        in ConnectionClaims? connectionClaims = null
+        GameplayConfig gameplayConfig,
+        ISkillDatabase skillDatabase,
+        ServerJoinQueue joinQueue,
+        IUserPermissionService permissions,
+        ConnectionClaims connectionClaims
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -69,7 +69,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _brickRegistry = brickRegistry;
         _logger = logger;
         _gameplayConfig = gameplayConfig;
-        _joinQueue = joinQueue ?? new ServerJoinQueue();
+        _joinQueue = joinQueue;
         _permissions = permissions;
         _connectionClaims = connectionClaims;
     }
@@ -104,7 +104,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     {
         foreach (Uuid clientId in _hub.DrainDisconnects())
         {
-            _permissions?.Unbind(clientId);
+            _permissions.Unbind(clientId);
 
             if (_sessions.TryGetEntity(clientId, out int entity))
             {
@@ -156,7 +156,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _saveService.EndSessionStamp();
         }
 
-        _permissions?.Unbind(clientId);
+        _permissions.Unbind(clientId);
     }
 
     private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
@@ -210,7 +210,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                bool restored = _saveService.TryGetSpawnPoint(levelGuid, request.CharacterUuid, store, out position, out orientation);
+                bool restored = _saveService.TryGetSpawnPoint(request.CharacterUuid, out position, out orientation);
                 if (!restored)
                 {
                     //  Restored per-character location (or the level spawn point).
@@ -267,17 +267,14 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 
         //  Bind the joining client's claim so permission checks resolve against this session. The
         //  claim arrives once in the connection's ClientHello; an unbound connection joins anonymous.
-        if (_permissions != null)
+        bool isHost = _hub.TryGet(clientId, out IServerConnection connection) && connection.IsLocal;
+        UserClaim claim = UserClaim.Anonymous;
+        if (connection != null && _connectionClaims.TryGet(connection, out UserClaim bound))
         {
-            bool isHost = _hub.TryGet(clientId, out IServerConnection connection) && connection.IsLocal;
-            UserClaim claim = UserClaim.Anonymous;
-            if (connection != null && _connectionClaims != null && _connectionClaims.TryGet(connection, out UserClaim bound))
-            {
-                claim = bound;
-            }
-
-            _permissions.Bind(clientId, claim, isHost);
+            claim = bound;
         }
+
+        _permissions.Bind(clientId, claim, isHost);
 
         //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
         //  (EndStream), so the client's Loading-time receive queue cannot pile up snapshots.
@@ -339,10 +336,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// carried, and the whole component lives in memory for the session and is freed with the player
     /// mirror. The server never persists character skill data.
     /// </summary>
-    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, in ISkillDatabase? skillDatabase)
+    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
     {
         var xpBySkillId = new Dictionary<string, long>();
-        if (skillDatabase != null && seed.Statistics != null)
+        if (seed.Statistics != null)
         {
             foreach (Statistic statistic in seed.Statistics)
             {

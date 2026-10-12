@@ -16,24 +16,17 @@ namespace WaywardBeyond.Server.Systems;
 /// client. Level-ups are detected here; surfacing them (as notifications) happens in
 /// <see cref="OnInteractionApplied"/>. The server persists no skill data.
 /// </summary>
-public sealed class ServerSkillSystem
+public sealed class ServerSkillSystem(
+    ISkillDatabase skillDatabase,
+    SessionManager sessions,
+    ServerConnectionHub hub,
+    ILogger<ServerSkillSystem> logger
+)
 {
-    private readonly ISkillDatabase _skillDatabase;
-    private readonly SessionManager _sessions;
-    private readonly ServerConnectionHub _hub;
-    private readonly ILogger<ServerSkillSystem> _logger;
-
-    public ServerSkillSystem(
-        in ISkillDatabase skillDatabase,
-        in SessionManager sessions,
-        in ServerConnectionHub hub,
-        in ILogger<ServerSkillSystem> logger
-    ) {
-        _skillDatabase = skillDatabase;
-        _sessions = sessions;
-        _hub = hub;
-        _logger = logger;
-    }
+    private readonly ISkillDatabase _skillDatabase = skillDatabase;
+    private readonly SessionManager _sessions = sessions;
+    private readonly ServerConnectionHub _hub = hub;
+    private readonly ILogger<ServerSkillSystem> _logger = logger;
 
     /// <summary>
     /// Grants XP for a successfully applied interaction. <paramref name="isBreak"/> maps to

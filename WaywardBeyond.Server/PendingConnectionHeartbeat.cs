@@ -16,10 +16,10 @@ namespace WaywardBeyond.Server;
 /// connection establishment - not gated on join - and drains the <see cref="ClientHeartbeatMessage"/>s
 /// they send so no world's lag tracking has to.
 /// </summary>
-public sealed class ServerHostHeartbeat
+public sealed class PendingConnectionHeartbeat
 {
     private readonly PendingJoins _pendingJoins;
-    private readonly ILogger<ServerHostHeartbeat> _logger;
+    private readonly ILogger<PendingConnectionHeartbeat> _logger;
     private readonly int _heartbeatIntervalMs;
 
     private int _tpsFrames;
@@ -28,10 +28,10 @@ public sealed class ServerHostHeartbeat
 
     private int _nextHeartbeatTicks;
 
-    public ServerHostHeartbeat(
-        in PendingJoins pendingJoins,
-        in NetworkingConfig config,
-        in ILogger<ServerHostHeartbeat> logger
+    public PendingConnectionHeartbeat(
+        PendingJoins pendingJoins,
+        NetworkingConfig config,
+        ILogger<PendingConnectionHeartbeat> logger
     ) {
         _pendingJoins = pendingJoins;
         _logger = logger;

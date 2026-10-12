@@ -17,32 +17,23 @@ namespace WaywardBeyond.Server.Systems;
 /// permission; the local host always qualifies. Every queued save broadcasts a start toast to the
 /// world, and each finished database write broadcasts the result.
 /// </summary>
-public sealed class ServerWorldSystem : IServerWorldSystem
+public sealed class ServerSaveSystem(
+    ServerConnectionHub hub,
+    SessionManager sessions,
+    LevelSaveService saveService,
+    IUserPermissionService permissions,
+    GameplayConfig gameplayConfig,
+    ILogger<ServerSaveSystem> logger
+) : IServerWorldSystem
 {
-    private readonly ServerConnectionHub _hub;
-    private readonly SessionManager _sessions;
-    private readonly LevelSaveService _saveService;
-    private readonly IUserPermissionService _permissions;
-    private readonly GameplayConfig _gameplayConfig;
-    private readonly ILogger<ServerWorldSystem> _logger;
+    private readonly ServerConnectionHub _hub = hub;
+    private readonly SessionManager _sessions = sessions;
+    private readonly LevelSaveService _saveService = saveService;
+    private readonly IUserPermissionService _permissions = permissions;
+    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
+    private readonly ILogger<ServerSaveSystem> _logger = logger;
 
     private float _autosaveElapsedSeconds;
-
-    public ServerWorldSystem(
-        in ServerConnectionHub hub,
-        SessionManager sessions,
-        in LevelSaveService saveService,
-        in IUserPermissionService permissions,
-        in GameplayConfig gameplayConfig,
-        in ILogger<ServerWorldSystem> logger
-    ) {
-        _hub = hub;
-        _sessions = sessions;
-        _saveService = saveService;
-        _permissions = permissions;
-        _gameplayConfig = gameplayConfig;
-        _logger = logger;
-    }
 
     public void Tick(float delta, DataStore store)
     {

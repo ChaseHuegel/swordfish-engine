@@ -35,12 +35,12 @@ save levels. Level data is streamed to the client during join.
    - It drives `MainMenu → Loading → Playing` and is queued from the menu so
       view building runs on the client ECS thread.
 
-2. **World routing** — `ServerWorldHost` (`Server.Core/ServerWorldHost.cs`)
+2. **World routing** — `ServerWorldHost` (`WaywardBeyond.Server/ServerWorldHost.cs`)
    consumes the client's `JoinRequest` from the pending set, creates (or finds)
    the world for `LevelGuid` with a fresh per-world graph, binds the connection
    to that world's hub, and queues the join into the world. `ServerJoinSystem`
-   (`Server.Core/Systems/`) then — via the world's `LevelSaveService`
-   (`Server.Core/Saves/`) — loads the authoritative voxel world for `LevelGuid`
+   (`WaywardBeyond.Server/Systems/`) then — via the world's `LevelSaveService`
+   (`WaywardBeyond.Server/Saves/`) — loads the authoritative voxel world for `LevelGuid`
    from its save database into that world's store, resolves the spawn
    transform (the persisted per-character location, else
    `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
@@ -131,9 +131,9 @@ The save-listing menu is served by the server: `NewLevelRequest`,
 authoritative level) map to `ILevelCatalog`/`LevelSaveService` operations,
 driven by a client `LevelsClient` whose responses the ECS thread completes.
 Menu-time operations (create/list/delete) are served by `ServerLevelManager`
-(`Server.Core/ServerLevelManager.cs`) against connections that have not joined
+(`WaywardBeyond.Server/ServerLevelManager.cs`) against connections that have not joined
 a world yet; the in-world `SaveLevelRequest` is served by the world's
-`ServerWorldSystem`.
+`ServerSaveSystem`.
 
 ### Continue and the multiplayer page
 

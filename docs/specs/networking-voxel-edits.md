@@ -49,7 +49,7 @@ prediction and server authority:
 
 ## Authority apply
 
-`ServerInteractionSystem` (`Server.Core/Systems/`, server tick between the
+`ServerInteractionSystem` (`WaywardBeyond.Server/Systems/`, server tick between the
 replication Apply and Publish stages):
 
 - Builds an authority ray from the mirror transform + look.

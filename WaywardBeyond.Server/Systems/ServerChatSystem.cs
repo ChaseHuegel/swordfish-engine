@@ -15,24 +15,18 @@ namespace WaywardBeyond.Server.Systems;
 /// standard engine log, and broadcast to every connected client. Identity is never trusted from the
 /// wire; a client can only supply text.
 /// </summary>
-public sealed class ServerChatSystem : IServerWorldSystem
+public sealed class ServerChatSystem(
+    ServerConnectionHub hub,
+    SessionManager sessions,
+    ILogger<ServerChatSystem> logger
+) : IServerWorldSystem
 {
     /// <summary>Maximum characters of a chat message after sanitization.</summary>
     public const int MAX_MESSAGE_LENGTH = 512;
 
-    private readonly ServerConnectionHub _hub;
-    private readonly SessionManager _sessions;
-    private readonly ILogger _logger;
-
-    public ServerChatSystem(
-        in ServerConnectionHub hub,
-        SessionManager sessions,
-        ILogger<ServerChatSystem> logger
-    ) {
-        _hub = hub;
-        _sessions = sessions;
-        _logger = logger;
-    }
+    private readonly ServerConnectionHub _hub = hub;
+    private readonly SessionManager _sessions = sessions;
+    private readonly ILogger _logger = logger;
 
     public void Tick(float delta, DataStore store)
     {

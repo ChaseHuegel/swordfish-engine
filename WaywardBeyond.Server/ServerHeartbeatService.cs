@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Config;
@@ -21,11 +22,10 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly ILogger<ServerHeartbeatService> _logger;
-    private readonly SimulationStep? _simulationStep;
+    private readonly SimulationStep _simulationStep;
     private readonly int _heartbeatIntervalMs;
     private readonly uint _lagWarnThreshold;
 
-    private readonly Dictionary<Uuid, uint> _lastClientTick = [];
     private readonly HashSet<Uuid> _lagWarned = [];
 
     private int _tpsFrames;
@@ -35,10 +35,10 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
     private int _nextHeartbeatTicks;
 
     public ServerHeartbeatService(
-        in ServerConnectionHub hub,
-        in NetworkingConfig config,
-        in ILogger<ServerHeartbeatService> logger,
-        in SimulationStep? simulationStep = null
+        ServerConnectionHub hub,
+        NetworkingConfig config,
+        ILogger<ServerHeartbeatService> logger,
+        SimulationStep simulationStep
     ) {
         _hub = hub;
         _logger = logger;
@@ -51,17 +51,22 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 
     public void Tick(float delta, DataStore store)
     {
-        Pump(delta, store, _simulationStep?.CurrentSimTick ?? 0);
-    }
-
-    /// <summary>Run once per server update.</summary>
-    public void Pump(float delta, DataStore store, uint simTick)
-    {
         MeasureTps();
+        uint simTick = _simulationStep.CurrentSimTick;
 
         foreach ((Uuid clientId, ClientHeartbeatMessage heartbeat) in _hub.Receive<ClientHeartbeatMessage>())
         {
             TrackClientTick(clientId, heartbeat.TickNumber, simTick);
+        }
+
+        //  A lag-warned client that disconnected stops sending heartbeats, so TrackClientTick can no
+        //  longer retire the entry; prune it here instead so the set cannot grow with client churn.
+        foreach (Uuid clientId in _lagWarned.ToArray())
+        {
+            if (!_hub.TryGet(clientId, out _))
+            {
+                _lagWarned.Remove(clientId);
+            }
         }
 
         if (Environment.TickCount - _nextHeartbeatTicks < _heartbeatIntervalMs)
@@ -101,8 +106,6 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 
     private void TrackClientTick(Uuid clientId, uint clientTick, uint serverTick)
     {
-        _lastClientTick[clientId] = clientTick;
-
         if (serverTick <= clientTick || serverTick - clientTick <= _lagWarnThreshold)
         {
             _lagWarned.Remove(clientId);

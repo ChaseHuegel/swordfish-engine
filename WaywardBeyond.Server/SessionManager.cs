@@ -15,7 +15,6 @@ public sealed class SessionManager
 {
     private readonly ConcurrentDictionary<Uuid, int> _clientToEntity = new();
     private readonly ConcurrentDictionary<Uuid, Session> _clientToSession = new();
-    private readonly ConcurrentDictionary<Session, int> _sessionToEntity = new();
     private readonly ConcurrentDictionary<int, Uuid> _entityToClient = new();
 
     /// <summary>Number of live sessions (joined players); a world with zero is idle and eligible for unload.</summary>
@@ -34,23 +33,12 @@ public sealed class SessionManager
 
         _clientToEntity[clientId] = entity;
         _clientToSession[clientId] = session;
-        _sessionToEntity[session] = entity;
         _entityToClient[entity] = clientId;
     }
 
     public bool TryGetEntity(Uuid clientId, out int entity)
     {
         return _clientToEntity.TryGetValue(clientId, out entity);
-    }
-
-    public bool TryGetSession(Uuid clientId, out Session session)
-    {
-        return _clientToSession.TryGetValue(clientId, out session);
-    }
-
-    public bool TryGetEntity(Session session, out int entity)
-    {
-        return _sessionToEntity.TryGetValue(session, out entity);
     }
 
     /// <summary>Returns the client connection bound to a player entity, if any (reverse of <see cref="TryGetEntity(Uuid, out int)"/>).</summary>
@@ -65,11 +53,7 @@ public sealed class SessionManager
     /// </summary>
     public bool EndSession(Uuid clientId)
     {
-        bool hadSession = _clientToSession.TryRemove(clientId, out Session session);
-        if (hadSession)
-        {
-            _sessionToEntity.TryRemove(session, out _);
-        }
+        bool hadSession = _clientToSession.TryRemove(clientId, out _);
 
         if (_clientToEntity.TryRemove(clientId, out int entity))
         {

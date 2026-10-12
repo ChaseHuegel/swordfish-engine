@@ -12,7 +12,7 @@ public sealed class PendingLevelDeletes
 {
     private readonly ConcurrentQueue<PendingLevelDelete> _deletes = new();
 
-    public void Enqueue(in IServerConnection connection, string levelGuid)
+    public void Enqueue(IServerConnection connection, string levelGuid)
     {
         _deletes.Enqueue(new PendingLevelDelete(connection, levelGuid));
     }

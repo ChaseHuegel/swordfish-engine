@@ -45,10 +45,10 @@ public sealed class LevelSaveService : IDisposable
     private readonly GameplayConfig _gameplayConfig;
 
     public LevelSaveService(
-        in ILogger logger,
-        in ILevelCatalog levelCatalog,
+        ILogger logger,
+        ILevelCatalog levelCatalog,
         IBrickRegistry brickRegistry,
-        in GameplayConfig gameplayConfig
+        GameplayConfig gameplayConfig
     ) {
         _logger = logger;
         _levelCatalog = levelCatalog;
@@ -58,48 +58,13 @@ public sealed class LevelSaveService : IDisposable
     }
 
     /// <summary>
-    /// Persists a character's location in a level, sampled from authoritative server state, so a
-    /// returning player resumes where they left off. Falling back to the level spawn happens at spawn
-    /// resolution. No-op when no level is loaded.
-    /// </summary>
-    public void SaveLocation(string levelGuid, ulong characterUuid, in Vector3 position, in Quaternion orientation)
-    {
-        ILevelStorage? levelStorage = _levelStorage;
-        if (levelStorage == null)
-        {
-            return;
-        }
-
-        var data = new CharacterEntityData(
-            _Uuid: characterUuid,
-            position.X,
-            position.Y,
-            position.Z,
-            orientation.X,
-            orientation.Y,
-            orientation.Z,
-            orientation.W,
-            _ScaleX: 1,
-            _ScaleY: 1,
-            _ScaleZ: 1,
-            _GameMode: 0
-        );
-
-        Result result = levelStorage.Save(data);
-        if (!result.Success)
-        {
-            _logger.LogError(result.Exception, "Failed to persist location for character {character} in level {level}: {message}", characterUuid, levelGuid, result.Message);
-        }
-    }
-
-    /// <summary>
     ///     Unloads the current level (if any) and loads <paramref name="levelGuid"/> from its save
     ///     database. Loading the same level that is already loaded is a no-op: rebuilding would free
     ///     every existing <see cref="NetworkComponent"/> entity, which with multiple clients also
     ///     destroys the player mirrors of everyone already in the level. A repeated single-player join
     ///     instead relies on the session being cleared, and multiplayer shares the loaded level.
     /// </summary>
-    public bool LoadLevel(string levelGuid, in DataStore store)
+    public bool LoadLevel(string levelGuid, DataStore store)
     {
         if (CurrentLevelGuid == levelGuid)
         {
@@ -157,7 +122,7 @@ public sealed class LevelSaveService : IDisposable
     /// Frees every server entity carrying a <see cref="NetworkComponent"/> (players and level entities),
     /// disposing their physics bodies first so teardown is marshalled to the physics thread.
     /// </summary>
-    public void Unload(in DataStore store)
+    public void Unload(DataStore store)
     {
         UnloadAction action = new();
         store.Query<NetworkComponent, UnloadAction>(0f, ref action);
@@ -177,7 +142,7 @@ public sealed class LevelSaveService : IDisposable
     /// Resolves the spawn transform for a character: the persisted per-character location in the level if
     /// one exists (written by the authoritative server), otherwise the level's spawn point.
     /// </summary>
-    public bool TryGetSpawnPoint(string levelGuid, ulong characterUuid, in DataStore store, out Vector3 position, out Quaternion orientation)
+    public bool TryGetSpawnPoint(ulong characterUuid, out Vector3 position, out Quaternion orientation)
     {
         Result<CharacterEntityData> locationResult = _levelStorage?.GetCharacterEntity(characterUuid) ?? Result<CharacterEntityData>.FromFailure("No level loaded.");
         if (locationResult.Success)
@@ -198,7 +163,7 @@ public sealed class LevelSaveService : IDisposable
     /// save-database writes to a worker. Reading the store must stay on the server thread; the writes
     /// must not block the server tick loop, so they are split. No-op when no level is loaded.
     /// </summary>
-    public void QueueSave(in DataStore store)
+    public void QueueSave(DataStore store)
     {
         if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
@@ -208,7 +173,9 @@ public sealed class LevelSaveService : IDisposable
         CapturedSave save = Capture(store);
         lock (_saveLock)
         {
-            _pendingSave = Task.Run(() => Persist(save));
+            //  Chain behind the pending save so captures persist in enqueue order: a stale capture
+            //  must never overwrite a newer one.
+            _pendingSave = _pendingSave.ContinueWith(_ => Persist(save));
         }
 
         _logger.LogInformation("Queued a server level save ({entities} entities) for level \"{level}\".", save.Entities.Length, CurrentLevelGuid);
@@ -228,7 +195,7 @@ public sealed class LevelSaveService : IDisposable
     /// run after the server thread has stopped (so the store is not concurrently mutated) and before the
     /// world containers are disposed - the sequencing point that guards the shutdown cascade.
     /// </summary>
-    public void Flush(in DataStore store)
+    public void Flush(DataStore store)
     {
         if (string.IsNullOrEmpty(CurrentLevelGuid) || _levelStorage == null)
         {
@@ -326,7 +293,7 @@ public sealed class LevelSaveService : IDisposable
         Level levelCopy = level;
         lock (_saveLock)
         {
-            _pendingSave = Task.Run(() => PersistLevelMeta(levelCopy));
+            _pendingSave = _pendingSave.ContinueWith(_ => PersistLevelMeta(levelCopy));
         }
     }
 
@@ -361,7 +328,7 @@ public sealed class LevelSaveService : IDisposable
     /// player locations are the server-side transform, never the client's. The actively loaded level's
     /// metadata is stamped (time played) and included so a save persists its server-owned playtime total.
     /// </summary>
-    private CapturedSave Capture(in DataStore store)
+    private CapturedSave Capture(DataStore store)
     {
         //  Stamp and carry the level metadata so the save persists the aggregate playtime.
         long nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();

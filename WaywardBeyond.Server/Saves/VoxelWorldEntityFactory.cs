@@ -20,7 +20,7 @@ namespace WaywardBeyond.Server.Saves;
 /// </summary>
 public static class VoxelWorldEntityFactory
 {
-    public static Entity CreateAuthority(in DataStore store, in VoxelEntityData data)
+    public static Entity CreateAuthority(DataStore store, in VoxelEntityData data)
     {
         //  Skip entities with no solid voxels - an empty CompoundShape would otherwise be handed to the
         //  physics system, which is a degenerate/undefined body. Such entities never occur in practice
@@ -65,7 +65,7 @@ public static class VoxelWorldEntityFactory
     /// to a client at join and by server-side level saves, so the data has the same shape the client's
     /// view world is built from.
     /// </summary>
-    public static VoxelEntityData ToVoxelEntityData(in DataStore store, int entity)
+    public static VoxelEntityData ToVoxelEntityData(DataStore store, int entity)
     {
         if (!store.TryGet(entity, out TransformComponent transform) ||
             !store.TryGet(entity, out VoxelWorldComponent world))

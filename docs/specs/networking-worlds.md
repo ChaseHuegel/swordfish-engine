@@ -56,10 +56,9 @@ pinned instances (registered into the child) still dispose on world unload.
   DryIoc's compiled scoped-factory path throws `InvalidProgramException` on
   current runtimes once a second scope resolves the registration. The
   template + pinned-instance design avoids scope caching entirely.
-- `ServerInteractionSystem` keeps its public convenience constructors for
-  tests; the world graph pins the full constructor explicitly and the marker
-  registration passes the same concrete instance through (the join system
-  depends on the concrete type).
+- `ServerInteractionSystem` is registered twice: its full constructor is the
+  per-world graph instance, and the marker registration passes that same
+  concrete instance through (the join system depends on the concrete type).
 - `ServerPhysicsSystem` positions the world-scoped `JoltPhysicsSystem` in the
   tick; the engine's own registration is a root singleton the client uses.
 
@@ -70,13 +69,13 @@ pinned instances (registered into the child) still dispose on world unload.
   `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
   `IUserPermissionService`, the interaction world factory.
 - World systems, in canonical tick order:
-  `ServerJoinSystem` → `ServerWorldSystem` → `NetworkApplySystem` →
+  `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
   `ServerInventorySystem` → `ServerHeartbeatService` → `ServerPhysicsSystem` →
   `ServerInteractionSystem` → `ServerChatSystem` → `NetworkPublishSystem`.
   The replication system's apply and publish stages split into two ordered
   systems so physics and the shared motion step run between them
   (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`). The per-world
-  `ServerWorldSystem` runs the autosave cadence, authorizes in-world save
+  `ServerSaveSystem` runs the autosave cadence, authorizes in-world save
   requests, and broadcasts the save notifications. See
   [permissions](permissions.md).
 - **Server-level** (not per-world): `ServerLevelManager` serves the menu-time

@@ -50,7 +50,7 @@ Two independent ECS worlds run concurrently in the process:
   world is its own per-world DI graph; see
   [networking-worlds](networking-worlds.md).
 
-The server is hosted inside the client app. `Server.Core/ServerModule.cs`
+The server is hosted inside the client app. `WaywardBeyond.Server/ServerModule.cs`
 calls `ServerComposition.Register(container)` and registers `ServerWorldHost`
 and `LanHost`. The module loads through the standard module discovery path. A
 dedicated server process loads the server module without the client module.

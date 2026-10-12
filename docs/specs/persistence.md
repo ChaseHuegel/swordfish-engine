@@ -76,13 +76,13 @@ pending save and closes the store handle. The world unload path is:
 catalog, and server shutdown flushes each world before its container is
 disposed.
 
-`SaveLocation`, `MarkActive`, and `EndSessionStamp` are small writes that only
-touch the `level` or `character_locations` rows. The playtime stamping rules
-are unchanged (`PlayClock.Advance`).
+`MarkActive` and `EndSessionStamp` are small writes that only touch the `level`
+row. Character locations are captured with the full save and upserted with it.
+The playtime stamping rules are unchanged (`PlayClock.Advance`).
 
 ### Server autosave
 
-`ServerWorldSystem` (`WaywardBeyond.Server/Systems/ServerWorldSystem.cs`) queues a level
+`ServerSaveSystem` (`WaywardBeyond.Server/Systems/ServerSaveSystem.cs`) queues a level
 flush every `GameplayConfig.AutosaveIntervalMs` while a world has sessions. It
 broadcasts `notification.save.saving` when the capture is queued, then
 `notification.save.saved` or `notification.save.saving.failed` when the

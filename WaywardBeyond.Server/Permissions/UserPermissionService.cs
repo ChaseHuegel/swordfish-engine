@@ -10,57 +10,20 @@ namespace WaywardBeyond.Server.Permissions;
 /// </summary>
 public sealed class UserPermissionService(PermissionPolicy policy) : IUserPermissionService
 {
-    private readonly ConcurrentDictionary<Uuid, BoundClient> _clients = new();
+    private readonly ConcurrentDictionary<Uuid, PermissionSet> _permissions = new();
 
     public void Bind(Uuid clientId, in UserClaim claim, bool isHost)
     {
-        PermissionSet permissions = isHost ? PermissionSet.AllowAll : policy.GetPermissions(claim.UserId);
-        _clients[clientId] = new BoundClient(claim, permissions, isHost);
+        _permissions[clientId] = isHost ? PermissionSet.AllowAll : policy.GetPermissions(claim.UserId);
     }
 
     public void Unbind(Uuid clientId)
     {
-        _clients.TryRemove(clientId, out _);
-    }
-
-    public bool TryGetClaim(Uuid clientId, out UserClaim claim)
-    {
-        if (_clients.TryGetValue(clientId, out BoundClient? bound))
-        {
-            claim = bound.Claim;
-            return true;
-        }
-
-        claim = UserClaim.Anonymous;
-        return false;
-    }
-
-    public bool IsHost(Uuid clientId)
-    {
-        return _clients.TryGetValue(clientId, out BoundClient? bound) && bound.IsHost;
+        _permissions.TryRemove(clientId, out _);
     }
 
     public bool HasPermission(Uuid clientId, string permission)
     {
-        return _clients.TryGetValue(clientId, out BoundClient? bound) && bound.Permissions.HasPermission(permission);
-    }
-
-    public bool TryGetPermissions(Uuid clientId, out PermissionSet permissions)
-    {
-        if (_clients.TryGetValue(clientId, out BoundClient? bound))
-        {
-            permissions = bound.Permissions;
-            return true;
-        }
-
-        permissions = null!;
-        return false;
-    }
-
-    private sealed class BoundClient(in UserClaim claim, in PermissionSet permissions, bool isHost)
-    {
-        public readonly UserClaim Claim = claim;
-        public readonly PermissionSet Permissions = permissions;
-        public readonly bool IsHost = isHost;
+        return _permissions.TryGetValue(clientId, out PermissionSet? permissions) && permissions.HasPermission(permission);
     }
 }

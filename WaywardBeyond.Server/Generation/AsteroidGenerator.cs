@@ -12,7 +12,7 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Server.Generation;
 
 /// <summary>A type for generating voxel asteroid structures.</summary>
-internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, in AsteroidConfig config)
+internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, AsteroidConfig config)
 {
     private readonly AsteroidConfig _config = config;
     private readonly Randomizer _randomizer = new(seed);
@@ -33,23 +33,27 @@ internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, 
         float amplitude = _randomizer.NextFloat() * _config.NoiseAmplitudeRange + _config.NoiseAmplitudeMin;
 
         for (var x = 0; x < diameter; x++)
-        for (var y = 0; y < diameter; y++)
-        for (var z = 0; z < diameter; z++)
         {
-            var pos = new Vector3(x, y, z);
-            float distance = Vector3.Distance(pos, origin);
-
-            float percentDistance = distance / radius;
-
-            float value = _simplexPerlin.GetLayeredNoiseValue(_config.NoiseOctaves, frequency, amplitude, x + offset * diameter, y, z);
-
-            bool solid = percentDistance < value;
-            if (!solid)
+            for (var y = 0; y < diameter; y++)
             {
-                continue;
-            }
+                for (var z = 0; z < diameter; z++)
+                {
+                    var pos = new Vector3(x, y, z);
+                    float distance = Vector3.Distance(pos, origin);
 
-            writer.Set(x - width, y - width, z - width, voxel);
+                    float percentDistance = distance / radius;
+
+                    float value = _simplexPerlin.GetLayeredNoiseValue(_config.NoiseOctaves, frequency, amplitude, x + offset * diameter, y, z);
+
+                    bool solid = percentDistance < value;
+                    if (!solid)
+                    {
+                        continue;
+                    }
+
+                    writer.Set(x - width, y - width, z - width, voxel);
+                }
+            }
         }
 
         float yaw = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;

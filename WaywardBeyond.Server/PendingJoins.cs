@@ -14,14 +14,12 @@ public sealed class PendingJoins
 {
     private readonly ConcurrentDictionary<IServerConnection, byte> _connections = new();
 
-    public int Count => _connections.Count;
-
-    public void Add(in IServerConnection connection)
+    public void Add(IServerConnection connection)
     {
         _connections.TryAdd(connection, 0);
     }
 
-    public bool Remove(in IServerConnection connection)
+    public bool Remove(IServerConnection connection)
     {
         return _connections.TryRemove(connection, out _);
     }

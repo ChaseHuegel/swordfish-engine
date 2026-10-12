@@ -19,7 +19,7 @@ public static class VoxelColliderBuilder
     /// expressed in world-local voxel coordinates; the owning entity's <c>TransformComponent</c> places it
     /// in the world.
     /// </summary>
-    public static CompoundShape BuildCollision(in ChunkInfo[] chunks)
+    public static CompoundShape BuildCollision(ChunkInfo[] chunks)
     {
         var shapes = new Shape[chunks.Length];
         var positions = new Vector3[chunks.Length];

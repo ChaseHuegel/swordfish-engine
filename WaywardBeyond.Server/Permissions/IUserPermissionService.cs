@@ -15,15 +15,6 @@ public interface IUserPermissionService
     /// <summary>Removes a client's claim binding.</summary>
     void Unbind(Uuid clientId);
 
-    /// <summary>Returns the bound claim for a client, if any.</summary>
-    bool TryGetClaim(Uuid clientId, out UserClaim claim);
-
-    /// <summary>True when the client is the local host connection.</summary>
-    bool IsHost(Uuid clientId);
-
     /// <summary>Checks a permission for a bound client. An unbound client is denied.</summary>
     bool HasPermission(Uuid clientId, string permission);
-
-    /// <summary>Returns the cached compiled set for a client, for callers that check many keys.</summary>
-    bool TryGetPermissions(Uuid clientId, out PermissionSet permissions);
 }

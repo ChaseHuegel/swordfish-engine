@@ -8,18 +8,13 @@ namespace WaywardBeyond.Server.Systems;
 /// the world tick. Runs after physics and interaction so the published tick number is the advanced sim
 /// tick of the step that just applied.
 /// </summary>
-public sealed class NetworkPublishSystem : IServerWorldSystem
+public sealed class NetworkPublishSystem(
+    NetworkReplicationSystem replication,
+    SimulationStep simulationStep
+) : IServerWorldSystem
 {
-    private readonly NetworkReplicationSystem _replication;
-    private readonly SimulationStep _simulationStep;
-
-    public NetworkPublishSystem(
-        in NetworkReplicationSystem replication,
-        in SimulationStep simulationStep
-    ) {
-        _replication = replication;
-        _simulationStep = simulationStep;
-    }
+    private readonly NetworkReplicationSystem _replication = replication;
+    private readonly SimulationStep _simulationStep = simulationStep;
 
     public void Tick(float delta, DataStore store)
     {

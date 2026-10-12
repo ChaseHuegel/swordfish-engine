@@ -128,7 +128,7 @@ declares the `default` and `admin` groups. Mods ship defaults under their own
 
 ### Save authorization
 
-`ServerWorldSystem` requires `GamePermissions.LevelSave`
+`ServerSaveSystem` requires `GamePermissions.LevelSave`
 (`waywardbeyond.level.save`) for a client `SaveLevelRequest`. A denied request
 sends `SaveLevelResponse { Success = false }` and a targeted
 `notification.save.denied` toast. The server logs the denial at information

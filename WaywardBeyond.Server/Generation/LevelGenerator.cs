@@ -20,7 +20,7 @@ using AsteroidStructure = (Vector3 Position, int Radius);
 ///     entities nor meshes. The server runs it to author a new world, and the same seed derives
 ///     identical data, so a level can be regenerated.
 /// </summary>
-public sealed class LevelGenerator(in int seed, in IBrickRegistry brickRegistry, in LevelGeneratorConfig config)
+public sealed class LevelGenerator(in int seed, IBrickRegistry brickRegistry, LevelGeneratorConfig config)
 {
     private readonly LevelGeneratorConfig _config = config;
     private readonly int _seed = seed;

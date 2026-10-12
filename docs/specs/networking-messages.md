@@ -162,7 +162,7 @@ message VoxelEditMessage
 `NetworkingConfig.Protocol.HeartbeatIntervalMs`) and `ClientHeartbeatMessage` (client → server, same
 cadence) carry the liveness + lag signal. The server emits to every accepted
 connection from establishment: the per-world `ServerHeartbeatService` covers
-connections bound to a world hub, and the host-level `ServerHostHeartbeat`
+connections bound to a world hub, and the host-level `PendingConnectionHeartbeat`
 covers connections still in the pending set (the menu and character-creation
 window). See [transports](networking-transports.md).
 

@@ -61,11 +61,21 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     //  The wire type tag (WorldSnapshot FullName) and its byte length, pre-encoded for snapshot framing.
     private readonly byte[] _snapshotTypeTag;
 
+    //  Snapshot frame layout: [body length:4][type-tag length:4][type tag][nsd payload]. The nsd
+    //  payload is self-describing, [field id:2][value] per field, and the shared frame is patched per
+    //  client at fixed offsets below. WorldSnapshot.nsd must keep TickNumber (uint) its first field
+    //  and LastProcessedInput (uint) its second: moving a field breaks the patch silently. Keep in
+    //  sync with the schema.
+    private const int SNAPSHOT_LENGTH_FIELD_LENGTH = 4;
+    private const int FRAME_HEADER_LENGTH = 2 * SNAPSHOT_LENGTH_FIELD_LENGTH;
+    private const int NSD_FIELD_ID_LENGTH = 2;
+    private const int NSD_UINT_LENGTH = 4;
+
     public NetworkReplicationSystem(
-        in ServerConnectionHub hub,
+        ServerConnectionHub hub,
         SessionManager sessions,
-        in ILogger<NetworkReplicationSystem> logger,
-        in NetworkingConfig config
+        ILogger<NetworkReplicationSystem> logger,
+        NetworkingConfig config
     ) {
         _hub = hub;
         _sessions = sessions;
@@ -204,7 +214,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         //  whole snapshot frame is built a single time and fanned out with a per-client ack overwrite
         //  (LastProcessedInput lives at a fixed 4-byte offset right after TickNumber).
         byte[] sharedFrame = BuildSnapshotFrame(SimTick, 0, components, removed, removedComponents);
-        int payloadOffset = 8 + _snapshotTypeTag.Length;
+        int payloadOffset = FRAME_HEADER_LENGTH + _snapshotTypeTag.Length;
 
         ComponentSnapshot[]? fullState = null;
         if (_fullSync.Count > 0)
@@ -245,13 +255,13 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 continue;
             }
 
-            //  Per-client copy of the shared frame with that client's own ack (and tick) rewritten.
-            //  The nsd payload is self-describing [field-id][value]: TickNumber sits at payload + 2,
-            //  its value is 4 bytes, then the 2-byte LastProcessedInput field id, then its 4-byte value
-            //  at payload + 8.
+            //  Per-client copy of the shared frame with that client's own tick and ack rewritten. The
+            //  offset layout is pinned by the constants above (see the frame-layout contract).
             byte[] clientFrame = (byte[])sharedFrame.Clone();
-            BitConverter.TryWriteBytes(clientFrame.AsSpan(payloadOffset + 2, 4), SimTick);
-            BitConverter.TryWriteBytes(clientFrame.AsSpan(payloadOffset + 8, 4), lastProcessedInput);
+            int tickOffset = payloadOffset + NSD_FIELD_ID_LENGTH;
+            int ackOffset = tickOffset + NSD_UINT_LENGTH + NSD_FIELD_ID_LENGTH;
+            BitConverter.TryWriteBytes(clientFrame.AsSpan(tickOffset, NSD_UINT_LENGTH), SimTick);
+            BitConverter.TryWriteBytes(clientFrame.AsSpan(ackOffset, NSD_UINT_LENGTH), lastProcessedInput);
             _hub.SendRaw(clientId, clientFrame);
         }
 
@@ -402,12 +412,12 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             RemovedComponents = removedComponents,
         }.Serialize();
 
-        int bodyLength = 4 + _snapshotTypeTag.Length + payload.Length;
-        var frame = new byte[4 + bodyLength];
-        BitConverter.TryWriteBytes(frame.AsSpan(0, 4), bodyLength);
-        BitConverter.TryWriteBytes(frame.AsSpan(4, 4), _snapshotTypeTag.Length);
-        _snapshotTypeTag.CopyTo(frame, 8);
-        payload.CopyTo(frame, 8 + _snapshotTypeTag.Length);
+        int bodyLength = SNAPSHOT_LENGTH_FIELD_LENGTH + _snapshotTypeTag.Length + payload.Length;
+        var frame = new byte[SNAPSHOT_LENGTH_FIELD_LENGTH + bodyLength];
+        BitConverter.TryWriteBytes(frame.AsSpan(0, SNAPSHOT_LENGTH_FIELD_LENGTH), bodyLength);
+        BitConverter.TryWriteBytes(frame.AsSpan(SNAPSHOT_LENGTH_FIELD_LENGTH, SNAPSHOT_LENGTH_FIELD_LENGTH), _snapshotTypeTag.Length);
+        _snapshotTypeTag.CopyTo(frame, FRAME_HEADER_LENGTH);
+        payload.CopyTo(frame, FRAME_HEADER_LENGTH + _snapshotTypeTag.Length);
         return frame;
     }
 

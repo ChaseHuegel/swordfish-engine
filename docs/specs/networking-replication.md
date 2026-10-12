@@ -4,7 +4,7 @@ One subject: dirty-driven replication between server and client.
 
 ## Server → client
 
-`NetworkReplicationSystem` (`Server.Core/Systems/NetworkReplicationSystem.cs`):
+`NetworkReplicationSystem` (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`):
 
 - **Apply stage** drains `WorldSnapshot`s across **all** connected clients,
   binding every inbound `ClientOwned` snapshot to its sender's session entity:

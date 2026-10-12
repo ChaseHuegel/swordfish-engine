@@ -11,7 +11,7 @@ namespace WaywardBeyond.Server.Components;
 /// representation on the authority side. Deliberately not a replication-set component - authoritative
 /// edits are broadcast as deltas, not as this state.
 /// </summary>
-public struct VoxelWorldComponent(in VoxelObject voxelObject) : IDataComponent
+public readonly struct VoxelWorldComponent(in VoxelObject voxelObject) : IDataComponent
 {
     public readonly VoxelObject VoxelObject = voxelObject;
 }
