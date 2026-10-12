@@ -15,7 +15,6 @@ using WaywardBeyond.Client.Globalization;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Client.Items;
-using WaywardBeyond.Client.Meta;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Saves;
@@ -36,6 +35,7 @@ using WaywardBeyond.Server;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
@@ -284,8 +284,7 @@ public class Injector : IDryIocInjector
         //  Shared interaction-content resolution used by the in-process server to author placeable/loot.
         container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton);
         
-        container.Register<LocalizedTagsDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IAssetDatabase<LocalizedTags>, LocalizedTagsDatabase>();
+        container.RegisterTags();
         
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();
@@ -297,7 +296,6 @@ public class Injector : IDryIocInjector
         
         container.RegisterMany<PBRTextureArraysParser>(reuse: Reuse.Singleton);
         container.RegisterMany<VoxelEntityModelParser>();
-        container.RegisterMany<LocalizedTagDefinitionParser>();
     }
 
     private static void RegisterEntitySystems(IContainer container)

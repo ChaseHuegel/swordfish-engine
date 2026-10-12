@@ -31,12 +31,13 @@ that owns the headless models and the tomls:
   **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick and
   `CalculateLevel(long)` resolves the level for a total XP amount.
 - `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
-  the invariant `lang/tags/` lists (which carry namespaced brick ids like
-  `wb:rock`) into brick data ids through an injected `IBrickRegistry` (the same
-  map the client `BrickDatabase` owns, so ids match worldgen and placement),
-  logs a warning on a source-set data-id collision or an unknown brick id, caches
-  the skills per `XPSource` for the interaction hot path, and never touches
-  localization, textures, or icons.
+  `tag:&lt;name&gt;` sources into brick data ids through an injected
+  `IBrickRegistry` (the same map the client `BrickDatabase` owns, so ids match
+  worldgen and placement), logs a warning on a source-set data-id collision, an
+  unknown brick id, or an unknown tag, caches the skills per `XPSource` for the
+  interaction hot path, and never touches localization, textures, or icons. The
+  tag lists come from the shared localized tag database (`ILocalizedTagsDatabase`,
+  see [asset-definitions](asset-definitions.md)), not from its own parsing.
 - `ISkillDatabase.cs` — the public contract over the loaded `Skill`s.
 - `LevelInfo.cs` — the resolved level plus the XP earned into that level.
 - The transient, in-memory per-player XP table lives server-side as
@@ -44,9 +45,10 @@ that owns the headless models and the tomls:
   persisted and never replicated as a component.
 
 Assets: `assets/skills/*.toml` (skill definitions) and `assets/lang/tags/*.toml`
-(invariant gameplay tag lists, empty-language). The tag list schema is shared
-with the client's localization tags: `WaywardBeyond.Data/Localization/
-LocalizedTagsDefinition.cs`.
+(invariant gameplay tag lists, empty-language). Tag list files are general
+purpose: the shared tag schema, database, and parser live in
+`WaywardBeyond.Data/Localization/` and serve both gameplay (skills) and client
+presentation (name generation, load screen).
 
 The `Name`/`Category` fields are **localization keys**, not display strings. The
 client's `assets/lang/en/skills.toml` holds the display strings.
@@ -83,7 +85,7 @@ increment; a max-level skill renders a full bar.
 
 - `WaywardBeyond.Skills/*.cs`
 - `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
-- `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
+- `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,LocalizedTagsWireUp}.cs`
 - `WaywardBeyond.Server/Components/SkillStateComponent.cs`
 - `WaywardBeyond.Server/Systems/ServerSkillSystem.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)

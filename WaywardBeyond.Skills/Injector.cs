@@ -11,8 +11,8 @@ public sealed class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
+        container.RegisterTags();
         container.RegisterTomlParser<SkillDefinitions>();
-        container.RegisterTomlParser<LocalizedTagsDefinition>();
         container.Register<SkillDatabase>(Reuse.Singleton);
         container.RegisterMapping<ISkillDatabase, SkillDatabase>();
     }

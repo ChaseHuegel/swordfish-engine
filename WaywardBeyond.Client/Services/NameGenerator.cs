@@ -4,7 +4,7 @@ using System.Text.RegularExpressions;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Globalization;
-using WaywardBeyond.Client.Meta;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.Services;
 

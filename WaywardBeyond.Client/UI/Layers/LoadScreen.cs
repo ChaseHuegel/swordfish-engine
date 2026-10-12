@@ -9,7 +9,7 @@ using Swordfish.Graphics;
 using Swordfish.Integrations;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Meta;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.UI.Layers;
 

@@ -171,11 +171,10 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 ## Localization
 
 `assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
-The tag list schema is shared:
-`WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`. The client's
-`Serialization/LocalizedTagDefinitionParser.cs` reads both TOML and CSV;
-gameplay modules read invariant TOML lists through their own parser
-registration.
+
+Tag list files live under a `tags/` directory segment; other lang files are
+localization tables and are not tags. The tag list is shared and general purpose,
+hosted in `WaywardBeyond.Data/Localization/`.
 
 ## Source of truth
 

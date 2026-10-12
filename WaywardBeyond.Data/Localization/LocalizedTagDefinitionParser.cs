@@ -5,9 +5,8 @@ using System.IO;
 using CsvHelper;
 using Swordfish.Library.IO;
 using Tomlet;
-using WaywardBeyond.Data.Localization;
 
-namespace WaywardBeyond.Client.Serialization;
+namespace WaywardBeyond.Data.Localization;
 
 internal class LocalizedTagDefinitionParser : IFileParser<LocalizedTagsDefinition>
 {

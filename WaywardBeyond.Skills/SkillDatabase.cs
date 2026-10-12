@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using Microsoft.Extensions.Logging;
 using Shoal.DependencyInjection;
 using Swordfish.Library.Collections;
@@ -15,7 +14,7 @@ namespace WaywardBeyond.Skills;
 internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, SkillDefinition, Skill>, IAutoActivate, ISkillDatabase
 {
     private readonly IBrickRegistry _brickRegistry;
-    private readonly Dictionary<string, List<string>> _invariantTags = [];
+    private readonly LocalizedTags? _invariantTags;
     private readonly Dictionary<XPSource, List<Skill>> _skillsBySource = [];
 
     /// <summary>Constructs a skill database.</summary>
@@ -23,11 +22,12 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         in ILogger<SkillDatabase> logger,
         in IFileParseService fileParseService,
         in VirtualFileSystem vfs,
-        in IBrickRegistry brickRegistry
+        in IBrickRegistry brickRegistry,
+        in ILocalizedTagsDatabase tagDatabase
     ) : base(logger, fileParseService, vfs)
     {
         _brickRegistry = brickRegistry;
-        LoadInvariantTags();
+        _invariantTags = tagDatabase.Invariant;
         Load();
     }
 
@@ -70,7 +70,8 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
                     {
                         //  Expand a tag into every brick id it lists, each mapped to the same XP amount.
                         string tag = source.Key[4..];
-                        if (!_invariantTags.TryGetValue(tag, out List<string>? brickIDs))
+                        IReadOnlyList<string>? brickIDs = _invariantTags?.GetValues(tag);
+                        if (brickIDs == null)
                         {
                             Logger.LogWarning("Failed to find tag \"{tag}\" when parsing sources for skill ID \"{id}\".", tag, id);
                             continue;
@@ -123,54 +124,5 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         }
 
         dataIDSources[dataID] = xp;
-    }
-
-    /// <summary>
-    ///     Loads the invariant (empty-language) tag lists from <c>lang/tags/</c>.
-    /// </summary>
-    private void LoadInvariantTags()
-    {
-        PathInfo tagRoot = new("lang/tags/");
-        foreach (PathInfo file in VFS.GetFiles(tagRoot, SearchOption.AllDirectories))
-        {
-            if (!file.HasExtension(".toml"))
-            {
-                continue;
-            }
-
-            LocalizedTagsDefinition definition;
-            try
-            {
-                definition = FileParseService.Parse<LocalizedTagsDefinition>(file);
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Failed to parse tag definitions from \"{file}\".", file);
-                continue;
-            }
-
-            if (definition.Tags == null || !string.IsNullOrEmpty(definition.TwoLetterISOLanguageName))
-            {
-                //  Language-scoped tag files are client presentation; gameplay uses only invariant tags.
-                continue;
-            }
-
-            foreach (KeyValuePair<string, List<string>> tag in definition.Tags)
-            {
-                if (!_invariantTags.TryGetValue(tag.Key, out List<string>? brickIDs))
-                {
-                    brickIDs = [];
-                    _invariantTags[tag.Key] = brickIDs;
-                }
-
-                for (var i = 0; i < tag.Value.Count; i++)
-                {
-                    if (!brickIDs.Contains(tag.Value[i]))
-                    {
-                        brickIDs.Add(tag.Value[i]);
-                    }
-                }
-            }
-        }
     }
 }
