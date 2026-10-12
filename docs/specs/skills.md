@@ -23,24 +23,30 @@ data:
 `WaywardBeyond.Skills/` is a Shoal module (`waywardbeyond.skills`)
 that owns the headless models and the tomls:
 
-- `Skills/XPSource.cs` — `Source { Place, Break }`.
-- `Skills/SkillDefinition.cs`, `Skills/SkillDefinitions.cs` — the TOML schema.
+- `XPSource.cs` — `XPSource { Place, Break }`.
+- `SkillDefinition.cs`, `SkillDefinitions.cs` — the TOML schema.
   Sources stay readable as `"rock" = 1` or `"tag:buildable" = 1`.
-- `Skills/SkillData.cs` — the runtime asset: ID, name/category localization
-  keys, icon path, max level, sorted level curve, and sources keyed by brick
-  **data id** (`Dictionary<XPSource, Dictionary<ushort,int>>`).
-- `Skills/SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
+- `Skill.cs` — the runtime asset: ID, name/category localization keys, icon
+  path, level curve (`SortedDictionary`), and sources keyed by brick
+  **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick and
+  `CalculateLevel(long)` resolves the level for a total XP amount.
+- `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
   the invariant `lang/tags/` lists (which carry namespaced brick ids like
   `wb:rock`) into brick data ids through an injected `IBrickRegistry` (the same
   map the client `BrickDatabase` owns, so ids match worldgen and placement),
-  logs a warning on a source-set data-id collision, and never touches
+  logs a warning on a source-set data-id collision or an unknown brick id, caches
+  the skills per `XPSource` for the interaction hot path, and never touches
   localization, textures, or icons.
-- `Skills/SkillDataExtensions.cs` — `CalculateLevel(long totalXP) → LevelInfo`.
-- `Components/SkillStateComponent.cs` — the transient, in-memory per-player XP
-  table. Never persisted and never replicated as a component.
+- `ISkillDatabase.cs` — the public contract over the loaded `Skill`s.
+- `LevelInfo.cs` — the resolved level plus the XP earned into that level.
+- The transient, in-memory per-player XP table lives server-side as
+  `WaywardBeyond.Server/Components/SkillStateComponent.cs`. It is never
+  persisted and never replicated as a component.
 
 Assets: `assets/skills/*.toml` (skill definitions) and `assets/lang/tags/*.toml`
-(invariant gameplay tag lists, empty-language).
+(invariant gameplay tag lists, empty-language). The tag list schema is shared
+with the client's localization tags: `WaywardBeyond.Data/Localization/
+LocalizedTagsDefinition.cs`.
 
 The `Name`/`Category` fields are **localization keys**, not display strings. The
 client's `assets/lang/en/skills.toml` holds the display strings.
@@ -69,12 +75,16 @@ Servers push `NotificationMessage`s (see
 localization **key** and positional args; servers never localize. The client's
 `ClientNotificationSystem` resolves any arg that names a localization key through
 its own locale files before formatting. `notification.skill.bar` renders the XP
-progress bar; `notification.skill.levelUp` renders the level-up toast.
+progress bar; `notification.skill.levelUp` renders the level-up toast. The bar
+amount is the XP earned into the current level divided by the next level's
+increment; a max-level skill renders a full bar.
 
 ## Source of truth
 
-- `WaywardBeyond.Skills/{Skills,Components}/*.cs`
+- `WaywardBeyond.Skills/*.cs`
 - `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
+- `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
+- `WaywardBeyond.Server/Components/SkillStateComponent.cs`
 - `WaywardBeyond.Server/Systems/ServerSkillSystem.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)
 - `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs`

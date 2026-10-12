@@ -37,7 +37,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerJoinQueue _joinQueue;
-    private readonly SkillDatabase? _skillDatabase;
+    private readonly ISkillDatabase? _skillDatabase;
     private readonly IBrickRegistry _brickRegistry;
     private readonly IUserPermissionService? _permissions;
     private readonly ConnectionClaims? _connectionClaims;
@@ -55,7 +55,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         in ILogger<ServerJoinSystem> logger,
         IBrickRegistry brickRegistry,
         in GameplayConfig gameplayConfig,
-        in SkillDatabase? skillDatabase = null,
+        in ISkillDatabase? skillDatabase = null,
         in ServerJoinQueue? joinQueue = null,
         in IUserPermissionService? permissions = null,
         in ConnectionClaims? connectionClaims = null
@@ -339,14 +339,14 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// carried, and the whole component lives in memory for the session and is freed with the player
     /// mirror. The server never persists character skill data.
     /// </summary>
-    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, in SkillDatabase? skillDatabase)
+    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, in ISkillDatabase? skillDatabase)
     {
         var xpBySkillId = new Dictionary<string, long>();
         if (skillDatabase != null && seed.Statistics != null)
         {
             foreach (Statistic statistic in seed.Statistics)
             {
-                if (statistic.ID != null && skillDatabase.HasSkill(statistic.ID))
+                if (statistic.ID != null && skillDatabase.Get(statistic.ID).Success)
                 {
                     xpBySkillId[statistic.ID] = statistic.Value;
                 }

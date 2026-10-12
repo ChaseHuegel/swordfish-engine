@@ -117,7 +117,7 @@ definitions, not game content tables.
 
 Skills moved to the shared `WaywardBeyond.Skills` module; the client no
 longer owns skill definitions or runs any skill logic. Schema:
-`WaywardBeyond.Skills/Skills/SkillDefinitions.cs` (collection),
+`WaywardBeyond.Skills/SkillDefinitions.cs` (collection),
 `SkillDefinition.cs` (row), `XPSource.cs` (enum: `Place`, `Break`).
 
 Each row is a `[[Skills]]` table:
@@ -129,7 +129,7 @@ Each row is a `[[Skills]]` table:
 | `Category` | string (localization key) | |
 | `Icon` | string? | |
 | `[Skills.Sources.<Source>]` | map: brick id or `tag:X` → XP | keyed by `XPSource` (Place/Break) |
-| `[Skills.Levels]` | map: level → cumulative XP | |
+| `[Skills.Levels]` | map: level → XP to advance from that level | strict thresholds, sorted on load |
 
 Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
 on load. `Name` and `Category` are localization keys resolved client-side (see
@@ -171,14 +171,18 @@ Body-named tag lists live in `WaywardBeyond.Client/assets/lang/en/tags/`
 ## Localization
 
 `assets/lang/en/*.toml` and `assets/lang/tags/*.toml` hold localization entries.
-Schema classes: `Meta/LocalizedTagsDefinition.cs`,
-`Serialization/LocalizedTagDefinitionParser.cs`.
+The tag list schema is shared:
+`WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`. The client's
+`Serialization/LocalizedTagDefinitionParser.cs` reads both TOML and CSV;
+gameplay modules read invariant TOML lists through their own parser
+registration.
 
 ## Source of truth
 
 - `WaywardBeyond.Client/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
 - `WaywardBeyond.Client/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
-- `WaywardBeyond.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
+- `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
+- `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
@@ -187,5 +191,4 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 
 ## Tests that pin this
 
-- `WaywardBeyond.Client.Tests` validate brick/item/skill definition
-  parsing from the asset TOML.
+No surviving tests.

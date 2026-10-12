@@ -5,6 +5,7 @@ using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.Meta;
 

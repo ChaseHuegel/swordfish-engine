@@ -1,21 +1,19 @@
 using DryIoc;
 using Shoal.DependencyInjection;
 using Shoal.Extensions.Swordfish;
-using Swordfish.Library.Collections;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Skills;
 
-/// <summary>
-/// Shoal module entry point for the shared skill definitions. Registers the headless skill database so
-/// the authoritative server can run skill mechanics and the client can read definitions for display.
-/// </summary>
+/// <summary>Module injector for Wayward Beyond skill assets.</summary>
+// ReSharper disable once UnusedType.Global
 public sealed class Injector : IDryIocInjector
 {
     public void Inject(IContainer container)
     {
         container.RegisterTomlParser<SkillDefinitions>();
-        container.RegisterTomlParser<SkillTagDefinition>();
+        container.RegisterTomlParser<LocalizedTagsDefinition>();
         container.Register<SkillDatabase>(Reuse.Singleton);
-        container.RegisterMapping<IAssetDatabase<SkillData>, SkillDatabase>();
+        container.RegisterMapping<ISkillDatabase, SkillDatabase>();
     }
 }

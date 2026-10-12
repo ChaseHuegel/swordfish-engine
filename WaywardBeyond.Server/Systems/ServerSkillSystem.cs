@@ -3,27 +3,28 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Server.Components;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
 /// The authoritative skill progression engine. Called by <see cref="ServerInteractionSystem"/> after an
-/// accepted break/place interaction, it resolves the XP each <see cref="WaywardBeyond.Skills.SkillData"/> grants
-/// for the involved brick, accumulates it into the player's transient <see cref="SkillStateComponent"/>
-/// (seeded from the client's statistics at join), and pushes the authoritative per-skill totals to the
-/// acting player's client. Level-ups are detected here; surfacing them (as notifications) happens in
+/// accepted break/place interaction, it resolves the XP each <see cref="Skill"/> grants for the involved
+/// brick, accumulates it into the player's transient <see cref="SkillStateComponent"/> (seeded from the
+/// client's statistics at join), and pushes the authoritative per-skill totals to the acting player's
+/// client. Level-ups are detected here; surfacing them (as notifications) happens in
 /// <see cref="OnInteractionApplied"/>. The server persists no skill data.
 /// </summary>
 public sealed class ServerSkillSystem
 {
-    private readonly SkillDatabase _skillDatabase;
+    private readonly ISkillDatabase _skillDatabase;
     private readonly SessionManager _sessions;
     private readonly ServerConnectionHub _hub;
     private readonly ILogger<ServerSkillSystem> _logger;
 
     public ServerSkillSystem(
-        in SkillDatabase skillDatabase,
+        in ISkillDatabase skillDatabase,
         in SessionManager sessions,
         in ServerConnectionHub hub,
         in ILogger<ServerSkillSystem> logger
@@ -48,22 +49,18 @@ public sealed class ServerSkillSystem
         }
 
         XPSource source = isBreak ? XPSource.Break : XPSource.Place;
-        Result<SkillData[]> skills = _skillDatabase.Get(source);
-        if (!skills.Success)
-        {
-            return;
-        }
 
         bool mutated = false;
-        foreach (SkillData skill in skills.Value)
+        foreach (Skill skill in _skillDatabase.Get(source))
         {
-            if (!skill.TryGetXP(source, brickDataID, out int gainedXP))
+            Result<int> gainedXP = skill.GetXP(source, brickDataID);
+            if (!gainedXP.Success)
             {
                 continue;
             }
 
             long previousXP = state.GetXP(skill.ID);
-            long totalXP = previousXP + gainedXP;
+            long totalXP = previousXP + gainedXP.Value;
             state.SetXP(skill.ID, totalXP);
             mutated = true;
 
@@ -75,8 +72,8 @@ public sealed class ServerSkillSystem
                 SkillId = skill.ID,
                 TotalXP = totalXP,
                 Level = currentLevel.Level,
-                XPIntoLevel = currentLevel.XP,
-                GainedXP = gainedXP,
+                XPIntoLevel = currentLevel.XPIntoLevel,
+                GainedXP = gainedXP.Value,
             });
 
             SendXpBar(clientId, skill, currentLevel);
@@ -98,9 +95,10 @@ public sealed class ServerSkillSystem
     /// Displays the XP progress bar for a granted skill. The client formats the message from its own
     /// localization; amounts are display-ready.
     /// </summary>
-    private void SendXpBar(Uuid clientId, SkillData skill, LevelInfo currentLevel)
+    private void SendXpBar(Uuid clientId, Skill skill, LevelInfo currentLevel)
     {
-        int nextLevelXP = skill.Levels.TryGetValue(currentLevel.Level + 1, out int next) ? next : 1;
+        int nextLevelXP = skill.Levels.TryGetValue(currentLevel.Level + 1, out int next) ? next : 0;
+        float amount = nextLevelXP > 0 ? (float)currentLevel.XPIntoLevel / nextLevelXP : 1f;
 
         SendOrLog(clientId, new NotificationMessage
         {
@@ -108,11 +106,11 @@ public sealed class ServerSkillSystem
             Key = "notification.skill.bar",
             Args = [skill.Name, currentLevel.Level.ToString()],
             ID = skill.ID,
-            Amount = (float)currentLevel.XP / nextLevelXP,
+            Amount = amount,
         });
     }
 
-    private void SendLevelUp(Uuid clientId, SkillData skill, int previousLevel, int currentLevel)
+    private void SendLevelUp(Uuid clientId, Skill skill, int previousLevel, int currentLevel)
     {
         SendOrLog(clientId, new NotificationMessage
         {

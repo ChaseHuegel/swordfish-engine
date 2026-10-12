@@ -5,7 +5,6 @@
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
         <Version>0.1.0-alpha</Version>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
 
     <ItemGroup>
@@ -23,7 +22,6 @@
     <ItemGroup>
       <ProjectReference Include="..\Shoal\Shoal.csproj" />
       <ProjectReference Include="..\Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj" />
-      <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
       <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />

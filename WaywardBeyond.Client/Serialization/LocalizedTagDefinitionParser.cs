@@ -5,7 +5,7 @@ using System.IO;
 using CsvHelper;
 using Swordfish.Library.IO;
 using Tomlet;
-using WaywardBeyond.Client.Meta;
+using WaywardBeyond.Data.Localization;
 
 namespace WaywardBeyond.Client.Serialization;
 
