@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Numerics;
 using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
@@ -11,23 +12,17 @@ using WaywardBeyond.Voxels.Numerics;
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-/// The shared, single-location interaction resolver. Client prediction and server authority both call it
-/// to validate a client-sent <see cref="BrickInteraction"/> hint (structure identity + target cell) purely
-/// against the world: the hint structure must resolve within reach and satisfy occupancy/held-item rules.
-/// Server validation never raycasts - the client's screen-aim targeting is the only place a world ray is
-/// used, and its result (structure + cell) is what arrives as the hint. An absent or invalid hint resolves
-/// to <see cref="InteractionAction.None"/>.
+///     Shared interaction validation for client prediction and server authority. A hint-less or invalid hint
+///     resolves to <see cref="InteractionAction.None"/>.
 /// </summary>
 public static class InteractionResolver
 {
+    /// <summary>The default interaction reach from the origin.</summary>
     public const float DEFAULT_REACH = 9.5f;
 
     /// <summary>
-    /// Validates a pressed interaction edge + target hint into an action against the world without
-    /// raycasting: resolves the hinted structure by identity, checks reach (squared) from the interaction
-    /// origin to the touched cell, and applies occupancy/held-item rules. A hint-less event (or one whose
-    /// hint does not resolve to a legal target) yields <see cref="InteractionAction.None"/> - it never
-    /// throws or assumes a hint is present.
+    /// Validates the hinted structure + cell against the world and resolves the action. Never throws;
+    /// a hint-less or invalid hint yields <see cref="InteractionAction.None"/>.
     /// </summary>
     public static InteractionResolution Resolve(
         in InteractionRequest request,
@@ -50,11 +45,15 @@ public static class InteractionResolver
 
         //  Resolve the hinted structure by its stable identity. It must carry a voxel container and
         //  transform for reach + occupancy validation.
-        if (!world.TryGetVoxelTarget(Uuid.FromValue(hint.TargetEntity), out int entity, out VoxelObject? voxelObject, out TransformComponent transform) ||
-            voxelObject == null)
+        Result<VoxelTarget> targetResult = world.GetTarget(Uuid.FromValue(hint.TargetEntity));
+        if (!targetResult.Success || targetResult.Value.VoxelObject == null)
         {
             return InteractionResolution.None;
         }
+
+        VoxelObject voxelObject = targetResult.Value.VoxelObject;
+        TransformComponent transform = targetResult.Value.Transform;
+        int entity = targetResult.Value.Entity;
 
         Int3 hintCell = new(hint.TargetX, hint.TargetY, hint.TargetZ);
         float reachSquared = request.Reach * request.Reach;
@@ -90,6 +89,7 @@ public static class InteractionResolver
         return new InteractionResolution(InteractionAction.Place, entity, hintCell, voxel);
     }
 
+    /// <summary>Maps a world position into the structure's brick-space coordinate.</summary>
     public static Int3 WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
     {
         Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);

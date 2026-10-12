@@ -1,4 +1,4 @@
-using Swordfish.Library.Util;
+﻿using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay.Interactions;
@@ -6,38 +6,28 @@ using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Server;
 
-/// <summary>
-/// Headless interaction content for the dedicated server: break loot resolves from the brick databases
-/// alone. Place content (the item-to-brick mapping) lives with the client's item assets, so a dedicated
-/// server validates place interactions as unresolvable until shared item content exists - breaks and
-/// loot grants are fully functional.
-/// </summary>
 /// <inheritdoc/>
 public sealed class ServerInteractionContent(IBrickDatabase brickLookup) : IInteractionContent
 {
     private const int DEFAULT_STACK_SIZE = 100;
 
     /// <inheritdoc/>
-    public bool TryGetPlaceable(string? itemID, out Brick? placeable)
+    public Result<Brick> GetPlaceable(string? itemID)
     {
         //  No shared item database: the dedicated server cannot map an item id to a brick.
-        placeable = null;
-        return false;
+        return Result<Brick>.FromFailure((string?)null);
     }
 
     /// <inheritdoc/>
-    public bool TryGetLoot(ushort brickDataID, out ItemData loot)
+    public Result<ItemData> GetLoot(ushort brickDataID)
     {
-        loot = default;
-
         Result<Brick> brickResult = brickLookup.Get(brickDataID);
         if (!brickResult.Success)
         {
-            return false;
+            return Result<ItemData>.FromFailure((string?)null);
         }
 
         //  A broken brick grants a stack of that brick's own item, like the client-hosted handler.
-        loot = InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE);
-        return true;
+        return Result<ItemData>.FromSuccess(InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE));
     }
 }

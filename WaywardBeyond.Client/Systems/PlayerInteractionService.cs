@@ -273,9 +273,13 @@ in IInteractionContent content,
 
         string? heldItemID = GetHeldItemID(store, playerEntity);
         Brick? placeable = null;
-        if (isPlace && heldItemID != null && _content.TryGetPlaceable(heldItemID, out Brick? contentPlaceable))
+        if (isPlace && heldItemID != null)
         {
-            placeable = contentPlaceable;
+            Result<Brick> placeableResult = _content.GetPlaceable(heldItemID);
+            if (placeableResult.Success)
+            {
+                placeable = placeableResult.Value;
+            }
         }
 
         var world = new ClientVoxelInteractionWorld(store);

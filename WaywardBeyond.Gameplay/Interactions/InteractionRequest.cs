@@ -6,45 +6,26 @@ using WaywardBeyond.Networking.Components;
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-/// The shared, single-location input the interaction resolver decides over. Both client prediction and
-/// server authority construct this identically: the interaction origin (the player's position, which
-/// confirms reach), the target cell hint the client resolved (an empty <see cref="InteractionHint"/> free
-/// event is first-class and resolves to <see cref="InteractionAction.None"/>), the button edge, the
-/// resolved held placeable (null when the held item isn't a placeable brick), the game mode, and the
-/// interaction reach.
+///     The shared input the interaction resolver decides over:
+///     origin, target hint, button edge, held placeable, game mode, and reach.
 /// </summary>
-public readonly struct InteractionRequest
+public readonly struct InteractionRequest(Vector3 origin, BrickInteraction? hint, InteractionKind kind, Brick? placeable, GameMode gameMode, float reach)
 {
     /// <summary>World-space interaction origin (the player's position); reach is measured from here.</summary>
-    public readonly Vector3 Origin;
+    public readonly Vector3 Origin = origin;
 
-    /// <summary>The client's resolved target cell hint; hints are validated against the authority store.</summary>
-    public readonly BrickInteraction? Hint;
+    /// <summary>The client's resolved target voxel hint.</summary>
+    public readonly BrickInteraction? Hint = hint;
 
-    /// <summary>The button edge that produced this interaction; primary = break, secondary = place.</summary>
-    public readonly InteractionKind Kind;
+    /// <summary>The input edge that produced this interaction.</summary>
+    public readonly InteractionKind Kind = kind;
 
     /// <summary>The resolved placeable brick for the held item, when it places one.</summary>
-    public readonly Brick? Placeable;
+    public readonly Brick? Placeable = placeable;
 
-    public readonly GameMode GameMode;
+    /// <summary>The game mode this interaction was made in.</summary>
+    public readonly GameMode GameMode = gameMode;
 
     /// <summary>Maximum distance the interaction may reach, from the origin.</summary>
-    public readonly float Reach;
-
-    public InteractionRequest(
-        in Vector3 origin,
-        BrickInteraction? hint,
-        InteractionKind kind,
-        Brick? placeable,
-        GameMode gameMode,
-        float reach
-    ) {
-        Origin = origin;
-        Hint = hint;
-        Kind = kind;
-        Placeable = placeable;
-        GameMode = gameMode;
-        Reach = reach;
-    }
+    public readonly float Reach = reach;
 }

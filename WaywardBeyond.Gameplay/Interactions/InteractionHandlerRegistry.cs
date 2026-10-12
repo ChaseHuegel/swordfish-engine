@@ -2,20 +2,18 @@
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>
-/// Default <see cref="IInteractionHandlerRegistry"/>. Maintains an ordered list of handlers; a handler
-/// whose filter matches the resolved interaction is invoked to possibly reject/override/augment it. See
-/// <see cref="IInteractionHandlerRegistry.Apply"/> for the ordering and reject semantics.
-/// </summary>
+/// <inheritdoc/>
 public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
 {
     private readonly List<IInteractionHandler> _handlers = [];
 
+    /// <inheritdoc/>
     public void Register(IInteractionHandler handler)
     {
         _handlers.Add(handler);
     }
 
+    /// <inheritdoc/>
     public InteractionResolution Apply(in InteractionRequest request, in InteractionResolution baseResolution, string? heldItemID)
     {
         InteractionContext context = new(request, baseResolution, heldItemID);

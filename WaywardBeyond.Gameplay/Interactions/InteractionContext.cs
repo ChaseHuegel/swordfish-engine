@@ -1,42 +1,32 @@
-﻿using WaywardBeyond.Voxels.Numerics;
-using WaywardBeyond.Data;
+﻿using WaywardBeyond.Data;
+using WaywardBeyond.Voxels.Numerics;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-/// The immutable facts handed to an interaction handler after base validation has resolved a legal
-/// interaction. Carries the original <see cref="InteractionRequest"/> (kind, hint, held placeable, game
-/// mode, reach, origin), the <see cref="Resolution"/> the shared resolver produced, the target structure
-/// and cell context (<see cref="Entity"/>, <see cref="Coordinate"/>, <see cref="CurrentVoxel"/> - the
-/// removed voxel for a break, the authored voxel for a place), and the held item id. A handler passes a
-/// resolution through unchanged by returning <see cref="Resolution"/>.
+///     The facts handed to an interaction handler after base validation: the original request, the base
+///     resolution, the target entity, the target voxel, and the held item.
 /// </summary>
-public readonly struct InteractionContext
+public readonly struct InteractionContext(
+    in InteractionRequest request,
+    in InteractionResolution resolution,
+    string? heldItemID)
 {
-    public readonly InteractionRequest Request;
+    /// <summary>The requested interaction.</summary>
+    public readonly InteractionRequest Request = request;
 
-    /// <summary>The base-resolved outcome (Break or Place) the shared resolver produced before handlers ran.</summary>
-    public readonly InteractionResolution Resolution;
+    /// <summary>The base-resolved outcome the shared resolver produced before handlers ran.</summary>
+    public readonly InteractionResolution Resolution = resolution;
 
-    /// <summary>The target structure entity the resolved action applies to.</summary>
-    public readonly int Entity;
+    /// <summary>The target entity the resolved action applies to.</summary>
+    public readonly int Entity = resolution.Entity;
 
-    /// <summary>The target cell in the structure's brick space.</summary>
-    public readonly Int3 Coordinate;
+    /// <summary>The target coordinate in the entity's voxel space.</summary>
+    public readonly Int3 Coordinate = resolution.Coordinate;
 
-    /// <summary>The voxel at the target cell: the removed voxel for a break, the authored voxel for a place.</summary>
-    public readonly Voxel CurrentVoxel;
+    /// <summary>The voxel at the target: the removed voxel for a break, the authored voxel for a place.</summary>
+    public readonly Voxel CurrentVoxel = resolution.Voxel;
 
     /// <summary>The id of the item currently held by the interacting player, or null.</summary>
-    public readonly string? HeldItemID;
-
-    public InteractionContext(in InteractionRequest request, in InteractionResolution resolution, string? heldItemID)
-    {
-        Request = request;
-        Resolution = resolution;
-        Entity = resolution.Entity;
-        Coordinate = resolution.Coordinate;
-        CurrentVoxel = resolution.Voxel;
-        HeldItemID = heldItemID;
-    }
+    public readonly string? HeldItemID = heldItemID;
 }

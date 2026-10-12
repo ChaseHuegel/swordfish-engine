@@ -4,13 +4,7 @@ using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Gameplay.Saves;
 
-/// <summary>
-/// Normalizes the voxel id convention between a live voxel structure and its persisted/wire
-/// <see cref="VoxelEntityData"/> at the save boundary. Since data version 4 a saved structure carries a
-/// brick palette (<c>BrickPalette[n]</c> = the brick name for voxel id n) so saved voxel ids are stable
-/// and self-describing regardless of the in-memory id scheme. In-memory voxel ids are registry ids from an
-/// <see cref="IBrickRegistry"/>.
-/// </summary>
+/// <summary>Normalizes voxel ids between a live structure and its persisted <see cref="VoxelEntityData"/> brick palette.</summary>
 public static class VoxelEntityDataCodec
 {
     /// <summary>Encodes a brick palette from chunks whose voxel ids already come from <paramref name="map"/>.</summary>
@@ -19,11 +13,7 @@ public static class VoxelEntityDataCodec
         return BuildPalette(chunkInfos, map.Name);
     }
     
-    /// <summary>
-    /// Attaches a brick palette to a live structure whose voxel ids already come from <paramref name="map"/>.
-    /// Voxel ids are unchanged; the palette records a name for each present id so the structure persists
-    /// self-describing identities.
-    /// </summary>
+    /// <summary>Attaches a brick palette to a live structure whose voxel ids come from <paramref name="map"/>; returns the data unchanged when it already has one.</summary>
     public static VoxelEntityData EncodeToPalette(in VoxelEntityData source, IBrickRegistry map)
     {
         if (HasPalette(in source))
@@ -42,11 +32,7 @@ public static class VoxelEntityDataCodec
         );
     }
 
-    /// <summary>
-    /// Resolves a persisted structure into a caller's local voxel id space. Palette-carrying structures
-    /// (version 4+) map each voxel through its palette name to <paramref name="map"/>; structures without
-    /// a palette already carry local ids and are returned unchanged.
-    /// </summary>
+    /// <summary>Resolves a persisted palette structure into the caller's local voxel id space; palette-less data is returned unchanged.</summary>
     public static VoxelEntityData DecodeToLocal(in VoxelEntityData source, IBrickRegistry map)
     {
         if (!HasPalette(in source))

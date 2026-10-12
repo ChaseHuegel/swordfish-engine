@@ -1,28 +1,25 @@
 ﻿using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Voxels;
 using WaywardBeyond.Gameplay.Interactions;
 
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Client-side <see cref="IVoxelInteractionWorld"/> for prediction. Reads a structure's live voxel container
-/// + transform from the client store by the structure's stable <see cref="Uuid"/> for ray-free validation.
+///     Client-side <see cref="IVoxelInteractionWorld"/> for prediction. Reads a structure's live voxel container
+///     + transform from the client store by the structure's stable <see cref="Uuid"/> for ray-free validation.
 /// </summary>
 public sealed class ClientVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
 {
-    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    public Result<VoxelTarget> GetTarget(in Uuid entityUuid)
     {
-        if (store.TryGet(entityUuid, out entity) && store.TryGet(entity, out VoxelComponent voxelComponent) && store.TryGet(entity, out TransformComponent transformComponent))
+        if (store.TryGet(entityUuid, out int entity) &&
+            store.TryGet(entity, out VoxelComponent voxelComponent) &&
+            store.TryGet(entity, out TransformComponent transformComponent))
         {
-            voxelObject = voxelComponent.VoxelObject;
-            transform = transformComponent;
-            return true;
+            return Result<VoxelTarget>.FromSuccess(new VoxelTarget(entity, voxelComponent.VoxelObject, transformComponent));
         }
 
-        entity = default;
-        voxelObject = null;
-        transform = default;
-        return false;
+        return Result<VoxelTarget>.FromFailure((string?)null);
     }
 }

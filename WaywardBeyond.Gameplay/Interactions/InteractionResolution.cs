@@ -1,27 +1,19 @@
-﻿using WaywardBeyond.Voxels.Numerics;
-using WaywardBeyond.Data;
+﻿using WaywardBeyond.Data;
+using WaywardBeyond.Voxels.Numerics;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-/// The resolved outcome of a player interaction: the action, the target cell in the structure's brick
-/// space, and (for a break) the voxel being removed or (for a place) the voxel to write. A resolution with
-/// <see cref="InteractionAction.None"/> is a valid, expected outcome - it never indicates an error.
+///     The resolved outcome of an interaction: the action, the target cell, and the voxel involved (removed
+///     for a break, authored for a place). A <see cref="InteractionAction.None"/> resolution is a valid,
+///     expected outcome - it never indicates an error.
 /// </summary>
-public readonly struct InteractionResolution
+public readonly struct InteractionResolution(InteractionAction action, int entity, Int3 coordinate, Voxel voxel)
 {
-    public readonly InteractionAction Action;
-    public readonly int Entity;
-    public readonly Int3 Coordinate;
-    public readonly Voxel Voxel;
+    public readonly InteractionAction Action = action;
+    public readonly int Entity = entity;
+    public readonly Int3 Coordinate = coordinate;
+    public readonly Voxel Voxel = voxel;
 
     public static readonly InteractionResolution None = new(InteractionAction.None, default, default, default);
-
-    public InteractionResolution(InteractionAction action, int entity, Int3 coordinate, Voxel voxel)
-    {
-        Action = action;
-        Entity = entity;
-        Coordinate = coordinate;
-        Voxel = voxel;
-    }
 }

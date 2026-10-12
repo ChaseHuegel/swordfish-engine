@@ -4,23 +4,13 @@ using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>
-/// The shared, single-location inventory move resolver. Client prediction and server authority both call
-/// it to apply a client-sent <see cref="SlotMoveOp"/> to an <see cref="InventoryComponent"/>, so the
-/// predicted result equals the authoritative result for a valid op. The server remains authoritative: it
-/// validates bounds against its own copy and its <see cref="InventoryComponent"/> echo corrects any
-/// client state that drifted. An invalid op (out-of-bounds slot, empty source, partial move onto a
-/// different item) resolves to a no-op and never throws.
-/// </summary>
+/// <summary>Shared slot-move resolution for client prediction and server authority. An invalid op is a no-op, never an error.</summary>
 public static class InventoryResolver
 {
     /// <summary>The number of hotbar slots; an AutoStack move scans the region opposite the source.</summary>
     public const int HOTBAR_SLOT_COUNT = 9;
 
-    /// <summary>
-    /// Applies a slot move op to an inventory, mirroring the server's deterministic resolution. Returns
-    /// true when the op changed the inventory.
-    /// </summary>
+    /// <summary>Applies a slot move op to an inventory. Returns true when the op changed the inventory.</summary>
     public static bool Apply(ref InventoryComponent inventory, in SlotMoveOp op)
     {
         if (inventory.Contents == null || op.FromSlot < 0 || op.FromSlot >= inventory.Contents.Length)

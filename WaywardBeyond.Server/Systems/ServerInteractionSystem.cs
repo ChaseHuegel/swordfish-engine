@@ -130,9 +130,13 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         //  place hint without one; a break never needs it).
         string? heldItemID = GetHeldItemID(store, player);
         Brick? placeable = null;
-        if (heldItemID != null && _content.TryGetPlaceable(heldItemID, out Brick? resolved))
+        if (heldItemID != null)
         {
-            placeable = resolved;
+            Result<Brick> placeableResult = _content.GetPlaceable(heldItemID);
+            if (placeableResult.Success)
+            {
+                placeable = placeableResult.Value;
+            }
         }
 
         GameMode mode = GameMode.Creative;
@@ -255,13 +259,14 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             return;
         }
 
-        if (!_content.TryGetLoot(brokenBrickDataID, out ItemData loot))
+        Result<ItemData> lootResult = _content.GetLoot(brokenBrickDataID);
+        if (!lootResult.Success)
         {
             return;
         }
 
         InventoryComponent updated = inventory;
-        updated.Add(loot);
+        updated.Add(lootResult.Value);
         store.AddOrUpdate(player, updated);
         store.MarkDirty<InventoryComponent>(player);
     }

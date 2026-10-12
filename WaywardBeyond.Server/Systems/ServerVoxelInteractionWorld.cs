@@ -1,31 +1,25 @@
-using Swordfish.ECS;
+﻿using Swordfish.ECS;
+using Swordfish.Library.Util;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Server.Components;
-using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
 /// Server-side <see cref="IVoxelInteractionWorld"/>: reads a structure's live voxel container + transform
-/// from the authority store by its stable identity. Validation never raycasts - the client's screen-aim
-/// targeting produced the hint.
+/// from the authority store by its stable identity.
 /// </summary>
 public sealed class ServerVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
 {
-    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
+    public Result<VoxelTarget> GetTarget(in Uuid entityUuid)
     {
-        if (store.TryGet(entityUuid, out entity) &&
+        if (store.TryGet(entityUuid, out int entity) &&
             store.TryGet(entity, out VoxelWorldComponent world) &&
             store.TryGet(entity, out TransformComponent transformComponent))
         {
-            voxelObject = world.VoxelObject;
-            transform = transformComponent;
-            return true;
+            return Result<VoxelTarget>.FromSuccess(new VoxelTarget(entity, world.VoxelObject, transformComponent));
         }
 
-        entity = default;
-        voxelObject = null;
-        transform = default;
-        return false;
+        return Result<VoxelTarget>.FromFailure((string?)null);
     }
 }

@@ -1,4 +1,4 @@
-using Swordfish.Library.Collections;
+﻿using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Items;
@@ -17,44 +17,43 @@ internal sealed class ClientInteractionContent(
     private const int DEFAULT_STACK_SIZE = 100;
 
     /// <inheritdoc/>
-    public bool TryGetPlaceable(string? itemID, out Brick? placeable)
+    public Result<Brick> GetPlaceable(string? itemID)
     {
-        placeable = null;
-
         if (string.IsNullOrEmpty(itemID))
         {
-            return false;
+            return Result<Brick>.FromFailure(message: null);
         }
 
         Result<Item> itemResult = itemDatabase.Get(itemID);
+        if (!itemResult.Success)
+        {
+            return new Result<Brick>(success: false, null!, itemResult.Message, itemResult.Exception);
+        }
+        
         if (!itemResult.Success || itemResult.Value.Placeable == null || itemResult.Value.Placeable.Value.Type != PlaceableType.Brick)
         {
-            return false;
+            return Result<Brick>.FromFailure(message: null);
         }
 
         string brickID = itemResult.Value.Placeable.Value.ID;
         Result<Brick> brickResult = brickDatabase.Get(brickID);
         if (!brickResult.Success)
         {
-            return false;
+            return new Result<Brick>(success: false, null!, brickResult.Message, brickResult.Exception);
         }
 
-        placeable = brickResult.Value;
-        return true;
+        return Result<Brick>.FromSuccess(brickResult.Value);
     }
 
     /// <inheritdoc/>
-    public bool TryGetLoot(ushort brickDataID, out ItemData loot)
+    public Result<ItemData> GetLoot(ushort brickDataID)
     {
-        loot = default;
-
         Result<Brick> brickResult = brickDatabase.Get(brickDataID);
         if (!brickResult.Success)
         {
-            return false;
+            return Result<ItemData>.FromFailure(message: null);
         }
 
-        loot = InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE);
-        return true;
+        return Result<ItemData>.FromSuccess(InventoryComponent.Stack(brickResult.Value.ID, DEFAULT_STACK_SIZE));
     }
 }

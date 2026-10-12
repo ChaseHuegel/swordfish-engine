@@ -7,19 +7,12 @@ using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Gameplay;
 
-/// <summary>
-/// The shared, deterministic simulation step for a world. There is one instance per world - never a
-/// shared singleton - because each world keeps its own sim-tick counter and input staging. It subscribes
-/// to the world's <see cref="IPhysics.FixedUpdate"/> so it runs exactly once per fixed physics step
-/// (0.016s), applying the tick-tagged input command for the current sim tick. It drives player motion
-/// (look via torque, movement from the command's vector). Both the server authority and the client
-/// prediction run the same step for determinism.
-/// </summary>
+/// <summary>The deterministic simulation step for an ECS world.</summary>
 public sealed class SimulationStep : IDisposable
 {
-    /// <summary>The fixed physics step (seconds) the shared motion step runs at, matching <c>JoltPhysicsSystem</c>.</summary>
+    /// <summary>The fixed physics step (seconds) the step runs at, matching <c>JoltPhysicsSystem</c>.</summary>
     private const float PHYSICS_STEP = 0.016f;
-    
+
     /// <summary>Resolves the input command to apply for a given sim tick on a given entity.</summary>
     public delegate bool CommandResolver(int entity, uint simTick, out InputComponent command);
 
@@ -29,14 +22,19 @@ public sealed class SimulationStep : IDisposable
 
     private readonly Dictionary<int, Vector3> _lastAppliedLook = [];
 
+    /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
     public uint CurrentSimTick { get; private set; }
 
-    /// <summary>Re-seeds the sim-tick counter, used by reconcile to align prediction with the server.</summary>
+    /// <summary>Re-seeds the sim-tick counter so replay continues from the server's tick.</summary>
     public void AlignTo(uint simTick)
     {
         CurrentSimTick = simTick;
     }
 
+    /// <summary>
+    /// Creates the step bound to an ECS world's store and physics.
+    /// <paramref name="resolveCommand"/> defaults to the store's staged input buffer.
+    /// </summary>
     public SimulationStep(
         DataStore store,
         in IPhysics physics,
@@ -70,6 +68,7 @@ public sealed class SimulationStep : IDisposable
         Step();
     }
 
+    /// <summary>Advances the sim tick and applies the command for it to every input-driven body.</summary>
     public void Step()
     {
         CurrentSimTick++;
@@ -94,12 +93,8 @@ public sealed class SimulationStep : IDisposable
         ref PhysicsComponent physicsValue = ref physics.Write;
         ref readonly TransformComponent transformValue = ref transform.Read;
 
-        //  Look: drive rotation through physics torque (restored physics-look feel). The wire carries the
-        //  running absolute look totals; take the per-sim-tick difference so no input is dropped regardless
-        //  of sampling cadence, then apply it decoupled from dt (delta / PHYSICS_STEP) so each step rotates
-        //  by the full accumulated delta and Q/E roll is visible. World-space delta -> body frame by the
-        //  current orientation; Jolt integrates. Both sides consume the same totals, serialized solves make
-        //  the rotation deterministic.
+        //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as torque,
+        //  decoupled from dt so each step rotates by the full accumulated delta.
         physicsValue.Torque += -physicsValue.Torque * PHYSICS_STEP * CharacterDefaults.ANGULAR_DECELERATION;
         if (physicsValue.Torque.LengthSquared() <= 0.00001f)
         {
