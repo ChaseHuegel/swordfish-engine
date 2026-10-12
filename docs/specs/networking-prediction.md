@@ -6,8 +6,9 @@ server.
 ## The shared simulation step
 
 Gameplay simulation is a shared, deterministic step that runs **per physics
-step**, driven from `JoltPhysicsSystem.FixedUpdate` (the solver already
-fixed-steps at 0.016s). It applies **tick-tagged commands**: each
+step**, driven from `JoltPhysicsSystem.FixedUpdate` (the solver fixed-steps at
+`IPhysics.FixedTimestamp`, tunable via `physics.toml`). It applies
+**tick-tagged commands**: each
 `InputComponent` carries its target sim tick; multiple samples for the same
 tick collapse to the newest. Both sides apply the identical command-per-step
 mapping, which makes "same input sequence → same state" hold across two

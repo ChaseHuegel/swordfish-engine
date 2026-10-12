@@ -17,6 +17,9 @@ public sealed class ServerPhysicsSystem : IServerWorldSystem, IServerWorldPhysic
 {
     public event EventHandler<EventArgs>? FixedUpdate;
 
+    /// <summary>The fixed timestep the world physics runs at, in seconds.</summary>
+    public float FixedTimestamp => _physics.FixedTimestamp;
+
     private readonly JoltPhysicsSystem _physics;
 
     public ServerPhysicsSystem(

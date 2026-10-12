@@ -10,9 +10,6 @@ namespace WaywardBeyond.Gameplay;
 /// <summary>The deterministic simulation step for an ECS world.</summary>
 public sealed class SimulationStep : IDisposable
 {
-    /// <summary>The fixed physics step (seconds) the step runs at, matching <c>JoltPhysicsSystem</c>.</summary>
-    private const float PHYSICS_STEP = 0.016f;
-
     /// <summary>Resolves the input command to apply for a given sim tick on a given entity.</summary>
     public delegate bool CommandResolver(int entity, uint simTick, out InputComponent command);
 
@@ -93,9 +90,12 @@ public sealed class SimulationStep : IDisposable
         ref PhysicsComponent physicsValue = ref physics.Write;
         ref readonly TransformComponent transformValue = ref transform.Read;
 
+        //  The solver's fixed timestep scales the per-step impulses; both sides run the same step.
+        float fixedTimestamp = _physics.FixedTimestamp;
+
         //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as torque,
         //  decoupled from dt so each step rotates by the full accumulated delta.
-        physicsValue.Torque += -physicsValue.Torque * PHYSICS_STEP * CharacterDefaults.ANGULAR_DECELERATION;
+        physicsValue.Torque += -physicsValue.Torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
         if (physicsValue.Torque.LengthSquared() <= 0.00001f)
         {
             physicsValue.Torque = new Vector3();
@@ -107,7 +107,7 @@ public sealed class SimulationStep : IDisposable
             Vector3 perStep = lookTotals - lastApplied;
             if (perStep != Vector3.Zero)
             {
-                physicsValue.Torque += Vector3.Transform(perStep / PHYSICS_STEP, transform.Read.Orientation);
+                physicsValue.Torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
             }
         }
         _lastAppliedLook[entity] = lookTotals;
@@ -119,13 +119,13 @@ public sealed class SimulationStep : IDisposable
         var direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
 
         //  Damping then input-driven velocity (matches the legacy floaty-motion feel).
-        physicsValue.Velocity += -physicsValue.Velocity * PHYSICS_STEP * CharacterDefaults.DECELERATION;
+        physicsValue.Velocity += -physicsValue.Velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
         if (physicsValue.Velocity.LengthSquared() <= 0.00001f)
         {
             physicsValue.Velocity = new Vector3();
         }
 
-        physicsValue.Velocity += direction * CharacterDefaults.BASE_SPEED * PHYSICS_STEP;
+        physicsValue.Velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
     }
 
     /// <summary>
