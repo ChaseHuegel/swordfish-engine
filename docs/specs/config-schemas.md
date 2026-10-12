@@ -153,8 +153,8 @@ lives in `profile.toml` (`LastServerMode`).
 
 ## `storage.toml` (per app)
 
-Save-data root, registered via `RegisterConfig<StorageSettings>`.
-Schema: `WaywardBeyond.Config/StorageSettings.cs`.
+Save-data root, registered via `RegisterConfig<StorageConfig>`.
+Schema: `WaywardBeyond.Config/StorageConfig.cs`.
 
 | Key | Type | Default | Purpose |
 |---|---|---|---|

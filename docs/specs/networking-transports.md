@@ -291,7 +291,7 @@ resolution needs shared item content). Lifecycle: `Ctrl+C`/SIGTERM → clean
 shutdown (level flush, session teardown, store disposal, per
 [persistence](persistence.md)). CLI: `--name` and `--port` override
 `NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
-`StorageSettings.SaveRoot`.
+`StorageConfig.SaveRoot`.
 
 ## Source of truth
 

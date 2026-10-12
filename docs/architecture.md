@@ -24,6 +24,7 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Config/` | Shared config types | — | — |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
+| `WaywardBeyond.Server.Launcher/` | Headless dedicated server launcher app | `net9.0` | — |
 | `WaywardBeyond.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
 | `WaywardBeyond.Gameplay/` | Shared gameplay: simulation step, body config, interactions, save codec | `net9.0` | — |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations | `net9.0` | — |
@@ -31,8 +32,9 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |
 
-**Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`)
-and `WaywardBeyond.Client.Launcher/Program.cs`.
+**Entrypoints**: `Swordfish.Launcher/Program.cs` (`new SwordfishEngine(args).Run()`),
+`WaywardBeyond.Client.Launcher/Program.cs`, and
+`WaywardBeyond.Server.Launcher/Program.cs` (headless dedicated server).
 
 ## Core architecture principles
 
@@ -85,7 +87,7 @@ process boundary detail.
 
 All save data persists in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the
-layout under `StorageSettings.SaveRoot` (default `saves/`, file
+layout under `StorageConfig.SaveRoot` (default `saves/`, file
 `storage.toml`). The client owns `profile.db` (characters and save-listing
 metadata). The server owns one database per level. The dedicated server can
 override the data root with `--data`.

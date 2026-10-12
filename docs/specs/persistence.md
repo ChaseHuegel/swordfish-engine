@@ -7,7 +7,7 @@ One subject: how save data persists.
 All save data lives in SQLite databases through `Microsoft.Data.Sqlite`.
 `StoragePaths` (`WaywardBeyond.Data/StoragePaths.cs`) resolves the file
 layout under a data root. The root defaults to the relative `saves/` directory
-and comes from `StorageSettings` (`WaywardBeyond.Config/StorageSettings.cs`,
+and comes from `StorageConfig` (`WaywardBeyond.Config/StorageConfig.cs`,
 file `storage.toml`). The dedicated server can override it with `--data`
 (`WaywardBeyond.Server.Launcher/Program.cs`).
 
@@ -151,7 +151,7 @@ no shared broker process to manage.
 
 ## Source of truth
 
-- `WaywardBeyond.Config/StorageSettings.cs`
+- `WaywardBeyond.Config/StorageConfig.cs`
 - `WaywardBeyond.Data/StoragePaths.cs`
 - `WaywardBeyond.Data/Sqlite/SqliteDatabase.cs`
 - `WaywardBeyond.Data/Levels/SqliteLevelStorage.cs`

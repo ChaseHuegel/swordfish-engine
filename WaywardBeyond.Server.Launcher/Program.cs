@@ -73,7 +73,7 @@ internal static class Program
         }
         networkingConfig.Save();
 
-        StorageSettings storageSettings = container.Resolve<StorageSettings>();
+        StorageConfig storageSettings = container.Resolve<StorageConfig>();
         if (args.TryGetValue("data", out string? dataRoot) && !string.IsNullOrWhiteSpace(dataRoot))
         {
             storageSettings.SaveRoot.Set(dataRoot);
