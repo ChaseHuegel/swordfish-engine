@@ -2,13 +2,11 @@ using System;
 using System.Buffers;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Swordfish.Library.Util;
 using Microsoft.Extensions.Logging.Abstractions;
 using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
@@ -52,7 +50,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
     public long BytesSent => Interlocked.Read(ref _bytesSent);
     public long BytesReceived => Interlocked.Read(ref _bytesReceived);
     private TcpClient? _client;
-    private TcpListener? _listener;
     private NetworkStream? _stream;
     private volatile bool _isRunning;
     private volatile bool _disconnectedRaised;
@@ -150,9 +147,6 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
         return transport;
     }
 
-    /// <summary>The bound local port after <see cref="Listen"/>, or 0 if not listening.</summary>
-    public int LocalPort => (_listener?.LocalEndpoint as IPEndPoint)?.Port ?? 0;
-
     public void Connect(string host, int port)
     {
         _client = new TcpClient();
@@ -182,42 +176,12 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
         }
     }
 
-    public void Listen(int port)
-    {
-        _listener = new TcpListener(IPAddress.Any, port);
-        _listener.Start();
-        var acceptThread = new Thread(AcceptLoop)
-        {
-            IsBackground = true,
-            Name = "TcpTransport Accept"
-        };
-        acceptThread.Start();
-    }
-
-    private void AcceptLoop()
-    {
-        try
-        {
-            _client = _listener!.AcceptTcpClient();
-            _client.NoDelay = true;
-            _client.SendTimeout = _connectionTimeoutMs;
-            _client.ReceiveTimeout = _connectionTimeoutMs;
-            _stream = _client.GetStream();
-            StartLoops();
-        }
-        catch
-        {
-            //  Listener stopped (Dispose/Disconnect) while waiting for a connection.
-        }
-    }
-
     public void Disconnect()
     {
         _isRunning = false;
         _sendCts.Cancel();
         _stream?.Close();
         _client?.Close();
-        _listener?.Stop();
     }
 
     public Result Send<T>(in T message)

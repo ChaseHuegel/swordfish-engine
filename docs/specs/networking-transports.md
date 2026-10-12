@@ -35,11 +35,11 @@ demux are `TcpTransport` behavior.
 
 ## `TcpTransport` (peer / LAN / dedicated)
 
-`Transport/TcpTransport.cs` is a socket peer usable as a client
+`Transport/TcpTransport.cs` is a socket peer used by a client
 (`Connect(host, port)`; the async connect is bounded by `Transport.TimeoutMs`
 so an unreachable host fails the join attempt instead of freezing the caller
-through the OS connect retry schedule) or a server peer (`Listen(port)`; the
-multi-peer acceptor is `TcpServerHost`). It length-prefixes each serialized
+through the OS connect retry schedule). The multi-peer acceptor is
+`TcpServerHost`. It length-prefixes each serialized
 message with a type tag and dispatches frames to a **per-type receive queue**
 on a background receive thread, so each polling system can `Receive<T>` a
 distinct type. Framing is pool-backed on the hot path: wire frames and the
@@ -102,9 +102,9 @@ transport never disposes itself.
 `LocalConnection` endpoints and `TcpTransport` implement the interface.
 
 - `TcpTransport` counts on the real I/O paths. The send loop adds one packet
-  and the summed byte length per socket write (`TcpTransport.cs:492`); the
+  and the summed byte length per socket write (`TcpTransport.cs:457`); the
   receive loop counts every frame that arrives at the I/O boundary
-  (`TcpTransport.cs:536`), including a frame it drops for an unknown or
+  (`TcpTransport.cs:500`), including a frame it drops for an unknown or
   malformed type tag. The 4-byte length prefix is included on both sides, so a
   peer's `BytesSent` matches the other peer's `BytesReceived`.
 - `LocalConnection` keeps counters per endpoint, so each side reports its own
