@@ -19,6 +19,13 @@ public struct LocalizedTagsDefinition
         Tags = [];
         TwoLetterISOLanguageName = string.Empty;
     }
+    
+    /// <summary>Constructs a definition for a language.</summary>
+    public LocalizedTagsDefinition(string twoLetterISOLanguageName)
+    {
+        TwoLetterISOLanguageName = twoLetterISOLanguageName;
+        Tags = [];
+    }
 
     /// <summary>Constructs a definition for a language and its tags.</summary>
     public LocalizedTagsDefinition(string twoLetterISOLanguageName, Dictionary<string, List<string>> tags)

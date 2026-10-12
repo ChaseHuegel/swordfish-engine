@@ -52,11 +52,16 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
     protected override IEnumerable<LocalizedTagsDefinition> GetAssetInfo(PathInfo path, LocalizedTagsDefinition resource) => [resource];
 
     /// <inheritdoc/>
-    protected override string GetAssetID(LocalizedTagsDefinition assetInfo) => assetInfo.TwoLetterISOLanguageName;
+    protected override string GetAssetID(LocalizedTagsDefinition assetInfo) => assetInfo.TwoLetterISOLanguageName ?? string.Empty;
 
     /// <inheritdoc/>
     protected override Result<LocalizedTags> LoadAsset(string id, LocalizedTagsDefinition assetInfo)
     {
+        if (assetInfo.Tags == null)
+        {
+            return Result<LocalizedTags>.FromFailure("Tag file carries no tags");
+        }
+
         if (!_localizedTags.TryGetValue(id, out LocalizedTags? localizedTags))
         {
             //  This lang key does not exist yet. Create it.
@@ -66,10 +71,7 @@ internal sealed class LocalizedTagsDatabase : VirtualAssetDatabase<LocalizedTags
         }
 
         //  This lang key already exists. Append the tags.
-        if (assetInfo.Tags != null)
-        {
-            MergeTags(destination: localizedTags.Tags, source: assetInfo.Tags);
-        }
+        MergeTags(destination: localizedTags.Tags, source: assetInfo.Tags);
 
         return Result<LocalizedTags>.FromSuccess(localizedTags);
     }
