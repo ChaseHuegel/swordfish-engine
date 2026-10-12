@@ -23,7 +23,7 @@ public sealed class ServerLevelManager
     private readonly PendingJoins _pendingJoins;
     private readonly PendingLevelDeletes _pendingDeletes;
     private readonly ILevelCatalog _levelCatalog;
-    private readonly IPermissionPolicy _policy;
+    private readonly PermissionPolicy _policy;
     private readonly ConnectionClaims _claims;
     private readonly ILogger _logger;
 
@@ -31,7 +31,7 @@ public sealed class ServerLevelManager
         in PendingJoins pendingJoins,
         in PendingLevelDeletes pendingDeletes,
         in ILevelCatalog levelCatalog,
-        in IPermissionPolicy policy,
+        in PermissionPolicy policy,
         in ConnectionClaims claims,
         ILoggerFactory loggerFactory
     ) {

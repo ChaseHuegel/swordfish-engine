@@ -2,40 +2,29 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Microsoft.Extensions.Logging;
 using Swordfish.Library.IO;
 
 namespace WaywardBeyond.Permissions;
 
 /// <summary>
-///     Loads every permission TOML from the module asset root and the admin config root in a
-///     deterministic order. A parse failure is logged and skipped so one bad file never blocks startup.
+///     Loads every permission TOML from the module asset root and the admin config root. A parse failure
+///     is recorded as a diagnostic and skipped so one bad file never blocks startup.
 /// </summary>
-public sealed class PermissionFileLoader
+public sealed class PermissionFileLoader(
+    VirtualFileSystem vfs,
+    IFileParseService fileParseService,
+    PermissionLoadOptions? options = null)
 {
-    private readonly VirtualFileSystem _vfs;
-    private readonly IFileParseService _fileParseService;
-    private readonly ILogger<PermissionFileLoader> _logger;
-    private readonly PermissionLoadOptions _options;
+    private readonly PermissionLoadOptions _options = options ?? new PermissionLoadOptions();
 
-    public PermissionFileLoader(
-        in VirtualFileSystem vfs,
-        in IFileParseService fileParseService,
-        in ILogger<PermissionFileLoader> logger,
-        PermissionLoadOptions? options = null
-    ) {
-        _vfs = vfs;
-        _fileParseService = fileParseService;
-        _logger = logger;
-        _options = options ?? new PermissionLoadOptions();
-    }
-
+    /// <summary>Loads and parses every permission TOML under both roots. Parse failures collect in <paramref name="diagnostics"/>.</summary>
     public IReadOnlyList<SourcedPermissionFile> Load(PermissionDiagnostics diagnostics)
     {
         var paths = new List<PathInfo>();
-        paths.AddRange(_vfs.GetFiles(_options.AssetRoot, SearchOption.AllDirectories)
+        paths.AddRange(vfs.GetFiles(AsDirectory(_options.AssetRoot), SearchOption.AllDirectories)
             .Where(static path => path.HasExtension(".toml")));
-        paths.AddRange(AsDirectory(_options.ConfigRoot).GetFiles("*.toml", SearchOption.AllDirectories));
+        paths.AddRange(AsDirectory(_options.ConfigRoot).GetFiles(SearchOption.AllDirectories)
+            .Where(static path => path.HasExtension(".toml")));
         paths.Sort(static (left, right) => string.CompareOrdinal(left.Value, right.Value));
 
         var files = new List<SourcedPermissionFile>();
@@ -44,18 +33,16 @@ public sealed class PermissionFileLoader
             PermissionFile file;
             try
             {
-                file = _fileParseService.Parse<PermissionFile>(path);
+                file = fileParseService.Parse<PermissionFile>(path);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to parse permission file \"{file}\".", path.Value);
-                diagnostics.Error($"Failed to parse permission file \"{path.Value}\".");
+                diagnostics.Error($"Failed to parse permission file \"{path.Value}\": {ex.Message}");
                 continue;
             }
 
             if (file == null)
             {
-                _logger.LogError("No permission parser is registered for \"{file}\".", path.Value);
                 diagnostics.Error($"No permission parser is registered for \"{path.Value}\".");
                 continue;
             }

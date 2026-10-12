@@ -3,72 +3,41 @@ using System.Collections.Generic;
 
 namespace WaywardBeyond.Permissions;
 
-/// <summary>
-///     A compiled, immutable permission set for one user or for the default baseline. Lookups are
-///     allocation-free: the query is walked as a span against the exact map, then the longest matching
-///     trailing wildcard prefix, then the global wildcard. Deny wins at equal specificity.
-/// </summary>
+/// <summary>A compiled, immutable permission set for one user or the default baseline. Lookups allocate nothing.</summary>
 public sealed class PermissionSet
 {
-    /// <summary>A set that grants everything. The local host uses it.</summary>
-    public static readonly PermissionSet AllowAll = new(
-        allowAll: true,
-        exact: [],
-        wildcards: [],
-        hasGlobal: false,
-        global: false,
-        roles: [],
-        declared: [PermissionKey.WILDCARD]
-    );
+    /// <summary>A set that grants every permission.</summary>
+    public static readonly PermissionSet AllowAll = new([], [], true);
 
-    private readonly bool _allowAll;
+    private readonly bool? _global;
     private readonly Dictionary<string, bool>.AlternateLookup<ReadOnlySpan<char>> _exactLookup;
     private readonly Dictionary<string, bool>.AlternateLookup<ReadOnlySpan<char>> _wildcardsLookup;
-    private readonly bool _hasGlobal;
-    private readonly bool _global;
-    private readonly string[] _roles;
-    private readonly string[] _declared;
 
     internal PermissionSet(
-        bool allowAll,
         Dictionary<string, bool> exact,
         Dictionary<string, bool> wildcards,
-        bool hasGlobal,
-        bool global,
-        string[] roles,
-        string[] declared
+        bool? global
     ) {
-        _allowAll = allowAll;
-        _hasGlobal = hasGlobal;
         _global = global;
-        _roles = roles;
-        _declared = declared;
         _exactLookup = exact.GetAlternateLookup<ReadOnlySpan<char>>();
         _wildcardsLookup = wildcards.GetAlternateLookup<ReadOnlySpan<char>>();
     }
 
-    /// <summary>The roles that contributed to this set, including inherited and default roles.</summary>
-    public IReadOnlyList<string> Roles => _roles;
-
-    /// <summary>The declared nodes that contributed to this set, for diagnostics.</summary>
-    public IReadOnlyList<string> DeclaredPermissions => _declared;
-
+    /// <summary>
+    ///     Returns true when this set grants the permission. The exact node wins, then the longest
+    ///     matching wildcard prefix, then the global wildcard.
+    /// </summary>
     public bool HasPermission(string permission)
     {
-        if (_allowAll)
-        {
-            return true;
-        }
-
         if (string.IsNullOrEmpty(permission))
         {
-            return _hasGlobal && _global;
+            return _global ?? false;
         }
 
         ReadOnlySpan<char> key = permission.AsSpan().Trim();
         if (key.IsEmpty)
         {
-            return _hasGlobal && _global;
+            return _global ?? false;
         }
 
         if (_exactLookup.TryGetValue(key, out bool exact))
@@ -78,7 +47,7 @@ public sealed class PermissionSet
 
         while (true)
         {
-            int separator = key.LastIndexOf(PermissionKey.SEPARATOR);
+            int separator = key.LastIndexOf(PermissionSyntax.SEPARATOR);
             if (separator <= 0)
             {
                 break;
@@ -91,6 +60,6 @@ public sealed class PermissionSet
             }
         }
 
-        return _hasGlobal && _global;
+        return _global ?? false;
     }
 }

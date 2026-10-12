@@ -47,7 +47,7 @@ public static class ServerComposition
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
         container.RegisterTomlParser<PermissionFile>();
         container.Register<PermissionFileLoader>(Reuse.Singleton);
-        container.RegisterDelegate<IPermissionPolicy>(context =>
+        container.RegisterDelegate<PermissionPolicy>(context =>
         {
             PermissionFileLoader loader = context.Resolve<PermissionFileLoader>();
             var diagnostics = new PermissionDiagnostics();

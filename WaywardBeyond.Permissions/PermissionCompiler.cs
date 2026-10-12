@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Permissions;
 
 /// <summary>
 ///     Merges loaded permission files into an immutable <see cref="PermissionPolicy"/>. Same-named groups
-///     and users merge by union across files. Inheritance resolves iteratively, so a cycle contributes
-///     every acyclic edge and is reported once. Compilation never recurses and never throws.
+///     and users merge by union across files. Inheritance resolves depth-capped, so a cycle contributes
+///     every acyclic edge and is reported once. Compilation never throws.
 /// </summary>
 internal static class PermissionCompiler
 {
@@ -19,18 +20,18 @@ internal static class PermissionCompiler
         Dictionary<string, MergedGroup> groups = MergeGroups(files, diagnostics);
         Dictionary<string, MergedUser> users = MergeUsers(files, diagnostics);
 
-        var graph = new GroupGraph();
+        var graph = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, MergedGroup> entry in groups)
         {
-            graph.Add(entry.Key, [.. entry.Value.Inherits.OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)]);
+            graph[entry.Key] = [.. entry.Value.Inherits.OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)];
         }
 
         var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        bool hasDefault = graph.Contains(PermissionPolicy.DEFAULT_ROLE);
+        bool hasDefault = graph.ContainsKey(PermissionPolicy.DEFAULT_ROLE);
         string[] defaultClosure = hasDefault
             ? ResolveClosure(graph, groups, [PermissionPolicy.DEFAULT_ROLE], reportedCycles, diagnostics)
             : [];
-        PermissionSet defaultSet = CompileSet(defaultClosure, CollectNodes(defaultClosure, groups, null), diagnostics);
+        PermissionSet defaultSet = CompileSet(CollectNodes(defaultClosure, groups, null), diagnostics);
 
         var compiledUsers = new Dictionary<string, PermissionSet>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, MergedUser> entry in users)
@@ -50,16 +51,10 @@ internal static class PermissionCompiler
             }
 
             string[] closure = ResolveClosure(graph, groups, roots, reportedCycles, diagnostics);
-            compiledUsers[entry.Key] = CompileSet(closure, CollectNodes(closure, groups, user.Permissions), diagnostics);
+            compiledUsers[entry.Key] = CompileSet(CollectNodes(closure, groups, user.Permissions), diagnostics);
         }
 
-        return new PermissionPolicy(
-            compiledUsers,
-            defaultSet,
-            [.. groups.Keys.OrderBy(static name => name, StringComparer.OrdinalIgnoreCase)],
-            [.. users.Keys.OrderBy(static id => id, StringComparer.OrdinalIgnoreCase)],
-            diagnostics
-        );
+        return new PermissionPolicy(compiledUsers, defaultSet, groups.Count, users.Count, diagnostics);
     }
 
     private static Dictionary<string, MergedGroup> MergeGroups(IReadOnlyList<SourcedPermissionFile> files, PermissionDiagnostics diagnostics)
@@ -70,7 +65,7 @@ internal static class PermissionCompiler
             foreach (KeyValuePair<string, PermissionGroupGrant> entry in sourced.File.Groups)
             {
                 string name = entry.Key == null ? string.Empty : entry.Key.Trim();
-                if (!PermissionKey.IsValidName(name))
+                if (!PermissionSyntax.IsValidName(name))
                 {
                     diagnostics.Warn($"File \"{sourced.Source}\" declares the invalid group name \"{entry.Key}\"; the entry is ignored.");
                     continue;
@@ -99,7 +94,7 @@ internal static class PermissionCompiler
             foreach (KeyValuePair<string, PermissionUserGrant> entry in sourced.File.Users)
             {
                 string userId = entry.Key == null ? string.Empty : entry.Key.Trim();
-                if (!PermissionKey.IsValidName(userId))
+                if (!PermissionSyntax.IsValidName(userId))
                 {
                     diagnostics.Warn($"File \"{sourced.Source}\" declares the invalid user id \"{entry.Key}\"; the entry is ignored.");
                     continue;
@@ -111,7 +106,6 @@ internal static class PermissionCompiler
                     users[userId] = user;
                 }
 
-                user.Sources.Add(sourced.Source);
                 MergeNames(user.Roles, entry.Value?.Roles, "user", userId, sourced.Source, diagnostics);
                 MergePermissions(user.Permissions, user.SeenPermissions, entry.Value?.Permissions, "user", userId, sourced.Source, diagnostics);
             }
@@ -136,7 +130,7 @@ internal static class PermissionCompiler
         foreach (string raw in values)
         {
             string name = raw == null ? string.Empty : raw.Trim();
-            if (!PermissionKey.IsValidName(name))
+            if (!PermissionSyntax.IsValidName(name))
             {
                 diagnostics.Warn($"File \"{source}\" declares the invalid role \"{raw}\" on {kind} \"{owner}\"; the role is ignored.");
                 continue;
@@ -177,7 +171,7 @@ internal static class PermissionCompiler
     }
 
     private static string[] ResolveClosure(
-        GroupGraph graph,
+        Dictionary<string, string[]> graph,
         Dictionary<string, MergedGroup> groups,
         IReadOnlyList<string> roots,
         HashSet<string> reportedCycles,
@@ -187,7 +181,8 @@ internal static class PermissionCompiler
         var onPath = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var path = new List<string>();
         var closure = new List<string>();
-        var stack = new List<Frame>();
+        var depthReported = false;
+        var countReported = false;
 
         foreach (string root in roots)
         {
@@ -196,38 +191,30 @@ internal static class PermissionCompiler
                 continue;
             }
 
-            if (!graph.Contains(root))
+            if (!graph.ContainsKey(root))
             {
                 diagnostics.Warn($"Role \"{root}\" does not match any declared group.");
                 continue;
             }
 
-            visited.Add(root);
-            onPath.Add(root);
-            path.Add(root);
-            closure.Add(root);
-            stack.Add(new Frame(root, graph.GetParents(root)));
+            Visit(root, depth: 0);
+        }
 
-            while (stack.Count > 0)
+        return [.. closure];
+
+        void Visit(string group, int depth)
+        {
+            visited.Add(group);
+            onPath.Add(group);
+            path.Add(group);
+            closure.Add(group);
+
+            string[] parents = graph.TryGetValue(group, out string[]? resolved) ? resolved : [];
+            foreach (string parent in parents)
             {
-                int top = stack.Count - 1;
-                Frame frame = stack[top];
-
-                if (frame.Next >= frame.Parents.Length)
+                if (!graph.ContainsKey(parent))
                 {
-                    onPath.Remove(frame.Group);
-                    path.RemoveAt(path.Count - 1);
-                    stack.RemoveAt(top);
-                    continue;
-                }
-
-                string parent = frame.Parents[frame.Next];
-                frame.Next++;
-                stack[top] = frame;
-
-                if (!graph.Contains(parent))
-                {
-                    diagnostics.Warn($"Group \"{frame.Group}\" inherits unknown group \"{parent}\".");
+                    diagnostics.Warn($"Group \"{group}\" inherits unknown group \"{parent}\".");
                     continue;
                 }
 
@@ -243,27 +230,34 @@ internal static class PermissionCompiler
                     continue;
                 }
 
-                if (path.Count >= MAX_INHERITANCE_DEPTH)
+                if (depth + 1 >= MAX_INHERITANCE_DEPTH)
                 {
-                    diagnostics.Error($"Inheritance below group \"{parent}\" exceeds the maximum depth of {MAX_INHERITANCE_DEPTH}; the branch is truncated.");
+                    if (!depthReported)
+                    {
+                        diagnostics.Error($"Inheritance below group \"{parent}\" exceeds the maximum depth of {MAX_INHERITANCE_DEPTH}; the branch is truncated.");
+                        depthReported = true;
+                    }
+
                     continue;
                 }
 
                 if (closure.Count >= MAX_GROUPS_PER_USER)
                 {
-                    diagnostics.Error($"Group expansion exceeded the maximum of {MAX_GROUPS_PER_USER} groups; the branch is truncated.");
+                    if (!countReported)
+                    {
+                        diagnostics.Error($"Group expansion exceeded the maximum of {MAX_GROUPS_PER_USER} groups; the branch is truncated.");
+                        countReported = true;
+                    }
+
                     continue;
                 }
 
-                visited.Add(parent);
-                onPath.Add(parent);
-                path.Add(parent);
-                closure.Add(parent);
-                stack.Add(new Frame(parent, graph.GetParents(parent)));
+                Visit(parent, depth + 1);
             }
-        }
 
-        return [.. closure];
+            onPath.Remove(group);
+            path.RemoveAt(path.Count - 1);
+        }
     }
 
     private static void ReportCycle(
@@ -328,32 +322,25 @@ internal static class PermissionCompiler
         return nodes;
     }
 
-    private static PermissionSet CompileSet(string[] roles, List<string> rawNodes, PermissionDiagnostics diagnostics)
+    private static PermissionSet CompileSet(List<string> rawNodes, PermissionDiagnostics diagnostics)
     {
         var exact = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var wildcards = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
-        var declared = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var hasGlobal = false;
-        var global = true;
+        bool? global = null;
 
         foreach (string raw in rawNodes)
         {
-            if (!PermissionKey.TryParse(raw, out PermissionNode node))
+            Result<PermissionNode> parsed = PermissionSyntax.Parse(raw);
+            if (!parsed.Success)
             {
                 diagnostics.Warn($"Ignoring invalid permission node \"{raw}\".");
                 continue;
             }
 
-            if (seen.Add(raw))
-            {
-                declared.Add(raw);
-            }
-
+            PermissionNode node = parsed.Value;
             if (node.IsGlobal)
             {
-                hasGlobal = true;
-                global = global && !node.IsDeny;
+                global = (global ?? true) && !node.IsDeny;
                 continue;
             }
 
@@ -363,42 +350,7 @@ internal static class PermissionCompiler
             map[node.Key] = map.TryGetValue(node.Key, out bool existing) ? existing && allow : allow;
         }
 
-        return new PermissionSet(
-            allowAll: false,
-            exact,
-            wildcards,
-            hasGlobal,
-            global,
-            roles,
-            [.. declared]
-        );
-    }
-
-    private struct Frame(string group, string[] parents)
-    {
-        public readonly string Group = group;
-        public readonly string[] Parents = parents;
-        public int Next;
-    }
-
-    private sealed class GroupGraph
-    {
-        private readonly Dictionary<string, string[]> _parents = new(StringComparer.OrdinalIgnoreCase);
-
-        public void Add(string group, string[] parents)
-        {
-            _parents[group] = parents;
-        }
-
-        public bool Contains(string group)
-        {
-            return _parents.ContainsKey(group);
-        }
-
-        public string[] GetParents(string group)
-        {
-            return _parents.TryGetValue(group, out string[]? parents) ? parents : [];
-        }
+        return new PermissionSet(exact, wildcards, global);
     }
 
     private sealed class MergedGroup
@@ -414,6 +366,5 @@ internal static class PermissionCompiler
         public readonly HashSet<string> Roles = new(StringComparer.OrdinalIgnoreCase);
         public readonly List<string> Permissions = [];
         public readonly HashSet<string> SeenPermissions = new(StringComparer.OrdinalIgnoreCase);
-        public readonly HashSet<string> Sources = new(StringComparer.Ordinal);
     }
 }

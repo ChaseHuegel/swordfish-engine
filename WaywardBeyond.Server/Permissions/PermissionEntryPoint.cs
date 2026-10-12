@@ -8,29 +8,20 @@ namespace WaywardBeyond.Server.Permissions;
 ///     Loads and compiles the permission policy at startup. It surfaces the loaded counts and every
 ///     load or compile diagnostic in the server log.
 /// </summary>
-public sealed class PermissionEntryPoint : IEntryPoint
+public sealed class PermissionEntryPoint(PermissionPolicy policy, ILogger<PermissionEntryPoint> logger) : IEntryPoint
 {
-    private readonly IPermissionPolicy _policy;
-    private readonly ILogger<PermissionEntryPoint> _logger;
-
-    public PermissionEntryPoint(in IPermissionPolicy policy, in ILogger<PermissionEntryPoint> logger)
-    {
-        _policy = policy;
-        _logger = logger;
-    }
-
     public void Run()
     {
-        _logger.LogInformation("Loaded permissions: {groups} groups, {users} users.", _policy.GroupCount, _policy.UserCount);
+        logger.LogInformation("Loaded permissions: {groups} groups, {users} users.", policy.GroupCount, policy.UserCount);
 
-        foreach (string warning in _policy.Diagnostics.Warnings)
+        foreach (string warning in policy.Diagnostics.Warnings)
         {
-            _logger.LogWarning("Permissions: {warning}", warning);
+            logger.LogWarning("Permissions: {warning}", warning);
         }
 
-        foreach (string error in _policy.Diagnostics.Errors)
+        foreach (string error in policy.Diagnostics.Errors)
         {
-            _logger.LogError("Permissions: {error}", error);
+            logger.LogError("Permissions: {error}", error);
         }
     }
 }

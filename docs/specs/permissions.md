@@ -12,14 +12,15 @@ permission never needs a code change.
 
 ## File sources
 
-The loader scans two roots. It scans the module asset root `permissions/` first,
-then the admin root `config/permissions/`. Both roots are recursive. Only `.toml`
-files load. All files merge into one policy.
+The loader scans the module asset root `permissions/` and the admin root
+`config/permissions/`. Both roots are recursive. Only `.toml` files load. All
+files from both roots merge into one policy.
 
 `PermissionFileLoader.Load`
-(`WaywardBeyond.Permissions/PermissionFileLoader.cs:33`) sorts the paths
-before parsing, so the load order is deterministic. A parse failure logs an error
-and skips the file. Startup continues.
+(`WaywardBeyond.Permissions/PermissionFileLoader.cs:30`) sorts the paths before
+parsing, so the load order is deterministic. A parse failure is recorded as a
+diagnostic and skips the file. Startup continues. The server logs the collected
+diagnostics at startup.
 
 ## File format
 
@@ -67,23 +68,23 @@ Group names, user ids, and permission keys are case-insensitive. `Inherits`,
 ## Cycle safety
 
 `PermissionCompiler.ResolveClosure`
-(`WaywardBeyond.Permissions/PermissionCompiler.cs:179`) resolves
-inheritance with an explicit stack. It never recurses. A cycle contributes every
-acyclic edge. The compiler skips the edge that closes the cycle and records one
-warning with the cycle path and the source files. Depth is capped at 64. The
-group count per user is capped at 256. A cap breach logs an error and truncates
-the branch. Compilation always terminates and never throws.
+(`WaywardBeyond.Permissions/PermissionCompiler.cs:173`) resolves inheritance with
+depth-capped recursion. The depth cap of 64 bounds the recursion. A cycle
+contributes every acyclic edge. The compiler skips the edge that closes the
+cycle and records one warning with the cycle path and the source files. The
+group count per user is capped at 256. A cap breach records one error and
+truncates the branch. Compilation always terminates and never throws.
 
 ## Load and query
 
 `PermissionPolicy.Create`
-(`WaywardBeyond.Permissions/PermissionPolicy.cs:73`) merges, resolves,
-and compiles at startup. Every user declared in a file compiles once. Every
-unlisted user shares the compiled default set.
-`PermissionPolicy.DEFAULT_ROLE` is `default`.
+(`WaywardBeyond.Permissions/PermissionPolicy.cs:58`) merges, resolves, and
+compiles at startup. Every user declared in a file compiles once. Every unlisted
+user shares the compiled default set. `PermissionPolicy.DefaultRole` is
+`default`.
 
 `PermissionSet.HasPermission`
-(`WaywardBeyond.Permissions/PermissionSet.cs:56`) walks the query as a
+(`WaywardBeyond.Permissions/PermissionSet.cs:30`) walks the query as a
 `ReadOnlySpan<char>`. It uses cached alternate lookups on an exact map and a
 wildcard map. It does not allocate. Prefer `PermissionPolicy.GetPermissions`
 when code checks many keys, so the user lookup happens once.
@@ -92,13 +93,12 @@ when code checks many keys, so the user lookup happens once.
 
 | Type | Role |
 |---|---|
-| `IPermissionPolicy` | `GetPermissions`, `HasPermission`, `GetRoles`, `GetEffectivePermissions`; `Diagnostics`, `GroupCount`, `UserCount` |
+| `PermissionPolicy` | The compiled policy; `GetPermissions`, `HasPermission`, `Create`; `Diagnostics`, `GroupCount`, `UserCount` |
 | `PermissionSet` | A compiled set; `HasPermission`; `AllowAll` grants everything |
-| `PermissionPolicy` | The compiled policy; `Create` |
 | `PermissionFileLoader` | Scans the two roots and parses files |
 | `PermissionLoadOptions` | `AssetRoot` (default `permissions/`), `ConfigRoot` (default `config/permissions/`) |
 | `PermissionDiagnostics` | `Warnings` and `Errors` from load and compile |
-| `UserClaim`, `IUserClaimProvider` | The user identity seam |
+| `UserClaim` | The user identity the client presents |
 | `ConnectionClaims` | Pre-join claims keyed by `IServerConnection`; `Bind`, `TryGet`, `Clear` |
 
 ## Server integration
@@ -150,14 +150,7 @@ button (`HomePage`).
 
 ## Tests that pin this
 
-- `Swordfish.Tests/Permissions/PermissionCompilerTests.cs` — merge, inheritance,
-  deny and wildcard precedence, cycle handling, caps, invalid nodes.
 - `Swordfish.Tests/Permissions/PermissionSetTests.cs` — set semantics and the
   zero-allocation check.
-- `Swordfish.Tests/Permissions/PermissionPolicyTests.cs` — default set sharing.
-- `Swordfish.Tests/Permissions/PermissionFileLoaderTests.cs` — asset and config
-  roots, parse-failure skip.
 - `Swordfish.Tests/Permissions/UserPermissionServiceTests.cs` — session binding,
   host override, deny on unbind.
-- `Swordfish.Tests/Permissions/ServerLevelCreatePermissionTests.cs` — host
-  allow, remote grant and deny, create capability on the listing.

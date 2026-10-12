@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.Library.Util;
+using WaywardBeyond.Client.Identity;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Serialization;
 using WaywardBeyond.Networking.Transport;
-using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Client.Networking;
 
@@ -23,7 +23,7 @@ internal sealed class TransportManager : IClientConnection
     private readonly IEnumerable<INetworkSerializer> _serializers;
     private readonly ILoggerFactory _loggerFactory;
     private readonly NetworkingConfig _config;
-    private readonly IUserClaimProvider _userClaimProvider;
+    private readonly ProfileUserClaimProvider _userClaimProvider;
     private readonly ILogger _logger;
     private TcpTransport? _remote;
     private IClientConnection? _active;
@@ -35,7 +35,7 @@ internal sealed class TransportManager : IClientConnection
         in IEnumerable<INetworkSerializer> serializers,
         in ILoggerFactory loggerFactory,
         in NetworkingConfig config,
-        in IUserClaimProvider userClaimProvider
+        in ProfileUserClaimProvider userClaimProvider
     ) {
         _serializers = serializers;
         _loggerFactory = loggerFactory;

@@ -8,11 +8,11 @@ public sealed class PermissionDiagnostics
     private readonly List<string> _warnings = [];
     private readonly List<string> _errors = [];
 
+    /// <summary>The non-fatal issues found while loading and compiling.</summary>
     public IReadOnlyList<string> Warnings => _warnings;
 
+    /// <summary>The errors found while loading and compiling.</summary>
     public IReadOnlyList<string> Errors => _errors;
-
-    public bool HasIssues => _warnings.Count > 0 || _errors.Count > 0;
 
     internal void Warn(string message)
     {

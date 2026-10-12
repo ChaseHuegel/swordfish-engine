@@ -8,19 +8,13 @@ namespace WaywardBeyond.Server.Permissions;
 ///     Per-world claim bindings. The service resolves each user's compiled set once at bind time, so a
 ///     check is one client lookup and one set lookup. The host connection uses the all-granting set.
 /// </summary>
-public sealed class UserPermissionService : IUserPermissionService
+public sealed class UserPermissionService(PermissionPolicy policy) : IUserPermissionService
 {
-    private readonly IPermissionPolicy _policy;
     private readonly ConcurrentDictionary<Uuid, BoundClient> _clients = new();
-
-    public UserPermissionService(in IPermissionPolicy policy)
-    {
-        _policy = policy;
-    }
 
     public void Bind(Uuid clientId, in UserClaim claim, bool isHost)
     {
-        PermissionSet permissions = isHost ? PermissionSet.AllowAll : _policy.GetPermissions(claim.UserId);
+        PermissionSet permissions = isHost ? PermissionSet.AllowAll : policy.GetPermissions(claim.UserId);
         _clients[clientId] = new BoundClient(claim, permissions, isHost);
     }
 

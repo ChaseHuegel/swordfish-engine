@@ -39,7 +39,6 @@ using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
-using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Client;
 
@@ -92,7 +91,7 @@ public class Injector : IDryIocInjector
         container.Register<GameSaveManager>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, GameSaveManager>();
 
-        container.Register<IUserClaimProvider, ProfileUserClaimProvider>(Reuse.Singleton);
+        container.Register<ProfileUserClaimProvider>(Reuse.Singleton);
         
         container.Register<Entry>(Reuse.Singleton);
         container.RegisterMapping<IAutoActivate, Entry>();

@@ -8,6 +8,4 @@ public readonly record struct UserClaim(string UserId)
 {
     /// <summary>An absent claim. It resolves to the default permission set.</summary>
     public static readonly UserClaim Anonymous = new(string.Empty);
-
-    public bool IsAnonymous => string.IsNullOrEmpty(UserId);
 }

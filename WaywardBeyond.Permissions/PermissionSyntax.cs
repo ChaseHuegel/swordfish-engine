@@ -1,12 +1,13 @@
 using System;
+using Swordfish.Library.Util;
 
 namespace WaywardBeyond.Permissions;
 
 /// <summary>
-///     Parses dotted permission nodes. A node is an optional deny prefix (<c>-</c>), a dotted key, and an
+///     The syntax of dotted permission nodes: an optional deny prefix (<c>-</c>), a dotted key, and an
 ///     optional trailing wildcard (<c>*</c> or <c>prefix.*</c>). Middle-segment wildcards are rejected.
 /// </summary>
-internal static class PermissionKey
+internal static class PermissionSyntax
 {
     public const char SEPARATOR = '.';
     public const char DENY_PREFIX = '-';
@@ -33,18 +34,18 @@ internal static class PermissionKey
         return true;
     }
 
-    public static bool TryParse(string? raw, out PermissionNode node)
+    /// <summary>Parses a permission node. Invalid input returns a failed result.</summary>
+    public static Result<PermissionNode> Parse(string? raw)
     {
-        node = default;
         if (raw == null)
         {
-            return false;
+            return Result<PermissionNode>.FromFailure(message: null);
         }
 
         string value = raw.Trim();
         if (value.Length == 0)
         {
-            return false;
+            return Result<PermissionNode>.FromFailure(message: null);
         }
 
         bool isDeny = value[0] == DENY_PREFIX;
@@ -53,14 +54,13 @@ internal static class PermissionKey
             value = value[1..];
             if (value.Length == 0)
             {
-                return false;
+                return Result<PermissionNode>.FromFailure(message: null);
             }
         }
 
         if (value == WILDCARD)
         {
-            node = new PermissionNode(isDeny, isGlobal: true, isWildcard: false, string.Empty);
-            return true;
+            return Result<PermissionNode>.FromSuccess(new PermissionNode(isDeny, isGlobal: true, isWildcard: false, string.Empty));
         }
 
         if (value.EndsWith(WILDCARD_SUFFIX, StringComparison.Ordinal))
@@ -68,20 +68,18 @@ internal static class PermissionKey
             string prefix = value[..^WILDCARD_SUFFIX.Length];
             if (!IsValidSegments(prefix))
             {
-                return false;
+                return Result<PermissionNode>.FromFailure(message: null);
             }
 
-            node = new PermissionNode(isDeny, isGlobal: false, isWildcard: true, prefix);
-            return true;
+            return Result<PermissionNode>.FromSuccess(new PermissionNode(isDeny, isGlobal: false, isWildcard: true, prefix));
         }
 
         if (!IsValidSegments(value))
         {
-            return false;
+            return Result<PermissionNode>.FromFailure(message: null);
         }
 
-        node = new PermissionNode(isDeny, isGlobal: false, isWildcard: false, value);
-        return true;
+        return Result<PermissionNode>.FromSuccess(new PermissionNode(isDeny, isGlobal: false, isWildcard: false, value));
     }
 
     private static bool IsValidSegments(string value)
