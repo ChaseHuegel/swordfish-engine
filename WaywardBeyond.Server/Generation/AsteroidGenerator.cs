@@ -1,38 +1,29 @@
-using System;
 using System.Numerics;
 using LibNoise;
 using LibNoise.Primitive;
 using Swordfish.ECS;
-using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay.Generation.Noise;
+using WaywardBeyond.Gameplay.Saves;
 
-namespace WaywardBeyond.Gameplay.Generation.Structures;
+namespace WaywardBeyond.Server.Generation;
 
-/// <summary>
-///     Generates one rocky/icy asteroid as serialized voxel data. Correspondence to the former
-///     client-side generator is exact: the same seeded randomizer, simplex noise and voxel indexing (via
-///     <see cref="VoxelChunkWriter"/>), but it produces a <see cref="GeneratedVoxelEntity"/> instead of
-///     building entities into a render-coupled store, so the server can run it headlessly and re-stream
-///     the result.
-/// </summary>
-internal sealed class AsteroidGenerator(in int seed, in Voxel rockVoxel, in Voxel iceVoxel)
+/// <summary>A type for generating voxel asteroid structures.</summary>
+internal sealed class AsteroidGenerator(IBrickRegistry brickRegistry, int seed, Voxel rockVoxel, Voxel iceVoxel)
 {
     private readonly Randomizer _randomizer = new(seed);
     private readonly SimplexPerlin _simplexPerlin = new(seed, NoiseQuality.Fast);
-    private readonly Voxel _rockVoxel = rockVoxel;
-    private readonly Voxel _iceVoxel = iceVoxel;
 
-    public GeneratedVoxelEntity GenerateAt(Vector3 position, int diameter)
+    /// <summary>Generate an asteroid using the provided parameters.</summary>
+    public VoxelEntityData GenerateAt(Vector3 position, int diameter, Uuid uuid)
     {
         var writer = new VoxelChunkWriter(chunkSize: 16);
-        Voxel voxel = _randomizer.NextFloat() > 0.5f ? _rockVoxel : _iceVoxel;
+        Voxel voxel = _randomizer.NextFloat() > 0.5f ? rockVoxel : iceVoxel;
 
         int width = diameter / 2;
-        int centerOfMass = diameter / 2;
         int radius = _randomizer.NextInt(width / 5, width);
-        var origin = new Vector3(centerOfMass);
+        var origin = new Vector3(width);
         int offset = _randomizer.NextInt(1000);
         float frequency = _randomizer.NextFloat() * 0.03f + 0.02f;
         float amplitude = _randomizer.NextFloat() * 0.5f + 0.2f;
@@ -61,7 +52,16 @@ internal sealed class AsteroidGenerator(in int seed, in Voxel rockVoxel, in Voxe
         float pitch = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         float roll = _randomizer.NextFloat() * MathS.RADIANS_FULL_REVOLUTION;
         var orientation = Quaternion.CreateFromYawPitchRoll(yaw, pitch, roll);
+        ChunkInfo[] chunkInfos = writer.GetChunkInfos();
+        string[]? brickPalette = VoxelEntityDataCodec.EncodePalette(chunkInfos, brickRegistry);
 
-        return new GeneratedVoxelEntity(Uuid.NewUuid(), position, orientation, writer.GetChunkInfos());
+        return new VoxelEntityData(
+            uuid.ToValue(),
+            position.X, position.Y, position.Z,
+            orientation.X, orientation.Y, orientation.Z, orientation.W,
+            _ScaleX: 1, _ScaleY: 1, _ScaleZ: 1,
+            chunkInfos,
+            brickPalette
+        );
     }
 }

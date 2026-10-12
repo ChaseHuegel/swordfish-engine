@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,10 +11,10 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;

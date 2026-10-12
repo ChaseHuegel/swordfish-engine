@@ -55,7 +55,8 @@ Every top-level path and what it is:
 | `WaywardBeyond.Client.Tests/` | Game client tests (NUnit) |
 | `WaywardBeyond.Config/` | Shared config types |
 | `WaywardBeyond.Data/` | Shared data models |
-| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation |
+| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, body config, interactions, save codec |
+| `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
 | `WaywardBeyond.Networking/` | Standalone networking layer over the ECS |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
 | `WaywardBeyond.Server/` | Game server module |

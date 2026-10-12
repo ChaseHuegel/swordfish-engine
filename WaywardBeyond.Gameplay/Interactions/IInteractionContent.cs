@@ -1,22 +1,16 @@
+﻿using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>
-/// Headless interface for resolving the two facts the authoritative server needs to apply a brick
-/// interaction without any render-coupled client database: (1) which brick a held item places, and (2)
-/// what loot a broken brick grants in survival mode. The client implements this over its
-/// <c>ItemDatabase</c>/<c>BrickDatabase</c> and registers it in the shared container; the server resolves
-/// it to author placeable/loot resolution. Tests provide a lightweight fake.
-/// </summary>
+/// <summary>A type for resolving brick related items.</summary>
 public interface IInteractionContent
 {
-    /// <summary>
-    /// Resolves a held item to the placeable brick it places, if any. Returns false when the item is not
-    /// a placeable brick (e.g. the laser tool).
-    /// </summary>
-    bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable);
+    //  TODO update to use the result pattern
+    /// <summary>Attempts to resolve an item to a placeable <see cref="Brick"/>, if it has one.</summary>
+    bool TryGetPlaceable(string? itemID, out Brick? placeable);
 
-    /// <summary>Resolves a broken brick's data id to the item stack granted on break (survival mode).</summary>
+    //  TODO update to use the result pattern
+    /// <summary>Attempts to resolve a brick's data id to the item stack granted on break.</summary>
     bool TryGetLoot(ushort brickDataID, out ItemData loot);
 }

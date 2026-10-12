@@ -12,12 +12,11 @@ using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
 

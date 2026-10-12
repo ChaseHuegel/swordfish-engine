@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -13,7 +13,7 @@ namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
 /// Client-side owner of mouse capture, the window-focus lock, the <see cref="PlayerMovedEvent"/>
-/// emission, and the client's <see cref="SharedSimulationStep"/>. The step is bound to the shared
+/// emission, and the client's <see cref="SimulationStep"/>. The step is bound to the shared
 /// physics + world store lazily on the first tick (never via DI) so constructing the ECS world never
 /// resolves the world store, which would recurse during container build. This system exists only where
 /// the simulator meets the window, so the capture, motion statistics, and prediction survive the removal
@@ -35,9 +35,9 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
     private DataStore? _store;
     private bool _inputEnabled;
     private bool _savedMouseLookState;
-    private SharedSimulationStep? _step;
+    private SimulationStep? _step;
 
-    public SharedSimulationStep? Step => _step;
+    public SimulationStep? Step => _step;
 
     /// <summary>Whether gameplay input is currently live. False while interaction is blocked (e.g. inventory open) or the window is unfocused.</summary>
     public bool IsInputEnabled => _inputEnabled;
@@ -98,7 +98,7 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
     public void Tick(float delta, DataStore store)
     {
         _store ??= store;
-        _step ??= new SharedSimulationStep(store, _physics, ResolveCommand);
+        _step ??= new SimulationStep(store, _physics, ResolveCommand);
 
         PlayerMovedAction action = new() { Owner = this };
         store.Query<PlayerComponent, TransformComponent, PlayerMovedAction>(delta, ref action);

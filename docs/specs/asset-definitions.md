@@ -76,7 +76,7 @@ Each row is a `[[Bricks]]` table with an optional `[Bricks.Textures]` sub-table:
 | `Transparent` | bool | |
 | `Passable` | bool | |
 | `Mesh` | string? | |
-| `Shape` | `BrickShape` enum | `WaywardBeyond.Gameplay/Bricks/BrickShape.cs` |
+| `Shape` | `BrickShape` enum | `WaywardBeyond.Bricks/BrickShape.cs` |
 | `Textures` | sub-table | `BrickTextures` |
 | `Tags` | string[] | |
 
@@ -180,7 +180,7 @@ Schema classes: `Meta/LocalizedTagsDefinition.cs`,
 - `WaywardBeyond.Client/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Skills/Skills/{SkillDefinitions,SkillDefinition,XPSource}.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,BodyDatabase}.cs`
-- `WaywardBeyond.Gameplay/Bricks/BrickShape.cs`
+- `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
 - Parser registration: `WaywardBeyond.Skills/Injector.cs`,
   `WaywardBeyond.Client/Injector.cs`

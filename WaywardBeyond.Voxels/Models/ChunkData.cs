@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Threading;
-using WaywardBeyond.Client.Numerics;
 using WaywardBeyond.Data;
+using WaywardBeyond.Voxels.Numerics;
 
-namespace WaywardBeyond.Client.Voxels.Models;
+namespace WaywardBeyond.Voxels.Models;
 
 public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject voxelObject, in VoxelPalette? palette = null)
 {

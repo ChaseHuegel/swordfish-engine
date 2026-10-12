@@ -25,7 +25,8 @@ and world split, the persistence schema, and the CLI surface.
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
 | `WaywardBeyond.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
-| `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, voxels, interactions, generation | `net9.0` | — |
+| `WaywardBeyond.Gameplay/` | Shared gameplay: simulation step, body config, interactions, save codec | `net9.0` | — |
+| `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations | `net9.0` | — |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader, skill state | `net9.0` | — |
 | `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry | `net9.0` | — |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database | `net9.0` | — |

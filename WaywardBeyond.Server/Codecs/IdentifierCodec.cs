@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using Swordfish.ECS;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Server.Codecs;
 
 /// <summary>
 /// <see cref="IPayloadCodec"/> for the engine's <see cref="IdentifierComponent"/> (Name/Tag), spoken over
@@ -19,7 +19,7 @@ public sealed class IdentifierCodec : IPayloadCodec
     {
         if (!store.TryGet(entity, out IdentifierComponent identifier))
         {
-            return Array.Empty<byte>();
+            return [];
         }
 
         var message = new IdentifierMessage(identifier.Name, identifier.Tag);

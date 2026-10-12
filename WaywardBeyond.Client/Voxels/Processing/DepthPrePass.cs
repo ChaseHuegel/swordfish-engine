@@ -1,13 +1,12 @@
-using Swordfish.Library.Extensions;
+﻿using Swordfish.Library.Extensions;
 using WaywardBeyond.Client.Numerics;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
 internal sealed class DepthPrePass(DepthState depthState) : VoxelObjectProcessor.ISamplePass
 {
-    private readonly DepthState _depthState = depthState;
-    
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
 
     public bool ShouldProcessChunk(ChunkData chunkData)
@@ -27,42 +26,42 @@ internal sealed class DepthPrePass(DepthState depthState) : VoxelObjectProcessor
         int z = sample.Coords.Z + sample.ChunkOffset.Z;
         
         var key = new Int2(x, y);
-        Int2 depth = _depthState.XY.GetOrAdd(key, DefaultDepthFactory);
+        Int2 depth = depthState.XY.GetOrAdd(key, DefaultDepthFactory);
         if (z < depth.Min)
         {
             depth.Min = z;
-            _depthState.XY[key] = depth;
+            depthState.XY[key] = depth;
         }
         if (z > depth.Max)
         {
             depth.Max = z;
-            _depthState.XY[key] = depth;
+            depthState.XY[key] = depth;
         }
         
         key = new Int2(x, z);
-        depth = _depthState.XZ.GetOrAdd(key, DefaultDepthFactory);
+        depth = depthState.XZ.GetOrAdd(key, DefaultDepthFactory);
         if (y < depth.Min)
         {
             depth.Min = y;
-            _depthState.XZ[key] = depth;
+            depthState.XZ[key] = depth;
         }
         if (y > depth.Max)
         {
             depth.Max = y;
-            _depthState.XZ[key] = depth;
+            depthState.XZ[key] = depth;
         }
         
         key = new Int2(z, y);
-        depth = _depthState.ZY.GetOrAdd(key, DefaultDepthFactory);
+        depth = depthState.ZY.GetOrAdd(key, DefaultDepthFactory);
         if (x < depth.Min)
         {
             depth.Min = x;
-            _depthState.ZY[key] = depth;
+            depthState.ZY[key] = depth;
         }
         if (x > depth.Max)
         {
             depth.Max = x;
-            _depthState.ZY[key] = depth;
+            depthState.ZY[key] = depth;
         }
     }
     
