@@ -1,12 +1,13 @@
-using System;
+﻿using System;
 using System.Numerics;
 using Swordfish.Graphics;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Graphics;
-using WaywardBeyond.Client.Numerics;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Numerics;
+using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
@@ -18,11 +19,6 @@ internal sealed class MeshPostPass(
     IAssetDatabase<Mesh> meshDatabase
 ) : VoxelObjectProcessor.ISamplePass
 {
-    private readonly MeshState _meshState = meshState;
-    private readonly IBrickDatabase _brickDatabase = brickDatabase;
-    private readonly PBRTextureArrays _textureArrays = textureArrays;
-    private readonly IAssetDatabase<Mesh> _meshDatabase = meshDatabase;
-
     private readonly CubeMeshBuilder _opaqueCubeMeshBuilder = new(textureArrays.Albedo, meshState.Opaque);
     private readonly CubeMeshBuilder _transparentCubeMeshBuilder = new(textureArrays.Albedo, meshState.Transparent);
     private readonly Mesh _slope = meshDatabase.Get("slope.obj").Value;
@@ -45,7 +41,7 @@ internal sealed class MeshPostPass(
             return;
         }
         
-        Result<Brick> brickInfoResult = _brickDatabase.Get(sample.Center.ID);
+        Result<Brick> brickInfoResult = brickDatabase.Get(sample.Center.ID);
         if (!brickInfoResult.Success)
         {
             return;
@@ -72,19 +68,19 @@ internal sealed class MeshPostPass(
         switch (shapeLight.Shape)
         {
             case BrickShape.Slab:
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _slab, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Stair:
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _stair, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Slope:
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _slope, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Column:
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _column, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Plate:
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, _plate, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Custom:
                 Mesh? customMesh = ResolveMesh(in brickInfo);
@@ -94,7 +90,7 @@ internal sealed class MeshPostPass(
                     break;
                 }
 
-                AddMesh(brickInfo.Transparent ? _meshState.Transparent : _meshState.Opaque, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
+                AddMesh(brickInfo.Transparent ? meshState.Transparent : meshState.Opaque, sample.Coords, offset, brickInfo, customMesh, orientation, shapeLight.LightLevel);
                 break;
             case BrickShape.Block:
             default:
@@ -117,7 +113,7 @@ internal sealed class MeshPostPass(
             return true;
         }
         
-        return _brickDatabase.IsCuller(neighbor, shapeLight.Shape);
+        return brickDatabase.IsCuller(neighbor, shapeLight.Shape);
     }
 
     /// <summary>Resolves a custom brick's mesh id to a renderable mesh, or null when absent or missing.</summary>
@@ -128,7 +124,7 @@ internal sealed class MeshPostPass(
             return null;
         }
 
-        Result<Mesh> meshResult = _meshDatabase.Get(brickInfo.MeshID);
+        Result<Mesh> meshResult = meshDatabase.Get(brickInfo.MeshID);
         return meshResult.Success ? meshResult.Value : null;
     }
     
@@ -190,7 +186,7 @@ internal sealed class MeshPostPass(
         
         foreach (Vector3 texCoord in mesh.Uv)
         {
-            int textureIndex = _textureArrays.Albedo.IndexOf(brickInfo.Textures.Default![0]!);
+            int textureIndex = textureArrays.Albedo.IndexOf(brickInfo.Textures.Default![0]!);
             meshData.UV.Add(texCoord with { Z = textureIndex >= 0 ? textureIndex : 0 });
         }
         

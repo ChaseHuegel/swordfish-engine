@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Server;
 

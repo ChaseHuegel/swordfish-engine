@@ -8,6 +8,7 @@ using Shoal.DependencyInjection;
 using WaywardBeyond.Server;
 using WaywardBeyond.Config;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 
 namespace WaywardBeyond.Server.Launcher;
 

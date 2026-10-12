@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,15 +21,19 @@ using WaywardBeyond.Client.Debug;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Numerics;
+using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Systems;
@@ -268,8 +272,8 @@ in IInteractionContent content,
         }
 
         string? heldItemID = GetHeldItemID(store, playerEntity);
-        PlaceableBrick? placeable = null;
-        if (isPlace && heldItemID != null && _content.TryGetPlaceable(heldItemID, out PlaceableBrick contentPlaceable))
+        Brick? placeable = null;
+        if (isPlace && heldItemID != null && _content.TryGetPlaceable(heldItemID, out Brick? contentPlaceable))
         {
             placeable = contentPlaceable;
         }
@@ -283,10 +287,11 @@ in IInteractionContent content,
             return;
         }
 
-        BrickInteraction hint = BuildInteractionHint(isPlace, in placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
+        BrickInteraction hint = BuildInteractionHint(isPlace, placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, hint, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickRegistry);
+        var request = new InteractionRequest(origin, hint, kind, placeable, mode, InteractionResolver.DEFAULT_REACH);
+        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -302,14 +307,14 @@ in IInteractionContent content,
         ApplyVoxelPrediction(store, playerEntity, kind, in resolution, in hint);
     }
 
-    private BrickInteraction BuildInteractionHint(bool isPlace, in PlaceableBrick? placeable, DataStore store, Int3 coordinate, int targetEntity, in TransformComponent targetTransform, Vector3 clickedPoint)
+    private BrickInteraction BuildInteractionHint(bool isPlace, Brick? placeable, DataStore store, Int3 coordinate, int targetEntity, in TransformComponent targetTransform, Vector3 clickedPoint)
     {
         byte hintShape = 0;
         byte hintOrientation = 0;
 
         if (isPlace && placeable != null)
         {
-            BrickShape shape = placeable.Value.Shapeable ? _interactionState.SelectedShape.Get() : placeable.Value.Shape;
+            BrickShape shape = placeable.Shapeable ? _interactionState.SelectedShape.Get() : placeable.Shape;
             hintShape = (byte)shape;
             hintOrientation = ResolvePlacementOrientation(in targetTransform, clickedPoint, coordinate);
         }
@@ -975,12 +980,12 @@ in IInteractionContent content,
 
     private static Int3 WorldToBrickSpace(Vector3 position, Vector3 origin, Quaternion orientation)
     {
-        return SharedInteractionResolver.WorldToBrickSpace(position, origin, orientation);
+        return InteractionResolver.WorldToBrickSpace(position, origin, orientation);
     }
 
     private static Vector3 BrickToWorldSpace(Int3 coordinate, Vector3 origin, Quaternion orientation)
     {
-        return SharedInteractionResolver.BrickToWorldSpace(coordinate, origin, orientation);
+        return InteractionResolver.BrickToWorldSpace(coordinate, origin, orientation);
     }
     
     private Result<Brick> TryGetPlaceableBrick()

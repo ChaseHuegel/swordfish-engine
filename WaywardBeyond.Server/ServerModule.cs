@@ -1,7 +1,5 @@
 using DryIoc;
-using Shoal.CommandLine;
 using Shoal.DependencyInjection;
-using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Server;
 

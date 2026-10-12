@@ -1,10 +1,10 @@
-using Swordfish.ECS;
+﻿using Swordfish.ECS;
 using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Player;
@@ -108,7 +108,7 @@ internal sealed class PlayerData(in IAssetDatabase<Item> itemDatabase)
     public void ApplyMove(DataStore store, in SlotMoveOp op)
     {
         SlotMoveOp move = op;
-        MutateInventory(store, (ref InventoryComponent inventory) => SharedInventoryResolver.Apply(ref inventory, move));
+        MutateInventory(store, (ref InventoryComponent inventory) => InventoryResolver.Apply(ref inventory, move));
         StageInventoryOp(store, move);
     }
 

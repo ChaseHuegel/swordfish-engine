@@ -2,6 +2,7 @@
 using Swordfish.ECS;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 

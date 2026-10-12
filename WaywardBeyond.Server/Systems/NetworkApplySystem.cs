@@ -1,5 +1,4 @@
 using Swordfish.ECS;
-using WaywardBeyond.Server;
 
 namespace WaywardBeyond.Server.Systems;
 

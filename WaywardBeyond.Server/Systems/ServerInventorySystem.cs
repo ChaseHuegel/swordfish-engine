@@ -1,9 +1,8 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -58,7 +57,7 @@ public sealed class ServerInventorySystem : IServerWorldSystem
             }
 
             InventoryComponent updated = inventory;
-            if (SharedInventoryResolver.Apply(ref updated, op.SlotMove))
+            if (InventoryResolver.Apply(ref updated, op.SlotMove))
             {
                 store.AddOrUpdate(entity, updated);
                 store.MarkDirty<InventoryComponent>(entity);

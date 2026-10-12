@@ -296,7 +296,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 return;
             }
 
-            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
             {
                 net.Write.StagedInputs ??= new InputStageBuffer();
                 if (s.TryGet(e, out InputComponent input))
@@ -320,7 +320,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 return;
             }
 
-            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
             {
                 net.Write.StagedInteractions ??= new InteractionStageBuffer();
                 if (s.TryGet(e, out InteractionEvent interaction))
@@ -337,7 +337,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 return;
             }
 
-            store.QueryRef<NetworkComponent>(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+            store.QueryRef(sessionEntity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
             {
                 net.Write.StagedInventoryOps ??= new InventoryOpStageBuffer();
                 if (s.TryGet(e, out InventoryEvent inventoryEvent) && inventoryEvent.SlotMove != null)

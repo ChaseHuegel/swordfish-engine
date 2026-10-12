@@ -16,7 +16,7 @@ using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.UI.Layers;
@@ -354,7 +354,7 @@ internal class Inventory : IUILayer
                                     //  empty slot (client-computed target, server revalidated).
                                     if (!_dragging && rightClicked)
                                     {
-                                        int splitTarget = SharedInventoryResolver.FindFirstEmptySlot(in inventory);
+                                        int splitTarget = InventoryResolver.FindFirstEmptySlot(in inventory);
                                         if (splitTarget >= 0)
                                         {
                                             ApplyMove(new SlotMoveOp

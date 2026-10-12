@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using DryIoc;
@@ -9,6 +9,7 @@ using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Graphics;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 

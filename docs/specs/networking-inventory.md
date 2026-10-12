@@ -15,7 +15,7 @@ resolver.
 
 Wire and staging live in `CodeGen/components.nsd` and
 `WaywardBeyond.Networking/Components/`. The resolver is
-`WaywardBeyond.Gameplay/Interactions/SharedInventoryResolver.cs`.
+`WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`.
 
 ## The envelope: `InventoryEvent`
 
@@ -63,7 +63,7 @@ message SlotMoveOp
 
 ## Resolution rules (shared resolver)
 
-Both sides call `SharedInventoryResolver.Apply(ref inventory, in SlotMoveOp)`:
+Both sides call `InventoryResolver.Apply(ref inventory, in SlotMoveOp)`:
 
 1. Bounds-check `FromSlot` (and `ToSlot` for Exact); a null or empty source
    stack (or `Count == 0`) is a no-op.
@@ -109,7 +109,7 @@ them until the behavior is designed.
 
 1. Add the union member to `InventoryEvent` in `components.nsd` + codegen.
 2. Add/choose the op message shape; reserved members above need a new message.
-3. Define resolution rules in `SharedInventoryResolver` (client prediction AND
+3. Define resolution rules in `InventoryResolver` (client prediction AND
    server apply must call the same path).
 4. Stage it: no new server machinery — the envelope already rides
    `NetworkComponent.StagedInventoryOps`.
@@ -117,14 +117,14 @@ them until the behavior is designed.
    through `PlayerData.ApplyMove` (the single entry point), never by mutating
    `InventoryComponent` directly.
 6. Test: resolver cases + a server e2e apply + echo, mirroring
-   `Swordfish.Tests/SharedInventoryResolverTests.cs` and
+   `Swordfish.Tests/InventoryResolverTests.cs` and
    `ServerInventorySystemTests.cs`.
 
 ## Source of truth
 
 - `WaywardBeyond.Networking/CodeGen/components.nsd`
 - `WaywardBeyond.Networking/Components/{InventoryEvent,SlotMoveOp,InventoryOpStageBuffer,NetworkComponent}.cs`
-- `WaywardBeyond.Gameplay/Interactions/SharedInventoryResolver.cs`
+- `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`
 - `WaywardBeyond.Server/Systems/ServerInventorySystem.cs`
 - `WaywardBeyond.Client/Player/PlayerData.cs` (`ApplyMove`)
 - `WaywardBeyond.Client/Systems/{ClientReplicationSystem,PlayerInteractionService}.cs`
@@ -132,7 +132,7 @@ them until the behavior is designed.
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SharedInventoryResolverTests.cs` — op resolution cases.
+- `Swordfish.Tests/InventoryResolverTests.cs` — op resolution cases.
 - `Swordfish.Tests/ServerInventorySystemTests.cs` — staged apply, dedupe, echo.
 - `WaywardBeyond.Client.Tests/ClientReplicationInteractionTests.cs` —
   outbound op drain and clear-on-success.

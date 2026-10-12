@@ -1,8 +1,7 @@
-using System.Numerics;
-using Swordfish.ECS;
-using WaywardBeyond.Client.Voxels;
+﻿using Swordfish.ECS;
+using WaywardBeyond.Voxels;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// Abstraction over the caller's world (client prediction store or server authority store) that the
@@ -13,9 +12,6 @@ namespace WaywardBeyond.Gameplay;
 /// </summary>
 public interface IVoxelInteractionWorld
 {
-    /// <summary>Reads a raycast-hit structure's live voxel container and world transform, if it has them.</summary>
-    bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform);
-
     /// <summary>Reads a structure by its stable identity into its live voxel container and world transform.</summary>
     bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform);
 }

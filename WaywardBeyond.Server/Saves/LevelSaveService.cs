@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Numerics;
@@ -12,6 +12,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Saves;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Server.Saves;
@@ -38,7 +39,7 @@ public sealed class LevelSaveService : IDisposable
 
     public string? CurrentLevelGuid { get; private set; }
     public Level? CurrentLevel { get; private set; }
-    public Vector3 LevelSpawn { get; private set; } = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
+    public Vector3 LevelSpawn { get; private set; } = CharacterDefaults.DefaultSpawnPosition;
 
     public LevelSaveService(
         in ILogger logger,
@@ -163,7 +164,7 @@ public sealed class LevelSaveService : IDisposable
 
         CurrentLevelGuid = null;
         CurrentLevel = null;
-        LevelSpawn = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
+        LevelSpawn = CharacterDefaults.DefaultSpawnPosition;
     }
 
     /// <summary>
@@ -366,7 +367,7 @@ public sealed class LevelSaveService : IDisposable
             Entries = entities,
             BrickRegistry = _brickRegistry,
         };
-        store.Query<VoxelEntityDataComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
+        store.Query<VoxelWorldComponent, TransformComponent, CaptureStructureAction>(0f, ref structureAction);
 
         var locations = new List<CharacterEntityData>();
         CaptureLocationAction locationAction = new()
@@ -408,12 +409,12 @@ public sealed class LevelSaveService : IDisposable
         }
     }
 
-    private struct CaptureStructureAction : IForEach<VoxelEntityDataComponent, TransformComponent>
+    private struct CaptureStructureAction : IForEach<VoxelWorldComponent, TransformComponent>
     {
         public List<VoxelEntityData> Entries;
         public IBrickRegistry BrickRegistry;
 
-        public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent data, in TransformComponent transform)
+        public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in TransformComponent transform)
         {
             Uuid uuid = store.GetUuid(entity);
             var voxel = VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
@@ -428,7 +429,7 @@ public sealed class LevelSaveService : IDisposable
                 transform.Scale.X,
                 transform.Scale.Y,
                 transform.Scale.Z,
-                data.Chunks,
+                world.VoxelObject.GetChunkInfos(),
                 _BrickPalette: null
             ), BrickRegistry);
 

@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Numerics;
-using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Voxels.Numerics;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Transport;
-using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -22,7 +22,7 @@ namespace WaywardBeyond.Server.Systems;
 /// (which drains inbound client interaction events into each player mirror's staged buffer) and the
 /// publish stage. For each staged interaction at or below the current sim tick it:
 /// builds an authority ray from the mirror's settled transform + look, resolves the interaction with the
-/// shared <see cref="SharedInteractionResolver"/>, and applies the outcome on the target structure's live
+/// shared <see cref="WaywardBeyond.Gameplay.Interactions.InteractionResolver"/>, and applies the outcome on the target structure's live
 /// <see cref="VoxelWorldComponent"/> - rebuilding the collider and re-deriving the persisted chunks.
 /// Survival consumption/loot is applied against the server-owned <see cref="InventoryComponent"/>;
 /// creative mode is free. A hint-less or rejected interaction resolves to <see cref="InteractionAction.None"/>
@@ -36,7 +36,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
     private readonly IInteractionHandlerRegistry _handlerRegistry;
     private readonly IBrickRegistry _brickRegistry;
     private readonly ServerSkillSystem? _skills;
-    private readonly SharedSimulationStep? _simulationStep;
+    private readonly SimulationStep? _simulationStep;
     private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
 
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
@@ -64,7 +64,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         Func<DataStore, IVoxelInteractionWorld> worldFactory,
         IBrickRegistry brickRegistry,
         ServerSkillSystem? skills = null,
-        in SharedSimulationStep? simulationStep = null
+        in SimulationStep? simulationStep = null
     ) {
         _hub = hub;
         _content = content;
@@ -129,8 +129,8 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         //  Resolve the held item to the placeable brick it places, if any (the resolver rejects a
         //  place hint without one; a break never needs it).
         string? heldItemID = GetHeldItemID(store, player);
-        PlaceableBrick? placeable = null;
-        if (heldItemID != null && _content.TryGetPlaceable(heldItemID, out PlaceableBrick resolved))
+        Brick? placeable = null;
+        if (heldItemID != null && _content.TryGetPlaceable(heldItemID, out Brick? resolved))
         {
             placeable = resolved;
         }
@@ -146,8 +146,8 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         Vector3 origin = mirror.Position;
         IVoxelInteractionWorld world = _worldFactory(store);
 
-        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH);
-        InteractionResolution resolution = SharedInteractionResolver.Resolve(origin, interaction.Brick, kind, placeable, mode, SharedInteractionResolver.DEFAULT_REACH, world, _brickRegistry);
+        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, InteractionResolver.DEFAULT_REACH);
+        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -184,11 +184,9 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
                 break;
         }
 
-        //  Rebuild the structure's collider so subsequent authority raycasts see the change, and
-        //  re-derive the persisted chunks so the next level save reflects the edit.
-        store.AddOrUpdate(resolution.Entity, new ColliderComponent(VoxelColliderBuilder.BuildCollition(voxelObject.GetChunkInfos())));
-        store.AddOrUpdate(resolution.Entity, new VoxelEntityDataComponent(voxelObject.GetChunkInfos()));
-        store.MarkDirty<VoxelEntityDataComponent>(resolution.Entity);
+        //  Rebuild the structure's collider so subsequent authority raycasts see the change. The live
+        //  VoxelObject is the single voxel representation; saves and streams re-derive chunks from it.
+        store.AddOrUpdate(resolution.Entity, new ColliderComponent(VoxelColliderBuilder.BuildCollision(voxelObject.GetChunkInfos())));
 
         Voxel newVoxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         BroadcastEdit(store, resolution.Entity, coordinate, newVoxel, interaction.SequenceNumber);
@@ -252,8 +250,12 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             return;
         }
 
-        if (!store.TryGet(player, out InventoryComponent inventory) ||
-            !_content.TryGetLoot(brokenBrickDataID, out ItemData loot))
+        if (!store.TryGet(player, out InventoryComponent inventory))
+        {
+            return;
+        }
+
+        if (!_content.TryGetLoot(brokenBrickDataID, out ItemData loot))
         {
             return;
         }
@@ -307,44 +309,5 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
 
             Owner.Consume(Store, entity, SimTick, in net, in transform);
         }
-    }
-}
-
-/// <summary>
-/// Server-side <see cref="IVoxelInteractionWorld"/>: reads a structure's live voxel container + transform
-/// from the authority store by its stable identity or local entity index. Validation never raycasts - the
-/// client's screen-aim targeting produced the hint.
-/// </summary>
-public sealed class ServerVoxelInteractionWorld(DataStore store) : IVoxelInteractionWorld
-{
-    public bool TryGetVoxelTarget(int entity, out VoxelObject? voxelObject, out TransformComponent transform)
-    {
-        if (store.TryGet(entity, out VoxelWorldComponent world) && store.TryGet(entity, out TransformComponent transformComponent))
-        {
-            voxelObject = world.VoxelObject;
-            transform = transformComponent;
-            return true;
-        }
-
-        voxelObject = null;
-        transform = default;
-        return false;
-    }
-
-    public bool TryGetVoxelTarget(in Uuid entityUuid, out int entity, out VoxelObject? voxelObject, out TransformComponent transform)
-    {
-        if (store.TryGet(entityUuid, out entity) &&
-            store.TryGet(entity, out VoxelWorldComponent world) &&
-            store.TryGet(entity, out TransformComponent transformComponent))
-        {
-            voxelObject = world.VoxelObject;
-            transform = transformComponent;
-            return true;
-        }
-
-        entity = default;
-        voxelObject = null;
-        transform = default;
-        return false;
     }
 }

@@ -1,8 +1,7 @@
-﻿using System;
-using System.Numerics;
+﻿using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Serialization;
-using WaywardBeyond.Client.Voxels;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Data;
 

@@ -33,8 +33,10 @@ Targeting and outcome logic lives in shared code
 (`WaywardBeyond.Gameplay/Interactions`), called identically by client
 prediction and server authority:
 
-- `SharedInteractionResolver` takes a ready world ray + optional `BrickInteraction`
-  hint and produces `{ Action None | Break | Place, coordinate, voxel }`.
+- `InteractionResolver` takes an `InteractionRequest` (origin, hint, button
+  edge, held placeable `Brick`, game mode, reach) plus the caller's
+  `IVoxelInteractionWorld` and produces `{ Action None | Break | Place,
+  coordinate, voxel }`.
 - Client targeting is a deterministic-from-ray routine
   (`TryGetBrickFromScreenSpace`: surface bias, reach-around probe rays, offset
   march-back). Server validation never raycasts; it validates the hinted
@@ -51,11 +53,12 @@ prediction and server authority:
 replication Apply and Publish stages):
 
 - Builds an authority ray from the mirror transform + look.
-- Resolves with `SharedInteractionResolver`.
-- Applies the outcome on the structure's shared `VoxelObject`, rebuilds the
+- Resolves with `InteractionResolver`.
+- Applies the outcome on the structure's live `VoxelObject`
+  (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`), rebuilds the
   structure `ColliderComponent` (`VoxelColliderBuilder`) so subsequent raycasts
-  see the change, and re-derives `VoxelEntityDataComponent.Chunks`
-  (+ `MarkDirty`) so saves track edits.
+  see the change. Saves and streams re-derive `ChunkInfo[]` from the live
+  `VoxelObject`; the authority holds no parallel chunk copy.
 - Survival consumes a held item on place and grants the broken brick's loot via
   `IInteractionContent` against the server-owned `InventoryComponent`. Creative
   is free on both paths.
@@ -117,20 +120,15 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 
 ## Source of truth
 
-- `WaywardBeyond.Gameplay/Interactions/` — resolver, handlers, registry
+- `WaywardBeyond.Gameplay/Interactions/` — resolver, request, handlers, registry
 - `WaywardBeyond.Server/Systems/ServerInteractionSystem.cs`
+- `WaywardBeyond.Server/Systems/VoxelColliderBuilder.cs`
 - `WaywardBeyond.Client/Systems/*InteractionSystem.cs`
 - `WaywardBeyond.Networking/Components/NetworkComponent.cs`
   (`StagedInteractions`)
 
 ## Tests that pin this
 
-- `Swordfish.Tests/SharedInteractionResolverTests` — parity, break/place on
-  occupied/empty, solid-wall march-back dead end, out-of-reach,
-  hint-mismatch rejection.
-- `Swordfish.Tests/ServerInteractionSystemTests` — survival break/place,
-  creative free, hint-less/rejected no-op + consumed-once.
-- Registry tests — reject, override, filter, registration-order override.
-- `Swordfish.Tests` — `AppliedEditIsBroadcastToEveryClient`.
+- `Swordfish.Tests` — the interaction-to-broadcast flow.
 - `WaywardBeyond.Client.Tests` — apply, `Playing` gate, confirm-as-no-op,
   snap-to-authority, expired-revert.

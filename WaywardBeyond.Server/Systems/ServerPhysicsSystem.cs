@@ -4,7 +4,6 @@ using Swordfish.ECS;
 using Swordfish.Physics;
 using Swordfish.Physics.Jolt;
 using Swordfish.Settings;
-using WaywardBeyond.Server;
 
 namespace WaywardBeyond.Server.Systems;
 

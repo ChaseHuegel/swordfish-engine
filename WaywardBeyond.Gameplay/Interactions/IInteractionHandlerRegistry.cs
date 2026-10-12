@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Gameplay;
+﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// Server-side registry of interaction mod handlers. Mods register via <see cref="Register"/> at load; the

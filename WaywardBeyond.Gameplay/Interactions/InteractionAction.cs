@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Gameplay;
+﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// The resolved outcome of a player interaction. <see cref="None"/> is the first-class outcome of a

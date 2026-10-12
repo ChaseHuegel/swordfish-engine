@@ -1,7 +1,7 @@
-using WaywardBeyond.Data;
+﻿using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// The key an interaction handler registers against to opt into a slice of the interaction space. A null

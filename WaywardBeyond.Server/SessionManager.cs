@@ -27,7 +27,7 @@ public sealed class SessionManager
     /// </summary>
     public void Register(DataStore store, int entity, Uuid clientId, Session session)
     {
-        store.QueryRef<NetworkComponent>(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
+        store.QueryRef(entity, 0f, (float _, DataStore s, int e, ref Ref<NetworkComponent> net) =>
         {
             net.Write.Session = session;
         });

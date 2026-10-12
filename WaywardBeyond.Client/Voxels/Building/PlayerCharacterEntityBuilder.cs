@@ -1,8 +1,7 @@
-using System.Numerics;
+﻿using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Client.Items;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
@@ -20,12 +19,12 @@ internal sealed class PlayerCharacterEntityBuilder(in IRenderContext renderConte
         player.AddOrUpdate(new EquipmentComponent(character.ActiveInventorySlot));
         player.AddOrUpdate(new IdentifierComponent(character.Name, "game"));
         player.AddOrUpdate(new TransformComponent(
-            PlayerBodyConfig.DEFAULT_SPAWN_POSITION,
+            CharacterDefaults.DefaultSpawnPosition,
             Quaternion.Identity,
-            PlayerBodyConfig.PLAYER_SCALE
+            CharacterDefaults.PlayerScale
         ));
-        player.AddOrUpdate(PlayerBodyConfig.CreatePhysics());
-        player.AddOrUpdate(PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
+        player.AddOrUpdate(CharacterDefaults.CreateCharacterPhysicsComponent());
+        player.AddOrUpdate(CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale));
         
         player.AddOrUpdate(new CharacterComponent(character));
         player.AddOrUpdate(new GameModeComponent(character.GameMode));

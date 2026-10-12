@@ -5,20 +5,16 @@
         <IsPackable>false</IsPackable>
         <Nullable>enable</Nullable>
         <Version>0.1.0-alpha</Version>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     </PropertyGroup>
-
-    <ItemGroup>
-        <PackageReference Include="LibNoise" Version="0.2.0" />
-    </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Swordfish\Swordfish.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
         <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
         <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
-      <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
+        <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
         <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
+        <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
     </ItemGroup>
 
 </Project>

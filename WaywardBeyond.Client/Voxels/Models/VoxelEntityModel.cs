@@ -1,5 +1,6 @@
 using System.Numerics;
 using Swordfish.ECS;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Models;
 

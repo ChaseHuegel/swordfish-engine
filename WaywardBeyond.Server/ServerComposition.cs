@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using DryIoc;
 using Microsoft.Extensions.Logging;
@@ -13,6 +13,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 
@@ -34,14 +35,14 @@ public static class ServerComposition
 {
     public static void Register(IContainer container)
     {
-        container.Register<Migrator>();
+        container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         
         //  Server-level menu facade: create/list/delete saved levels for connections that have not
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
         container.Register<ServerHostHeartbeat>(Reuse.Singleton);
         container.Register<PendingLevelDeletes>(Reuse.Singleton);
-        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
 
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
         container.RegisterTomlParser<PermissionFile>();
@@ -52,7 +53,7 @@ public static class ServerComposition
             var diagnostics = new PermissionDiagnostics();
             IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
             return PermissionPolicy.Create(files, diagnostics);
-        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         container.Register<ConnectionClaims>(Reuse.Singleton);
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
@@ -62,7 +63,7 @@ public static class ServerComposition
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
 
         container.Register<World>();
-        container.Register<ServerConnectionHub>(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingConfig>())));
+        container.Register(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingConfig>())));
         container.Register<SessionManager>();
         //  The level save service holds an open save database; each world pins and disposes its own.
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
@@ -74,7 +75,7 @@ public static class ServerComposition
         //  (which the engine also registers as a root singleton).
         container.Register<IServerWorldPhysics>(made: Made.Of(() => CreateWorldPhysics(Arg.Of<ILoggerFactory>(), Arg.Of<PhysicsSettings>())));
         //  The step is disposable and transient by template; each world pins and disposes its own instance.
-        container.Register<SharedSimulationStep>(
+        container.Register(
             made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>())),
             setup: Setup.With(allowDisposableTransient: true)
         );
@@ -87,7 +88,7 @@ public static class ServerComposition
         RegisterServerSystem<ServerInventorySystem>(container);
         RegisterServerSystem<ServerHeartbeatService>(container);
         //  The physics slot is the world's physics bundle itself (same per-world instance as the step's).
-        container.Register<IServerWorldSystem>(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
+        container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         //  ServerInteractionSystem keeps public convenience ctors for tests; the world graph pins the
         //  full one explicitly, and its marker registration passes the same concrete instance through
         //  (the join system depends on the concrete type).
@@ -100,10 +101,10 @@ public static class ServerComposition
                 Arg.Of<Func<DataStore, IVoxelInteractionWorld>>(),
                 Arg.Of<IBrickRegistry>(),
                 Arg.Of<ServerSkillSystem>(),
-                Arg.Of<SharedSimulationStep>()
+                Arg.Of<SimulationStep>()
             ))
         );
-        container.Register<IServerWorldSystem>(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
+        container.Register(made: Made.Of(() => CreateInteractionSystem(Arg.Of<ServerInteractionSystem>())));
         RegisterServerSystem<ServerChatSystem>(container);
         RegisterServerSystem<NetworkPublishSystem>(container);
 
@@ -127,9 +128,9 @@ public static class ServerComposition
         return new ServerConnectionHub(config.Server.MaxReceiveWindow.Get());
     }
 
-    private static SharedSimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)
+    private static SimulationStep CreateSimulationStep(World world, in IServerWorldPhysics physics)
     {
-        return new SharedSimulationStep(world.DataStore, physics);
+        return new SimulationStep(world.DataStore, physics);
     }
 
     private static IServerWorldPhysics CreateWorldPhysics(ILoggerFactory loggerFactory, in PhysicsSettings physicsSettings)

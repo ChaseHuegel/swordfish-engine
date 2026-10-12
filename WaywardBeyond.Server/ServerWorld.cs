@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using DryIoc;
 using Swordfish.ECS;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server;
@@ -40,7 +41,7 @@ public sealed class ServerWorld : IDisposable
         Pin<ServerSkillSystem>(container);
         Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);
-        Pin<SharedSimulationStep>(container);
+        Pin<SimulationStep>(container);
         Pin<Func<DataStore, IVoxelInteractionWorld>>(container);
         Pin<ServerInteractionSystem>(container);
 

@@ -1,11 +1,7 @@
-using System.Numerics;
-using Swordfish.ECS;
-using Swordfish.Physics;
-using WaywardBeyond.Client.Numerics;
-using WaywardBeyond.Client.Voxels;
+﻿using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Data;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// The resolved outcome of a player interaction: the action, the target cell in the structure's brick

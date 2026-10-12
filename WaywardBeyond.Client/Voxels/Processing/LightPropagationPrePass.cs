@@ -1,12 +1,12 @@
-using System.Linq;
+﻿using System.Linq;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
 internal sealed class LightPropagationPrePass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.ISamplePass
 {
-    private readonly LightingState _lightingState = lightingState;
     private readonly ushort[] _lightBrickIDs = brickDatabase.Get(info => info.LightSource).Select(info => info.DataID).ToArray();
     
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
@@ -41,6 +41,6 @@ internal sealed class LightPropagationPrePass(LightingState lightingState, IBric
         int y = sample.Coords.Y + sample.ChunkOffset.Y;
         int z = sample.Coords.Z + sample.ChunkOffset.Z;
         var light = new LightingState.VoxelLight(x, y, z, sample.Center);
-        _lightingState.ToPropagate.Enqueue(light);
+        lightingState.ToPropagate.Enqueue(light);
     }
 }

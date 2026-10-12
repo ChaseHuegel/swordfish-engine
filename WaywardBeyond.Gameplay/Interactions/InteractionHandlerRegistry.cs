@@ -1,6 +1,6 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// Default <see cref="IInteractionHandlerRegistry"/>. Maintains an ordered list of handlers; a handler

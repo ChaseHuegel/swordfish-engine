@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
@@ -10,6 +10,7 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Saves;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Sessions;
 using WaywardBeyond.Networking.Transport;
@@ -223,7 +224,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }
         else
         {
-            position = PlayerBodyConfig.DEFAULT_SPAWN_POSITION;
+            position = CharacterDefaults.DefaultSpawnPosition;
             orientation = Quaternion.Identity;
         }
 
@@ -239,9 +240,9 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 
         store.AddOrUpdate(entity, new NetworkComponent());
         store.AddOrUpdate(entity, new InputComponent());
-        store.AddOrUpdate(entity, new TransformComponent(position, orientation, PlayerBodyConfig.PLAYER_SCALE));
-        store.AddOrUpdate(entity, PlayerBodyConfig.CreatePhysics());
-        store.AddOrUpdate(entity, PlayerBodyConfig.CreateCollider(PlayerBodyConfig.PLAYER_SCALE));
+        store.AddOrUpdate(entity, new TransformComponent(position, orientation, CharacterDefaults.PlayerScale));
+        store.AddOrUpdate(entity, CharacterDefaults.CreateCharacterPhysicsComponent());
+        store.AddOrUpdate(entity, CharacterDefaults.CreateCharacterColliderComponent(CharacterDefaults.PlayerScale));
         store.AddOrUpdate(entity, new OwnedCharacterComponent());
 
         //  Relay the joining client's minimal public character view: the appearance index is replicated
@@ -354,7 +355,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     private void StreamLevel(Uuid clientId, DataStore store)
     {
         CollectLevelEntitiesAction action = new();
-        store.Query<VoxelEntityDataComponent, NetworkComponent, TransformComponent, CollectLevelEntitiesAction>(0f, ref action);
+        store.Query<VoxelWorldComponent, NetworkComponent, TransformComponent, CollectLevelEntitiesAction>(0f, ref action);
 
         foreach (int entity in action.Entities)
         {
@@ -373,7 +374,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }
     }
 
-    private struct CollectLevelEntitiesAction : IForEach<VoxelEntityDataComponent, NetworkComponent, TransformComponent>
+    private struct CollectLevelEntitiesAction : IForEach<VoxelWorldComponent, NetworkComponent, TransformComponent>
     {
         public readonly List<int> Entities;
 
@@ -382,7 +383,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             Entities = new List<int>();
         }
 
-        public void Execute(float delta, DataStore store, int entity, in VoxelEntityDataComponent content, in NetworkComponent network, in TransformComponent transform)
+        public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in NetworkComponent network, in TransformComponent transform)
         {
             Entities.Add(entity);
         }

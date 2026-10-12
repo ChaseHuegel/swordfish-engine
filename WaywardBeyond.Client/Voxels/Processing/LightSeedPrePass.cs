@@ -1,14 +1,12 @@
-using Swordfish.Library.Util;
+﻿using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
 internal sealed class LightSeedPrePass(IBrickDatabase brickDatabase) : VoxelObjectProcessor.IVoxelPass
 {
-    private readonly IBrickDatabase _brickDatabase = brickDatabase;
-    
     public VoxelObjectProcessor.Stage Stage => VoxelObjectProcessor.Stage.PrePass;
 
     public bool ShouldProcessChunk(ChunkData chunkData)
@@ -18,7 +16,7 @@ internal sealed class LightSeedPrePass(IBrickDatabase brickDatabase) : VoxelObje
 
     public void Process(ref Voxel voxel)
     {
-        Result<Brick> brickInfoResult = _brickDatabase.Get(voxel.ID);
+        Result<Brick> brickInfoResult = brickDatabase.Get(voxel.ID);
         
         ShapeLight shapeLight = voxel.ShapeLight;
         Brick brickInfo = brickInfoResult.Value;

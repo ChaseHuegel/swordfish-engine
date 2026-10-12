@@ -83,7 +83,7 @@ client-owned → predict via shared step → render reads final `Transform`.
 ## Source of truth
 
 - `WaywardBeyond.Client/Systems/{ClientInputSystem,ClientReconcileSystem,ClientReplicationSystem}.cs`
-- `WaywardBeyond.Gameplay/` — the shared simulation step
+- `WaywardBeyond.Gameplay/SimulationStep.cs` — the shared simulation step
 - `WaywardBeyond.Networking/Components/PendingInputComponent.cs`
 
 ## Tests that pin this

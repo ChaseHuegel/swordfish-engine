@@ -1,8 +1,7 @@
-using Swordfish.Library.Collections;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Gameplay;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Server;
@@ -13,29 +12,25 @@ namespace WaywardBeyond.Server;
 /// server validates place interactions as unresolvable until shared item content exists - breaks and
 /// loot grants are fully functional.
 /// </summary>
-public sealed class ServerInteractionContent : IInteractionContent
+/// <inheritdoc/>
+public sealed class ServerInteractionContent(IBrickDatabase brickLookup) : IInteractionContent
 {
     private const int DEFAULT_STACK_SIZE = 100;
 
-    private readonly IBrickDatabase _brickLookup;
-
-    public ServerInteractionContent(in IBrickDatabase brickLookup)
-    {
-        _brickLookup = brickLookup;
-    }
-
-    public bool TryGetPlaceable(string? itemID, out PlaceableBrick placeable)
+    /// <inheritdoc/>
+    public bool TryGetPlaceable(string? itemID, out Brick? placeable)
     {
         //  No shared item database: the dedicated server cannot map an item id to a brick.
-        placeable = default;
+        placeable = null;
         return false;
     }
 
+    /// <inheritdoc/>
     public bool TryGetLoot(ushort brickDataID, out ItemData loot)
     {
         loot = default;
 
-        Result<Brick> brickResult = _brickLookup.Get(brickDataID);
+        Result<Brick> brickResult = brickLookup.Get(brickDataID);
         if (!brickResult.Success)
         {
             return false;

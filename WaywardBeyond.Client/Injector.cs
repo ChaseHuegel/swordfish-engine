@@ -1,7 +1,6 @@
 ﻿using System;
 using DryIoc;
 using Shoal.DependencyInjection;
-using Shoal.CommandLine;
 using Shoal.Extensions.Swordfish;
 using Shoal.Modularity;
 using Swordfish.ECS;
@@ -9,9 +8,7 @@ using Swordfish.Graphics;
 using Swordfish.IO;
 using Swordfish.Library.Collections;
 using Swordfish.Library.IO;
-using Swordfish.Library.Serialization;
 using Swordfish.Library.Util;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Globalization;
@@ -37,16 +34,10 @@ using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Server;
 using WaywardBeyond.Config;
-using WaywardBeyond.Data;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
-using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Commands;
-using WaywardBeyond.Networking.Components;
-using WaywardBeyond.Networking.Discovery;
-using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Serialization;
+using WaywardBeyond.Data.Migrations;
+using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 
@@ -87,6 +78,8 @@ public class Injector : IDryIocInjector
         container.Register<MusicSystem>(Reuse.Singleton);
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
+        
+        container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);

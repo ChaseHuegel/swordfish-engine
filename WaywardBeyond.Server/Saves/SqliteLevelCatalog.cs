@@ -7,7 +7,7 @@ using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Data.Migrations;
-using WaywardBeyond.Gameplay;
+using WaywardBeyond.Server.Generation;
 
 namespace WaywardBeyond.Server.Saves;
 
@@ -51,7 +51,7 @@ public sealed class SqliteLevelCatalog(
             name
         );
 
-        GeneratedVoxelEntity[] entities = new LevelGenerator(seedValue, brickRegistry).Generate();
+        VoxelEntityData[] entities = new LevelGenerator(seedValue, brickRegistry).Generate();
         string directory = _paths.GetLevelDirectory(guidText);
 
         try
@@ -59,13 +59,7 @@ public sealed class SqliteLevelCatalog(
             Directory.CreateDirectory(directory);
 
             using ILevelStorage store = new SqliteLevelStorage(loggerFactory.CreateLogger<SqliteLevelStorage>(), _paths, guidText, _migrator);
-            var records = new List<VoxelEntityData>(entities.Length);
-            foreach (GeneratedVoxelEntity entity in entities)
-            {
-                records.Add(ToVoxelEntityData(entity, brickRegistry));
-            }
-
-            Result result = store.Save(level, records, []);
+            Result result = store.Save(level, entities, []);
             if (!result.Success)
             {
                 throw new Exception(result.Message);
@@ -166,24 +160,5 @@ public sealed class SqliteLevelCatalog(
         {
             _logger.LogWarning(ex, "Failed to clean up level directory \"{directory}\".", directory);
         }
-    }
-
-    private static VoxelEntityData ToVoxelEntityData(in GeneratedVoxelEntity entity, IBrickRegistry brickRegistry)
-    {
-        return VoxelEntityDataCodec.EncodeToPalette(new VoxelEntityData(
-            entity.Uuid.ToValue(),
-            entity.Position.X,
-            entity.Position.Y,
-            entity.Position.Z,
-            entity.Orientation.X,
-            entity.Orientation.Y,
-            entity.Orientation.Z,
-            entity.Orientation.W,
-            _ScaleX: 1,
-            _ScaleY: 1,
-            _ScaleZ: 1,
-            entity.Chunks,
-            _BrickPalette: null
-        ), brickRegistry);
     }
 }

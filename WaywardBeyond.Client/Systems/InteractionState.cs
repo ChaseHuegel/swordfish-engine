@@ -1,9 +1,10 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using Swordfish.Library.Types;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels.Models;
 
 namespace WaywardBeyond.Client.Systems;
 

@@ -1,19 +1,17 @@
-using WaywardBeyond.Bricks;
-using WaywardBeyond.Client.Voxels.Models;
+﻿using WaywardBeyond.Bricks;
+using WaywardBeyond.Voxels.Models;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Client.Voxels.Processing;
 
 internal sealed class LightPropagationPass(LightingState lightingState, IBrickDatabase brickDatabase) : VoxelObjectProcessor.IPass
 {
-    private readonly LightingState _lightingState = lightingState;
-    private readonly IBrickDatabase _brickDatabase = brickDatabase;
-    
     public void Process(VoxelObject voxelObject)
     {
-        while (_lightingState.ToPropagate.Count > 0)
+        while (lightingState.ToPropagate.Count > 0)
         {
-            LightingState.VoxelLight item = _lightingState.ToPropagate.Dequeue();
+            LightingState.VoxelLight item = lightingState.ToPropagate.Dequeue();
             int lightLevel = item.Voxel.GetLightLevel();
             if (lightLevel <= 1)
             {
@@ -27,8 +25,8 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
             PropagateLight(ref sample.Right, item.X + 1, item.Y, item.Z);
             PropagateLight(ref sample.Above, item.X, item.Y + 1, item.Z);
             PropagateLight(ref sample.Below, item.X, item.Y - 1, item.Z);
-            PropagateLight(ref sample.Ahead, item.X, item.Y, item.Z - 1);
-            PropagateLight(ref sample.Behind, item.X, item.Y, item.Z + 1);
+            PropagateLight(ref sample.Ahead, item.X, item.Y, item.Z + 1);
+            PropagateLight(ref sample.Behind, item.X, item.Y, item.Z - 1);
             
             void PropagateLight(ref Voxel voxel, int x, int y, int z)
             {
@@ -38,13 +36,13 @@ internal sealed class LightPropagationPass(LightingState lightingState, IBrickDa
                     return;
                 }
 
-                if (_brickDatabase.IsCuller(voxel, shapeLight.Shape))
+                if (brickDatabase.IsCuller(voxel, shapeLight.Shape))
                 {
                     return;
                 }
                 
                 voxel.ShapeLight = new ShapeLight(shapeLight.Shape, nextLightLevel);
-                _lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
+                lightingState.ToPropagate.Enqueue(new LightingState.VoxelLight(x, y, z, voxel));
             }
         }
     }

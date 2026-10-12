@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Gameplay;
+﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// A server-side mod hook for interaction outcomes. A mod registers handlers against an

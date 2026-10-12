@@ -1,8 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Config;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking;
@@ -22,7 +21,7 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 {
     private readonly ServerConnectionHub _hub;
     private readonly ILogger<ServerHeartbeatService> _logger;
-    private readonly SharedSimulationStep? _simulationStep;
+    private readonly SimulationStep? _simulationStep;
     private readonly int _heartbeatIntervalMs;
     private readonly uint _lagWarnThreshold;
 
@@ -39,7 +38,7 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         in ServerConnectionHub hub,
         in NetworkingConfig config,
         in ILogger<ServerHeartbeatService> logger,
-        in SharedSimulationStep? simulationStep = null
+        in SimulationStep? simulationStep = null
     ) {
         _hub = hub;
         _logger = logger;

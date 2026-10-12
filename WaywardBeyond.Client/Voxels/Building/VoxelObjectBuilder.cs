@@ -1,8 +1,9 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DryIoc;
 using Swordfish.Graphics;
 using Swordfish.Library.Types.Shapes;
 using WaywardBeyond.Client.Voxels.Models;
+using WaywardBeyond.Voxels;
 using WaywardBeyond.Client.Voxels.Processing;
 
 namespace WaywardBeyond.Client.Voxels.Building;

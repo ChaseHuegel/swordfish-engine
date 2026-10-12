@@ -1,8 +1,9 @@
-using System.Numerics;
+﻿using System.Numerics;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Components;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// The shared, single-location input the interaction resolver decides over. Both client prediction and
@@ -24,7 +25,7 @@ public readonly struct InteractionRequest
     public readonly InteractionKind Kind;
 
     /// <summary>The resolved placeable brick for the held item, when it places one.</summary>
-    public readonly PlaceableBrick? Placeable;
+    public readonly Brick? Placeable;
 
     public readonly GameMode GameMode;
 
@@ -35,7 +36,7 @@ public readonly struct InteractionRequest
         in Vector3 origin,
         BrickInteraction? hint,
         InteractionKind kind,
-        PlaceableBrick? placeable,
+        Brick? placeable,
         GameMode gameMode,
         float reach
     ) {

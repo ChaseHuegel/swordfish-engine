@@ -1,5 +1,4 @@
 using Swordfish.ECS;
-using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
@@ -79,26 +78,6 @@ public class NetworkComponentCodecTests
 
         Assert.True(output.TryGet(outputEntity, out BodyViewComponent result));
         Assert.Equal("wb:human_m", result.Body);
-    }
-
-    [Fact]
-    public void IdentifierCodecRoundTripsNameAndTag()
-    {
-        var store = new DataStore();
-        int entity = store.Alloc();
-        store.AddOrUpdate(entity, new IdentifierComponent("Ada", "player"));
-
-        var codec = new IdentifierCodec();
-        byte[] payload = codec.Serialize(store, entity);
-        Assert.NotEmpty(payload);
-
-        var output = new DataStore();
-        int outputEntity = output.Alloc();
-        codec.Apply(output, outputEntity, payload);
-
-        Assert.True(output.TryGet(outputEntity, out IdentifierComponent result));
-        Assert.Equal("Ada", result.Name);
-        Assert.Equal("player", result.Tag);
     }
 
     [Fact]

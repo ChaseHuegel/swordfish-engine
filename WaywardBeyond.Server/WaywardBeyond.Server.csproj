@@ -17,6 +17,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <PackageReference Include="LibNoise" Version="0.2.0" />
       <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.0" />
     </ItemGroup>
 
@@ -27,6 +28,7 @@
       <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" Private="false" ExcludeAssets="runtime" IncludeAssets="compile" />
       <ProjectReference Include="..\WaywardBeyond.Gameplay\WaywardBeyond.Gameplay.csproj" />
+      <ProjectReference Include="..\WaywardBeyond.Voxels\WaywardBeyond.Voxels.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Config\WaywardBeyond.Config.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Permissions\WaywardBeyond.Permissions.csproj" />

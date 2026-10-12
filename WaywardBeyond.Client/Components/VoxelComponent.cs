@@ -1,5 +1,5 @@
-using Swordfish.ECS;
-using WaywardBeyond.Client.Voxels;
+﻿using Swordfish.ECS;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Components;
 

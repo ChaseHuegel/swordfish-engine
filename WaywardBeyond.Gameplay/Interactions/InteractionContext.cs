@@ -1,14 +1,14 @@
-using WaywardBeyond.Client.Numerics;
+﻿using WaywardBeyond.Voxels.Numerics;
 using WaywardBeyond.Data;
 
-namespace WaywardBeyond.Gameplay;
+namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
 /// The immutable facts handed to an interaction handler after base validation has resolved a legal
 /// interaction. Carries the original <see cref="InteractionRequest"/> (kind, hint, held placeable, game
 /// mode, reach, origin), the <see cref="Resolution"/> the shared resolver produced, the target structure
 /// and cell context (<see cref="Entity"/>, <see cref="Coordinate"/>, <see cref="CurrentVoxel"/> - the
-/// voxel currently occupying the target cell before the edit), and the held item id. A handler passes a
+/// removed voxel for a break, the authored voxel for a place), and the held item id. A handler passes a
 /// resolution through unchanged by returning <see cref="Resolution"/>.
 /// </summary>
 public readonly struct InteractionContext
@@ -24,7 +24,7 @@ public readonly struct InteractionContext
     /// <summary>The target cell in the structure's brick space.</summary>
     public readonly Int3 Coordinate;
 
-    /// <summary>The voxel currently occupying the target cell before the edit is applied.</summary>
+    /// <summary>The voxel at the target cell: the removed voxel for a break, the authored voxel for a place.</summary>
     public readonly Voxel CurrentVoxel;
 
     /// <summary>The id of the item currently held by the interacting player, or null.</summary>

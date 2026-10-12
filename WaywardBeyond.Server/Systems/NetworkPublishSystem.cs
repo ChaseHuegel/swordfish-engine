@@ -1,5 +1,4 @@
-using Swordfish.ECS;
-using WaywardBeyond.Server;
+﻿using Swordfish.ECS;
 using WaywardBeyond.Gameplay;
 
 namespace WaywardBeyond.Server.Systems;
@@ -12,11 +11,11 @@ namespace WaywardBeyond.Server.Systems;
 public sealed class NetworkPublishSystem : IServerWorldSystem
 {
     private readonly NetworkReplicationSystem _replication;
-    private readonly SharedSimulationStep _simulationStep;
+    private readonly SimulationStep _simulationStep;
 
     public NetworkPublishSystem(
         in NetworkReplicationSystem replication,
-        in SharedSimulationStep simulationStep
+        in SimulationStep simulationStep
     ) {
         _replication = replication;
         _simulationStep = simulationStep;

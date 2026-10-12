@@ -31,7 +31,7 @@ that owns the headless models and the tomls:
   **data id** (`Dictionary<XPSource, Dictionary<ushort,int>>`).
 - `Skills/SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
   the invariant `lang/tags/` lists (which carry namespaced brick ids like
-  `wb:rock`) into brick data ids through an injected `IBrickIdMap` (the same
+  `wb:rock`) into brick data ids through an injected `IBrickRegistry` (the same
   map the client `BrickDatabase` owns, so ids match worldgen and placement),
   logs a warning on a source-set data-id collision, and never touches
   localization, textures, or icons.

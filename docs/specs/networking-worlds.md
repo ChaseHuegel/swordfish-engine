@@ -19,7 +19,7 @@ longer tears down the first world.
    entity, session, world stream (the existing join flow).
 4. Every server tick the host ticks each live world in creation order through
    the engine `World`, with a per-world sim counter owned by each world's
-   `SharedSimulationStep`.
+   `SimulationStep`.
 5. A world whose `SessionManager.Count == 0` for `Server.IdleUnloadMs`
    (`NetworkingConfig.Server`, default 60000) unloads: final flush via the world's
    `LevelSaveService.QueueSave` (captured on the server thread, persisted in
@@ -39,7 +39,7 @@ pins it into an **exclusive child container** per world
 (`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`,
 `withDisposables: false`); every system's constructor dependencies then resolve
 to that world's own instance graph. Shared singletons (registry, codecs,
-`SkillDatabase`, `IBrickIdMap`, `IInteractionContent`, the `ILevelCatalog`
+`SkillDatabase`, `IBrickRegistry`, `IInteractionContent`, the `ILevelCatalog`
 backing, `NetworkingConfig`, `TcpServerHost`, `LocalConnection`) resolve
 through the child fall-through.
 `withDisposables: false` is required: a child-container disposal cascades to
@@ -66,7 +66,7 @@ pinned instances (registered into the child) still dispose on world unload.
 ## What is per-world
 
 - `World`/`DataStore`, `ServerConnectionHub`, `SessionManager`,
-  `LevelSaveService`, `SharedSimulationStep`, `JoltPhysicsSystem`,
+  `LevelSaveService`, `SimulationStep`, `JoltPhysicsSystem`,
   `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
   `IUserPermissionService`, the interaction world factory.
 - World systems, in canonical tick order:
@@ -88,11 +88,11 @@ pinned instances (registered into the child) still dispose on world unload.
 - Replication state: `NetworkReplicationSystem` is per world, so full-sync
   sets, streaming gates, pending snapshots, and acks cannot leak between
   worlds. Publish reads the world's sim tick from the injected
-  `SharedSimulationStep` (no host wiring).
+  `SimulationStep` (no host wiring).
 
 ## What stays shared
 
-`NetworkRegistry`, codecs/serializers, `SkillDatabase`, `IBrickIdMap`,
+`NetworkRegistry`, codecs/serializers, `SkillDatabase`, `IBrickRegistry`,
 `IInteractionContent` + handler registry, `NetworkingConfig`,
 `TcpServerHost`/`LanHost` (one listen socket), `LocalConnection`,
 `ILevelCatalog` + `StoragePaths` (the level save databases),
