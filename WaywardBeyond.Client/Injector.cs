@@ -31,12 +31,9 @@ using WaywardBeyond.Client.Voxels;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Client.Voxels.Models;
 using WaywardBeyond.Client.Voxels.Processing;
-using WaywardBeyond.Server;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
-using WaywardBeyond.Data.Localization;
-using WaywardBeyond.Data.Migrations;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
 
@@ -78,8 +75,6 @@ public class Injector : IDryIocInjector
         container.RegisterMapping<IEntitySystem, MusicSystem>();
         container.RegisterMapping<IDebugOverlay, MusicSystem>();
         
-        container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
-        
         container.Register<CharacterSaveManager>(Reuse.Singleton);
         container.Register<ActiveCharacterSave>(Reuse.Singleton);
         container.Register<ICharacterStorage, SqliteCharacterStorage>(Reuse.Singleton);
@@ -106,21 +101,15 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        //  The shared host wire-up (registry, serializers, loopback transports, hub, save storage,
-        //  networking config) lives in Server.Core so the embedded host and the dedicated
-        //  launcher compose from the same source.
-        HostComposition.RegisterNetworking(container, seedLocalLoopback: true);
-
         container.Register<TransportManager>(Reuse.Singleton);
-        container.RegisterDelegate<IClientConnection>(context =>
-        {
-            TransportManager transport = context.Resolve<TransportManager>();
-            transport.UseLocal(context.Resolve<LocalConnection>().Client);
-            return transport;
-        }, Reuse.Singleton);
+        container.Register<IClientConnection, TransportManager>(Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
         container.Register<ServerStats>(Reuse.Singleton);
+
+        //  The in-process host's loopback rides the ordinary join route: it waits in the pending set
+        //  until its JoinRequest binds it to the world it joins.
+        container.Register<IAutoActivate, LocalLoopbackSeed>();
 
         container.Register<IEntitySystem, ClientHeartbeatSystem>();
 
@@ -179,12 +168,6 @@ public class Injector : IDryIocInjector
         container.RegisterConfig<GameplayConfig>(file: "gameplay.toml");
         container.RegisterConfig<ProfileSettings>(file: "profile.toml");
         container.RegisterConfig<ChatConfig>(file: "chat.toml");
-        
-        container.RegisterConfig<NetworkingConfig>(file: "network.toml");
-        container.RegisterDelegate<DiscoveryConfig>(context => context.Resolve<NetworkingConfig>().Discovery, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterDelegate<ProtocolConfig>(context => context.Resolve<NetworkingConfig>().Protocol, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterDelegate<ServerConfig>(context => context.Resolve<NetworkingConfig>().Server, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-        container.RegisterDelegate<TransportConfig>(context => context.Resolve<NetworkingConfig>().Transport, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 
     private static void RegisterUI(IContainer container)
@@ -281,10 +264,8 @@ public class Injector : IDryIocInjector
         container.Register<ItemDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         
-        //  Shared interaction-content resolution used by the in-process server to author placeable/loot.
-        container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton);
-        
-        container.RegisterTags();
+        //  The client's richer interaction content replaces the headless server default.
+        container.Register<IInteractionContent, ClientInteractionContent>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
         
         container.Register<BlueprintDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<VoxelEntityModel>, BlueprintDatabase>();

@@ -78,7 +78,9 @@ separate singleplayer simulation path.
 
 `ServerModule` registers the server composition (see
 [specs/networking-worlds](specs/networking-worlds.md) for the per-world DI
-graph); the dedicated launcher is a thin host around the same wire-up.
+graph); the dedicated launcher is a thin host around the same wire-up. Who
+registers what is owned by each project's composition entry; see
+[specs/composition](specs/composition.md).
 
 See [specs/networking-overview](specs/networking-overview.md) for the full
 process boundary detail.

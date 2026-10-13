@@ -68,6 +68,8 @@ is not part of this workflow.
 
 - [ ] [DataStore.Free can double-free an entity index](/docs/issues/0039-datastore-free-idempotency.md) — a second Free re-enqueues the index; one index can reach two owners (engine-first)
 - [ ] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — Load returns failure; the test asserts success
+- [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
+- [x] [Docs reference a missing client test project](/docs/issues/0044-stale-client-tests-reference.md) — `dotnet test WaywardBeyond.Client.Tests` fails; 8 docs cite the removed project
 
 ### Improvement
 

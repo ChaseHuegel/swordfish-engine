@@ -11,7 +11,7 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
-using WaywardBeyond.Data.Migrations;
+using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Transport;
@@ -31,16 +31,16 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public static class ServerComposition
 {
-    public static void Register(IContainer container)
+    public static void RegisterServer(this IContainer container)
     {
-        container.Register<Migrator>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
-        
+        container.RegisterDataServices();
+
         //  Server-level menu facade: create/list/delete saved levels for connections that have not
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
         container.Register<PendingConnectionHeartbeat>(Reuse.Singleton);
         container.Register<PendingLevelDeletes>(Reuse.Singleton);
-        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
+        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton);
 
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
         container.RegisterTomlParser<PermissionFile>();
@@ -51,10 +51,14 @@ public static class ServerComposition
             var diagnostics = new PermissionDiagnostics();
             IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
             return PermissionPolicy.Create(files, diagnostics);
-        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Replace);
+        }, Reuse.Singleton);
         container.Register<ConnectionClaims>(Reuse.Singleton);
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
+
+        //  The default interaction content. A client module replaces it with richer content; a headless
+        //  server keeps this one. The replacement is order-independent: Keep here, Replace in the client.
+        container.Register<IInteractionContent, ServerInteractionContent>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
 
         //  The server reads the level autosave cadence from gameplay.toml. The client registers the
         //  same file earlier in host mode, so the first registration is kept.

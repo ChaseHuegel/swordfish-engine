@@ -288,4 +288,3 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 - `Swordfish.Tests/InputCodecTests.cs` covers the component codecs
   (`InputComponent`, `BodyViewComponent`, `IdentifierComponent`,
   `InteractionEvent`, and world snapshots).
-- `WaywardBeyond.Client.Tests` cover voxel-object processing.

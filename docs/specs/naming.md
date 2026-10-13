@@ -34,6 +34,25 @@ needed: `IBrickDatabase`.
 One config model per subject. The base class is `Config<T>` in
 `Swordfish.Library`.
 
+## DI composition extensions
+
+Composition helpers register a project's services through extension methods on
+`IContainer`. The owning project hosts the helpers next to its API types.
+
+| Pattern | Meaning |
+|---|---|
+| `<Project>Composition` | the static class hosting a project's composition extensions |
+| `Register<Thing>(this IContainer)` | an extension method that registers one concern |
+
+Examples: `NetworkingComposition` hosts `RegisterNetworking`.
+`DataComposition` hosts `RegisterDataServices`.
+`LocalizationComposition` hosts `RegisterTags`.
+
+A sub-area within a project hosts its own class in its namespace. Example:
+`WaywardBeyond.Data.Localization.LocalizationComposition`.
+
+Call sites and ownership rules live in [composition](composition.md).
+
 ## ECS
 
 | Suffix | Meaning |

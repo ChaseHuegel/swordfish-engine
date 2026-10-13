@@ -26,6 +26,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     private readonly IClientConnection _transport;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
+    private readonly NetworkRegistry _registry;
 
     //  Local players whose look is now client-predicted. The first authoritative transform seats them
     //  (server-assigned spawn); afterwards their orientation comes from local prediction, not the echo,
@@ -37,11 +38,13 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     public ClientReconcileSystem(
         in IClientConnection transport,
         SnapshotAckTracker snapshotAck,
-        in ClientPlayerMotionProcessor motionProcessor
+        in ClientPlayerMotionProcessor motionProcessor,
+        NetworkRegistry registry
     ) {
         _transport = transport;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
+        _registry = registry;
     }
 
     public void Tick(float delta, DataStore store)
@@ -114,7 +117,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         {
             ComponentRemoval removal = removedComponents[i];
             if (!store.TryGet(Uuid.FromValue(removal.Entity), out int entity)
-                || !NetworkRegistry.TryGetInfo(Uuid.FromValue(removal.TypeUuid), out NetworkComponentInfo info))
+                || !_registry.TryGetInfo(Uuid.FromValue(removal.TypeUuid), out NetworkComponentInfo info))
             {
                 continue;
             }
@@ -147,7 +150,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             entity = store.Alloc(entityUuid);
         }
 
-        if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
+        if (!_registry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info)
             || info.Direction != NetworkDirection.ServerOwned)
         {
             return;
@@ -186,7 +189,7 @@ internal sealed class ClientReconcileSystem : IEntitySystem
         ComponentSnapshot[] components = snapshot.Components;
         for (var i = 0; i < components.Length; i++)
         {
-            if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(components[i].TypeUuid), out NetworkComponentInfo info)
+            if (!_registry.TryGetInfo(Uuid.FromValue(components[i].TypeUuid), out NetworkComponentInfo info)
                 || info.Type == typeof(TransformComponent)
                 || info.Type == typeof(PhysicsComponent))
             {

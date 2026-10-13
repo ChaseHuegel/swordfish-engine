@@ -97,10 +97,9 @@ Every save-bearing record stamps a data version. The current version is
 The palette is the durable identity; pre-palette (data version 3) saves are
 unsupported. `Migrator` (`WaywardBeyond.Data/Migrations/Migrator.cs`)
 and `IMigration` remain for future record migrations, but no migrations ship in
-this build - `ServerComposition` registers an empty `Migrator`. See
+this build - `DataComposition` registers an empty `Migrator`. See
 [persistence](persistence.md).
 
 ## Tests that pin this
 
-- `WaywardBeyond.Client.Tests/ClientVoxelReconcileSystemTests.cs` —
-  reconcile by brick name across differing registries.
+- No tests pin the migration path; none ship in this build.

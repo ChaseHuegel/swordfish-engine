@@ -280,15 +280,18 @@ A headless dedicated server is a Shoal embedding without the client module:
 `WaywardBeyond.Server.Launcher` (console `Exe`) loads the server and shared
 modules only (`waywardbeyond.bricks`, `waywardbeyond.skills`,
 `waywardbeyond.bodies`, `waywardbeyond.server`) - no window, input, or
-client-level services. It registers the same shared host wire-up as the
-embedded client host (`WaywardBeyond.Server/HostComposition.cs`): the
-serializer set, `NetworkRegistry` init, hub (no loopback seed), save storage,
-`NetworkingConfig`, and `PhysicsSettings` (`physics.toml`, plus the Vector3
-mapper when the engine host did not register it); `ServerModule`'s host
-registrations add `ServerWorldHost` + `LanHost` + the beacon. Interaction
-content is the embedding's choice: the client module registers its
-item-backed content, the launcher registers `ServerInteractionContent` (breaks
-and loot; place resolution needs shared item content). Lifecycle:
+client-level services. The server module (`WaywardBeyond.Server/ServerModule.cs`)
+is the single host composition call site: it calls the shared host wire-up
+(`WaywardBeyond.Server/HostComposition.cs`), which registers the wire catalogue
+(`WaywardBeyond.Networking/NetworkingComposition.cs`: serializer set and
+`NetworkRegistry` init), the save storage, the networking config, and
+`PhysicsSettings` (`physics.toml`, plus the Vector3 mapper when the engine host
+did not register it). `ServerModule` adds `ServerWorldHost` + `LanHost` + the
+beacon. There is no loopback seed in the headless embedding: the client module
+seeds it. Interaction content defaults to `ServerInteractionContent` (breaks
+and loot; place resolution needs shared item content); the client module
+replaces it with its item-backed content. The launcher registers no services,
+it only applies CLI overrides after the engine builds. Lifecycle:
 `Ctrl+C`/SIGTERM → clean shutdown (level flush, session teardown, store
 disposal, per [persistence](persistence.md)). A LAN listen failure exits
 non-zero instead of running without a listener. CLI: `--name` and `--port`
@@ -299,8 +302,11 @@ override `NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
 ## Source of truth
 
 - `WaywardBeyond.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
+- `WaywardBeyond.Networking/NetworkingComposition.cs`
+- `WaywardBeyond.Networking/Serialization/{INetworkSerializer,NsdMessageSerializer}.cs`
 - `WaywardBeyond.Server/SessionManager.cs`
 - `WaywardBeyond.Server/LanHost.cs`
+- `WaywardBeyond.Server/ServerModule.cs`
 - `WaywardBeyond.Server/HostComposition.cs`
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
 - `WaywardBeyond.Server.Launcher/Program.cs`

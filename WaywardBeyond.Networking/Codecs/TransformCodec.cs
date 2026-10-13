@@ -2,10 +2,9 @@
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Registry;
 
-namespace WaywardBeyond.Server.Codecs;
+namespace WaywardBeyond.Networking.Codecs;
 
 /// <summary>
 /// Maps the engine <see cref="TransformComponent"/> onto the canonical <see cref="TransformMessage"/> wire

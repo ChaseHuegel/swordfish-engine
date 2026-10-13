@@ -20,7 +20,6 @@ docs pass. It folds in what used to live in root `STYLE_GUIDE.md` and
 dotnet build                                        # Debug default; runs nsdc codegen
 dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
-dotnet test WaywardBeyond.Client.Tests         # NUnit game tests
 dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
@@ -118,6 +117,9 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 ### DI & architecture
 
 - **DryIoc** everywhere. Modules register in `IDryIocInjector.Inject(IContainer)`.
+- Each project owns its registrations through one composition entry. Embeddings
+  call the entry instead of enumerating the project's types. See
+  [specs/composition](specs/composition.md).
 - Constructor injection for all dependencies. `in` modifier on DI parameter types.
 - `IContainer` resolved in infrastructure only (factories, app startup).
 - `IAutoActivate` is a marker for service auto-activation on startup.
@@ -140,7 +142,6 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 ### Testing
 
 - **xunit** for `Swordfish.Tests` and `Reef.Tests`.
-- **NUnit** for `WaywardBeyond.Client.Tests`.
 - Descriptive PascalCase test names: `SetMaxValueDoesScale`, `LightPropagationTest`.
 - Arrange/Act/Assert structure.
 - xunit tests inherit `TestBase` for DI container + `ITestOutputHelper`.

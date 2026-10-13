@@ -5,7 +5,9 @@ One subject: stable wire identity for networked components.
 ## `NetworkRegistry`
 
 `WaywardBeyond.Networking/Registry/NetworkRegistry.cs` maps networked
-component types to a stable wire identity.
+component types to a stable wire identity. One instance is registered as a DI
+singleton by the networking composition; systems take it through constructor
+injection.
 
 - `Initialize(assemblies)` scans assemblies for value-type `IDataComponent`
   structs annotated with `[NetworkComponent(uuid, direction)]` and registers
@@ -15,8 +17,8 @@ component types to a stable wire identity.
 - `Register<T>(Uuid, NetworkDirection, IPayloadCodec)` is the explicit path for
   engine/third-party components that are not nsd messages. It returns a
   `Result` with a contextual failure message (duplicate type, duplicate uuid,
-  `Uuid.Null`, invalid codec) instead of failing silently; the shared host
-  wire-up treats a failed built-in registration as fatal at startup.
+  `Uuid.Null`, invalid codec) instead of failing silently; the networking
+  composition treats a failed built-in registration as fatal at startup.
 - Codec validity is proven at registration: the generated-nsd-methods check in
   `NsdComponentCodec<T>`'s static constructor is forced via
   `RunClassConstructor`, so a component without generated serialize/deserialize
@@ -48,11 +50,11 @@ component, so callers never treat an empty payload as a valid snapshot.
 - `NsdComponentCodec<T>` — the default; requires the component to be an nsd
   message. Delegates to the generated `Serialize()`/`Deserialize`.
 - Hand-written adapters — `TransformCodec`/`PhysicsCodec`/`IdentifierCodec`
-  (in `WaywardBeyond.Server/Codecs/`).
+  (in `WaywardBeyond.Networking/Codecs/`).
 
 ## Registered components
 
-Wired in `WaywardBeyond.Client/Injector.cs` (`RegisterNetworking`).
+Wired in `WaywardBeyond.Networking/NetworkingComposition.cs`.
 
 | Component | Uuid | Direction | Codec |
 |---|---|---|---|
@@ -96,7 +98,7 @@ and is server-owned thereafter. See [join](networking-join.md) and
 - `WaywardBeyond.Networking/Registry/NetworkRegistry.cs`
 - `WaywardBeyond.Networking/Registry/NsdComponentCodec.cs`
 - `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentAttribute,NetworkComponentInfo,NetworkDirection}.cs`
-- Wiring: `WaywardBeyond.Client/Injector.cs` (`RegisterNetworking`)
+- Wiring: `WaywardBeyond.Networking/NetworkingComposition.cs`
 
 ## Tests that pin this
 

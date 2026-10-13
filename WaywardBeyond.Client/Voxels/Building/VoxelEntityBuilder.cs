@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using DryIoc;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Graphics;
@@ -17,13 +16,13 @@ internal sealed class VoxelEntityBuilder(
     in ILogger logger,
     in Shader shader,
     in PBRTextureArrays textureArrays,
-    in IContainer container,
+    in VoxelObjectBuilder voxelObjectBuilder,
     in IVoxelEntityDecorator[] decorators
 )
 {
     private readonly ILogger _logger = logger;
     private readonly IVoxelEntityDecorator[] _decorators = decorators;
-    private readonly VoxelObjectBuilder _voxelObjectBuilder = new(container);
+    private readonly VoxelObjectBuilder _voxelObjectBuilder = voxelObjectBuilder;
     
     private readonly HashSet<int> _updatedEntities = [];
 

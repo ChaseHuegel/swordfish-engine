@@ -32,9 +32,11 @@ longer tears down the first world.
 
 ## DI: per-world graphs from module templates
 
-The server module (`WaywardBeyond.Server/ServerComposition.cs`) registers
-every per-world service and system as a **transient template** in the root
-container. `ServerWorld` (`ServerWorld.cs`) resolves each template once and
+The server module (`WaywardBeyond.Server/ServerModule.cs`) registers the
+shared host wire-up (`HostComposition`) and every per-world service and
+system as a **transient template** in the root container
+(`ServerComposition.cs`). `ServerWorld` (`ServerWorld.cs`) resolves each
+template once and
 pins it into an **exclusive child container** per world
 (`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`,
 `withDisposables: false`); every system's constructor dependencies then resolve
@@ -101,8 +103,9 @@ pinned instances (registered into the child) still dispose on world unload.
 
 `PendingJoins` (`PendingJoins.cs`) holds accepted connections that are not yet
 bound to a world: the LAN acceptor adds each peer, and the in-process host
-seeds the loopback (`LocalConnection.Server` via `HostComposition.RegisterNetworking`).
-The host routes each connection to the hub of the world its `JoinRequest`
+seeds the loopback (`LocalConnection.Server` via the client module's
+`LocalLoopbackSeed`). The host routes each connection to the hub of the world
+its `JoinRequest`
 names (`ServerWorldHost.RoutePendingJoins`), then hands the request to the
 world through its `ServerJoinQueue`. A connection lives in `PendingJoins` or
 in exactly one world hub, never both: binding migrates it out of any previous
@@ -149,6 +152,7 @@ measured pressure from scaling work).
 
 - `WaywardBeyond.Server/ServerWorldHost.cs`
 - `WaywardBeyond.Server/ServerWorld.cs`
+- `WaywardBeyond.Server/ServerModule.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerComposition.cs`
 - `docs/specs/networking-join.md` (world-routed joins)

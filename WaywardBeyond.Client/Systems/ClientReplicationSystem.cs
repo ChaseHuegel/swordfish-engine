@@ -21,6 +21,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 {
     private readonly IClientConnection _transport;
     private readonly NetworkingConfig _config;
+    private readonly NetworkRegistry _registry;
     private float _sinceSend;
     private readonly List<ComponentSnapshot> _pending = [];
 
@@ -32,11 +33,12 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     //  fresh list on every tick of the replication hot path.
     private readonly NetworkComponentInfo[] _clientOwnedComponents;
 
-    public ClientReplicationSystem(in IClientConnection transport, in NetworkingConfig config)
+    public ClientReplicationSystem(in IClientConnection transport, in NetworkingConfig config, NetworkRegistry registry)
     {
         _transport = transport;
         _config = config;
-        _clientOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ClientOwned)];
+        _registry = registry;
+        _clientOwnedComponents = [.. registry.GetComponents(NetworkDirection.ClientOwned)];
     }
 
     public void Tick(float delta, DataStore store)
@@ -139,7 +141,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 
         private void DrainInteractions(DataStore store, int entity, in PendingInteractionComponent pending)
         {
-            if (!NetworkRegistry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info)
+            if (!Owner._registry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info)
                 || info.Codec is not IPayloadCodec<InteractionEvent> codec)
             {
                 return;
@@ -168,7 +170,7 @@ internal sealed class ClientReplicationSystem : IEntitySystem
 
         private void DrainInventoryOps(DataStore store, int entity, in PendingInventoryComponent pending)
         {
-            if (!NetworkRegistry.TryGetInfo<InventoryEvent>(out NetworkComponentInfo info)
+            if (!Owner._registry.TryGetInfo<InventoryEvent>(out NetworkComponentInfo info)
                 || info.Codec is not IPayloadCodec<InventoryEvent> codec)
             {
                 return;

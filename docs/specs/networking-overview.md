@@ -51,9 +51,11 @@ Two independent ECS worlds run concurrently in the process:
   [networking-worlds](networking-worlds.md).
 
 The server is hosted inside the client app. `WaywardBeyond.Server/ServerModule.cs`
-calls `ServerComposition.Register(container)` and registers `ServerWorldHost`
-and `LanHost`. The module loads through the standard module discovery path. A
-dedicated server process loads the server module without the client module.
+registers the shared host wire-up (`HostComposition`), the authoritative
+server composition (`ServerComposition`), and the `ServerWorldHost` and
+`LanHost` entry points. The module loads through the standard module discovery
+path. A dedicated server process loads the server module without the client
+module. See [composition](composition.md) for who registers what.
 
 The two sides never touch each other's `DataStore`. They exchange
 `ComponentSnapshot` payloads on the wire.

@@ -130,5 +130,3 @@ The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 ## Tests that pin this
 
 - `Swordfish.Tests` — the interaction-to-broadcast flow.
-- `WaywardBeyond.Client.Tests` — apply, `Playing` gate, confirm-as-no-op,
-  snap-to-authority, expired-revert.

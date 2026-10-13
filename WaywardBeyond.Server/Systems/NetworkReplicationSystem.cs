@@ -29,6 +29,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
     private readonly ILogger<NetworkReplicationSystem> _logger;
+    private readonly NetworkRegistry _registry;
 
     private readonly List<ComponentSnapshot> _pending = [];
     private readonly List<ComponentRemoval> _pendingRemovals = [];
@@ -76,13 +77,15 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         ServerConnectionHub hub,
         SessionManager sessions,
         ILogger<NetworkReplicationSystem> logger,
-        NetworkingConfig config
+        NetworkingConfig config,
+        NetworkRegistry registry
     ) {
         _hub = hub;
         _sessions = sessions;
         _logger = logger;
         _config = config;
-        _serverOwnedComponents = [.. NetworkRegistry.GetComponents(NetworkDirection.ServerOwned)];
+        _registry = registry;
+        _serverOwnedComponents = [.. registry.GetComponents(NetworkDirection.ServerOwned)];
         _snapshotTypeTag = System.Text.Encoding.UTF8.GetBytes(typeof(WorldSnapshot).FullName!);
     }
 
@@ -285,7 +288,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             return;
         }
 
-        if (!NetworkRegistry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
+        if (!_registry.TryGetInfo(Uuid.FromValue(snapshot.TypeUuid), out NetworkComponentInfo info))
         {
             _logger.LogWarning("Ignoring component snapshot with unknown type uuid {uuid}.", snapshot.TypeUuid);
             return;

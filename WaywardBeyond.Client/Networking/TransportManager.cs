@@ -35,13 +35,18 @@ internal sealed class TransportManager : IClientConnection
         in IEnumerable<INetworkSerializer> serializers,
         in ILoggerFactory loggerFactory,
         in NetworkingConfig config,
-        in ProfileUserClaimProvider userClaimProvider
+        in ProfileUserClaimProvider userClaimProvider,
+        in LocalConnection localConnection
     ) {
         _serializers = serializers;
         _loggerFactory = loggerFactory;
         _config = config;
         _userClaimProvider = userClaimProvider;
         _logger = loggerFactory.CreateLogger<TransportManager>();
+
+        //  Singleplayer is the default lifecycle: the transport binds the in-process loopback at
+        //  construction and multiplayer swaps it (ConnectRemote) when the player joins a remote host.
+        UseLocal(localConnection.Client);
     }
 
     /// <summary>The currently active transport, or null before a client connects.</summary>

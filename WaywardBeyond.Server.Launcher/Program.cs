@@ -3,9 +3,7 @@ using DryIoc;
 using Shoal;
 using Shoal.CommandLine;
 using WaywardBeyond.Config;
-using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Discovery;
-using WaywardBeyond.Server;
 
 namespace WaywardBeyond.Server.Launcher;
 
@@ -16,7 +14,8 @@ internal static class Program
 
     private static int Main(string[] args)
     {
-        AppEngine engine = AppEngine.Build(args, RegisterDedicatedServices);
+        AppEngine engine = AppEngine.Build(args);
+        ApplyCliOverrides(engine.Container);
 
         Console.CancelKeyPress += (_, e) =>
         {
@@ -53,18 +52,6 @@ internal static class Program
         engine.Dispose();
         Console.WriteLine("Dedicated server stopped.");
         return 0;
-    }
-
-    private static void RegisterDedicatedServices(IContainer container)
-    {
-        //  The shared host wire-up: registry, serializers, hub (no loopback), save storage, and config.
-        //  The server module's own injector adds ServerWorldHost + LanHost.
-        HostComposition.RegisterNetworking(container, seedLocalLoopback: false);
-
-        //  Headless interaction content: breaks and loot work; place requires client item content.
-        container.Register<IInteractionContent, ServerInteractionContent>(Reuse.Singleton);
-
-        ApplyCliOverrides(container);
     }
 
     private static void ApplyCliOverrides(IContainer container)

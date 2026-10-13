@@ -132,7 +132,3 @@ them until the behavior is designed.
 ## Tests that pin this
 
 - `Swordfish.Tests/InventoryResolverTests.cs` — op resolution cases.
-- `WaywardBeyond.Client.Tests/ClientReplicationInteractionTests.cs` —
-  outbound op drain and clear-on-success.
-- `WaywardBeyond.Client.Tests/PlayerDataInventoryMutationTests.cs` —
-  `ApplyMove` predict-and-stage coupling and wire emission.

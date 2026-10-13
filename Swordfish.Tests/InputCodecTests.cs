@@ -8,6 +8,13 @@ namespace Swordfish.Tests;
 
 public class NetworkComponentCodecTests
 {
+    private static NetworkRegistry CreateRegistry()
+    {
+        var registry = new NetworkRegistry();
+        registry.Initialize([typeof(InputComponent).Assembly]);
+        return registry;
+    }
+
     [Fact]
     public void NsdComponentCodecRoundTripsInputComponent()
     {
@@ -49,14 +56,14 @@ public class NetworkComponentCodecTests
     [Fact]
     public void InitializeRegistersAttributedComponents()
     {
-        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+        NetworkRegistry registry = CreateRegistry();
 
-        Assert.True(NetworkRegistry.TryGetInfo<InputComponent>(out NetworkComponentInfo info));
+        Assert.True(registry.TryGetInfo<InputComponent>(out NetworkComponentInfo info));
         Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
         Assert.IsType<NsdComponentCodec<InputComponent>>(info.Codec);
 
         //  The server-authored appearance index auto-registers from the same assembly scan.
-        Assert.True(NetworkRegistry.TryGetInfo<BodyViewComponent>(out NetworkComponentInfo bodyInfo));
+        Assert.True(registry.TryGetInfo<BodyViewComponent>(out NetworkComponentInfo bodyInfo));
         Assert.Equal(NetworkDirection.ServerOwned, bodyInfo.Direction);
         Assert.IsType<NsdComponentCodec<BodyViewComponent>>(bodyInfo.Codec);
     }
@@ -83,9 +90,9 @@ public class NetworkComponentCodecTests
     [Fact]
     public void InitializeRegistersInteractionEventComponent()
     {
-        NetworkRegistry.Initialize([typeof(InputComponent).Assembly]);
+        NetworkRegistry registry = CreateRegistry();
 
-        Assert.True(NetworkRegistry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info));
+        Assert.True(registry.TryGetInfo<InteractionEvent>(out NetworkComponentInfo info));
         Assert.Equal(NetworkDirection.ClientOwned, info.Direction);
     }
 

@@ -108,5 +108,4 @@ edit.
 
 ## Tests that pin this
 
-- `WaywardBeyond.Client.Tests/ChatServiceTests.cs` covers the ring buffer
-  bounds and the send queue.
+- No tests pin the ring buffer or the send queue. The game test suite is unmaintained.

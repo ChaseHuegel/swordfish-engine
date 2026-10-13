@@ -13,16 +13,16 @@ namespace WaywardBeyond.Networking.Registry;
 /// <summary>
 /// Maps networked ECS component types to a stable on-wire <see cref="Uuid"/> identity, an
 /// authoritative <see cref="NetworkDirection"/>, and the <see cref="IPayloadCodec"/> used to
-/// (de)serialize their snapshots. Registrations happen at startup (module composition) and the
+/// (de)serialize their snapshots. The networking composition registers one instance at startup and the
 /// mappings are read lock-free on the replication hot path; do not register concurrently with reads.
 /// </summary>
-public static class NetworkRegistry
+public sealed class NetworkRegistry
 {
-    private static volatile Dictionary<Type, NetworkComponentInfo> _byType = [];
-    private static volatile Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
-    private static readonly Lock _lock = new();
+    private volatile Dictionary<Type, NetworkComponentInfo> _byType = [];
+    private volatile Dictionary<Uuid, NetworkComponentInfo> _byUuid = [];
+    private readonly Lock _lock = new();
 
-    public static Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+    public Result Register<T>(Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
         where T : struct, IDataComponent
     {
         return Register(typeof(T), uuid, direction, codec);
@@ -33,7 +33,7 @@ public static class NetworkRegistry
     /// with <see cref="NetworkComponentAttribute"/> and registers them, using a
     /// <see cref="NsdComponentCodec{T}"/> derived from their generated nsd serializer.
     /// </summary>
-    public static void Initialize(IEnumerable<Assembly> assemblies)
+    public void Initialize(IEnumerable<Assembly> assemblies)
     {
         foreach (Assembly assembly in assemblies)
         {
@@ -70,7 +70,7 @@ public static class NetworkRegistry
     /// generated <c>Serialize</c>/<c>Deserialize</c> methods fails here (its validation lives in the
     /// static constructor, forced via <c>RunClassConstructor</c>), not mid-game on the wire.
     /// </summary>
-    public static Result Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
+    public Result Register(Type type, Uuid uuid, NetworkDirection direction, IPayloadCodec codec)
     {
         if (uuid == Uuid.Null)
         {
@@ -110,24 +110,24 @@ public static class NetworkRegistry
         }
     }
 
-    public static bool TryGetInfo(Type type, out NetworkComponentInfo info)
+    public bool TryGetInfo(Type type, out NetworkComponentInfo info)
     {
         return _byType.TryGetValue(type, out info);
     }
 
-    public static bool TryGetInfo(Uuid uuid, out NetworkComponentInfo info)
+    public bool TryGetInfo(Uuid uuid, out NetworkComponentInfo info)
     {
         return _byUuid.TryGetValue(uuid, out info);
     }
 
-    public static bool TryGetInfo<T>([NotNullWhen(true)] out NetworkComponentInfo info)
+    public bool TryGetInfo<T>([NotNullWhen(true)] out NetworkComponentInfo info)
         where T : struct, IDataComponent
     {
         return TryGetInfo(typeof(T), out info);
     }
 
     /// <summary>Enumerates every registered component in the given <paramref name="direction"/>.</summary>
-    public static IReadOnlyCollection<NetworkComponentInfo> GetComponents(NetworkDirection direction)
+    public IReadOnlyCollection<NetworkComponentInfo> GetComponents(NetworkDirection direction)
     {
         var result = new List<NetworkComponentInfo>(_byType.Count);
         foreach (NetworkComponentInfo info in _byType.Values)

@@ -4,7 +4,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
 
-namespace WaywardBeyond.Server.Codecs;
+namespace WaywardBeyond.Networking.Codecs;
 
 /// <summary>
 /// <see cref="IPayloadCodec"/> for the engine's <see cref="IdentifierComponent"/> (Name/Tag), spoken over

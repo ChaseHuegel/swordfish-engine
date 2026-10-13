@@ -165,7 +165,4 @@ no shared broker process to manage.
 
 ## Tests that pin this
 
-- Playtime accumulation rules in
-  `WaywardBeyond.Client.Tests/PlayClockTests.cs`.
-- The failed-send waiter rule in
-  `WaywardBeyond.Client.Tests/LevelsClientTests.cs`.
+- No tests pin the playtime rules. The game test suite is unmaintained.

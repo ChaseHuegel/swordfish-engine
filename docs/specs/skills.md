@@ -85,7 +85,7 @@ increment; a max-level skill renders a full bar.
 
 - `WaywardBeyond.Skills/*.cs`
 - `WaywardBeyond.Skills/assets/{skills,lang/tags}/**`
-- `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,LocalizedTagsWireUp}.cs`
+- `WaywardBeyond.Data/Localization/{LocalizedTagsDefinition,LocalizedTags,LocalizedTagsDatabase,LocalizedTagDefinitionParser,ILocalizedTagsDatabase,LocalizationComposition}.cs`
 - `WaywardBeyond.Server/Components/SkillStateComponent.cs`
 - `WaywardBeyond.Server/Systems/ServerSkillSystem.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)

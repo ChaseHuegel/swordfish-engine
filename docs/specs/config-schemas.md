@@ -82,7 +82,7 @@ Runtime UI tunables. Registered via `RegisterConfig<UISettings>`.
 
 Gameplay tunables shared by the client and the server, registered via
 `RegisterConfig<GameplayConfig>` (client `Injector.cs`, server
-`ServerComposition.cs`). Schema:
+`ServerComposition.cs`; the first registration wins). Schema:
 `WaywardBeyond.Config/GameplayConfig.cs`.
 
 | Key | Type | Default | Purpose |

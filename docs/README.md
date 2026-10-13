@@ -13,6 +13,7 @@ change touches a subject, run the docs pass (see `development.md`).
 |---|---|
 | Workflows, toolchain, code style, commit rules, config schema, docs pass | [development](development.md) |
 | As-built architecture, module map, persistence schema, CLI | [architecture](architecture.md) |
+| DI composition: who registers what, call sites, policies | [specs/composition](specs/composition.md) |
 | Networking overview: process boundary, world split, current state | [specs/networking-overview](specs/networking-overview.md) |
 | Wire message shapes (nsd schemas: snapshots, input, interaction event) | [specs/networking-messages](specs/networking-messages.md) |
 | Stable component identity, direction, codecs | [specs/networking-registry](specs/networking-registry.md) |
