@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client.Networking;
@@ -18,10 +18,9 @@ namespace WaywardBeyond.Client.Networking;
 /// before a transport exists cannot consume a later response. A dropped connection faults every pending
 /// operation (<see cref="FaultPending"/>) so no waiter hangs on a vanished server.
 /// </summary>
-internal sealed class LevelsClient
+internal sealed class LevelsClient(IClientConnection transport)
 {
-    private readonly IClientConnection _transport;
-    private readonly object _gate = new();
+    private readonly Lock _gate = new();
     private readonly Dictionary<Type, Queue<Waiter>> _pending = [];
 
     /// <summary>A single outstanding request's completion callbacks. Canceled waiters are skipped when a
@@ -31,11 +30,6 @@ internal sealed class LevelsClient
         public readonly Action<object> OnComplete = onComplete;
         public readonly Action OnFailure = onFailure;
         public bool Canceled;
-    }
-
-    public LevelsClient(in IClientConnection transport)
-    {
-        _transport = transport;
     }
 
     /// <summary>Drains every in-flight level-management response and completes its waiter. Run on the ECS thread.</summary>
@@ -117,13 +111,13 @@ internal sealed class LevelsClient
     /// </summary>
     public void SendLeaveGame()
     {
-        _transport.Send(new LeaveGameRequest { Dummy = 0 });
+        transport.Send(new LeaveGameRequest { Dummy = 0 });
     }
 
     private void Drain<TResponse>()
     {
         Result<TResponse> result;
-        while ((result = _transport.Receive<TResponse>()).Success)
+        while ((result = transport.Receive<TResponse>()).Success)
         {
             Complete(result.Value);
         }
@@ -168,7 +162,7 @@ internal sealed class LevelsClient
             queue.Enqueue(waiter);
         }
 
-        Result send = _transport.Send(request);
+        Result send = transport.Send(request);
         if (send.Success)
         {
             return;

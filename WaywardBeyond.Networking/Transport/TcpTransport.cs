@@ -64,7 +64,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
     private Thread? _sendThread;
 
 
-    private const int _THREAD_JOIN_TIMEOUT_MS = 2000;
+    private const int THREAD_JOIN_TIMEOUT_MS = 2000;
 
     /// <summary>
     /// True as long as the receive and send loops are running: false once the peer is gone (read/send
@@ -208,7 +208,8 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
         }
 
         byte[] payload = serializer.Serialize(message);
-
+        
+        //  TODO introduce an nsd message to model frames instead of hard coding (de)serialization of header information
         //  Frame body = [4-byte body length][4-byte type-tag length][type tag][payload], built in one
         //  pooled buffer. The queue owns the buffer; the send loop returns it to the pool after writing.
         int frameLength = 4 + typeTag.Length + payload.Length;
@@ -494,6 +495,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
                 }
 
                 byte[] frame = ArrayPool<byte>.Shared.Rent(frameLength);
+                //  TODO introduce an nsd message to model frames instead of hard coding (de)serialization of header information
                 int totalRead = ReadExact(frame, 0, frameLength);
                 if (totalRead == 0)
                 {
@@ -606,7 +608,7 @@ public sealed class TcpTransport : IClientConnection, IServerConnection, IConnec
         //  OnDisconnected on it); a thread cannot join itself.
         if (thread != null && thread != Thread.CurrentThread && thread.IsAlive)
         {
-            thread.Join(_THREAD_JOIN_TIMEOUT_MS);
+            thread.Join(THREAD_JOIN_TIMEOUT_MS);
         }
     }
 

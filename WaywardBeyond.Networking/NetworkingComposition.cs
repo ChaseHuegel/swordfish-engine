@@ -38,6 +38,8 @@ public static class NetworkingComposition
 
         container.RegisterTransportMessage<WorldSnapshot>();
         container.RegisterTransportMessage<ClientHello>();
+        //  TODO Introduce a proper RPC / request-response protocol + service.
+        //       These request/response constructs have to be re-implemented everywhere in their own way currently.
         container.RegisterTransportMessage<NewLevelRequest>();
         container.RegisterTransportMessage<NewLevelResponse>();
         container.RegisterTransportMessage<ListLevelsRequest>();

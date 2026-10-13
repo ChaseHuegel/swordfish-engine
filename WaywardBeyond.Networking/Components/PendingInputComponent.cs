@@ -7,20 +7,13 @@ namespace WaywardBeyond.Networking.Components;
 /// prediction each sim tick. Mirrors the server's <see cref="InputStageBuffer"/> ordering so the client
 /// replays the same command-per-sim-tick sequence the server staged.
 /// </summary>
-public struct PendingInputComponent : IDataComponent
+public struct PendingInputComponent(int capacity = PendingInputComponent.BUFFER_CAPACITY) : IDataComponent
 {
     private const int BUFFER_CAPACITY = 256;
 
-    private InputComponent[] _history;
-    private uint _head;
-    private uint _tail;
-
-    public PendingInputComponent(int capacity = BUFFER_CAPACITY)
-    {
-        _history = new InputComponent[capacity];
-        _head = 0;
-        _tail = 0;
-    }
+    private InputComponent[] _history = new InputComponent[capacity];
+    private uint _head = 0;
+    private uint _tail = 0;
 
     public void Push(in InputComponent input)
     {
