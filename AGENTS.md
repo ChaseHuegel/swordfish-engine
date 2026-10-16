@@ -11,13 +11,15 @@ short sentences, no semicolons, no contractions.
 ```bash
 dotnet build                                        # Debug default; runs nsdc codegen
 dotnet test Swordfish.Tests                         # xunit engine tests
-dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
+dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
 
-- `Reef.Tests` targets `net8.0-windows`; it cannot run on Linux.
+- `Reef.Tests` is `net8.0`; it runs on Linux. On non-Windows platforms the
+  MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts` must exist, because the
+  `msdf-atlas-gen` tool is Windows-only.
 - `Reef.Text.Tests` is `net8.0`; it runs on Linux.
 - No CI workflows exist (`.github/workflows/` is empty).
 - No lint or typecheck scripts. `dotnet build` is the check.
@@ -45,7 +47,7 @@ Every top-level path and what it is:
 | `Swordfish.Library/` | Shared types, serialization (Needlefish), DI abstractions |
 | `Reef/` | Renderer-agnostic IMGUI library (alpha) |
 | `Reef.Benchmarks/` | Reef BenchmarkDotNet benchmarks |
-| `Reef.Tests/` | Reef tests (Windows only) |
+| `Reef.Tests/` | Reef UI and render tests (cross-platform) |
 | `Reef.Text.Tests/` | Reef rich-text parser tests (cross-platform) |
 | `WaywardBeyond.Bodies/` | Shared body module: definitions, headless database |
 | `WaywardBeyond.Bricks/` | Shared brick module: definitions, headless database, id registry |
@@ -100,7 +102,7 @@ Before you finish a change, run:
 
 1. `dotnet build` — must compile clean.
 2. `dotnet test Swordfish.Tests` — engine tests.
-3. `dotnet test Reef.Tests` — Windows only; run when on Windows.
+3. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
 bug; do not finalize a change until the docs match the code.
@@ -122,7 +124,9 @@ a DB bucket/table, a config key, or an API route.
 ## SDK requirements
 
 - .NET 8 SDK minimum (some projects target net9.0; net8.0 is the baseline).
-- Windows needed for `Reef.Tests` and the full engine runtime.
+- Windows needed for the full engine runtime (Silk.NET OpenGL window). The
+  `msdf-atlas-gen` font tool is Windows-only, so other platforms reuse
+  pre-generated atlas `.bmp` and `.json` files.
 
 ## Read next
 

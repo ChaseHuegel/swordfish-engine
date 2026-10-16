@@ -8,8 +8,9 @@ docs pass. It folds in what used to live in root `STYLE_GUIDE.md` and
 ## Toolchain
 
 - .NET 8 SDK minimum. Some projects target `net9.0`. Net8.0 is the common baseline.
-- Windows is needed for `Reef.Tests` and the full `Swordfish` engine runtime
-  (Silk.NET OpenGL window).
+- Windows is needed for the full `Swordfish` engine runtime (Silk.NET OpenGL
+  window). The `msdf-atlas-gen` font tool is Windows-only, so other platforms
+  reuse pre-generated atlas `.bmp` and `.json` files.
 - No `global.json`, `Directory.Build.props`, or `.editorconfig` exist. Each
   `.csproj` is self-contained.
 - No lint, format, or typecheck scripts. Standard `dotnet build` is the check.
@@ -20,13 +21,19 @@ docs pass. It folds in what used to live in root `STYLE_GUIDE.md` and
 dotnet build                                        # Debug default; runs nsdc codegen
 dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
-dotnet test Reef.Tests                              # xunit, net8.0-windows (Windows only)
+dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
 
-- `Reef.Tests` targets `net8.0-windows` and cannot run on Linux.
+- `Reef.Tests` targets `net8.0` and runs on Linux. Non-Windows runs reuse the
+  pre-generated MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts`, because
+  `msdf-atlas-gen` is Windows-only.
+- Regenerate the atlas fixtures on Windows (or Wine) with the bundled
+  generator. Set the font id from `FontInfo` as the output name:
+  `Reef/Manifest/msdf-atlas-gen.exe -font "<font>" -imageout <id>.bmp
+  -json <id>.json -chars "<charset>"`.
 - No CI workflows exist (`.github/workflows/` is empty).
 - `nsdc` codegen runs automatically during build, driven by Exec targets in each
   `.csproj` (e.g. `WaywardBeyond.Data.csproj`, `WaywardBeyond.Networking.csproj`).
