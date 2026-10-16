@@ -24,6 +24,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Server-authoritative interactions and voxel edits | [specs/networking-voxel-edits](specs/networking-voxel-edits.md) |
 | Server-authoritative inventory moves | [specs/networking-inventory](specs/networking-inventory.md) |
 | Multiple server worlds: per-world DI graphs, routing, idle unload | [specs/networking-worlds](specs/networking-worlds.md) |
+| Lua scripting proposal (not implemented) | [proposals/scripting-lua](proposals/scripting-lua.md) |
 | Persistence backends research (NATS vs sqlite, superseded) | [research/persistence-backends](research/persistence-backends.md) |
 | Chat wire message, relay, logging, and UI | [specs/chat](specs/chat.md) |
 | Persistence: SQLite layout, level databases, storage services | [specs/persistence](specs/persistence.md) |
