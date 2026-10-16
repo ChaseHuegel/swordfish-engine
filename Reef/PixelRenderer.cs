@@ -93,6 +93,12 @@ public sealed class PixelRenderer
                 continue;
             }
 
+            //  Skip pixels that are outside the render target
+            if (x < 0 || y < 0 || x >= _width || y >= _height)
+            {
+                continue;
+            }
+
             Vector4 currentColor = _renderTexture.GetPixel(x, y);
 
             //  Render a textured rect
@@ -156,6 +162,12 @@ public sealed class PixelRenderer
                 continue;
             }
             
+            //  Skip pixels that are outside the render target
+            if (x < 0 || y < 0 || x >= _width || y >= _height)
+            {
+                continue;
+            }
+            
             var u = (int)RangeToRange(x, bbox.Left, bbox.Right, uv.Left, uv.Right);
             var v = (int)RangeToRange(y, bbox.Top, bbox.Bottom, uv.Top, uv.Bottom);
             
@@ -168,6 +180,10 @@ public sealed class PixelRenderer
 
     private static Vector4 SampleSdf(PixelTexture sdf, float fwidth, int u, int v, Vector4 outsideColor, Vector4 insideColor)
     {
+        //  Clamp to the atlas bounds; glyph quads can touch or cross the edge
+        u = Math.Clamp(u, 0, sdf.Width - 1);
+        v = Math.Clamp(v, 0, sdf.Height - 1);
+
         Vector4 s = sdf.GetPixel(u, v);
         float d = Median(s.X, s.Y, s.Z) - 0.5f;
         float w = Math.Clamp(d / fwidth + 0.5f, 0f, 1f);

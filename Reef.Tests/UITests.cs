@@ -1,11 +1,12 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
-using System.Drawing;
 using System.Numerics;
 using Reef.Constraints;
 using Reef.MSDF;
 using Reef.Text;
 using Reef.UI;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace Reef.Tests;
 
@@ -33,8 +34,7 @@ public class UITests
     [Fact]
     public void UITest()
     {
-        var swordfishBmp = new Bitmap("TestFiles/Images/swordfish.png");
-        PixelTexture swordfishTexture = BitmapToPixelTexture(swordfishBmp);
+        PixelTexture swordfishTexture = LoadPixelTexture("TestFiles/Images/swordfish.png");
         
         var salmonFont = new FontInfo("salmon-mono-9-regular", "TestFiles/Fonts/Salmon Mono 9 Regular.ttf");
         var awesomeFont = new FontInfo("fa-6-free-solid", "TestFiles/Fonts/Font Awesome 6 Free Solid.otf");
@@ -43,16 +43,16 @@ public class UITests
 
         textEngine.TryGetTypeface(salmonFont, out ITypeface? typeface);
         AtlasInfo atlasInfo = typeface!.GetAtlasInfo();
-        var salmonBmp = new Bitmap(atlasInfo.Path);
+        PixelTexture salmonTexture = LoadPixelTexture(atlasInfo.Path);
         
         textEngine.TryGetTypeface(awesomeFont, out typeface);
         atlasInfo = typeface!.GetAtlasInfo();
-        var faBmp = new Bitmap(atlasInfo.Path);
+        PixelTexture faTexture = LoadPixelTexture(atlasInfo.Path);
         
         var fonts = new Dictionary<string, PixelFontSDF>
         {
-            { salmonFont.ID, new PixelFontSDF(BitmapToPixelTexture(salmonBmp), 0.02f) },
-            { awesomeFont.ID, new PixelFontSDF(BitmapToPixelTexture(faBmp), 1f) },
+            { salmonFont.ID, new PixelFontSDF(salmonTexture, 0.02f) },
+            { awesomeFont.ID, new PixelFontSDF(faTexture, 1f) },
         };
 
         var controller = new UIController();
@@ -80,39 +80,37 @@ public class UITests
         var renderer = new PixelRenderer(ui.Width, ui.Height, textEngine, fonts);
         renderer.Render(renderCommands);
         
-        using Bitmap bitmap = PixelsToBitmap(ui.Width, ui.Height, renderer.GetPixels());
-        bitmap.Save("ui.bmp");
+        SavePixels(ui.Width, ui.Height, renderer.GetPixels(), "ui.bmp");
     }
 
-    private static Bitmap PixelsToBitmap(int width, int height, ReadOnlyCollection<Vector4> pixels)
+    private static void SavePixels(int width, int height, ReadOnlyCollection<Vector4> pixels, string path)
     {
-        var bitmap = new Bitmap(width, height);
+        using var image = new Image<Rgba32>(width, height);
         for (var i = 0; i < pixels.Count; i++)
         {
             int x = i % width;
             int y = i / width;
 
             Vector4 pixel = pixels[i];
-            Color color = Color.FromArgb(
-                alpha: (byte)(pixel.W * 255),
-                red: (byte)(pixel.X * 255),
-                green: (byte)(pixel.Y * 255),
-                blue: (byte)(pixel.Z * 255)
+            image[x, y] = new Rgba32(
+                (byte)(pixel.X * 255),
+                (byte)(pixel.Y * 255),
+                (byte)(pixel.Z * 255),
+                (byte)(pixel.W * 255)
             );
-            
-            bitmap.SetPixel(x, y, color);
         }
 
-        return bitmap;
+        image.Save(path);
     }
     
-    private static PixelTexture BitmapToPixelTexture(Bitmap bitmap)
+    private static PixelTexture LoadPixelTexture(string path)
     {
-        var texture = new PixelTexture(bitmap.Width, bitmap.Height);
-        for (var y = 0; y < bitmap.Height; y++)
-        for (var x = 0; x < bitmap.Width; x++)
+        using Image<Rgba32> image = Image.Load<Rgba32>(path);
+        var texture = new PixelTexture(image.Width, image.Height);
+        for (var y = 0; y < image.Height; y++)
+        for (var x = 0; x < image.Width; x++)
         {
-            Color color = bitmap.GetPixel(x, y);
+            Rgba32 color = image[x, y];
             var vector4 = new Vector4(
                 color.R / 255f,
                 color.G / 255f,
