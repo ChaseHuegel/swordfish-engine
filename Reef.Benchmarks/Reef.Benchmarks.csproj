@@ -17,12 +17,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Reference Include="System.Drawing.Common">
-        <HintPath>..\Swordfish.Tests\bin\Debug\net8.0\System.Drawing.Common.dll</HintPath>
-      </Reference>
-    </ItemGroup>
-
-    <ItemGroup>
       <None Update="Images\swordfish.png">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
@@ -30,6 +24,18 @@
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
       <None Update="Fonts\Salmon Mono 9 Regular.ttf">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\salmon-mono-9-regular.bmp" Link="Fonts\salmon-mono-9-regular.bmp">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\salmon-mono-9-regular.json" Link="Fonts\salmon-mono-9-regular.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\fa-6-free-solid.bmp" Link="Fonts\fa-6-free-solid.bmp">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </None>
+      <None Include="..\Reef.Tests\TestFiles\Fonts\fa-6-free-solid.json" Link="Fonts\fa-6-free-solid.json">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       </None>
     </ItemGroup>

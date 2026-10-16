@@ -1,17 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net8.0-windows</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <LangVersion>13</LangVersion>
+        <RollForward>LatestMajor</RollForward>
     </PropertyGroup>
 
     <ItemGroup>
         <PackageReference Include="coverlet.collector" Version="6.0.2"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0"/>
-        <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+        <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
         <PackageReference Include="xunit" Version="2.9.2"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2"/>
     </ItemGroup>
@@ -21,7 +22,11 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\Reef\Reef.csproj" />
+        <ProjectReference Include="..\Reef\Reef.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="TestFiles\**\*.*" CopyToOutputDirectory="Always"/>
     </ItemGroup>
 
 </Project>
