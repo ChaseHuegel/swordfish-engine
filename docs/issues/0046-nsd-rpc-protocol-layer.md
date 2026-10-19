@@ -1,7 +1,7 @@
 # Improvement: Add the nsd-rpc protocol layer and loopback transport
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -18,41 +18,41 @@ client or server.
 
 ## Acceptance criteria
 
-- [ ] `WaywardBeyond.Networking` references `NsdRpc`, `NsdRpc.Tcp`, and
+- [x] `WaywardBeyond.Networking` references `NsdRpc`, `NsdRpc.Tcp`, and
       `NsdRpc.Generators` at 0.3.0. The generator is an analyzer.
-- [ ] `GameRpc` holds every method id in one constants class. Ids are grouped
+- [x] `GameRpc` holds every method id in one constants class. Ids are grouped
       by subject and documented as a wire contract.
-- [ ] `GameRpcErrors` holds the app error codes in the `-32100` range.
-- [ ] `CodeGen/network.nsd` adds `SnapshotBatch`, `LevelStreamChunk`, and
+- [x] `GameRpcErrors` holds the app error codes in the `-32100` range.
+- [x] `CodeGen/network.nsd` adds `SnapshotBatch`, `LevelStreamChunk`, and
       `StreamLevelRequest`. `LevelEntityAdd` stays until the stream cutover.
-- [ ] `IGameServerApi` declares every client-to-server call, notification, and
+- [x] `IGameServerApi` declares every client-to-server call, notification, and
       stream. `IGameClientApi` declares every server-to-client notification.
       Every method sets its direction.
-- [ ] `IGameServerApi` declares `JoinAsync` and `StreamLevelAsync` with
+- [x] `IGameServerApi` declares `JoinAsync` and `StreamLevelAsync` with
       `Streams = typeof(LevelStreamChunk)`. The generator cross-checks the
       chunk type.
-- [ ] A registry freeze test proves that no method id is zero, duplicated, or
+- [x] A registry freeze test proves that no method id is zero, duplicated, or
       registered in the wrong direction.
-- [ ] A fragment helper splits and joins byte payloads with a 60,000-byte
+- [x] A fragment helper splits and joins byte payloads with a 60,000-byte
       budget. It covers a zero-length payload, an exact boundary, one byte
       over the boundary, and a stale incomplete group.
-- [ ] `LoopbackRpcServerTransport`, `LoopbackRpcServerConnection`, and
+- [x] `LoopbackRpcServerTransport`, `LoopbackRpcServerConnection`, and
       `LoopbackRpcClientConnection` implement the nsd-rpc transport
       interfaces, including `Close(RpcDisconnectReason)` and
       `event Action<RpcDisconnectReason> Disconnected`. Frames are copied,
       counters implement `IRpcConnectionStats`, and `Disconnected` fires once.
-- [ ] The loopback endpoint buffers outbound frames until the peer subscribes
+- [x] The loopback endpoint buffers outbound frames until the peer subscribes
       to `FrameReceived`. A hello sent before the server peer is wired is not
       lost.
-- [ ] The loopback server transport accepts a new client connection after the
+- [x] The loopback server transport accepts a new client connection after the
       previous one closes. The client host can restore the loopback session
       after a remote disconnect.
-- [ ] `RpcOptions.LogSink` forwards nsd-rpc drop and error events to the game
+- [x] `RpcOptions.LogSink` forwards nsd-rpc drop and error events to the game
       logger. `TraceEventType` maps to the engine log levels.
       `Transport.TraceLogging` still gates per-frame game logs.
-- [ ] `docs/specs/networking-rpc.md` records the service catalogue, method
+- [x] `docs/specs/networking-rpc.md` records the service catalogue, method
       ids, error codes, fragment rule, and loopback behavior.
-- [ ] `dotnet build` succeeds with zero warnings.
+- [x] `dotnet build` succeeds with zero warnings.
 
 ## Method id ranges
 

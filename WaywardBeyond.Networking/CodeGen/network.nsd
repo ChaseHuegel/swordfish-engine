@@ -23,6 +23,26 @@ message WorldSnapshot
     ComponentRemoval[] RemovedComponents = 4;
 }
 
+message SnapshotBatch
+{
+    uint BatchId = 0;
+    uint PartIndex = 1;
+    uint PartCount = 2;
+    byte[] Payload = 3;
+}
+
+message LevelStreamChunk
+{
+    uint PartIndex = 0;
+    uint PartCount = 1;
+    byte[] Payload = 2;
+}
+
+message StreamLevelRequest
+{
+    string LevelGuid = 0;
+}
+
 message TransformMessage
 {
     float PositionX      = 0;

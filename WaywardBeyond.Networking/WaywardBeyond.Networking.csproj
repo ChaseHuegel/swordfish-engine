@@ -15,6 +15,14 @@
         <ProjectReference Include="..\WaywardBeyond.Data\WaywardBeyond.Data.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+        <PackageReference Include="NsdRpc" Version="0.3.0" />
+        <PackageReference Include="NsdRpc.Tcp" Version="0.3.0" />
+        <!--  The 0.3.0 package ships the generator under lib/, so add it as an analyzer explicitly. -->
+        <PackageReference Include="NsdRpc.Generators" Version="0.3.0" GeneratePathProperty="true" PrivateAssets="all" ExcludeAssets="all" />
+        <Analyzer Include="$(PkgNsdRpc_Generators)/lib/netstandard2.0/NsdRpc.Generators.dll" />
+    </ItemGroup>
+
     <PropertyGroup>
         <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
     </PropertyGroup>

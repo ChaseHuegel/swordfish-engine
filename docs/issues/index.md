@@ -20,7 +20,7 @@ is not part of this workflow.
 
 
 ### Improvement
-- [ ] [Add the nsd-rpc protocol layer and loopback transport](/docs/issues/0046-nsd-rpc-protocol-layer.md) — services, method ids, fragments, loopback pair, RPC logging bridge
+- [x] [Add the nsd-rpc protocol layer and loopback transport](/docs/issues/0046-nsd-rpc-protocol-layer.md) — services, method ids, fragments, loopback pair, RPC logging bridge
 - [ ] [Migrate the server to nsd-rpc services](/docs/issues/0047-migrate-server-to-rpc.md) — peer directory, deferred handlers, two-call join, paced level stream, reliable snapshots
 - [ ] [Migrate the client to nsd-rpc services](/docs/issues/0048-migrate-client-to-rpc.md) — client host, inbound staging, two-call join, typed level calls
 - [ ] [Restore the loopback session after a remote disconnect](/docs/issues/0049-restore-loopback-after-remote.md) — a remote drop leaves no active connection; local play needs an application restart
