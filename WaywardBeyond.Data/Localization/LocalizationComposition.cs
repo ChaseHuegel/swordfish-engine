@@ -15,6 +15,6 @@ public static class LocalizationComposition
     public static void RegisterTags(this IContainer container)
     {
         container.RegisterMany<LocalizedTagsDatabase>(reuse: Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
-        container.RegisterMany<LocalizedTagDefinitionParser>(ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterMany<LocalizedTagDefinitionParser>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
     }
 }
