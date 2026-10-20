@@ -67,6 +67,15 @@ public class ConcurrentSwitchDictionary<TKey1, TKey2, TValue>
 
     public bool TryGetValue(TKey1 key1, out TValue value) => _dictionary.TryGetValue(key1, out value);
 
-    public bool TryGetValue(TKey2 key2, out TValue value) => _dictionary.TryGetValue(_link[key2], out value);
+    public bool TryGetValue(TKey2 key2, out TValue value)
+    {
+        if (_link.TryGetValue(key2, out TKey1 key1))
+        {
+            return _dictionary.TryGetValue(key1, out value);
+        }
+
+        value = default!;
+        return false;
+    }
 
 }
