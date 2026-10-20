@@ -188,6 +188,9 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
   components WITHOUT clearing; callers must explicitly `ClearDirty<T>(entity)`.
 - Component removals are auto-flagged so `QueryRemoved` detects them; the value
   is preserved on removal so readers access last-known data.
+- Change-gate hot-path writebacks. Read the current value first. Use `Write`
+  only when the new value differs. A write of an unchanged value still marks the
+  component dirty, so an idle system defeats delta replication and dirty polls.
 
 ### Needlefish / codegen
 
