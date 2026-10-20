@@ -87,18 +87,24 @@ public sealed class SimulationStep : IDisposable
             return;
         }
 
-        ref PhysicsComponent physicsValue = ref physics.Write;
         ref readonly TransformComponent transformValue = ref transform.Read;
 
         //  The solver's fixed timestep scales the per-step impulses; both sides run the same step.
         float fixedTimestamp = _physics.FixedTimestamp;
 
+        //  Mirror the current values so an idle command (one that reproduces the current state) can
+        //  skip the write. A Write marks the component dirty even when the value is unchanged, and
+        //  the server replicates this component to every client.
+        PhysicsComponent current = physics.Read;
+        Vector3 torque = current.Torque;
+        Vector3 velocity = current.Velocity;
+
         //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as torque,
         //  decoupled from dt so each step rotates by the full accumulated delta.
-        physicsValue.Torque += -physicsValue.Torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
-        if (physicsValue.Torque.LengthSquared() <= 0.00001f)
+        torque += -torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
+        if (torque.LengthSquared() <= 0.00001f)
         {
-            physicsValue.Torque = new Vector3();
+            torque = new Vector3();
         }
 
         var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
@@ -107,7 +113,7 @@ public sealed class SimulationStep : IDisposable
             Vector3 perStep = lookTotals - lastApplied;
             if (perStep != Vector3.Zero)
             {
-                physicsValue.Torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
+                torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
             }
         }
         _lastAppliedLook[entity] = lookTotals;
@@ -119,13 +125,23 @@ public sealed class SimulationStep : IDisposable
         var direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
 
         //  Damping then input-driven velocity (matches the legacy floaty-motion feel).
-        physicsValue.Velocity += -physicsValue.Velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
-        if (physicsValue.Velocity.LengthSquared() <= 0.00001f)
+        velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
+        if (velocity.LengthSquared() <= 0.00001f)
         {
-            physicsValue.Velocity = new Vector3();
+            velocity = new Vector3();
         }
 
-        physicsValue.Velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
+        velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
+
+        if (torque != current.Torque)
+        {
+            physics.Write.Torque = torque;
+        }
+
+        if (velocity != current.Velocity)
+        {
+            physics.Write.Velocity = velocity;
+        }
     }
 
     /// <summary>
