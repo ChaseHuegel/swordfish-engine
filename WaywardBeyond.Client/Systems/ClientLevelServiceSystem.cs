@@ -4,22 +4,20 @@ using WaywardBeyond.Client.Networking;
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Polls the client <see cref="LevelsClient"/> for in-flight level-management responses (save listing,
-/// create/delete level requests) on the ECS thread, so the menu can await them without either blocking a
-/// thread or racing the transport. This system runs regardless of <see cref="GameState"/> (the ECS thread
-/// ticks in the menu too), which is what lets the save-listing UI be served entirely from the server.
+/// Ticks the client RPC host on the ECS thread. It enforces pending call deadlines, so a menu request
+/// or a join never waits forever. Runs in every game state, including the menu.
 /// </summary>
 internal sealed class ClientLevelServiceSystem : IEntitySystem
 {
-    private readonly LevelsClient _levels;
+    private readonly ClientRpcHost _host;
 
-    public ClientLevelServiceSystem(in LevelsClient levels)
+    public ClientLevelServiceSystem(in ClientRpcHost host)
     {
-        _levels = levels;
+        _host = host;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        _levels.Poll();
+        _host.Poll();
     }
 }

@@ -13,4 +13,16 @@ public sealed record ProtocolConfig
     
     /// <summary>How long a client-side join may wait for the level stream to complete, in milliseconds.</summary>
     public DataBinding<int> JoinStreamTimeoutMs { get; private set; } = new(60_000);
+
+    /// <summary>The default RPC call deadline, in milliseconds. Zero disables it.</summary>
+    public DataBinding<int> CallTimeoutMs { get; private set; } = new(30_000);
+
+    /// <summary>The most pending calls and inbound requests one RPC peer tracks.</summary>
+    public DataBinding<int> MaxPendingCalls { get; private set; } = new(1_024);
+
+    /// <summary>The most chunks one RPC stream session buffers.</summary>
+    public DataBinding<int> MaxBufferedChunks { get; private set; } = new(1_024);
+
+    /// <summary>The level-stream bytes one server tick may enqueue per stream.</summary>
+    public DataBinding<int> LevelStreamBytesPerTick { get; private set; } = new(262_144);
 }

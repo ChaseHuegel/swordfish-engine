@@ -1,179 +1,139 @@
 # Networking — Transports, Sessions, LAN
 
-One subject: how messages physically move, how sessions map to clients, and
-LAN discovery.
+One subject: how RPC frames move, how sessions map to peers, and LAN discovery.
+The wire catalog lives in [networking-rpc](networking-rpc.md).
 
-## Transport abstraction
+## Transport layers
 
-Two marker interfaces split `INetworkTransport` into its two roles:
+| Layer | Owner | Purpose |
+|---|---|---|
+| envelope, correlation, framing | `NsdRpc` | one reliable frame stream per connection |
+| TCP sockets | `NsdRpc.Tcp` | loopback and LAN transports |
+| service catalogue, handlers, peer directory | the game | game methods and world ownership |
+| loopback | the game | in-process server for singleplayer and host mode |
 
-```csharp
-public interface INetworkTransport
-{
-    bool IsConnected { get; }
-    bool IsLocal { get; }
-    Result Send<T>(in T message);
-    Result<T> Receive<T>();
-}
+`WaywardBeyond.Networking` references `NsdRpc`, `NsdRpc.Tcp`, and
+`NsdRpc.Generators` at 0.3.0. The game no longer owns a wire envelope, type
+tags, per-type receive queues, or FIFO request matching.
 
-public interface IClientConnection : INetworkTransport { } // upstream sends, downstream receives
-public interface IServerConnection : INetworkTransport { } // downstream sends, upstream receives
-```
+## TCP
 
-`IsLocal` is surfaced via `GameClient` but is **not** consulted in the
-production hot path. Client and server systems uniformly `Send`/`Receive`
-typed messages regardless of transport.
+`NsdRpc.Tcp` provides `TcpClientConnection` and `TcpServerTransport`.
 
-## `LocalConnection` (in-process)
+- One reliable send queue per connection. A frame is never dropped after the
+  queue accepts it.
+- `SendQueueBytes` is the hard cap. A send at the cap is rejected, and the
+  caller treats the rejection as a peer failure.
+- `SendBacklogDisconnectBytes` and `SendBacklogDisconnectMs` close a stalled
+  peer with `BacklogLimit`.
+- `IdleTimeoutMs` closes a half-open peer with `IdleTimeout`.
+- `ConnectTimeoutMs` bounds a connect attempt with `TimeoutException`.
+- `SendBatchIntervalMs` coalesces queued frames into one socket write, up to
+  `SendBatchMaxBytes`.
+- `RpcPeer.Stats` reports frames, bytes, queued and peak bytes, writes, and
+  rejected sends.
+- `TraceLogging` gates the game's per-frame trace logs. nsd-rpc drop and error
+  events go to `RpcOptions.LogSink` regardless.
 
-`Transport/LocalConnection.cs` creates a client endpoint and a server endpoint
-backed by per-type `ConcurrentQueue<byte[]>`s. Every `Send<T>` serializes
-through the wire format and enqueues the resulting bytes; `Receive<T>` dequeues
-and deserializes. It exercises the wire **serialization** fully with zero
-network I/O; framing, keepalive replacement (session heartbeats), and per-type
-demux are `TcpTransport` behavior.
+## Loopback
 
-## `TcpTransport` (peer / LAN / dedicated)
+`WaywardBeyond.Networking/Transport/LoopbackRpc*.cs` implements the nsd-rpc
+transport interfaces for the in-process host.
 
-`Transport/TcpTransport.cs` is a socket peer used by a client
-(`Connect(host, port)`; the async connect is bounded by `Transport.TimeoutMs`
-so an unreachable host fails the join attempt instead of freezing the caller
-through the OS connect retry schedule). The multi-peer acceptor is
-`TcpServerHost`. It length-prefixes each serialized
-message with a type tag and dispatches frames to a **per-type receive queue**
-on a background receive thread, so each polling system can `Receive<T>` a
-distinct type. Framing is pool-backed on the hot path: wire frames and the
-coalesced send segment come from `ArrayPool<byte>` and return after write, and
-type tags resolve to bytes once at registration (`SerializerCache`) instead of
-re-encoding per send.
+- `LoopbackRpcServerTransport` accepts one client connection at a time. It
+  stays open when a client closes, so a new client connection gets a new id.
+- `LoopbackRpcClientConnection` connects and pairs with a server endpoint.
+- `LoopbackRpcServerConnection` is the server half. Its remote endpoint is null.
+- A receiving endpoint buffers frames until the peer subscribes to
+  `FrameReceived`, so a hello sent before the server peer is wired is not lost.
+- `Disconnected` fires once. The closing side passes its reason. The peer sees
+  `PeerClosed`.
+- Each side reports its own `IRpcConnectionStats` counters.
 
-Sends are **non-blocking**: each `Send<T>` serializes and frames the message on
-the calling thread, enqueues the bytes, and returns. A dedicated background
-send thread drains the queues in priority order and writes the socket. Control
-and state messages (join, world stream, level save requests, chat, voxel edits,
-notifications, skill updates) ride a **never-evicting reliable queue**; a dropped
-frame there
-is permanent data loss, so a peer that stops reading surfaces as a
-grow-and-error condition instead (`ReliableQueueConcernThreshold`, re-logged
-every ~100 frames). Per-tick snapshot traffic rides the bounded `SendQueue`
-whose drop-oldest policy applies only to it — a full queue drops the oldest
-snapshot frame, so input staleness is bounded instead of the queue growing
-without limit. The classification is explicit (`SendPriority`): every new
-per-tick message must be deliberately marked droppable. This keeps a dead
-peer from blocking the game loop, and the socket `SendTimeout`/
-`ReceiveTimeout` bound any stalled read or write. A peer whose reliable
-backlog stays over `ReliableQueueDisconnectThreshold` for
-`ReliableQueueDisconnectMs` is dropped outright, bounding per-peer memory on
-a peer that never reads (see [join](networking-join.md) for the client-side
-join-stream timeout).
+## Client host
 
-A keepalive heartbeat keeps a live-but-idle peer from being dropped. There is
-no transport-level keepalive frame: the **session heartbeat** is the liveness
-signal. Both sides emit an app-level heartbeat per connection at
-`NetworkingConfig.Protocol.HeartbeatIntervalMs` (clamped below
-`Transport.TimeoutMs`) from connection establishment - server → client `ServerHeartbeatMessage`
-(carrying the averaged `TPS`, the current sim `TickNumber`, and
-`PlayerCount`), client → server `ClientHeartbeatMessage` (carrying the client's
-sim tick and last applied snapshot tick). The receive loop no longer skips any
-frame kind; a genuinely idle link times out. The server emits its half from two
-pumps so every accepted connection stays readable: the per-world
-`ServerHeartbeatService` for connections bound to a world hub, and the
-host-level `PendingConnectionHeartbeat` (`WaywardBeyond.Server/PendingConnectionHeartbeat.cs`) for
-connections still in the pending set - the menu and character-creation window,
-before any world exists. The host-level pump also drains the pending
-connection's client heartbeats, so they cannot pile up unread. The server
-tracks each client's reported tick and logs a warn when it falls behind by
-more than `Server.TickLagWarnThreshold` sim ticks (once per crossing).
+`WaywardBeyond.Client/Networking/ClientRpcHost.cs` owns the active session.
 
-Disconnect detection is symmetric. Either the receive or the send thread can
-observe the peer is gone (EOF, a read/write exception, or a timeout). Because a
-live link keeps breathing via keepalive, a read/write timeout now only fires for
-a genuinely gone peer; the first thread to observe it cancels the other, marks
-the transport broken, and raises `OnDisconnected` exactly once. The server host
-drops the peer from its hub and prunes its own registry; its owner (`LanHost`
-server-side, `TransportManager` client-side) disposes the dead transport —
-closing the socket exactly once — and `IsConnected` flips to false. The
-transport never disposes itself.
+- Startup: connect the loopback, build the `RpcClient`, cache the
+  `GameServerApiClient`, send `ClientHello`.
+- `ConnectRemote`: connect TCP first, then close the loopback and switch. A
+  failed connect leaves the loopback active.
+- Remote drop: record the `RpcDisconnectReason`, raise `RemoteDisconnected`,
+  then create a fresh loopback client connection. The menu lists and loads
+  local saves without an application restart.
+- `Disconnect`: closes a remote peer and restores the loopback. An active
+  loopback is left alone.
+- `Poll` enforces call deadlines once per client tick.
+- `Stats` is the active connection's `RpcConnectionStats` or zeros.
+- `ClientInbound` clears on every connection switch.
 
-## Transport counters
+## Server host
 
-`Transport/IConnectionCounters.cs` exposes four monotonic counters:
-`PacketsSent`, `PacketsReceived`, `BytesSent`, and `BytesReceived`. Both
-`LocalConnection` endpoints and `TcpTransport` implement the interface.
+`WaywardBeyond.Server/ServerRpcHost.cs` owns `ServerPeers`, one frozen registry
+with `ServerHandlers`, the loopback `RpcServer`, and the LAN `RpcServer`.
 
-- `TcpTransport` counts on the real I/O paths. The send loop adds one packet
-  and the summed byte length per socket write (`TcpTransport.cs:457`); the
-  receive loop counts every frame that arrives at the I/O boundary
-  (`TcpTransport.cs:500`), including a frame it drops for an unknown or
-  malformed type tag. The 4-byte length prefix is included on both sides, so a
-  peer's `BytesSent` matches the other peer's `BytesReceived`.
-- `LocalConnection` keeps counters per endpoint, so each side reports its own
-  direction: the client endpoint counts client-to-server sends and
-  server-to-client receives, and the server endpoint counts the reverse
-  (`LocalConnection.cs:33-34`).
-
-The F3 `NetworkStatsOverlay`
-(`WaywardBeyond.Client/UI/NetworkStatsOverlay.cs`) reads the active
-transport's counters. It shows the **average** packets and bytes per second and
-the plain totals. It uses the average, not the median, because network traffic
-is bursty and the median of per-frame samples reads zero when packets arrive in
-fewer frames than the render loop runs.
-
-## `ServerConnectionHub` (multi-client)
-
-`Transport/ServerConnectionHub.cs` aggregates one `IServerConnection` per
-connected client under an opaque `Uuid` (`clientId`) assigned on `Add`. It is
-shared code because the shared transports feed it and every world side consumes it.
-
-- `Receive<T>()` polls every client connection, draining at most
-  `NetworkingConfig.Server.MaxReceiveWindow` frames per client per poll so one
-  chatty client cannot starve the rest of a server tick, and tags each
-  inbound message with the `clientId` it arrived on.
-- `Send<T>(clientId, ...)` addresses a single client.
-- `Remove(clientId)` queues a disconnect that `DrainDisconnects()` surfaces to
-  the server teardown step.
+- `Run` starts the loopback server and the deadline poll thread.
+- `StartLan(port)` starts the TCP server. `LanHost` calls it and then starts
+  the UDP discovery beacon.
+- A `RecordingRpcServerTransport` records each accepted connection's disconnect
+  reason by `ClientId` and returns the original connection. The nsd-rpc peer
+  keeps the owned-frame send path.
+- `ClientConnected` adds the peer. A handler can create the peer first if a
+  buffered frame dispatches before the connect event.
+- `ClientDisconnected` is idempotent. It records the reason, removes the peer,
+  and queues teardown for the server thread.
 
 ## Sessions
 
-`WaywardBeyond.Server/SessionManager.cs` binds the full
-`clientId ↔ Session ↔ player entity` chain, stamping `NetworkComponent.Session`.
+`ServerPeer` holds the stable game `Uuid`, the `RpcPeer`, the cached client
+proxy, the remote endpoint, the stats, the last disconnect reason, `IsLocal`,
+the claim, the bound world, and the last inbound stamp.
 
-- `ServerJoinSystem` allocates a `Session` per connection and calls `Register`.
-- `NetworkReplicationSystem` uses `SessionManager.TryGetEntity(clientId, ...)`
-  to read that client's per-entity acked input.
-- Disconnect teardown (the first stage of each world's `ServerJoinSystem`)
-  disposes the mirror's physics body, captures its uuid, frees the entity, and
-  clears the mapping.
-  The despawn broadcasts in `RemovedEntities`. The despawn uuid is captured
-  **before** the free because `DataStore.Free` clears the uuid.
+`WaywardBeyond.Server/SessionManager.cs` binds
+`game Uuid ↔ Session ↔ player entity` and stamps `NetworkComponent.Session`.
+
+- `ServerJoinSystem` allocates a `Session` per peer and calls `Register`.
+- `NetworkReplicationSystem` reads each peer's acked input through
+  `SessionManager.TryGetEntity`.
+- Disconnect teardown runs on the server thread. It disposes the mirror's
+  physics body, captures the uuid before `DataStore.Free`, frees the entity,
+  and clears the mapping. The despawn broadcasts in `RemovedEntities`.
+
+## Heartbeats
+
+Session heartbeats are RPC notifications, not transport keepalives.
+
+- The server sends `ServerHeartbeat` to bound peers from
+  `ServerHeartbeatService`, and to unbound menu peers from
+  `PendingConnectionHeartbeat`.
+- The client sends `ClientHeartbeat` from `ClientHeartbeatSystem`.
+- Every inbound handler stamps `ServerPeer.LastInboundTicks`.
+- The heartbeat cadence is clamped below `IdleTimeoutMs`.
+- The server logs a warning when a client's reported sim tick falls behind by
+  more than `Server.TickLagWarnThreshold`.
 
 ## LAN server discovery
 
-Hosts advertise an open server over **UDP broadcast**
-so a LAN client can auto-populate the multiplayer page. This is the one
-permitted UDP exception to the TCP-only rule; the beacon is a pure control
-plane and never carries game state.
+Hosts advertise an open server over UDP broadcast so a LAN client can populate
+the multiplayer page. The beacon is a control plane and never carries game
+state.
 
-- **Server broadcast.** `LanHost` (`WaywardBeyond.Server/LanHost.cs`) starts a
-  `"LAN BEACON"` thread that sends an nsd `LanBeacon` to `255.255.255.255`
-  every `NetworkingConfig.Discovery.BroadcastSeconds`. `PlayerCount` is read
-  live from `ServerWorldHost.PlayerCount` (the sum over world hubs; each
-  accepted peer awaits its join in the pending set until it binds to a world).
-  A `SocketException` (broadcast blocked) kills the loop permanently.
-- **Client scan.** `LanDiscoveryService` (`Client.Core/Networking/`) opens a
-  `UdpClient` on the same port and streams each discovered server as an
-  `IAsyncEnumerable<DiscoveredServer>` while listening for
-  `Discovery.ScanDurationSeconds`. It drops non-matching protocol versions, dedupes by
-  endpoint, and reads off the UI thread. It ignores a beacon from its own
-  in-process server by source address + advertised TCP port.
-- `MultiplayerPage` pre-fills host/port so the normal
-  `TransportManager.ConnectRemote` join path is reused.
+- `LanHost` starts the LAN RPC listener and a `"LAN BEACON"` thread. The thread
+  sends an nsd `LanBeacon` to `255.255.255.255` every
+  `Discovery.BroadcastSeconds`. `PlayerCount` is the sum of world session
+  counts.
+- `LanDiscoveryService` listens on the discovery port for
+  `Discovery.ScanDurationSeconds`, drops non-matching protocol versions, dedupes
+  by endpoint, and ignores its own server by source address and TCP port.
+- `LanDiscovery.ProtocolVersion` is 2. An old client cannot join a new server.
+- `MultiplayerPage` pre-fills host and port and uses the normal
+  `ClientRpcHost.ConnectRemote` path.
 
 ## Configuration
 
-`NetworkingConfig` (`WaywardBeyond.Config/NetworkingConfig.cs`), loaded from
+`NetworkingConfig` (`WaywardBeyond.Config/NetworkingConfig.cs`) loads from
 `network.toml`. The remote endpoint keys are top-level. The rest group into
-nested `[Server]`, `[Discovery]`, `[Transport]`, and `[Protocol]` tables.
+`[Server]`, `[Discovery]`, `[Transport]`, and `[Protocol]`.
 
 Top-level:
 
@@ -182,7 +142,7 @@ Top-level:
 | `RemoteHost` | `127.0.0.1` |
 | `RemotePort` | `7777` |
 
-`[Server]` (`ServerConfig`):
+`[Server]`:
 
 | Key | Default |
 |---|---|
@@ -190,9 +150,8 @@ Top-level:
 | `Name` | `LAN Server` |
 | `IdleUnloadMs` | `60000` |
 | `TickLagWarnThreshold` | `10` |
-| `MaxReceiveWindow` | `10` |
 
-`[Discovery]` (`DiscoveryConfig`):
+`[Discovery]`:
 
 | Key | Default |
 |---|---|
@@ -201,121 +160,71 @@ Top-level:
 | `BroadcastSeconds` | `5` |
 | `ScanDurationSeconds` | `20` |
 
-`[Transport]` (`TransportConfig`):
+`[Transport]`:
 
-| Key | Default |
-|---|---|
-| `TraceLogging` | `false` |
-| `TimeoutMs` | `5000` |
-| `MaxFrameBytes` | `16777216` |
-| `SendIntervalMs` | `16` |
-| `SendQueueSize` | `256` |
-| `ReliableQueueConcernThreshold` | `64` |
-| `ReliableQueueDisconnectThreshold` | `128` |
-| `ReliableQueueDisconnectMs` | `10000` |
+| Key | Default | Meaning |
+|---|---|---|
+| `TraceLogging` | `false` | per-frame game trace logs |
+| `ConnectTimeoutMs` | `5000` | one connect attempt |
+| `IdleTimeoutMs` | `5000` | close a silent peer |
+| `SendBatchIntervalMs` | `16` | coalesce frames per write; zero sends at once |
+| `SendBatchMaxBytes` | `65536` | largest batched write |
+| `SendQueueBytes` | `4194304` | hard send queue cap |
+| `SendBacklogDisconnectBytes` | `1048576` | backlog window start |
+| `SendBacklogDisconnectMs` | `10000` | backlog window length |
 
-`[Protocol]` (`ProtocolConfig`):
+`[Protocol]`:
 
-| Key | Default |
-|---|---|
-| `HeartbeatIntervalMs` | `1000` |
-| `SnapshotHz` | `30` |
-| `JoinStreamTimeoutMs` | `60000` |
+| Key | Default | Meaning |
+|---|---|---|
+| `HeartbeatIntervalMs` | `1000` | session heartbeat cadence |
+| `SnapshotHz` | `30` | snapshot and upload cadence |
+| `JoinStreamTimeoutMs` | `60000` | client join and stream deadline |
+| `CallTimeoutMs` | `30000` | default RPC call deadline |
+| `MaxPendingCalls` | `1024` | pending calls and inbound requests per peer |
+| `MaxBufferedChunks` | `1024` | buffered chunks per stream session |
+| `LevelStreamBytesPerTick` | `262144` | level stream budget per server tick |
 
-Disconnect detection is reason-carrying: `TcpTransport.OnDisconnected` reports
-a `DisconnectReason` (peer-closed EOF, read/write error, read/write timeout, or
-backlog limit), logged by the transport and its consumers (`LanHost`,
-`TransportManager`). Per-message tracing (every sent and received frame's type
-and byte count, at trace level) is gated by `TraceLogging`, so production logs
-stay clean. Frames dropped for unknown type tags and decode failures log at
-warn with the discriminating type name and byte count.
+`SendBacklogDisconnectBytes` must not exceed `SendQueueBytes`. The backlog keys
+are both zero or both positive. An invalid combination fails at startup.
 
-Frames are length-prefixed with a 4-byte body length. The receive loop rejects
-a prefix over `MaxFrameBytes` as a protocol violation and drops the connection
-before allocating the frame buffer; `Send<T>` refuses frames over the cap. The
-cap also bounds the deserializer's worst-case wire reach (see
-[nsdc frame bounds](#nsdc-frame-bounds)).
+## Threading
 
-### Per-client isolation
-
-`NetworkReplicationSystem.ApplyStage` processes every inbound snapshot inside a
-per-client try/catch: a malformed payload from one client is logged and
-skipped, and the remaining clients plus the world step continue. The blanket
-guard in `ServerWorldHost.Update` stays as the last line of defense.
-
-### nsdc frame bounds
-
-The nsdc-generated deserializers (`CodeGen/Output/*.cs`) bound internal reads
-against attacker-derived lengths; the structural fix requires an upstream nsdc
-change, and the submission (exact locations + suggested guard shape) is tracked
-as [issue 0037](/docs/issues/0037-nsdc-unpack-safety.md). Until the fixed
-codegen lands, `MaxFrameBytes` bounds the reachable buffer size and
-per-client isolation keeps a decode fault from halting the server.
-
-## Peer scaling (2N+1 threads)
-
-Each `TcpTransport` peer runs **two** background threads (receive, send) plus
-the host's accept thread - 2N+1 network threads for N connected remote
-clients, plus the server world thread. The transport keepalive thread was
-removed with the session heartbeat (see above), so the count is lower than
-earlier estimates. Per-peer memory is bounded: the per-tick send queue holds
-at most `SendQueueSize` frames (drop-oldest), the reliable queue grows only
-when a peer stops reading (bounded by the backlog-disconnect policy), and the
-receive queues are drained per tick at `MaxReceiveWindow` per client.
-
-This layout is the simplest correct design for blocking I/O and is fine for
-the LAN co-op target (N ≤ 8: 17 network threads). For a dedicated server
-heading toward dozens of clients, the options are a single async receive loop
-(`SocketAsyncEventArgs`/`ValueTask`) multiplexing all peers against per-peer
-queue state, or a documented hard cap on the thread model. **Decision: keep
-the per-peer thread model for the current target and cap the dedicated server
-at 32 clients (65 network threads); revisit async multiplexing only when a
-live 32-player dedicated server exists and measurements show thread count or
-per-peer memory is the bottleneck** (the #0033 counters + `NetworkStatsOverlay`
-already provide the per-peer bytes/rates needed for that measurement).
+The nsd-rpc peer runs one dispatch pump per connection. The game runs one server
+thread for all worlds. `ServerHandlers` and `ClientHandlers` only enqueue.
+`ServerHostCommands` and the world systems run on the server thread. The old
+2N+1 thread model is gone.
 
 ## Dedicated server
 
-A headless dedicated server is a Shoal embedding without the client module:
-`WaywardBeyond.Server.Launcher` (console `Exe`) loads the server and shared
-modules only (`waywardbeyond.bricks`, `waywardbeyond.skills`,
-`waywardbeyond.bodies`, `waywardbeyond.server`) - no window, input, or
-client-level services. The server module (`WaywardBeyond.Server/ServerModule.cs`)
-is the single host composition call site: it calls the shared host wire-up
-(`WaywardBeyond.Server/HostComposition.cs`), which registers the wire catalogue
-(`WaywardBeyond.Networking/NetworkingComposition.cs`: serializer set and
-`NetworkRegistry` init), the save storage, the networking config, and
-`PhysicsSettings` (`physics.toml`, plus the Vector3 mapper when the engine host
-did not register it). `ServerModule` adds `ServerWorldHost` + `LanHost` + the
-beacon. There is no loopback seed in the headless embedding: the client module
-seeds it. Interaction content defaults to `ServerInteractionContent` (breaks
-and loot; place resolution needs shared item content); the client module
-replaces it with its item-backed content. The launcher registers no services,
-it only applies CLI overrides after the engine builds. Lifecycle:
-`Ctrl+C`/SIGTERM → clean shutdown (level flush, session teardown, store
-disposal, per [persistence](persistence.md)). A LAN listen failure exits
-non-zero instead of running without a listener. CLI: `--name` and `--port`
-override `NetworkingConfig.Server.Name`/`Server.Port`, and `--data` overrides
-`StorageConfig.SaveRoot`; applied overrides persist to the saved
-`config/network.toml` and `config/storage.toml`.
+`WaywardBeyond.Server.Launcher` loads the server and shared modules only. The
+server module registers `ServerWorldHost`, `ServerRpcHost`, and `LanHost`.
+There is no loopback client and no client module. The dedicated
+`config/network.toml` uses the schema above. `Ctrl+C`/SIGTERM runs the clean
+shutdown: level flush, session teardown, store disposal. A LAN listen failure
+exits non-zero.
 
 ## Source of truth
 
-- `WaywardBeyond.Networking/Transport/{LocalConnection,TcpTransport,TcpServerHost,ServerConnectionHub}.cs`
-- `WaywardBeyond.Networking/NetworkingComposition.cs`
-- `WaywardBeyond.Networking/Serialization/{INetworkSerializer,NsdMessageSerializer}.cs`
-- `WaywardBeyond.Server/SessionManager.cs`
-- `WaywardBeyond.Server/LanHost.cs`
-- `WaywardBeyond.Server/ServerModule.cs`
-- `WaywardBeyond.Server/HostComposition.cs`
+- `WaywardBeyond.Networking/Rpc/`
+- `WaywardBeyond.Networking/Transport/LoopbackRpc*.cs`
+- `WaywardBeyond.Server/{ServerPeers,ServerPeer,ServerRpcHost}.cs`
 - `WaywardBeyond.Server/PendingConnectionHeartbeat.cs`
-- `WaywardBeyond.Server.Launcher/Program.cs`
-- `WaywardBeyond.Client/Networking/LanDiscoveryService.cs`
-- `WaywardBeyond.Client/Networking/TransportManager.cs`
-- `WaywardBeyond.Client/Systems/ClientDisconnectSystem.cs`
-- `WaywardBeyond.Config/NetworkingConfig.cs`
+- `WaywardBeyond.Server/LanHost.cs`
+- `WaywardBeyond.Server/SessionManager.cs`
+- `WaywardBeyond.Client/Networking/{ClientRpcHost,ClientInbound,ClientHandlers,LanDiscoveryService}.cs`
+- `WaywardBeyond.Config/{NetworkingConfig,TransportConfig,ProtocolConfig,ServerConfig}.cs`
+- `WaywardBeyond.Server.Launcher/config/network.toml`
 
 ## Tests that pin this
 
-- `Swordfish.Tests/LocalConnectionTests.cs` covers the local serialize/dequeue
-  round trips without a socket.
+- `Swordfish.Tests/RpcProtocolTests.cs` — method ids, directions, fragments.
+- `Swordfish.Tests/LoopbackRpcTests.cs` — call, notification, timeout,
+  cancellation, counters, sequential clients.
+- `Swordfish.Tests/ServerRpcTests.cs` — peer directory, recording transport,
+  menu calls over loopback and TCP.
+- `Swordfish.Tests/ClientRpcTests.cs` — loopback startup, remote switch,
+  remote-drop restore.
+- `Swordfish.Tests/TransportPolicyTests.cs` — backlog and idle close reasons.
+- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
+  rejoin over loopback and TCP.

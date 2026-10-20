@@ -35,7 +35,6 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client;
 
@@ -101,15 +100,12 @@ public class Injector : IDryIocInjector
 
     private static void RegisterNetworking(IContainer container)
     {
-        container.Register<TransportManager>(Reuse.Singleton);
-        container.Register<IClientConnection, TransportManager>(Reuse.Singleton);
+        container.Register<ClientInbound>(Reuse.Singleton);
+        container.Register<ClientHandlers>(Reuse.Singleton);
+        container.Register<ClientRpcHost>(Reuse.Singleton);
         container.Register<GameClient>(Reuse.Singleton);
         container.Register<SnapshotAckTracker>(Reuse.Singleton);
         container.Register<ServerStats>(Reuse.Singleton);
-
-        //  The in-process host's loopback rides the ordinary join route: it waits in the pending set
-        //  until its JoinRequest binds it to the world it joins.
-        container.Register<IAutoActivate, LocalLoopbackSeed>();
 
         container.Register<IEntitySystem, ClientHeartbeatSystem>();
 

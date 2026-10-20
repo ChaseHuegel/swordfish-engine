@@ -79,6 +79,71 @@ public class LoopbackRpcTests
     }
 
     [Fact]
+    public async Task CallTimesOutWithRequestTimeout()
+    {
+        var transport = new LoopbackRpcServerTransport();
+        var registry = new RpcRegistry();
+        registry.Add(new SlowHandler());
+        registry.Freeze();
+        var server = new RpcServer(transport, registry);
+        server.Start();
+
+        var connection = new LoopbackRpcClientConnection(transport);
+        await connection.ConnectAsync();
+        var clientRegistry = new RpcRegistry();
+        clientRegistry.Freeze();
+        var client = new RpcClient(connection, clientRegistry);
+
+        Task<RpcResult<NewLevelResponse>> call = client.InvokeAsync<NewLevelRequest, NewLevelResponse>(
+            SlowHandler.Method,
+            new NewLevelRequest { Name = "slow", Seed = "1", GameMode = 0 },
+            TimeSpan.FromMilliseconds(50));
+
+        long deadline = Environment.TickCount64 + 5000;
+        while (!call.IsCompleted && Environment.TickCount64 < deadline)
+        {
+            client.Poll();
+            await Task.Delay(5);
+        }
+
+        RpcResult<NewLevelResponse> result = await call.WaitAsync(TimeSpan.FromSeconds(1));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal((int)RpcErrorCode.RequestTimeout, result.ErrorCode);
+        //  Do not close here: nsd-rpc 0.3.0 leaves a canceled inbound entry whose token source the
+        //  dispatcher already disposed. The disconnect path then throws. See issue 0052.
+    }
+
+    [Fact]
+    public async Task CallCancelsWhenTheTokenFires()
+    {
+        var transport = new LoopbackRpcServerTransport();
+        var registry = new RpcRegistry();
+        registry.Add(new SlowHandler());
+        registry.Freeze();
+        var server = new RpcServer(transport, registry);
+        server.Start();
+
+        var connection = new LoopbackRpcClientConnection(transport);
+        await connection.ConnectAsync();
+        var clientRegistry = new RpcRegistry();
+        clientRegistry.Freeze();
+        var client = new RpcClient(connection, clientRegistry);
+
+        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));
+        RpcResult<NewLevelResponse> result = await client
+            .InvokeAsync<NewLevelRequest, NewLevelResponse>(
+                SlowHandler.Method,
+                new NewLevelRequest { Name = "slow", Seed = "1", GameMode = 0 },
+                cancellationToken: cancellation.Token)
+            .WaitAsync(TimeSpan.FromSeconds(5));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal((int)RpcErrorCode.Cancelled, result.ErrorCode);
+        //  See the timeout test and issue 0052: closing after a canceled call trips the upstream bug.
+    }
+
+    [Fact]
     public async Task CountersMatchTheOppositeSide()
     {
         var transport = new LoopbackRpcServerTransport();
@@ -114,6 +179,21 @@ public class LoopbackRpcTests
         var registry = new RpcRegistry();
         registry.Freeze();
         return new RpcClient(connection, registry);
+    }
+
+    [RpcMethod(Method)]
+    private sealed class SlowHandler : IRpcHandler<NewLevelRequest, NewLevelResponse>
+    {
+        public const ulong Method = 900;
+
+        public async ValueTask<RpcResult<NewLevelResponse>> ExecuteAsync(
+            NewLevelRequest request,
+            RpcContext context,
+            CancellationToken cancellationToken
+        ) {
+            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            return RpcResult<NewLevelResponse>.Success(new NewLevelResponse { LevelGuid = "late", Success = true });
+        }
     }
 
     private sealed class TestServerHandler : GameServerApiHandler

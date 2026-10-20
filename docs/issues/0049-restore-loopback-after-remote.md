@@ -1,7 +1,7 @@
 # Improvement: Restore the loopback session after a remote disconnect
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -21,29 +21,29 @@ accumulate frames that no system drains.
 
 ## Acceptance criteria
 
-- [ ] `ClientRpcHost` connects to the loopback at startup and marks it active.
-- [ ] A successful `ConnectRemote` closes the loopback `RpcClient` and its
+- [x] `ClientRpcHost` connects to the loopback at startup and marks it active.
+- [x] A successful `ConnectRemote` closes the loopback `RpcClient` and its
       connection before it switches to the remote.
-- [ ] A remote disconnect closes the remote and creates a fresh loopback
+- [x] A remote disconnect closes the remote and creates a fresh loopback
       `RpcClient` and connection. The loopback becomes active.
-- [ ] `Disconnect` restores the loopback instead of leaving no active
+- [x] `Disconnect` restores the loopback instead of leaving no active
       connection.
-- [ ] The loopback server transport accepts a new client connection after the
+- [x] The loopback server transport accepts a new client connection after the
       previous one closes. Repeated remote and local switches do not leak a
       peer.
-- [ ] `ClientInbound` is cleared on every switch. No stale heartbeat,
+- [x] `ClientInbound` is cleared on every switch. No stale heartbeat,
       snapshot, or level chunk reaches a system.
-- [ ] `RemoteDisconnected` still fires for a remote drop. The connection-lost
+- [x] `RemoteDisconnected` still fires for a remote drop. The connection-lost
       toast and teardown are unchanged.
-- [ ] `GameClient.IsLocal` and `GameClient.IsConnected` report the restored
+- [x] `GameClient.IsLocal` and `GameClient.IsConnected` report the restored
       loopback after a remote drop.
-- [ ] The menu lists local saves after the restore. A local join succeeds
+- [x] The menu lists local saves after the restore. A local join succeeds
       without an application restart.
-- [ ] `ProfileSettings.LastServerMode` is unchanged by the restore. Continue
+- [x] `ProfileSettings.LastServerMode` is unchanged by the restore. Continue
       keeps its current behavior.
-- [ ] A test drops a remote connection and then lists levels and joins a local
+- [x] A test drops a remote connection and then lists levels and joins a local
       world. A second test switches remote, local, and remote again.
-- [ ] The docs pass updates `networking-transports`,
+- [x] The docs pass updates `networking-transports`,
       `networking-overview`, and `networking-join`.
 
 ## Dependencies

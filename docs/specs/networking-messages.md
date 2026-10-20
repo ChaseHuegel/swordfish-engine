@@ -4,19 +4,18 @@ One subject: the serialized message and component shapes that cross the wire.
 
 ## Serialization substrate
 
-Wire messages are nsd schemas compiled by `nsdc` into structs with generated
+Wire payloads are nsd schemas compiled by `nsdc` into structs with generated
 `Serialize()`/`Deserialize(ReadOnlySpan<byte>)`. The generated `.cs` files under
 `**/CodeGen/Output` are auto-generated; never hand-edit them.
 
-`NsdMessageSerializer<T>` (`Serialization/NsdMessageSerializer.cs`) adapts any
-nsd message to the generic `ISerializer<T>` used by transports, by
-reflection-driving the generated methods. A `SerializerCache` indexes the
-DI-provided serializers by message type.
+`NsdRpc` wraps each payload in its own envelope. The transport frame is a
+4-byte little-endian length prefix plus the envelope. The envelope carries the
+protocol version, message kind, correlation id, method id, payload, and error.
+The game does not write the envelope, type tags, per-type queues, or FIFO
+request matching. See [networking-rpc](networking-rpc.md).
 
-> **No envelope.** The wire is plain serialized nsd messages with raw
-> transport-only framing (TCP uses a 4-byte length prefix). There is no
-> `GamePacket` envelope, no per-message sequence/ack/RTT layer. Reliability and
-> ordering are left to the transport (TCP today).
+A payload over 60,000 bytes is split into ordered fragments. See
+[fragments](networking-rpc.md#fragments).
 
 ## Snapshots
 
@@ -40,11 +39,21 @@ message WorldSnapshot
 }
 
 message ComponentRemoval { ulong Entity; ulong TypeUuid; }
+
+message SnapshotBatch
+{
+    uint BatchId = 0;
+    uint PartIndex = 1;
+    uint PartCount = 2;
+    byte[] Payload = 3;
+}
 ```
 
 `TickNumber` is the canonical sim tick (physics-step ordinal) at publish, not
 the server's per-world replication tick. `LastProcessedInput` is that client's
-own `LastAckedInput`.
+own `LastAckedInput`. A `WorldSnapshot` over the fragment budget travels as
+ordered `SnapshotBatch` parts. The parts carry a serialized `WorldSnapshot`
+payload.
 
 ## Transform and physics
 
@@ -153,25 +162,29 @@ message VoxelEditMessage
     int X, Y, Z;
     WaywardBeyond.Data.Voxel Voxel;
     uint Sequence = 5;
+    string? BrickId = 6;
 }
 ```
 
+The edit is a server-to-client RPC notification (method 350). It rides the
+reliable send queue with every other server event.
+
 ## Session heartbeats
 
-`ServerHeartbeatMessage` (server → client, reliable, per connection at
-`NetworkingConfig.Protocol.HeartbeatIntervalMs`) and `ClientHeartbeatMessage` (client → server, same
-cadence) carry the liveness + lag signal. The server emits to every accepted
-connection from establishment: the per-world `ServerHeartbeatService` covers
-connections bound to a world hub, and the host-level `PendingConnectionHeartbeat`
-covers connections still in the pending set (the menu and character-creation
-window). See [transports](networking-transports.md).
+`ServerHeartbeatMessage` (server → client, notification 354) and
+`ClientHeartbeatMessage` (client → server, notification 3) carry the liveness
+and lag signal at `NetworkingConfig.Protocol.HeartbeatIntervalMs`. The server
+emits to every accepted connection from establishment: the per-world
+`ServerHeartbeatService` covers peers bound to a world, and the host-level
+`PendingConnectionHeartbeat` covers unbound menu peers. See
+[transports](networking-transports.md#heartbeats).
 
 ```nsd
 message ServerHeartbeatMessage
 {
     uint TPS;           // server fixed-step count per wall second, averaged
     uint TickNumber;    // current server sim tick
-    uint PlayerCount;   // server-stamped from the hub (own client included)
+    uint PlayerCount;   // server-stamped from the world session count (own client included)
 }
 message ClientHeartbeatMessage
 {
@@ -205,13 +218,31 @@ rules, the log line, and the client behavior.
 ## Join and level-stream messages
 
 `WaywardBeyond.Data/CodeGen/levels.nsd`: `ClientHello`, `JoinRequest`,
-`JoinAccept`, `LevelEntityAdd`, `LevelStreamComplete`, `CharacterView`,
-`CharacterState`, and the save-listing set
-(`NewLevelRequest`/`Response`, `ListLevels*`, `DeleteLevel*`, `SaveLevel*`).
-Every message in the save-listing set rides the reliable send queue
-(`SendPriority`), because a dropped create, list, or delete would silently lose
-a save operation. See [join](networking-join.md) and
-[persistence](persistence.md).
+`JoinAccept`, `LevelStreamComplete`, `CharacterView`, `CharacterState`, and the
+save-listing set (`NewLevelRequest`/`Response`, `ListLevels*`,
+`DeleteLevel*`, `SaveLevel*`).
+
+The join is two RPC calls. `JoinRequest` returns `JoinAccept`.
+`StreamLevelRequest` starts the stream. Each `LevelStreamChunk` carries a
+serialized `VoxelEntityData` fragment. `LevelStreamComplete` is the stream
+response. The old `LevelEntityAdd` wrapper is gone.
+
+```nsd
+message StreamLevelRequest
+{
+    string LevelGuid = 0;
+}
+
+message LevelStreamChunk
+{
+    uint PartIndex = 0;
+    uint PartCount = 1;
+    byte[] Payload = 2;
+}
+```
+
+Every menu call is correlated by nsd-rpc, so request order never matters. See
+[join](networking-join.md) and [persistence](persistence.md).
 
 `CharacterState` carries the client's authoritative **initial** character
 context, including its saved skill statistics:
@@ -230,10 +261,9 @@ message CharacterState
 ```
 
 `ClientHello.UserId` is the client's stable user id. The client sends it once
-when the connection opens. The server keeps it as the connection's claim
-(`ConnectionClaims`). Menu-time requests resolve permissions from it, and
-`ServerJoinSystem` binds the same claim to the session at join. See
-[permissions](permissions.md).
+when the connection opens. The server keeps it as `ServerPeer.Claim`.
+Menu-time requests resolve permissions from it, and `ServerJoinSystem` binds the
+same claim to the session at join. See [permissions](permissions.md).
 
 `ListLevelsResponse.CanCreateSave` tells the client whether the server permits
 it to create a save. See [persistence](persistence.md).

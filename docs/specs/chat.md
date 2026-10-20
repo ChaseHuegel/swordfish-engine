@@ -13,20 +13,24 @@ complements [networking-messages](networking-messages.md).
 The client sends `Value` only. The server never trusts client-supplied
 identity.
 
-Chat messages relay in arrival order. They use their own per-type queue, so
-they never compete with replication frames.
+Chat is a client-to-server RPC notification (method 60) and a server-to-client
+notification (method 353). `ClientInbound.Chats` stages inbound relays for the
+ECS thread. Chat never competes with replication frames for a shared queue.
 
 ## Server relay
 
 `WaywardBeyond.Server/Systems/ServerChatSystem.cs` is a world system ticked
 after the interaction step and before replication publish (see
-[networking-worlds](networking-worlds.md)). For each inbound `ChatMessage` it applies these rules:
+[networking-worlds](networking-worlds.md)). `ServerHandlers.OnChat` stages each
+`ChatMessage` on `ServerPeer.Chats`; the world tick drains it. For each message
+it applies these rules:
 
 - Drop the message if the client has no session (it did not join).
 - Stamp `CharacterUuid` from the player mirror's `OwnedCharacterComponent`.
 - Stamp `SenderName` from the player mirror's `IdentifierComponent`.
 - Strip control characters and truncate `Value` to 512 characters.
-- Broadcast the relay to every connected client, including the sender.
+- Broadcast the relay through every world peer's cached `GameClientApiClient`,
+  including the sender.
 
 ## Log output
 
@@ -49,9 +53,9 @@ chat state. It keeps a bounded ring buffer of received messages (capacity
 comes from `MaxHistory`), stamping each with its arrival time, and a queue of
 outbound messages.
 
-`ClientChatSystem` runs on the ECS thread. It drains inbound `ChatMessage`s
-into the buffer and flushes the outbound queue to the transport. The UI layer
-reads the buffer and enqueues sends.
+`ClientChatSystem` runs on the ECS thread. It drains
+`ClientInbound.Chats` into the buffer and sends the outbound queue through the
+cached server proxy. The UI layer reads the buffer and enqueues sends.
 
 ## Config
 

@@ -4,7 +4,6 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -12,11 +11,11 @@ namespace WaywardBeyond.Server.Systems;
 /// Server-authoritative chat relay. Inbound <see cref="ChatMessage"/>s from any client are stamped with
 /// the sender's authoritative identity from the player mirror (<see cref="OwnedCharacterComponent"/> for
 /// the character id, <see cref="IdentifierComponent"/> for the display name), sanitized, logged to the
-/// standard engine log, and broadcast to every connected client. Identity is never trusted from the
-/// wire; a client can only supply text.
+/// standard engine log, and broadcast to every peer in the world through its cached client proxy.
+/// Identity is never trusted from the wire; a client can only supply text.
 /// </summary>
 public sealed class ServerChatSystem(
-    ServerConnectionHub hub,
+    ServerPeers peers,
     SessionManager sessions,
     ILogger<ServerChatSystem> logger
 ) : IServerWorldSystem
@@ -24,38 +23,50 @@ public sealed class ServerChatSystem(
     /// <summary>Maximum characters of a chat message after sanitization.</summary>
     public const int MAX_MESSAGE_LENGTH = 512;
 
-    private readonly ServerConnectionHub _hub = hub;
+    private readonly ServerPeers _peers = peers;
     private readonly SessionManager _sessions = sessions;
     private readonly ILogger _logger = logger;
 
     public void Tick(float delta, DataStore store)
     {
-        foreach ((Uuid clientId, ChatMessage message) in _hub.Receive<ChatMessage>())
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            //  Only joined players may speak; drop everything else silently.
-            if (!_sessions.TryGetEntity(clientId, out int entity) || !store.TryGet(entity, out OwnedCharacterComponent character))
+            if (peer.World?.Store != store)
             {
                 continue;
             }
 
-            string senderName = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name ?? string.Empty : string.Empty;
-
-            var relay = new ChatMessage
+            while (peer.Chats.TryDequeue(out ChatMessage message))
             {
-                CharacterUuid = store.GetUuid(entity).ToValue(),
-                SenderName = senderName,
-                Value = Sanitize(message.Value),
-            };
+                Relay(store, peer.GameId, message);
+            }
+        }
+    }
 
-            _logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
+    private void Relay(DataStore store, Uuid clientId, in ChatMessage message)
+    {
+        //  Only joined players may speak; drop everything else silently.
+        if (!_sessions.TryGetEntity(clientId, out int entity) || !store.TryGet(entity, out OwnedCharacterComponent character))
+        {
+            return;
+        }
 
-            foreach ((Uuid client, _) in _hub.Clients)
+        string senderName = store.TryGet(entity, out IdentifierComponent identifier) ? identifier.Name ?? string.Empty : string.Empty;
+
+        var relay = new ChatMessage
+        {
+            CharacterUuid = store.GetUuid(entity).ToValue(),
+            SenderName = senderName,
+            Value = Sanitize(message.Value),
+        };
+
+        _logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
+
+        foreach (ServerPeer peer in _peers.Peers)
+        {
+            if (peer.World?.Store == store)
             {
-                Result send = _hub.Send(client, relay);
-                if (!send.Success)
-                {
-                    _logger.LogWarning("Failed to relay chat message to client {client}: {message}.", client, send.Message);
-                }
+                peer.Client.ChatRelay(relay);
             }
         }
     }

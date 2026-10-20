@@ -6,23 +6,21 @@ using Swordfish.ECS;
 using WaywardBeyond.Config;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
-/// Session heartbeats, server side. Emits <see cref="ServerHeartbeatMessage"/> per connected client at
-/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout so the
-/// heartbeat doubles as the transport keepalive - a live link always delivers a readable message within
-/// the timeout window). Consumes <see cref="ClientHeartbeatMessage"/>s, tracking each client's reported
-/// sim tick and logging a warn when it falls behind the server by more than
-/// <c>NetworkingConfig.Server.TickLagWarnThreshold</c> (once per crossing).
+/// Session heartbeats, server side. Sends <see cref="ServerHeartbeatMessage"/> to every peer in the
+/// world at <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence, clamped below the idle
+/// timeout. Consumes <see cref="ClientHeartbeatMessage"/>s and logs a warn when a client's sim tick
+/// falls behind by more than <c>NetworkingConfig.Server.TickLagWarnThreshold</c>.
 /// </summary>
 public sealed class ServerHeartbeatService : IServerWorldSystem
 {
-    private readonly ServerConnectionHub _hub;
+    private readonly ServerPeers _peers;
     private readonly ILogger<ServerHeartbeatService> _logger;
     private readonly SimulationStep _simulationStep;
+    private readonly SessionManager _sessions;
     private readonly int _heartbeatIntervalMs;
     private readonly uint _lagWarnThreshold;
 
@@ -35,15 +33,17 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
     private int _nextHeartbeatTicks;
 
     public ServerHeartbeatService(
-        ServerConnectionHub hub,
+        ServerPeers peers,
+        SessionManager sessions,
         NetworkingConfig config,
         ILogger<ServerHeartbeatService> logger,
         SimulationStep simulationStep
     ) {
-        _hub = hub;
+        _peers = peers;
+        _sessions = sessions;
         _logger = logger;
         _simulationStep = simulationStep;
-        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, config.Transport.TimeoutMs.Get() / 2)));
+        _heartbeatIntervalMs = ClampHeartbeat(config);
         _lagWarnThreshold = (uint)Math.Max(1, config.Server.TickLagWarnThreshold.Get());
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
@@ -54,16 +54,24 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         MeasureTps();
         uint simTick = _simulationStep.CurrentSimTick;
 
-        foreach ((Uuid clientId, ClientHeartbeatMessage heartbeat) in _hub.Receive<ClientHeartbeatMessage>())
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            TrackClientTick(clientId, heartbeat.TickNumber, simTick);
+            if (peer.World?.Store != store)
+            {
+                continue;
+            }
+
+            while (peer.Heartbeats.TryDequeue(out ClientHeartbeatMessage heartbeat))
+            {
+                TrackClientTick(peer.GameId, heartbeat.TickNumber, simTick);
+            }
         }
 
         //  A lag-warned client that disconnected stops sending heartbeats, so TrackClientTick can no
         //  longer retire the entry; prune it here instead so the set cannot grow with client churn.
         foreach (Uuid clientId in _lagWarned.ToArray())
         {
-            if (!_hub.TryGet(clientId, out _))
+            if (!_peers.TryGet(clientId, out _))
             {
                 _lagWarned.Remove(clientId);
             }
@@ -79,13 +87,24 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         {
             TPS = (uint)Math.Max(1, _tps),
             TickNumber = simTick,
-            PlayerCount = (uint)_hub.Count,
+            PlayerCount = (uint)_sessions.Count,
         };
 
-        foreach ((Uuid clientId, _) in _hub.Clients)
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            _hub.Send(clientId, outbound);
+            if (peer.World?.Store == store)
+            {
+                peer.Client.ServerHeartbeat(outbound);
+            }
         }
+    }
+
+    /// <summary>Clamps the heartbeat below the transport idle timeout so it stays a keepalive.</summary>
+    internal static int ClampHeartbeat(NetworkingConfig config)
+    {
+        int requested = config.Protocol.HeartbeatIntervalMs.Get();
+        int idle = config.Transport.IdleTimeoutMs.Get();
+        return idle > 0 ? Math.Max(250, Math.Min(requested, idle / 2)) : Math.Max(250, requested);
     }
 
     private void MeasureTps()

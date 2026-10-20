@@ -7,7 +7,7 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -26,7 +26,7 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class NetworkReplicationSystem : IEntitySystem
 {
-    private readonly ServerConnectionHub _hub;
+    private readonly ServerPeers _peers;
     private readonly SessionManager _sessions;
     private readonly ILogger<NetworkReplicationSystem> _logger;
     private readonly NetworkRegistry _registry;
@@ -60,33 +60,21 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     //  with world size instead of dirtiness.
     private readonly NetworkComponentInfo[] _serverOwnedComponents;
 
-    //  The wire type tag (WorldSnapshot FullName) and its byte length, pre-encoded for snapshot framing.
-    private readonly byte[] _snapshotTypeTag;
-
-    //  Snapshot frame layout: [body length:4][type-tag length:4][type tag][nsd payload]. The nsd
-    //  payload is self-describing, [field id:2][value] per field, and the shared frame is patched per
-    //  client at fixed offsets below. WorldSnapshot.nsd must keep TickNumber (uint) its first field
-    //  and LastProcessedInput (uint) its second: moving a field breaks the patch silently. Keep in
-    //  sync with the schema.
-    private const int SNAPSHOT_LENGTH_FIELD_LENGTH = 4;
-    private const int FRAME_HEADER_LENGTH = 2 * SNAPSHOT_LENGTH_FIELD_LENGTH;
-    private const int NSD_FIELD_ID_LENGTH = 2;
-    private const int NSD_UINT_LENGTH = 4;
+    private uint _nextBatchId;
 
     public NetworkReplicationSystem(
-        ServerConnectionHub hub,
+        ServerPeers peers,
         SessionManager sessions,
         ILogger<NetworkReplicationSystem> logger,
         NetworkingConfig config,
         NetworkRegistry registry
     ) {
-        _hub = hub;
+        _peers = peers;
         _sessions = sessions;
         _logger = logger;
         _config = config;
         _registry = registry;
         _serverOwnedComponents = [.. registry.GetComponents(NetworkDirection.ServerOwned)];
-        _snapshotTypeTag = System.Text.Encoding.UTF8.GetBytes(typeof(WorldSnapshot).FullName!);
     }
 
     /// <summary>
@@ -139,15 +127,23 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     /// </summary>
     public void ApplyStage(float delta, DataStore store)
     {
-        foreach ((Uuid clientId, WorldSnapshot snapshot) in _hub.Receive<WorldSnapshot>())
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            try
+            if (peer.World?.Store != store)
             {
-                ApplyClientSnapshot(store, clientId, snapshot);
+                continue;
             }
-            catch (Exception ex)
+
+            while (peer.Snapshots.TryDequeue(out WorldSnapshot snapshot))
             {
-                _logger.LogError(ex, "Dropping malformed inbound snapshot from client {clientId}.", clientId);
+                try
+                {
+                    ApplyClientSnapshot(store, peer.GameId, snapshot);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Dropping malformed inbound snapshot from client {clientId}.", peer.GameId);
+                }
             }
         }
     }
@@ -214,12 +210,6 @@ public sealed class NetworkReplicationSystem : IEntitySystem
         ulong[] removed = _removed.ToArray();
         _removed.Clear();
 
-        //  Serialized once per tick: the authoritative component set is shared by every client, so the
-        //  whole snapshot frame is built a single time and fanned out with a per-client ack overwrite
-        //  (LastProcessedInput lives at a fixed 4-byte offset right after TickNumber).
-        byte[] sharedFrame = BuildSnapshotFrame(SimTick, 0, components, removed, removedComponents);
-        int payloadOffset = FRAME_HEADER_LENGTH + _snapshotTypeTag.Length;
-
         ComponentSnapshot[]? fullState = null;
         if (_fullSync.Count > 0)
         {
@@ -230,8 +220,14 @@ public sealed class NetworkReplicationSystem : IEntitySystem
             fullState = collect.Components.ToArray();
         }
 
-        foreach ((Uuid clientId, _) in _hub.Clients)
+        foreach (ServerPeer peer in _peers.Peers)
         {
+            if (peer.World?.Store != store)
+            {
+                continue;
+            }
+
+            Uuid clientId = peer.GameId;
             uint lastProcessedInput = 0;
             if (_sessions.TryGetEntity(clientId, out int entity)
                 && store.TryGet(entity, out NetworkComponent net))
@@ -239,34 +235,42 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 lastProcessedInput = net.LastAckedInput;
             }
 
+            WorldSnapshot snapshot;
             if (_fullSync.Remove(clientId))
             {
-                _hub.Send(clientId, new WorldSnapshot
+                snapshot = new WorldSnapshot
                 {
                     TickNumber = SimTick,
                     LastProcessedInput = lastProcessedInput,
                     Components = fullState ?? [],
                     RemovedEntities = removed,
                     RemovedComponents = removedComponents,
-                });
-                continue;
+                };
             }
-
-            //  A joining client's stream is still in flight: no per-tick deltas until the stream
-            //  complete has been enqueued (the full-sync publish above remains its first snapshot).
-            if (_streamingClients.Contains(clientId))
+            else
             {
-                continue;
+                //  A joining client's stream is still in flight: no per-tick deltas until the stream
+                //  complete has been enqueued (the full-sync publish above remains its first snapshot).
+                if (_streamingClients.Contains(clientId))
+                {
+                    continue;
+                }
+
+                snapshot = new WorldSnapshot
+                {
+                    TickNumber = SimTick,
+                    LastProcessedInput = lastProcessedInput,
+                    Components = components,
+                    RemovedEntities = removed,
+                    RemovedComponents = removedComponents,
+                };
             }
 
-            //  Per-client copy of the shared frame with that client's own tick and ack rewritten. The
-            //  offset layout is pinned by the constants above (see the frame-layout contract).
-            byte[] clientFrame = (byte[])sharedFrame.Clone();
-            int tickOffset = payloadOffset + NSD_FIELD_ID_LENGTH;
-            int ackOffset = tickOffset + NSD_UINT_LENGTH + NSD_FIELD_ID_LENGTH;
-            BitConverter.TryWriteBytes(clientFrame.AsSpan(tickOffset, NSD_UINT_LENGTH), SimTick);
-            BitConverter.TryWriteBytes(clientFrame.AsSpan(ackOffset, NSD_UINT_LENGTH), lastProcessedInput);
-            _hub.SendRaw(clientId, clientFrame);
+            if (!SendSnapshot(peer, snapshot))
+            {
+                _logger.LogError("Failed to send a snapshot to client {clientId}; closing the peer.", clientId);
+                peer.Rpc.Close();
+            }
         }
 
         //  Lift the streaming gates recorded this tick, so the next publish sends deltas again.
@@ -277,6 +281,40 @@ public sealed class NetworkReplicationSystem : IEntitySystem
 
         //  Drop full-sync requests whose client disconnected before the publish.
         _fullSync.Clear();
+    }
+
+    /// <summary>
+    /// Sends one snapshot. A payload over the fragment budget is split into ordered
+    /// <see cref="SnapshotBatch"/> notifications. A rejected send reports failure so the caller can
+    /// close the peer.
+    /// </summary>
+    private bool SendSnapshot(ServerPeer peer, in WorldSnapshot snapshot)
+    {
+        byte[] payload = snapshot.Serialize();
+        if (payload.Length <= GameRpc.FragmentBudget)
+        {
+            return peer.Rpc.Notify(GameRpc.Methods.WorldSnapshot, in snapshot);
+        }
+
+        uint batchId = ++_nextBatchId;
+        int partCount = PayloadFragmenter.PartCount(payload.Length);
+        for (var partIndex = 0; partIndex < partCount; partIndex++)
+        {
+            var batch = new SnapshotBatch
+            {
+                BatchId = batchId,
+                PartIndex = (uint)partIndex,
+                PartCount = (uint)partCount,
+                Payload = PayloadFragmenter.Slice(payload, partIndex),
+            };
+
+            if (!peer.Rpc.Notify(GameRpc.Methods.SnapshotBatch, in batch))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private void ApplyComponent(DataStore store, int sessionEntity, Uuid sessionUuid, ComponentSnapshot snapshot)
@@ -405,26 +443,6 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     ///     so a shared registry never emits empty-payload snapshots for absent component kinds). Read-only:
     ///     dirty flags stay untouched and are cleared solely by the delta stage.
     /// </summary>
-    private byte[] BuildSnapshotFrame(uint tick, uint lastProcessedInput, ComponentSnapshot[] components, ulong[] removed, ComponentRemoval[] removedComponents)
-    {
-        byte[] payload = new WorldSnapshot
-        {
-            TickNumber = tick,
-            LastProcessedInput = lastProcessedInput,
-            Components = components,
-            RemovedEntities = removed,
-            RemovedComponents = removedComponents,
-        }.Serialize();
-
-        int bodyLength = SNAPSHOT_LENGTH_FIELD_LENGTH + _snapshotTypeTag.Length + payload.Length;
-        var frame = new byte[SNAPSHOT_LENGTH_FIELD_LENGTH + bodyLength];
-        BitConverter.TryWriteBytes(frame.AsSpan(0, SNAPSHOT_LENGTH_FIELD_LENGTH), bodyLength);
-        BitConverter.TryWriteBytes(frame.AsSpan(SNAPSHOT_LENGTH_FIELD_LENGTH, SNAPSHOT_LENGTH_FIELD_LENGTH), _snapshotTypeTag.Length);
-        _snapshotTypeTag.CopyTo(frame, FRAME_HEADER_LENGTH);
-        payload.CopyTo(frame, FRAME_HEADER_LENGTH + _snapshotTypeTag.Length);
-        return frame;
-    }
-
     private struct CollectFullStateAction : IForEach<NetworkComponent>
     {
         public readonly List<ComponentSnapshot> Components;

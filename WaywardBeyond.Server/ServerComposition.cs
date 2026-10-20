@@ -14,7 +14,6 @@ using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Server;
@@ -39,8 +38,11 @@ public static class ServerComposition
         //  joined a level yet; ticked by the host before level routing.
         container.Register<ServerLevelManager>(Reuse.Singleton);
         container.Register<PendingConnectionHeartbeat>(Reuse.Singleton);
-        container.Register<PendingLevelDeletes>(Reuse.Singleton);
-        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton);
+        container.Register<ILevelCatalog, SqliteLevelCatalog>(Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.Register<ServerPeers>(Reuse.Singleton);
+        container.Register<ServerHostCommands>(Reuse.Singleton);
+        container.Register<ServerHandlers>(Reuse.Singleton);
+        container.Register<ServerRpcHost>(Reuse.Singleton);
 
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
         container.RegisterTomlParser<PermissionFile>();
@@ -51,8 +53,7 @@ public static class ServerComposition
             var diagnostics = new PermissionDiagnostics();
             IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
             return PermissionPolicy.Create(files, diagnostics);
-        }, Reuse.Singleton);
-        container.Register<ConnectionClaims>(Reuse.Singleton);
+        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 
@@ -70,7 +71,6 @@ public static class ServerComposition
         container.RegisterDataBinding<string[]>();
 
         container.Register<World>();
-        container.Register(made: Made.Of(() => CreateConnectionHub(Arg.Of<NetworkingConfig>())));
         container.Register<SessionManager>();
         //  The level save service holds an open save database; each world pins and disposes its own.
         container.Register<LevelSaveService>(setup: Setup.With(allowDisposableTransient: true));
@@ -80,7 +80,7 @@ public static class ServerComposition
         //  The world physics bundle is created directly (it owns the engine's Jolt system) and exposed
         //  under the game-owned identity, so nothing resolves the engine's concrete JoltPhysicsSystem
         //  (which the engine also registers as a root singleton).
-        container.Register<IServerWorldPhysics>(made: Made.Of(() => CreateWorldPhysics(Arg.Of<ILoggerFactory>(), Arg.Of<PhysicsSettings>())));
+        container.Register<IServerWorldPhysics>(made: Made.Of(() => CreateWorldPhysics(Arg.Of<ILoggerFactory>(), Arg.Of<PhysicsSettings>())), ifAlreadyRegistered: IfAlreadyRegistered.Keep);
         //  The step is disposable and transient by template; each world pins and disposes its own instance.
         container.Register(
             made: Made.Of(() => CreateSimulationStep(Arg.Of<World>(), Arg.Of<IServerWorldPhysics>())),
@@ -98,7 +98,7 @@ public static class ServerComposition
         container.Register(made: Made.Of(() => CreatePhysicsSlot(Arg.Of<IServerWorldPhysics>())), ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
         container.Register<ServerInteractionSystem>(
             made: Made.Of(() => new ServerInteractionSystem(
-                Arg.Of<ServerConnectionHub>(),
+                Arg.Of<ServerPeers>(),
                 Arg.Of<IInteractionContent>(),
                 Arg.Of<ILogger<ServerInteractionSystem>>(),
                 Arg.Of<IInteractionHandlerRegistry>(),
@@ -125,11 +125,6 @@ public static class ServerComposition
     public static void RegisterServerSystem<T>(this IContainer container) where T : class, IServerWorldSystem
     {
         container.Register<IServerWorldSystem, T>(ifAlreadyRegistered: IfAlreadyRegistered.AppendNewImplementation);
-    }
-
-    private static ServerConnectionHub CreateConnectionHub(NetworkingConfig config)
-    {
-        return new ServerConnectionHub(config.Server.MaxReceiveWindow.Get());
     }
 
     private static SimulationStep CreateSimulationStep(World world, IServerWorldPhysics physics)

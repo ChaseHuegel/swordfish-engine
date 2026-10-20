@@ -7,7 +7,7 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Client.Networking;
 
 namespace WaywardBeyond.Client.Systems;
@@ -23,10 +23,12 @@ namespace WaywardBeyond.Client.Systems;
 /// </summary>
 internal sealed class ClientReconcileSystem : IEntitySystem
 {
-    private readonly IClientConnection _transport;
+    private readonly ClientInbound _inbound;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
     private readonly NetworkRegistry _registry;
+    private readonly FragmentAssembler _snapshotAssembler = new();
+    private readonly List<WorldSnapshot> _snapshots = [];
 
     //  Local players whose look is now client-predicted. The first authoritative transform seats them
     //  (server-assigned spawn); afterwards their orientation comes from local prediction, not the echo,
@@ -36,12 +38,12 @@ internal sealed class ClientReconcileSystem : IEntitySystem
     private bool _wasBelowPlaying = true;
 
     public ClientReconcileSystem(
-        in IClientConnection transport,
+        in ClientInbound inbound,
         SnapshotAckTracker snapshotAck,
         in ClientPlayerMotionProcessor motionProcessor,
         NetworkRegistry registry
     ) {
-        _transport = transport;
+        _inbound = inbound;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
         _registry = registry;
@@ -64,32 +66,29 @@ internal sealed class ClientReconcileSystem : IEntitySystem
             return;
         }
 
+        DrainSnapshots();
+        if (_snapshots.Count == 0)
+        {
+            return;
+        }
+
         if (enteringPlay)
         {
             //  Defensive: a burst queued during Loading is coalesced to the newest frame so the first
-            //  play tick performs exactly one ApplySnapshot. One-shot server state (e.g. the seeded
+            //  play tick performs exactly one full ApplySnapshot. One-shot server state (e.g. the seeded
             //  inventory) rides only the early frames and must not be dropped, so each frame that is
             //  superseded has its non-motion components applied first; the newest applies fully and its
             //  transform/physics win (the per-frame motion history is otherwise useless).
-            WorldSnapshot? newest = null;
-            while (_transport.Receive<WorldSnapshot>() is { Success: true } burst)
+            for (var index = 0; index < _snapshots.Count - 1; index++)
             {
-                if (newest != null)
-                {
-                    ApplyOneShotComponents(newest.Value, store);
-                }
-
-                newest = burst.Value;
+                ApplyOneShotComponents(_snapshots[index], store);
             }
 
-            if (newest != null)
-            {
-                ApplySnapshot(newest.Value, store);
-            }
+            ApplySnapshot(_snapshots[^1], store);
+            return;
         }
 
-        Result<WorldSnapshot> receiveResult;
-        while ((receiveResult = _transport.Receive<WorldSnapshot>()).Success)
+        foreach (WorldSnapshot snapshot in _snapshots)
         {
             //  Re-check the gate inside the drain so an exit to the menu mid-drain stops applying (and
             //  can no longer re-allocate entities the teardown is freeing).
@@ -98,7 +97,41 @@ internal sealed class ClientReconcileSystem : IEntitySystem
                 return;
             }
 
-            ApplySnapshot(receiveResult.Value, store);
+            ApplySnapshot(snapshot, store);
+        }
+    }
+
+    /// <summary>
+    /// Drains both snapshot queues and reassembles complete batches. Snapshots apply in tick order, so
+    /// a full frame and a later batch never invert. An incomplete batch waits for its next part.
+    /// </summary>
+    private void DrainSnapshots()
+    {
+        _snapshots.Clear();
+
+        while (_inbound.Snapshots.TryDequeue(out ClientInbound.InboundSnapshot message))
+        {
+            if (!message.IsBatch)
+            {
+                _snapshots.Add(message.Full);
+                continue;
+            }
+
+            SnapshotBatch batch = message.Batch;
+            if (_snapshotAssembler.TryAppend(
+                    batch.BatchId,
+                    (int)batch.PartIndex,
+                    (int)batch.PartCount,
+                    batch.Payload,
+                    out byte[] payload))
+            {
+                _snapshots.Add(WorldSnapshot.Deserialize(payload));
+            }
+        }
+
+        if (_snapshots.Count > 1)
+        {
+            _snapshots.Sort(static (left, right) => left.TickNumber.CompareTo(right.TickNumber));
         }
     }
 

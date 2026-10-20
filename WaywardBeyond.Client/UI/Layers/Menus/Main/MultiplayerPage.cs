@@ -22,7 +22,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
 {
     public MenuPage ID => MenuPage.Multiplayer;
 
-    private readonly TransportManager _transportManager;
+    private readonly ClientRpcHost _rpcHost;
     private readonly GameSaveService _gameSaveService;
     private readonly NetworkingConfig _networkingConfig;
     private readonly ProfileSettings _profileSettings;
@@ -46,7 +46,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
     private List<SavedServer> _savedServers = [];
 
     public MultiplayerPage(
-        in TransportManager transportManager,
+        in ClientRpcHost rpcHost,
         in GameSaveService gameSaveService,
         in NetworkingConfig networkingConfig,
         in ProfileSettings profileSettings,
@@ -55,7 +55,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
         in SoundEffectService soundEffectService,
         in ILocalization localization
     ) {
-        _transportManager = transportManager;
+        _rpcHost = rpcHost;
         _gameSaveService = gameSaveService;
         _networkingConfig = networkingConfig;
         _profileSettings = profileSettings;
@@ -325,7 +325,7 @@ internal sealed class MultiplayerPage : IMenuPage<MenuPage>
             return;
         }
 
-        Result result = _transportManager.ConnectRemote(host, port);
+        Result result = _rpcHost.ConnectRemote(host, port);
         if (!result.Success)
         {
             _errorMessage = _localization.GetString("ui.notification.connect.failed");

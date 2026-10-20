@@ -14,9 +14,8 @@ namespace WaywardBeyond.Server;
 /// The shared host composition: everything a hosting embedding (the client's in-process host or the
 /// headless dedicated server) registers to run the authoritative server. The server module calls
 /// <see cref="RegisterHost"/> exactly once in both embeddings, so the wire-up cannot drift.
-/// Embedding-specific choices stay explicit: the client module seeds the in-process
-/// <c>LocalConnection</c> loopback and supplies its own interaction content; the dedicated server
-/// uses the headless defaults.
+/// Embedding-specific choices stay explicit: the client module supplies its own interaction content;
+/// the dedicated server uses the headless defaults.
 /// </summary>
 public static class HostComposition
 {
@@ -25,8 +24,7 @@ public static class HostComposition
         container.RegisterNetworking();
         container.RegisterNetworkingConfig();
 
-        container.Register<LocalConnection>(Reuse.Singleton);
-        container.Register<PendingJoins>(Reuse.Singleton);
+        container.Register<LoopbackRpcServerTransport>(Reuse.Singleton);
 
         //  Physics config and its vector mapper are engine-owned. The client host registers both from
         //  EngineContainer, so re-registration keeps that config and skips the mapper it already added.

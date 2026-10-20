@@ -6,8 +6,8 @@ using WaywardBeyond.Networking.Sessions;
 namespace WaywardBeyond.Server;
 
 /// <summary>
-/// Server-side registry binding each connection to its session and player entity. A connection is keyed
-/// by the opaque client id handed out by the <c>ServerConnectionHub</c>; <see cref="Session"/> is the
+/// Server-side registry binding each peer to its session and player entity. A peer is keyed
+/// by its stable game <see cref="Uuid"/> from <see cref="ServerPeer.GameId"/>; <see cref="Session"/> is the
 /// gameplay handle stored on <see cref="NetworkComponent.Session"/>. One client id maps to at most one
 /// session and one player entity.
 /// </summary>

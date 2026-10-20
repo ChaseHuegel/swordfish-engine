@@ -1,30 +1,32 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Numerics;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NsdRpc;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
-using WaywardBeyond.Voxels;
+using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Building;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Networking;
+using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Runs the client side of the join handshake and full-world stream, driving
-/// <c>MainMenu → Loading → Playing</c>. The menu enqueues a join request; on the ECS thread the system
-/// sends a <see cref="JoinRequest"/>, courts the <see cref="JoinAccept"/>, builds view entities as each
-/// <see cref="LevelEntityAdd"/> arrives, and only transitions to <c>Playing</c> once the server's
-/// <see cref="LevelStreamComplete"/> lands. Because <see cref="ClientReconcileSystem"/> gates on
-/// <c>Playing</c>, authoritative snapshots stay inert until the world is fully streamed - the join-time
-/// ordering guard. View entities are built here (on the ECS thread), never the menu/UI thread.
+/// Runs the client side of the join handshake and world stream, driving
+/// <c>MainMenu → Loading → Playing</c>. The join is a correlated RPC call. On success the system starts
+/// the level stream call with the inbound queue as its chunk sink, reassembles each entity on the ECS
+/// thread, and enters <c>Playing</c> only after the stream response lands and every chunk applied.
 /// </summary>
 internal sealed class ClientJoinSystem : IEntitySystem
 {
-    private readonly IClientConnection _transport;
+    private readonly ClientRpcHost _host;
+    private readonly ClientInbound _inbound;
     private readonly PlayerCharacterEntityBuilder _playerBuilder;
     private readonly VoxelEntityBuilder _voxelBuilder;
     private readonly IBrickRegistry _brickRegistry;
@@ -33,14 +35,17 @@ internal sealed class ClientJoinSystem : IEntitySystem
     private readonly ILogger<ClientJoinSystem> _logger;
 
     private readonly ConcurrentQueue<JoinRequestData> _requests = new();
+    private readonly FragmentAssembler _levelAssembler = new();
 
     private JoinRequestData? _request;
-    private bool _sent;
+    private Task<RpcResult<JoinAccept>>? _joinTask;
+    private Task<RpcResult<LevelStreamComplete>>? _streamTask;
+    private CancellationTokenSource? _timeout;
     private bool _seated;
-    private int _joinStartedTicks;
 
     public ClientJoinSystem(
-        in IClientConnection transport,
+        in ClientRpcHost host,
+        in ClientInbound inbound,
         in PlayerCharacterEntityBuilder playerBuilder,
         in VoxelEntityBuilder voxelBuilder,
         ILogger<ClientJoinSystem> logger,
@@ -48,7 +53,8 @@ internal sealed class ClientJoinSystem : IEntitySystem
         in ClientDisconnectSystem disconnectSystem,
         in NetworkingConfig config
     ) {
-        _transport = transport;
+        _host = host;
+        _inbound = inbound;
         _playerBuilder = playerBuilder;
         _voxelBuilder = voxelBuilder;
         _brickRegistry = brickRegistry;
@@ -66,111 +72,220 @@ internal sealed class ClientJoinSystem : IEntitySystem
     {
         if (_request == null && _requests.TryDequeue(out JoinRequestData request))
         {
-            _request = request;
-            _sent = false;
-            _seated = false;
+            BeginJoin(request);
         }
 
-        if (_request != null && !_sent)
+        if (_request == null)
         {
-            _joinStartedTicks = Environment.TickCount;
-            JoinRequestData pending = _request.Value;
-            Character character = pending.Character;
-            Result send = _transport.Send(new JoinRequest
+            return;
+        }
+
+        PollJoin(store);
+        PollStream(store);
+    }
+
+    private void BeginJoin(in JoinRequestData join)
+    {
+        _request = join;
+        _seated = false;
+        _joinTask = null;
+        _streamTask = null;
+        _levelAssembler.Reset();
+        while (_inbound.LevelChunks.TryDequeue(out _)) { }
+        _timeout?.Dispose();
+        _timeout = new CancellationTokenSource(Math.Max(1, _config.Protocol.JoinStreamTimeoutMs.Get()));
+
+        GameServerApiClient? api = _host.Api;
+        if (api == null)
+        {
+            _logger.LogWarning("Failed to start a join: no active connection.");
+            FailJoin();
+            return;
+        }
+
+        Character character = join.Character;
+        _joinTask = api.JoinAsync(new JoinRequest
+        {
+            LevelGuid = join.LevelGuid,
+            CharacterUuid = character.Uuid,
+            View = new CharacterView
             {
-                LevelGuid = pending.LevelGuid,
-                //  TODO uuid is redundant with the one in view and state. Lean towards removing the one in state + view and keeping this one.
-                //       Maybe even introduce a type to wrap all of these? Or, why not just use Character on the wire here? Maybe View should be moved into Character.
                 CharacterUuid = character.Uuid,
-                View = new CharacterView
-                {
-                    CharacterUuid = character.Uuid,
-                    Name = character.Name,
-                    Body = character.Body,
-                },
-                State = new CharacterState
-                {
-                    CharacterUuid = character.Uuid,
-                    Name = character.Name,
-                    Body = character.Body,
-                    //  Null for a client-authored new character: the server grants the starter loadout.
-                    //  A saved inventory is sent as-is and is never restocked server-side.
-                    Inventory = character.Inventory,
-                    ActiveInventorySlot = character.ActiveInventorySlot,
-                    GameMode = (int)character.GameMode,
-                    //  The client owns the initial skill seed: its saved statistics seed the server's
-                    //  transient per-session skill state, which the server then owns for the session.
-                    Statistics = character.Statistics,
-                },
-            });
-            if (!send.Success)
+                Name = character.Name,
+                Body = character.Body,
+            },
+            State = new CharacterState
             {
-                //  No active connection: fail fast with the connection-lost teardown instead of sitting
-                //  in Loading until the join-stream timeout.
-                _logger.LogWarning("Failed to send join request: {message}.", send.Message);
-                _request = null;
-                _sent = false;
-                _disconnectSystem.RequestDisconnect();
+                CharacterUuid = character.Uuid,
+                Name = character.Name,
+                Body = character.Body,
+                Inventory = character.Inventory,
+                ActiveInventorySlot = character.ActiveInventorySlot,
+                GameMode = (int)character.GameMode,
+                Statistics = character.Statistics,
+            },
+        }, _timeout.Token);
+    }
+
+    private void PollJoin(DataStore store)
+    {
+        if (_joinTask == null || !_joinTask.IsCompleted)
+        {
+            CheckTimeout();
+            return;
+        }
+
+        RpcResult<JoinAccept> result = _joinTask.GetAwaiter().GetResult();
+        _joinTask = null;
+
+        if (!result.IsSuccess || _request == null)
+        {
+            _logger.LogWarning("Join failed: {message}.", result.ErrorMessage);
+            FailJoin();
+            return;
+        }
+
+        if (!_seated)
+        {
+            SeatPlayer(result.Value, _request.Value.Character, store);
+        }
+
+        GameServerApiClient? api = _host.Api;
+        if (api == null)
+        {
+            FailJoin();
+            return;
+        }
+
+        _logger.LogInformation("Join accepted; streaming the world.");
+        _streamTask = api.StreamLevelAsync(
+            new StreamLevelRequest { LevelGuid = _request.Value.LevelGuid },
+            _inbound,
+            _timeout!.Token);
+    }
+
+    private void PollStream(DataStore store)
+    {
+        DrainLevelChunks(store);
+        if (_request == null)
+        {
+            return;
+        }
+
+        if (_streamTask == null || !_streamTask.IsCompleted)
+        {
+            CheckTimeout();
+            return;
+        }
+
+        RpcResult<LevelStreamComplete> result = _streamTask.GetAwaiter().GetResult();
+        _streamTask = null;
+
+        //  The response follows every chunk on the ordered transport, but drain once more so a chunk
+        //  handed to the queue by the receive pump is never left behind.
+        DrainLevelChunks(store);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("World stream failed: {message}.", result.ErrorMessage);
+            FailJoin();
+            return;
+        }
+
+        if (_levelAssembler.IsActive)
+        {
+            _logger.LogWarning("World stream ended with an incomplete entity.");
+            FailJoin();
+            return;
+        }
+
+        WaywardBeyond.GameState.Set(GameState.Playing);
+        _logger.LogInformation("World stream complete; beginning play.");
+        ResetJoin();
+    }
+
+    private void DrainLevelChunks(DataStore store)
+    {
+        while (_inbound.LevelChunks.TryDequeue(out LevelStreamChunk chunk))
+        {
+            if (chunk.PartCount == 0 || chunk.PartIndex >= chunk.PartCount)
+            {
+                _logger.LogWarning("World stream part {index}/{count} is invalid.", chunk.PartIndex, chunk.PartCount);
+                FailJoin();
                 return;
             }
-            _sent = true;
-        }
 
-        Result<JoinAccept> acceptResult;
-        while ((acceptResult = _transport.Receive<JoinAccept>()).Success)
-        {
-            JoinAccept accept = acceptResult.Value;
-            if (_request != null && !_seated)
+            bool complete = _levelAssembler.TryAppend(
+                groupId: 0,
+                partIndex: (int)chunk.PartIndex,
+                partCount: (int)chunk.PartCount,
+                chunk.Payload,
+                out byte[] payload);
+
+            if (complete)
             {
-                SeatPlayer(accept, _request.Value.Character, store, out _seated);
+                BuildViewEntity(VoxelEntityData.Deserialize(payload), store);
+                continue;
             }
-        }
 
-        Result<LevelEntityAdd> addResult;
-        while ((addResult = _transport.Receive<LevelEntityAdd>()).Success)
-        {
-            BuildViewEntity(addResult.Value, store);
-        }
-
-        Result<LevelStreamComplete> completeResult;
-        while ((completeResult = _transport.Receive<LevelStreamComplete>()).Success)
-        {
-            WaywardBeyond.GameState.Set(GameState.Playing);
-            _request = null;
-            _sent = false;
-            _logger.LogInformation("World stream complete; beginning play.");
-        }
-
-        //  A join that never completes (undelivered LevelStreamComplete, dying link, or a world too
-        //  large to drain) must not stall Loading forever: abort and return to the menu with the
-        //  connection-lost notice.
-        if (_request != null && _sent && Environment.TickCount - _joinStartedTicks > _config.Protocol.JoinStreamTimeoutMs.Get())
-        {
-            _logger.LogWarning("Join timed out after {timeoutMs} ms awaiting the world stream.", _config.Protocol.JoinStreamTimeoutMs.Get());
-            _request = null;
-            _sent = false;
-            _disconnectSystem.RequestDisconnect();
+            //  An out-of-order or stale part leaves the assembler idle. The stream is ordered on the
+            //  wire, so that means the join is corrupt.
+            if (!_levelAssembler.IsActive && chunk.PartIndex > 0)
+            {
+                _logger.LogWarning("World stream part {index}/{count} arrived without its group.",
+                    chunk.PartIndex, chunk.PartCount);
+                FailJoin();
+                return;
+            }
         }
     }
 
-    private void SeatPlayer(in JoinAccept accept, in Character character, DataStore store, out bool seated)
+    private void CheckTimeout()
+    {
+        if (_timeout != null && !_timeout.IsCancellationRequested)
+        {
+            return;
+        }
+
+        _logger.LogWarning("Join timed out after {timeoutMs} ms.", _config.Protocol.JoinStreamTimeoutMs.Get());
+        FailJoin();
+    }
+
+    private void FailJoin()
+    {
+        _host.Api?.LeaveGame(new LeaveGameRequest());
+        while (_inbound.LevelChunks.TryDequeue(out _)) { }
+        ResetJoin();
+        _disconnectSystem.RequestDisconnect();
+    }
+
+    private void ResetJoin()
+    {
+        _request = null;
+        _joinTask = null;
+        _streamTask = null;
+        _seated = false;
+        _levelAssembler.Reset();
+        _timeout?.Dispose();
+        _timeout = null;
+    }
+
+    private void SeatPlayer(in JoinAccept accept, in Character character, DataStore store)
     {
         Uuid playerUuid = Uuid.FromValue(accept.PlayerEntity);
         if (playerUuid == Uuid.Null)
         {
-            seated = false;
             return;
         }
 
         int entity = store.TryGet(playerUuid, out int existing) ? existing : store.Alloc(playerUuid);
         _playerBuilder.Decorate(new Entity(entity, store), character);
-        seated = true;
+        _seated = true;
         _logger.LogInformation("Seated local player entity {uuid}.", playerUuid);
     }
 
-    private void BuildViewEntity(in LevelEntityAdd add, DataStore store)
+    private void BuildViewEntity(in VoxelEntityData data, DataStore store)
     {
-        VoxelEntityData data = add.VoxelEntity;
         if (data.Uuid == 0 || data.Chunks == null || data.Chunks.Length == 0)
         {
             return;

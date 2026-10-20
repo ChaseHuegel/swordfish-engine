@@ -1,24 +1,19 @@
 using System;
 using Microsoft.Extensions.Logging;
-using Swordfish.Library.Util;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
-/// Session heartbeats for connections accepted but not yet bound to a world hub - the menu and
-/// character-creation window. The per-world <see cref="ServerHeartbeatService"/> only reaches hub
-/// clients, so a pre-join connection would otherwise receive nothing and time out its read socket.
-/// This pump emits <see cref="ServerHeartbeatMessage"/> per pending connection at
-/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
-/// connection establishment - not gated on join - and drains the <see cref="ClientHeartbeatMessage"/>s
-/// they send so no world's lag tracking has to.
+/// Session heartbeats for peers that are connected but not bound to a world - the menu,
+/// character-creation, and save-select window. The per-world <see cref="ServerHeartbeatService"/>
+/// only reaches bound peers, so the host pulse keeps menu peers alive. Client heartbeats stamp the
+/// peer's last inbound time in <see cref="ServerHandlers"/>.
 /// </summary>
 public sealed class PendingConnectionHeartbeat
 {
-    private readonly PendingJoins _pendingJoins;
+    private readonly ServerPeers _peers;
     private readonly ILogger<PendingConnectionHeartbeat> _logger;
     private readonly int _heartbeatIntervalMs;
 
@@ -29,13 +24,13 @@ public sealed class PendingConnectionHeartbeat
     private int _nextHeartbeatTicks;
 
     public PendingConnectionHeartbeat(
-        PendingJoins pendingJoins,
+        ServerPeers peers,
         NetworkingConfig config,
         ILogger<PendingConnectionHeartbeat> logger
     ) {
-        _pendingJoins = pendingJoins;
+        _peers = peers;
         _logger = logger;
-        _heartbeatIntervalMs = Math.Max(250, Math.Min(config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, config.Transport.TimeoutMs.Get() / 2)));
+        _heartbeatIntervalMs = ServerHeartbeatService.ClampHeartbeat(config);
         _tpsWindowStartedTicks = Environment.TickCount;
         _nextHeartbeatTicks = Environment.TickCount;
     }
@@ -44,15 +39,6 @@ public sealed class PendingConnectionHeartbeat
     public void Tick(uint playerCount)
     {
         MeasureTps();
-
-        foreach (IServerConnection connection in _pendingJoins.Snapshot())
-        {
-            //  No world tracks a pending connection's lag yet; drain its heartbeats rather than let them
-            //  accumulate in the transport's unbounded per-type receive queue.
-            while (connection.Receive<ClientHeartbeatMessage>().Success)
-            {
-            }
-        }
 
         if (Environment.TickCount - _nextHeartbeatTicks < _heartbeatIntervalMs)
         {
@@ -67,12 +53,11 @@ public sealed class PendingConnectionHeartbeat
             PlayerCount = playerCount,
         };
 
-        foreach (IServerConnection connection in _pendingJoins.Snapshot())
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            Result send = connection.Send(outbound);
-            if (!send.Success)
+            if (peer.World == null)
             {
-                _logger.LogDebug("Failed to send pending session heartbeat: {message}.", send.Message);
+                peer.Client.ServerHeartbeat(outbound);
             }
         }
     }

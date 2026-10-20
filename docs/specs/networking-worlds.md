@@ -2,158 +2,128 @@
 
 One subject: the server serves N isolated per-level worlds with idle unload.
 The server world graph is fully DI driven: systems and services register as
-templates, each world resolves and pins its own instances, and any Shoal
-module can add world systems. A second client joining a different level no
-longer tears down the first world.
+templates, each world resolves and pins its own instances, and any Shoal module
+can add world systems. A second client joining a different level does not tear
+down the first world.
 
 ## World lifecycle
 
-1. `ServerWorldHost` (`WaywardBeyond.Server/ServerWorldHost.cs`, `IEntryPoint`)
-   receives a join: it drains `PendingJoins` and polls each connection's
-   `JoinRequest`.
+1. `ServerHostCommands` runs on the server thread. It receives a routed join
+   from `ServerHandlers`, calls `ServerWorldHost.RouteJoin`, and the host creates
+   or finds the world for the requested level.
 2. `GetOrCreate(levelGuid)` loads the authoritative world once into a fresh
-   world container, then binds the client to the world's hub. Level load
-   happens before any other processing of that client, so a join can never
-   unload under itself.
-3. The world's `ServerJoinSystem` processes the pre-routed join: spawn, mirror
-   entity, session, world stream (the existing join flow).
+   world container, then binds the peer to that world. Level load happens before
+   the join reaches the world, so a join can never unload under itself.
+3. The world's `ServerJoinSystem` seats the player: spawn, mirror entity,
+   session, and the `JoinAccept` result. The world stream is a separate
+   `StreamLevelAsync` call.
 4. Every server tick the host ticks each live world in creation order through
    the engine `World`, with a per-world sim counter owned by each world's
    `SimulationStep`.
 5. A world whose `SessionManager.Count == 0` for `Server.IdleUnloadMs`
-   (`NetworkingConfig.Server`, default 60000) unloads: final flush via the world's
-   `LevelSaveService.QueueSave` (captured on the server thread, persisted in
-   the background), connections unbound back into `PendingJoins`, world
-   container disposed.
-6. A late join recreates the world before any other processing of that client.
-7. A menu-time delete requests the world be torn down: `ServerWorldHost`
-   drains `PendingLevelDeletes` on the server thread, disposes the loaded
-   world without a final save, and the `ILevelCatalog` removes its files.
+   (`NetworkingConfig.Server`, default 60000) unloads: final flush via the
+   world's `LevelSaveService.QueueSave` (captured on the server thread,
+   persisted in the background), peer bindings cleared, world container
+   disposed.
+6. A late join recreates the world before any other processing of that peer.
+7. A menu-time delete runs on the server thread. `ServerWorldHost.DeleteLevel`
+   disposes the loaded world without a final save, then removes the level from
+   the `ILevelCatalog`. The write is skipped because it would recreate the
+   removed files.
 
 ## DI: per-world graphs from module templates
 
-The server module (`WaywardBeyond.Server/ServerModule.cs`) registers the
-shared host wire-up (`HostComposition`) and every per-world service and
-system as a **transient template** in the root container
-(`ServerComposition.cs`). `ServerWorld` (`ServerWorld.cs`) resolves each
-template once and
-pins it into an **exclusive child container** per world
+The server module registers the shared host wire-up (`HostComposition`) and
+every per-world service and system as a transient template in the root
+container (`ServerComposition.cs`). `ServerWorld` resolves each template once and
+pins it into an exclusive child container per world
 (`ContainerTools.CreateChild`, `RegistrySharing.CloneAndDropCache`,
-`withDisposables: false`); every system's constructor dependencies then resolve
-to that world's own instance graph. Shared singletons (registry, codecs,
-`SkillDatabase`, `IBrickRegistry`, `IInteractionContent`, the `ILevelCatalog`
-backing, `NetworkingConfig`, `TcpServerHost`, `LocalConnection`) resolve
-through the child fall-through.
-`withDisposables: false` is required: a child-container disposal cascades to
-the root's singleton disposables otherwise, so unloading a world would dispose
-the server host, the LAN host, and every other root singleton. The world's
-pinned instances (registered into the child) still dispose on world unload.
+`withDisposables: false`). Every system's constructor dependencies then resolve
+to that world's own instance graph.
 
-- World systems register under the `IServerWorldSystem` marker
-  (`IServerWorldSystem.cs`), never `IEntitySystem`, so the client's ECS
-  context cannot resolve them. Extensible: any module calls
-  `ServerComposition.RegisterServerSystem<T>()`, which appends after the
-  built-ins. Registration order is the world's tick order.
-- `Reuse.Scoped` and scoped `RegisterDelegate`s are deliberately unused:
-  DryIoc's compiled scoped-factory path throws `InvalidProgramException` on
-  current runtimes once a second scope resolves the registration. The
-  template + pinned-instance design avoids scope caching entirely.
-- `ServerInteractionSystem` is registered twice: its full constructor is the
-  per-world graph instance, and the marker registration passes that same
-  concrete instance through (the join system depends on the concrete type).
-- `ServerPhysicsSystem` positions the world-scoped `JoltPhysicsSystem` in the
-  tick; the engine's own registration is a root singleton the client uses.
+Shared singletons resolve through the child fall-through:
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`,
+`IInteractionContent`, `ILevelCatalog` backing, `NetworkingConfig`, the
+loopback transport, and the RPC hosts. `withDisposables: false` is required: a
+child-container disposal would otherwise cascade to the root's singleton
+disposables.
+
+World systems register under the `IServerWorldSystem` marker, never
+`IEntitySystem`, so the client's ECS context cannot resolve them. Any module
+calls `ServerComposition.RegisterServerSystem<T>()`, which appends after the
+built-ins. Registration order is the world's tick order.
+
+`Reuse.Scoped` and scoped `RegisterDelegate`s are deliberately unused. The
+template plus pinned-instance design avoids DryIoc's broken scoped-factory path
+on current runtimes.
 
 ## What is per-world
 
-- `World`/`DataStore`, `ServerConnectionHub`, `SessionManager`,
-  `LevelSaveService`, `SimulationStep`, `JoltPhysicsSystem`,
-  `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
-  `IUserPermissionService`, the interaction world factory.
+- `World`/`DataStore`, `SessionManager`, `LevelSaveService`, `SimulationStep`,
+  physics, `NetworkReplicationSystem`, `ServerSkillSystem`, `ServerJoinQueue`,
+  `IUserPermissionService`, and the interaction world factory.
 - World systems, in canonical tick order:
   `ServerJoinSystem` → `ServerSaveSystem` → `NetworkApplySystem` →
-  `ServerInventorySystem` → `ServerHeartbeatService` → `ServerPhysicsSystem` →
+  `ServerInventorySystem` → `ServerHeartbeatService` → physics →
   `ServerInteractionSystem` → `ServerChatSystem` → `NetworkPublishSystem`.
-  The replication system's apply and publish stages split into two ordered
-  systems so physics and the shared motion step run between them
-  (`NetworkApplySystem.cs`, `NetworkPublishSystem.cs`). The per-world
-  `ServerSaveSystem` runs the autosave cadence, authorizes in-world save
-  requests, and broadcasts the save notifications. See
-  [permissions](permissions.md).
-- **Server-level** (not per-world): `ServerLevelManager` serves the menu-time
-  create/list/delete requests on connections that have not joined a world yet;
-  the host ticks it before world routing. Deletes defer to
-  `PendingLevelDeletes` so the host can tear down a loaded world first. The
-  client pulls the listing while the save-select page is visible, so a level
-  another client creates appears without a reconnect.
-- Replication state: `NetworkReplicationSystem` is per world, so full-sync
-  sets, streaming gates, pending snapshots, and acks cannot leak between
-  worlds. Publish reads the world's sim tick from the injected
-  `SimulationStep` (no host wiring).
+- Replication state is per world, so full-sync sets, streaming gates, pending
+  snapshots, and acks cannot leak between worlds.
 
 ## What stays shared
 
-`NetworkRegistry`, codecs/serializers, `SkillDatabase`, `IBrickRegistry`,
-`IInteractionContent` + handler registry, `NetworkingConfig`,
-`TcpServerHost`/`LanHost` (one listen socket), `LocalConnection`,
-`ILevelCatalog` + `StoragePaths` (the level save databases),
-`PendingLevelDeletes`.
+`NetworkRegistry`, codecs, `SkillDatabase`, `IBrickRegistry`,
+`IInteractionContent` and the handler registry, `NetworkingConfig`,
+`LoopbackRpcServerTransport`, `ServerRpcHost`/`LanHost` (one listen socket),
+`ServerPeers`, `ServerHostCommands`, `ServerHandlers`, `ILevelCatalog` and
+`StoragePaths`.
 
-## World-routed joins
+## Peer routing
 
-`PendingJoins` (`PendingJoins.cs`) holds accepted connections that are not yet
-bound to a world: the LAN acceptor adds each peer, and the in-process host
-seeds the loopback (`LocalConnection.Server` via the client module's
-`LocalLoopbackSeed`). The host routes each connection to the hub of the world
-its `JoinRequest`
-names (`ServerWorldHost.RoutePendingJoins`), then hands the request to the
-world through its `ServerJoinQueue`. A connection lives in `PendingJoins` or
-in exactly one world hub, never both: binding migrates it out of any previous
-world, and an unload returns it to the pending set. Disconnects of bound
-peers release the world binding; the session teardown (despawn, stamp) stays
-in the owning world's join system.
+- `ServerRpcHost` accepts loopback and LAN connections into two `RpcServer`
+  instances. It records each connection in `ServerPeers` by game `Uuid` and by
+  `(IRpcHost, clientId)`.
+- `ServerHandlers` only enqueues. A menu call is served by
+  `ServerHostCommands` on the server thread.
+- A join is routed by `ServerWorldHost.RouteJoin`. The peer gains a world
+  binding, and the join enters that world's `ServerJoinQueue`.
+- A leave enters the world's leave queue. Leaves run before joins in the world
+  tick, so a menu return and a rejoin in the same tick tear down the old session
+  first.
+- A peer disconnect is queued by `ServerRpcHost`. The host unbinds the world on
+  the server thread and enqueues the session teardown in that world.
+- A peer with no world is a menu peer. `PendingConnectionHeartbeat` keeps it
+  alive. Its next join routes to the world it names.
 
-When a player leaves to the menu, the host returns the connection to the
-pending set after the world tick (`ServerWorldHost.ReturnSessionlessConnectionsToPending`, `ServerWorldHost.cs:89`).
-A bound connection without a session is idle, never mid-join: joins are
-enqueued and registered within one world tick. The next `JoinRequest` is then
-routed, so a player can switch saves. A world serves exactly one level;
-`ServerJoinSystem.HandleJoin` refuses a join that names another level with an
-error log (`ServerJoinSystem.cs`).
+## Menu-time calls
 
-The singleplayer host is the N=1 case: its loopback rides the same pending →
-hub → join path when it joins a world.
+`ServerLevelManager` serves `ListLevels` and `CreateLevel` on the server thread.
+`ServerWorldHost.DeleteLevel` serves `DeleteLevel`. Calls are correlated by
+nsd-rpc, so no per-connection FIFO chain exists. `ILevelCatalog` access stays
+single-threaded.
 
 ## Persistence and failure modes
 
-`LevelSaveService` is per world (its per-level state such as
-`CurrentLevelGuid` cannot be shared) over the shared level catalog. Character
-location resolves against the joining world. A world's load failure is handled
-in its own tick: a failed `LoadLevel` leaves a fresh empty world, the join
-continues at the default spawn, and other worlds are untouched. A mid-stream
-unload cannot occur: joins atomically (re)create the world first, and the idle
-window covers load. A forced delete never queues a final save: the write would
-recreate the removed files.
+`LevelSaveService` is per world and owns the per-level save database. A world's
+load failure is handled in its own tick: a failed `LoadLevel` leaves a fresh
+empty world, the join continues at the default spawn, and other worlds are
+untouched. A mid-stream unload cannot occur because joins create the world
+first and the idle window covers load. A forced delete never queues a final
+save.
 
 ## Threading and determinism
 
-All worlds tick sequentially on the single server thread, so the shared
-step's per-world sim tick counts stay independent and deterministic. Fairness:
-each world gets one fixed step per server tick; a slow world delays the
-following worlds within the same tick (documented; re-visit only under
-measured pressure from scaling work).
-
-## Test strategy
-
-- `Swordfish.Tests/RejoinConcurrencyTests.cs` drives the client and server world
-  teardown and rebuild concurrently.
+All worlds tick sequentially on the single server thread, so the shared step's
+per-world sim tick counts stay independent and deterministic. Each world gets
+one fixed step per server tick. A slow world delays the following worlds within
+the same tick.
 
 ## Source of truth
 
 - `WaywardBeyond.Server/ServerWorldHost.cs`
 - `WaywardBeyond.Server/ServerWorld.cs`
+- `WaywardBeyond.Server/{ServerRpcHost,ServerPeers,ServerPeer,ServerHostCommands}.cs`
 - `WaywardBeyond.Server/ServerModule.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerComposition.cs`
-- `docs/specs/networking-join.md` (world-routed joins)
+- `docs/specs/networking-join.md` (join flow)
 - `docs/specs/persistence.md` (level save data)

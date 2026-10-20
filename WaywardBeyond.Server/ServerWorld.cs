@@ -6,7 +6,6 @@ using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Server.Systems;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server;
 
@@ -22,10 +21,10 @@ public sealed class ServerWorld : IDisposable
 {
     public World World { get; }
     public DataStore Store => World.DataStore;
-    public ServerConnectionHub Hub { get; }
     public LevelSaveService SaveService { get; }
     public SessionManager Sessions { get; }
     public ServerJoinQueue JoinQueue { get; }
+    public NetworkReplicationSystem Replication { get; }
 
     private readonly IContainer _container;
 
@@ -33,11 +32,10 @@ public sealed class ServerWorld : IDisposable
     {
         _container = container;
         World = Pin<World>(container);
-        Hub = Pin<ServerConnectionHub>(container);
         Sessions = Pin<SessionManager>(container);
         SaveService = Pin<LevelSaveService>(container);
         JoinQueue = Pin<ServerJoinQueue>(container);
-        Pin<NetworkReplicationSystem>(container);
+        Replication = Pin<NetworkReplicationSystem>(container);
         Pin<ServerSkillSystem>(container);
         Pin<IUserPermissionService>(container);
         Pin<IServerWorldPhysics>(container);

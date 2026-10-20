@@ -1,7 +1,7 @@
 # Bug: Authoritative snapshot deltas are droppable
 
 - Type: bug
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -39,19 +39,19 @@ state. The RPC migration provides that policy.
 
 ## Acceptance criteria
 
-- [ ] No gameplay or authoritative state frame is dropped after the send path
+- [x] No gameplay or authoritative state frame is dropped after the send path
       accepts it. Snapshots ride the reliable path.
-- [ ] The drop-oldest per-tick send queue and the `SendPriority` allow-list
+- [x] The drop-oldest per-tick send queue and the `SendPriority` allow-list
       are removed.
-- [ ] A peer that cannot drain its backlog is closed under the configured
+- [x] A peer that cannot drain its backlog is closed under the configured
       backlog policy. It reconnects to a fresh join and a full sync.
-- [ ] Client staged interaction and inventory buffers are cleared only after
+- [x] Client staged interaction and inventory buffers are cleared only after
       the containing snapshot is accepted by the reliable send path.
-- [ ] A congestion test proves that no removal, one-shot component,
+- [x] A congestion test proves that no removal, one-shot component,
       interaction edge, or inventory op is lost.
-- [ ] A stalled-peer test proves that the peer is disconnected instead of
+- [x] A stalled-peer test proves that the peer is disconnected instead of
       dropping frames.
-- [ ] The docs pass updates `networking-transports`, `networking-replication`,
+- [x] The docs pass updates `networking-transports`, `networking-replication`,
       and `networking-inventory`.
 
 ## Dependencies

@@ -1,26 +1,26 @@
 using System;
 using System.Numerics;
+using NsdRpc;
 using Reef;
 using Swordfish.Graphics;
 using Swordfish.Library.Diagnostics;
 using Swordfish.Library.Util;
 using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client.UI;
 
 /// <summary>
-/// F3 network section: average per-second packets and bytes in/out (from the active transport's
+/// F3 network section: average per-second packets and bytes in/out (from the active RPC connection's
 /// counters, sampled into <see cref="Sampler"/>s), plain totals, and the live server TPS + player count
 /// from the session-heartbeat consumer, with a clear no-signal state when heartbeats stop or nothing is
 /// connected. Rates use the average, not the median: network traffic is bursty, so the median of
 /// per-frame samples reads zero whenever packets arrive in fewer frames than the render loop runs.
 /// </summary>
-internal sealed class NetworkStatsOverlay(in TransportManager transportManager, in ServerStats serverStats) : IDebugOverlay
+internal sealed class NetworkStatsOverlay(in ClientRpcHost rpcHost, in ServerStats serverStats) : IDebugOverlay
 {
     private const int SAMPLE_LENGTH = 60 * 2;
 
-    private readonly TransportManager _transportManager = transportManager;
+    private readonly ClientRpcHost _rpcHost = rpcHost;
     private readonly ServerStats _serverStats = serverStats;
 
     private readonly Sampler _packetsInSampler = new(SAMPLE_LENGTH);
@@ -38,8 +38,7 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
 
     public Result RenderDebugOverlay(double delta, UIBuilder<Material> ui)
     {
-        IConnectionCounters? counters = _transportManager.Active as IConnectionCounters;
-        if (counters == null)
+        if (!_rpcHost.IsConnected)
         {
             using (ui.Text("NET: offline"))
             {
@@ -48,6 +47,7 @@ internal sealed class NetworkStatsOverlay(in TransportManager transportManager, 
             return Result.FromSuccess();
         }
 
+        RpcConnectionStats counters = _rpcHost.Stats;
         double deltaSeconds = Math.Max(0.001, delta);
         long packetsIn = counters.PacketsReceived;
         long packetsOut = counters.PacketsSent;

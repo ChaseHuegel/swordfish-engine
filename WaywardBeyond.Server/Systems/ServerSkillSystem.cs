@@ -2,7 +2,6 @@ using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Skills;
 
@@ -19,13 +18,13 @@ namespace WaywardBeyond.Server.Systems;
 public sealed class ServerSkillSystem(
     ISkillDatabase skillDatabase,
     SessionManager sessions,
-    ServerConnectionHub hub,
+    ServerPeers peers,
     ILogger<ServerSkillSystem> logger
 )
 {
     private readonly ISkillDatabase _skillDatabase = skillDatabase;
     private readonly SessionManager _sessions = sessions;
-    private readonly ServerConnectionHub _hub = hub;
+    private readonly ServerPeers _peers = peers;
     private readonly ILogger<ServerSkillSystem> _logger = logger;
 
     /// <summary>
@@ -113,12 +112,19 @@ public sealed class ServerSkillSystem(
         });
     }
 
-    private void SendOrLog<T>(Uuid clientId, in T message)
+    private void SendOrLog(Uuid clientId, in SkillStateUpdateMessage message)
     {
-        Result send = _hub.Send(clientId, message);
-        if (!send.Success)
+        if (_peers.TryGet(clientId, out ServerPeer peer))
         {
-            _logger.LogWarning("Failed to send skill message to client {clientId}: {message}.", clientId, send.Message);
+            peer.Client.SkillUpdate(message);
+        }
+    }
+
+    private void SendOrLog(Uuid clientId, in NotificationMessage message)
+    {
+        if (_peers.TryGet(clientId, out ServerPeer peer))
+        {
+            peer.Client.Notification(message);
         }
     }
 }

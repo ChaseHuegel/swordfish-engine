@@ -20,6 +20,7 @@ public sealed class ServerModule : IDryIocInjector
 
         container.Register<ServerWorldHost>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, ServerWorldHost>();
+        container.RegisterMapping<IEntryPoint, ServerRpcHost>();
         container.Register<LanHost>(Reuse.Singleton);
         container.RegisterMapping<IEntryPoint, LanHost>();
     }

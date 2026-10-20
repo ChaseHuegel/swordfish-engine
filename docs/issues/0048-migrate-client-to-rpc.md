@@ -1,7 +1,7 @@
 # Improvement: Migrate the client to nsd-rpc services
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -18,49 +18,49 @@ queues, and the connection stats.
 
 ## Acceptance criteria
 
-- [ ] `ClientRpcHost` replaces `TransportManager` and `IClientConnection`. It
+- [x] `ClientRpcHost` replaces `TransportManager` and `IClientConnection`. It
       owns the frozen client registry, the active `RpcClient`, the
       `GameServerApiClient`, the connection, the inbound queues, and the stats.
-- [ ] `ClientRpcHost` subscribes to the connection `Disconnected` event and
+- [x] `ClientRpcHost` subscribes to the connection `Disconnected` event and
       records the `RpcDisconnectReason`. It exposes the reason for logging and
       teardown. It raises `RemoteDisconnected` for a reason other than
       `LocalClose`. `Stats` comes from `IRpcConnectionStats` or
       `RpcPeer.Stats`.
-- [ ] `ClientInbound` holds per-type queues for snapshots, snapshot batches,
+- [x] `ClientInbound` holds per-type queues for snapshots, snapshot batches,
       heartbeats, voxel edits, notifications, skill updates, chat, and level
       stream chunks. It clears on every connection switch.
-- [ ] `ClientHandlers` only enqueues. No handler touches a `DataStore`.
-- [ ] The client connects to the loopback at startup, sends `ClientHello`, and
+- [x] `ClientHandlers` only enqueues. No handler touches a `DataStore`.
+- [x] The client connects to the loopback at startup, sends `ClientHello`, and
       polls call deadlines each tick.
-- [ ] `ConnectRemote` creates a `TcpClientConnection`, honors the connect
+- [x] `ConnectRemote` creates a `TcpClientConnection`, honors the connect
       timeout, builds a new `RpcClient`, and sends `ClientHello`.
-- [ ] `ClientJoinSystem` runs the two-call flow. `JoinAsync` seats the player.
+- [x] `ClientJoinSystem` runs the two-call flow. `JoinAsync` seats the player.
       `StreamLevelAsync` uses an `IChunkSink<LevelStreamChunk>` that enqueues
       fragments. The ECS tick reassembles and builds view entities. The system
       enters `Playing` only after `LevelStreamComplete`.
-- [ ] `JoinStreamTimeoutMs` cancels the join. A timeout or a failed result runs
+- [x] `JoinStreamTimeoutMs` cancels the join. A timeout or a failed result runs
       the normal disconnect teardown.
-- [ ] `ClientReconcileSystem` drains and reassembles inbound snapshots. It keeps
+- [x] `ClientReconcileSystem` drains and reassembles inbound snapshots. It keeps
       the entering-play burst coalescing. It applies a batch only when the
       batch is complete and drops a stale incomplete batch.
-- [ ] `ClientVoxelReconcileSystem`, `ClientNotificationSystem`,
+- [x] `ClientVoxelReconcileSystem`, `ClientNotificationSystem`,
       `ClientChatSystem`, and `ClientHeartbeatSystem` drain `ClientInbound`.
       They send through the generated proxy.
-- [ ] `ClientReplicationSystem` sends the upstream snapshot as a reliable
+- [x] `ClientReplicationSystem` sends the upstream snapshot as a reliable
       notification. It clears staged edges and ops only after the send path
       accepts the snapshot. A rejected send is treated as a peer failure.
-- [ ] `LevelsClient` is a thin async wrapper over `GameServerApiClient`. FIFO
+- [x] `LevelsClient` is a thin async wrapper over `GameServerApiClient`. FIFO
       queues and `FaultPending` are removed. `RpcClient` faults pending calls on
       disconnect.
-- [ ] `ClientLevelServiceSystem`, `ClientJoinSystem`, `ClientDisconnectSystem`,
+- [x] `ClientLevelServiceSystem`, `ClientJoinSystem`, `ClientDisconnectSystem`,
       `GameSaveManager`, and the menu pages use `ClientRpcHost`.
-- [ ] `ClientDisconnectSystem` subscribes to `ClientRpcHost.RemoteDisconnected`
+- [x] `ClientDisconnectSystem` subscribes to `ClientRpcHost.RemoteDisconnected`
       and keeps the character save, cleanup, toast, and menu transition.
-- [ ] `NetworkStatsOverlay` reads `ClientRpcHost.Stats`.
-- [ ] A loopback test covers list levels, join, play, leave, and rejoin. A TCP
+- [x] `NetworkStatsOverlay` reads `ClientRpcHost.Stats`.
+- [x] A loopback test covers list levels, join, play, leave, and rejoin. A TCP
       test covers the same path over `127.0.0.1:0`.
-- [ ] A mid-join disconnect test proves the client returns to the menu cleanly.
-- [ ] The docs pass updates `networking-overview`, `networking-join`,
+- [x] A mid-join disconnect test proves the client returns to the menu cleanly.
+- [x] The docs pass updates `networking-overview`, `networking-join`,
       `networking-replication`, and `networking-transports`.
 
 ## Dependencies

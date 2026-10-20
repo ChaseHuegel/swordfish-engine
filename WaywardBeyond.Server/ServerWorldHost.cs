@@ -1,26 +1,26 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
+using NsdRpc;
 using Swordfish.ECS;
 using Swordfish.Library.Threading;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
 /// Owns the server's world table and ticks every live world on a single server thread. Each tick it
-/// routes pending connections to the hub of the world their <c>JoinRequest</c> names (creating and
-/// loading the world first, so a join can never unload under itself), ticks each world's systems in
-/// creation order, and unloads worlds with no sessions past the idle window. A world is a child
-/// container created from the root; disposal of the host flushes and tears down every world
-/// synchronously after the thread stops.
+/// drains host RPC commands, routes joins and leaves, ticks each world's systems in creation order,
+/// and unloads worlds with no sessions past the idle window. A world is a child container created
+/// from the root. Disposal of the host flushes and tears down every world synchronously after the
+/// thread stops.
 /// </summary>
 public sealed class ServerWorldHost : IEntryPoint, IDisposable
 {
@@ -33,7 +33,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             int count = 0;
             foreach (WorldEntry entry in _worlds.ToArray())
             {
-                count += entry.World.Hub.Count;
+                count += entry.World.Sessions.Count;
             }
 
             return count;
@@ -41,34 +41,30 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     }
 
     private readonly IContainer _container;
-    private readonly ServerLevelManager _levelManager;
+    private readonly ServerHostCommands _commands;
     private readonly PendingConnectionHeartbeat _hostHeartbeat;
-    private readonly PendingJoins _pendingJoins;
-    private readonly PendingLevelDeletes _pendingDeletes;
+    private readonly ServerPeers _peers;
     private readonly ILevelCatalog _levelCatalog;
     private readonly ILogger _logger;
     private readonly long _idleUnloadMs;
     private readonly ThreadWorker _threadWorker;
     private readonly List<WorldEntry> _worlds = [];
     private readonly List<WorldEntry> _unloads = [];
-    private readonly ConcurrentDictionary<IServerConnection, WorldBinding> _bindings = new();
     private bool _disposed;
 
     public ServerWorldHost(
         IContainer container,
-        ServerLevelManager levelManager,
+        ServerHostCommands commands,
         PendingConnectionHeartbeat hostHeartbeat,
-        PendingJoins pendingJoins,
-        PendingLevelDeletes pendingDeletes,
+        ServerPeers peers,
         ILevelCatalog levelCatalog,
         NetworkingConfig config,
         ILoggerFactory loggerFactory
     ) {
         _container = container;
-        _levelManager = levelManager;
+        _commands = commands;
         _hostHeartbeat = hostHeartbeat;
-        _pendingJoins = pendingJoins;
-        _pendingDeletes = pendingDeletes;
+        _peers = peers;
         _levelCatalog = levelCatalog;
         _logger = loggerFactory.CreateLogger<ServerWorldHost>();
         _idleUnloadMs = Math.Max(1, config.Server.IdleUnloadMs.Get());
@@ -81,35 +77,78 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _logger.LogInformation("Started server thread.");
     }
 
-    /// <summary>Releases a connection from its world (accepted peer disconnect). A pending connection is unchanged.</summary>
-    public void DetachConnection(IServerConnection connection)
-    {
-        if (_bindings.TryRemove(connection, out WorldBinding binding))
+    /// <summary>
+    /// Routes one join to the world it names. The world is created and loaded first, so a join can
+    /// never unload under itself. The completion fires when the world has seated the player.
+    /// </summary>
+    public void RouteJoin(
+        ServerPeer peer,
+        in JoinRequest request,
+        TaskCompletionSource<RpcResult<JoinAccept>> completion,
+        CancellationToken cancellationToken
+    ) {
+        ServerWorld world = GetOrCreate(request.LevelGuid ?? string.Empty);
+        if (peer.World != null && peer.World != world)
         {
-            binding.World.Hub.Remove(binding.ClientId);
+            //  End the previous session in its own world; this peer is moving to a new one.
+            peer.World.JoinQueue.EnqueueLeave(peer.GameId);
         }
+
+        peer.ClearInbound();
+        peer.World = world;
+        world.JoinQueue.Enqueue(peer, request, completion, cancellationToken);
+    }
+
+    /// <summary>Queues the peer's leave in its own world. The world tick frees the mirror.</summary>
+    public void RouteLeave(ServerPeer peer)
+    {
+        peer.World?.JoinQueue.EnqueueLeave(peer.GameId);
     }
 
     /// <summary>
-    /// Returns connections whose session has ended (a player left to the menu) to the pending set,
-    /// so their next <c>JoinRequest</c> is routed to the world it names. A bound connection without a
-    /// session is idle, never mid-join: joins are enqueued and registered within the same world tick.
+    /// Tears down a loaded world without a final save, then removes the level from the catalog. Runs
+    /// on the server thread. Returns the catalog result.
     /// </summary>
-    private void ReturnSessionlessConnectionsToPending()
+    /// <summary>The loaded world for a level, or null. Tests use it to seed world content.</summary>
+    internal ServerWorld? FindWorld(string levelGuid)
     {
-        foreach (KeyValuePair<IServerConnection, WorldBinding> entry in _bindings)
+        foreach (WorldEntry entry in _worlds)
         {
-            if (entry.Value.World.Sessions.TryGetEntity(entry.Value.ClientId, out _))
+            if (entry.LevelGuid == levelGuid)
+            {
+                return entry.World;
+            }
+        }
+
+        return null;
+    }
+
+    public bool DeleteLevel(string levelGuid)
+    {
+        for (var index = 0; index < _worlds.Count; index++)
+        {
+            WorldEntry entry = _worlds[index];
+            if (entry.LevelGuid != levelGuid)
             {
                 continue;
             }
 
-            if (_bindings.TryRemove(entry.Key, out WorldBinding removed))
+            foreach (ServerPeer peer in _peers.Peers)
             {
-                removed.World.Hub.TryDetach(removed.ClientId);
-                _pendingJoins.Add(entry.Key);
+                if (peer.World == entry.World)
+                {
+                    peer.ClearInbound();
+                    peer.World = null;
+                }
             }
+
+            entry.World.Dispose();
+            _worlds.RemoveAt(index);
+            _logger.LogInformation("Unloaded level {level} for deletion.", levelGuid);
+            break;
         }
+
+        return _levelCatalog.Delete(levelGuid);
     }
 
     public void Dispose()
@@ -126,14 +165,17 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         _threadWorker.Join();
 
         //  The server thread owns the stores; once stopped, shutdown may safely flush them before the
-        //  world containers are disposed. The list is snapshotted so a world
-        //  container disposal can never invalidate the enumerator.
+        //  world containers are disposed. The list is snapshotted so a world container disposal can
+        //  never invalidate the enumerator.
         foreach (WorldEntry entry in _worlds.ToArray())
         {
-            foreach ((Uuid clientId, _) in entry.World.Hub.Clients)
+            foreach (ServerPeer peer in _peers.Peers)
             {
-                entry.World.Sessions.EndSession(clientId);
-                entry.World.Hub.Remove(clientId);
+                if (peer.World == entry.World)
+                {
+                    entry.World.Sessions.EndSession(peer.GameId);
+                    peer.World = null;
+                }
             }
 
             entry.World.SaveService.Flush(entry.World.Store);
@@ -141,7 +183,6 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         }
 
         _worlds.Clear();
-        _bindings.Clear();
         _logger.LogInformation("Stopped server thread.");
     }
 
@@ -149,11 +190,9 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
     {
         try
         {
-            _levelManager.Tick();
-            ProcessPendingLevelDeletes();
-            RoutePendingJoins();
-            //  Keep pre-join connections live: they are in no world hub, so only this host-level pump
-            //  feeds their read socket until a JoinRequest binds them to a world.
+            //  Process host calls first so joins and leaves reach the worlds in this tick.
+            _commands.Tick(this);
+            HandlePeerDisconnects();
             _hostHeartbeat.Tick((uint)PlayerCount);
 
             //  Unloads are deferred until after the world iteration: removing from _worlds during the
@@ -182,63 +221,37 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         }
     }
 
-    private void RoutePendingJoins()
+    /// <summary>
+    /// Queues a disconnect teardown in the peer's world. The world tick frees the mirror and replicates
+    /// the despawn. A peer with no world needs no teardown beyond the peer record.
+    /// </summary>
+    private void HandlePeerDisconnects()
     {
-        foreach (IServerConnection connection in _pendingJoins.Snapshot())
+        while (_peers.TryDequeueDisconnected(out ServerPeer peer))
         {
-            Result<JoinRequest> result = connection.Receive<JoinRequest>();
-            if (!result.Success)
-            {
-                continue;
-            }
-
-            ServerWorld world = GetOrCreate(result.Value.LevelGuid ?? string.Empty);
-            Uuid clientId = AttachConnection(connection, world);
-            world.JoinQueue.Enqueue(clientId, result.Value);
-            _pendingJoins.Remove(connection);
+            ServerWorld? world = peer.World;
+            peer.World = null;
+            peer.ClearInbound();
+            world?.JoinQueue.EnqueueDisconnect(peer.GameId);
         }
     }
 
     /// <summary>
-    /// Deletes requested levels on the server thread. A loaded level is torn down first, without a final
-    /// save: the data is being discarded and a queued save could recreate the files after deletion.
+    /// Returns peers whose session has ended (a player left to the menu) to the unbound state, so
+    /// their next join is routed to the world it names. A bound peer without a session is idle, never
+    /// mid-join: joins are enqueued and registered within the same world tick.
     /// </summary>
-    private void ProcessPendingLevelDeletes()
+    private void ReturnSessionlessConnectionsToPending()
     {
-        while (_pendingDeletes.TryDequeue(out PendingLevelDelete delete))
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            WorldEntry? loaded = null;
-            foreach (WorldEntry entry in _worlds)
+            if (peer.World == null || peer.World.Sessions.TryGetEntity(peer.GameId, out _))
             {
-                if (entry.LevelGuid == delete.LevelGuid)
-                {
-                    loaded = entry;
-                    break;
-                }
+                continue;
             }
 
-            if (loaded != null)
-            {
-                foreach (IServerConnection connection in _bindings.Keys)
-                {
-                    if (_bindings.TryGetValue(connection, out WorldBinding binding) && binding.World == loaded.World)
-                    {
-                        _bindings.TryRemove(connection, out _);
-                        _pendingJoins.Add(connection);
-                    }
-                }
-
-                loaded.World.Dispose();
-                _worlds.Remove(loaded);
-                _logger.LogInformation("Unloaded level {level} for deletion.", delete.LevelGuid);
-            }
-
-            bool success = _levelCatalog.Delete(delete.LevelGuid);
-            Result send = delete.Connection.Send(new DeleteLevelResponse { Success = success });
-            if (!send.Success)
-            {
-                _logger.LogWarning("Failed to send level-delete response: {message}.", send.Message);
-            }
+            peer.ClearInbound();
+            peer.World = null;
         }
     }
 
@@ -280,19 +293,6 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         return world;
     }
 
-    /// <summary>Binds a connection to a world's hub, migrating it out of any other world first.</summary>
-    private Uuid AttachConnection(in IServerConnection connection, ServerWorld world)
-    {
-        if (_bindings.TryRemove(connection, out WorldBinding previous))
-        {
-            previous.World.Hub.Remove(previous.ClientId);
-        }
-
-        Uuid clientId = world.Hub.Add(connection);
-        _bindings[connection] = new WorldBinding(world, clientId);
-        return clientId;
-    }
-
     private bool ShouldUnload(WorldEntry entry)
     {
         if (entry.World.Sessions.Count > 0)
@@ -316,13 +316,12 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         //  Final authoritative flush: captured on the server thread, persisted in the background.
         entry.World.SaveService.QueueSave(entry.World.Store);
 
-        //  Its connections are unbound and await a future join; the singleplayer loopback returns here.
-        foreach (IServerConnection connection in _bindings.Keys)
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            if (_bindings.TryGetValue(connection, out WorldBinding binding) && binding.World == entry.World)
+            if (peer.World == entry.World)
             {
-                _bindings.TryRemove(connection, out _);
-                _pendingJoins.Add(connection);
+                peer.ClearInbound();
+                peer.World = null;
             }
         }
 
@@ -336,11 +335,5 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
         public readonly string LevelGuid = levelGuid;
         public readonly ServerWorld World = world;
         public long IdleSinceMs;
-    }
-
-    private readonly struct WorldBinding(in ServerWorld world, in Uuid clientId)
-    {
-        public readonly ServerWorld World = world;
-        public readonly Uuid ClientId = clientId;
     }
 }

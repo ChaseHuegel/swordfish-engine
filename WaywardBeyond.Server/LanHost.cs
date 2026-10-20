@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Net.Sockets;
 using System.Threading;
 using Microsoft.Extensions.Logging;
@@ -8,94 +6,51 @@ using Shoal.Modularity;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Discovery;
-using WaywardBeyond.Networking.Serialization;
-using WaywardBeyond.Networking.Transport;
-using WaywardBeyond.Server.Permissions;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
-/// Opens the in-process authoritative server to LAN peers over TCP. Runs alongside <see cref="ServerWorldHost"/>
-/// in host mode: it listens on <see cref="NetworkingConfig.Server.Port"/>, routes each accepted peer
-/// into the pending-join set (the host binds it to its world's hub when its <c>JoinRequest</c> arrives),
-/// and on socket disconnect releases the peer from the world host. When LAN discovery is enabled, a
-/// background thread also broadcasts a <see cref="LanBeacon"/> so LAN clients can auto-detect the server
-/// on the discovery port.
+/// Opens the authoritative server to LAN peers. Calls <see cref="ServerRpcHost.StartLan"/> on the
+/// configured port and, when discovery is enabled, broadcasts a <see cref="LanBeacon"/> so LAN clients
+/// can auto-detect the server on the discovery port.
 /// </summary>
 public sealed class LanHost : IEntryPoint, IDisposable
 {
-    private readonly IEnumerable<INetworkSerializer> _serializers;
-    private readonly PendingJoins _pendingJoins;
+    private readonly ServerRpcHost _rpcHost;
     private readonly ServerWorldHost _worldHost;
     private readonly NetworkingConfig _config;
     private readonly LanHostInfo _hostInfo;
-    private readonly ConnectionClaims _claims;
-    private readonly ILogger _logger;
-    private readonly ILoggerFactory _loggerFactory;
-    private readonly ConcurrentDictionary<TcpTransport, byte> _clientIds = new();
-    private TcpServerHost? _host;
+    private readonly ILogger<LanHost> _logger;
     private UdpClient? _beacon;
     private volatile bool _beaconRunning;
 
     public LanHost(
-        IEnumerable<INetworkSerializer> serializers,
-        PendingJoins pendingJoins,
+        ServerRpcHost rpcHost,
         ServerWorldHost worldHost,
         NetworkingConfig config,
         LanHostInfo hostInfo,
-        ConnectionClaims claims,
         ILoggerFactory loggerFactory
     ) {
-        _serializers = serializers;
-        _pendingJoins = pendingJoins;
+        _rpcHost = rpcHost;
         _worldHost = worldHost;
         _config = config;
         _hostInfo = hostInfo;
-        _claims = claims;
         _logger = loggerFactory.CreateLogger<LanHost>();
-        _loggerFactory = loggerFactory;
     }
 
     public void Run()
     {
         int port = _config.Server.Port.Get();
-        _host = new TcpServerHost(
-            _serializers,
-            _loggerFactory,
-            connectionTimeoutMs: _config.Transport.TimeoutMs.Get(),
-            sendQueueSize: _config.Transport.SendQueueSize.Get(),
-            maxFrameBytes: _config.Transport.MaxFrameBytes.Get(),
-            reliableQueueConcernThreshold: _config.Transport.ReliableQueueConcernThreshold.Get(),
-            reliableQueueDisconnectThreshold: _config.Transport.ReliableQueueDisconnectThreshold.Get(),
-            reliableQueueDisconnectMs: _config.Transport.ReliableQueueDisconnectMs.Get(),
-            traceLogging: _config.Transport.TraceLogging.Get(),
-            sendIntervalMs: _config.Transport.SendIntervalMs.Get()
-        );
-        _host.OnClientAccepted = transport =>
-        {
-            _clientIds[transport] = 0;
-            transport.OnDisconnected += reason => RemoveClient(transport, reason);
-            _pendingJoins.Add(transport);
-            _logger.LogInformation("A LAN client connected and awaits its join request.");
-
-            //  A peer that dies between accept and this handler was raised before any subscriber
-            //  existed, so OnDisconnected never fires for it. Re-check the live state and prune it now,
-            //  before the client can linger in the pending set unremoved.
-            if (!transport.IsConnected)
-            {
-                RemoveClient(transport, DisconnectReason.PeerClosed);
-            }
-        };
-
         try
         {
-            _host.Listen(port);
-            _logger.LogInformation("Listening for LAN connections on port {port}.", _host.LocalPort);
-            _hostInfo.ListenPort = _host.LocalPort;
+            _rpcHost.StartLan(port);
+            _hostInfo.ListenPort = _rpcHost.LanPort;
+            _logger.LogInformation("Listening for LAN connections on port {port}.", _rpcHost.LanPort);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start the LAN listener on port {port}.", port);
+            return;
         }
 
         StartBeacon();
@@ -103,8 +58,8 @@ public sealed class LanHost : IEntryPoint, IDisposable
 
     /// <summary>
     /// Starts the UDP discovery beacon on its own background thread. The broadcast socket is bound after the
-    /// TCP listener so <see cref="_host.LocalPort"/> is known. On socket failure the loop is killed outright —
-    /// LAN discovery is disabled rather than retried.
+    /// RPC listener so the bound port is known. On socket failure the loop is killed outright - LAN
+    /// discovery is disabled rather than retried.
     /// </summary>
     private void StartBeacon()
     {
@@ -113,7 +68,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
             return;
         }
 
-        if (_host!.LocalPort == 0)
+        if (_rpcHost.LanPort == 0)
         {
             _logger.LogWarning("LAN listener did not bind; LAN discovery disabled.");
             return;
@@ -124,7 +79,7 @@ public sealed class LanHost : IEntryPoint, IDisposable
             _beacon = new UdpClient { EnableBroadcast = true };
             _beaconRunning = true;
             int intervalMs = Math.Max(100, _config.Discovery.BroadcastSeconds.Get() * 1000);
-            int tcpPort = _host!.LocalPort;
+            int tcpPort = _rpcHost.LanPort;
             var thread = new Thread(() => BroadcastBeacons(tcpPort, intervalMs))
             {
                 IsBackground = true,
@@ -184,27 +139,8 @@ public sealed class LanHost : IEntryPoint, IDisposable
         _beacon?.Dispose();
     }
 
-    private void RemoveClient(TcpTransport transport, DisconnectReason reason)
-    {
-        _logger.LogInformation("A LAN client disconnected: {reason}.", reason);
-
-        //  The owner disposes the dead peer: dropping it from the pending set (or releasing its world
-        //  binding), pruning the id map, and closing the socket exactly once per transport.
-        if (_clientIds.TryRemove(transport, out _))
-        {
-            _claims.Clear(transport);
-            if (!_pendingJoins.Remove(transport))
-            {
-                _worldHost.DetachConnection(transport);
-            }
-
-            transport.Dispose();
-        }
-    }
-
     public void Dispose()
     {
         StopBeacon();
-        _host?.Dispose();
     }
 }

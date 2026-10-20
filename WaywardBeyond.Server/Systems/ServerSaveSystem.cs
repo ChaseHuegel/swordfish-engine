@@ -1,24 +1,25 @@
+using System;
 using Microsoft.Extensions.Logging;
+using NsdRpc;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Server.Systems;
 
 /// <summary>
 /// Serves the in-world level save path. The server owns the autosave cadence: while a world has
 /// sessions it queues an authoritative flush every <c>GameplayConfig.AutosaveIntervalMs</c>. A client
-/// <see cref="SaveLevelRequest"/> is accepted only with the <see cref="GamePermissions.LevelSave"/>
-/// permission; the local host always qualifies. Every queued save broadcasts a start toast to the
-/// world, and each finished database write broadcasts the result.
+/// save call is accepted only with the <see cref="GamePermissions.LevelSave"/> permission; the local
+/// host always qualifies. Every queued save broadcasts a start toast to the world, and each finished
+/// database write broadcasts the result.
 /// </summary>
 public sealed class ServerSaveSystem(
-    ServerConnectionHub hub,
+    ServerPeers peers,
     SessionManager sessions,
     LevelSaveService saveService,
     IUserPermissionService permissions,
@@ -26,12 +27,12 @@ public sealed class ServerSaveSystem(
     ILogger<ServerSaveSystem> logger
 ) : IServerWorldSystem
 {
-    private readonly ServerConnectionHub _hub = hub;
+    private readonly ServerPeers _peers = peers;
     private readonly SessionManager _sessions = sessions;
     private readonly LevelSaveService _saveService = saveService;
     private readonly IUserPermissionService _permissions = permissions;
     private readonly GameplayConfig _gameplayConfig = gameplayConfig;
-    private readonly ILogger<ServerSaveSystem> _logger = logger;
+    private readonly ILogger _logger = logger;
 
     private float _autosaveElapsedSeconds;
 
@@ -39,7 +40,7 @@ public sealed class ServerSaveSystem(
     {
         HandleAutosave(delta, store);
         HandleSaveRequests(store);
-        BroadcastSaveResults();
+        BroadcastSaveResults(store);
     }
 
     /// <summary>
@@ -72,32 +73,48 @@ public sealed class ServerSaveSystem(
 
     private void HandleSaveRequests(DataStore store)
     {
-        foreach ((Uuid clientId, _) in _hub.Receive<SaveLevelRequest>())
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            if (!_permissions.HasPermission(clientId, GamePermissions.LevelSave))
+            if (peer.World?.Store != store)
             {
-                _logger.LogInformation(
-                    "Denied a level save for client {clientId}: the client lacks the \"{permission}\" permission.",
-                    clientId, GamePermissions.LevelSave);
-
-                Result response = _hub.Send(clientId, new SaveLevelResponse { Success = false });
-                if (!response.Success)
-                {
-                    _logger.LogWarning("Failed to send the save denial to client {clientId}: {message}.", clientId, response.Message);
-                }
-
-                SendNotification(clientId, "notification.save.denied");
                 continue;
             }
 
-            QueueSave(store);
-
-            Result accepted = _hub.Send(clientId, new SaveLevelResponse { Success = true });
-            if (!accepted.Success)
+            while (peer.SaveCalls.TryDequeue(out ServerPeer.SaveLevelCall call))
             {
-                _logger.LogWarning("Failed to send the save response to client {clientId}: {message}.", clientId, accepted.Message);
+                HandleSaveRequest(store, peer, call);
             }
         }
+    }
+
+    private void HandleSaveRequest(DataStore store, ServerPeer peer, in ServerPeer.SaveLevelCall call)
+    {
+        if (call.CancellationToken.IsCancellationRequested)
+        {
+            call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
+                GameRpcErrors.InvalidState, "the save request was cancelled"));
+            return;
+        }
+
+        if (!_permissions.HasPermission(peer.GameId, GamePermissions.LevelSave))
+        {
+            _logger.LogInformation(
+                "Denied a level save for client {clientId}: the client lacks the \"{permission}\" permission.",
+                peer.GameId, GamePermissions.LevelSave);
+
+            call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
+                GameRpcErrors.PermissionDenied, "level saving is not permitted"));
+            peer.Client.Notification(new NotificationMessage
+            {
+                Type = (byte)NotificationType.Toast,
+                Key = "notification.save.denied",
+                Args = [],
+            });
+            return;
+        }
+
+        QueueSave(store);
+        call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Success(new SaveLevelResponse { Success = true }));
     }
 
     /// <summary>
@@ -112,50 +129,34 @@ public sealed class ServerSaveSystem(
         }
 
         _saveService.QueueSave(store);
-        BroadcastNotification("notification.save.saving");
+        BroadcastNotification(store, "notification.save.saving");
     }
 
     /// <summary>Broadcasts the outcome of every finished database write.</summary>
-    private void BroadcastSaveResults()
+    private void BroadcastSaveResults(DataStore store)
     {
         while (_saveService.TryDequeueCompletion(out bool success))
         {
-            BroadcastNotification(success ? "notification.save.saved" : "notification.save.saving.failed");
+            BroadcastNotification(store, success ? "notification.save.saved" : "notification.save.saving.failed");
         }
     }
 
-    private void BroadcastNotification(string key)
+    private void BroadcastNotification(DataStore store, string key)
     {
         string levelName = _saveService.CurrentLevel?.Name ?? string.Empty;
-
-        foreach ((Uuid clientId, _) in _hub.Clients)
-        {
-            Result send = _hub.Send(clientId, new NotificationMessage
-            {
-                Type = (byte)NotificationType.Toast,
-                Key = key,
-                Args = [levelName],
-            });
-
-            if (!send.Success)
-            {
-                _logger.LogWarning("Failed to send the save notification to client {clientId}: {message}.", clientId, send.Message);
-            }
-        }
-    }
-
-    private void SendNotification(Uuid clientId, string key)
-    {
-        Result send = _hub.Send(clientId, new NotificationMessage
+        var message = new NotificationMessage
         {
             Type = (byte)NotificationType.Toast,
             Key = key,
-            Args = [],
-        });
+            Args = [levelName],
+        };
 
-        if (!send.Success)
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            _logger.LogWarning("Failed to send the save notification to client {clientId}: {message}.", clientId, send.Message);
+            if (peer.World?.Store == store)
+            {
+                peer.Client.Notification(message);
+            }
         }
     }
 }

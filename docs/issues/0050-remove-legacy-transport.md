@@ -1,7 +1,7 @@
 # Improvement: Remove the legacy transport and remap network config
 
 - Type: improvement
-- Status: open
+- Status: done
 - Workflow: ../specs/issues.md
 
 ## Problem
@@ -16,40 +16,40 @@ game client must not try to join a new game server.
 
 ## Acceptance criteria
 
-- [ ] Delete `Transport/TcpTransport.cs`, `TcpServerHost.cs`,
+- [x] Delete `Transport/TcpTransport.cs`, `TcpServerHost.cs`,
       `ServerConnectionHub.cs`, `LocalConnection.cs`, `INetworkTransport.cs`,
       `IClientConnection.cs`, `IServerConnection.cs`, `SendPriority.cs`, and
       `DisconnectReason.cs`.
-- [ ] Delete `Serialization/INetworkSerializer.cs`, `NsdMessageSerializer.cs`,
+- [x] Delete `Serialization/INetworkSerializer.cs`, `NsdMessageSerializer.cs`,
       and `SerializerCache.cs`.
-- [ ] Delete `ConnectionClaims.cs` and `PendingLevelDeletes.cs`. Remove the
+- [x] Delete `ConnectionClaims.cs` and `PendingLevelDeletes.cs`. Remove the
       `PendingJoins` class if `ServerPeers` fully replaces it.
-- [ ] Remove `NetworkingComposition.RegisterTransportMessage` and every
+- [x] Remove `NetworkingComposition.RegisterTransportMessage` and every
       remaining call.
-- [ ] Remove the unused `LevelEntityAdd` message from `levels.nsd` and
+- [x] Remove the unused `LevelEntityAdd` message from `levels.nsd` and
       regenerate. `LevelStreamComplete` stays as the stream response.
-- [ ] No source file references `TcpTransport`, `ServerConnectionHub`,
+- [x] No source file references `TcpTransport`, `ServerConnectionHub`,
       `IClientConnection`, `SendPriority`, or `NsdMessageSerializer`.
-- [ ] `network.toml` removes `TimeoutMs`, `MaxFrameBytes`, `SendIntervalMs`,
+- [x] `network.toml` removes `TimeoutMs`, `MaxFrameBytes`, `SendIntervalMs`,
       `SendQueueSize`, `ReliableQueueConcernThreshold`,
       `ReliableQueueDisconnectThreshold`, `ReliableQueueDisconnectMs`, and
       `MaxReceiveWindow`.
-- [ ] `[Transport]` adds `ConnectTimeoutMs`, `IdleTimeoutMs`,
+- [x] `[Transport]` adds `ConnectTimeoutMs`, `IdleTimeoutMs`,
       `SendBatchIntervalMs`, `SendBatchMaxBytes`, `SendQueueBytes`,
       `SendBacklogDisconnectBytes`, and `SendBacklogDisconnectMs`.
-- [ ] `[Protocol]` adds `CallTimeoutMs`, `MaxPendingCalls`,
+- [x] `[Protocol]` adds `CallTimeoutMs`, `MaxPendingCalls`,
       `MaxBufferedChunks`, and `LevelStreamBytesPerTick`.
-- [ ] `NetworkingConfig` exposes each new key under the matching table. The
+- [x] `NetworkingConfig` exposes each new key under the matching table. The
       values feed `RpcOptions` and `TcpOptions`.
-- [ ] The shipped `network.toml` enables the opt-in transport policies.
+- [x] The shipped `network.toml` enables the opt-in transport policies.
       `IdleTimeoutMs`, `SendBatchIntervalMs`, and both backlog keys are
       positive.
-- [ ] `SendBacklogDisconnectBytes` is not greater than `SendQueueBytes`.
+- [x] `SendBacklogDisconnectBytes` is not greater than `SendQueueBytes`.
       An invalid combination fails fast at startup.
-- [ ] `LanDiscovery.ProtocolVersion` increments so old clients are filtered.
-- [ ] The dedicated server `config/network.toml` matches the new schema.
-- [ ] `dotnet build` succeeds with zero warnings.
-- [ ] The docs pass updates the config table in `networking-transports` and
+- [x] `LanDiscovery.ProtocolVersion` increments so old clients are filtered.
+- [x] The dedicated server `config/network.toml` matches the new schema.
+- [x] `dotnet build` succeeds with zero warnings.
+- [x] The docs pass updates the config table in `networking-transports` and
       `config-schemas`.
 
 ## Defaults

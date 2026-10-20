@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Threading;
 using NsdRpc;
+using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Rpc;
 using Xunit;
 
@@ -152,6 +153,47 @@ public class PayloadFragmenterTests
 
         Assert.Equal([2, 3], payload);
         Assert.False(assembler.IsActive);
+    }
+
+    [Fact]
+    public void SnapshotOverTheBudgetReassemblesAtomically()
+    {
+        var snapshot = new WorldSnapshot
+        {
+            TickNumber = 7,
+            LastProcessedInput = 3,
+            Components = [new ComponentSnapshot(1, 2, new byte[200])],
+            RemovedEntities = [9],
+            RemovedComponents = [new ComponentRemoval(9, 2)],
+        };
+
+        byte[] payload = snapshot.Serialize();
+        byte[][] parts = PayloadFragmenter.Split(payload, budget: 64);
+        Assert.True(parts.Length > 1);
+
+        var assembler = new FragmentAssembler();
+        WorldSnapshot? joined = null;
+        for (var index = 0; index < parts.Length; index++)
+        {
+            bool complete = assembler.TryAppend(
+                groupId: 11,
+                partIndex: index,
+                partCount: parts.Length,
+                parts[index],
+                out byte[] joinedPayload);
+
+            if (complete)
+            {
+                joined = WorldSnapshot.Deserialize(joinedPayload);
+            }
+        }
+
+        Assert.NotNull(joined);
+        Assert.Equal(7u, joined.Value.TickNumber);
+        Assert.Equal(3u, joined.Value.LastProcessedInput);
+        Assert.Equal(1UL, joined.Value.Components[0].Entity);
+        Assert.Equal(200, joined.Value.Components[0].Payload.Length);
+        Assert.Equal(9UL, joined.Value.RemovedEntities[0]);
     }
 
     [Fact]

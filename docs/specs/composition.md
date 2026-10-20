@@ -42,7 +42,7 @@ no services. It applies CLI overrides after the engine builds
 
 | Project | Entry point | Owns |
 |---|---|---|
-| `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry`, wire components, transport serializers |
+| `WaywardBeyond.Networking` | `RegisterNetworking()` | `NetworkRegistry` and the built-in wire components |
 | `WaywardBeyond.Config` | `RegisterNetworkingConfig()` | `networking.toml` config and its sub-config views |
 | `WaywardBeyond.Data` | `RegisterDataServices()` | shared data services such as `Migrator` |
 | `WaywardBeyond.Data` (localization) | `LocalizationComposition.RegisterTags()` | localized tag database and parser |
@@ -56,9 +56,13 @@ no services. It applies CLI overrides after the engine builds
 An embedding makes its choices through overrides, never by re-registering
 shared wire-up:
 
-- Singleplayer loopback: the client module registers `LocalLoopbackSeed`
-  (an `IAutoActivate`) which seeds `PendingJoins`. The dedicated server does
-  not seed.
+- Singleplayer loopback: `ClientRpcHost` connects the shared
+  `LoopbackRpcServerTransport` at startup. The dedicated server does not create
+  a client host.
+- RPC hosts: `HostComposition` registers the loopback transport.
+  `ServerComposition` registers `ServerPeers`, `ServerHostCommands`,
+  `ServerHandlers`, and `ServerRpcHost`. The client module registers
+  `ClientInbound`, `ClientHandlers`, and `ClientRpcHost`.
 - Interaction content: `ServerComposition` registers `ServerInteractionContent`
   as the default. The client module replaces it with `ClientInteractionContent`.
 
@@ -91,5 +95,5 @@ order.
 - `WaywardBeyond.Data/DataComposition.cs`
 - `WaywardBeyond.Data/Localization/LocalizationComposition.cs`
 - `WaywardBeyond.Client/Injector.cs`
-- `WaywardBeyond.Client/Networking/LocalLoopbackSeed.cs`
+- `WaywardBeyond.Client/Networking/ClientRpcHost.cs`
 - `WaywardBeyond.Server.Launcher/Program.cs`

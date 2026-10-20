@@ -1,14 +1,13 @@
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Globalization;
-using Swordfish.Library.Util;
 using WaywardBeyond.Client.Globalization;
+using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -22,7 +21,7 @@ namespace WaywardBeyond.Client.Systems;
 /// </summary>
 internal sealed class ClientNotificationSystem : IEntitySystem
 {
-    private readonly IClientConnection _transport;
+    private readonly ClientInbound _inbound;
     private readonly NotificationService _notificationService;
     private readonly LocalizedFormatter _localizedFormatter;
     private readonly ILocalization _localization;
@@ -30,14 +29,14 @@ internal sealed class ClientNotificationSystem : IEntitySystem
     private readonly ILogger<ClientNotificationSystem> _logger;
 
     public ClientNotificationSystem(
-        in IClientConnection transport,
+        in ClientInbound inbound,
         in NotificationService notificationService,
         in LocalizedFormatter localizedFormatter,
         in ILocalization localization,
         in CharacterSaveManager characterSaveManager,
         in ILogger<ClientNotificationSystem> logger
     ) {
-        _transport = transport;
+        _inbound = inbound;
         _notificationService = notificationService;
         _localizedFormatter = localizedFormatter;
         _localization = localization;
@@ -47,16 +46,14 @@ internal sealed class ClientNotificationSystem : IEntitySystem
 
     public void Tick(float delta, DataStore store)
     {
-        Result<NotificationMessage> notification;
-        while ((notification = _transport.Receive<NotificationMessage>()).Success)
+        while (_inbound.Notifications.TryDequeue(out NotificationMessage notification))
         {
-            ApplyNotification(notification.Value);
+            ApplyNotification(notification);
         }
 
-        Result<SkillStateUpdateMessage> skill;
-        while ((skill = _transport.Receive<SkillStateUpdateMessage>()).Success)
+        while (_inbound.SkillUpdates.TryDequeue(out SkillStateUpdateMessage skill))
         {
-            ApplySkillState(skill.Value);
+            ApplySkillState(skill);
         }
     }
 

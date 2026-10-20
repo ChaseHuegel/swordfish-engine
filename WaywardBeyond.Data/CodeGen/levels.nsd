@@ -89,11 +89,6 @@ message JoinAccept
     ulong PlayerEntity = 8;
 }
 
-message LevelEntityAdd
-{
-    VoxelEntityData VoxelEntity = 0;
-}
-
 message LevelStreamComplete
 {
     byte Dummy = 0;

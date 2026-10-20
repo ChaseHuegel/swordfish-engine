@@ -7,6 +7,6 @@ namespace WaywardBeyond.Networking.Discovery;
 /// </summary>
 public static class LanDiscovery
 {
-    public const int ProtocolVersion = 1;
+    public const int ProtocolVersion = 2;
     public const string BroadcastAddress = "255.255.255.255";
 }

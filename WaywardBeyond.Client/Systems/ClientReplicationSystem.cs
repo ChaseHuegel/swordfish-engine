@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Client.Components;
+using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
-using WaywardBeyond.Networking.Transport;
+using WaywardBeyond.Networking.Rpc;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -19,7 +20,8 @@ namespace WaywardBeyond.Client.Systems;
 /// </summary>
 internal sealed class ClientReplicationSystem : IEntitySystem
 {
-    private readonly IClientConnection _transport;
+    private readonly ClientRpcHost _host;
+    private readonly ClientDisconnectSystem _disconnectSystem;
     private readonly NetworkingConfig _config;
     private readonly NetworkRegistry _registry;
     private float _sinceSend;
@@ -33,9 +35,14 @@ internal sealed class ClientReplicationSystem : IEntitySystem
     //  fresh list on every tick of the replication hot path.
     private readonly NetworkComponentInfo[] _clientOwnedComponents;
 
-    public ClientReplicationSystem(in IClientConnection transport, in NetworkingConfig config, NetworkRegistry registry)
-    {
-        _transport = transport;
+    public ClientReplicationSystem(
+        in ClientRpcHost host,
+        in ClientDisconnectSystem disconnectSystem,
+        in NetworkingConfig config,
+        NetworkRegistry registry
+    ) {
+        _host = host;
+        _disconnectSystem = disconnectSystem;
         _config = config;
         _registry = registry;
         _clientOwnedComponents = [.. registry.GetComponents(NetworkDirection.ClientOwned)];
@@ -75,10 +82,11 @@ internal sealed class ClientReplicationSystem : IEntitySystem
         };
 
         //  Edges and ops are consumed exactly once: the outbound buffers are cleared only after the
-        //  containing snapshot is actually sent. A failed send leaves them staged, so the next
-        //  successful tick re-emits them instead of silently dropping clicks or moves.
-        if (!_transport.Send(snapshot).Success)
+        //  containing snapshot is accepted by the reliable send path. A rejected send is a peer
+        //  failure: the teardown runs on the next client tick.
+        if (!_host.Notify(GameRpc.Methods.ClientSnapshot, in snapshot))
         {
+            _disconnectSystem.RequestDisconnect();
             return;
         }
 

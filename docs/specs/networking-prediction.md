@@ -34,12 +34,14 @@ per-world sim state.
 
 ## Reconcile
 
-`ClientReconcileSystem` (`Client.Core/Systems/ClientReconcileSystem.cs`)
-receives server `WorldSnapshot`s, applies `ServerOwned` components (full state:
-position, orientation, linear AND angular velocity), frees despawned entities,
-trims `PendingInputComponent` by `LastProcessedInput`, and aligns the shared
-step (`AlignTo` the snapshot's sim tick). `SnapshotAckTracker` records the
-last applied snapshot tick.
+`ClientReconcileSystem` (`WaywardBeyond.Client/Systems/ClientReconcileSystem.cs`)
+drains the ordered `ClientInbound.Snapshots` stream.
+`FragmentAssembler` joins a batch only when it is complete, and a newer batch
+drops a stale incomplete group. The system applies `ServerOwned` components
+(full state: position, orientation, linear and angular velocity), frees
+despawned entities, trims `PendingInputComponent` by `LastProcessedInput`, and
+aligns the shared step (`AlignTo` the snapshot's sim tick).
+`SnapshotAckTracker` records the last applied snapshot tick.
 
 Replay is per-sim-tick resolution, not a separate phase: the shared step's
 command resolver reads the pending ring

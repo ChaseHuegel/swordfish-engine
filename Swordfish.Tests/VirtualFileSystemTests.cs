@@ -16,7 +16,7 @@ public class VirtualFileSystemTests : TestBase
     {
         var vfs = new VirtualFileSystem();
 
-        vfs.Mount(new PathInfo(@"TestFiles/VirtualFileSystem\assets1"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets1")));
 
         Assert.True(vfs.FileExists(new PathInfo("a.txt")));
         Assert.True(vfs.FileExists(new PathInfo("subfolder1/b.txt")));
@@ -27,7 +27,7 @@ public class VirtualFileSystemTests : TestBase
     {
         var vfs = new VirtualFileSystem();
 
-        vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem\\assets3.zip"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets3.zip")));
 
         Assert.True(vfs.FileExists(new PathInfo("a.txt")));
         Assert.True(vfs.FileExists(new PathInfo("subfolder1/b.txt")));
@@ -38,7 +38,7 @@ public class VirtualFileSystemTests : TestBase
     {
         var vfs = new VirtualFileSystem();
 
-        vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem\\assets4.pak"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets4.pak")));
 
         Assert.True(vfs.FileExists(new PathInfo("a.txt")));
         Assert.True(vfs.FileExists(new PathInfo("subfolder1/b.txt")));
@@ -49,19 +49,19 @@ public class VirtualFileSystemTests : TestBase
     {
         var vfs = new VirtualFileSystem();
 
-        vfs.Mount(new PathInfo(@"TestFiles/VirtualFileSystem\assets1"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets1")));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file1));
         Assert.Equal("assets1", file1.ReadString());
         
-        vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem/assets2"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets2")));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file2));
         Assert.Equal("assets2", file2.ReadString());
         
-        vfs.Mount(new PathInfo(@"TestFiles\\VirtualFileSystem\\assets3.zip"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets3.zip")));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file3));
         Assert.Equal("assets3", file3.ReadString());
         
-        vfs.Mount(new PathInfo(@"TestFiles/VirtualFileSystem/assets4.pak"));
+        vfs.Mount(new PathInfo(Path.Combine("TestFiles", "VirtualFileSystem", "assets4.pak")));
         Assert.True(vfs.TryGetFile(new PathInfo("a.txt"), out PathInfo file4));
         Assert.Equal("assets4", file4.ReadString());
     }
@@ -75,7 +75,7 @@ public class VirtualFileSystemTests : TestBase
         PathInfo[] files = vfs.GetFiles("", SearchOption.TopDirectoryOnly);
         
         Assert.Single(files);
-        Assert.Equal("TestFiles/VirtualFileSystem/assets1/a.txt", files[0]);
+        Assert.Equal(Path.Combine("TestFiles", "VirtualFileSystem", "assets1", "a.txt"), files[0]);
     }
     
     [Fact]
@@ -87,7 +87,7 @@ public class VirtualFileSystemTests : TestBase
         PathInfo[] files = vfs.GetFiles("", SearchOption.AllDirectories);
         
         Assert.Equal(2, files.Length);
-        Assert.Equal("TestFiles/VirtualFileSystem/assets1/a.txt", files[0]);
-        Assert.Equal("TestFiles/VirtualFileSystem/assets1/subfolder1/b.txt", files[1]);
+        Assert.Equal(Path.Combine("TestFiles", "VirtualFileSystem", "assets1", "a.txt"), files[0]);
+        Assert.Equal(Path.Combine("TestFiles", "VirtualFileSystem", "assets1", "subfolder1", "b.txt"), files[1]);
     }
 }

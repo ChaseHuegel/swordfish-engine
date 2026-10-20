@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     <ProjectReference Include="..\Swordfish\Swordfish.csproj" />
     <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
+    <ProjectReference Include="..\WaywardBeyond.Client\WaywardBeyond.Client.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Networking\WaywardBeyond.Networking.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Bricks\WaywardBeyond.Bricks.csproj" />
     <ProjectReference Include="..\WaywardBeyond.Bodies\WaywardBeyond.Bodies.csproj" />

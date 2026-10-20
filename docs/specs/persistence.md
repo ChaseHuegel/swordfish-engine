@@ -91,13 +91,11 @@ unload path flushes it.
 
 ## Level delete
 
-Menu-time delete requests flow through `ServerLevelManager`
-(`WaywardBeyond.Server/ServerLevelManager.cs`) into `PendingLevelDeletes`
-(`WaywardBeyond.Server/PendingLevelDeletes.cs`). `ServerWorldHost` drains the queue on
-the server thread. A loaded level is torn down without a final save, because a
-queued save would recreate the files after deletion. Bound connections return
-to `PendingJoins`. The catalog then deletes the level directory and the host
-answers `DeleteLevelResponse`.
+A menu-time delete is an RPC call. `ServerHostCommands` handles it on the
+server thread and calls `ServerWorldHost.DeleteLevel`. A loaded level is torn
+down without a final save, because a queued save would recreate the files after
+deletion. Bound peers lose their world binding. The catalog then deletes the
+level directory. The call returns `RpcResult<DeleteLevelResponse>`.
 
 ## Client facade
 
@@ -114,16 +112,15 @@ played" and "time played" in the `level_metadata` table, merged over the server'
 level metadata in `GameSaveService.GetSaves()`. Character save is handled by
 `CharacterSaveManager` + `SqliteCharacterStorage`.
 
-`LevelsClient` matches each response to its request in FIFO order per response
-type. A send that fails (no active transport, or a dropped connection) cancels
-its waiter at once, so a refresh issued before a remote client connects cannot
-consume a later response. Every level-management message rides the reliable send
-queue (`SendPriority`), so a create, list, or delete is never silently dropped.
+`LevelsClient` is a thin async wrapper over `GameServerApiClient`. Calls are
+correlated by nsd-rpc, so there is no FIFO queue or waiter table. A dropped
+connection faults pending calls. Every call rides the reliable send queue, so a
+create, list, delete, or save is never silently dropped.
 
 `GameSaveManager` (`WaywardBeyond.Client/Saves/GameSaveManager.cs`) owns the client save
 cadence. Its autosave timer saves the character only. Pause, F5, and close call
 `Save()`, which saves the character and, on the local host only, sends a
-`SaveLevelRequest`. Remote clients never request a level save; the server
+`SaveLevelAsync`. Remote clients never request a level save; the server
 autosaves the level.
 
 ## Serialization and data versioning
@@ -160,7 +157,8 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
 - `WaywardBeyond.Server/Saves/LevelSaveService.cs`
 - `WaywardBeyond.Server/ServerLevelManager.cs`
-- `WaywardBeyond.Server/PendingLevelDeletes.cs`
+- `WaywardBeyond.Server/ServerHostCommands.cs`
+- `WaywardBeyond.Server/ServerWorldHost.cs`
 - `WaywardBeyond.Data/CodeGen/{saves,voxels,levels}.nsd`
 
 ## Tests that pin this

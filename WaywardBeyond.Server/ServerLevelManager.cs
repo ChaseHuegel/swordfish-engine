@@ -1,122 +1,55 @@
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Swordfish.Library.Util;
+using NsdRpc;
+using WaywardBeyond.Data;
+using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Permissions;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
-using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Transport;
-using WaywardBeyond.Permissions;
 
 namespace WaywardBeyond.Server;
 
 /// <summary>
-/// The server-level level-management facade for menu-time operations: create, list, and delete saved
-/// levels. These requests arrive on connections that have not joined a level yet (they live in the
-/// pending set), so no per-level system can serve them. Runs once per server tick before level routing.
-/// Each reply goes directly to the requesting connection in request order; responses are matched FIFO
-/// on the client. Delete requests are handed to <see cref="PendingLevelDeletes"/> because they must run
-/// on the server thread, which owns the loaded levels.
+/// The menu-time level-management facade. The server thread calls it for calls from peers that are
+/// not in a world yet, so <see cref="ILevelCatalog"/> access stays single-threaded. Responses are
+/// correlated by the RPC call, never by request order.
 /// </summary>
 public sealed class ServerLevelManager(
-    PendingJoins pendingJoins,
-    PendingLevelDeletes pendingDeletes,
     ILevelCatalog levelCatalog,
     PermissionPolicy policy,
-    ConnectionClaims claims,
     ILoggerFactory loggerFactory
 )
 {
-    private readonly PendingJoins _pendingJoins = pendingJoins;
-    private readonly PendingLevelDeletes _pendingDeletes = pendingDeletes;
     private readonly ILevelCatalog _levelCatalog = levelCatalog;
     private readonly PermissionPolicy _policy = policy;
-    private readonly ConnectionClaims _claims = claims;
     private readonly ILogger _logger = loggerFactory.CreateLogger<ServerLevelManager>();
-    private readonly ConcurrentDictionary<IServerConnection, Task> _replyChains = new();
 
-    /// <summary>Drains menu-time level-management requests from pending connections. Runs on the server thread.</summary>
-    public void Tick()
+    public RpcResult<ListLevelsResponse> List(ServerPeer peer)
     {
-        foreach (IServerConnection connection in _pendingJoins.Snapshot())
+        try
         {
-            //  Bind the connection's claim before menu requests resolve permissions this tick.
-            Result<ClientHello> hello;
-            while ((hello = connection.Receive<ClientHello>()).Success)
+            Level[] levels = _levelCatalog.ListLevels();
+            return RpcResult<ListLevelsResponse>.Success(new ListLevelsResponse
             {
-                _claims.Bind(connection, new UserClaim(hello.Value.UserId ?? string.Empty));
-            }
-
-            Result<NewLevelRequest> newLevel;
-            while ((newLevel = connection.Receive<NewLevelRequest>()).Success)
-            {
-                NewLevelRequest request = newLevel.Value;
-                QueueReply(connection, () => HandleNewLevel(connection, request));
-            }
-
-            Result<ListLevelsRequest> listLevels;
-            while ((listLevels = connection.Receive<ListLevelsRequest>()).Success)
-            {
-                QueueReply(connection, () => HandleListLevels(connection));
-            }
-
-            Result<DeleteLevelRequest> deleteLevel;
-            while ((deleteLevel = connection.Receive<DeleteLevelRequest>()).Success)
-            {
-                DeleteLevelRequest request = deleteLevel.Value;
-                _pendingDeletes.Enqueue(connection, request.LevelGuid ?? string.Empty);
-            }
+                Levels = levels,
+                CanCreateSave = CanCreate(peer),
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to list levels for client {clientId}.", peer.GameId);
+            return RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.LevelLoadFailed, "the level list did not load");
         }
     }
 
-    /// <summary>
-    /// Runs menu work off the server thread, serialized per connection, so replies to one connection go
-    /// out in request order (matched FIFO by the client). The chain entry drops itself when it
-    /// completes, unless newer work already replaced it.
-    /// </summary>
-    private void QueueReply(IServerConnection connection, Action work)
+    public RpcResult<NewLevelResponse> Create(ServerPeer peer, in NewLevelRequest request)
     {
-        Task next = _replyChains.AddOrUpdate(
-            connection,
-            _ => Task.Run(work),
-            (_, chain) => chain.ContinueWith(_ => work())
-        );
-
-        _ = next.ContinueWith(_ =>
+        if (!CanCreate(peer))
         {
-            _replyChains.TryRemove(new KeyValuePair<IServerConnection, Task>(connection, next));
-        });
-    }
-
-    private void SendOrLog<T>(IServerConnection connection, in T message)
-    {
-        Result send = connection.Send(message);
-        if (!send.Success)
-        {
-            _logger.LogWarning("Failed to send level-management response: {message}.", send.Message);
-        }
-    }
-
-    private bool CanCreate(IServerConnection connection)
-    {
-        if (connection.IsLocal)
-        {
-            return true;
-        }
-
-        return _claims.TryGet(connection, out UserClaim claim)
-            && _policy.HasPermission(claim.UserId, GamePermissions.LevelCreate);
-    }
-
-    private void HandleNewLevel(IServerConnection connection, in NewLevelRequest request)
-    {
-        if (!CanCreate(connection))
-        {
-            _logger.LogInformation("Denied level creation for a connection without {permission}.", GamePermissions.LevelCreate);
-            SendOrLog(connection, new NewLevelResponse { LevelGuid = string.Empty, Success = false });
-            return;
+            _logger.LogInformation(
+                "Denied level creation for client {clientId} without {permission}.",
+                peer.GameId, GamePermissions.LevelCreate);
+            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.PermissionDenied, "level creation is not permitted");
         }
 
         try
@@ -127,26 +60,27 @@ public sealed class ServerLevelManager(
                 (GameMode)request.GameMode,
                 out string levelGuid
             );
-            SendOrLog(connection, new NewLevelResponse { LevelGuid = levelGuid, Success = success });
+
+            return RpcResult<NewLevelResponse>.Success(new NewLevelResponse
+            {
+                LevelGuid = levelGuid,
+                Success = success,
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to create level \"{name}\" on behalf of a client.", request.Name);
-            SendOrLog(connection, new NewLevelResponse { LevelGuid = string.Empty, Success = false });
+            _logger.LogError(ex, "Failed to create level \"{name}\" for client {clientId}.", request.Name, peer.GameId);
+            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.LevelLoadFailed, "the level was not created");
         }
     }
 
-    private void HandleListLevels(IServerConnection connection)
+    public bool CanCreate(ServerPeer peer)
     {
-        try
+        if (peer.IsLocal)
         {
-            Level[] levels = _levelCatalog.ListLevels();
-            SendOrLog(connection, new ListLevelsResponse { Levels = levels, CanCreateSave = CanCreate(connection) });
+            return true;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to list levels for a client.");
-            SendOrLog(connection, new ListLevelsResponse { Levels = [] });
-        }
+
+        return _policy.HasPermission(peer.Claim.UserId, GamePermissions.LevelCreate);
     }
 }

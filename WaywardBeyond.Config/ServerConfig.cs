@@ -16,7 +16,4 @@ public sealed record ServerConfig
     
     /// <summary>Sim-tick lag past which a client's reported tick logs a warn.</summary>
     public DataBinding<int> TickLagWarnThreshold { get; private set; } = new(10);
-    
-    /// <summary>Frames drained per client per hub poll; bounds a chatty client's share of the server tick.</summary>
-    public DataBinding<int> MaxReceiveWindow { get; private set; } = new(10);
 }

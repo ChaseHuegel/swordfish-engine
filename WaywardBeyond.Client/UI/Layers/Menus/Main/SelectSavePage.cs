@@ -30,7 +30,7 @@ internal sealed class SelectSavePage(
     in ICharacterStorage characterStorage,
     in ModalMenu modalMenu,
     in ConfirmModal confirmModal,
-    in TransportManager transportManager,
+    in ClientRpcHost rpcHost,
     in NetworkingConfig networkingConfig,
     in ProfileSettings profileSettings
 ) : IMenuPage<MenuPage>
@@ -44,7 +44,7 @@ internal sealed class SelectSavePage(
     private readonly ICharacterStorage _characterStorage = characterStorage;
     private readonly ModalMenu _modalMenu = modalMenu;
     private readonly ConfirmModal _confirmModal = confirmModal;
-    private readonly TransportManager _transportManager = transportManager;
+    private readonly ClientRpcHost _rpcHost = rpcHost;
     private readonly NetworkingConfig _networkingConfig = networkingConfig;
     private readonly ProfileSettings _profileSettings = profileSettings;
 
@@ -318,14 +318,14 @@ internal sealed class SelectSavePage(
     private void EnsureRemoteConnection()
     {
         if (_profileSettings.LastServerMode.Get() != LastServerMode.Remote
-            || _transportManager.Active != null
+            || _rpcHost.IsRemote
             || _remoteConnectTried)
         {
             return;
         }
 
         _remoteConnectTried = true;
-        Result result = _transportManager.ConnectRemote(_networkingConfig.RemoteHost.Get(), _networkingConfig.RemotePort.Get());
+        Result result = _rpcHost.ConnectRemote(_networkingConfig.RemoteHost.Get(), _networkingConfig.RemotePort.Get());
         if (result.Success)
         {
             _ = _gameSaveService.RefreshLevelsAsync();

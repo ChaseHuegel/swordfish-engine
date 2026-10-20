@@ -34,7 +34,7 @@ the server consumes it between the replication ApplyStage and interaction
 processing, and ops are sequence-deduplicated (a retransmitted sequence
 overwrites its slot). Outbound, the client mirrors it with
 `PendingInventoryComponent.Outbound`, drained by `ClientReplicationSystem` and
-cleared only after a successful send (see
+cleared only after the reliable RPC path accepts the containing snapshot (see
 [replication](networking-replication.md)).
 
 ## The op: `SlotMoveOp`

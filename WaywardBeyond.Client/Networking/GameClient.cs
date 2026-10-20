@@ -1,16 +1,11 @@
-using WaywardBeyond.Networking.Transport;
-
 namespace WaywardBeyond.Client.Networking;
 
-public sealed class GameClient
+/// <summary>The client's view of the active session. Reports the restored loopback after a remote drop.</summary>
+internal sealed class GameClient(ClientRpcHost host)
 {
-    public IClientConnection Transport { get; }
+    internal ClientRpcHost Host { get; } = host;
 
-    public bool IsConnected => Transport.IsConnected;
-    public bool IsLocal => Transport.IsLocal;
+    public bool IsConnected => Host.IsConnected;
 
-    public GameClient(in IClientConnection transport)
-    {
-        Transport = transport;
-    }
+    public bool IsLocal => Host.IsLocal;
 }

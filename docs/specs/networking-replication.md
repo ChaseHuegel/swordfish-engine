@@ -6,91 +6,100 @@ One subject: dirty-driven replication between server and client.
 
 `NetworkReplicationSystem` (`WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`):
 
-- **Apply stage** drains `WorldSnapshot`s across **all** connected clients,
-  binding every inbound `ClientOwned` snapshot to its sender's session entity:
-  a wire uuid naming any other entity is ignored, never allocated, staged, or
-  applied (`NetworkReplicationSystem.ApplyStage`). Accepted `InputComponent`s
-  advance `LastAckedInput`/`LastAckedSnapshot`; input and interaction events
-  are staged, not applied in place.
+- **Apply stage** drains each bound peer's `ServerPeer.Snapshots` queue. Every
+  inbound `ClientOwned` snapshot is bound to its sender's session entity: a wire
+  uuid naming any other entity is ignored, never allocated, staged, or applied.
+  Accepted `InputComponent`s advance `LastAckedInput`/`LastAckedSnapshot`.
+  Input, interaction events, and inventory ops are staged, not applied in place.
+  A malformed snapshot from one peer is logged and skipped.
 - **Publish stage** queries entities carrying `NetworkComponent`, serializes
-  every dirty `ServerOwned` component into `ComponentSnapshot`s, then composes
-  a **per-client** `WorldSnapshot` for every connected client. The component
-  set and `RemovedEntities` are the same for all clients, but
-  `LastProcessedInput` is that client's own entity's `LastAckedInput`.
-- **Despawns** are recorded via `RequestDespawn` (must be called before the
-  entity is freed, since `DataStore.Free` clears the uuid) and broadcast in
-  `RemovedEntities`.
-- **Publish cadence.** The publish stage emits once per
-  `NetworkingConfig.Protocol.SnapshotHz` (default 30 Hz), measured in wall-clock time
-  from the tick deltas, not every tick. `TickNumber`/`LastProcessedInput`
-  semantics are unchanged; despawns and the full-sync publish ride the same
-  cadence, at most one interval of delay. The transport additionally coalesces
-  pending frames into one socket write per `SendIntervalMs` (see
-  [transports](networking-transports.md)).
-- **Join-stream gating.** Once a client's world stream is enqueued
-  (`ServerJoinSystem.BeginStream`), the publish stage sends it no per-tick
-  deltas until the stream complete has been enqueued (`EndStream`), so a
-  Loading-time client cannot accumulate unapplied snapshots. The one-shot
-  full-sync publish is exempt and stays the client's first snapshot.
-  Client-side, `ClientReconcileSystem` additionally coalesces any queued
-  burst on entering `Playing`: the newest frame applies fully, and every
-  superseded frame still has its non-motion components applied first, so
-  one-shot state seeded early in the join burst (the starter inventory)
-  survives a motion-superseding burst.
+  every dirty `ServerOwned` component into `ComponentSnapshot`s, and composes a
+  **per-client** `WorldSnapshot`. The component set and removals are shared, but
+  `LastProcessedInput` is that client's own `LastAckedInput`.
+- **Despawns** are recorded via `RequestDespawn` before the entity is freed
+  (`DataStore.Free` clears the uuid) and broadcast in `RemovedEntities`.
+- **Reliable send.** Each snapshot is a typed `WorldSnapshot` notification. A
+  payload over `GameRpc.FragmentBudget` is split into ordered `SnapshotBatch`
+  notifications. No snapshot is dropped. A send that the reliable path rejects
+  is a peer failure: the server logs it and closes the peer with
+  `RpcPeer.Close()`. The peer reconnects to a fresh join and full state.
+- **Publish cadence.** The stage emits once per
+  `NetworkingConfig.Protocol.SnapshotHz`, measured from tick deltas.
+  `TickNumber`/`LastProcessedInput` semantics are unchanged. Send batching
+  coalesces frames into one socket write per
+  `Transport.SendBatchIntervalMs`.
+- **Join-stream gating.** `BeginStream` opens when the join seats the session.
+  The publish stage sends no per-tick deltas until `EndStream` after the level
+  stream completes. The one-shot full-sync publish is exempt and stays the
+  client's first snapshot.
 - **World/voxel bodies.** Server-authoritative structures carrying a
-  `NetworkComponent` flow through this same path each tick. Their
+  `NetworkComponent` flow through the same path. Their
   `TransformComponent`/`PhysicsComponent` are dirtied by the physics sync
   cycle, so the client snaps drift in its local prediction colliders.
 
-See [voxel-edits](networking-voxel-edits.md) for authoritative voxel `content`
-edits, which flow as `VoxelEditMessage` broadcasts rather than snapshots.
+See [voxel-edits](networking-voxel-edits.md) for authoritative voxel edits,
+which flow as `VoxelEdit` notifications rather than snapshots.
+
+## Client reconcile
+
+`ClientReconcileSystem` (`WaywardBeyond.Client/Systems/ClientReconcileSystem.cs`):
+
+- Drains `ClientInbound.Snapshots`, one ordered stream of full snapshots and
+  fragment batches.
+- Reassembles a batch with `FragmentAssembler`. A batch applies only when
+  complete. A newer batch id or an out-of-order part drops the stale incomplete
+  group.
+- Applies complete snapshots in `TickNumber` order, so a full frame and a later
+  batch never invert.
+- On entering `Playing`, coalesces the queued burst: the newest frame applies
+  fully, and every superseded frame still has its non-motion components applied
+  first, so one-shot state seeded early in the join burst (the starter
+  inventory) survives a motion-superseding burst.
+- Applies `ServerOwned` components, frees despawned entities, trims
+  `PendingInputComponent` by `LastProcessedInput`, and aligns the shared step
+  with the snapshot tick.
 
 ## Client → server
 
-`ClientReplicationSystem` (`Client.Core/Systems/ClientReplicationSystem.cs`)
-iterates **dirty `ClientOwned`** components — `InputComponent` and
-`InteractionEvent` — and sends them up in a `WorldSnapshot`. Discrete
-interaction taps are latched into a coalesced edge queue (mirroring the
-`PendingInputComponent` ring buffer) so a tap falling in a send gap is still
-delivered on the next packet, and inventory moves ride the same drain as
-`InventoryEvent` ops (see [inventory](networking-inventory.md)). Outbound edges
-and ops are cleared only after the containing snapshot is actually sent: a
-failed send leaves them staged and the next successful tick re-emits them, so
-edge and op delivery trades latency, never drops. Client-owned components that
-are not packet-level (e.g. the active inventory slot) flow as dirty deltas,
-where clearing is best-effort per tick.
+`ClientReplicationSystem` (`WaywardBeyond.Client/Systems/ClientReplicationSystem.cs`)
+iterates dirty `ClientOwned` components and sends one `WorldSnapshot`
+notification per cadence.
 
-Upload is paced to `NetworkingConfig.Protocol.SnapshotHz` (default 30 Hz), **not** the
-ECS tick rate. The system accumulates tick deltas and only collects and sends
-once per interval. Dirty components persist across skipped ticks, and staged
-edges and ops stay buffered, so the cadence trades latency, never delivery.
+- Discrete interaction taps are latched into the outbound edge queue.
+  Inventory moves ride the same drain as `InventoryEvent` ops (see
+  [inventory](networking-inventory.md)).
+- Staged edges and ops clear only after the sending peer accepts the snapshot.
+  A rejected send is a peer failure: the system requests the normal disconnect
+  teardown and leaves the buffers staged.
+- Upload is paced to `SnapshotHz`, not the ECS tick rate. Dirty components
+  persist across skipped ticks.
 
 ## Dirty tracking
 
 Store-mediated writes (`Alloc<T...>`, `AddOrUpdate`, `Entity.Add`) auto-mark a
-component dirty. In-place mutation through a query `ref` is NOT auto-detected —
-mutating systems must use `store.QueryRef<T...>(...)` and go through the
-`Ref<T>` accessor's `Write` property, which marks dirty and returns a write
-`ref`. Replication iterates entities by component types, and each system caches
-its direction's `NetworkRegistry` component list once per instance so the hot
-path allocates nothing per entity; the client collection is player-scoped (only
-the local player carries client-owned components). The full-state (join-time)
-path still reads the store's boxed component span per entity — bounded by
-joins, never the tick loop.
+component dirty. In-place mutation through a query `ref` is not auto-detected:
+mutating systems use `store.QueryRef<T...>(...)` and the `Ref<T>.Write`
+accessor. Replication caches its direction's `NetworkRegistry` component list
+once per instance, so the hot path allocates nothing per entity. The client
+collection is player-scoped.
 
 ## Tick tagging
 
-`TickNumber` is the canonical sim tick (physics-step ordinal), not the server's
-per-world replication tick. Input is staged per sim tick and consumed exactly
-once per step. See [prediction](networking-prediction.md).
+`TickNumber` is the canonical sim tick (physics-step ordinal), not a replication
+tick. Input is staged per sim tick and consumed exactly once per step. See
+[prediction](networking-prediction.md).
 
 ## Source of truth
 
 - `WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`
-- `WaywardBeyond.Client/Systems/ClientReplicationSystem.cs`
+- `WaywardBeyond.Client/Systems/{ClientReplicationSystem,ClientReconcileSystem}.cs`
+- `WaywardBeyond.Client/Networking/ClientInbound.cs`
+- `WaywardBeyond.Networking/Rpc/{PayloadFragmenter,FragmentAssembler}.cs`
 - `WaywardBeyond.Networking/Components/NetworkComponent.cs`
 
 ## Tests that pin this
 
-- `Swordfish.Tests` interaction-staging tests (consume-per-sim-tick,
-  newest-per-tick collapse, sequence dedupe).
+- `Swordfish.Tests/RpcProtocolTests.cs` — fragment split, join, stale groups.
+- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
+  rejoin over loopback and TCP.
+- `Swordfish.Tests` interaction-staging tests.

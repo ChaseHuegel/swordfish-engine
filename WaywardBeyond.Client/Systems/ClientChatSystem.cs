@@ -1,40 +1,40 @@
 using Swordfish.ECS;
-using Swordfish.Library.Util;
+using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client.Systems;
 
 /// <summary>
-/// Pumps chat between the transport and <see cref="ChatService"/> on the ECS thread. Inbound
+/// Pumps chat between the RPC inbound queue and <see cref="ChatService"/> on the ECS thread. Inbound
 /// <see cref="ChatMessage"/>s drain into the history buffer; outbound messages queued by the UI are
-/// flushed to the server. Keeping transport access on the ECS thread matches the other client systems
-/// and avoids cross-thread sends.
+/// sent through the cached server proxy.
 /// </summary>
-public sealed class ClientChatSystem : IEntitySystem
+internal sealed class ClientChatSystem : IEntitySystem
 {
-    private readonly IClientConnection _transport;
+    private readonly ClientRpcHost _host;
+    private readonly ClientInbound _inbound;
     private readonly ChatService _chat;
 
     public ClientChatSystem(
-        in IClientConnection transport,
+        in ClientRpcHost host,
+        in ClientInbound inbound,
         ChatService chat
     ) {
-        _transport = transport;
+        _host = host;
+        _inbound = inbound;
         _chat = chat;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        Result<ChatMessage> receiveResult;
-        while ((receiveResult = _transport.Receive<ChatMessage>()).Success)
+        while (_inbound.Chats.TryDequeue(out ChatMessage message))
         {
-            _chat.Add(receiveResult.Value);
+            _chat.Add(message);
         }
 
         while (_chat.TryDequeueSend(out string value))
         {
-            _ = _transport.Send(new ChatMessage { Value = value });
+            _host.Api?.Chat(new ChatMessage { Value = value });
         }
     }
 }

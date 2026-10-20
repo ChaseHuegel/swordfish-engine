@@ -1,77 +1,74 @@
 using System;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Client;
 
 /// <summary>
-/// Session heartbeats, client side. Emits <see cref="ClientHeartbeatMessage"/> at
-/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence (clamped below the connection timeout) from
-/// connection establishment - not gated on join - so the heartbeat doubles as the transport keepalive.
-/// Consumes <see cref="ServerHeartbeatMessage"/>s into <see cref="ServerStats"/> for the F3 screen.
+/// Session heartbeats, client side. Sends <see cref="ClientHeartbeatMessage"/> at
+/// <c>NetworkingConfig.Protocol.HeartbeatIntervalMs</c> cadence, clamped below the idle timeout, so the
+/// heartbeat doubles as the transport keepalive. Drains <see cref="ServerHeartbeatMessage"/>s into
+/// <see cref="ServerStats"/> for the F3 screen.
 /// </summary>
 internal sealed class ClientHeartbeatSystem : IEntitySystem
 {
-    private readonly TransportManager _transport;
+    private readonly ClientRpcHost _host;
+    private readonly ClientInbound _inbound;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly ClientPlayerMotionProcessor _motionProcessor;
-    private readonly NetworkingConfig _config;
+    private readonly int _heartbeatIntervalMs;
     private readonly ServerStats _stats;
     private readonly ILogger<ClientHeartbeatSystem> _logger;
 
     private int _nextHeartbeatTicks;
 
     public ClientHeartbeatSystem(
-        in TransportManager transport,
+        in ClientRpcHost host,
+        in ClientInbound inbound,
         in SnapshotAckTracker snapshotAck,
         in ClientPlayerMotionProcessor motionProcessor,
         in NetworkingConfig config,
         in ServerStats stats,
         in ILogger<ClientHeartbeatSystem> logger
     ) {
-        _transport = transport;
+        _host = host;
+        _inbound = inbound;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
-        _config = config;
         _stats = stats;
         _logger = logger;
+        _heartbeatIntervalMs = ServerHeartbeatInterval(config);
         _nextHeartbeatTicks = Environment.TickCount;
     }
 
     public void Tick(float delta, DataStore store)
     {
-        IClientConnection? active = _transport.Active;
-        if (active == null)
+        while (_inbound.Heartbeats.TryDequeue(out ServerHeartbeatMessage heartbeat))
         {
-            return;
+            _stats.Record(heartbeat);
         }
 
-        while (active.Receive<ServerHeartbeatMessage>() is { Success: true } heartbeat)
-        {
-            _stats.Record(heartbeat.Value);
-        }
-
-        int intervalMs = Math.Max(250, Math.Min(_config.Protocol.HeartbeatIntervalMs.Get(), Math.Max(1, _config.Transport.TimeoutMs.Get() / 2)));
-        if (Environment.TickCount - _nextHeartbeatTicks < intervalMs)
+        if (Environment.TickCount - _nextHeartbeatTicks < _heartbeatIntervalMs)
         {
             return;
         }
 
         _nextHeartbeatTicks = Environment.TickCount;
-        Result send = active.Send(new ClientHeartbeatMessage
+        _host.Api?.ClientHeartbeat(new ClientHeartbeatMessage
         {
             TickNumber = _motionProcessor.Step?.CurrentSimTick ?? 0,
             LastAppliedSnapshotTick = _snapshotAck.LastAppliedSnapshotTick,
         });
-        if (!send.Success)
-        {
-            _logger.LogDebug("Failed to send session heartbeat: {message}.", send.Message);
-        }
+    }
+
+    private static int ServerHeartbeatInterval(NetworkingConfig config)
+    {
+        int requested = config.Protocol.HeartbeatIntervalMs.Get();
+        int idle = config.Transport.IdleTimeoutMs.Get();
+        return idle > 0 ? Math.Max(250, Math.Min(requested, idle / 2)) : Math.Max(250, requested);
     }
 }

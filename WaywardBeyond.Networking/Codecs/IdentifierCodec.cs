@@ -25,7 +25,7 @@ public sealed class IdentifierCodec : IPayloadCodec
             return Result<byte[]>.FromFailure($"Entity {entity} has no IdentifierComponent.");
         }
 
-        var message = new IdentifierMessage(identifier.Name, identifier.Tag);
+        var message = new IdentifierMessage(identifier.Name ?? string.Empty, identifier.Tag ?? string.Empty);
         return Result<byte[]>.FromSuccess(message.Serialize());
     }
 

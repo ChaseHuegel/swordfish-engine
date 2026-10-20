@@ -65,8 +65,9 @@ replication Apply and Publish stages):
 
 ## Downstream replication
 
-Every applied edit broadcasts to **all** clients as a `VoxelEditMessage` delta
-(ordered/lossless by the transport):
+Every applied edit broadcasts to **all** world peers as a `VoxelEdit`
+notification (method 350) through each peer's cached client proxy. The RPC
+transport is ordered and lossless:
 
 ```nsd
 message VoxelEditMessage { ulong EntityUuid; int X, Y, Z; WaywardBeyond.Data.Voxel Voxel; uint Sequence; string? BrickId; }
@@ -87,8 +88,9 @@ before the write (a break's result carries no material).
 even when its registry ids differ from the server's. See
 [brick-identity](brick-identity.md).
 
-`ClientVoxelReconcileSystem` (`Client.Core/Systems/`, gated on `Playing`)
-correlates each echo against the local `PendingInteractionComponent.Queue` by
+`ClientVoxelReconcileSystem` (`WaywardBeyond.Client/Systems/`, gated on
+`Playing`) drains `ClientInbound.VoxelEdits` and correlates each echo against
+the local `PendingInteractionComponent.Queue` by
 `(entity, coordinate, sequence)`:
 
 - voxel-matching echo → **confirm** (no-op);

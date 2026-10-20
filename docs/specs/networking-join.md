@@ -1,6 +1,7 @@
 # Networking — Join Handshake and World Streaming
 
-One subject: how a client joins a server, and how the server streams the world.
+One subject: how a client joins a server and how the server streams the world.
+The service catalogue lives in [networking-rpc](networking-rpc.md).
 
 ## Model
 
@@ -10,153 +11,141 @@ save levels. Level data is streamed to the client during join.
 
 ## Join flow
 
-0. **Connection hello** — when a connection opens, `TransportManager`
-   (`WaywardBeyond.Client/Networking/TransportManager.cs`) sends
-   `ClientHello { UserId }` with the stable user id from `profile.toml`. The
-   server binds it to the connection (`ConnectionClaims`), so menu-time requests
-   such as `NewLevelRequest` and `ListLevelsRequest` resolve the user before a
-   join. See [permissions](permissions.md).
+0. **Connection hello.** `ClientRpcHost` connects the loopback at startup, or a
+   remote TCP endpoint through `ConnectRemote`, then sends
+   `ClientHello { UserId }` from `profile.toml`. `ServerHandlers` stores the
+   claim on `ServerPeer`. Menu calls resolve permissions from that claim.
+   See [permissions](permissions.md).
 
-1. **`ClientJoinSystem`** (`Client.Core/Systems/`) submits a
+1. **`JoinAsync`.** `ClientJoinSystem` calls
    `JoinRequest { LevelGuid, CharacterUuid, CharacterView, CharacterState }`.
    - `CharacterView` is the minimal identity relay (`CharacterUuid`, `Name`,
      `Body`) used for remote rendering.
-   - The permission claim is not in the join message; the server binds the
-     connection's `ClientHello` claim at join. See
-     [permissions](permissions.md).
-- `CharacterState` is a separate optional field carrying the client's
-      authoritative **initial** interaction context (inventory, equipment/active
-      slot, game mode) from its local save. It is **non-nullable**; an older
-      client omitting it receives the struct default (empty/creative), which is
-      the desired backward-compat behavior.
-   - `CharacterState.Statistics` carries the client's saved skill XP; the server
-      keeps only statistics that name a known skill (see
-      [skills](skills.md)).
-   - It drives `MainMenu → Loading → Playing` and is queued from the menu so
-      view building runs on the client ECS thread.
+   - `CharacterState` carries the client's authoritative **initial** interaction
+     context (inventory, active slot, game mode) and its saved skill statistics.
+     It is non-nullable. An older client that omits it receives the struct
+     default, which is the desired compatibility behavior.
+   - `ServerHandlers` enqueues the call. `ServerHostCommands` runs on the server
+     thread, creates or finds the world for `LevelGuid`, binds the peer, and
+     hands the join to the world's `ServerJoinSystem`.
 
-2. **World routing** — `ServerWorldHost` (`WaywardBeyond.Server/ServerWorldHost.cs`)
-   consumes the client's `JoinRequest` from the pending set, creates (or finds)
-   the world for `LevelGuid` with a fresh per-world graph, binds the connection
-   to that world's hub, and queues the join into the world. `ServerJoinSystem`
-   (`WaywardBeyond.Server/Systems/`) then — via the world's `LevelSaveService`
-   (`WaywardBeyond.Server/Saves/`) — loads the authoritative voxel world for `LevelGuid`
-   from its save database into that world's store, resolves the spawn
-   transform (the persisted per-character location, else
-   `Level.Spawn`; a save hiccup falls back to the level spawn), allocates the
-   server mirror **with the character's uuid** (so the character id and the
-   mirror's entity uuid are one value), seeds the server's interaction context
-   from `CharacterState`,
-   binds it to a fresh `Session`, and binds the connection's `ClientHello`
-   claim to the session's `IUserPermissionService` (the local host connection
-   gets the all-granting set), and replies `JoinAccept { Level, SpawnTransform,
-   PlayerEntity }`. Worlds are isolated per level; see
-   [networking-worlds](networking-worlds.md).
+2. **Seat the player.** `ServerJoinSystem` loads the authoritative voxel world
+   for `LevelGuid` through the world's `LevelSaveService`, resolves the spawn
+   (persisted per-character location, else `Level.Spawn`; a save hiccup falls
+   back to the level spawn), allocates the server mirror with the character's
+   uuid, seeds the interaction context and skill state from `CharacterState`,
+   binds a fresh `Session`, and binds the peer's claim to the session's
+   permission service. The local peer gets the all-granting set.
+   `JoinAsync` returns `JoinAccept { Level, SpawnTransform, PlayerEntity }`
+   only after the session and mirror exist.
 
-3. It then streams the saved level as one `LevelEntityAdd { VoxelEntityData }`
-   per structure (bounded per-entity), followed by a `LevelStreamComplete`. Each
-   entity carries a brick palette so the client can resolve the server's
-   registry ids locally (`ClientJoinSystem`, see
-   [brick-identity](brick-identity.md)). The
-   client builds a view entity for each arrival (mesh + a local prediction
-   collider) on the ECS thread, and **only** transitions to `Playing` on
-   `LevelStreamComplete`.
+3. **`StreamLevelAsync`.** `ClientJoinSystem` starts the stream call with
+   `ClientInbound` as the `IChunkSink<LevelStreamChunk>`. The server thread
+   encodes each level entity into a serialized `VoxelEntityData` payload, splits
+   it into `LevelStreamChunk` fragments, and sends them under the
+   `LevelStreamBytesPerTick` budget. It checks `RpcPeer.Stats.QueuedBytes` and
+   `RpcContext.TryStream`, and aborts on a rejected send. The final result is
+   `RpcResult<LevelStreamComplete>`.
 
-## Save switch and rejoin
+4. **Build the view.** The client ECS tick drains `ClientInbound.LevelChunks`,
+   reassembles each entity with `FragmentAssembler`, and builds a view entity
+   (mesh plus a local prediction collider). It enters `Playing` only after the
+   stream response lands and every chunk applied.
 
-A player who returns to the menu sends `LeaveGameRequest`. The server ends the
-session and frees the player mirror. The host then returns the connection to
-the pending set (`ServerWorldHost.ReturnSessionlessConnectionsToPending`, `ServerWorldHost.cs:89`), so
-the player's next `JoinRequest` is world-routed (see
-[networking-worlds](networking-worlds.md)).
+## Worlds and routing
 
-A world serves exactly one level. A join that names another level is refused
-with an error log; the host creates a separate world for that level instead.
-This keeps the first world and its players intact when a second player switches
-saves.
+`ServerWorldHost` owns the world table. A join names a level. The host creates
+the world and loads it before the join is processed, so a join can never unload
+under itself. A world serves exactly one level. A join that names another level
+is refused with `JoinRefused`; the host creates a separate world instead. See
+[networking-worlds](networking-worlds.md).
+
+A player who returns to the menu sends `LeaveGame`. The world tick ends the
+session and frees the player mirror. The host clears the peer's world binding,
+so the next `JoinAsync` routes to the world it names. A peer can switch saves
+without reconnecting.
 
 ## `Playing` as the gate
 
 `Playing` keeps `ClientReconcileSystem` inert until the world is fully streamed.
-One-time transport queues do not preserve cross-type order (no envelope), so the
-client defers `WorldSnapshot` application until `LevelStreamComplete` arrives.
-Subsequent per-tick replication keeps using the `WorldSnapshot` path; streaming
-is a join-time event, not ongoing AOI. The full-sync request rides the same
-join tick: `ServerJoinSystem` requests the one-shot full-state snapshot in the
-same tick that it streams the world, so the full-state publish lands alongside
-the first deltas, all after the stream completes.
+The server opens a snapshot gate at join (`BeginStream`) and lifts it after the
+stream response (`EndStream`). The one-shot full-sync snapshot is exempt and
+stays the client's first snapshot.
 
-A remote disconnect during join or loading is handled the same as one during
-play: `ClientDisconnectSystem` drops the dead transport and returns the client
-to the menu with a connection-lost toast. The character save is gated on
-`Playing`, so a mid-join disconnect simply abandons the stream. The teardown
-frees every entity tagged `"game"` - the local player, the remote player
-mirrors, and the world geometry - so no gameplay entity survives into the menu.
-It also faults every in-flight level-management operation (`LevelsClient`), so
-the save screen and world list never await a vanished server, and it runs for
-any menu state - a server death on the save screen returns the client to the
-main menu. A join attempt with no active connection fails fast through the same
-teardown instead of entering Loading.
+The client coalesces any queued snapshot burst on entering `Playing`: the newest
+frame applies fully, and each superseded frame still applies its non-motion
+components first, so one-shot server state cannot be lost.
+
+## Disconnect and reconnect
+
+A remote drop during join or loading runs the same teardown as a drop during
+play. `ClientDisconnectSystem` saves the character while still in `Playing`,
+requests cleanup, returns to the menu with a toast, and calls
+`ClientRpcHost.Disconnect`. The host restores a fresh loopback session, so the
+save list and a local join work without an application restart. See
+[transports](networking-transports.md#client-host).
+
+The teardown frees every entity tagged `"game"`: the local player, remote
+player mirrors, and world geometry. `RpcClient` faults every pending call on
+disconnect, so no menu request or join waits forever.
 
 ## Join-stream timeout
 
-A join whose `LevelStreamComplete` never arrives (undelivered marker, dying
-link, or a world too large to drain) must not stall `Loading` forever.
-`ClientJoinSystem` starts a clock when the `JoinRequest` is sent; if the stream
-does not complete within `NetworkingConfig.Protocol.JoinStreamTimeoutMs`, it aborts the
-join and asks `ClientDisconnectSystem` for the normal connection-lost teardown:
-menu, toast, transport down. The server bounds the other side of the stream:
-a client whose reliable send backlog stays over
-`ReliableQueueDisconnectThreshold` (2x the
-`ReliableQueueConcernThreshold` logging threshold by default) for
-`ReliableQueueDisconnectMs` is disconnected (see
-[transports](networking-transports.md)).
+`ClientJoinSystem` starts a `CancellationTokenSource` with
+`Protocol.JoinStreamTimeoutMs` when the join begins. The token covers both
+`JoinAsync` and `StreamLevelAsync`. A timeout or a failed result cancels the
+calls and runs the normal disconnect teardown.
+
+The server bounds the other side: the RPC call deadline resets on every stream
+chunk, and a peer that cannot drain its send backlog is closed with
+`BacklogLimit`. See [rpc](networking-rpc.md#backlog-and-idle-policy).
 
 ## Character ownership nuance
 
-- The client's local `profile.db` remains the client-owned **storage** (the
-  source of the join-time seed).
-- Interaction-relevant inventory counts and game mode are **server-owned after
-  join** and replicated downstream.
-- The **active slot** stays **client-owned** (authoritative on
-  `EquipmentComponent`) and replicates upstream for the server to validate against.
+- The client's local `profile.db` is the client-owned storage and the source of
+  the join-time seed.
+- Interaction-relevant inventory counts and game mode are server-owned after
+  join and replicate downstream.
+- The active slot stays client-owned (`EquipmentComponent`) and replicates
+  upstream for the server to validate.
 - Skill XP is seeded from the client's statistics at join into a transient
   server-side `SkillStateComponent`, then server-owned for the session. See
   [skills](skills.md).
 
 ## Save-listing menu
 
-The save-listing menu is served by the server: `NewLevelRequest`,
-`ListLevelsRequest`, `DeleteLevelRequest`, and `SaveLevelRequest` (flush
-authoritative level) map to `ILevelCatalog`/`LevelSaveService` operations,
-driven by a client `LevelsClient` whose responses the ECS thread completes.
-Menu-time operations (create/list/delete) are served by `ServerLevelManager`
-(`WaywardBeyond.Server/ServerLevelManager.cs`) against connections that have not joined
-a world yet; the in-world `SaveLevelRequest` is served by the world's
-`ServerSaveSystem`.
+The save-listing menu is served by the server. `ListLevels`, `CreateLevel`,
+`DeleteLevel`, and the in-world `SaveLevel` are RPC calls. `LevelsClient` is a
+thin async wrapper over `GameServerApiClient`; it has no FIFO queue or waiter
+table. `ServerLevelManager` serves menu calls on the server thread, so
+`ILevelCatalog` access stays single-threaded. `ServerSaveSystem` serves the
+in-world save call in the world tick. See [persistence](persistence.md) and
+[permissions](permissions.md).
 
 ### Continue and the multiplayer page
 
-- **Continue** branches on `ProfileSettings.LastServerMode` (`profile.toml`):
-  a `Remote` marker (written on every multiplayer connect) reconnects to the
-  persisted endpoint on the save page before the save list and join flow target
-  that server; a `Local` marker (written when a host-mode session loads) uses
-  the in-process server. The endpoint itself is the last-used
-  `NetworkingConfig.RemoteHost`/`RemotePort` (see
-  [config-schemas](config-schemas.md)).
-- **Saved servers** (the multiplayer page's saved list, capped at 32, deduped
-  by host:port) connect through the standard `ConnectRemote` + join flow and
-  update the persisted endpoint and `LastServerMode` like any other connect.
-- **Keyboard submit**: pressing Enter in the address or port field triggers the
-  same connect path as the connect button (including validation).
-
-The old `ClientPlayerSpawnSystem`/`ServerSpawnSystem` spawn path and client load
-stages were removed in favor of join.
+- **Continue** branches on `ProfileSettings.LastServerMode`. A `Remote` marker
+  reconnects to the persisted endpoint before the save list and join target that
+  server. A `Local` marker uses the restored loopback.
+- **Saved servers** are capped at 32 and deduped by host:port. They use the same
+  `ConnectRemote` and join path.
+- **Keyboard submit** in the address or port field uses the same connect path as
+  the button.
 
 ## Source of truth
 
+- `WaywardBeyond.Client/Networking/ClientRpcHost.cs`
 - `WaywardBeyond.Client/Systems/ClientJoinSystem.cs`
+- `WaywardBeyond.Client/Saves/{GameSaveManager,GameSaveService}.cs`
+- `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs`
-- `WaywardBeyond.Server/Saves/LevelSaveService.cs`
-- `WaywardBeyond.Server/Saves/SqliteLevelCatalog.cs`
-- `WaywardBeyond.Data/CodeGen/levels.nsd` (the join/stream messages)
+- `WaywardBeyond.Server/ServerPeers.cs`
+- `WaywardBeyond.Data/CodeGen/levels.nsd`
+- `WaywardBeyond.Networking/CodeGen/network.nsd`
+
+## Tests that pin this
+
+- `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
+  and rejoin over loopback and TCP.
+- `Swordfish.Tests/ClientRpcTests.cs` — loopback startup, remote switch, and
+  remote-drop restore.

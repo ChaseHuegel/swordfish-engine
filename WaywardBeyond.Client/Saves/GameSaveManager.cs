@@ -48,7 +48,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
     private readonly Lock _activeSaveLock = new();
     private GameSave? _activeSave;
 
-    private readonly TransportManager _transportManager;
+    private readonly ClientRpcHost _rpcHost;
     private readonly ProfileSettings _profileSettings;
 
     public GameSaveManager(
@@ -60,7 +60,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         in GameplayConfig gameplayConfig,
         in ClientJoinSystem joinSystem,
         in ClientCleanupSystem cleanupSystem,
-        in TransportManager transportManager,
+        in ClientRpcHost rpcHost,
         in DataStore dataStore,
         in ProfileSettings profileSettings
     ) {
@@ -71,7 +71,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         _gameplayConfig = gameplayConfig;
         _joinSystem = joinSystem;
         _cleanupSystem = cleanupSystem;
-        _transportManager = transportManager;
+        _rpcHost = rpcHost;
         _dataStore = dataStore;
         _profileSettings = profileSettings;
 
@@ -131,7 +131,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
             }
 
             //  A local (host-mode) session becomes the continue marker: Continue branches on this.
-            if (_transportManager.IsLocal)
+            if (_rpcHost.IsLocal)
             {
                 _profileSettings.LastServerMode.Set(LastServerMode.Local);
                 _profileSettings.Save();
@@ -150,7 +150,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
 
         //  Only the local host may ask the server to flush the level. Remote clients save their own
         //  character and let the server autosave the level.
-        if (_transportManager.IsLocal && _transportManager.IsConnected)
+        if (_rpcHost.IsLocal && _rpcHost.IsConnected)
         {
             _ = _gameSaveService.TriggerServerSave();
         }
@@ -198,6 +198,7 @@ internal sealed class GameSaveManager : IAutoActivate, IDisposable
         //  race the physics/render systems.
         WaywardBeyond.GameState.Set(GameState.MainMenu);
         _cleanupSystem.RequestCleanup();
+        _rpcHost.ClearInbound();
 
         //  Ask the server to end this player's session and free its mirror.
         _gameSaveService.LeaveGame();

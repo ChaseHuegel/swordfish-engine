@@ -1,22 +1,22 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using NsdRpc;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Sessions;
-using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Skills;
-using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -31,67 +31,58 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class ServerJoinSystem : IServerWorldSystem
 {
-    private readonly ServerConnectionHub _hub;
     private readonly SessionManager _sessions;
     private readonly LevelSaveService _saveService;
     private readonly NetworkReplicationSystem _replication;
     private readonly ServerInteractionSystem _interaction;
     private readonly ServerJoinQueue _joinQueue;
+    private readonly ServerPeers _peers;
     private readonly ISkillDatabase _skillDatabase;
-    private readonly IBrickRegistry _brickRegistry;
     private readonly IUserPermissionService _permissions;
-    private readonly ConnectionClaims _connectionClaims;
     private readonly GameplayConfig _gameplayConfig;
     private readonly ILogger<ServerJoinSystem> _logger;
 
     private uint _nextSessionId;
 
     public ServerJoinSystem(
-        ServerConnectionHub hub,
         SessionManager sessions,
         LevelSaveService saveService,
         NetworkReplicationSystem replication,
         ServerInteractionSystem interaction,
         ILogger<ServerJoinSystem> logger,
-        IBrickRegistry brickRegistry,
         GameplayConfig gameplayConfig,
         ISkillDatabase skillDatabase,
         ServerJoinQueue joinQueue,
-        IUserPermissionService permissions,
-        ConnectionClaims connectionClaims
+        ServerPeers peers,
+        IUserPermissionService permissions
     ) {
-        _hub = hub;
         _sessions = sessions;
         _saveService = saveService;
         _replication = replication;
         _interaction = interaction;
         _skillDatabase = skillDatabase;
-        _brickRegistry = brickRegistry;
         _logger = logger;
         _gameplayConfig = gameplayConfig;
         _joinQueue = joinQueue;
+        _peers = peers;
         _permissions = permissions;
-        _connectionClaims = connectionClaims;
     }
 
     public void Tick(float delta, DataStore store)
     {
         HandleDisconnects(store);
 
-        //  Joins the world host pre-routed: it already bound the connection to this world's hub.
-        foreach ((Uuid clientId, JoinRequest request) in _joinQueue.Drain())
-        {
-            HandleJoin(clientId, request, store);
-        }
-
-        foreach ((Uuid clientId, JoinRequest request) in _hub.Receive<JoinRequest>())
-        {
-            HandleJoin(clientId, request, store);
-        }
-
-        foreach ((Uuid clientId, LeaveGameRequest _) in _hub.Receive<LeaveGameRequest>())
+        //  Leaves run before joins so a player who returns to the menu and rejoins in the same tick
+        //  has the old session torn down first.
+        foreach (Uuid clientId in _joinQueue.DrainLeaves())
         {
             HandleLeave(clientId, store);
+        }
+
+        //  Joins the world host pre-routed: it already bound the peer to this world.
+        foreach (ServerJoinQueue.JoinCall join in _joinQueue.Drain())
+        {
+            HandleJoin(join, store);
         }
     }
 
@@ -102,7 +93,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// </summary>
     private void HandleDisconnects(DataStore store)
     {
-        foreach (Uuid clientId in _hub.DrainDisconnects())
+        foreach (Uuid clientId in _joinQueue.DrainDisconnects())
         {
             _permissions.Unbind(clientId);
 
@@ -159,8 +150,25 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         _permissions.Unbind(clientId);
     }
 
-    private void HandleJoin(Uuid clientId, JoinRequest request, DataStore store)
+    private void HandleJoin(in ServerJoinQueue.JoinCall join, DataStore store)
     {
+        ServerPeer peer = join.Peer;
+        Uuid clientId = peer.GameId;
+        JoinRequest request = join.Request;
+        TaskCompletionSource<RpcResult<JoinAccept>> completion = join.Completion;
+
+        if (join.CancellationToken.IsCancellationRequested)
+        {
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.InvalidState, "join cancelled"));
+            return;
+        }
+
+        if (!_peers.TryGet(clientId, out _))
+        {
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.NotJoined, "the peer disconnected"));
+            return;
+        }
+
         string levelGuid = request.LevelGuid ?? string.Empty;
 
         //  A world serves exactly one level. A join naming another level means routing failed:
@@ -172,6 +180,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             _logger.LogError(
                 "Refusing join for client {clientId}: world is level {current} but the join names {level}.",
                 clientId, _saveService.CurrentLevelGuid, levelGuid);
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JoinRefused, "the world serves another level"));
             return;
         }
 
@@ -265,16 +274,9 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         Session session = new(_nextSessionId++);
         _sessions.Register(store, entity, clientId, session);
 
-        //  Bind the joining client's claim so permission checks resolve against this session. The
-        //  claim arrives once in the connection's ClientHello; an unbound connection joins anonymous.
-        bool isHost = _hub.TryGet(clientId, out IServerConnection connection) && connection.IsLocal;
-        UserClaim claim = UserClaim.Anonymous;
-        if (connection != null && _connectionClaims.TryGet(connection, out UserClaim bound))
-        {
-            claim = bound;
-        }
-
-        _permissions.Bind(clientId, claim, isHost);
+        //  Bind the joining peer's claim so permission checks resolve against this session. The
+        //  claim arrives once in ClientHello; a peer with no hello joins anonymous.
+        _permissions.Bind(clientId, peer.Claim, peer.IsLocal);
 
         //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
         //  (EndStream), so the client's Loading-time receive queue cannot pile up snapshots.
@@ -285,7 +287,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  materialize as remote players on the joining client.
         _replication.RequestFullSync(clientId);
 
-        Result accept = _hub.Send(clientId, new JoinAccept
+        join.Completion.TrySetResult(RpcResult<JoinAccept>.Success(new JoinAccept
         {
             Level = _saveService.CurrentLevel ?? new Level(),
             SpawnX = position.X,
@@ -296,21 +298,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             OrientationZ = orientation.Z,
             OrientationW = orientation.W,
             PlayerEntity = uuid.ToValue(),
-        });
-        if (!accept.Success)
-        {
-            _logger.LogWarning("Failed to send join accept to client {clientId}: {message}.", clientId, accept.Message);
-        }
+        }));
 
-        StreamLevel(clientId, store);
-        Result stream = _hub.Send(clientId, new LevelStreamComplete { Dummy = 0 });
-        if (!stream.Success)
-        {
-            _logger.LogWarning("Failed to send world stream complete to client {clientId}: {message}.", clientId, stream.Message);
-        }
-        _replication.EndStream(clientId);
-
-        _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}; streamed the world.", uuid, request.CharacterUuid, levelGuid, session.ID);
+        //  The stream is a separate call. The gate lifts when the stream call completes.
+        _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}.", uuid, request.CharacterUuid, levelGuid, session.ID);
     }
 
     /// <summary>
@@ -353,40 +344,4 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         store.AddOrUpdate(entity, new SkillStateComponent(xpBySkillId));
     }
 
-    private void StreamLevel(Uuid clientId, DataStore store)
-    {
-        CollectLevelEntitiesAction action = new();
-        store.Query<VoxelWorldComponent, NetworkComponent, TransformComponent, CollectLevelEntitiesAction>(0f, ref action);
-
-        foreach (int entity in action.Entities)
-        {
-            VoxelEntityData data = VoxelWorldEntityFactory.ToVoxelEntityData(store, entity);
-            if (data.Uuid == 0)
-            {
-                continue;
-            }
-
-            //  Attach the brick palette so the client can resolve the server's registry ids locally.
-            Result send = _hub.Send(clientId, new LevelEntityAdd { VoxelEntity = VoxelCodec.Encode(data, _brickRegistry) });
-            if (!send.Success)
-            {
-                _logger.LogWarning("Failed to stream world entity to client {clientId}: {message}.", clientId, send.Message);
-            }
-        }
-    }
-
-    private struct CollectLevelEntitiesAction : IForEach<VoxelWorldComponent, NetworkComponent, TransformComponent>
-    {
-        public readonly List<int> Entities;
-
-        public CollectLevelEntitiesAction()
-        {
-            Entities = new List<int>();
-        }
-
-        public void Execute(float delta, DataStore store, int entity, in VoxelWorldComponent world, in NetworkComponent network, in TransformComponent transform)
-        {
-            Entities.Add(entity);
-        }
-    }
 }

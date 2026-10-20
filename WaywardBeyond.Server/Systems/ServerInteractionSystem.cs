@@ -12,7 +12,6 @@ using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
-using WaywardBeyond.Networking.Transport;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -30,7 +29,7 @@ namespace WaywardBeyond.Server.Systems;
 public sealed class ServerInteractionSystem : IServerWorldSystem
 {
     private readonly ILogger<ServerInteractionSystem> _logger;
-    private readonly ServerConnectionHub _hub;
+    private readonly ServerPeers _peers;
     private readonly IInteractionContent _content;
     private readonly IInteractionHandlerRegistry _handlerRegistry;
     private readonly IBrickRegistry _brickRegistry;
@@ -41,7 +40,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
 
     public ServerInteractionSystem(
-        ServerConnectionHub hub,
+        ServerPeers peers,
         IInteractionContent content,
         ILogger<ServerInteractionSystem> logger,
         IInteractionHandlerRegistry handlerRegistry,
@@ -50,7 +49,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         ServerSkillSystem skills,
         SimulationStep simulationStep
     ) {
-        _hub = hub;
+        _peers = peers;
         _content = content;
         _handlerRegistry = handlerRegistry;
         _logger = logger;
@@ -196,12 +195,11 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             BrickId = _brickRegistry.Name(voxel.ID),
         };
 
-        foreach ((Uuid clientId, _) in _hub.Clients)
+        foreach (ServerPeer peer in _peers.Peers)
         {
-            Result send = _hub.Send(clientId, message);
-            if (!send.Success)
+            if (peer.World?.Store == store)
             {
-                _logger.LogWarning("Failed to broadcast voxel edit to client {clientId}: {message}.", clientId, send.Message);
+                peer.Client.VoxelEdit(message);
             }
         }
     }

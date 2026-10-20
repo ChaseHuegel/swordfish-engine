@@ -67,14 +67,14 @@ The game process runs one client world and N server worlds concurrently:
 - **Server worlds** — one per loaded level, ticked sequentially on the
   `"Server"` thread by `WaywardBeyond.Server/ServerWorldHost.cs`. Each
   world is a per-world DI graph (`ServerWorld.cs`) holding its own store,
-  physics, hub, sessions, and systems, with idle unload. See
+  physics, sessions, and systems, with idle unload. See
   [specs/networking-worlds](specs/networking-worlds.md).
 
-The worlds communicate **only** through serialized nsd messages over a
-transport. Singleplayer runs the authoritative server in-process on its own
-thread over a `LocalConnection` loopback that exercises the full wire protocol.
-The loopback rides the same world-routed join path as LAN peers. There is no
-separate singleplayer simulation path.
+The worlds communicate **only** through nsd-rpc over a transport. Singleplayer
+runs the authoritative server in-process on its own thread over a loopback RPC
+transport that exercises the full envelope, correlation, and framing path. The
+loopback rides the same join, stream, and snapshot path as LAN peers. There is
+no separate singleplayer simulation path.
 
 `ServerModule` registers the server composition (see
 [specs/networking-worlds](specs/networking-worlds.md) for the per-world DI

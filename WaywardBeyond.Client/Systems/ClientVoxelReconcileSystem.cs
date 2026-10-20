@@ -1,12 +1,10 @@
 ﻿using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Services;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;
@@ -28,20 +26,20 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
     /// <summary>Sim ticks to wait past an interaction's sample before reverting a still-unconfirmed prediction.</summary>
     private const int REVERT_BOUND_SIM_TICKS = 40;
 
-    private readonly IClientConnection _transport;
+    private readonly ClientInbound _inbound;
     private readonly SnapshotAckTracker _snapshotAck;
     private readonly IBrickRegistry _brickRegistry;
     private readonly SoundEffectService _soundEffectService;
     private readonly IBrickDatabase _brickDatabase;
 
     public ClientVoxelReconcileSystem(
-        in IClientConnection transport,
+        in ClientInbound inbound,
         in SnapshotAckTracker snapshotAck,
         IBrickRegistry brickRegistry,
         in SoundEffectService soundEffectService,
         in IBrickDatabase brickDatabase
     ) {
-        _transport = transport;
+        _inbound = inbound;
         _snapshotAck = snapshotAck;
         _brickRegistry = brickRegistry;
         _soundEffectService = soundEffectService;
@@ -66,15 +64,14 @@ internal sealed class ClientVoxelReconcileSystem : IEntitySystem
             queue = pendingComponent.Queue;
         }
 
-        Result<VoxelEditMessage> receiveResult;
-        while ((receiveResult = _transport.Receive<VoxelEditMessage>()).Success)
+        while (_inbound.VoxelEdits.TryDequeue(out VoxelEditMessage message))
         {
             if (WaywardBeyond.GameState < GameState.Playing)
             {
                 return;
             }
 
-            ApplyAuthoritativeEdit(store, receiveResult.Value, queue);
+            ApplyAuthoritativeEdit(store, message, queue);
         }
 
         if (queue != null)
