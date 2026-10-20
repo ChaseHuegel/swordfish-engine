@@ -284,11 +284,26 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
             {
                 body = physics.Read.Body;
 
-                transform.Write.Position = body.Position;
-                transform.Write.Orientation = body.Rotation;
+                Vector3 position = body.Position;
+                Quaternion orientation = body.Rotation;
+                if (transform.Read.Position != position || transform.Read.Orientation != orientation)
+                {
+                    ref TransformComponent transformValue = ref transform.Write;
+                    transformValue.Position = position;
+                    transformValue.Orientation = orientation;
+                }
 
-                physics.Write.Velocity = body.GetLinearVelocity();
-                physics.Write.Torque = body.GetAngularVelocity();
+                Vector3 velocity = body.GetLinearVelocity();
+                if (physics.Read.Velocity != velocity)
+                {
+                    physics.Write.Velocity = velocity;
+                }
+
+                Vector3 torque = body.GetAngularVelocity();
+                if (physics.Read.Torque != torque)
+                {
+                    physics.Write.Torque = torque;
+                }
 
                 if (collider.SyncedWithPhysics)
                 {
@@ -341,7 +356,22 @@ public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 return;
             }
 
-            _owner._bodyInterface.SetPositionRotationAndVelocity(physics.Body.ID, transform.Position, transform.Orientation, physics.Velocity, physics.Torque);
+            //  Only push state the simulation actually changed. Pushing the unchanged pose resets
+            //  Jolt's sleep timer every step, so bodies can never sleep and keep emitting tiny
+            //  movement that re-dirties their replicated components.
+            Vector3 position = transform.Position;
+            Quaternion orientation = transform.Orientation;
+            if (position != physics.Body.Position || orientation != physics.Body.Rotation)
+            {
+                _owner._bodyInterface.SetPositionAndRotation(physics.Body.ID, position, orientation, Activation.DontActivate);
+            }
+
+            Vector3 velocity = physics.Velocity;
+            Vector3 torque = physics.Torque;
+            if (velocity != physics.Body.GetLinearVelocity() || torque != physics.Body.GetAngularVelocity())
+            {
+                _owner._bodyInterface.SetLinearAndAngularVelocity(physics.Body.ID, velocity, torque);
+            }
         }
     }
 }
