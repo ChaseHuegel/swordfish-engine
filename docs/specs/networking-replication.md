@@ -33,9 +33,10 @@ One subject: dirty-driven replication between server and client.
   stream completes. The one-shot full-sync publish is exempt and stays the
   client's first snapshot.
 - **World/voxel bodies.** Server-authoritative structures carrying a
-  `NetworkComponent` flow through the same path. Their
-  `TransformComponent`/`PhysicsComponent` are dirtied by the physics sync
-  cycle, so the client snaps drift in its local prediction colliders.
+  `NetworkComponent` flow through the same path. The Jolt sync writes their
+  `TransformComponent`/`PhysicsComponent` only when the body state actually
+  changed. An idle body stays clean and can sleep, so it contributes no delta.
+  The client still snaps drift in its local prediction colliders.
 
 See [voxel-edits](networking-voxel-edits.md) for authoritative voxel edits,
 which flow as `VoxelEdit` notifications rather than snapshots.
@@ -73,6 +74,10 @@ notification per cadence.
   teardown and leaves the buffers staged.
 - Upload is paced to `SnapshotHz`, not the ECS tick rate. Dirty components
   persist across skipped ticks.
+- The input system writes a sample only when the movement, look totals, or held
+  buttons change, plus a 1 s keepalive. An identical idle sample is not
+  uploaded. The server and the client pending ring keep applying the newest
+  staged command until a newer sample supersedes it.
 
 ## Dirty tracking
 
@@ -83,6 +88,11 @@ accessor. Replication caches its direction's `NetworkRegistry` component list
 once per instance, so the hot path allocates nothing per entity. The client
 collection is player-scoped.
 
+Physics writeback and the shared simulation step compare before they write.
+They never mark a component dirty with the value it already holds. The Jolt sync
+also pushes state into the solver only when it changed, so an unchanged body can
+sleep instead of resetting its sleep timer every step.
+
 ## Tick tagging
 
 `TickNumber` is the canonical sim tick (physics-step ordinal), not a replication
@@ -92,8 +102,10 @@ tick. Input is staged per sim tick and consumed exactly once per step. See
 ## Source of truth
 
 - `WaywardBeyond.Server/Systems/NetworkReplicationSystem.cs`
-- `WaywardBeyond.Client/Systems/{ClientReplicationSystem,ClientReconcileSystem}.cs`
+- `WaywardBeyond.Client/Systems/{ClientReplicationSystem,ClientReconcileSystem,ClientInputSystem}.cs`
 - `WaywardBeyond.Client/Networking/ClientInbound.cs`
+- `WaywardBeyond.Gameplay/SimulationStep.cs`
+- `Swordfish/Physics/Jolt/JoltPhysicsSystem.cs`
 - `WaywardBeyond.Networking/Rpc/{PayloadFragmenter,FragmentAssembler}.cs`
 - `WaywardBeyond.Networking/Components/NetworkComponent.cs`
 
@@ -102,4 +114,7 @@ tick. Input is staged per sim tick and consumed exactly once per step. See
 - `Swordfish.Tests/RpcProtocolTests.cs` — fragment split, join, stale groups.
 - `Swordfish.Tests/ServerWorldIntegrationTests.cs` — join, stream, save, leave,
   rejoin over loopback and TCP.
+- `Swordfish.Tests/PhysicsSyncIdleTests.cs` — an idle body stays clean and sleeps.
+- `Swordfish.Tests/SimulationStepIdleTests.cs` — an idle command does not dirty.
+- `Swordfish.Tests/ClientInputIdleTests.cs` — identical input is not resent.
 - `Swordfish.Tests` interaction-staging tests.

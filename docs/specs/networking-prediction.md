@@ -24,10 +24,14 @@ per-world sim state.
 
 ## Input pipeline
 
-- `ClientInputSystem` samples `IInputService`, builds an `InputComponent` (with
-  a monotonic `SequenceNumber` and `ServerTickAtSample` echoing the last applied
-  snapshot tick), writes it to the local player, and stores a copy in
-  `PendingInputComponent` (a 256-entry, sim-tick-keyed ring buffer).
+- `ClientInputSystem` samples `IInputService` every tick, builds an
+  `InputComponent` (with a monotonic `SequenceNumber` and `ServerTickAtSample`
+  echoing the last applied snapshot tick), writes it to the local player, and
+  stores a copy in `PendingInputComponent` (a 256-entry, sim-tick-keyed ring
+  buffer). It writes only when the movement, look totals, or held buttons differ
+  from the last sample it sent, plus a 1 s keepalive. The server and the pending
+  ring keep applying the newest staged command, so an unchanged sample does not
+  need a resend every tick.
 - `ClientReplicationSystem` publishes dirty client-owned components upstream.
 - On the server, input is staged per sim tick; the shared step consumes one
   staged command per sim tick, newest-for-tick on collision.
