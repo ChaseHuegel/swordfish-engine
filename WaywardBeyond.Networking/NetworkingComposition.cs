@@ -2,9 +2,9 @@ using System;
 using DryIoc;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Registry;
 using WaywardBeyond.Networking.Codecs;
-using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
 
 namespace WaywardBeyond.Networking;
@@ -30,7 +30,6 @@ public static class NetworkingComposition
 
         NetworkRegistry registry = container.Resolve<NetworkRegistry>();
         registry.Initialize([typeof(InputComponent).Assembly]);
-        //  Built-in registrations fail fast: a colliding or invalid wire component is fatal at startup.
         Require(registry.Register<TransformComponent>(Uuid.FromValue(2), NetworkDirection.ServerOwned, new TransformCodec()));
         Require(registry.Register<PhysicsComponent>(Uuid.FromValue(3), NetworkDirection.ServerOwned, new PhysicsCodec()));
         Require(registry.Register<IdentifierComponent>(Uuid.FromValue(11), NetworkDirection.ServerOwned, new IdentifierCodec()));

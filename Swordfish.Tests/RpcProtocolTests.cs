@@ -3,11 +3,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Threading;
 using NsdRpc;
-using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Rpc;
 using Xunit;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Rpc;
 
 namespace Swordfish.Tests;
 

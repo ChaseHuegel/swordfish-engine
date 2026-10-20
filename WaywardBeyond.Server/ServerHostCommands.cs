@@ -9,7 +9,7 @@ using Swordfish.ECS;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server.Components;
@@ -23,29 +23,14 @@ namespace WaywardBeyond.Server;
 /// drains the queue each tick: it binds claims, routes joins and leaves, serves menu calls, and paces
 /// the level stream. It owns every <c>ILevelCatalog</c> call, so catalog access stays single-threaded.
 /// </summary>
-public sealed class ServerHostCommands
-{
+public sealed class ServerHostCommands(
+    ServerLevelManager levelManager,
+    IBrickRegistry brickRegistry,
+    NetworkingConfig config,
+    ILogger<ServerHostCommands> logger
+) {
     private readonly ConcurrentQueue<HostCall> _calls = new();
     private readonly List<ActiveStream> _streams = [];
-    private readonly ServerPeers _peers;
-    private readonly ServerLevelManager _levelManager;
-    private readonly IBrickRegistry _brickRegistry;
-    private readonly NetworkingConfig _config;
-    private readonly ILogger<ServerHostCommands> _logger;
-
-    public ServerHostCommands(
-        ServerPeers peers,
-        ServerLevelManager levelManager,
-        IBrickRegistry brickRegistry,
-        NetworkingConfig config,
-        ILogger<ServerHostCommands> logger
-    ) {
-        _peers = peers;
-        _levelManager = levelManager;
-        _brickRegistry = brickRegistry;
-        _config = config;
-        _logger = logger;
-    }
 
     /// <summary>Drains host calls and advances every active level stream. Called on the server thread.</summary>
     public void Tick(ServerWorldHost host)
@@ -58,7 +43,7 @@ public sealed class ServerHostCommands
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled exception while processing a host RPC command.");
+                logger.LogError(ex, "Unhandled exception while processing a host RPC command.");
             }
         }
 
@@ -137,7 +122,7 @@ public sealed class ServerHostCommands
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to route a join for client {clientId}.", call.Peer.GameId);
+            logger.LogError(ex, "Failed to route a join for client {clientId}.", call.Peer.GameId);
             call.Completion.TrySetResult(RpcResult<JoinAccept>.Failure(
                 GameRpcErrors.JoinRefused, "the world could not be created"));
         }
@@ -156,7 +141,7 @@ public sealed class ServerHostCommands
             return;
         }
 
-        call.Completion.TrySetResult(_levelManager.List(call.Peer));
+        call.Completion.TrySetResult(levelManager.List(call.Peer));
     }
 
     private void HandleCreateLevel(in CreateLevelCall call)
@@ -167,7 +152,7 @@ public sealed class ServerHostCommands
             return;
         }
 
-        call.Completion.TrySetResult(_levelManager.Create(call.Peer, call.Request));
+        call.Completion.TrySetResult(levelManager.Create(call.Peer, call.Request));
     }
 
     private void HandleDeleteLevel(ServerWorldHost host, in DeleteLevelCall call)
@@ -185,7 +170,7 @@ public sealed class ServerHostCommands
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to delete level {level}.", call.Request.LevelGuid);
+            logger.LogError(ex, "Failed to delete level {level}.", call.Request.LevelGuid);
             call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(
                 GameRpcErrors.LevelLoadFailed, "the level was not deleted"));
         }
@@ -222,23 +207,23 @@ public sealed class ServerHostCommands
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to collect the level entities for client {clientId}.", call.Peer.GameId);
+            logger.LogError(ex, "Failed to collect the level entities for client {clientId}.", call.Peer.GameId);
             call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(
                 GameRpcErrors.StreamFailed, "the level entities did not load"));
             return;
         }
 
         _streams.Add(new ActiveStream(call.Peer, call.Context, call.Completion, call.CancellationToken, world, entities));
-        _logger.LogDebug("Streaming {count} level entities to client {clientId}.", entities.Count, call.Peer.GameId);
+        logger.LogDebug("Streaming {count} level entities to client {clientId}.", entities.Count, call.Peer.GameId);
     }
 
     private void TickStreams()
     {
-        int budget = Math.Max(1, _config.Protocol.LevelStreamBytesPerTick.Get());
-        int backlogBytes = _config.Transport.SendBacklogDisconnectBytes.Get();
+        int budget = Math.Max(1, config.Protocol.LevelStreamBytesPerTick.Get());
+        int backlogBytes = config.Transport.SendBacklogDisconnectBytes.Get();
         int watermark = backlogBytes > 0
             ? backlogBytes
-            : Math.Max(1, _config.Transport.SendQueueBytes.Get() / 2);
+            : Math.Max(1, config.Transport.SendQueueBytes.Get() / 2);
 
         for (int index = _streams.Count - 1; index >= 0; index--)
         {
@@ -254,7 +239,7 @@ public sealed class ServerHostCommands
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Level stream to client {clientId} failed.", stream.Peer.GameId);
+                logger.LogError(ex, "Level stream to client {clientId} failed.", stream.Peer.GameId);
                 Abort(stream, GameRpcErrors.StreamFailed, "the stream failed");
                 _streams.RemoveAt(index);
             }
@@ -315,7 +300,7 @@ public sealed class ServerHostCommands
 
             if (!stream.Context.TryStream(chunk))
             {
-                _logger.LogError("Level stream to client {clientId} was rejected; closing the peer.", peer.GameId);
+                logger.LogError("Level stream to client {clientId} was rejected; closing the peer.", peer.GameId);
                 Abort(stream, GameRpcErrors.StreamFailed, "the stream send was rejected");
                 peer.Rpc.Close();
                 return true;
@@ -346,7 +331,7 @@ public sealed class ServerHostCommands
         }
 
         //  Attach the brick palette so the client can resolve the server's registry ids locally.
-        stream.Payload = VoxelCodec.Encode(data, _brickRegistry).Serialize();
+        stream.Payload = VoxelCodec.Encode(data, brickRegistry).Serialize();
         payloadBytes = stream.Payload.Length;
         return true;
     }

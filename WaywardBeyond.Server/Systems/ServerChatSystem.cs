@@ -1,9 +1,8 @@
 using System.Text;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Server.Components;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -21,15 +20,11 @@ public sealed class ServerChatSystem(
 ) : IServerWorldSystem
 {
     /// <summary>Maximum characters of a chat message after sanitization.</summary>
-    public const int MAX_MESSAGE_LENGTH = 512;
-
-    private readonly ServerPeers _peers = peers;
-    private readonly SessionManager _sessions = sessions;
-    private readonly ILogger _logger = logger;
+    private const int MAX_MESSAGE_LENGTH = 512;
 
     public void Tick(float delta, DataStore store)
     {
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store != store)
             {
@@ -46,7 +41,7 @@ public sealed class ServerChatSystem(
     private void Relay(DataStore store, Uuid clientId, in ChatMessage message)
     {
         //  Only joined players may speak; drop everything else silently.
-        if (!_sessions.TryGetEntity(clientId, out int entity) || !store.TryGet(entity, out OwnedCharacterComponent character))
+        if (!sessions.TryGetEntity(clientId, out int entity) || !store.TryGet(entity, out OwnedCharacterComponent character))
         {
             return;
         }
@@ -60,9 +55,9 @@ public sealed class ServerChatSystem(
             Value = Sanitize(message.Value),
         };
 
-        _logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
+        logger.LogInformation("[Chat] {CharacterUuid} {SenderName}: {Value}", relay.CharacterUuid, relay.SenderName, relay.Value);
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store == store)
             {

@@ -1,6 +1,7 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Networking.Registry;
 

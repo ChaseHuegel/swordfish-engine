@@ -24,14 +24,4 @@
         <Analyzer Include="$(PkgNsdRpc_Generators)/lib/netstandard2.0/NsdRpc.Generators.dll" />
     </ItemGroup>
 
-    <PropertyGroup>
-        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
-    </PropertyGroup>
-    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
-        <Exec Command="nsdc -r -p -i CodeGen -o ./CodeGen/Output"/>
-        <ItemGroup>
-            <Compile Include="CodeGen/Output/**/*.cs"/>
-        </ItemGroup>
-    </Target>
-
 </Project>

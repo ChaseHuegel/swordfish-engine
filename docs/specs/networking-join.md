@@ -140,8 +140,8 @@ in-world save call in the world tick. See [persistence](persistence.md) and
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs`
 - `WaywardBeyond.Server/ServerPeers.cs`
-- `WaywardBeyond.Data/CodeGen/levels.nsd`
-- `WaywardBeyond.Networking/CodeGen/network.nsd`
+- `WaywardBeyond.Data/Nsd/levels.nsd`
+- `WaywardBeyond.Data/Nsd/network.nsd`
 
 ## Tests that pin this
 

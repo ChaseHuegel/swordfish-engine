@@ -1,5 +1,6 @@
 #version 1.0;
-#namespace WaywardBeyond.Networking;
+#namespace WaywardBeyond.Data.Networking;
+#include "voxels.nsd";
 
 message ComponentSnapshot
 {

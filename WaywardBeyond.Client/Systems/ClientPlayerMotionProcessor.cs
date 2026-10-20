@@ -6,6 +6,7 @@ using Swordfish.Library.IO;
 using Swordfish.Physics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Events;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
 

@@ -1,5 +1,4 @@
 using System;
-using System.Net;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using NsdRpc.Tcp;

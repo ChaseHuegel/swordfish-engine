@@ -2,6 +2,7 @@
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Registry;
 
 namespace WaywardBeyond.Networking.Codecs;

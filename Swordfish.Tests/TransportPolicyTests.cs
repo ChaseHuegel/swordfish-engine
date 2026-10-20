@@ -7,10 +7,11 @@ using System.Threading.Tasks;
 using NsdRpc;
 using NsdRpc.Tcp;
 using NsdRpc.Wire;
+using Xunit;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Server;
-using Xunit;
 
 namespace Swordfish.Tests;
 

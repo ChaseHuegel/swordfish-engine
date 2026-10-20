@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.Networking;
 

@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Networking.Registry;
+namespace WaywardBeyond.Data.Registry;
 
 /// <summary>Which endpoint is authoritative over a networked component type's data.</summary>
 public enum NetworkDirection

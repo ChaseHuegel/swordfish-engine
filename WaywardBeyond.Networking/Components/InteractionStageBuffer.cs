@@ -1,3 +1,5 @@
+using WaywardBeyond.Data.Components;
+
 namespace WaywardBeyond.Networking.Components;
 
 /// <summary>

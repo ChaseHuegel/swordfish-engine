@@ -7,13 +7,14 @@ using Swordfish.Graphics;
 using Swordfish.Library.IO;
 using Swordfish.Library.Types;
 using Swordfish.Physics;
+using Xunit;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Events;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Systems;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Components;
-using Xunit;
 
 namespace Swordfish.Tests;
 

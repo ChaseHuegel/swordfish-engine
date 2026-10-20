@@ -1,6 +1,6 @@
 using Swordfish.ECS;
 using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 

@@ -7,7 +7,7 @@ complements [networking-messages](networking-messages.md).
 ## Wire message
 
 `ChatMessage` lives in
-`WaywardBeyond.Networking/CodeGen/network.nsd`. Fields:
+`WaywardBeyond.Data/Nsd/network.nsd`. Fields:
 `CharacterUuid`, `SenderName`, `Value`.
 
 The client sends `Value` only. The server never trusts client-supplied
@@ -103,7 +103,7 @@ edit.
 
 ## Source of truth
 
-- `WaywardBeyond.Networking/CodeGen/network.nsd`
+- `WaywardBeyond.Data/Nsd/network.nsd`
 - `WaywardBeyond.Server/Systems/ServerChatSystem.cs`
 - `WaywardBeyond.Client/Systems/ChatService.cs`
 - `WaywardBeyond.Client/Systems/ClientChatSystem.cs`

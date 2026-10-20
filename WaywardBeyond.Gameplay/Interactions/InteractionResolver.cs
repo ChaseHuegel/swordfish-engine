@@ -4,7 +4,7 @@ using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Gameplay.Interactions;

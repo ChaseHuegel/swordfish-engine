@@ -5,6 +5,7 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Systems;

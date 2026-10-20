@@ -4,8 +4,8 @@ using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Voxels.Building;
 

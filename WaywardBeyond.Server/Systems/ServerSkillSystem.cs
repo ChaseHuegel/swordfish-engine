@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Server.Components;
 using WaywardBeyond.Skills;
@@ -22,11 +23,6 @@ public sealed class ServerSkillSystem(
     ILogger<ServerSkillSystem> logger
 )
 {
-    private readonly ISkillDatabase _skillDatabase = skillDatabase;
-    private readonly SessionManager _sessions = sessions;
-    private readonly ServerPeers _peers = peers;
-    private readonly ILogger<ServerSkillSystem> _logger = logger;
-
     /// <summary>
     /// Grants XP for a successfully applied interaction. <paramref name="isBreak"/> maps to
     /// <see cref="XPSource.Break"/>; otherwise the interaction is a place. The state component must exist
@@ -35,7 +31,7 @@ public sealed class ServerSkillSystem(
     public void OnInteractionApplied(DataStore store, int player, ushort brickDataID, bool isBreak)
     {
         if (!store.TryGet(player, out SkillStateComponent state) ||
-            !_sessions.TryGetClient(player, out Uuid clientId))
+            !sessions.TryGetClient(player, out Uuid clientId))
         {
             return;
         }
@@ -43,7 +39,7 @@ public sealed class ServerSkillSystem(
         XPSource source = isBreak ? XPSource.Break : XPSource.Place;
 
         bool mutated = false;
-        foreach (Skill skill in _skillDatabase.Get(source))
+        foreach (Skill skill in skillDatabase.Get(source))
         {
             Result<int> gainedXP = skill.GetXP(source, brickDataID);
             if (!gainedXP.Success)
@@ -73,7 +69,7 @@ public sealed class ServerSkillSystem(
             if (previousLevel.Level != currentLevel.Level)
             {
                 SendLevelUp(clientId, skill, previousLevel.Level, currentLevel.Level);
-                _logger.LogDebug("Skill \"{skill}\" for player {player} leveled from {previous} to {level}.", skill.ID, player, previousLevel.Level, currentLevel.Level);
+                logger.LogDebug("Skill \"{skill}\" for player {player} leveled from {previous} to {level}.", skill.ID, player, previousLevel.Level, currentLevel.Level);
             }
         }
 
@@ -114,7 +110,7 @@ public sealed class ServerSkillSystem(
 
     private void SendOrLog(Uuid clientId, in SkillStateUpdateMessage message)
     {
-        if (_peers.TryGet(clientId, out ServerPeer peer))
+        if (peers.TryGet(clientId, out ServerPeer peer))
         {
             peer.Client.SkillUpdate(message);
         }
@@ -122,7 +118,7 @@ public sealed class ServerSkillSystem(
 
     private void SendOrLog(Uuid clientId, in NotificationMessage message)
     {
-        if (_peers.TryGet(clientId, out ServerPeer peer))
+        if (peers.TryGet(clientId, out ServerPeer peer))
         {
             peer.Client.Notification(message);
         }

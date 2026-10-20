@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Networking.Components;
 
@@ -16,8 +17,6 @@ namespace WaywardBeyond.Server.Systems;
 /// </summary>
 public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger) : IServerWorldSystem
 {
-    private readonly ILogger<ServerInventorySystem> _logger = logger;
-
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
 
     public void Tick(float delta, DataStore store)
@@ -47,7 +46,7 @@ public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger)
 
             if (!store.TryGet(entity, out InventoryComponent inventory))
             {
-                _logger.LogWarning("Dropping inventory op {sequence} for entity {entity} without an inventory.", op.SequenceNumber, entity);
+                logger.LogWarning("Dropping inventory op {sequence} for entity {entity} without an inventory.", op.SequenceNumber, entity);
                 continue;
             }
 

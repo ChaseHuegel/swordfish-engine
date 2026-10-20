@@ -1,10 +1,9 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Permissions;
 

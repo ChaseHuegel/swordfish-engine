@@ -20,12 +20,12 @@ and world split, the persistence schema, and the CLI surface.
 | `Swordfish.Editor/` | Visual editor module (inspector, hierarchy, file browser) | — | — |
 | `WaywardBeyond.Client/` | Game client module | `net9.0` | — |
 | `WaywardBeyond.Server/` | Game server module | `net9.0` | — |
-| `WaywardBeyond.Data/` | Shared data models (client+server), localized tag database | — | — |
+| `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localized tag database | `net9.0` | — |
 | `WaywardBeyond.Config/` | Shared config types | — | — |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader | `net9.0` | — |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher app | — | — |
 | `WaywardBeyond.Server.Launcher/` | Headless dedicated server launcher app | `net9.0` | — |
-| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS | `net9.0` | — |
+| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS: registry, RPC, transports | `net9.0` | — |
 | `WaywardBeyond.Gameplay/` | Shared gameplay: simulation step, body config, interactions, save codec | `net9.0` | — |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations | `net9.0` | — |
 | `WaywardBeyond.Skills/` | Shared skill module: definitions, headless loader | `net9.0` | — |
@@ -140,7 +140,8 @@ This is not used by the game's save path, which uses SQLite directly in
 - **Silk.NET** 2.22.0 — OpenGL, windowing, ImGui
 - **JoltPhysicsSharp** 2.17.5 — 3D physics
 - **DryIoc** 5.3.3 — DI container
-- **Needlefish** 1.2.0 — binary serializer (custom)
+- **Needlefish** 1.5.0 — binary serializer (custom)
+- **Needlefish.Generators** 1.2.0 — Roslyn source generator for `.nsd` schemas
 - **Microsoft.Data.Sqlite** 8.0.6 — save store
 - **Currents/CRNT** — UDP protocol (custom)
 - **Tomlet** 6.2.0 — TOML parsing

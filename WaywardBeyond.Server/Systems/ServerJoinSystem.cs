@@ -5,17 +5,16 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
-using WaywardBeyond.Server.Components;
-using WaywardBeyond.Server.Permissions;
-using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Sessions;
-using WaywardBeyond.Permissions;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Server.Permissions;
+using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Skills;
 
 namespace WaywardBeyond.Server.Systems;
@@ -29,44 +28,20 @@ namespace WaywardBeyond.Server.Systems;
 /// authoritative state; it builds view entities from the stream. Runs first in the world tick so
 /// disconnect teardown and joins precede every other stage.
 /// </summary>
-public sealed class ServerJoinSystem : IServerWorldSystem
+public sealed class ServerJoinSystem(
+    SessionManager sessions,
+    LevelSaveService saveService,
+    NetworkReplicationSystem replication,
+    ServerInteractionSystem interaction,
+    ILogger<ServerJoinSystem> logger,
+    GameplayConfig gameplayConfig,
+    ISkillDatabase skillDatabase,
+    ServerJoinQueue joinQueue,
+    ServerPeers peers,
+    IUserPermissionService permissions
+) : IServerWorldSystem
 {
-    private readonly SessionManager _sessions;
-    private readonly LevelSaveService _saveService;
-    private readonly NetworkReplicationSystem _replication;
-    private readonly ServerInteractionSystem _interaction;
-    private readonly ServerJoinQueue _joinQueue;
-    private readonly ServerPeers _peers;
-    private readonly ISkillDatabase _skillDatabase;
-    private readonly IUserPermissionService _permissions;
-    private readonly GameplayConfig _gameplayConfig;
-    private readonly ILogger<ServerJoinSystem> _logger;
-
     private uint _nextSessionId;
-
-    public ServerJoinSystem(
-        SessionManager sessions,
-        LevelSaveService saveService,
-        NetworkReplicationSystem replication,
-        ServerInteractionSystem interaction,
-        ILogger<ServerJoinSystem> logger,
-        GameplayConfig gameplayConfig,
-        ISkillDatabase skillDatabase,
-        ServerJoinQueue joinQueue,
-        ServerPeers peers,
-        IUserPermissionService permissions
-    ) {
-        _sessions = sessions;
-        _saveService = saveService;
-        _replication = replication;
-        _interaction = interaction;
-        _skillDatabase = skillDatabase;
-        _logger = logger;
-        _gameplayConfig = gameplayConfig;
-        _joinQueue = joinQueue;
-        _peers = peers;
-        _permissions = permissions;
-    }
 
     public void Tick(float delta, DataStore store)
     {
@@ -74,13 +49,13 @@ public sealed class ServerJoinSystem : IServerWorldSystem
 
         //  Leaves run before joins so a player who returns to the menu and rejoins in the same tick
         //  has the old session torn down first.
-        foreach (Uuid clientId in _joinQueue.DrainLeaves())
+        foreach (Uuid clientId in joinQueue.DrainLeaves())
         {
             HandleLeave(clientId, store);
         }
 
         //  Joins the world host pre-routed: it already bound the peer to this world.
-        foreach (ServerJoinQueue.JoinCall join in _joinQueue.Drain())
+        foreach (ServerJoinQueue.JoinCall join in joinQueue.Drain())
         {
             HandleJoin(join, store);
         }
@@ -93,11 +68,11 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// </summary>
     private void HandleDisconnects(DataStore store)
     {
-        foreach (Uuid clientId in _joinQueue.DrainDisconnects())
+        foreach (Uuid clientId in joinQueue.DrainDisconnects())
         {
-            _permissions.Unbind(clientId);
+            permissions.Unbind(clientId);
 
-            if (_sessions.TryGetEntity(clientId, out int entity))
+            if (sessions.TryGetEntity(clientId, out int entity))
             {
                 if (store.TryGet(entity, out PhysicsComponent physics))
                 {
@@ -105,17 +80,17 @@ public sealed class ServerJoinSystem : IServerWorldSystem
                 }
 
                 //  Capture the uuid before Free (which clears it) so the despawn can replicate.
-                _replication.RequestDespawn(store.GetUuid(entity).ToValue());
-                _interaction.ResetPlayerSequence(entity);
+                replication.RequestDespawn(store.GetUuid(entity).ToValue());
+                interaction.ResetPlayerSequence(entity);
                 store.Free(entity);
             }
 
-            if (_sessions.EndSession(clientId))
+            if (sessions.EndSession(clientId))
             {
-                _logger.LogInformation("Ended session for client {client}.", clientId);
+                logger.LogInformation("Ended session for client {client}.", clientId);
 
                 //  Stamp the save's server-owned time played: a player's session ended abruptly.
-                _saveService.EndSessionStamp();
+                saveService.EndSessionStamp();
             }
         }
     }
@@ -127,7 +102,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
     /// </summary>
     private void HandleLeave(Uuid clientId, DataStore store)
     {
-        if (_sessions.TryGetEntity(clientId, out int entity))
+        if (sessions.TryGetEntity(clientId, out int entity))
         {
             if (store.TryGet(entity, out PhysicsComponent physics))
             {
@@ -135,19 +110,19 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             }
 
             //  Capture the uuid before Free (which clears it) so the despawn can replicate.
-            _replication.RequestDespawn(store.GetUuid(entity).ToValue());
-            _interaction.ResetPlayerSequence(entity);
+            replication.RequestDespawn(store.GetUuid(entity).ToValue());
+            interaction.ResetPlayerSequence(entity);
             store.Free(entity);
-            _logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
+            logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
 
-        if (_sessions.EndSession(clientId))
+        if (sessions.EndSession(clientId))
         {
             //  Stamp the save's server-owned time played: this player's session ended.
-            _saveService.EndSessionStamp();
+            saveService.EndSessionStamp();
         }
 
-        _permissions.Unbind(clientId);
+        permissions.Unbind(clientId);
     }
 
     private void HandleJoin(in ServerJoinQueue.JoinCall join, DataStore store)
@@ -163,7 +138,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             return;
         }
 
-        if (!_peers.TryGet(clientId, out _))
+        if (!peers.TryGet(clientId, out _))
         {
             completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.NotJoined, "the peer disconnected"));
             return;
@@ -174,17 +149,17 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  A world serves exactly one level. A join naming another level means routing failed:
         //  never switch the live world, which would free every other player's mirror.
         if (!string.IsNullOrEmpty(levelGuid)
-            && _saveService.CurrentLevelGuid != null
-            && _saveService.CurrentLevelGuid != levelGuid)
+            && saveService.CurrentLevelGuid != null
+            && saveService.CurrentLevelGuid != levelGuid)
         {
-            _logger.LogError(
+            logger.LogError(
                 "Refusing join for client {clientId}: world is level {current} but the join names {level}.",
-                clientId, _saveService.CurrentLevelGuid, levelGuid);
+                clientId, saveService.CurrentLevelGuid, levelGuid);
             completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JoinRefused, "the world serves another level"));
             return;
         }
 
-        if (_sessions.TryGetEntity(clientId, out int existing))
+        if (sessions.TryGetEntity(clientId, out int existing))
         {
             if (store.TryGet(existing, out PhysicsComponent physics))
             {
@@ -192,10 +167,10 @@ public sealed class ServerJoinSystem : IServerWorldSystem
             }
 
             //  Capture the uuid before Free (which clears it) so the old mirror despawns to peers.
-            _replication.RequestDespawn(store.GetUuid(existing).ToValue());
-            _interaction.ResetPlayerSequence(existing);
+            replication.RequestDespawn(store.GetUuid(existing).ToValue());
+            interaction.ResetPlayerSequence(existing);
             store.Free(existing);
-            _sessions.EndSession(clientId);
+            sessions.EndSession(clientId);
         }
 
         bool levelLoaded = !string.IsNullOrEmpty(levelGuid);
@@ -203,12 +178,12 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                levelLoaded = _saveService.LoadLevel(levelGuid, store);
+                levelLoaded = saveService.LoadLevel(levelGuid, store);
             }
             catch (Exception ex)
             {
                 //  A save hiccup never drops a join: play on the default spawn against the empty world.
-                _logger.LogError(ex, "Failed to load level {level} for a joining client; continuing at the default spawn.", levelGuid);
+                logger.LogError(ex, "Failed to load level {level} for a joining client; continuing at the default spawn.", levelGuid);
                 levelLoaded = false;
             }
         }
@@ -219,37 +194,37 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         {
             try
             {
-                bool restored = _saveService.TryGetSpawnPoint(request.CharacterUuid, out position, out orientation);
+                bool restored = saveService.TryGetSpawnPoint(request.CharacterUuid, out position, out orientation);
                 if (!restored)
                 {
                     //  Restored per-character location (or the level spawn point).
-                    position = _saveService.LevelSpawn;
+                    position = saveService.LevelSpawn;
                     orientation = Quaternion.Identity;
                 }
             }
             catch (Exception ex)
             {
                 //  A save hiccup never drops a join: fall back to the level spawn.
-                _logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterUuid, levelGuid);
-                position = _saveService.LevelSpawn;
+                logger.LogError(ex, "Failed to resolve the spawn for character {character} in level {level}; using the level spawn.", request.CharacterUuid, levelGuid);
+                position = saveService.LevelSpawn;
                 orientation = Quaternion.Identity;
             }
         }
         else
         {
-            position = _gameplayConfig.DefaultSpawnPosition;
+            position = gameplayConfig.DefaultSpawnPosition;
             orientation = Quaternion.Identity;
         }
 
         //  Stamp the save's server-owned last-played: someone joined this save.
         if (levelLoaded)
         {
-            _saveService.MarkActive();
+            saveService.MarkActive();
         }
 
         Uuid uuid = Uuid.FromValue(request.CharacterUuid);
         int entity = store.Alloc(uuid);
-        _interaction.ResetPlayerSequence(entity);
+        interaction.ResetPlayerSequence(entity);
 
         store.AddOrUpdate(entity, new NetworkComponent());
         store.AddOrUpdate(entity, new InputComponent());
@@ -269,27 +244,27 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         //  Seed the server-authoritative interaction context from the joining client's local save. The
         //  client owns its initial save; from here the server owns these components and replicates them.
         SeedInteractionContext(store, entity, request.State);
-        SeedSkillState(store, entity, request.State, _skillDatabase);
+        SeedSkillState(store, entity, request.State, skillDatabase);
 
         Session session = new(_nextSessionId++);
-        _sessions.Register(store, entity, clientId, session);
+        sessions.Register(store, entity, clientId, session);
 
         //  Bind the joining peer's claim so permission checks resolve against this session. The
         //  claim arrives once in ClientHello; a peer with no hello joins anonymous.
-        _permissions.Bind(clientId, peer.Claim, peer.IsLocal);
+        permissions.Bind(clientId, peer.Claim, peer.IsLocal);
 
         //  The world stream is in flight: gate per-tick publishes until the complete is enqueued below
         //  (EndStream), so the client's Loading-time receive queue cannot pile up snapshots.
-        _replication.BeginStream(clientId);
+        replication.BeginStream(clientId);
 
         //  Existing networked players (e.g. the host) were last published before this client connected,
         //  so their dirty flags are already consumed; request a one-shot full-state snapshot so they
         //  materialize as remote players on the joining client.
-        _replication.RequestFullSync(clientId);
+        replication.RequestFullSync(clientId);
 
         join.Completion.TrySetResult(RpcResult<JoinAccept>.Success(new JoinAccept
         {
-            Level = _saveService.CurrentLevel ?? new Level(),
+            Level = saveService.CurrentLevel ?? new Level(),
             SpawnX = position.X,
             SpawnY = position.Y,
             SpawnZ = position.Z,
@@ -301,7 +276,7 @@ public sealed class ServerJoinSystem : IServerWorldSystem
         }));
 
         //  The stream is a separate call. The gate lifts when the stream call completes.
-        _logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}.", uuid, request.CharacterUuid, levelGuid, session.ID);
+        logger.LogInformation("Joined player entity {uuid} for character {character} in level {level} on session {session}.", uuid, request.CharacterUuid, levelGuid, session.ID);
     }
 
     /// <summary>

@@ -32,9 +32,7 @@ public class ClientRpcTests
         var config = new NetworkingConfig();
         var peers = new ServerPeers();
         var manager = new ServerLevelManager(catalog, PermissionPolicy.Create([]), NullLoggerFactory.Instance);
-        var commands = new ServerHostCommands(
-            peers,
-            manager,
+        var commands = new ServerHostCommands(manager,
             BrickRegistry.FromNames([]),
             config,
             NullLoggerFactory.Instance.CreateLogger<ServerHostCommands>());

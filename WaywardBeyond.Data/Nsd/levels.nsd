@@ -1,5 +1,6 @@
 #version 1.0;
 #namespace WaywardBeyond.Data;
+#include "saves.nsd";
 
 message NewLevelRequest
 {

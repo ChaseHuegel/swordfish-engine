@@ -1,10 +1,9 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Data.Registry;
 
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// The server-authoritative inventory of a player, replicated downstream as <see cref="ItemData"/>
@@ -17,10 +16,10 @@ namespace WaywardBeyond.Networking.Components;
 public partial struct InventoryComponent : IDataComponent
 {
     /// <summary>Canonical inventory slot count for players. Client build and server seed agree on this.</summary>
-    public const int DefaultSlotCount = 45;
+    private const int DEFAULT_SLOT_COUNT = 45;
 
-    /// <summary>Creates an empty inventory with the canonical <see cref="DefaultSlotCount"/> slots.</summary>
-    public InventoryComponent() : this(DefaultSlotCount) { }
+    /// <summary>Creates an empty inventory with the canonical <see cref="DEFAULT_SLOT_COUNT"/> slots.</summary>
+    public InventoryComponent() : this(DEFAULT_SLOT_COUNT) { }
 
     /// <summary>Creates an empty inventory with <paramref name="size"/> slots.</summary>
     public InventoryComponent(int size) : this(new ItemData[size]) { }
@@ -43,7 +42,7 @@ public partial struct InventoryComponent : IDataComponent
     /// <summary>Clamps an inventory slot index into valid bounds.</summary>
     public static int ClampSlot(int slot)
     {
-        return Math.Clamp(slot, 0, DefaultSlotCount - 1);
+        return Math.Clamp(slot, 0, DEFAULT_SLOT_COUNT - 1);
     }
 
     /// <summary>

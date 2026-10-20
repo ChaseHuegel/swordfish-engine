@@ -1,7 +1,7 @@
 ﻿using System.Numerics;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 

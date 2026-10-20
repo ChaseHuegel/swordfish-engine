@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Physics;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Gameplay;

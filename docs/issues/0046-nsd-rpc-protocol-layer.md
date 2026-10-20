@@ -23,7 +23,7 @@ client or server.
 - [x] `GameRpc` holds every method id in one constants class. Ids are grouped
       by subject and documented as a wire contract.
 - [x] `GameRpcErrors` holds the app error codes in the `-32100` range.
-- [x] `CodeGen/network.nsd` adds `SnapshotBatch`, `LevelStreamChunk`, and
+- [x] `WaywardBeyond.Data/Nsd/network.nsd` adds `SnapshotBatch`, `LevelStreamChunk`, and
       `StreamLevelRequest`. `LevelEntityAdd` stays until the stream cutover.
 - [x] `IGameServerApi` declares every client-to-server call, notification, and
       stream. `IGameClientApi` declares every server-to-client notification.

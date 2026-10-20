@@ -1,10 +1,9 @@
 using System;
-using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Config;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client;
 
@@ -22,7 +21,6 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
     private readonly ClientPlayerMotionProcessor _motionProcessor;
     private readonly int _heartbeatIntervalMs;
     private readonly ServerStats _stats;
-    private readonly ILogger<ClientHeartbeatSystem> _logger;
 
     private int _nextHeartbeatTicks;
 
@@ -32,15 +30,13 @@ internal sealed class ClientHeartbeatSystem : IEntitySystem
         in SnapshotAckTracker snapshotAck,
         in ClientPlayerMotionProcessor motionProcessor,
         in NetworkingConfig config,
-        in ServerStats stats,
-        in ILogger<ClientHeartbeatSystem> logger
+        in ServerStats stats
     ) {
         _host = host;
         _inbound = inbound;
         _snapshotAck = snapshotAck;
         _motionProcessor = motionProcessor;
         _stats = stats;
-        _logger = logger;
         _heartbeatIntervalMs = ServerHeartbeatInterval(config);
         _nextHeartbeatTicks = Environment.TickCount;
     }

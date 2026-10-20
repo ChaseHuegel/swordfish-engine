@@ -27,7 +27,7 @@ material names ship as `levelgen.toml` defaults (`Asteroid.Materials`).
 
 ## Runtime voxel id
 
-A voxel packs a `ushort ID` (`WaywardBeyond.Data/CodeGen/voxels.nsd:40`).
+A voxel packs a `ushort ID` (`WaywardBeyond.Data/Nsd/voxels.nsd:40`).
 That id comes from a sorted, collision-free registry. `BrickRegistry`
 (`WaywardBeyond.Bricks/BrickRegistry.cs`) assigns ids by sorting
 the present brick names, so id 0 (the empty voxel) is reserved and ids depend
@@ -64,7 +64,7 @@ are case-insensitive.
 
 A saved world structure is a `VoxelEntityData`, which since **data version 4**
 carries a brick palette: `BrickPalette[n]` is the brick name for voxel id `n`
-(`WaywardBeyond.Data/CodeGen/voxels.nsd:22`). A live structure already
+(`WaywardBeyond.Data/Nsd/voxels.nsd:22`). A live structure already
 carries registry ids; `VoxelEntityDataCodec.EncodeToPalette` records a name for
 each present id. The palette is the durable, self-describing identity. It
 survives content changes, because a later run resolves the palette name through

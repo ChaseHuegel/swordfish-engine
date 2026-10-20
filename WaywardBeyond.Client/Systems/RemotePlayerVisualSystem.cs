@@ -4,8 +4,8 @@ using Swordfish.ECS;
 using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Services;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Systems;
 
@@ -18,16 +18,11 @@ namespace WaywardBeyond.Client.Systems;
 /// <see cref="BillboardSystem"/> renders. Caches the material set per body so remote players share
 /// textures; leaves the local player untouched.
 /// </summary>
-internal sealed class RemotePlayerVisualSystem : IEntitySystem
+internal sealed class RemotePlayerVisualSystem(in CharacterAssetService characterAssetService) : IEntitySystem
 {
-    private readonly CharacterAssetService _characterAssetService;
+    private readonly CharacterAssetService _characterAssetService = characterAssetService;
 
     private readonly Dictionary<string, Material[]> _materials = [];
-
-    public RemotePlayerVisualSystem(in CharacterAssetService characterAssetService)
-    {
-        _characterAssetService = characterAssetService;
-    }
 
     public void Tick(float delta, DataStore store)
     {

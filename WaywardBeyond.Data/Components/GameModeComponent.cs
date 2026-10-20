@@ -1,8 +1,7 @@
 using Swordfish.ECS;
-using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Data.Registry;
 
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// The server-authoritative game mode of a player, replicated downstream. Authored by the server after

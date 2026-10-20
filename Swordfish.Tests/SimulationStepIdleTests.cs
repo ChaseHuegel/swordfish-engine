@@ -3,9 +3,10 @@ using System;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Physics;
+using Xunit;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Networking.Components;
-using Xunit;
 
 namespace Swordfish.Tests;
 

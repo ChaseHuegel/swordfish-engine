@@ -14,7 +14,7 @@ replicate.
 ## Intent upstream
 
 - **Continuous held state** (`PrimaryHeld`/`SecondaryHeld`) rides the per-frame
-  `InputComponent` packet (`CodeGen/components.nsd`).
+  `InputComponent` packet (`WaywardBeyond.Data/Nsd/components.nsd`).
 - **Client-authoritative active slot** rides `ClientOwned` `EquipmentComponent`.
 - **Discrete button edges** are delivered as a `ClientOwned` `InteractionEvent`
   (uuid 15) — an extensible pseudo-union of nullable hint sub-messages. The

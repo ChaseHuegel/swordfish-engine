@@ -1,17 +1,13 @@
 #nullable enable
 using System;
 using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.Net;
-using System.Net.Sockets;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NsdRpc;
 using NsdRpc.Tcp;
 using NsdRpc.Wire;
-using Swordfish.ECS;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -20,7 +16,6 @@ using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Server;
-using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using Xunit;
 using RpcServerConnection = NsdRpc.IServerConnection;
@@ -351,9 +346,7 @@ public class ServerRpcTests
         var config = new NetworkingConfig();
         peers = new ServerPeers();
         var manager = new ServerLevelManager(catalog, PermissionPolicy.Create([]), NullLoggerFactory.Instance);
-        var commands = new ServerHostCommands(
-            peers,
-            manager,
+        var commands = new ServerHostCommands(manager,
             BrickRegistry.FromNames([]),
             config,
             NullLoggerFactory.Instance.CreateLogger<ServerHostCommands>());

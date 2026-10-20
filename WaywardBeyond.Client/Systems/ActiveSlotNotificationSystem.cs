@@ -5,8 +5,8 @@ using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Systems;
 

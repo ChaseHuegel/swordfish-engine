@@ -1,5 +1,9 @@
 # Bug: Unsafe frame ingestion — unbounded lengths, out-of-bounds deserialization (nsdc codegen), client-caused tick aborts
 
+> Historical: the repository now uses `Needlefish.Generators` instead of the
+> `nsdc` build step. The generated serializer code is unchanged. Paths below
+> describe the old `nsdc` output layout.
+
 - Type: bug
 - Status: done
 - Workflow: ../specs/issues.md

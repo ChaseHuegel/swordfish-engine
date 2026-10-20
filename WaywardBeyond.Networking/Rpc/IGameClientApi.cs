@@ -1,5 +1,6 @@
 using System.Threading;
 using NsdRpc;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Networking.Rpc;
 

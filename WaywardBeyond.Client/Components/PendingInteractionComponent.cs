@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Swordfish.ECS;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Voxels;
 
@@ -157,22 +158,18 @@ public sealed class PendingInteractionQueue
 }
 
 /// <summary>An outstanding predicted voxel edit waiting for reconciliation.</summary>
-public readonly struct PendingEdit
+public readonly struct PendingEdit(
+    int entity,
+    Int3 coordinate,
+    Voxel original,
+    Voxel predicted,
+    uint sequence,
+    uint serverTickAtSample)
 {
-    public readonly int Entity;
-    public readonly Int3 Coordinate;
-    public readonly Voxel Original;
-    public readonly Voxel Predicted;
-    public readonly uint Sequence;
-    public readonly uint ServerTickAtSample;
-
-    public PendingEdit(int entity, Int3 coordinate, Voxel original, Voxel predicted, uint sequence, uint serverTickAtSample)
-    {
-        Entity = entity;
-        Coordinate = coordinate;
-        Original = original;
-        Predicted = predicted;
-        Sequence = sequence;
-        ServerTickAtSample = serverTickAtSample;
-    }
+    public readonly int Entity = entity;
+    public readonly Int3 Coordinate = coordinate;
+    public readonly Voxel Original = original;
+    public readonly Voxel Predicted = predicted;
+    public readonly uint Sequence = sequence;
+    public readonly uint ServerTickAtSample = serverTickAtSample;
 }

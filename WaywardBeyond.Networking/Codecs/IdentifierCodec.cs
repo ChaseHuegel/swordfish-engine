@@ -1,7 +1,7 @@
 ﻿using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Registry;
 
 namespace WaywardBeyond.Networking.Codecs;

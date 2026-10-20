@@ -1,7 +1,7 @@
 using Swordfish.ECS;
-using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Data.Registry;
 
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// A discrete player interaction edge (button press/release) transported upstream as a latched

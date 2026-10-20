@@ -1,13 +1,13 @@
-using System;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;
-using WaywardBeyond.Server.Permissions;
-using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Server.Permissions;
+using WaywardBeyond.Server.Saves;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -27,11 +27,6 @@ public sealed class ServerSaveSystem(
     ILogger<ServerSaveSystem> logger
 ) : IServerWorldSystem
 {
-    private readonly ServerPeers _peers = peers;
-    private readonly SessionManager _sessions = sessions;
-    private readonly LevelSaveService _saveService = saveService;
-    private readonly IUserPermissionService _permissions = permissions;
-    private readonly GameplayConfig _gameplayConfig = gameplayConfig;
     private readonly ILogger _logger = logger;
 
     private float _autosaveElapsedSeconds;
@@ -49,19 +44,19 @@ public sealed class ServerSaveSystem(
     /// </summary>
     private void HandleAutosave(float delta, DataStore store)
     {
-        if (_sessions.Count == 0)
+        if (sessions.Count == 0)
         {
             _autosaveElapsedSeconds = 0f;
             return;
         }
 
-        if (!_gameplayConfig.Autosave.Get())
+        if (!gameplayConfig.Autosave.Get())
         {
             return;
         }
 
         _autosaveElapsedSeconds += delta;
-        float intervalSeconds = _gameplayConfig.AutosaveIntervalMs.Get() / 1000f;
+        float intervalSeconds = gameplayConfig.AutosaveIntervalMs.Get() / 1000f;
         if (intervalSeconds <= 0f || _autosaveElapsedSeconds < intervalSeconds)
         {
             return;
@@ -73,7 +68,7 @@ public sealed class ServerSaveSystem(
 
     private void HandleSaveRequests(DataStore store)
     {
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store != store)
             {
@@ -96,7 +91,7 @@ public sealed class ServerSaveSystem(
             return;
         }
 
-        if (!_permissions.HasPermission(peer.GameId, GamePermissions.LevelSave))
+        if (!permissions.HasPermission(peer.GameId, GamePermissions.LevelSave))
         {
             _logger.LogInformation(
                 "Denied a level save for client {clientId}: the client lacks the \"{permission}\" permission.",
@@ -123,19 +118,19 @@ public sealed class ServerSaveSystem(
     /// </summary>
     private void QueueSave(DataStore store)
     {
-        if (string.IsNullOrEmpty(_saveService.CurrentLevelGuid))
+        if (string.IsNullOrEmpty(saveService.CurrentLevelGuid))
         {
             return;
         }
 
-        _saveService.QueueSave(store);
+        saveService.QueueSave(store);
         BroadcastNotification(store, "notification.save.saving");
     }
 
     /// <summary>Broadcasts the outcome of every finished database write.</summary>
     private void BroadcastSaveResults(DataStore store)
     {
-        while (_saveService.TryDequeueCompletion(out bool success))
+        while (saveService.TryDequeueCompletion(out bool success))
         {
             BroadcastNotification(store, success ? "notification.save.saved" : "notification.save.saving.failed");
         }
@@ -143,7 +138,7 @@ public sealed class ServerSaveSystem(
 
     private void BroadcastNotification(DataStore store, string key)
     {
-        string levelName = _saveService.CurrentLevel?.Name ?? string.Empty;
+        string levelName = saveService.CurrentLevel?.Name ?? string.Empty;
         var message = new NotificationMessage
         {
             Type = (byte)NotificationType.Toast,
@@ -151,7 +146,7 @@ public sealed class ServerSaveSystem(
             Args = [levelName],
         };
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store == store)
             {

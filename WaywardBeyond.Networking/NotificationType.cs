@@ -1,3 +1,5 @@
+using WaywardBeyond.Data.Networking;
+
 namespace WaywardBeyond.Networking;
 
 /// <summary>

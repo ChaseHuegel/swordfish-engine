@@ -4,9 +4,10 @@ One subject: the serialized message and component shapes that cross the wire.
 
 ## Serialization substrate
 
-Wire payloads are nsd schemas compiled by `nsdc` into structs with generated
-`Serialize()`/`Deserialize(ReadOnlySpan<byte>)`. The generated `.cs` files under
-`**/CodeGen/Output` are auto-generated; never hand-edit them.
+Wire payloads are nsd schemas compiled by `Needlefish.Generators` into structs
+with generated `Serialize()`/`Deserialize(ReadOnlySpan<byte>)`. The generator
+runs during compilation and writes no source files. The schemas live in
+`WaywardBeyond.Data/Nsd`. See [needlefish-codegen](needlefish-codegen.md).
 
 `NsdRpc` wraps each payload in its own envelope. The transport frame is a
 4-byte little-endian length prefix plus the envelope. The envelope carries the
@@ -19,7 +20,7 @@ A payload over 60,000 bytes is split into ordered fragments. See
 
 ## Snapshots
 
-`WaywardBeyond.Networking/CodeGen/network.nsd`:
+`WaywardBeyond.Data/Nsd/network.nsd`:
 
 ```nsd
 message ComponentSnapshot
@@ -69,8 +70,8 @@ sync boundaries.
 ## Input component
 
 `InputComponent` is both a networked component and an nsd message
-(`CodeGen/components.nsd`). It carries absolute, sensitivity-resolved look
-totals (radians) plus continuous held state:
+(`WaywardBeyond.Data/Nsd/components.nsd`). It carries absolute,
+sensitivity-resolved look totals (radians) plus continuous held state:
 
 ```nsd
 message InputComponent
@@ -137,19 +138,19 @@ message InventoryEvent
 
 ## Interaction context components
 
-`CodeGen/components.nsd` also defines the server-owned interaction context and
-the body view:
+`WaywardBeyond.Data/Nsd/components.nsd` also defines the server-owned
+interaction context and the body view:
 
 ```nsd
 message EquipmentComponent   { int ActiveInventorySlot = 0; }
 message InventoryComponent   { WaywardBeyond.Data.ItemData[] Contents = 0; }
 message GameModeComponent    { int Value = 0; }
-message BodyViewComponent    { int Body = 0; }
+message BodyViewComponent    { string Body = 0; }
 message IdentifierMessage    { string Name; string Tag; }
 ```
 
 `GameModeComponent` carries an `int` on the wire (cross-namespace enums do not
-serialize as enums in nsd codegen) and exposes `Mode` via the partial.
+serialize as enums in Needlefish codegen) and exposes `Mode` via the partial.
 
 ## Authoritative voxel edits
 
@@ -199,7 +200,7 @@ reliable frame per second per connection.
 
 ## Chat
 
-`WaywardBeyond.Networking/CodeGen/network.nsd`:
+`WaywardBeyond.Data/Nsd/network.nsd`:
 
 ```nsd
 message ChatMessage
@@ -217,7 +218,7 @@ rules, the log line, and the client behavior.
 
 ## Join and level-stream messages
 
-`WaywardBeyond.Data/CodeGen/levels.nsd`: `ClientHello`, `JoinRequest`,
+`WaywardBeyond.Data/Nsd/levels.nsd`: `ClientHello`, `JoinRequest`,
 `JoinAccept`, `LevelStreamComplete`, `CharacterView`, `CharacterState`, and the
 save-listing set (`NewLevelRequest`/`Response`, `ListLevels*`,
 `DeleteLevel*`, `SaveLevel*`).
@@ -308,10 +309,11 @@ A UDP control-plane beacon only. See [transports](networking-transports.md).
 
 ## Source of truth
 
-- Schema files: `WaywardBeyond.Networking/CodeGen/network.nsd`,
-  `.../components.nsd`, `WaywardBeyond.Data/CodeGen/{voxels,levels,saves}.nsd`.
-- `nsdc` build wiring: the Exec targets in each `.csproj`
-  (e.g. `WaywardBeyond.Networking.csproj`, `WaywardBeyond.Data.csproj`).
+- Schema files:
+  `WaywardBeyond.Data/Nsd/{network,components,voxels,levels,saves}.nsd`.
+- Generator wiring: `WaywardBeyond.Data/WaywardBeyond.Data.csproj`.
+- Generated namespaces: `WaywardBeyond.Data.Networking` for wire messages,
+  `WaywardBeyond.Data.Components` for networked components.
 
 ## Tests that pin this
 

@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Extensions.Logging;
 using WaywardBeyond.Config;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Server;
 

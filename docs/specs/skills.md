@@ -91,7 +91,7 @@ increment; a max-level skill renders a full bar.
 - `WaywardBeyond.Server/Systems/ServerJoinSystem.cs` (seed)
 - `WaywardBeyond.Client/Systems/ClientNotificationSystem.cs`
 - `WaywardBeyond.Client/assets/lang/en/{skills,notification}.toml`
-- `WaywardBeyond.Data/CodeGen/saves.nsd` (`Statistic`)
+- `WaywardBeyond.Data/Nsd/saves.nsd` (`Statistic`)
 
 ## Tests that pin this
 

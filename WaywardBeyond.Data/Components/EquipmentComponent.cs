@@ -1,7 +1,7 @@
 using Swordfish.ECS;
-using WaywardBeyond.Networking.Registry;
+using WaywardBeyond.Data.Registry;
 
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// The client-authoritative active inventory slot of a player, replicated upstream. Authored by the

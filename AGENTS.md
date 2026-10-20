@@ -9,7 +9,7 @@ short sentences, no semicolons, no contractions.
 ## Build & test
 
 ```bash
-dotnet build                                        # Debug default; runs nsdc codegen
+dotnet build                                        # Debug default; runs Needlefish codegen
 dotnet test Swordfish.Tests                         # xunit engine tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
@@ -21,7 +21,7 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
   MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts` must exist, because the
   `msdf-atlas-gen` tool is Windows-only.
 - `Reef.Text.Tests` is `net8.0`; it runs on Linux.
-- No CI workflows exist (`.github/workflows/` is empty).
+- CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
 - No lint or typecheck scripts. `dotnet build` is the check.
 - Stale `launch.json` references `Swordfish/bin/Debug/Swordfish.exe`; the real
   launcher is `Swordfish.Launcher`.
@@ -54,10 +54,10 @@ Every top-level path and what it is:
 | `WaywardBeyond.Client/` | Game client module |
 | `WaywardBeyond.Client.Launcher/` | Game client launcher |
 | `WaywardBeyond.Config/` | Shared config types |
-| `WaywardBeyond.Data/` | Shared data models |
+| `WaywardBeyond.Data/` | Shared data models, nsd schemas, sqlite storage, localization |
 | `WaywardBeyond.Gameplay/` | Shared gameplay: sim step, body config, interactions, save codec |
 | `WaywardBeyond.Voxels/` | Shared voxel model: chunked container, sampling, orientations |
-| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS |
+| `WaywardBeyond.Networking/` | Standalone networking layer over the ECS: registry, RPC, transports |
 | `WaywardBeyond.Permissions/` | Shared dot-key permission policy and file loader |
 | `WaywardBeyond.Server/` | Game server module |
 | `WaywardBeyond.Server.Launcher/` | Game server launcher |
@@ -76,6 +76,7 @@ Route a goal to the right doc:
 | Edit or add config schema | [docs/specs/config-schemas.md](docs/specs/config-schemas.md) |
 | Define game content | [docs/specs/asset-definitions.md](docs/specs/asset-definitions.md) |
 | Change save/persistence | [docs/specs/persistence.md](docs/specs/persistence.md) |
+| Change an nsd message or generated model | [docs/specs/needlefish-codegen.md](docs/specs/needlefish-codegen.md) |
 | Change networking | the networking specs under `docs/specs/` (see index) |
 
 ## Essential conventions
@@ -90,8 +91,10 @@ Route a goal to the right doc:
 - **Structs default** for new types, especially data types. Classes only for
   reference semantics or polymorphism.
 - **Manifest files** require `CopyToOutputDirectory=Always`.
-- **Sensitive serialization** uses `.nsd` files; generated `.cs` under
-  `**/CodeGen/Output` must never be hand-edited. Config uses TOML.
+- **Sensitive serialization** uses `.nsd` files under
+  `WaywardBeyond.Data/Nsd`. The `Needlefish.Generators` package emits the
+  generated types at compile time. Never hand-edit generated source. Config
+  uses TOML.
 - **Engine vs game.** Everything except `WaywardBeyond.*` is engine. Engine
   changes commit separately, first, standalone-green, never mixed with game.
 - See [docs/development.md](docs/development.md) for the full style guide.

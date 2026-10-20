@@ -6,8 +6,7 @@ using Swordfish.Graphics;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Configuration;
 using WaywardBeyond.Client.UI;
-using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Client.Systems;
 

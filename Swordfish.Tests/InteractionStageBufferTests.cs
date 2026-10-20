@@ -1,5 +1,6 @@
-using WaywardBeyond.Networking.Components;
 using Xunit;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Networking.Components;
 
 namespace Swordfish.Tests;
 

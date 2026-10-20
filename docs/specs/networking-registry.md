@@ -12,8 +12,9 @@ injection.
 - `Initialize(assemblies)` scans assemblies for value-type `IDataComponent`
   structs annotated with `[NetworkComponent(uuid, direction)]` and registers
   each with an `NsdComponentCodec<T>` that drives the generated nsd serializers.
-  Duplicates from the scan fail registration and the scan continues (mod-facing
-  path: log and continue).
+  The built-in wired components live in the `WaywardBeyond.Data` assembly, so
+  the composition passes that assembly. Duplicates from the scan fail
+  registration and the scan continues (mod-facing path: log and continue).
 - `Register<T>(Uuid, NetworkDirection, IPayloadCodec)` is the explicit path for
   engine/third-party components that are not nsd messages. It returns a
   `Result` with a contextual failure message (duplicate type, duplicate uuid,
@@ -35,6 +36,9 @@ Engine/third-party components are registered explicitly from the game wiring,
 never from the engine.
 
 ## `NetworkDirection`
+
+`NetworkDirection` and `NetworkComponentAttribute` live in
+`WaywardBeyond.Data/Registry` with the generated component schemas.
 
 - `ServerOwned` — the server is authoritative; replicated downstream to clients.
 - `ClientOwned` — the client is authoritative; replicated upstream to the
@@ -97,7 +101,10 @@ and is server-owned thereafter. See [join](networking-join.md) and
 
 - `WaywardBeyond.Networking/Registry/NetworkRegistry.cs`
 - `WaywardBeyond.Networking/Registry/NsdComponentCodec.cs`
-- `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentAttribute,NetworkComponentInfo,NetworkDirection}.cs`
+- `WaywardBeyond.Networking/Registry/{IPayloadCodec,NetworkComponentInfo}.cs`
+- `WaywardBeyond.Data/Registry/{NetworkComponentAttribute,NetworkDirection}.cs`
+- Component declarations: `WaywardBeyond.Data/Components/`
+- Schemas: `WaywardBeyond.Data/Nsd/components.nsd`
 - Wiring: `WaywardBeyond.Networking/NetworkingComposition.cs`
 
 ## Tests that pin this

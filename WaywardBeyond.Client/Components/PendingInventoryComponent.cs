@@ -1,4 +1,5 @@
 using Swordfish.ECS;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Components;
@@ -9,17 +10,11 @@ namespace WaywardBeyond.Client.Components;
 /// inventory-UI mutations themselves (which predict directly onto the local copy), the buffer retains
 /// every op so rapid moves between replication sends are not silently dropped.
 /// </summary>
-public struct PendingInventoryComponent : IDataComponent
+public struct PendingInventoryComponent() : IDataComponent
 {
     /// <summary>Ops authored by the inventory UI awaiting replication to the server.</summary>
-    public readonly InventoryOpStageBuffer Outbound;
+    public readonly InventoryOpStageBuffer Outbound = new();
 
     /// <summary>Monotonic op sequence counter; also used by <see cref="InventoryEvent.SequenceNumber"/>.</summary>
-    public uint NextSequence;
-
-    public PendingInventoryComponent()
-    {
-        Outbound = new InventoryOpStageBuffer();
-        NextSequence = 0;
-    }
+    public uint NextSequence = 0;
 }

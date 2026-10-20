@@ -11,21 +11,18 @@
     <ItemGroup>
         <PackageReference Include="CsvHelper" Version="33.1.0" />
         <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.6" />
+        <PackageReference Include="Needlefish.Generators" Version="1.2.0" PrivateAssets="all" />
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Swordfish.ECS\Swordfish.ECS.csproj" />
+      <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
       <ProjectReference Include="..\WaywardBeyond.Config\WaywardBeyond.Config.csproj" />
     </ItemGroup>
 
-    <PropertyGroup>
-        <!-- Generate code is being explicitly included, don't also implicitly include it -->
-        <DefaultItemExcludes>$(DefaultItemExcludes);CodeGen/Output/**/*.cs</DefaultItemExcludes>
-    </PropertyGroup>
-    <Target Name="RunCodeGen" BeforeTargets="CoreCompile">
-        <Exec Command="nsdc -r -i CodeGen -o ./CodeGen/Output"/>
-        <ItemGroup>
-            <Compile Include="CodeGen/Output/**/*.cs"/>
-        </ItemGroup>
-    </Target>
+    <ItemGroup>
+        <NsdFiles Include="Nsd/components.nsd" NeedlefishPartial="true" />
+        <NsdFiles Include="Nsd/network.nsd" NeedlefishPartial="true" />
+    </ItemGroup>
 
 </Project>

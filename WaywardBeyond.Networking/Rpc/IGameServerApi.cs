@@ -1,8 +1,8 @@
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using NsdRpc;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Networking.Rpc;
 

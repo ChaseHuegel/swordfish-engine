@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// A slot move operation carried by <see cref="InventoryEvent"/>. <see cref="Count"/> follows the

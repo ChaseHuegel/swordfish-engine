@@ -1,15 +1,13 @@
 #nullable enable
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Logging.Abstractions;
 using NsdRpc;
 using NsdRpc.Tcp;
-using WaywardBeyond.Client.Networking;
-using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Rpc;
 using Xunit;
+using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Networking.Rpc;
 
 namespace Swordfish.Tests;
 

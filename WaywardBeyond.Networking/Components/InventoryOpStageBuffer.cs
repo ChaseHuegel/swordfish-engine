@@ -1,4 +1,4 @@
-using Swordfish.ECS;
+using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Networking.Components;
 

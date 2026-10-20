@@ -4,8 +4,8 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using WaywardBeyond.Config;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
-using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Server;
 
@@ -15,46 +15,30 @@ namespace WaywardBeyond.Server;
 /// timeout. Consumes <see cref="ClientHeartbeatMessage"/>s and logs a warn when a client's sim tick
 /// falls behind by more than <c>NetworkingConfig.Server.TickLagWarnThreshold</c>.
 /// </summary>
-public sealed class ServerHeartbeatService : IServerWorldSystem
+public sealed class ServerHeartbeatService(
+    ServerPeers peers,
+    SessionManager sessions,
+    NetworkingConfig config,
+    ILogger<ServerHeartbeatService> logger,
+    SimulationStep simulationStep
+) : IServerWorldSystem
 {
-    private readonly ServerPeers _peers;
-    private readonly ILogger<ServerHeartbeatService> _logger;
-    private readonly SimulationStep _simulationStep;
-    private readonly SessionManager _sessions;
-    private readonly int _heartbeatIntervalMs;
-    private readonly uint _lagWarnThreshold;
+    private readonly int _heartbeatIntervalMs = ClampHeartbeat(config);
+    private readonly uint _lagWarnThreshold = (uint)Math.Max(1, config.Server.TickLagWarnThreshold.Get());
 
     private readonly HashSet<Uuid> _lagWarned = [];
 
-    private int _tpsFrames;
-    private long _tpsWindowStartedTicks;
     private int _tps;
-
-    private int _nextHeartbeatTicks;
-
-    public ServerHeartbeatService(
-        ServerPeers peers,
-        SessionManager sessions,
-        NetworkingConfig config,
-        ILogger<ServerHeartbeatService> logger,
-        SimulationStep simulationStep
-    ) {
-        _peers = peers;
-        _sessions = sessions;
-        _logger = logger;
-        _simulationStep = simulationStep;
-        _heartbeatIntervalMs = ClampHeartbeat(config);
-        _lagWarnThreshold = (uint)Math.Max(1, config.Server.TickLagWarnThreshold.Get());
-        _tpsWindowStartedTicks = Environment.TickCount;
-        _nextHeartbeatTicks = Environment.TickCount;
-    }
+    private int _tpsFrames;
+    private long _tpsWindowStartedTicks = Environment.TickCount;
+    private int _nextHeartbeatTicks = Environment.TickCount;
 
     public void Tick(float delta, DataStore store)
     {
         MeasureTps();
-        uint simTick = _simulationStep.CurrentSimTick;
+        uint simTick = simulationStep.CurrentSimTick;
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store != store)
             {
@@ -71,7 +55,7 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         //  longer retire the entry; prune it here instead so the set cannot grow with client churn.
         foreach (Uuid clientId in _lagWarned.ToArray())
         {
-            if (!_peers.TryGet(clientId, out _))
+            if (!peers.TryGet(clientId, out _))
             {
                 _lagWarned.Remove(clientId);
             }
@@ -87,10 +71,10 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
         {
             TPS = (uint)Math.Max(1, _tps),
             TickNumber = simTick,
-            PlayerCount = (uint)_sessions.Count,
+            PlayerCount = (uint)sessions.Count,
         };
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store == store)
             {
@@ -133,7 +117,7 @@ public sealed class ServerHeartbeatService : IServerWorldSystem
 
         if (_lagWarned.Add(clientId))
         {
-            _logger.LogWarning("Client {client} sim tick {clientTick} is {lag} ticks behind the server ({serverTick}).", clientId, clientTick, serverTick - clientTick, serverTick);
+            logger.LogWarning("Client {client} sim tick {clientTick} is {lag} ticks behind the server ({serverTick}).", clientId, clientTick, serverTick - clientTick, serverTick);
         }
     }
 }

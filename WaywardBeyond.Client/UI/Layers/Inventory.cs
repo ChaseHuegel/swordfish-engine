@@ -11,13 +11,12 @@ using Swordfish.Library.Collections;
 using Swordfish.Library.Extensions;
 using Swordfish.Library.IO;
 using Swordfish.Library.Util;
-using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Client.Player;
 using WaywardBeyond.Client.Systems;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.UI.Layers;
 

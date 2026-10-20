@@ -13,7 +13,8 @@ corrected automatically. The client reports a move as a discrete
 `InventoryEvent`; the server never trusts it without applying the shared
 resolver.
 
-Wire and staging live in `CodeGen/components.nsd` and
+Wire types live in `WaywardBeyond.Data/Nsd/components.nsd`. Component
+declarations live in `WaywardBeyond.Data/Components/`. Stage buffers live in
 `WaywardBeyond.Networking/Components/`. The resolver is
 `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`.
 
@@ -121,8 +122,10 @@ them until the behavior is designed.
 
 ## Source of truth
 
-- `WaywardBeyond.Networking/CodeGen/components.nsd`
-- `WaywardBeyond.Networking/Components/{InventoryEvent,SlotMoveOp,InventoryOpStageBuffer,NetworkComponent}.cs`
+- `WaywardBeyond.Data/Nsd/components.nsd`
+- `WaywardBeyond.Data/Components/{InventoryEvent,SlotMoveOp}.cs`
+- `WaywardBeyond.Data/Components/InventoryComponent.cs`
+- `WaywardBeyond.Networking/Components/{InventoryOpStageBuffer,NetworkComponent}.cs`
 - `WaywardBeyond.Gameplay/Interactions/InventoryResolver.cs`
 - `WaywardBeyond.Server/Systems/ServerInventorySystem.cs`
 - `WaywardBeyond.Client/Player/PlayerData.cs` (`ApplyMove`)

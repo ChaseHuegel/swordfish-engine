@@ -1,5 +1,9 @@
 # Improvement: nsdc unpack safety — submit the B1-B3 deserializer defect upstream
 
+> Historical: the repository now uses `Needlefish.Generators` instead of the
+> `nsdc` build step. The generated `Unpack` code and the guard requirement are
+> unchanged. Paths below describe the old `nsdc` output layout.
+
 - Type: improvement
 - Status: open
 - Workflow: ../specs/issues.md

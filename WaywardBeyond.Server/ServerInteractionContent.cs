@@ -2,7 +2,6 @@
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Server;
 

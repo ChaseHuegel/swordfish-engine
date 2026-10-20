@@ -1,5 +1,5 @@
 ﻿using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using NsdRpc;
 using Swordfish.ECS;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Permissions;
 

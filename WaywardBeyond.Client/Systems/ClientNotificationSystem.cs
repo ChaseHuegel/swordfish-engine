@@ -1,4 +1,3 @@
-using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Globalization;
 using WaywardBeyond.Client.Globalization;
@@ -7,6 +6,7 @@ using WaywardBeyond.Client.Saves;
 using WaywardBeyond.Client.Statistics;
 using WaywardBeyond.Client.UI;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking;
 
 namespace WaywardBeyond.Client.Systems;
@@ -26,22 +26,19 @@ internal sealed class ClientNotificationSystem : IEntitySystem
     private readonly LocalizedFormatter _localizedFormatter;
     private readonly ILocalization _localization;
     private readonly CharacterSaveManager _characterSaveManager;
-    private readonly ILogger<ClientNotificationSystem> _logger;
 
     public ClientNotificationSystem(
         in ClientInbound inbound,
         in NotificationService notificationService,
         in LocalizedFormatter localizedFormatter,
         in ILocalization localization,
-        in CharacterSaveManager characterSaveManager,
-        in ILogger<ClientNotificationSystem> logger
+        in CharacterSaveManager characterSaveManager
     ) {
         _inbound = inbound;
         _notificationService = notificationService;
         _localizedFormatter = localizedFormatter;
         _localization = localization;
         _characterSaveManager = characterSaveManager;
-        _logger = logger;
     }
 
     public void Tick(float delta, DataStore store)

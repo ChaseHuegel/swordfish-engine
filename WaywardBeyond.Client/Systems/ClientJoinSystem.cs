@@ -6,12 +6,12 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NsdRpc;
 using Swordfish.ECS;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Voxels.Building;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Voxels;
 

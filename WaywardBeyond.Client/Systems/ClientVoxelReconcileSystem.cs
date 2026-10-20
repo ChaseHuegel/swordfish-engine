@@ -1,10 +1,10 @@
 ﻿using Swordfish.ECS;
+using WaywardBeyond.Bricks;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Networking;
 using WaywardBeyond.Client.Services;
-using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Client.Systems;

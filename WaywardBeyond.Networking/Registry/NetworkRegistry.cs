@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data.Registry;
 
 namespace WaywardBeyond.Networking.Registry;
 

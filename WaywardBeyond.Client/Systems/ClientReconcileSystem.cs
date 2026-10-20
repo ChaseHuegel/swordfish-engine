@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Swordfish.ECS;
-using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Client.Networking;
+using WaywardBeyond.Data.Networking;
+using WaywardBeyond.Data.Registry;
 using WaywardBeyond.Networking.Components;
 using WaywardBeyond.Networking.Registry;
 using WaywardBeyond.Networking.Rpc;
-using WaywardBeyond.Client.Networking;
 
 namespace WaywardBeyond.Client.Systems;
 

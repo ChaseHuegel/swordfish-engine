@@ -1,5 +1,4 @@
 using WaywardBeyond.Data;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Server.Systems;
 

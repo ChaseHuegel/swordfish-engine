@@ -4,7 +4,7 @@ using System.Threading;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
 using WaywardBeyond.Config;
-using WaywardBeyond.Networking;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Networking.Discovery;
 
 namespace WaywardBeyond.Server;

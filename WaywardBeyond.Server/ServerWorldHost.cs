@@ -6,9 +6,7 @@ using DryIoc;
 using Microsoft.Extensions.Logging;
 using Shoal.Modularity;
 using NsdRpc;
-using Swordfish.ECS;
 using Swordfish.Library.Threading;
-using Swordfish.Library.Util;
 using WaywardBeyond.Server.Saves;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data;
@@ -265,7 +263,7 @@ public sealed class ServerWorldHost : IEntryPoint, IDisposable
             }
         }
 
-        IContainer worldContainer = ContainerTools.CreateChild(_container, RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: false);
+        IContainer worldContainer = _container.CreateChild(RegistrySharing.CloneAndDropCache, null, null, null, withDisposables: false);
         ServerWorld world;
         try
         {

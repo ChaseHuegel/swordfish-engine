@@ -9,7 +9,7 @@ namespace WaywardBeyond.Networking.Registry;
 /// <summary>
 /// Default payload codec for components that are nsd messages. It drives the generated
 /// <c>Serialize()</c>/<c>Deserialize(ReadOnlySpan&lt;byte&gt;)</c> methods emitted onto the
-/// (partial) component struct by <c>nsdc</c>.
+/// (partial) component struct by the Needlefish source generator.
 /// </summary>
 public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
     where T : struct, IDataComponent

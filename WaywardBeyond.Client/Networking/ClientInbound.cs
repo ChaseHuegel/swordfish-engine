@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using NsdRpc;
-using WaywardBeyond.Networking;
-using WaywardBeyond.Networking.Rpc;
+using WaywardBeyond.Data.Networking;
 
 namespace WaywardBeyond.Client.Networking;
 

@@ -4,8 +4,8 @@ using Swordfish.Library.Util;
 using WaywardBeyond.Client.Components;
 using WaywardBeyond.Client.Items;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking.Components;
 
 namespace WaywardBeyond.Client.Player;
 

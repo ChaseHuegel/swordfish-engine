@@ -4,14 +4,15 @@ using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Voxels;
-using WaywardBeyond.Server.Components;
 using WaywardBeyond.Bricks;
 using WaywardBeyond.Data;
+using WaywardBeyond.Data.Components;
+using WaywardBeyond.Data.Networking;
 using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
-using WaywardBeyond.Networking;
 using WaywardBeyond.Networking.Components;
+using WaywardBeyond.Server.Components;
+using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Server.Systems;
 
@@ -26,42 +27,22 @@ namespace WaywardBeyond.Server.Systems;
 /// creative mode is free. A hint-less or rejected interaction resolves to <see cref="InteractionAction.None"/>
 /// and is simply skipped.
 /// </summary>
-public sealed class ServerInteractionSystem : IServerWorldSystem
+public sealed class ServerInteractionSystem(
+    ServerPeers peers,
+    IInteractionContent content,
+    ILogger<ServerInteractionSystem> logger,
+    IInteractionHandlerRegistry handlerRegistry,
+    Func<DataStore, IVoxelInteractionWorld> worldFactory,
+    IBrickRegistry brickRegistry,
+    ServerSkillSystem skills,
+    SimulationStep simulationStep
+) : IServerWorldSystem
 {
-    private readonly ILogger<ServerInteractionSystem> _logger;
-    private readonly ServerPeers _peers;
-    private readonly IInteractionContent _content;
-    private readonly IInteractionHandlerRegistry _handlerRegistry;
-    private readonly IBrickRegistry _brickRegistry;
-    private readonly ServerSkillSystem _skills;
-    private readonly SimulationStep _simulationStep;
-    private readonly Func<DataStore, IVoxelInteractionWorld> _worldFactory;
-
     private readonly Dictionary<int, uint> _lastConsumedSequences = [];
-
-    public ServerInteractionSystem(
-        ServerPeers peers,
-        IInteractionContent content,
-        ILogger<ServerInteractionSystem> logger,
-        IInteractionHandlerRegistry handlerRegistry,
-        Func<DataStore, IVoxelInteractionWorld> worldFactory,
-        IBrickRegistry brickRegistry,
-        ServerSkillSystem skills,
-        SimulationStep simulationStep
-    ) {
-        _peers = peers;
-        _content = content;
-        _handlerRegistry = handlerRegistry;
-        _logger = logger;
-        _worldFactory = worldFactory;
-        _skills = skills;
-        _simulationStep = simulationStep;
-        _brickRegistry = brickRegistry;
-    }
 
     public void Tick(float delta, DataStore store)
     {
-        Tick(delta, store, _simulationStep.CurrentSimTick);
+        Tick(delta, store, simulationStep.CurrentSimTick);
     }
 
     /// <summary>Processes staged interactions for the given sim tick on the authoritative server world.</summary>
@@ -110,7 +91,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         Brick? placeable = null;
         if (heldItemID != null)
         {
-            Result<Brick> placeableResult = _content.GetPlaceable(heldItemID);
+            Result<Brick> placeableResult = content.GetPlaceable(heldItemID);
             if (placeableResult.Success)
             {
                 placeable = placeableResult.Value;
@@ -126,17 +107,17 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         //  Validate the hinted structure + cell against the authority store purely by identity and reach;
         //  no raycasting is needed (the client's screen-aim targeting produced the hint).
         Vector3 origin = mirror.Position;
-        IVoxelInteractionWorld world = _worldFactory(store);
+        IVoxelInteractionWorld world = worldFactory(store);
 
         InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, InteractionResolver.DEFAULT_REACH);
-        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
+        InteractionResolution resolution = InteractionResolver.Resolve(in request, world, brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {
             return;
         }
 
         //  Server-side mod hook: registered handlers run after base validation and may reject/override.
-        resolution = _handlerRegistry.Apply(request, resolution, heldItemID);
+        resolution = handlerRegistry.Apply(request, resolution, heldItemID);
         if (resolution.Action == InteractionAction.None)
         {
             return;
@@ -144,7 +125,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
 
         if (!store.TryGet(resolution.Entity, out VoxelWorldComponent voxelWorldComponent))
         {
-            _logger.LogWarning("Resolved interaction on entity {entity} but it no longer has a live voxel container.", resolution.Entity);
+            logger.LogWarning("Resolved interaction on entity {entity} but it no longer has a live voxel container.", resolution.Entity);
             return;
         }
 
@@ -156,13 +137,13 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             case InteractionAction.Break:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, new Voxel());
                 GrantLoot(store, player, mode, resolution.Voxel.ID);
-                _skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
+                skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: true);
                 break;
 
             case InteractionAction.Place:
                 voxelObject.Set(coordinate.X, coordinate.Y, coordinate.Z, resolution.Voxel);
                 ConsumeHeldItem(store, player, mode);
-                _skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
+                skills.OnInteractionApplied(store, player, resolution.Voxel.ID, isBreak: false);
                 break;
         }
 
@@ -173,7 +154,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
         Voxel newVoxel = voxelObject.Get(coordinate.X, coordinate.Y, coordinate.Z);
         BroadcastEdit(store, resolution.Entity, coordinate, newVoxel, interaction.SequenceNumber);
 
-        _logger.LogDebug("Applied {action} on entity {entity} at {coordinate} for player {player}.", resolution.Action, resolution.Entity, coordinate, player);
+        logger.LogDebug("Applied {action} on entity {entity} at {coordinate} for player {player}.", resolution.Action, resolution.Entity, coordinate, player);
     }
 
     /// <summary>
@@ -192,10 +173,10 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             Z = coordinate.Z,
             Voxel = voxel,
             Sequence = sequence,
-            BrickId = _brickRegistry.Name(voxel.ID),
+            BrickId = brickRegistry.Name(voxel.ID),
         };
 
-        foreach (ServerPeer peer in _peers.Peers)
+        foreach (ServerPeer peer in peers.Peers)
         {
             if (peer.World?.Store == store)
             {
@@ -236,7 +217,7 @@ public sealed class ServerInteractionSystem : IServerWorldSystem
             return;
         }
 
-        Result<ItemData> lootResult = _content.GetLoot(brokenBrickDataID);
+        Result<ItemData> lootResult = content.GetLoot(brokenBrickDataID);
         if (!lootResult.Success)
         {
             return;

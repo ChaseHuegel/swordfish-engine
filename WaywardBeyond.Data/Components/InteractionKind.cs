@@ -1,4 +1,4 @@
-namespace WaywardBeyond.Networking.Components;
+namespace WaywardBeyond.Data.Components;
 
 /// <summary>
 /// The discrete button edge of an <see cref="InteractionEvent"/>. Carried at the event's root; it is

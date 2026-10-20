@@ -25,7 +25,7 @@ and a 5 second busy timeout.
 
 The client owns `profile.db`. `characters` stores one raw nsd blob per
 character uuid. `level_metadata` stores one raw nsd blob per level guid; the
-model is `LevelMetadata` (`WaywardBeyond.Data/CodeGen/saves.nsd`), a wrapper
+model is `LevelMetadata` (`WaywardBeyond.Data/Nsd/saves.nsd`), a wrapper
 around the shared `Playtime` value so client-local per-level fields can be
 added later without touching the authoritative records. The client registers
 the stores behind the existing interfaces (`ICharacterStorage`,
@@ -159,7 +159,7 @@ no shared broker process to manage.
 - `WaywardBeyond.Server/ServerLevelManager.cs`
 - `WaywardBeyond.Server/ServerHostCommands.cs`
 - `WaywardBeyond.Server/ServerWorldHost.cs`
-- `WaywardBeyond.Data/CodeGen/{saves,voxels,levels}.nsd`
+- `WaywardBeyond.Data/Nsd/{saves,voxels,levels}.nsd`
 
 ## Tests that pin this
 

@@ -18,7 +18,7 @@ docs pass. It folds in what used to live in root `STYLE_GUIDE.md` and
 ## Build & test
 
 ```bash
-dotnet build                                        # Debug default; runs nsdc codegen
+dotnet build                                        # Debug default; runs Needlefish codegen
 dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
@@ -34,9 +34,10 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
   generator. Set the font id from `FontInfo` as the output name:
   `Reef/Manifest/msdf-atlas-gen.exe -font "<font>" -imageout <id>.bmp
   -json <id>.json -chars "<charset>"`.
-- No CI workflows exist (`.github/workflows/` is empty).
-- `nsdc` codegen runs automatically during build, driven by Exec targets in each
-  `.csproj` (e.g. `WaywardBeyond.Data.csproj`, `WaywardBeyond.Networking.csproj`).
+- CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
+- `Needlefish.Generators` runs as a Roslyn source generator during compilation.
+  The repository does not run `nsdc` as a build step. All `.nsd` files live in
+  `WaywardBeyond.Data/Nsd`. See [needlefish-codegen](specs/needlefish-codegen.md).
 
 ## Code style
 
@@ -196,10 +197,11 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 
 - Sensitive serialization (networking, data storage) uses the Needlefish format
   (`.nsd` files). Configs use TOML.
-- `.cs` files under `**/CodeGen/Output` are **auto-generated**. Never hand-edit
-  them. Change the `.nsd` source instead.
+- All schemas live in `WaywardBeyond.Data/Nsd`. `Needlefish.Generators` emits
+  the generated types during compilation. No generated `.cs` file is written to
+  the source tree.
 - When adding/removing/renaming fields on a serializable type, edit the `.nsd`
-  file, not the generated `.cs`.
+  file. See [needlefish-codegen](specs/needlefish-codegen.md).
 
 ### What not to do
 

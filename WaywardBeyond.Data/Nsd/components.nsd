@@ -1,5 +1,6 @@
 #version 1.0;
-#namespace WaywardBeyond.Networking.Components;
+#namespace WaywardBeyond.Data.Components;
+#include "saves.nsd";
 
 message InputComponent
 {
