@@ -14,7 +14,7 @@ using PhysicsSettings = Swordfish.Settings.PhysicsSettings;
 namespace Swordfish.Physics.Jolt;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
+public class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
     /// <summary>
     /// Jolt's <c>PhysicsSystem.Update(dt, steps, jobSystem)</c> overload uses a shared
