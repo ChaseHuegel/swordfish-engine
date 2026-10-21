@@ -2,6 +2,7 @@ using Swordfish.Library.Extensions;
 using JoltPhysicsSharp;
 using Swordfish.ECS;
 using Swordfish.Library.Threading;
+using Swordfish.Library.Types;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using CompoundShape = Swordfish.Library.Types.Shapes.CompoundShape;
@@ -78,6 +79,16 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         System = new PhysicsSystem(_settings);
         _jobSystem = new JobSystemThreadPool();
         _bodyInterface = System.BodyInterface;
+
+        //  Apply the configured gravity immediately, then react to runtime changes (config reloads, CLI
+        //  overrides, per-world settings) rather than sampling it per tick.
+        System.Gravity = _physicsSettings.Gravity.Get();
+        _physicsSettings.Gravity.Changed += OnGravityChanged;
+    }
+
+    private void OnGravityChanged(object? sender, DataChangedEventArgs<Vector3> e)
+    {
+        System.Gravity = e.NewValue;
     }
 
     public RaycastResult Raycast(in Ray ray)
@@ -88,6 +99,11 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         }
 
         return _context.WaitForResult(JoltRaycastRequest.Invoke, new JoltRaycastRequest(_store, System, ray, _broadPhaseFilter, _objectLayerFilter, _bodyFilter));
+    }
+
+    public void SetGravity(Vector3 gravity)
+    {
+        System.Gravity = gravity;
     }
 
     private void SetupCollisionFiltering()
