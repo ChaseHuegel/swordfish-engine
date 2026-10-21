@@ -16,6 +16,15 @@ namespace Swordfish.Physics.Jolt;
 // ReSharper disable once ClassNeverInstantiated.Global
 internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
 {
+    /// <summary>
+    /// Jolt's <c>PhysicsSystem.Update(dt, steps, jobSystem)</c> overload uses a shared
+    /// temp allocator, so two worlds simulating concurrently on two threads corrupt it and abort.
+    /// </summary>
+    private static readonly object _solverLock = new();
+    
+    private static readonly object _foundationLock = new();
+    private static bool _foundationInitialized;
+    
     private static class Layers
     {
         public static readonly ObjectLayer NonMoving = Physics.Layers.NON_MOVING;
@@ -56,11 +65,22 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
     public JoltPhysicsSystem(ILogger logger, PhysicsSettings physicsSettings)
     {
         _physicsSettings = physicsSettings;
-        
-        if (!Foundation.Init(doublePrecision: false))
+
+        if (!_foundationInitialized)
         {
-            logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
-            throw new Exception("Unable to initialize Jolt Foundation.");
+            lock (_foundationLock)
+            {
+                if (!_foundationInitialized)
+                {
+                    if (!Foundation.Init(doublePrecision: false))
+                    {
+                        logger.LogError("[JoltPhysics] Failed to initialize Foundation.");
+                        throw new Exception("Unable to initialize Jolt Foundation.");
+                    }
+
+                    _foundationInitialized = true;
+                }
+            }
         }
 
 #if DEBUG
@@ -80,8 +100,6 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         _jobSystem = new JobSystemThreadPool();
         _bodyInterface = System.BodyInterface;
 
-        //  Apply the configured gravity immediately, then react to runtime changes (config reloads, CLI
-        //  overrides, per-world settings) rather than sampling it per tick.
         System.Gravity = _physicsSettings.Gravity.Get();
         _physicsSettings.Gravity.Changed += OnGravityChanged;
     }
@@ -139,16 +157,19 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
         {
             while (_accumulator >= physicsDelta)
             {
-                FixedUpdate?.Invoke(this, EventArgs.Empty);
-                _context.ProcessMessageQueue();
+                lock (_solverLock)
+                {
+                    FixedUpdate?.Invoke(this, EventArgs.Empty);
+                    _context.ProcessMessageQueue();
 
-                var syncJoltToEntity = new SyncJoltToEntityAction(this);
-                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
-                
-                System.Update(physicsDelta, steps, _jobSystem);
+                    var syncJoltToEntity = new SyncJoltToEntityAction(this);
+                    store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntity);
+                    
+                    System.Update(physicsDelta, steps, _jobSystem);
 
-                var syncEntityToJolt = new SyncEntityToJoltAction(this);
-                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
+                    var syncEntityToJolt = new SyncEntityToJoltAction(this);
+                    store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJolt);
+                }
 
                 _accumulator -= physicsDelta;
             }
@@ -160,18 +181,21 @@ internal class JoltPhysicsSystem : IEntitySystem, IJoltPhysics, IPhysics
                 return;
             }
 
-            FixedUpdate?.Invoke(this, EventArgs.Empty);
-            _context.ProcessMessageQueue();
+            lock (_solverLock)
+            {
+                FixedUpdate?.Invoke(this, EventArgs.Empty);
+                _context.ProcessMessageQueue();
 
-            var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
-            store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
-            
-            System.Update(physicsDelta, steps, _jobSystem);
-            
-            var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
-            store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
+                var syncJoltToEntityAction = new SyncJoltToEntityAction(this);
+                store.Query<PhysicsComponent, TransformComponent, SyncJoltToEntityAction>(delta, ref syncJoltToEntityAction);
+                
+                System.Update(physicsDelta, steps, _jobSystem);
+                
+                var syncEntityToJoltAction = new SyncEntityToJoltAction(this);
+                store.QueryRef<PhysicsComponent, TransformComponent, SyncEntityToJoltAction>(delta, ref syncEntityToJoltAction);
 
-            _accumulator -= physicsDelta;
+                _accumulator -= physicsDelta;
+            }
         }
     }
 
