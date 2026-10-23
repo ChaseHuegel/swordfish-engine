@@ -35,8 +35,10 @@ calls `container.RegisterDataServices()` and
 `container.RegisterPermissions()`.
 
 The client module (`WaywardBeyond.Client/Injector.cs`) registers client-only
-services and the embedding's content choices. The dedicated launcher registers
-no services. It applies CLI overrides after the engine builds
+services and the embedding's content choices. It calls
+`container.RegisterTags()` because `LoadScreen` and `NameGenerator` read
+localized tags. The dedicated launcher registers no services. It applies CLI
+overrides after the engine builds
 (`WaywardBeyond.Server.Launcher/Program.cs`).
 
 ## Project-owned composition entries

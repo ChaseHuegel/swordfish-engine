@@ -1,14 +1,15 @@
 # Asset Definition TOML Formats
 
 One subject: the TOML config types that define game content (items, bricks,
-materials, skills). Item and brick definitions live under
-`WaywardBeyond.Client/assets/`; skills moved to the shared
-`WaywardBeyond.Skills/assets/` module, while brick/item localization stays
+materials, skills). Item definitions live under `WaywardBeyond.Client/assets/`.
+Brick definitions live in `WaywardBeyond.Bricks/assets/`. Skill definitions live
+in `WaywardBeyond.Skills/assets/`. Brick and item localization stays
 client-owned.
 
-Parser registration: `WaywardBeyond.Client/Injector.cs:315-317`
-(`RegisterTomlParser<BrickDefinitions/ItemDefinitions>`) and
-`WaywardBeyond.Skills/Injector.cs` (`RegisterTomlParser<SkillDefinitions/>`).
+Parser registration: `WaywardBeyond.Client/Injector.cs:276`
+(`RegisterTomlParser<ItemDefinitions>`), `WaywardBeyond.Bricks/Injector.cs:14`
+(`RegisterTomlParser<BrickDefinitions>`), and
+`WaywardBeyond.Skills/Injector.cs:16` (`RegisterTomlParser<SkillDefinitions>`).
 
 ## Items (`assets/items/*.toml`)
 
@@ -129,11 +130,17 @@ Each row is a `[[Skills]]` table:
 | `Category` | string (localization key) | |
 | `Icon` | string? | |
 | `[Skills.Sources.<Source>]` | map: brick id or `tag:X` → XP | keyed by `XPSource` (Place/Break) |
-| `[Skills.Levels]` | map: level → XP to advance from that level | strict thresholds, sorted on load |
+| `[Skills.Levels]` | map: level → XP to advance past the previous level | a level is reached only when total XP exceeds the running sum of requirements, and it is sorted on load |
 
 Tags expand through the invariant `lang/tags/*.toml` lists into brick data ids
-on load. `Name` and `Category` are localization keys resolved client-side (see
-[skills](skills.md) for the authoritative model).
+on load. The lists live in `WaywardBeyond.Skills/assets/lang/tags/`. `Name` and
+`Category` are localization keys. The server sends `Name` in notifications and
+the client resolves it. `Icon` and `Category` have no reader yet (see
+[0068](../issues/0068-skill-panel.md)).
+
+A skill is rejected at load when it has no `ID`, when its `ID` is already
+declared, when it carries no level curve, or when a level or its requirement is
+below 1. A rejected skill grants no XP. See [skills](skills.md).
 
 ## Bodies (`assets/bodies/*.toml`)
 
@@ -179,15 +186,17 @@ hosted in `WaywardBeyond.Data/Localization/`.
 ## Source of truth
 
 - `WaywardBeyond.Client/Items/{ItemDefinitions,ItemDefinition,ToolDefinition,PlaceableDefinition,ModelDefinition}.cs`
-- `WaywardBeyond.Client/Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
+- `WaywardBeyond.Bricks/{BrickDefinitions,BrickDefinition,BrickTextures}.cs`
 - `WaywardBeyond.Skills/{SkillDefinitions,SkillDefinition,XPSource,Skill}.cs`
 - `WaywardBeyond.Data/Localization/LocalizedTagsDefinition.cs`
 - `WaywardBeyond.Bodies/{BodyDefinitions,BodyDefinition,Body,BodyDatabase}.cs`
 - `WaywardBeyond.Bricks/BrickShape.cs`
 - `Swordfish/IO/MaterialDefinition.cs`
-- Parser registration: `WaywardBeyond.Skills/Injector.cs`,
-  `WaywardBeyond.Client/Injector.cs`
+- Parser registration: `WaywardBeyond.Skills/Injector.cs:16`,
+  `WaywardBeyond.Client/Injector.cs:276`, `WaywardBeyond.Bricks/Injector.cs:14`
 
 ## Tests that pin this
 
-No surviving tests.
+`Swordfish.Tests/SkillDatabaseTests.cs` loads the shipped skill and brick tomls
+and pins the schema, the tag expansion, and the level curve. See
+[skills](skills.md).

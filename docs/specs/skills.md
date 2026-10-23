@@ -12,11 +12,10 @@ renders notifications the server sends and records the authoritative totals into
 its local character save. No skill math, XP prediction, or level calculation runs
 client-side.
 
-Definitions and mechanics live in a shared module so both sides resolve the same
-data:
-- The **server** reads them to grant XP (sources, level curves).
-- The **client** reads nothing for gameplay; it only localizes the notification
-  keys the server sends (skill names and categories are localization keys).
+Definitions and mechanics live in a shared module. The server resolves them to
+grant XP (sources, level curves). The client module runs no skill math. It
+localizes only the notification keys the server sends, and skill names are
+localization keys.
 
 ## Definitions
 
@@ -25,19 +24,23 @@ that owns the headless models and the tomls:
 
 - `XPSource.cs` — `XPSource { Place, Break }`.
 - `SkillDefinition.cs`, `SkillDefinitions.cs` — the TOML schema.
-  Sources stay readable as `"rock" = 1` or `"tag:buildable" = 1`.
+  Sources stay readable as `"wb:rock" = 1` or `"tag:buildable" = 1`.
 - `Skill.cs` — the runtime asset: ID, name/category localization keys, icon
   path, level curve (`SortedDictionary`), and sources keyed by brick
-  **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick and
-  `CalculateLevel(long)` resolves the level for a total XP amount.
+  **data id**. `GetXP(XPSource, ushort)` resolves the XP for a brick.
+  `CalculateLevel(long)` resolves the level for a total XP amount. A level is
+  reached only when the total XP exceeds the sum of every requirement up to it,
+  so an exact threshold reports the lower level.
 - `SkillDatabase.cs` — headless loader (`VirtualAssetDatabase`). Expands
   `tag:&lt;name&gt;` sources into brick data ids through an injected
   `IBrickRegistry` (the same map the client `BrickDatabase` owns, so ids match
-  worldgen and placement), logs a warning on a source-set data-id collision, an
-  unknown brick id, or an unknown tag, caches the skills per `XPSource` for the
-  interaction hot path, and never touches localization, textures, or icons. The
-  tag lists come from the shared localized tag database (`ILocalizedTagsDatabase`,
-  see [asset-definitions](asset-definitions.md)), not from its own parsing.
+  worldgen and placement), logs a warning on an unknown brick id, an unknown
+  tag, or a brick listed twice in one source set, and caches the skills per
+  `XPSource` for the interaction hot path. It reads only the invariant gameplay
+  tag list from `ILocalizedTagsDatabase` (see
+  [asset-definitions](asset-definitions.md)). It never resolves display
+  localization, textures, or icons. It rejects a skill with no ID, a duplicate
+  ID, no level curve, or a level requirement below 1.
 - `ISkillDatabase.cs` — the public contract over the loaded `Skill`s.
 - `LevelInfo.cs` — the resolved level plus the XP earned into that level.
 - The transient, in-memory per-player XP table lives server-side as
@@ -95,4 +98,10 @@ increment; a max-level skill renders a full bar.
 
 ## Tests that pin this
 
-This module has no surviving tests.
+- `Swordfish.Tests/SkillDatabaseTests.cs` — the shipped definitions load, tag
+  sources expand to the brick data ids worldgen writes, skills group by
+  `XPSource`, the curve stays sorted, and the level thresholds and rejection
+  paths hold.
+- `Swordfish.Tests/ServerSkillSystemTests.cs` — the authoritative grant
+  accumulates into `SkillStateComponent`, an unknown brick grants nothing, and
+  a seeded total continues the curve.
