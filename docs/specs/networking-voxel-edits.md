@@ -41,11 +41,12 @@ prediction and server authority:
   (`TryGetBrickFromScreenSpace`: surface bias, reach-around probe rays, offset
   march-back). Server validation never raycasts; it validates the hinted
   structure + cell by identity.
-- Rules: within reach; break requires an occupied cell (or reach-around) ; place
-  requires the destination cell empty.
-- A hint-less event, or a hint that fails reach/occupancy/plausibility
-  (including one that disagrees with the ray-derived cell), resolves to
-  `Action.None`. The resolver never throws for a missing hint.
+- Rules: the brick is in reach when any part of its cell is within reach of
+  the player origin. Break requires an occupied cell. Place requires an empty
+  destination cell, a held placeable brick that the brick registry knows, and a
+  shape byte inside `BrickShape`. A hint-less event, or a hint that fails
+  reach/occupancy/plausibility, resolves to `Action.None`. The resolver never
+  throws for a missing hint.
 
 ## Authority apply
 

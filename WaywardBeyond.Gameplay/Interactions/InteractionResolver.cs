@@ -15,6 +15,8 @@ namespace WaywardBeyond.Gameplay.Interactions;
 /// </summary>
 public static class InteractionResolver
 {
+    private static readonly Vector3 HALF_CELL = new(0.5f);
+
     /// <summary>
     /// Validates the hinted structure + cell against the world and resolves the action. Never throws;
     /// a hint-less or invalid hint yields <see cref="InteractionAction.None"/>.
@@ -51,12 +53,11 @@ public static class InteractionResolver
         int entity = targetResult.Value.Entity;
 
         Int3 hintCell = new(hint.TargetX, hint.TargetY, hint.TargetZ);
-        float reachSquared = request.Reach * request.Reach;
 
-        //  Reach: the touched voxel position must be within the player's reach of the interaction
-        //  origin. A squared distance check keeps validation cheap.
-        Vector3 cellWorld = BrickToWorldSpace(hintCell, transform.Position, transform.Orientation);
-        if (Vector3.DistanceSquared(request.Origin, cellWorld) > reachSquared)
+        //  Reach: the brick is in reach when any part of its cell is within reach of the interaction
+        //  origin. Measuring to the nearest point of the cell matches client targeting, which hits a
+        //  face rather than the center.
+        if (!IsReachable(hintCell, request.Origin, in transform, request.Reach))
         {
             return InteractionResolution.None;
         }
@@ -80,8 +81,35 @@ public static class InteractionResolver
             return InteractionResolution.None;
         }
 
-        Voxel voxel = request.Placeable.ToVoxel((BrickShape)hint.HintShape, brickRegistry, new Orientation(hint.HintOrientation));
+        //  The hint carries a raw shape byte. Reject a value outside the enum before it reaches the
+        //  voxel, because ShapeLight keeps only four bits.
+        if (hint.HintShape > (byte)BrickShape.Any)
+        {
+            return InteractionResolution.None;
+        }
+
+        Brick placeable = request.Placeable;
+
+        //  An unregistered brick resolves to voxel id 0, which would consume the held item for an
+        //  empty write. Reject the place instead.
+        if (brickRegistry.Id(placeable.ID) == 0)
+        {
+            return InteractionResolution.None;
+        }
+
+        Voxel voxel = placeable.ToVoxel((BrickShape)hint.HintShape, brickRegistry, new Orientation(hint.HintOrientation));
         return new InteractionResolution(InteractionAction.Place, entity, hintCell, voxel);
+    }
+
+    /// <summary>Returns whether any part of a brick cell is within <paramref name="reach"/> of a world position.</summary>
+    public static bool IsReachable(in Int3 coordinate, Vector3 origin, in TransformComponent transform, float reach)
+    {
+        //  The cell is axis-aligned in brick space, so clamp the origin there instead of transforming
+        //  every cell corner into world space.
+        Vector3 localOrigin = Vector3.Transform(origin - transform.Position, Quaternion.Inverse(transform.Orientation));
+        var center = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);
+        Vector3 nearest = Vector3.Clamp(localOrigin, center - HALF_CELL, center + HALF_CELL);
+        return Vector3.DistanceSquared(localOrigin, nearest) <= reach * reach;
     }
 
     /// <summary>Maps a world position into the structure's brick-space coordinate.</summary>

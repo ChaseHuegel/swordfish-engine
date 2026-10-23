@@ -850,7 +850,8 @@ in IInteractionContent content,
         Vector3? reachAroundDir = null;
         Ray ray = cameraEntity.ScreenPointToRay((int)_windowContext.Resolution.X / 2, (int)_windowContext.Resolution.Y / 2, (int)_windowContext.Resolution.X, (int)_windowContext.Resolution.Y);
         //  TODO #319 offset origin by the player's collider without hardcoded value or allow raycasting against a layer mask
-        ray = new Ray(ray.Origin + new Vector3(0.26f) * ray.Vector, ray.Vector * 9.5f);
+        const float ORIGIN_OFFSET = 0.26f;
+        ray = new Ray(ray.Origin + ORIGIN_OFFSET * ray.Vector, ray.Vector * (CharacterDefaults.DEFAULT_REACH - ORIGIN_OFFSET));
         if (!TryRaycastBrickEntity(ray, out RaycastResult raycast, out voxelComponent, out transformComponent))
         {
             if (!reachAround || !TryReachAroundRaycasts(ray, cameraEntity, ref reachAroundDir, out voxelComponent, out transformComponent, out raycast))
