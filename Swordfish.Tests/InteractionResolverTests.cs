@@ -22,7 +22,7 @@ public class InteractionResolverTests
     [Fact]
     public void ResolvesABreakOnAnOccupiedCell()
     {
-        using VoxelObject voxels = FilledVoxels();
+        VoxelObject voxels = FilledVoxels();
         var request = Break(cell: 0, reach: 9.5f);
 
         InteractionResolution resolution = InteractionResolver.Resolve(in request, World(voxels), Registry());
@@ -35,7 +35,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsABreakOnAnEmptyCell()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         var request = Break(cell: 0, reach: 9.5f);
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
@@ -44,7 +44,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAHintlessRequest()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         var request = new InteractionRequest(Vector3.Zero, null, InteractionKind.PrimaryPressed, null, GameMode.Creative, 9.5f);
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
@@ -53,7 +53,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAReleaseEdge()
     {
-        using VoxelObject voxels = FilledVoxels();
+        VoxelObject voxels = FilledVoxels();
         var released = new InteractionRequest(
             Vector3.Zero,
             Hint(cell: 0),
@@ -69,7 +69,7 @@ public class InteractionResolverTests
     [Fact]
     public void ResolvesAPlaceOnAnEmptyCellWithTheRequestedShape()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Plate, brick: Placeable());
 
         InteractionResolution resolution = InteractionResolver.Resolve(in request, World(voxels), Registry());
@@ -82,7 +82,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAPlaceOnAnOccupiedCell()
     {
-        using VoxelObject voxels = FilledVoxels();
+        VoxelObject voxels = FilledVoxels();
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: Placeable());
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
@@ -91,7 +91,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAPlaceWithoutAHeldPlaceable()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: null);
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
@@ -100,7 +100,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAnOutOfRangeHintShape()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)(BrickShape.Any + 1), brick: Placeable());
 
         Assert.Equal(InteractionAction.None, InteractionResolver.Resolve(in request, World(voxels), Registry()).Action);
@@ -109,7 +109,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAPlaceableBrickMissingFromTheRegistry()
     {
-        using var voxels = new VoxelObject(4);
+        var voxels = new VoxelObject(4);
         Brick unknown = Placeable("wb:unknown");
         var request = Place(cell: 0, reach: 9.5f, shape: (byte)BrickShape.Block, brick: unknown);
 
@@ -119,7 +119,7 @@ public class InteractionResolverTests
     [Fact]
     public void ReachMeasuresToTheNearestCellPoint()
     {
-        using VoxelObject voxels = FilledVoxels();
+        VoxelObject voxels = FilledVoxels();
 
         //  The cell center is 10 m away on X. Its nearest face is 9.5 m away.
         var reaching = new InteractionRequest(
@@ -147,7 +147,7 @@ public class InteractionResolverTests
     [Fact]
     public void RejectsAnUnknownTargetEntity()
     {
-        using VoxelObject voxels = FilledVoxels();
+        VoxelObject voxels = FilledVoxels();
         var request = Break(cell: 0, reach: 9.5f);
 
         var otherWorld = new FakeWorld(Uuid.FromValue(99), new VoxelTarget(0, voxels, Transform()));

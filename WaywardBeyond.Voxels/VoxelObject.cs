@@ -1,19 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
-using System.Threading;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Voxels;
 
-public sealed class VoxelObject : IDisposable
+/// <summary>
+///     A sparse, chunked voxel container. One instance is used by one thread at a time. Do not access two threads at
+///     once and take a copy across a thread boundary.
+/// </summary>
+public sealed class VoxelObject
 {
     private static readonly Voxel _outOfBoundsVoxel = new(_ID: 0, _ShapeLight: new ShapeLight(default, lightLevel: 15), _Orientation: 0);
-    private Voxel _emptyVoxel = _outOfBoundsVoxel;
-    
+
+    /// <summary>
+    ///     Target for a read outside a resident chunk. It is reset to <see cref="_outOfBoundsVoxel"/> before each
+    ///     export, so a write through a returned reference cannot leak into a later read.
+    /// </summary>
+    private Voxel _outOfBoundsScratch = _outOfBoundsVoxel;
+
     //  TODO these being internal isn't great
-    internal readonly ReaderWriterLockSlim _lock;
     internal readonly Dictionary<Short3, ChunkData> _chunks;
     internal readonly byte _chunkSize;
     internal readonly int _chunkMask;
@@ -28,7 +34,6 @@ public sealed class VoxelObject : IDisposable
             throw new ArgumentOutOfRangeException(nameof(chunkSize), chunkSize, "Value must be a positive power of 2.");
         }
 
-        _lock = new ReaderWriterLockSlim(LockRecursionPolicy.NoRecursion);
         _chunks = [];
         _chunkSize = chunkSize;
         _chunkMask = chunkSize - 1;
@@ -54,19 +59,12 @@ public sealed class VoxelObject : IDisposable
             _chunks[chunkOffset] = chunkData;
         }
     }
-
-    public void Dispose()
-    {
-        _lock.Dispose();
-    }
     
     /// <summary>Number of resident chunks, for sizing containers without touching internals.</summary>
     public int ChunkCount => _chunks.Count;
     
     public void Set(int x, int y, int z, Voxel voxel)
     {
-        _lock.EnterWriteLock();
-
         var chunkX = (short)(x >> _chunkShift);
         var chunkY = (short)(y >> _chunkShift);
         var chunkZ = (short)(z >> _chunkShift);
@@ -101,21 +99,15 @@ public sealed class VoxelObject : IDisposable
         int index = localX + (localY << _chunkShift) + (localZ << _chunkShift2);
         var chunkVoxel = new ChunkVoxel(chunkData, ref chunkData.Data.Voxels[index]);
         chunkVoxel.Set(voxel);
-
-        _lock.ExitWriteLock();
     }
 
     public Voxel Get(int x, int y, int z)
     {
-        _lock.EnterReadLock();
-        Voxel voxel = GetUnsafe(x, y, z);
-        _lock.ExitReadLock();
-        return voxel;
+        return GetUnsafe(x, y, z);
     }
     
     internal ref Voxel GetUnsafe(int x, int y, int z)
     {
-
         var chunkX = (short)(x >> _chunkShift);
         var chunkY = (short)(y >> _chunkShift);
         var chunkZ = (short)(z >> _chunkShift);
@@ -123,7 +115,7 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
-            return ref _emptyVoxel;
+            return ref GetOutOfBoundsVoxel();
         }
         
         if (x < 0)
@@ -151,8 +143,6 @@ public sealed class VoxelObject : IDisposable
     
     public VoxelSample Sample(int x, int y, int z)
     {
-        _lock.EnterReadLock();
-
         var chunkX = (short)(x >> _chunkShift);
         var chunkY = (short)(y >> _chunkShift);
         var chunkZ = (short)(z >> _chunkShift);
@@ -160,18 +150,17 @@ public sealed class VoxelObject : IDisposable
         
         if (!_chunks.TryGetValue(chunkOffset, out ChunkData chunkData))
         {
-            _lock.ExitReadLock();
             return new VoxelSample(
                 chunkOffset: default,
                 chunkCoords: default,
                 coords: default,
-                center: ref _emptyVoxel,
-                left: ref _emptyVoxel,
-                right: ref _emptyVoxel,
-                ahead: ref _emptyVoxel,
-                behind: ref _emptyVoxel,
-                above: ref _emptyVoxel,
-                below: ref _emptyVoxel
+                center: ref GetOutOfBoundsVoxel(),
+                left: ref GetOutOfBoundsVoxel(),
+                right: ref GetOutOfBoundsVoxel(),
+                ahead: ref GetOutOfBoundsVoxel(),
+                behind: ref GetOutOfBoundsVoxel(),
+                above: ref GetOutOfBoundsVoxel(),
+                below: ref GetOutOfBoundsVoxel()
             );
         }
         
@@ -214,7 +203,7 @@ public sealed class VoxelObject : IDisposable
             int nY = localY + offsetY;
             int nZ = localZ + offsetZ;
 
-            if (nX > 0 && nY > 0 && nZ > 0 && nX < _chunkSize && nY < _chunkSize && nZ < _chunkSize)
+            if (nX >= 0 && nY >= 0 && nZ >= 0 && nX < _chunkSize && nY < _chunkSize && nZ < _chunkSize)
             {
                 int neighborIndex = nX + (nY << _chunkShift) + (nZ << _chunkShift2);
                 if (neighborIndex >= 0 && neighborIndex < _voxelsPerChunk)
@@ -226,41 +215,44 @@ public sealed class VoxelObject : IDisposable
             return ref GetUnsafe(x + offsetX, y + offsetY, z + offsetZ);
         }
         
-        _lock.ExitReadLock();
         return sample;
+    }
+
+    /// <summary>Returns a ref to a voxel that does not exist in any resident chunk.</summary>
+    private ref Voxel GetOutOfBoundsVoxel()
+    {
+        _outOfBoundsScratch = _outOfBoundsVoxel;
+        return ref _outOfBoundsScratch;
     }
     
     public Enumerator GetEnumerator()
     {
-        _lock.EnterUpgradeableReadLock();
-        _lock.EnterWriteLock();
-        return new Enumerator(_chunks, _lock);
+        return new Enumerator(_chunks);
     }
 
-    public ref struct Enumerator(in Dictionary<Short3, ChunkData> chunks, in ReaderWriterLockSlim @lock) : IDisposable
+    public ref struct Enumerator(in Dictionary<Short3, ChunkData> chunks)
     {
         public ChunkData Current => _chunkEnumerator.Current;
         
-        private readonly ReaderWriterLockSlim _lock = @lock;
         private Dictionary<Short3, ChunkData>.ValueCollection.Enumerator _chunkEnumerator = chunks.Values.GetEnumerator();
         
-        public void Dispose()
-        {
-            _lock.ExitWriteLock();
-            _lock.ExitUpgradeableReadLock();
-        }
-
         public bool MoveNext()
         {
             return _chunkEnumerator.MoveNext();
         }
     }
     
+    /// <summary>Returns a copy of every resident chunk. The caller owns the voxel arrays.</summary>
     public ChunkInfo[] GetChunkInfos()
     {
-        _lock.EnterReadLock();
-        ChunkInfo[] chunkInfos = _chunks.Values.Select(chunkData => chunkData.ToChunkInfo()).ToArray();
-        _lock.ExitReadLock();
+        var chunkInfos = new ChunkInfo[_chunks.Count];
+        var index = 0;
+        foreach (ChunkData chunkData in _chunks.Values)
+        {
+            chunkInfos[index] = chunkData.ToChunkInfo();
+            index++;
+        }
+
         return chunkInfos;
     }
 }

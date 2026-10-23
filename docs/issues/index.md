@@ -41,6 +41,7 @@ is not part of this workflow.
 - [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
 - [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
+- [ ] [The server integration test writes the store off the server thread](/docs/issues/0082-test-writes-store-off-thread.md) — seeding a live world from the test thread races the `"Server"` tick
 - [ ] [The user claim is unauthenticated](/docs/issues/0064-unauthenticated-user-claim.md) — any client can present any user id, so a GUID's secrecy is the whole authorization model
 - [ ] [Voxel palette count means two different things](/docs/issues/0070-voxel-palette-count-semantics.md) — `Count()` returns distinct ids, so the empty-chunk guard never fires and each empty chunk asks for 4095 spare slots
 - [ ] [The voxel container leaks live voxel arrays](/docs/issues/0071-voxel-container-leaks-live-arrays.md) — `GetChunkInfos` and `VoxelCodec.Encode` hand out arrays the container still owns
@@ -67,7 +68,7 @@ is not part of this workflow.
 - [ ] [The voxel palette locks on a dictionary](/docs/issues/0075-voxel-palette-lock-target.md) — `lock` on a field with meaningful identity, and nothing contends for it
 - [ ] [VoxelCodec reports failure through Result](/docs/issues/0076-voxel-codec-result.md) — a skipped encode and a structural failure look the same to all four call sites
 - [ ] [Preserve unknown bricks across a save round trip](/docs/issues/0077-preserve-unknown-bricks.md) — an unknown palette name becomes the empty voxel, so a modded save loaded in vanilla is destroyed on re-save
-- [ ] [Delete dead voxel members and settle container lifetime](/docs/issues/0078-dead-voxel-members.md) — unused `Orientation` members and an `IDisposable` no caller honours
+- [ ] [Delete dead voxel members and state container ownership](/docs/issues/0078-dead-voxel-members.md) — unused `Orientation` members and no stated owner for the container a component holds
 - [ ] [Document the voxel public surface](/docs/issues/0079-document-voxel-surface.md) — the new shared assembly has almost no contract docs and no `<inheritdoc/>`
 - [ ] [Encapsulate VoxelObject internals](/docs/issues/0080-encapsulate-voxel-object.md) — `ChunkData` re-derives index math from raw internal fields, under a `TODO`
 - [ ] [Harden the voxel module](/docs/issues/0081-voxels-tech-debt.md) — unmasked `ShapeLight` nibbles, a heavyweight transitive `Data` dependency, and an undocumented angle unit

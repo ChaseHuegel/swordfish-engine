@@ -4,9 +4,9 @@ namespace WaywardBeyond.Voxels;
 
 public ref struct VoxelSample
 {
-    public Int3 ChunkOffset;
-    public Int3 ChunkCoords;
-    public Int3 Coords;
+    public readonly Int3 ChunkOffset;
+    public readonly Int3 ChunkCoords;
+    public readonly Int3 Coords;
     public ref Voxel Center;
     public ref Voxel Left;
     public ref Voxel Right;

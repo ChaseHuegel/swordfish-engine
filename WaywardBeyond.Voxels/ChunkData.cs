@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Threading;
 using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Voxels;
@@ -68,34 +67,28 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
     
     private readonly VoxelObject _voxelObject = voxelObject;
 
+    /// <summary>Returns a copy of this chunk that the caller owns.</summary>
     public ChunkInfo ToChunkInfo()
     {
-        return new ChunkInfo(Coords.X, Coords.Y, Coords.Z, Data);
+        Chunk source = Data;
+        Voxel[] voxels = source.Voxels;
+        var copy = new Voxel[voxels.Length];
+        Array.Copy(voxels, copy, voxels.Length);
+
+        return new ChunkInfo(Coords.X, Coords.Y, Coords.Z, new Chunk(source.Size, copy));
     }
 
     public Enumerator GetEnumerator()
     {
-        Voxel[] voxels = Data.Voxels;
-        return new Enumerator(voxels);
+        return new Enumerator(Data.Voxels);
     }
     
-    public ref struct Enumerator : IDisposable
+    public ref struct Enumerator(Voxel[] voxels)
     {
         public ref Voxel Current => ref _voxels[_index];
 
-        private Voxel[] _voxels;
+        private readonly Voxel[] _voxels = voxels;
         private int _index = -1;
-
-        public Enumerator(Voxel[] voxels)
-        {
-            _voxels = voxels;
-            Monitor.Enter(voxels);
-        }
-
-        public void Dispose()
-        {
-            Monitor.Exit(_voxels);
-        }
 
         public bool MoveNext()
         {
