@@ -112,7 +112,8 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
 
         //  Replay: resolve per sim tick from the pending ring (newest-per-sim-tick, matching the
         //  server's staging), so after a reconcile AlignTo the surviving in-flight inputs re-apply
-        //  tick-exactly instead of the newest live sample being re-applied every step.
+        //  tick-exactly instead of the newest live sample being re-applied every step. A ring with no
+        //  sample at or below the tick is idle input, which resolves the same way on both sides.
         if (store.TryGet(entity, out PendingInputComponent pending) && pending.Ring != null)
         {
             Result<InputComponent> staged = pending.Ring.GetCommand(simTick);
@@ -123,9 +124,8 @@ internal sealed class ClientPlayerMotionProcessor : IEntitySystem
             }
         }
 
-        //  Fallback for entities without a pending ring (or whose ring is fully trimmed): the live
-        //  component.
-        return store.TryGet(entity, out command);
+        command = default;
+        return false;
     }
 
     private struct PlayerMovedAction : IForEach<PlayerComponent, TransformComponent>

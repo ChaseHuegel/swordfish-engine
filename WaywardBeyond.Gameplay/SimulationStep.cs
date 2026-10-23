@@ -95,65 +95,64 @@ public sealed class SimulationStep : IDisposable
 
     private void Execute(int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
     {
-        //  The command for the current sim tick. Newest-for-tick collapse is handled by the resolver;
-        //  a missing command simply leaves the pose unchanged this step (idle).
-        if (!_resolveCommand(entity, CurrentSimTick, out InputComponent command))
-        {
-            return;
-        }
-
         ref readonly TransformComponent transformValue = ref transform.Read;
 
         //  The solver's fixed timestep scales the per-step impulses; both sides run the same step.
         float fixedTimestamp = _physics.FixedTimestamp;
 
-        //  Mirror the current values so an idle command (one that reproduces the current state) can
-        //  skip the write. A Write marks the component dirty even when the value is unchanged, and
-        //  the server replicates this component to every client.
+        //  Mirror the current values so an idle step (one that reproduces the current state) can skip
+        //  the write. A Write marks the component dirty even when the value is unchanged, and the
+        //  server replicates this component to every client.
         PhysicsComponent current = physics.Read;
         Vector3 torque = current.Torque;
         Vector3 velocity = current.Velocity;
 
-        //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as torque,
-        //  decoupled from dt so each step rotates by the full accumulated delta.
+        //  Damping runs every step, with or without a command. A tick without a command is idle input,
+        //  not a frozen body: skipping the damping would let a stalled input stream coast forever.
         torque += -torque * fixedTimestamp * CharacterDefaults.ANGULAR_DECELERATION;
-        if (torque.LengthSquared() <= 0.00001f)
+        if (torque.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
         {
-            torque = new Vector3();
+            torque = Vector3.Zero;
         }
 
-        //  Look totals are absolute per session, so the delta is tracked per entity identity: a
-        //  recycled store index must never inherit a prior session's totals.
-        Uuid owner = _store.GetUuid(entity);
-        var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
-        if (owner != Uuid.Null)
+        velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
+        if (velocity.LengthSquared() <= CharacterDefaults.STOP_EPSILON)
         {
-            if (_lastAppliedLook.TryGetValue(owner, out Vector3 lastApplied))
+            velocity = Vector3.Zero;
+        }
+
+        //  The command for the current sim tick. Newest-for-tick collapse is handled by the resolver;
+        //  a missing command leaves the damping above as the whole step.
+        if (_resolveCommand(entity, CurrentSimTick, out InputComponent command))
+        {
+            //  Look: the wire carries absolute look totals; apply their per-sim-tick difference as
+            //  angular velocity, decoupled from dt so each step rotates by the full accumulated delta.
+            //  Totals are absolute per session, so the delta is tracked per entity identity: a recycled
+            //  store index must never inherit a prior session's totals.
+            Uuid owner = _store.GetUuid(entity);
+            var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
+            if (owner != Uuid.Null)
             {
-                Vector3 perStep = lookTotals - lastApplied;
-                if (perStep != Vector3.Zero)
+                if (_lastAppliedLook.TryGetValue(owner, out Vector3 lastApplied))
                 {
-                    torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
+                    Vector3 perStep = lookTotals - lastApplied;
+                    if (perStep != Vector3.Zero)
+                    {
+                        torque += Vector3.Transform(perStep / fixedTimestamp, transformValue.Orientation);
+                    }
                 }
+
+                _lastAppliedLook[owner] = lookTotals;
             }
 
-            _lastAppliedLook[owner] = lookTotals;
+            //  Movement: derive world-space direction from the command and the current orientation.
+            Vector3 forward = transformValue.GetForward();
+            Vector3 right = transformValue.GetRight();
+            Vector3 up = transformValue.GetUp();
+            Vector3 direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
+
+            velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
         }
-
-        //  Movement: derive world-space direction from the command and the current orientation.
-        Vector3 forward = transformValue.GetForward();
-        Vector3 right = transformValue.GetRight();
-        Vector3 up = transformValue.GetUp();
-        Vector3 direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
-
-        //  Damping then input-driven velocity (matches the legacy floaty-motion feel).
-        velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
-        if (velocity.LengthSquared() <= 0.00001f)
-        {
-            velocity = new Vector3();
-        }
-
-        velocity += direction * CharacterDefaults.BASE_SPEED * fixedTimestamp;
 
         if (torque != current.Torque)
         {

@@ -56,8 +56,14 @@ staged ring uses the same lookup, so both sides consume the same command-per-tic
 sequence and "same input sequence → same state" holds.
 
 The client ring is staged by `ClientInputSystem` and trimmed in place by
-`ClientReconcileSystem`. A player without a ring (or a fully trimmed one) falls
-back to its live component.
+`ClientReconcileSystem`. A player without a ring, or a ring with no sample at or
+below the sim tick, resolves no command. That is idle input and it resolves the
+same way on both sides: the step damps the body and applies no movement. There is
+no fallback to the live component, so a replay gap cannot move one side and not
+the other.
+
+Damping runs every step, with or without a command. A stalled input stream slows
+the body to rest instead of letting it coast at its last velocity.
 
 ## Prediction acks
 

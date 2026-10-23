@@ -27,6 +27,9 @@ public static class CharacterDefaults
     /// <summary>The per-second angular velocity damping factor.</summary>
     public const float ANGULAR_DECELERATION = 10f;
 
+    /// <summary>A squared velocity at or below this magnitude snaps to rest.</summary>
+    public const float STOP_EPSILON = 0.00001f;
+
     /// <summary>The character's scale.</summary>
     public static readonly Vector3 PlayerScale = Vector3.One;
 
