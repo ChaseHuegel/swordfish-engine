@@ -101,6 +101,22 @@ uses all-caps members (`RUNNING`, `SUCCESS`, `FAILED`) — scoped to that type.
 - `??` / `??=` for coalescing.
 - `?? throw` for guard clauses in constructors.
 
+### Type files
+
+A file is named for the type it declares.
+
+A generic type adds its type parameters to the file name after `Of`. This
+follows the Microsoft convention for generic type names.
+
+| Type | File |
+|---|---|
+| `Result<T>` | `ResultOfT.cs` |
+| `IFilter<T>` | `IFilterOfT.cs` |
+| `IAssetDatabase<TAsset>` | `IAssetDatabaseOfTAsset.cs` |
+| `SwitchDictionary<TKey1, TKey2, TValue>` | `SwitchDictionaryOfTKey1TKey2TValue.cs` |
+
+The type keeps its declared name. Only the file name carries the parameters.
+
 ### Types
 
 - **Structs**: ECS components (`: IDataComponent`), small data holders, math

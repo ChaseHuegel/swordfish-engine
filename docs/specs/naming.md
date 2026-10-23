@@ -4,8 +4,8 @@ A living document. It records the naming conventions the repository uses today
 and how they evolve over time. When a convention changes or a new one emerges,
 update it in the change that introduces it. Keep one name per thing across
 modules. Match a sibling module before choosing a name. The base style —
-PascalCase, `_` private fields, `I` prefixes, type placement — lives in
-[development](../development.md).
+PascalCase, `_` private fields, `I` prefixes, type file names, and type
+placement — lives in [development](../development.md).
 
 The sections below record the current conventions. They grow as the repository
 grows. This document should be updated as conventions are established or arise.
