@@ -24,14 +24,18 @@ public readonly struct VoxelPalette()
     {
         lock (_voxelCounts)
         {
-            if (_voxelCounts.TryGetValue(id, out int value) && value <= 1)
+            if (!_voxelCounts.TryGetValue(id, out int value))
+            {
+                return;
+            }
+
+            if (value <= 1)
             {
                 _voxelCounts.Remove(id);
+                return;
             }
-            else
-            {
-                _voxelCounts[id] = value - 1;
-            }
+
+            _voxelCounts[id] = value - 1;
         }
     }
 

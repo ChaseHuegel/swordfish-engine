@@ -59,6 +59,18 @@ public class VoxelPaletteTests
         Assert.True(palette.Only(0));
     }
 
+    [Fact]
+    public void DecrementOfAnUnknownIdDoesNotInsertAnEntry()
+    {
+        var palette = new VoxelPalette();
+
+        palette.Decrement(7);
+
+        Assert.False(palette.Any(7));
+        Assert.Equal(0, palette.Count(id: 7));
+        Assert.Equal(0, palette.Count());
+    }
+
     private static ChunkData Single(VoxelObject voxels)
     {
         foreach (ChunkData chunk in voxels)
