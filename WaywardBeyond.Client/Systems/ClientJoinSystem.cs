@@ -297,7 +297,18 @@ internal sealed class ClientJoinSystem : IEntitySystem
 
         //  Resolve the server's palette-indexed voxel ids into this process's local id space.
         VoxelEntityData local = VoxelCodec.Decode(data, _brickRegistry);
-        var voxelObject = new VoxelObject(chunkSize, local.Chunks);
+
+        VoxelObject voxelObject;
+        try
+        {
+            voxelObject = new VoxelObject(chunkSize, local.Chunks);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Skipped streamed voxel entity {uuid} with malformed chunk data.", data.Uuid);
+            return;
+        }
+
         _voxelBuilder.Create(
             store,
             Uuid.FromValue(data.Uuid),

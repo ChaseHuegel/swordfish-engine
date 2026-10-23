@@ -47,15 +47,32 @@ public sealed class VoxelObject
         for (var i = 0; i < chunkInfos.Length; i++)
         {
             ChunkInfo chunkInfo = chunkInfos[i];
+            Chunk chunk = chunkInfo.Chunk;
+
+            if (chunk.Size != _chunkSize)
+            {
+                throw new ArgumentException(
+                    $"Chunk {chunkInfo.OffsetX},{chunkInfo.OffsetY},{chunkInfo.OffsetZ} has size {chunk.Size}, expected {_chunkSize}.",
+                    nameof(chunkInfos)
+                );
+            }
+
+            if (chunk.Voxels == null || chunk.Voxels.Length != _voxelsPerChunk)
+            {
+                throw new ArgumentException(
+                    $"Chunk {chunkInfo.OffsetX},{chunkInfo.OffsetY},{chunkInfo.OffsetZ} must hold {_voxelsPerChunk} voxels.",
+                    nameof(chunkInfos)
+                );
+            }
 
             var palette = new VoxelPalette();
-            for (var n = 0; n < chunkInfo.Chunk.Voxels.Length; n++)
+            for (var n = 0; n < chunk.Voxels.Length; n++)
             {
-                palette.Increment(chunkInfo.Chunk.Voxels[n].ID);
+                palette.Increment(chunk.Voxels[n].ID);
             }
             
             var chunkOffset = new Short3(chunkInfo.OffsetX, chunkInfo.OffsetY, chunkInfo.OffsetZ);
-            var chunkData = new ChunkData(chunkOffset, chunkInfo.Chunk, voxelObject: this, palette);
+            var chunkData = new ChunkData(chunkOffset, chunk, voxelObject: this, palette);
             _chunks[chunkOffset] = chunkData;
         }
     }

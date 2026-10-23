@@ -38,7 +38,14 @@ internal class VoxelEntityModelSerializer : ISerializer<VoxelEntityModel>
 
         var position = new Vector3((float)voxelEntityData.X, (float)voxelEntityData.Y, (float)voxelEntityData.Z);
         var orientation = new Quaternion(voxelEntityData.OrientationX, voxelEntityData.OrientationY, voxelEntityData.OrientationZ, voxelEntityData.OrientationW);
-        var voxelObject = new VoxelObject(chunkSize: 16, voxelEntityData.Chunks);
+
+        byte chunkSize = voxelEntityData.Chunks.Length > 0 ? voxelEntityData.Chunks[0].Chunk.Size : (byte)0;
+        if (chunkSize <= 0 || (chunkSize & (chunkSize - 1)) != 0)
+        {
+            chunkSize = 16;
+        }
+
+        var voxelObject = new VoxelObject(chunkSize, voxelEntityData.Chunks);
         
         return new VoxelEntityModel(Uuid.FromValue(voxelEntityData.Uuid), position, orientation, voxelObject);
     }

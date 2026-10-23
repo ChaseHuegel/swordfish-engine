@@ -142,13 +142,16 @@ public readonly struct ChunkData(in Short3 coords, in Chunk data, in VoxelObject
             int z = _voxelIndex >> voxelObject._chunkShift2;
 
             ref Voxel center = ref _currentVoxels[_voxelIndex];
-            
-            Int3 leftOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Left];
-            Int3 rightOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Right];
-            Int3 aheadOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Ahead];
-            Int3 behindOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Behind];
-            Int3 aboveOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Above];
-            Int3 belowOffset = _neighborOffsetLookup[center.Orientation][(int)Neighbor.Below];
+
+            //  Orientation arrives from disk and the wire as a raw byte, so mask it to the 64 stored values.
+            int orientation = center.Orientation & 0x3F;
+
+            Int3 leftOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Left];
+            Int3 rightOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Right];
+            Int3 aheadOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Ahead];
+            Int3 behindOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Behind];
+            Int3 aboveOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Above];
+            Int3 belowOffset = _neighborOffsetLookup[orientation][(int)Neighbor.Below];
 
             return new VoxelSample(
                 chunkOffset: _chunkWorldCoords,
