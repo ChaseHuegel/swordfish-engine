@@ -86,10 +86,17 @@ public sealed class SimulationStep : IDisposable
             PruneLookHistory();
         }
 
-        _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent>(0f, ForEach);
-        void ForEach(float f, DataStore dataStore, int entity, ref Ref<InputComponent> @ref, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
+        StepAction action = new() { Owner = this };
+        _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent, StepAction>(0f, ref action);
+    }
+
+    private struct StepAction : IForEachRef<InputComponent, PhysicsComponent, TransformComponent>
+    {
+        public SimulationStep Owner;
+
+        public void Execute(float delta, DataStore store, int entity, ref Ref<InputComponent> input, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
         {
-            Execute(entity, ref physics, ref transform);
+            Owner.Execute(entity, ref physics, ref transform);
         }
     }
 
