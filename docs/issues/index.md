@@ -44,7 +44,7 @@ is not part of this workflow.
 - [ ] [The server integration test writes the store off the server thread](/docs/issues/0082-test-writes-store-off-thread.md) — seeding a live world from the test thread races the `"Server"` tick
 - [ ] [The user claim is unauthenticated](/docs/issues/0064-unauthenticated-user-claim.md) — any client can present any user id, so a GUID's secrecy is the whole authorization model
 - [ ] [Voxel palette count means two different things](/docs/issues/0070-voxel-palette-count-semantics.md) — `Count()` returns distinct ids, so the empty-chunk guard never fires and each empty chunk asks for 4095 spare slots
-- [ ] [The voxel container leaks live voxel arrays](/docs/issues/0071-voxel-container-leaks-live-arrays.md) — `GetChunkInfos` and `VoxelCodec.Encode` hand out arrays the container still owns
+- [ ] [The voxel container leaks live voxel arrays](/docs/issues/0071-voxel-container-leaks-live-arrays.md) — `VoxelCodec.Encode` still reuses the caller's chunk arrays
 - [ ] [The two voxel sample producers disagree](/docs/issues/0072-voxel-sample-producers-disagree.md) — one rotates neighbours by voxel orientation and one does not; one leaves the coordinate fields at zero
 - [ ] [Voxel chunks are unbounded and chunk coordinates truncate](/docs/issues/0073-unbounded-voxel-chunks.md) — a `short` chunk cast wraps a distant write into a resident chunk, and `_chunks` never shrinks
 

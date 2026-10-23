@@ -49,7 +49,7 @@ name), `Name(id)`. It is injected, never a global static.
 |---|---|
 | `SkillDatabase` | an injected `IBrickRegistry` |
 | `LevelGenerator` | an `IBrickRegistry` constructor argument |
-| `Brick.ToVoxel` / `InteractionResolver` | the caller's `IBrickRegistry` |
+| `BrickExtensions.ToVoxel` / `InteractionResolver` | the caller's `IBrickRegistry` |
 | `VoxelCodec` | an `IBrickRegistry` argument |
 | `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickRegistry` |
 
