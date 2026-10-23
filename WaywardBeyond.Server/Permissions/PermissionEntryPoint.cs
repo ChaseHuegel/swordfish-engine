@@ -10,6 +10,7 @@ namespace WaywardBeyond.Server.Permissions;
 /// </summary>
 public sealed class PermissionEntryPoint(PermissionPolicy policy, ILogger<PermissionEntryPoint> logger) : IEntryPoint
 {
+    /// <inheritdoc/>
     public void Run()
     {
         logger.LogInformation("Loaded permissions: {groups} groups, {users} users.", policy.GroupCount, policy.UserCount);

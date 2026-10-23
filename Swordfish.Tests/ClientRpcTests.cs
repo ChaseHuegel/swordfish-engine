@@ -17,6 +17,7 @@ using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using Xunit;
 
@@ -31,7 +32,7 @@ public class ClientRpcTests
         var transport = new LoopbackRpcServerTransport();
         var config = new NetworkingConfig();
         var peers = new ServerPeers();
-        var manager = new ServerLevelManager(catalog, PermissionPolicy.Create([]), NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(catalog, new PermissionResolver(PermissionPolicy.Create([])), NullLoggerFactory.Instance);
         var commands = new ServerHostCommands(manager,
             BrickRegistry.FromNames([]),
             config,

@@ -45,6 +45,7 @@ public static class ServerComposition
 
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
         container.RegisterPermissions();
+        container.Register<PermissionResolver>(Reuse.Singleton);
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 

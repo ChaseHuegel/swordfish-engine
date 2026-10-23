@@ -15,6 +15,8 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerHandlers : GameServerApiHandler
 {
+    private const int MAX_USER_ID_LENGTH = 128;
+
     private readonly ServerPeers _peers;
     private readonly ServerHostCommands _commands;
     private readonly ILogger<ServerHandlers> _logger;
@@ -28,10 +30,28 @@ public sealed class ServerHandlers : GameServerApiHandler
 
     public override void OnClientHello(ClientHello message, RpcContext context, CancellationToken cancellationToken)
     {
-        if (TryGetPeer(in context, out ServerPeer peer))
+        if (!TryGetPeer(in context, out ServerPeer peer))
         {
-            peer.Claim = new UserClaim(message.UserId ?? string.Empty);
+            return;
         }
+
+        //  The claim decides every permission check, so it is fixed before a world binds it.
+        if (peer.World != null)
+        {
+            _logger.LogWarning("Ignored a ClientHello from client {clientId}: the client already joined a world.", peer.GameId);
+            return;
+        }
+
+        string userId = message.UserId?.Trim() ?? string.Empty;
+        if (userId.Length > MAX_USER_ID_LENGTH)
+        {
+            _logger.LogWarning(
+                "Ignored a ClientHello from client {clientId}: the user id exceeds {limit} characters.",
+                peer.GameId, MAX_USER_ID_LENGTH);
+            return;
+        }
+
+        peer.Claim = new UserClaim(userId);
     }
 
     public override void OnLeaveGame(LeaveGameRequest message, RpcContext context, CancellationToken cancellationToken)

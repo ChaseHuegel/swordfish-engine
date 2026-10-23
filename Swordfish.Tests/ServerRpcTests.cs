@@ -16,6 +16,7 @@ using WaywardBeyond.Networking.Rpc;
 using WaywardBeyond.Networking.Transport;
 using WaywardBeyond.Permissions;
 using WaywardBeyond.Server;
+using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 using Xunit;
 using RpcServerConnection = NsdRpc.IServerConnection;
@@ -80,7 +81,7 @@ public class ServerRpcTests
     {
         var catalog = new FakeLevelCatalog();
         var policy = PermissionPolicy.Create([]);
-        var manager = new ServerLevelManager(catalog, policy, NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(catalog, new PermissionResolver(policy), NullLoggerFactory.Instance);
         ServerPeer peer = CreateGamePeer(clientId: 4, isLocal: false);
 
         RpcResult<NewLevelResponse> result = manager.Create(peer, new NewLevelRequest
@@ -100,7 +101,7 @@ public class ServerRpcTests
     {
         var catalog = new FakeLevelCatalog();
         var policy = PermissionPolicy.Create([]);
-        var manager = new ServerLevelManager(catalog, policy, NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(catalog, new PermissionResolver(policy), NullLoggerFactory.Instance);
         ServerPeer peer = CreateGamePeer(clientId: 5, isLocal: true);
 
         RpcResult<NewLevelResponse> result = manager.Create(peer, new NewLevelRequest
@@ -345,7 +346,7 @@ public class ServerRpcTests
     ) {
         var config = new NetworkingConfig();
         peers = new ServerPeers();
-        var manager = new ServerLevelManager(catalog, PermissionPolicy.Create([]), NullLoggerFactory.Instance);
+        var manager = new ServerLevelManager(catalog, new PermissionResolver(PermissionPolicy.Create([])), NullLoggerFactory.Instance);
         var commands = new ServerHostCommands(manager,
             BrickRegistry.FromNames([]),
             config,

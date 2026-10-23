@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using NsdRpc;
 using WaywardBeyond.Data;
 using WaywardBeyond.Networking.Rpc;
-using WaywardBeyond.Permissions;
 using WaywardBeyond.Server.Permissions;
 using WaywardBeyond.Server.Saves;
 
@@ -16,12 +15,12 @@ namespace WaywardBeyond.Server;
 /// </summary>
 public sealed class ServerLevelManager(
     ILevelCatalog levelCatalog,
-    PermissionPolicy policy,
+    PermissionResolver resolver,
     ILoggerFactory loggerFactory
 )
 {
     private readonly ILevelCatalog _levelCatalog = levelCatalog;
-    private readonly PermissionPolicy _policy = policy;
+    private readonly PermissionResolver _resolver = resolver;
     private readonly ILogger _logger = loggerFactory.CreateLogger<ServerLevelManager>();
 
     public RpcResult<ListLevelsResponse> List(ServerPeer peer)
@@ -74,13 +73,9 @@ public sealed class ServerLevelManager(
         }
     }
 
+    /// <summary>True when the peer may create a level. A host always may.</summary>
     public bool CanCreate(ServerPeer peer)
     {
-        if (peer.IsLocal)
-        {
-            return true;
-        }
-
-        return _policy.HasPermission(peer.Claim.UserId, GamePermissions.LEVEL_CREATE);
+        return _resolver.Resolve(peer.Claim, peer.IsLocal).HasPermission(GamePermissions.LEVEL_CREATE);
     }
 }
