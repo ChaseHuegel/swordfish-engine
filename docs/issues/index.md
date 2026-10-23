@@ -42,6 +42,10 @@ is not part of this workflow.
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
 - [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
 - [ ] [The user claim is unauthenticated](/docs/issues/0064-unauthenticated-user-claim.md) — any client can present any user id, so a GUID's secrecy is the whole authorization model
+- [ ] [Voxel palette count means two different things](/docs/issues/0070-voxel-palette-count-semantics.md) — `Count()` returns distinct ids, so the empty-chunk guard never fires and each empty chunk asks for 4095 spare slots
+- [ ] [The voxel container leaks live voxel arrays](/docs/issues/0071-voxel-container-leaks-live-arrays.md) — `GetChunkInfos` and `VoxelCodec.Encode` hand out arrays the container still owns
+- [ ] [The two voxel sample producers disagree](/docs/issues/0072-voxel-sample-producers-disagree.md) — one rotates neighbours by voxel orientation and one does not; one leaves the coordinate fields at zero
+- [ ] [Voxel chunks are unbounded and chunk coordinates truncate](/docs/issues/0073-unbounded-voxel-chunks.md) — a `short` chunk cast wraps a distant write into a resident chunk, and `_chunks` never shrinks
 
 ### Improvement
 
@@ -59,5 +63,13 @@ is not part of this workflow.
 - [ ] [Reload the permission policy without a restart](/docs/issues/0067-permission-policy-reload.md) — the policy is compile-once, and bound sessions cache their set at join
 - [ ] [Add a skill panel that consumes skill icons and categories](/docs/issues/0068-skill-panel.md) — `Skill.Icon` and `Skill.Category` have no reader, and icon paths are unvalidated
 - [ ] [Make one list decide each brick property](/docs/issues/0069-brick-tags-source-of-truth.md) — brick tags and the skill tag lists duplicate each other, disagree, and both drive gameplay
+- [ ] [One chunk layout decides voxel indexing](/docs/issues/0074-single-chunk-layout.md) — four copies of the index math have already diverged, and `VoxelChunkWriter` duplicates the shared container
+- [ ] [The voxel palette locks on a dictionary](/docs/issues/0075-voxel-palette-lock-target.md) — `lock` on a field with meaningful identity, and nothing contends for it
+- [ ] [VoxelCodec reports failure through Result](/docs/issues/0076-voxel-codec-result.md) — a skipped encode and a structural failure look the same to all four call sites
+- [ ] [Preserve unknown bricks across a save round trip](/docs/issues/0077-preserve-unknown-bricks.md) — an unknown palette name becomes the empty voxel, so a modded save loaded in vanilla is destroyed on re-save
+- [ ] [Delete dead voxel members and settle container lifetime](/docs/issues/0078-dead-voxel-members.md) — unused `Orientation` members and an `IDisposable` no caller honours
+- [ ] [Document the voxel public surface](/docs/issues/0079-document-voxel-surface.md) — the new shared assembly has almost no contract docs and no `<inheritdoc/>`
+- [ ] [Encapsulate VoxelObject internals](/docs/issues/0080-encapsulate-voxel-object.md) — `ChunkData` re-derives index math from raw internal fields, under a `TODO`
+- [ ] [Harden the voxel module](/docs/issues/0081-voxels-tech-debt.md) — unmasked `ShapeLight` nibbles, a heavyweight transitive `Data` dependency, and an undocumented angle unit
 
 ### Research
