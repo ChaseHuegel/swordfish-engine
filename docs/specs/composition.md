@@ -50,6 +50,7 @@ no services. It applies CLI overrides after the engine builds
 | `WaywardBeyond.Bricks` | `Injector` | brick database, registry, parser |
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
+| `WaywardBeyond.Gameplay` | none | no registrations. `ServerComposition` registers its one DI type, `IInteractionHandlerRegistry` |
 
 ## Embedding choices
 
@@ -65,6 +66,11 @@ shared wire-up:
   `ClientInbound`, `ClientHandlers`, and `ClientRpcHost`.
 - Interaction content: `ServerComposition` registers `ServerInteractionContent`
   as the default. The client module replaces it with `ClientInteractionContent`.
+- Interaction handlers: `ServerComposition` registers the shared
+  `IInteractionHandlerRegistry` as a host singleton. A mod resolves it from the
+  host container at startup and registers its handlers. The registry is not
+  owned by a Gameplay composition entry, because Gameplay has no other
+  registrations and does not reference DryIoc.
 
 ## Registration policies
 

@@ -53,7 +53,8 @@ prediction and server authority:
 `ServerInteractionSystem` (`WaywardBeyond.Server/Systems/`, server tick between the
 replication Apply and Publish stages):
 
-- Builds an authority ray from the mirror transform + look.
+- Validates the hinted structure and cell against the authority store by
+  identity and reach. It never raycasts.
 - Resolves with `InteractionResolver`.
 - Applies the outcome on the structure's live `VoxelObject`
   (`WaywardBeyond.Server/Components/VoxelWorldComponent.cs`), rebuilds the

@@ -83,9 +83,10 @@ The hand-written component partials live in
 declares `NotificationType`, which generates into the schema namespace.
 
 Wire identity lives in `WaywardBeyond.Networking` (`NetworkRegistry`,
-`NetworkDirection`, `IPayloadCodec`). Networked runtime state lives in
+`NetworkDirection`, `IPayloadCodec`). Per-session staging state lives in
 `WaywardBeyond.Gameplay/Networking` (`NetworkComponent`, `StageRing<T>`, the
 staged ops) and `WaywardBeyond.Client/Components` (`PendingInputComponent`).
+Those are not nsd types. They hold decoded wire state and are never serialized.
 
 ## Generated output
 

@@ -50,7 +50,7 @@ name), `Name(id)`. It is injected, never a global static.
 | `SkillDatabase` | an injected `IBrickRegistry` |
 | `LevelGenerator` | an `IBrickRegistry` constructor argument |
 | `Brick.ToVoxel` / `InteractionResolver` | the caller's `IBrickRegistry` |
-| `VoxelEntityDataCodec` | an `IBrickRegistry` argument |
+| `VoxelCodec` | an `IBrickRegistry` argument |
 | `ClientJoinSystem`, `ClientVoxelReconcileSystem` | an injected `IBrickRegistry` |
 
 `Brick` (`WaywardBeyond.Bricks/Brick.cs`) is the headless view of
@@ -65,16 +65,15 @@ are case-insensitive.
 A saved world structure is a `VoxelEntityData`, which since **data version 4**
 carries a brick palette: `BrickPalette[n]` is the brick name for voxel id `n`
 (`WaywardBeyond.Data/Nsd/voxels.nsd:22`). A live structure already
-carries registry ids; `VoxelEntityDataCodec.EncodeToPalette` records a name for
+carries registry ids; `VoxelCodec.Encode` records a name for
 each present id. The palette is the durable, self-describing identity. It
 survives content changes, because a later run resolves the palette name through
 its own `IBrickRegistry`.
 
-`VoxelEntityDataCodec` (`WaywardBeyond.Gameplay/Saves/VoxelEntityDataCodec.cs`)
-owns the boundary:
+`VoxelCodec` (`WaywardBeyond.Voxels/VoxelCodec.cs`) owns the boundary:
 
-- `EncodeToPalette` attaches a palette to live registry-id data.
-- `DecodeToLocal` resolves a palette name to the caller's local id space.
+- `Encode` attaches a palette to live registry-id data.
+- `Decode` resolves a palette name to the caller's local id space.
 
 `LevelSaveService` encodes palettes when it writes and decodes when it loads.
 On join the server attaches a palette to each streamed structure, and the client

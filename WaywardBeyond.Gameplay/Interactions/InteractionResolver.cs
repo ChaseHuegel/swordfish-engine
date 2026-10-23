@@ -117,7 +117,8 @@ public static class InteractionResolver
     {
         Vector3 localPos = Vector3.Transform(position - origin, Quaternion.Inverse(orientation)) + new Vector3(0.5f);
 
-        //  A voxel at integer coordinate c spans [c, c+1); floor maps any point in that span to c.
+        //  Voxels are centered on integer coordinates, so a voxel at c spans [c - 0.5, c + 0.5). The
+        //  +0.5 above shifts the sample so the floor lands on the containing cell.
         var x = (int)Math.Floor(localPos.X);
         var y = (int)Math.Floor(localPos.Y);
         var z = (int)Math.Floor(localPos.Z);
@@ -125,7 +126,7 @@ public static class InteractionResolver
         return new Int3(x, y, z);
     }
 
-    /// <summary>Maps a brick-space coordinate to its world position (the voxel's origin corner, not its center).</summary>
+    /// <summary>Maps a brick-space coordinate to the world position of its voxel center.</summary>
     public static Vector3 BrickToWorldSpace(Int3 coordinate, Vector3 origin, Quaternion orientation)
     {
         var localPosition = new Vector3(coordinate.X, coordinate.Y, coordinate.Z);

@@ -129,7 +129,7 @@ autosaves the level.
 `DataVersion.CURRENT` and runs per-record forward migrations. Storage types
 guard and migrate on read: `SqliteCharacterStorage`, `SqliteLevelMetadataStorage`,
 and `SqliteLevelStorage` all refuse records stamped by a newer build. Structure
-data carries a brick palette since data version 4; `VoxelEntityDataCodec`
+data carries a brick palette since data version 4; `VoxelCodec`
 encodes live registry-id data to a palette on write and decodes on load. The
 `Character` and `Level` records stamp their format via the `Version` message.
 See [brick-identity](brick-identity.md).
