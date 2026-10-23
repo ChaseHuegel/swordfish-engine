@@ -1,7 +1,6 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
-using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Data.Components;
 

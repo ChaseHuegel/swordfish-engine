@@ -102,7 +102,7 @@ public static class InteractionResolver
     }
 
     /// <summary>Returns whether any part of a brick cell is within <paramref name="reach"/> of a world position.</summary>
-    public static bool IsReachable(in Int3 coordinate, Vector3 origin, in TransformComponent transform, float reach)
+    private static bool IsReachable(in Int3 coordinate, Vector3 origin, in TransformComponent transform, float reach)
     {
         //  The cell is axis-aligned in brick space, so clamp the origin there instead of transforming
         //  every cell corner into world space.

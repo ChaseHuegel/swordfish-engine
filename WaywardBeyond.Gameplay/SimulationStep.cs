@@ -15,14 +15,14 @@ public sealed class SimulationStep : IDisposable
     /// <summary>Resolves the input command to apply for a given sim tick on a given entity.</summary>
     public delegate bool CommandResolver(int entity, uint simTick, out InputComponent command);
 
+    private const int LOOK_PRUNE_INTERVAL = 64;
+
     private readonly DataStore _store;
     private readonly IPhysics _physics;
     private readonly CommandResolver _resolveCommand;
 
     private readonly Dictionary<Uuid, Vector3> _lastAppliedLook = [];
     private uint _stepsSinceLookPrune;
-
-    private const int LOOK_PRUNE_INTERVAL = 64;
 
     /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
     public uint CurrentSimTick { get; private set; }
@@ -65,6 +65,7 @@ public sealed class SimulationStep : IDisposable
         return false;
     }
 
+    /// <inheritdoc/>
     public void Dispose()
     {
         _physics.FixedUpdate -= OnFixedUpdate;
