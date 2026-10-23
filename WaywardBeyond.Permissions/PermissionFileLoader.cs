@@ -12,18 +12,24 @@ namespace WaywardBeyond.Permissions;
 /// </summary>
 public sealed class PermissionFileLoader(
     VirtualFileSystem vfs,
-    IFileParseService fileParseService,
-    PermissionLoadOptions? options = null)
+    IFileParseService fileParseService)
 {
-    private readonly PermissionLoadOptions _options = options ?? new PermissionLoadOptions();
+    private const string ASSET_ROOT = "permissions/";
+    private const string CONFIG_ROOT = "config/permissions/";
 
     /// <summary>Loads and parses every permission TOML under both roots. Parse failures collect in <paramref name="diagnostics"/>.</summary>
     public IReadOnlyList<SourcedPermissionFile> Load(PermissionDiagnostics diagnostics)
     {
-        var paths = new List<PathInfo>();
-        paths.AddRange(vfs.GetFiles(AsDirectory(_options.AssetRoot), SearchOption.AllDirectories)
-            .Where(static path => path.HasExtension(".toml")));
-        paths.AddRange(AsDirectory(_options.ConfigRoot).GetFiles(SearchOption.AllDirectories)
+        PathInfo[] assetPaths = vfs.GetFiles(ASSET_ROOT, SearchOption.AllDirectories)
+            .Where(static path => path.HasExtension(".toml"))
+            .ToArray();
+        if (assetPaths.Length == 0)
+        {
+            diagnostics.Warn($"No permission files were found under \"{ASSET_ROOT}\".");
+        }
+
+        var paths = new List<PathInfo>(assetPaths);
+        paths.AddRange(new PathInfo(CONFIG_ROOT).GetFiles(SearchOption.AllDirectories)
             .Where(static path => path.HasExtension(".toml")));
         paths.Sort(static (left, right) => string.CompareOrdinal(left.Value, right.Value));
 
@@ -51,15 +57,5 @@ public sealed class PermissionFileLoader(
         }
 
         return files;
-    }
-
-    private static PathInfo AsDirectory(in PathInfo path)
-    {
-        if (path.Value.EndsWith('/') || path.Value.EndsWith(Path.DirectorySeparatorChar))
-        {
-            return path;
-        }
-
-        return new PathInfo(path.Scheme, path.Value + '/');
     }
 }

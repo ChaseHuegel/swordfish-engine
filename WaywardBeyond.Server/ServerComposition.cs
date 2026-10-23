@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using DryIoc;
 using Microsoft.Extensions.Logging;
 using Shoal.Extensions.Swordfish;
@@ -45,15 +44,7 @@ public static class ServerComposition
         container.Register<ServerRpcHost>(Reuse.Singleton);
 
         //  Permissions: parse module and admin files once at startup; each world binds its own claims.
-        container.RegisterTomlParser<PermissionFile>();
-        container.Register<PermissionFileLoader>(Reuse.Singleton);
-        container.RegisterDelegate<PermissionPolicy>(context =>
-        {
-            PermissionFileLoader loader = context.Resolve<PermissionFileLoader>();
-            var diagnostics = new PermissionDiagnostics();
-            IReadOnlyList<SourcedPermissionFile> files = loader.Load(diagnostics);
-            return PermissionPolicy.Create(files, diagnostics);
-        }, Reuse.Singleton, ifAlreadyRegistered: IfAlreadyRegistered.Keep);
+        container.RegisterPermissions();
         container.Register<IUserPermissionService, UserPermissionService>();
         container.Register<IEntryPoint, PermissionEntryPoint>(Reuse.Singleton);
 

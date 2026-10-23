@@ -8,6 +8,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Shoal\Shoal.csproj" />
+      <ProjectReference Include="..\Shoal.Extensions.Swordfish\Shoal.Extensions.Swordfish.csproj" />
       <ProjectReference Include="..\Swordfish.Library\Swordfish.Library.csproj" />
     </ItemGroup>
 

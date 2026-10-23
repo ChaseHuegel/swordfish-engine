@@ -9,10 +9,10 @@ namespace WaywardBeyond.Permissions;
 /// </summary>
 internal static class PermissionSyntax
 {
-    public const char SEPARATOR = '.';
-    public const char DENY_PREFIX = '-';
-    public const string WILDCARD = "*";
-    public const string WILDCARD_SUFFIX = ".*";
+    internal const char SEPARATOR = '.';
+    internal const char DENY_PREFIX = '-';
+    internal const string WILDCARD = "*";
+    internal const string WILDCARD_SUFFIX = ".*";
 
     /// <summary>True when the value is a usable group, role, or user name.</summary>
     public static bool IsValidName(string? value)
