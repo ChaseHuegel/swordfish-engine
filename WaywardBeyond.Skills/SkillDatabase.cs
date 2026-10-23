@@ -52,45 +52,51 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
     /// <inheritdoc/>
     protected override Result<Skill> LoadAsset(string id, SkillDefinition assetInfo)
     {
-        var sources = new Dictionary<XPSource, Dictionary<ushort, int>>();
-        if (assetInfo.Sources != null)
+        if (string.IsNullOrWhiteSpace(id))
         {
-            foreach (KeyValuePair<XPSource, Dictionary<string, int>> sourceGroup in assetInfo.Sources)
+            return Result<Skill>.FromFailure("A skill is missing its ID");
+        }
+
+        if (Get(id).Success)
+        {
+            return Result<Skill>.FromFailure($"Skill ID \"{id}\" is declared more than once");
+        }
+
+        Dictionary<int, int>? declaredLevels = assetInfo.Levels;
+        if (declaredLevels == null || declaredLevels.Count == 0)
+        {
+            return Result<Skill>.FromFailure("A skill carries no level curve");
+        }
+
+        foreach (KeyValuePair<int, int> level in declaredLevels)
+        {
+            if (level.Key < 1 || level.Value < 1)
             {
-                XPSource kind = sourceGroup.Key;
-                if (!sources.TryGetValue(kind, out Dictionary<ushort, int>? dataIDSources))
-                {
-                    dataIDSources = [];
-                    sources[kind] = dataIDSources;
-                }
+                return Result<Skill>.FromFailure(
+                    $"Skill level {level.Key} requires {level.Value} XP; levels and their requirements must be at least 1");
+            }
+        }
 
-                foreach (KeyValuePair<string, int> source in sourceGroup.Value)
+        var sources = new Dictionary<XPSource, Dictionary<ushort, int>>();
+        Dictionary<XPSource, Dictionary<string, int>>? declaredSources = assetInfo.Sources;
+        if (declaredSources != null)
+        {
+            foreach (KeyValuePair<XPSource, Dictionary<string, int>> sourceGroup in declaredSources)
+            {
+                Dictionary<ushort, int> dataIDSources = ResolveSources(sourceGroup.Value, id);
+                if (dataIDSources.Count > 0)
                 {
-                    if (source.Key.StartsWith("tag:", StringComparison.Ordinal))
-                    {
-                        //  Expand a tag into every brick id it lists, each mapped to the same XP amount.
-                        string tag = source.Key[4..];
-                        IReadOnlyList<string>? brickIDs = _invariantTags?.GetValues(tag);
-                        if (brickIDs == null)
-                        {
-                            Logger.LogWarning("Failed to find tag \"{tag}\" when parsing sources for skill ID \"{id}\".", tag, id);
-                            continue;
-                        }
-
-                        for (var i = 0; i < brickIDs.Count; i++)
-                        {
-                            AddDataIDSource(dataIDSources, brickIDs[i], source.Value, id);
-                        }
-                    }
-                    else
-                    {
-                        AddDataIDSource(dataIDSources, source.Key, source.Value, id);
-                    }
+                    sources[sourceGroup.Key] = dataIDSources;
                 }
             }
         }
 
-        var levels = new SortedDictionary<int, int>(assetInfo.Levels ?? []);
+        if (sources.Count == 0)
+        {
+            Logger.LogWarning("Skill \"{id}\" grants no XP; no source resolved to a brick.", id);
+        }
+
+        var levels = new SortedDictionary<int, int>(declaredLevels);
         var skill = new Skill(id, assetInfo.Name ?? string.Empty, assetInfo.Category ?? string.Empty, assetInfo.Icon, sources, levels);
 
         foreach (XPSource kind in sources.Keys)
@@ -107,7 +113,37 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
         return Result<Skill>.FromSuccess(skill);
     }
 
-    private void AddDataIDSource(Dictionary<ushort, int> dataIDSources, string brickID, int xp, string skillID)
+    private Dictionary<ushort, int> ResolveSources(Dictionary<string, int> entries, string skillID)
+    {
+        var dataIDSources = new Dictionary<ushort, int>();
+        foreach (KeyValuePair<string, int> entry in entries)
+        {
+            if (entry.Key.StartsWith("tag:", StringComparison.Ordinal))
+            {
+                //  Expand a tag into every brick id it lists, each mapped to the same XP amount.
+                string tag = entry.Key[4..];
+                IReadOnlyList<string>? brickIDs = _invariantTags?.GetValues(tag);
+                if (brickIDs == null)
+                {
+                    Logger.LogWarning("Failed to find tag \"{tag}\" when parsing sources for skill ID \"{id}\".", tag, skillID);
+                    continue;
+                }
+
+                for (var i = 0; i < brickIDs.Count; i++)
+                {
+                    AddSource(dataIDSources, brickIDs[i], entry.Value, skillID);
+                }
+            }
+            else
+            {
+                AddSource(dataIDSources, entry.Key, entry.Value, skillID);
+            }
+        }
+
+        return dataIDSources;
+    }
+
+    private void AddSource(Dictionary<ushort, int> sources, string brickID, int xp, string skillID)
     {
         ushort dataID = _brickRegistry.Id(brickID);
         if (dataID == 0)
@@ -116,13 +152,13 @@ internal sealed class SkillDatabase : VirtualAssetDatabase<SkillDefinitions, Ski
             return;
         }
 
-        if (dataIDSources.TryGetValue(dataID, out int existing) && existing != xp)
+        if (sources.ContainsKey(dataID))
         {
             Logger.LogWarning(
-                "Brick id \"{brick}\" maps to the same data id {dataID} as another brick in the XP sources of skill \"{skill}\"; the newer XP amount wins.",
-                brickID, dataID, skillID);
+                "Brick \"{brick}\" is listed more than once in the XP sources of skill \"{skill}\"; the last amount wins.",
+                brickID, skillID);
         }
 
-        dataIDSources[dataID] = xp;
+        sources[dataID] = xp;
     }
 }
