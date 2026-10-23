@@ -47,6 +47,7 @@ Composition helpers register a project's services through extension methods on
 Examples: `NetworkingComposition` hosts `RegisterNetworking`.
 `DataComposition` hosts `RegisterDataServices`.
 `LocalizationComposition` hosts `RegisterTags`.
+`PermissionsComposition` hosts `RegisterPermissions`.
 
 A sub-area within a project hosts its own class in its namespace. Example:
 `WaywardBeyond.Data.Localization.LocalizationComposition`.

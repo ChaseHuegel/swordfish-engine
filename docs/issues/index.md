@@ -41,6 +41,7 @@ is not part of this workflow.
 - [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
 - [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
 - [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
+- [ ] [The user claim is unauthenticated](/docs/issues/0064-unauthenticated-user-claim.md) — any client can present any user id, so a GUID's secrecy is the whole authorization model
 
 ### Improvement
 
@@ -53,5 +54,8 @@ is not part of this workflow.
 - [ ] [Clamp item stack capacity on insert](/docs/issues/0060-clamp-item-stack-capacity.md) — a zero MaxSize stack enters an empty slot and can never merge again
 - [ ] [Remove per-interaction allocations in the server interaction path](/docs/issues/0061-interaction-hot-path-allocations.md) — a voxel world and capturing lambdas per interaction edge
 - [ ] [Move game tests out of the engine test project](/docs/issues/0062-game-test-project.md) — game tests in Swordfish.Tests make game work an engine-project change
+- [ ] [Inspect effective permissions at runtime](/docs/issues/0065-runtime-permission-inspection.md) — no host command can print a user's set or explain a denial
+- [ ] [Make ClientHello a request/response call](/docs/issues/0066-client-hello-request-response.md) — a one-way hello silently leaves the peer on the default set and cannot carry session information
+- [ ] [Reload the permission policy without a restart](/docs/issues/0067-permission-policy-reload.md) — the policy is compile-once, and bound sessions cache their set at join
 
 ### Research

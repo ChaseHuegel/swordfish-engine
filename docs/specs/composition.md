@@ -31,7 +31,8 @@ load it, so the wire-up cannot drift:
 - `container.RegisterNetworkingConfig()` — the networking config.
 
 `container.RegisterServer()` (`WaywardBeyond.Server/ServerComposition.cs`)
-calls `container.RegisterDataServices()`.
+calls `container.RegisterDataServices()` and
+`container.RegisterPermissions()`.
 
 The client module (`WaywardBeyond.Client/Injector.cs`) registers client-only
 services and the embedding's content choices. The dedicated launcher registers
@@ -50,6 +51,7 @@ no services. It applies CLI overrides after the engine builds
 | `WaywardBeyond.Bricks` | `Injector` | brick database, registry, parser |
 | `WaywardBeyond.Bodies` | `Injector` | body database, parser |
 | `WaywardBeyond.Skills` | `Injector` | skill database, parser, tags |
+| `WaywardBeyond.Permissions` | `RegisterPermissions()` | permission file parser, loader, and compiled policy |
 | `WaywardBeyond.Gameplay` | none | no registrations. `ServerComposition` registers its one DI type, `IInteractionHandlerRegistry` |
 
 ## Embedding choices
@@ -100,6 +102,7 @@ order.
 - `WaywardBeyond.Config/ConfigComposition.cs`
 - `WaywardBeyond.Data/DataComposition.cs`
 - `WaywardBeyond.Data/Localization/LocalizationComposition.cs`
+- `WaywardBeyond.Permissions/PermissionsComposition.cs`
 - `WaywardBeyond.Client/Injector.cs`
 - `WaywardBeyond.Client/Networking/ClientRpcHost.cs`
 - `WaywardBeyond.Server.Launcher/Program.cs`

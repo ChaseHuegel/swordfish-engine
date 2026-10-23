@@ -79,7 +79,7 @@ Conventions for common type patterns such as assets, config, and ECS live in [sp
 | Properties | PascalCase | `MaxValue`, `Container` |
 | Public fields | PascalCase | `TargetTickRate` (rare) |
 | Private fields | `_` + camelCase | `_args`, `_dataStore` |
-| Private constants | `UPPER_SNAKE_CASE` | `FILE_MODULE_OPTIONS`, `SOLID_VOXEL` |
+| Constants | `UPPER_SNAKE_CASE` | `FILE_MODULE_OPTIONS`, `SOLID_VOXEL` |
 | Parameters | camelCase | `delta`, `expectedState` |
 | Locals | camelCase, `var` when obvious | `var options` |
 | Enums | PascalCase for type and members | `LayoutDirection.Vertical` |

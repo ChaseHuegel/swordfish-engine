@@ -14,11 +14,13 @@ public sealed class PermissionDiagnostics
     /// <summary>The errors found while loading and compiling.</summary>
     public IReadOnlyList<string> Errors => _errors;
 
+    /// <summary>Records a warning. Startup continues.</summary>
     internal void Warn(string message)
     {
         _warnings.Add(message);
     }
 
+    /// <summary>Records an error. The policy loads with the affected entry corrupted or truncated.</summary>
     internal void Error(string message)
     {
         _errors.Add(message);
