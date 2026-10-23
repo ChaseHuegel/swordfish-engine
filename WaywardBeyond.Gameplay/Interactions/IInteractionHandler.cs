@@ -10,6 +10,6 @@ public interface IInteractionHandler
     /// <summary>The key this handler opts into; null fields match any value.</summary>
     InteractionHandlerFilter Filter { get; }
 
-    /// <summary>Runs after base validation for a matching interaction. Returns the resolution to apply.</summary>
+    /// <summary>Runs after base validation for a matching interaction. Returns the resolution to apply. Return the context's resolution to allow it unchanged.</summary>
     InteractionResolution Handle(in InteractionContext context);
 }

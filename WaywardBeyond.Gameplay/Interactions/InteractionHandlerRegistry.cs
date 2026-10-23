@@ -16,11 +16,13 @@ public sealed class InteractionHandlerRegistry : IInteractionHandlerRegistry
     /// <inheritdoc/>
     public InteractionResolution Apply(in InteractionRequest request, in InteractionResolution baseResolution, string? heldItemID)
     {
-        InteractionContext context = new(request, baseResolution, heldItemID);
         InteractionResolution resolution = baseResolution;
 
         foreach (IInteractionHandler handler in _handlers)
         {
+            //  Each handler sees the running resolution, so a later allow cannot discard an earlier
+            //  override. Constructing the context is a struct copy, so this allocates nothing.
+            InteractionContext context = new(request, resolution, heldItemID);
             if (!Matches(handler.Filter, context))
             {
                 continue;

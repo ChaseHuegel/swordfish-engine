@@ -112,9 +112,11 @@ Because every outcome resolves server-side, mods customize interactions
 - After base validation, `ServerInteractionSystem` routes each resolution
   through the registry.
 - A handler returning `InteractionResolution.None` **rejects** the interaction,
-  returning the context's base resolution **allows** it, and returning a
-  different resolution **overrides/augments** it.
-- Matching handlers run in registration order; the last non-reject wins.
+  returning the context's resolution **allows** it, and returning a different
+  resolution **overrides/augments** it.
+- Matching handlers run in registration order. Each handler receives the running
+  resolution, so an allow after an override keeps the override. The last
+  non-reject wins.
 
 The interaction context components (`EquipmentComponent`, `InventoryComponent`,
 `GameModeComponent`) are seeded from the client save via

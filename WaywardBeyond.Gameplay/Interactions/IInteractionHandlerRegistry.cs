@@ -7,8 +7,9 @@ public interface IInteractionHandlerRegistry
     void Register(IInteractionHandler handler);
 
     /// <summary>
-    /// Runs every matching handler in registration order. Returning a <see cref="InteractionAction.None"/>
-    /// resolution rejects the interaction and short-circuits; otherwise the last matching resolution wins.
+    /// Runs every matching handler in registration order. Each handler receives the running resolution,
+    /// so an override carries forward. Returning a <see cref="InteractionAction.None"/> resolution
+    /// rejects the interaction and short-circuits; otherwise the last matching resolution wins.
     /// </summary>
     InteractionResolution Apply(in InteractionRequest request, in InteractionResolution baseResolution, string? heldItemID);
 }
