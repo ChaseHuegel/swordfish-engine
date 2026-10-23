@@ -39,9 +39,19 @@ is not part of this workflow.
 - [ ] [nsd-rpc keeps a canceled inbound entry with a disposed token source](/docs/issues/0052-nsd-rpc-canceled-inbound-dispose.md) — a canceled call makes the next disconnect throw (upstream)
 - [ ] [CharacterSaveManagerTests session-time test never sets the active save](/docs/issues/0041-character-save-load-test.md) — Load returns failure; the test asserts success
 - [ ] [CLI parser splits quoted multi-word values](/docs/issues/0043-cli-quoted-value-split.md) — `--name "Smoke Test"` parses to `['Smoke', 'Test']`; consumers take only `values[0]`
+- [ ] [Bound how old a resolved input command may be](/docs/issues/0059-bound-command-staleness.md) — a client that stops sending keeps moving; the step re-applies its last sample forever
+- [ ] [Transport tests flake when the suite runs in parallel](/docs/issues/0063-flaky-transport-tests.md) — two loopback socket tests fail intermittently only under the full suite
 
 ### Improvement
 
 - [ ] [nsdc unpack safety — submit B1-B3 upstream](/docs/issues/0037-nsdc-unpack-safety.md) — generated deserializer OOB reads; frame-level mitigations landed, structural fix needs codegen
+- [ ] [Move character tunables into config](/docs/issues/0054-move-character-tunables-to-config.md) — movement, reach, and hotbar constants are hardcoded and absent from the config schema
+- [ ] [Remove the TODO markers from WaywardBeyond.Gameplay](/docs/issues/0055-remove-gameplay-todos.md) — two new TODO comments duplicate issues 0054 and 0056
+- [ ] [Split CharacterDefaults by concern](/docs/issues/0056-split-character-defaults.md) — movement, reach, inventory, and body geometry in one type; two competing heights
+- [ ] [Make the NetworkComponent invariants real](/docs/issues/0057-network-component-invariants.md) — nullable staging rings, and a Session handle that is written but never read
+- [ ] [Store the last applied look in a component](/docs/issues/0058-look-history-component.md) — per-entity sim state lives in a side dictionary with a hand-written prune
+- [ ] [Clamp item stack capacity on insert](/docs/issues/0060-clamp-item-stack-capacity.md) — a zero MaxSize stack enters an empty slot and can never merge again
+- [ ] [Remove per-interaction allocations in the server interaction path](/docs/issues/0061-interaction-hot-path-allocations.md) — a voxel world and capturing lambdas per interaction edge
+- [ ] [Move game tests out of the engine test project](/docs/issues/0062-game-test-project.md) — game tests in Swordfish.Tests make game work an engine-project change
 
 ### Research
