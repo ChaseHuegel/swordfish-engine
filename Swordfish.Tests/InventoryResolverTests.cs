@@ -170,6 +170,14 @@ public class InventoryResolverTests
         Assert.Equal(2, InventoryResolver.FindFirstEmptySlot(inventory, startingSlot: 2));
     }
 
+    [Fact]
+    public void ReadsASlotWithANonPositiveCountAsEmpty()
+    {
+        Assert.True(new ItemData("rock", -1, 10).IsEmpty());
+        Assert.True(default(ItemData).IsEmpty());
+        Assert.False(new ItemData("rock", 1, 10).IsEmpty());
+    }
+
     private static InventoryComponent Inventory(int size = 45)
     {
         return new InventoryComponent(size);

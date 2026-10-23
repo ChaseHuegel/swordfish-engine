@@ -1,6 +1,7 @@
 using System;
 using Swordfish.ECS;
 using Swordfish.Library.Util;
+using WaywardBeyond.Data;
 
 namespace WaywardBeyond.Data.Components;
 
@@ -54,7 +55,7 @@ public partial struct InventoryComponent : IDataComponent
             for (int i = startSlot; i < Contents.Length && itemStack.Count > 0; i++)
             {
                 ItemData slotStack = Contents[i];
-                if (firstEmptySlot == -1 && (slotStack.Count == 0 || string.IsNullOrEmpty(slotStack.ID)))
+                if (firstEmptySlot == -1 && slotStack.IsEmpty())
                 {
                     firstEmptySlot = i;
                 }
@@ -149,7 +150,7 @@ public partial struct InventoryComponent : IDataComponent
         }
 
         ItemData slotStack = Contents[slot];
-        if (slotStack.Count <= 0 || string.IsNullOrEmpty(slotStack.ID))
+        if (slotStack.IsEmpty())
         {
             return Result<ItemData>.FromFailure("Slot is empty");
         }

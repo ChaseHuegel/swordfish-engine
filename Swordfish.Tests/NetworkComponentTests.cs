@@ -81,7 +81,7 @@ public class NetworkComponentTests
 
         Assert.True(store.TryGet(entity, out InventoryComponent inventory));
         Assert.Equal("rock", inventory.Contents![0].ID);
-        Assert.True(IsEmpty(inventory.Contents[1]));
+        Assert.True(inventory.Contents[1].IsEmpty());
     }
 
     private static void StageMove(DataStore store, int entity, uint sequence)
@@ -95,11 +95,6 @@ public class NetworkComponentTests
             ToSlot = 1,
         };
         net.StagedInventoryOps!.Stage(sequence, in op);
-    }
-
-    private static bool IsEmpty(in ItemData item)
-    {
-        return item.Count <= 0 || string.IsNullOrEmpty(item.ID);
     }
 
     private static InventoryComponent StackedInventory()

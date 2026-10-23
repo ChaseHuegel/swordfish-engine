@@ -27,7 +27,7 @@ public static class InventoryResolver
         }
 
         ItemData source = inventory.Contents[op.FromSlot];
-        if (source.Count <= 0 || string.IsNullOrEmpty(source.ID) || op.Count == 0)
+        if (source.IsEmpty() || op.Count == 0)
         {
             return false;
         }
@@ -42,7 +42,7 @@ public static class InventoryResolver
         }
 
         ItemData destination = inventory.Contents[op.ToSlot];
-        bool destinationEmpty = destination.Count <= 0 || string.IsNullOrEmpty(destination.ID);
+        bool destinationEmpty = destination.IsEmpty();
 
         if (destinationEmpty)
         {
@@ -88,7 +88,7 @@ public static class InventoryResolver
     private static bool ApplyAutoStack(ref InventoryComponent inventory, int fromSlot)
     {
         ItemData source = inventory.Contents[fromSlot];
-        if (source.Count <= 0 || string.IsNullOrEmpty(source.ID))
+        if (source.IsEmpty())
         {
             return false;
         }
@@ -104,7 +104,7 @@ public static class InventoryResolver
             }
 
             ItemData slotItem = inventory.Contents[i];
-            if (firstEmptySlot == -1 && (slotItem.Count <= 0 || string.IsNullOrEmpty(slotItem.ID)))
+            if (firstEmptySlot == -1 && slotItem.IsEmpty())
             {
                 firstEmptySlot = i;
             }
@@ -153,7 +153,7 @@ public static class InventoryResolver
         for (var i = startingSlot; i < inventory.Contents.Length; i++)
         {
             ItemData slotItem = inventory.Contents[i];
-            if (slotItem.Count <= 0 || string.IsNullOrEmpty(slotItem.ID))
+            if (slotItem.IsEmpty())
             {
                 return i;
             }
