@@ -19,7 +19,10 @@ public sealed class SimulationStep : IDisposable
     private readonly IPhysics _physics;
     private readonly CommandResolver _resolveCommand;
 
-    private readonly Dictionary<int, Vector3> _lastAppliedLook = [];
+    private readonly Dictionary<Uuid, Vector3> _lastAppliedLook = [];
+    private uint _stepsSinceLookPrune;
+
+    private const int LOOK_PRUNE_INTERVAL = 64;
 
     /// <summary>The sim tick the next step applies; the server publishes it and reconcile aligns to it.</summary>
     public uint CurrentSimTick { get; private set; }
@@ -76,7 +79,12 @@ public sealed class SimulationStep : IDisposable
     public void Step()
     {
         CurrentSimTick++;
-        PruneLookHistory();
+
+        if (++_stepsSinceLookPrune >= LOOK_PRUNE_INTERVAL)
+        {
+            _stepsSinceLookPrune = 0;
+            PruneLookHistory();
+        }
 
         _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent>(0f, ForEach);
         void ForEach(float f, DataStore dataStore, int entity, ref Ref<InputComponent> @ref, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
@@ -114,16 +122,23 @@ public sealed class SimulationStep : IDisposable
             torque = new Vector3();
         }
 
+        //  Look totals are absolute per session, so the delta is tracked per entity identity: a
+        //  recycled store index must never inherit a prior session's totals.
+        Uuid owner = _store.GetUuid(entity);
         var lookTotals = new Vector3(command.LookPitch, command.LookYaw, command.LookRoll);
-        if (_lastAppliedLook.TryGetValue(entity, out Vector3 lastApplied))
+        if (owner != Uuid.Null)
         {
-            Vector3 perStep = lookTotals - lastApplied;
-            if (perStep != Vector3.Zero)
+            if (_lastAppliedLook.TryGetValue(owner, out Vector3 lastApplied))
             {
-                torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
+                Vector3 perStep = lookTotals - lastApplied;
+                if (perStep != Vector3.Zero)
+                {
+                    torque += Vector3.Transform(perStep / fixedTimestamp, transform.Read.Orientation);
+                }
             }
+
+            _lastAppliedLook[owner] = lookTotals;
         }
-        _lastAppliedLook[entity] = lookTotals;
 
         //  Movement: derive world-space direction from the command and the current orientation.
         Vector3 forward = transformValue.GetForward();
@@ -152,8 +167,8 @@ public sealed class SimulationStep : IDisposable
     }
 
     /// <summary>
-    /// Drops look history for entities that no longer exist, so freed mirror
-    /// indices do not reuse a stale look delta after a rejoin.
+    /// Drops look history for entity identities that no longer exist. Identity keys make a stale
+    /// entry harmless, so this runs on an interval instead of every step.
     /// </summary>
     private void PruneLookHistory()
     {
@@ -162,12 +177,12 @@ public sealed class SimulationStep : IDisposable
             return;
         }
 
-        List<int>? stale = null;
-        foreach (int entity in _lastAppliedLook.Keys)
+        List<Uuid>? stale = null;
+        foreach (Uuid owner in _lastAppliedLook.Keys)
         {
-            if (_store.GetUuid(entity) == Uuid.Null)
+            if (!_store.TryGet(owner, out _))
             {
-                (stale ??= []).Add(entity);
+                (stale ??= []).Add(owner);
             }
         }
 
@@ -176,9 +191,9 @@ public sealed class SimulationStep : IDisposable
             return;
         }
 
-        foreach (int entity in stale)
+        foreach (Uuid owner in stale)
         {
-            _lastAppliedLook.Remove(entity);
+            _lastAppliedLook.Remove(owner);
         }
     }
 }

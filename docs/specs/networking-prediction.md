@@ -78,6 +78,9 @@ transport reliability layer.
 - The shared step applies the per-sim-tick **difference** of those totals as
   body torque, decoupled from `dt`, so each step rotates by the full accumulated
   delta. Jolt integrates rotation.
+- The step keys the last applied totals by entity identity (`Uuid`), not by the
+  store index. A freed index that is recycled after a rejoin starts with no
+  delta, so it cannot inherit the previous session's totals.
 - The local player's orientation stays client-predicted. Reconcile seats it
   once at spawn, then corrects only position/velocity, so the authoritative
   echo never snaps the view.

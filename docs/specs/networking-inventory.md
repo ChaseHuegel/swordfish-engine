@@ -52,6 +52,9 @@ message SlotMoveOp
 
 - **Exact** moves `Count` (whole stack when null) from `FromSlot` to `ToSlot`.
   The client computes counts for partial drags and splits.
+  `Count` is clamped to the source stack before narrowing to `int`. A value at
+  or above the stack size takes the whole stack, so a count wider than `int`
+  can never become negative.
 - **AutoStack** (shift+click) moves the whole source stack to the first
   same-item stack with capacity, else the first empty slot, scanning from the
   opposite region (a hotbar slot moves into the inventory, an inventory slot

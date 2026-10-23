@@ -1,5 +1,4 @@
 #nullable enable
-using System;
 using System.Numerics;
 using Swordfish.ECS;
 using Swordfish.Physics;
@@ -59,20 +58,5 @@ public class SimulationStepIdleTests
     {
         Assert.True(store.TryGet(entity, out NetworkComponent net));
         net.StagedInputs!.Add(input);
-    }
-
-    private sealed class FakePhysics : IPhysics
-    {
-        public float FixedTimestamp => 1f / 64f;
-
-        public event EventHandler<EventArgs>? FixedUpdate
-        {
-            add { }
-            remove { }
-        }
-
-        public RaycastResult Raycast(in Ray ray) => default;
-
-        public void SetGravity(Vector3 gravity) { }
     }
 }

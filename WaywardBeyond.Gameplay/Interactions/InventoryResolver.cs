@@ -35,7 +35,10 @@ public static class InventoryResolver
         ItemData taken = source;
         if (op.Count != null)
         {
-            taken.Count = Math.Min(taken.Count, (int)op.Count.Value);
+            //  A wire count wider than the stack is the whole stack. Compare before narrowing so a
+            //  count above int.MaxValue can never become negative and invert the stack arithmetic.
+            uint requested = op.Count.Value;
+            taken.Count = requested >= (uint)taken.Count ? taken.Count : (int)requested;
         }
 
         ItemData destination = inventory.Contents[op.ToSlot];
@@ -134,12 +137,17 @@ public static class InventoryResolver
         return true;
     }
 
-    /// <summary>Returns the first empty slot index at or after <paramref name="startingSlot"/>, or -1.</summary>
+    /// <summary>Returns the first empty slot index at or after <paramref name="startingSlot"/>, or -1. A negative start is treated as zero.</summary>
     public static int FindFirstEmptySlot(in InventoryComponent inventory, int startingSlot = 0)
     {
         if (inventory.Contents == null)
         {
             return -1;
+        }
+
+        if (startingSlot < 0)
+        {
+            startingSlot = 0;
         }
 
         for (var i = startingSlot; i < inventory.Contents.Length; i++)
