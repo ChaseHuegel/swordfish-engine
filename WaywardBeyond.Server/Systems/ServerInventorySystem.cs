@@ -10,9 +10,9 @@ namespace WaywardBeyond.Server.Systems;
 /// Server-side consumption of inbound inventory operations. Runs between the replication ApplyStage and
 /// interaction processing, so a move and a place in the same tick resolve against the moved inventory:
 /// each staged op is validated and applied to the authoritative <see cref="InventoryComponent"/> via the
-/// shared resolver, and the component is marked dirty so its echo flows downstream and corrects any
-/// client prediction. Ops are sequence-deduped by the staged ring; the watermark lives on the session's
-/// <see cref="NetworkComponent"/>, so a reused mirror starts at zero.
+/// shared resolver, and the component is marked dirty when an op changed it so its echo flows downstream
+/// and corrects any client prediction. Ops are sequence-deduped by the staged ring; the watermark lives on
+/// the session's <see cref="NetworkComponent"/>, so a reused mirror starts at zero.
 /// </summary>
 public sealed class ServerInventorySystem : IServerWorldSystem
 {
@@ -38,6 +38,7 @@ public sealed class ServerInventorySystem : IServerWorldSystem
         }
 
         InventoryComponent updated = inventory;
+        var changed = false;
         var consumed = false;
 
         Result<InventoryOp> stagedOp = staged.Consume(consumedSequence);
@@ -47,7 +48,8 @@ public sealed class ServerInventorySystem : IServerWorldSystem
             consumedSequence = op.SequenceNumber;
             consumed = true;
 
-            InventoryResolver.Apply(ref updated, op.SlotMove);
+            //  An invalid op is a no-op, but its sequence is still consumed so it cannot replay.
+            changed |= InventoryResolver.Apply(ref updated, op.SlotMove);
             stagedOp = staged.Consume(consumedSequence);
         }
 
@@ -56,7 +58,12 @@ public sealed class ServerInventorySystem : IServerWorldSystem
             return;
         }
 
-        store.AddOrUpdate(entity, updated);
+        //  Change-gated: an unchanged inventory would still be marked dirty and re-published.
+        if (changed)
+        {
+            store.AddOrUpdate(entity, updated);
+        }
+
         staged.Clear();
     }
 
