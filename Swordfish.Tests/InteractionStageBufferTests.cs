@@ -13,7 +13,7 @@ public class InteractionStageBufferTests
             Entity = 1,
             SequenceNumber = sequence,
             ServerTickAtSample = tick,
-            Kind = (byte)kind,
+            Kind = kind,
             Brick = null,
         };
     }

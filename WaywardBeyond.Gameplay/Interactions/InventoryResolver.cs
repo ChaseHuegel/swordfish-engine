@@ -18,7 +18,7 @@ public static class InventoryResolver
             return false;
         }
 
-        if (op.Mode == SlotMoveOp.MODE_AUTO_STACK)
+        if (op.Mode == SlotMoveOpMode.AutoStack)
         {
             return ApplyAutoStack(ref inventory, op.FromSlot);
         }

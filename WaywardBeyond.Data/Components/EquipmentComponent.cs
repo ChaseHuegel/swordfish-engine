@@ -4,9 +4,8 @@ using WaywardBeyond.Data.Registry;
 namespace WaywardBeyond.Data.Components;
 
 /// <summary>
-/// The client-authoritative active inventory slot of a player, replicated upstream. Authored by the
-/// client (hotbar selection, number-key shortcuts); the server validates interactions and consumes
-/// items against the inbound value.
+/// The active equipment slots of an entity. The client owns this but the server
+/// validates interactions and consumes items against the values.
 /// </summary>
 [NetworkComponent(12, NetworkDirection.ClientOwned)]
 public partial struct EquipmentComponent : IDataComponent;

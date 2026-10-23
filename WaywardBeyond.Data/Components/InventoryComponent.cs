@@ -5,13 +5,8 @@ using WaywardBeyond.Data.Registry;
 
 namespace WaywardBeyond.Data.Components;
 
-/// <summary>
-/// The server-authoritative inventory of a player, replicated downstream as <see cref="ItemData"/>
-/// stacks. Authored by the server after the join-time seed; the client predicts presentably against it
-/// but does not author it. The stacking/mutation logic lives here (shared) so both the client's
-/// presentation and the server's authority use identical behavior. The component is mutated on the
-/// ECS thread only; it carries no internal locking.
-/// </summary>
+/// <summary>The server-authoritative inventory of an entity.</summary>
+/// <remarks>Mutation off the ECS thread is unsafe.</remarks>
 [NetworkComponent(13, NetworkDirection.ServerOwned)]
 public partial struct InventoryComponent : IDataComponent
 {

@@ -7,13 +7,13 @@ namespace WaywardBeyond.Bricks;
 public sealed class Brick
 {
     /// <summary>The minimum ID value.</summary>
-    public const ushort MinID = 1;
+    public const ushort MIN_ID = 1;
     
     /// <inheritdoc cref="BrickDefinition.ID"/>
     public readonly string ID;
 
     /// <summary>The voxel id for this brick. Bound once at database load.</summary>
-    public ushort DataID { get; internal set; }
+    public ushort DataID { get; private set; }
 
     /// <summary>All brick tags are case-insensitive.</summary>
     public readonly IReadOnlySet<string> Tags;

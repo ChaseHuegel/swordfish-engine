@@ -107,7 +107,7 @@ public class NetworkComponentCodecTests
             Entity = 0x1234,
             SequenceNumber = 11,
             ServerTickAtSample = 9,
-            Kind = (byte)InteractionKind.SecondaryPressed,
+            Kind = InteractionKind.SecondaryPressed,
             Brick = new BrickInteraction { TargetX = -2, TargetY = 5, TargetZ = 1, HintShape = 3, HintOrientation = 4 },
         });
 
@@ -123,7 +123,7 @@ public class NetworkComponentCodecTests
         Assert.Equal(0x1234UL, result.Entity);
         Assert.Equal(11u, result.SequenceNumber);
         Assert.Equal(9u, result.ServerTickAtSample);
-        Assert.Equal((byte)InteractionKind.SecondaryPressed, result.Kind);
+        Assert.Equal(InteractionKind.SecondaryPressed, result.Kind);
         Assert.NotNull(result.Brick);
         Assert.Equal(-2, result.Brick.Value.TargetX);
         Assert.Equal(5, result.Brick.Value.TargetY);
@@ -142,7 +142,7 @@ public class NetworkComponentCodecTests
             Entity = 0x1111,
             SequenceNumber = 12,
             ServerTickAtSample = 10,
-            Kind = (byte)InteractionKind.PrimaryReleased,
+            Kind = InteractionKind.PrimaryReleased,
             Brick = null,
         });
 
@@ -155,7 +155,7 @@ public class NetworkComponentCodecTests
 
         Assert.True(output.TryGet(outputEntity, out InteractionEvent result));
         Assert.False(result.Brick.HasValue);
-        Assert.Equal((byte)InteractionKind.PrimaryReleased, result.Kind);
+        Assert.Equal(InteractionKind.PrimaryReleased, result.Kind);
     }
 
     [Fact]

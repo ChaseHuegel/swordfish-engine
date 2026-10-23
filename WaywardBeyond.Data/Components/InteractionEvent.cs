@@ -4,16 +4,9 @@ using WaywardBeyond.Data.Registry;
 namespace WaywardBeyond.Data.Components;
 
 /// <summary>
-/// A discrete player interaction edge (button press/release) transported upstream as a latched
-/// <see cref="ClientOwned"/> event. Common metadata lives at the root; an optional <see cref="Brick"/>
-/// hint carries the client's resolved target. A hint-less event is valid (e.g. right-click empty space)
-/// and resolves to <see cref="InteractionKind"/>'s None action server-side.
+/// A discrete interaction edge event (button press/release) owned by the client.
+/// Optional metadata carries hints about the desired interaction, such as client-resolved targets.
+/// A hintless event is valid (ex: right-click empty space).
 /// </summary>
 [NetworkComponent(15, NetworkDirection.ClientOwned)]
 public partial struct InteractionEvent : IDataComponent;
-
-/// <summary>
-/// Client hint for a brick interaction: the target cell plus place-only shape/orientation. The server
-/// independently validates and remains authoritative; this is a hint, never trusted state.
-/// </summary>
-public partial struct BrickInteraction;

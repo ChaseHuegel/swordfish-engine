@@ -415,7 +415,7 @@ in IInteractionContent content,
             Entity = store.GetUuid(playerEntity).ToValue(),
             SequenceNumber = sequence,
             ServerTickAtSample = serverTickAtSample,
-            Kind = (byte)kind,
+            Kind = kind,
             Brick = hint,
         };
 
@@ -481,7 +481,7 @@ in IInteractionContent content,
         {
             _playerData.ApplyMove(store, new SlotMoveOp
             {
-                Mode = SlotMoveOp.MODE_EXACT,
+                Mode = SlotMoveOpMode.Exact,
                 FromSlot = pickSlot,
                 ToSlot = activeSlot,
                 Count = null,

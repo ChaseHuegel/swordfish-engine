@@ -32,7 +32,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
         {
             Brick brick = _loaded[i];
             brick.BindDataID(_registry.Id(brick.ID));
-            _byId[brick.DataID - Brick.MinID] = brick;
+            _byId[brick.DataID - Brick.MIN_ID] = brick;
         }
     }
 
@@ -94,7 +94,7 @@ internal sealed class BrickDatabase : VirtualAssetDatabase<BrickDefinitions, Bri
             return null;
         }
 
-        int index = id - Brick.MinID;
+        int index = id - Brick.MIN_ID;
         return index < _byId.Length ? _byId[index] : null;
     }
 }

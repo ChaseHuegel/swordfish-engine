@@ -111,7 +111,7 @@ internal class Inventory : IUILayer
                 //  server.
                 ApplyMove(new SlotMoveOp
                 {
-                    Mode = SlotMoveOp.MODE_EXACT,
+                    Mode = SlotMoveOpMode.Exact,
                     FromSlot = _selectedSlot,
                     ToSlot = slotIndex,
                     Count = null,
@@ -165,7 +165,7 @@ internal class Inventory : IUILayer
                     int available = selectedItemStack.MaxSize - selectedItemStack.Count;
                     ApplyMove(new SlotMoveOp
                     {
-                        Mode = SlotMoveOp.MODE_EXACT,
+                        Mode = SlotMoveOpMode.Exact,
                         FromSlot = _draggingSlot,
                         ToSlot = _selectedSlot,
                         Count = (uint)Math.Max(0, available),
@@ -175,7 +175,7 @@ internal class Inventory : IUILayer
                 {
                     ApplyMove(new SlotMoveOp
                     {
-                        Mode = SlotMoveOp.MODE_EXACT,
+                        Mode = SlotMoveOpMode.Exact,
                         FromSlot = _draggingSlot,
                         ToSlot = _selectedSlot,
                         Count = null,
@@ -270,7 +270,7 @@ internal class Inventory : IUILayer
                                 {
                                     ApplyMove(new SlotMoveOp
                                     {
-                                        Mode = SlotMoveOp.MODE_EXACT,
+                                        Mode = SlotMoveOpMode.Exact,
                                         FromSlot = _draggingSlot,
                                         ToSlot = inventorySlot,
                                         Count = 1,
@@ -286,7 +286,7 @@ internal class Inventory : IUILayer
                                     
                                     ApplyMove(new SlotMoveOp
                                     {
-                                        Mode = SlotMoveOp.MODE_EXACT,
+                                        Mode = SlotMoveOpMode.Exact,
                                         FromSlot = sourceSlot,
                                         ToSlot = destinationSlot,
                                         Count = (uint)amount,
@@ -340,7 +340,7 @@ internal class Inventory : IUILayer
                                     {
                                         ApplyMove(new SlotMoveOp
                                         {
-                                            Mode = SlotMoveOp.MODE_AUTO_STACK,
+                                            Mode = SlotMoveOpMode.AutoStack,
                                             FromSlot = inventorySlot,
                                             ToSlot = -1,
                                             Count = null,
@@ -358,7 +358,7 @@ internal class Inventory : IUILayer
                                         {
                                             ApplyMove(new SlotMoveOp
                                             {
-                                                Mode = SlotMoveOp.MODE_EXACT,
+                                                Mode = SlotMoveOpMode.Exact,
                                                 FromSlot = inventorySlot,
                                                 ToSlot = splitTarget,
                                                 Count = (uint)Math.Max(1, itemStack.Count / 2),

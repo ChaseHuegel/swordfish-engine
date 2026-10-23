@@ -3,11 +3,7 @@ using WaywardBeyond.Data.Registry;
 
 namespace WaywardBeyond.Data.Components;
 
-/// <summary>
-/// The server-authoritative game mode of a player, replicated downstream. Authored by the server after
-/// the join-time seed; the client reads it to decide whether interactions consume resources. The wire
-/// carries an <c>int</c> (the <see cref="GameMode"/> enum underlying value; see <see cref="Mode"/>).
-/// </summary>
+/// <summary>The game mode of an entity</summary>
 [NetworkComponent(14, NetworkDirection.ServerOwned)]
 public partial struct GameModeComponent : IDataComponent
 {

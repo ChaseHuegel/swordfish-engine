@@ -44,11 +44,20 @@ message GameModeComponent
 
 message InteractionEvent
 {
-    ulong Entity              = 0;
-    uint  SequenceNumber      = 1;
-    uint  ServerTickAtSample  = 2;
-    byte  Kind                = 3;
-    BrickInteraction? Brick   = 4;
+    ulong Entity = 0;
+    uint SequenceNumber = 1;
+    uint ServerTickAtSample = 2;
+    InteractionKind Kind = 3;
+    BrickInteraction? Brick = 4;
+}
+
+enum InteractionKind
+{
+    None = 0;
+    PrimaryPressed = 1;
+    PrimaryReleased = 2;
+    SecondaryPressed = 3;
+    SecondaryReleased = 4;
 }
 
 message BrickInteraction
@@ -70,8 +79,14 @@ message InventoryEvent
 
 message SlotMoveOp
 {
-    byte  Mode       = 0;
-    int  FromSlot   = 1;
-    int  ToSlot     = 2;
-    uint? Count     = 3;
+    SlotMoveOpMode Mode = 0;
+    int FromSlot = 1;
+    int ToSlot = 2;
+    uint? Count = 3;
+}
+
+enum SlotMoveOpMode
+{
+    Exact = 0;
+    AutoStack = 1;
 }
