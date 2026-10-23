@@ -13,8 +13,8 @@ namespace WaywardBeyond.Networking.Transport;
 /// </summary>
 internal sealed class LoopbackRpcEndpoint
 {
-    private readonly object _gate = new();
-    private readonly object _deliveryGate = new();
+    private readonly Lock _gate = new();
+    private readonly Lock _deliveryGate = new();
     private readonly Queue<byte[]> _pending = [];
     private RpcFrameHandler? _frameReceived;
     private Action<RpcDisconnectReason>? _disconnected;

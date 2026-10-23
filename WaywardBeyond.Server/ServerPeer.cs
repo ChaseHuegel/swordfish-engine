@@ -106,7 +106,7 @@ public sealed class ServerPeer
         while (SaveCalls.TryDequeue(out SaveLevelCall call))
         {
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
-                GameRpcErrors.InvalidState, "the peer left the world"));
+                GameRpcErrors.INVALID_STATE, "the peer left the world"));
         }
     }
 

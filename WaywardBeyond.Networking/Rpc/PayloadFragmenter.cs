@@ -3,13 +3,13 @@ using System;
 namespace WaywardBeyond.Networking.Rpc;
 
 /// <summary>
-/// Splits one serialized payload into fragments of at most <see cref="GameRpc.FragmentBudget"/> bytes
+/// Splits one serialized payload into fragments of at most <see cref="GameRpc.FRAGMENT_BUDGET"/> bytes
 /// and joins them back. An empty payload yields one empty part, so the split always round-trips.
 /// </summary>
 public static class PayloadFragmenter
 {
     /// <summary>The number of parts a payload of <paramref name="length"/> bytes occupies.</summary>
-    public static int PartCount(int length, int budget = GameRpc.FragmentBudget)
+    public static int PartCount(int length, int budget = GameRpc.FRAGMENT_BUDGET)
     {
         if (length < 0)
         {
@@ -25,7 +25,7 @@ public static class PayloadFragmenter
     }
 
     /// <summary>Splits a payload into parts. Each part is copied into its own array.</summary>
-    public static byte[][] Split(ReadOnlySpan<byte> payload, int budget = GameRpc.FragmentBudget)
+    public static byte[][] Split(ReadOnlySpan<byte> payload, int budget = GameRpc.FRAGMENT_BUDGET)
     {
         if (budget < 1)
         {
@@ -43,7 +43,7 @@ public static class PayloadFragmenter
     }
 
     /// <summary>Copies one part of a payload.</summary>
-    public static byte[] Slice(ReadOnlySpan<byte> payload, int partIndex, int budget = GameRpc.FragmentBudget)
+    public static byte[] Slice(ReadOnlySpan<byte> payload, int partIndex, int budget = GameRpc.FRAGMENT_BUDGET)
     {
         if (budget < 1)
         {

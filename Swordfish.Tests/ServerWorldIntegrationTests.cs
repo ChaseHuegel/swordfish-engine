@@ -105,7 +105,7 @@ public class ServerWorldIntegrationTests
             .SaveLevelAsync(new SaveLevelRequest())
             .WaitAsync(TimeSpan.FromSeconds(10));
         Assert.False(save.IsSuccess);
-        Assert.Equal(GameRpcErrors.PermissionDenied, save.ErrorCode);
+        Assert.Equal(GameRpcErrors.PERMISSION_DENIED, save.ErrorCode);
 
         api.LeaveGame(new LeaveGameRequest());
         RpcResult<JoinAccept> rejoin = await api.JoinAsync(request).WaitAsync(TimeSpan.FromSeconds(10));

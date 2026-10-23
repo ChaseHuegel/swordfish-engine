@@ -18,7 +18,11 @@ public static class RpcLogging
             throw new ArgumentNullException(nameof(logger));
         }
 
-        return (level, message, exception) => logger.Log(Map(level), exception, "{message}", message);
+        return LogSinkCallback;
+        void LogSinkCallback(TraceEventType level, string message, Exception? exception)
+        {
+            logger.Log(Map(level), exception, "{message}", message);
+        }
     }
 
     private static LogLevel Map(TraceEventType level)

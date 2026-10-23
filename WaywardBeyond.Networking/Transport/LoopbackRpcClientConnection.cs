@@ -10,15 +10,10 @@ namespace WaywardBeyond.Networking.Transport;
 /// <see cref="RpcClient"/>. A closed instance is not reusable. Create a fresh one to restore the
 /// loopback session.
 /// </summary>
-public sealed class LoopbackRpcClientConnection : RpcClientConnection, IRpcConnectionStats
+public sealed class LoopbackRpcClientConnection(LoopbackRpcServerTransport transport) : RpcClientConnection, IRpcConnectionStats
 {
-    private readonly LoopbackRpcServerTransport _transport;
+    private readonly LoopbackRpcServerTransport _transport = transport ?? throw new ArgumentNullException(nameof(transport));
     private readonly LoopbackRpcEndpoint _endpoint = new();
-
-    public LoopbackRpcClientConnection(LoopbackRpcServerTransport transport)
-    {
-        _transport = transport ?? throw new ArgumentNullException(nameof(transport));
-    }
 
     public bool IsConnected => _endpoint.IsConnected;
 

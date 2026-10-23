@@ -105,7 +105,7 @@ public sealed class ServerHandlers : GameServerApiHandler
         {
             _logger.LogDebug("Refused a save from a peer without a world.");
             return new ValueTask<RpcResult<SaveLevelResponse>>(
-                RpcResult<SaveLevelResponse>.Failure(GameRpcErrors.NotJoined, "the peer has not joined a world"));
+                RpcResult<SaveLevelResponse>.Failure(GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
         }
 
         var completion = new TaskCompletionSource<RpcResult<SaveLevelResponse>>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -158,6 +158,6 @@ public sealed class ServerHandlers : GameServerApiHandler
     private static ValueTask<RpcResult<T>> Failed<T>()
     {
         return new ValueTask<RpcResult<T>>(
-            RpcResult<T>.Failure(GameRpcErrors.NotJoined, "the peer is not registered"));
+            RpcResult<T>.Failure(GameRpcErrors.NOT_JOINED, "the peer is not registered"));
     }
 }

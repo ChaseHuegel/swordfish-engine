@@ -99,7 +99,7 @@ internal sealed class LanDiscoveryService
         try
         {
             LanBeacon beacon = LanBeacon.Deserialize(datagram.Buffer);
-            if (beacon.ProtocolVersion != LanDiscovery.ProtocolVersion || beacon.TcpPort < 1 || beacon.TcpPort > 65535)
+            if (beacon.ProtocolVersion != LanDiscovery.PROTOCOL_VERSION || beacon.TcpPort < 1 || beacon.TcpPort > 65535)
             {
                 return null;
             }

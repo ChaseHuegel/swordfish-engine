@@ -293,9 +293,9 @@ public sealed class NetworkReplicationSystem : IEntitySystem
     private bool SendSnapshot(ServerPeer peer, in WorldSnapshot snapshot)
     {
         byte[] payload = snapshot.Serialize();
-        if (payload.Length <= GameRpc.FragmentBudget)
+        if (payload.Length <= GameRpc.FRAGMENT_BUDGET)
         {
-            return peer.Rpc.Notify(GameRpc.Methods.WorldSnapshot, in snapshot);
+            return peer.Rpc.Notify(GameRpc.Methods.WORLD_SNAPSHOT, in snapshot);
         }
 
         uint batchId = ++_nextBatchId;
@@ -310,7 +310,7 @@ public sealed class NetworkReplicationSystem : IEntitySystem
                 Payload = PayloadFragmenter.Slice(payload, partIndex),
             };
 
-            if (!peer.Rpc.Notify(GameRpc.Methods.SnapshotBatch, in batch))
+            if (!peer.Rpc.Notify(GameRpc.Methods.SNAPSHOT_BATCH, in batch))
             {
                 return false;
             }

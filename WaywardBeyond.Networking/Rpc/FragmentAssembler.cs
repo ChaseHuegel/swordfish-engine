@@ -1,5 +1,3 @@
-using System;
-
 namespace WaywardBeyond.Networking.Rpc;
 
 /// <summary>

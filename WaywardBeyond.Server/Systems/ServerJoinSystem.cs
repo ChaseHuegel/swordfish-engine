@@ -134,13 +134,13 @@ public sealed class ServerJoinSystem(
 
         if (join.CancellationToken.IsCancellationRequested)
         {
-            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.InvalidState, "join cancelled"));
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.INVALID_STATE, "join cancelled"));
             return;
         }
 
         if (!peers.TryGet(clientId, out _))
         {
-            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.NotJoined, "the peer disconnected"));
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.NOT_JOINED, "the peer disconnected"));
             return;
         }
 
@@ -155,7 +155,7 @@ public sealed class ServerJoinSystem(
             logger.LogError(
                 "Refusing join for client {clientId}: world is level {current} but the join names {level}.",
                 clientId, saveService.CurrentLevelGuid, levelGuid);
-            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JoinRefused, "the world serves another level"));
+            completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.JOIN_REFUSED, "the world serves another level"));
             return;
         }
 

@@ -55,7 +55,7 @@ public class ReplicationReliabilityTests
                 RemovedComponents = [new ComponentRemoval((ulong)tick, 2)],
             };
 
-            Assert.True(peer.Notify(GameRpc.Methods.WorldSnapshot, in snapshot));
+            Assert.True(peer.Notify(GameRpc.Methods.WORLD_SNAPSHOT, in snapshot));
         }
 
         long deadline = Environment.TickCount64 + 10_000;

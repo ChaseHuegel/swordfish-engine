@@ -6,10 +6,7 @@ using WaywardBeyond.Config;
 
 namespace WaywardBeyond.Networking.Rpc;
 
-/// <summary>
-/// Maps <c>network.toml</c> to the nsd-rpc options. The RPC peer and the TCP transport read the
-/// options once at construction.
-/// </summary>
+/// <summary>Maps <c>network.toml</c> to nsd-rpc options.</summary>
 public static class GameRpcOptions
 {
     /// <summary>Builds the peer options. <paramref name="logger"/> receives the library drop and error events.</summary>
@@ -42,14 +39,12 @@ public static class GameRpcOptions
         int backlogMs = config.Transport.SendBacklogDisconnectMs.Get();
         if (backlogBytes > sendQueueBytes)
         {
-            throw new InvalidOperationException(
-                $"Transport.SendBacklogDisconnectBytes ({backlogBytes}) must not exceed Transport.SendQueueBytes ({sendQueueBytes}).");
+            throw new InvalidOperationException($"Transport.SendBacklogDisconnectBytes ({backlogBytes}) must not exceed Transport.SendQueueBytes ({sendQueueBytes}).");
         }
 
-        if ((backlogBytes > 0) != (backlogMs > 0))
+        if (backlogBytes > 0 != backlogMs > 0)
         {
-            throw new InvalidOperationException(
-                "Transport.SendBacklogDisconnectBytes and Transport.SendBacklogDisconnectMs must both be zero or both be positive.");
+            throw new InvalidOperationException("Transport.SendBacklogDisconnectBytes and Transport.SendBacklogDisconnectMs must both be zero or both be positive.");
         }
 
         return new TcpOptions

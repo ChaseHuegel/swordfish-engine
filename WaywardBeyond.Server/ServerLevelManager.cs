@@ -38,7 +38,7 @@ public sealed class ServerLevelManager(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to list levels for client {clientId}.", peer.GameId);
-            return RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.LevelLoadFailed, "the level list did not load");
+            return RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.LEVEL_LOAD_FAILED, "the level list did not load");
         }
     }
 
@@ -49,7 +49,7 @@ public sealed class ServerLevelManager(
             _logger.LogInformation(
                 "Denied level creation for client {clientId} without {permission}.",
                 peer.GameId, GamePermissions.LevelCreate);
-            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.PermissionDenied, "level creation is not permitted");
+            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.PERMISSION_DENIED, "level creation is not permitted");
         }
 
         try
@@ -70,7 +70,7 @@ public sealed class ServerLevelManager(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create level \"{name}\" for client {clientId}.", request.Name, peer.GameId);
-            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.LevelLoadFailed, "the level was not created");
+            return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.LEVEL_LOAD_FAILED, "the level was not created");
         }
     }
 

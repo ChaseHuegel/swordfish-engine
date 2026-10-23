@@ -106,13 +106,13 @@ public sealed class LanHost : IEntryPoint, IDisposable
             {
                 ServerName = serverName,
                 TcpPort = tcpPort,
-                ProtocolVersion = LanDiscovery.ProtocolVersion,
+                ProtocolVersion = LanDiscovery.PROTOCOL_VERSION,
                 PlayerCount = _worldHost.PlayerCount,
             }.Serialize();
 
             try
             {
-                _beacon!.Send(payload, payload.Length, LanDiscovery.BroadcastAddress, discoveryPort);
+                _beacon!.Send(payload, payload.Length, LanDiscovery.BROADCAST_ADDRESS, discoveryPort);
             }
             catch (SocketException)
             {

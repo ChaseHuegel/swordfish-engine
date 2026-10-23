@@ -52,7 +52,7 @@ public sealed class NsdComponentCodec<T> : IPayloadCodec<T>
     }
 
     /// <inheritdoc/>
-    byte[] IPayloadCodec<T>.Serialize(in T value) => _serializeDelegate(value) ?? Array.Empty<byte>();
+    byte[] IPayloadCodec<T>.Serialize(in T value) => _serializeDelegate(value);
 
     /// <inheritdoc/>
     T IPayloadCodec<T>.Deserialize(ReadOnlySpan<byte> payload) => _deserializeDelegate(payload);

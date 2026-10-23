@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -78,11 +77,6 @@ public sealed class NetworkRegistry
             return Result.FromFailure($"Cannot register {type.Name}: uuid is Null.");
         }
 
-        if (codec == null)
-        {
-            return Result.FromFailure($"Cannot register {type.Name}: codec is null.");
-        }
-
         Type codecType = codec.GetType();
         if (codecType.IsGenericType
             && codecType.GetGenericTypeDefinition() == typeof(NsdComponentCodec<>))
@@ -121,8 +115,7 @@ public sealed class NetworkRegistry
         return _byUuid.TryGetValue(uuid, out info);
     }
 
-    public bool TryGetInfo<T>([NotNullWhen(true)] out NetworkComponentInfo info)
-        where T : struct, IDataComponent
+    public bool TryGetInfo<T>(out NetworkComponentInfo info) where T : struct, IDataComponent
     {
         return TryGetInfo(typeof(T), out info);
     }

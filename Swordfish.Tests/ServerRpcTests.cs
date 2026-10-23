@@ -91,7 +91,7 @@ public class ServerRpcTests
         });
 
         Assert.False(result.IsSuccess);
-        Assert.Equal(GameRpcErrors.PermissionDenied, result.ErrorCode);
+        Assert.Equal(GameRpcErrors.PERMISSION_DENIED, result.ErrorCode);
         Assert.Equal(0, catalog.Created);
     }
 
@@ -189,7 +189,7 @@ public class ServerRpcTests
 
         RpcResult<NewLevelResponse> createResult = await create;
         Assert.False(createResult.IsSuccess);
-        Assert.Equal(GameRpcErrors.PermissionDenied, createResult.ErrorCode);
+        Assert.Equal(GameRpcErrors.PERMISSION_DENIED, createResult.ErrorCode);
         Assert.Equal(0, catalog.Created);
 
         connection.Close();
@@ -198,12 +198,12 @@ public class ServerRpcTests
     [Fact]
     public void RawEnvelopeRoundTrips()
     {
-        var envelope = new Envelope(1, (byte)RpcMessageKind.Request, 1, GameRpc.Methods.ListLevels, new byte[] { 1, 2, 3 }, null);
+        var envelope = new Envelope(1, (byte)RpcMessageKind.Request, 1, GameRpc.Methods.LIST_LEVELS, new byte[] { 1, 2, 3 }, null);
         Envelope decoded = Envelope.Deserialize(envelope.Serialize());
         Assert.Equal(1, decoded.Version);
         Assert.Equal((byte)RpcMessageKind.Request, decoded.Kind);
         Assert.Equal(1UL, decoded.Id);
-        Assert.Equal(GameRpc.Methods.ListLevels, decoded.Method);
+        Assert.Equal(GameRpc.Methods.LIST_LEVELS, decoded.Method);
         Assert.Equal([1, 2, 3], decoded.Payload);
     }
 
@@ -231,7 +231,7 @@ public class ServerRpcTests
             1,
             (byte)RpcMessageKind.Request,
             10,
-            GameRpc.Methods.ListLevels,
+            GameRpc.Methods.LIST_LEVELS,
             new ListLevelsRequest { Dummy = 0 }.Serialize(),
             null));
 
@@ -272,7 +272,7 @@ public class ServerRpcTests
             1,
             (byte)RpcMessageKind.Request,
             1,
-            GameRpc.Methods.CreateLevel,
+            GameRpc.Methods.CREATE_LEVEL,
             [0x00, 0x00, 0xFF, 0xFF],
             null));
 
@@ -292,7 +292,7 @@ public class ServerRpcTests
             1,
             (byte)RpcMessageKind.Request,
             2,
-            GameRpc.Methods.ListLevels,
+            GameRpc.Methods.LIST_LEVELS,
             new ListLevelsRequest { Dummy = 0 }.Serialize(),
             null));
 

@@ -87,7 +87,7 @@ public sealed class ServerSaveSystem(
         if (call.CancellationToken.IsCancellationRequested)
         {
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
-                GameRpcErrors.InvalidState, "the save request was cancelled"));
+                GameRpcErrors.INVALID_STATE, "the save request was cancelled"));
             return;
         }
 
@@ -98,7 +98,7 @@ public sealed class ServerSaveSystem(
                 peer.GameId, GamePermissions.LevelSave);
 
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
-                GameRpcErrors.PermissionDenied, "level saving is not permitted"));
+                GameRpcErrors.PERMISSION_DENIED, "level saving is not permitted"));
             peer.Client.Notification(new NotificationMessage
             {
                 Type = (byte)NotificationType.Toast,

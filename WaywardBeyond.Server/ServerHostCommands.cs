@@ -112,7 +112,7 @@ public sealed class ServerHostCommands(
     {
         if (call.CancellationToken.IsCancellationRequested)
         {
-            call.Completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.InvalidState, "join cancelled"));
+            call.Completion.TrySetResult(RpcResult<JoinAccept>.Failure(GameRpcErrors.INVALID_STATE, "join cancelled"));
             return;
         }
 
@@ -124,7 +124,7 @@ public sealed class ServerHostCommands(
         {
             logger.LogError(ex, "Failed to route a join for client {clientId}.", call.Peer.GameId);
             call.Completion.TrySetResult(RpcResult<JoinAccept>.Failure(
-                GameRpcErrors.JoinRefused, "the world could not be created"));
+                GameRpcErrors.JOIN_REFUSED, "the world could not be created"));
         }
     }
 
@@ -137,7 +137,7 @@ public sealed class ServerHostCommands(
     {
         if (call.CancellationToken.IsCancellationRequested)
         {
-            call.Completion.TrySetResult(RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.InvalidState, "cancelled"));
+            call.Completion.TrySetResult(RpcResult<ListLevelsResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
             return;
         }
 
@@ -148,7 +148,7 @@ public sealed class ServerHostCommands(
     {
         if (call.CancellationToken.IsCancellationRequested)
         {
-            call.Completion.TrySetResult(RpcResult<NewLevelResponse>.Failure(GameRpcErrors.InvalidState, "cancelled"));
+            call.Completion.TrySetResult(RpcResult<NewLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
             return;
         }
 
@@ -159,7 +159,7 @@ public sealed class ServerHostCommands(
     {
         if (call.CancellationToken.IsCancellationRequested)
         {
-            call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(GameRpcErrors.InvalidState, "cancelled"));
+            call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
             return;
         }
 
@@ -172,7 +172,7 @@ public sealed class ServerHostCommands(
         {
             logger.LogError(ex, "Failed to delete level {level}.", call.Request.LevelGuid);
             call.Completion.TrySetResult(RpcResult<DeleteLevelResponse>.Failure(
-                GameRpcErrors.LevelLoadFailed, "the level was not deleted"));
+                GameRpcErrors.LEVEL_LOAD_FAILED, "the level was not deleted"));
         }
     }
 
@@ -180,7 +180,7 @@ public sealed class ServerHostCommands(
     {
         if (call.CancellationToken.IsCancellationRequested)
         {
-            call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.InvalidState, "cancelled"));
+            call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
             return;
         }
 
@@ -188,14 +188,14 @@ public sealed class ServerHostCommands(
         if (world == null || !world.Sessions.TryGetEntity(call.Peer.GameId, out _))
         {
             call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(
-                GameRpcErrors.NotJoined, "the peer has not joined a world"));
+                GameRpcErrors.NOT_JOINED, "the peer has not joined a world"));
             return;
         }
 
         if (FindStream(call.Peer) != null)
         {
             call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(
-                GameRpcErrors.InvalidState, "a level stream is already in flight"));
+                GameRpcErrors.INVALID_STATE, "a level stream is already in flight"));
             return;
         }
 
@@ -209,7 +209,7 @@ public sealed class ServerHostCommands(
         {
             logger.LogError(ex, "Failed to collect the level entities for client {clientId}.", call.Peer.GameId);
             call.Completion.TrySetResult(RpcResult<LevelStreamComplete>.Failure(
-                GameRpcErrors.StreamFailed, "the level entities did not load"));
+                GameRpcErrors.STREAM_FAILED, "the level entities did not load"));
             return;
         }
 
@@ -240,7 +240,7 @@ public sealed class ServerHostCommands(
             catch (Exception ex)
             {
                 logger.LogError(ex, "Level stream to client {clientId} failed.", stream.Peer.GameId);
-                Abort(stream, GameRpcErrors.StreamFailed, "the stream failed");
+                Abort(stream, GameRpcErrors.STREAM_FAILED, "the stream failed");
                 _streams.RemoveAt(index);
             }
         }
@@ -252,13 +252,13 @@ public sealed class ServerHostCommands(
         ServerPeer peer = stream.Peer;
         if (peer.World != stream.World)
         {
-            Complete(stream, RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.NotJoined, "the peer left the world"));
+            Complete(stream, RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.NOT_JOINED, "the peer left the world"));
             return true;
         }
 
         if (stream.CancellationToken.IsCancellationRequested)
         {
-            Complete(stream, RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.InvalidState, "cancelled"));
+            Complete(stream, RpcResult<LevelStreamComplete>.Failure(GameRpcErrors.INVALID_STATE, "cancelled"));
             return true;
         }
 
@@ -301,7 +301,7 @@ public sealed class ServerHostCommands(
             if (!stream.Context.TryStream(chunk))
             {
                 logger.LogError("Level stream to client {clientId} was rejected; closing the peer.", peer.GameId);
-                Abort(stream, GameRpcErrors.StreamFailed, "the stream send was rejected");
+                Abort(stream, GameRpcErrors.STREAM_FAILED, "the stream send was rejected");
                 peer.Rpc.Close();
                 return true;
             }
@@ -374,7 +374,7 @@ public sealed class ServerHostCommands(
         }
 
         token.Register(() => completion.TrySetResult(
-            RpcResult<T>.Failure(GameRpcErrors.InvalidState, "cancelled")));
+            RpcResult<T>.Failure(GameRpcErrors.INVALID_STATE, "cancelled")));
     }
 
     private abstract class HostCall
