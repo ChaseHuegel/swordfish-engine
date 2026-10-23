@@ -7,8 +7,9 @@ namespace WaywardBeyond.Permissions;
 
 /// <summary>
 ///     Merges loaded permission files into an immutable <see cref="PermissionPolicy"/>. Same-named groups
-///     and users merge by union across files. Inheritance resolves depth-capped, so a cycle contributes
-///     every acyclic edge and is reported once. Compilation never throws.
+///     and users merge by union across files. A user's own nodes override the group baseline. Inheritance
+///     resolves depth-capped, so a cycle contributes every acyclic edge and is reported once. Compilation
+///     never throws.
 /// </summary>
 internal static class PermissionCompiler
 {
@@ -31,7 +32,7 @@ internal static class PermissionCompiler
         string[] defaultClosure = hasDefault
             ? ResolveClosure(graph, groups, [PermissionPolicy.DEFAULT_ROLE], reportedCycles, diagnostics)
             : [];
-        PermissionSet defaultSet = CompileSet(CollectNodes(defaultClosure, groups, null), diagnostics);
+        PermissionSet defaultSet = CompileSet(CollectNodes(defaultClosure, groups));
 
         var compiledUsers = new Dictionary<string, PermissionSet>(StringComparer.OrdinalIgnoreCase);
         foreach (KeyValuePair<string, MergedUser> entry in users)
@@ -51,7 +52,12 @@ internal static class PermissionCompiler
             }
 
             string[] closure = ResolveClosure(graph, groups, roots, reportedCycles, diagnostics);
-            compiledUsers[entry.Key] = CompileSet(CollectNodes(closure, groups, user.Permissions), diagnostics);
+            PermissionSet groupSet = CompileSet(CollectNodes(closure, groups));
+
+            //  The user's own nodes are a separate layer, so a user entry always overrides a group entry.
+            compiledUsers[entry.Key] = user.Permissions.Count == 0
+                ? groupSet
+                : CompileSet(user.Permissions, groupSet);
         }
 
         return new PermissionPolicy(compiledUsers, defaultSet, groups.Count, users.Count, diagnostics);
@@ -141,7 +147,7 @@ internal static class PermissionCompiler
     }
 
     private static void MergePermissions(
-        List<string> nodes,
+        List<PermissionNode> nodes,
         HashSet<string> seen,
         List<string>? values,
         string kind,
@@ -163,9 +169,16 @@ internal static class PermissionCompiler
             }
 
             string node = raw.Trim();
+            Result<PermissionNode> parsed = PermissionSyntax.Parse(node);
+            if (!parsed.Success)
+            {
+                diagnostics.Warn($"File \"{source}\" declares the invalid permission node \"{node}\" on {kind} \"{owner}\"; the node is ignored.");
+                continue;
+            }
+
             if (seen.Add(node))
             {
-                nodes.Add(node);
+                nodes.Add(parsed.Value);
             }
         }
     }
@@ -234,7 +247,7 @@ internal static class PermissionCompiler
                 {
                     if (!depthReported)
                     {
-                        diagnostics.Error($"Inheritance below group \"{parent}\" exceeds the maximum depth of {MAX_INHERITANCE_DEPTH}; the branch is truncated.");
+                        diagnostics.Error($"Group \"{group}\" inherits \"{parent}\", which exceeds the maximum inheritance depth of {MAX_INHERITANCE_DEPTH}; the branch is truncated.");
                         depthReported = true;
                     }
 
@@ -245,7 +258,7 @@ internal static class PermissionCompiler
                 {
                     if (!countReported)
                     {
-                        diagnostics.Error($"Group expansion exceeded the maximum of {MAX_GROUPS_PER_USER} groups; the branch is truncated.");
+                        diagnostics.Error($"Group \"{group}\" inherits \"{parent}\", which exceeds the maximum of {MAX_GROUPS_PER_USER} groups per role set; the branch is truncated.");
                         countReported = true;
                     }
 
@@ -299,13 +312,13 @@ internal static class PermissionCompiler
             }
         }
 
-        string sourceList = sources.Count > 0 ? string.Join(", ", sources) : "unknown";
+        string sourceList = string.Join(", ", sources);
         diagnostics.Warn($"Inheritance cycle detected: {string.Join(" -> ", cycle)}. The closing edge is ignored. Sources: {sourceList}.");
     }
 
-    private static List<string> CollectNodes(string[] closure, Dictionary<string, MergedGroup> groups, IReadOnlyList<string>? userNodes)
+    private static List<PermissionNode> CollectNodes(string[] closure, Dictionary<string, MergedGroup> groups)
     {
-        var nodes = new List<string>();
+        var nodes = new List<PermissionNode>();
         foreach (string name in closure)
         {
             if (groups.TryGetValue(name, out MergedGroup? group))
@@ -314,49 +327,36 @@ internal static class PermissionCompiler
             }
         }
 
-        if (userNodes != null)
-        {
-            nodes.AddRange(userNodes);
-        }
-
         return nodes;
     }
 
-    private static PermissionSet CompileSet(List<string> rawNodes, PermissionDiagnostics diagnostics)
+    private static PermissionSet CompileSet(List<PermissionNode> nodes, PermissionSet? fallback = null)
     {
         var exact = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         var wildcards = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
         bool? global = null;
 
-        foreach (string raw in rawNodes)
+        foreach (PermissionNode node in nodes)
         {
-            Result<PermissionNode> parsed = PermissionSyntax.Parse(raw);
-            if (!parsed.Success)
-            {
-                diagnostics.Warn($"Ignoring invalid permission node \"{raw}\".");
-                continue;
-            }
-
-            PermissionNode node = parsed.Value;
             if (node.IsGlobal)
             {
                 global = (global ?? true) && !node.IsDeny;
                 continue;
             }
 
-            //  Deny wins when both a grant and a deny declare the same node.
+            //  Deny wins inside one layer. Across layers, the more specific layer decides.
             Dictionary<string, bool> map = node.IsWildcard ? wildcards : exact;
             bool allow = !node.IsDeny;
             map[node.Key] = map.TryGetValue(node.Key, out bool existing) ? existing && allow : allow;
         }
 
-        return new PermissionSet(exact, wildcards, global);
+        return new PermissionSet(exact, wildcards, global, fallback);
     }
 
     private sealed class MergedGroup
     {
         public readonly HashSet<string> Inherits = new(StringComparer.OrdinalIgnoreCase);
-        public readonly List<string> Permissions = [];
+        public readonly List<PermissionNode> Permissions = [];
         public readonly HashSet<string> SeenPermissions = new(StringComparer.OrdinalIgnoreCase);
         public readonly HashSet<string> Sources = new(StringComparer.Ordinal);
     }
@@ -364,7 +364,7 @@ internal static class PermissionCompiler
     private sealed class MergedUser
     {
         public readonly HashSet<string> Roles = new(StringComparer.OrdinalIgnoreCase);
-        public readonly List<string> Permissions = [];
+        public readonly List<PermissionNode> Permissions = [];
         public readonly HashSet<string> SeenPermissions = new(StringComparer.OrdinalIgnoreCase);
     }
 }
