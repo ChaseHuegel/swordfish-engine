@@ -46,6 +46,7 @@ dotnet build --configuration Release
 dotnet test Swordfish.Tests                         # xunit engine tests, cross-platform
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser tests, cross-platform
+dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 pwsh ./Pack.ps1                                     # same as above
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
@@ -244,7 +245,8 @@ These rules bind every path and bind hardest to hot paths.
 
 ### Testing
 
-- **xunit** for `Swordfish.Tests`, `Reef.Tests`, and `Reef.Text.Tests`.
+- **xunit** for `Swordfish.Tests`, `Reef.Tests`, `Reef.Text.Tests`, and
+  `WaywardBeyond.Voxels.Tests`.
 - Descriptive PascalCase test names: `SetMaxValueDoesScale`, `LightPropagationTest`.
 - Arrange/Act/Assert structure.
 - xunit tests inherit `TestBase` for DI container + `ITestOutputHelper`.

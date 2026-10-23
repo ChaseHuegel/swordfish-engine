@@ -13,6 +13,7 @@ dotnet build                                        # Debug default; runs Needle
 dotnet test Swordfish.Tests                         # xunit engine tests
 dotnet test Reef.Tests                              # xunit Reef UI and render tests, cross-platform
 dotnet test Reef.Text.Tests                         # xunit Reef rich-text parser, cross-platform
+dotnet test WaywardBeyond.Voxels.Tests              # xunit shared voxel container tests
 dotnet pack -o ./.packages/                         # Swordfish, Swordfish.Integrations, Swordfish.Library
 dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
 ```
@@ -21,6 +22,8 @@ dotnet run --project Reef.Benchmarks                # BenchmarkDotNet
   MSDF atlas fixtures in `Reef.Tests/TestFiles/Fonts` must exist, because the
   `msdf-atlas-gen` tool is Windows-only.
 - `Reef.Text.Tests` is `net8.0`; it runs on Linux.
+- `WaywardBeyond.Voxels.Tests` is `net9.0`; it references only the voxel module
+  and the brick module, so it runs without the engine.
 - CI publishes release artifacts from `.github/workflows/waywardbeyond.yml`.
 - No lint or typecheck scripts. `dotnet build` is the check.
 - Stale `launch.json` references `Swordfish/bin/Debug/Swordfish.exe`; the real
@@ -116,7 +119,8 @@ Before you finish a change, run:
 2. `dotnet test Swordfish.Tests` — engine tests.
 3. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
 4. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
-5. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+5. `dotnet test WaywardBeyond.Voxels.Tests` — shared voxel container tests.
+6. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
    Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
