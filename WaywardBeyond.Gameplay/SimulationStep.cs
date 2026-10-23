@@ -72,11 +72,11 @@ public sealed class SimulationStep : IDisposable
         CurrentSimTick++;
         PruneLookHistory();
 
-        _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent>(0f,
-            (float _, DataStore _, int entity, ref Ref<InputComponent> _, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform) =>
-            {
-                Execute(entity, ref physics, ref transform);
-            });
+        _store.QueryRef<InputComponent, PhysicsComponent, TransformComponent>(0f, ForEach);
+        void ForEach(float f, DataStore dataStore, int entity, ref Ref<InputComponent> @ref, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
+        {
+            Execute(entity, ref physics, ref transform);
+        }
     }
 
     private void Execute(int entity, ref Ref<PhysicsComponent> physics, ref Ref<TransformComponent> transform)
@@ -123,7 +123,7 @@ public sealed class SimulationStep : IDisposable
         Vector3 forward = transformValue.GetForward();
         Vector3 right = transformValue.GetRight();
         Vector3 up = transformValue.GetUp();
-        var direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
+        Vector3 direction = command.MovementX * right + command.MovementY * up + command.MovementZ * forward;
 
         //  Damping then input-driven velocity (matches the legacy floaty-motion feel).
         velocity += -velocity * fixedTimestamp * CharacterDefaults.DECELERATION;
@@ -146,8 +146,8 @@ public sealed class SimulationStep : IDisposable
     }
 
     /// <summary>
-    /// Drops look history for entities that no longer exist, so freed mirror indices do not reuse a
-    /// stale look delta after a rejoin.
+    /// Drops look history for entities that no longer exist, so freed mirror
+    /// indices do not reuse a stale look delta after a rejoin.
     /// </summary>
     private void PruneLookHistory()
     {

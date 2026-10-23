@@ -1,7 +1,7 @@
 ﻿namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-///     A server-side mod hook for interaction outcomes. A handler is registered against an
+///     A server-side hook for interaction outcomes. A handler is registered against an
 ///     <see cref="InteractionHandlerFilter"/>; it runs after base validation and may return a replacement
 ///     resolution. Returning a <see cref="InteractionAction.None"/> resolution rejects the interaction.
 /// </summary>

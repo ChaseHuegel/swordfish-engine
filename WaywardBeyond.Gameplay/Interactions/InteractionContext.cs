@@ -3,15 +3,12 @@ using WaywardBeyond.Voxels;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>
-///     The facts handed to an interaction handler after base validation: the original request, the base
-///     resolution, the target entity, the target voxel, and the held item.
-/// </summary>
+/// <summary>The info handed to an interaction handler after base validation.</summary>
 public readonly struct InteractionContext(
     in InteractionRequest request,
     in InteractionResolution resolution,
-    string? heldItemID)
-{
+    string? heldItemID
+) {
     /// <summary>The requested interaction.</summary>
     public readonly InteractionRequest Request = request;
 

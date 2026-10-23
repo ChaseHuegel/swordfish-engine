@@ -11,6 +11,13 @@ namespace WaywardBeyond.Gameplay;
 /// <summary>A utility for common character representation and movement values.</summary>
 public static class CharacterDefaults
 {
+    //  TODO this is a little odd here
+    /// <summary>The number of hotbar slots.</summary>
+    public const int HOTBAR_SLOT_COUNT = 9;
+    
+    /// <summary>The default interaction reach from the origin.</summary>
+    public const float DEFAULT_REACH = 9.5f;
+    
     /// <summary>The base movement speed in meters per second.</summary>
     public const float BASE_SPEED = 10f;
 

@@ -109,7 +109,7 @@ public sealed class ServerInteractionSystem(
         Vector3 origin = mirror.Position;
         IVoxelInteractionWorld world = worldFactory(store);
 
-        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, InteractionResolver.DEFAULT_REACH);
+        InteractionRequest request = new(origin, interaction.Brick, kind, placeable, mode, CharacterDefaults.DEFAULT_REACH);
         InteractionResolution resolution = InteractionResolver.Resolve(in request, world, brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {

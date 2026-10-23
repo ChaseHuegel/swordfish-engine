@@ -10,14 +10,11 @@ using WaywardBeyond.Voxels;
 namespace WaywardBeyond.Gameplay.Interactions;
 
 /// <summary>
-///     Shared interaction validation for client prediction and server authority. A hint-less or invalid hint
-///     resolves to <see cref="InteractionAction.None"/>.
+///     Shared interaction validation for client prediction and server authority.
+///     A hintless or invalid hint resolves to <see cref="InteractionAction.None"/>.
 /// </summary>
 public static class InteractionResolver
 {
-    /// <summary>The default interaction reach from the origin.</summary>
-    public const float DEFAULT_REACH = 9.5f;
-
     /// <summary>
     /// Validates the hinted structure + cell against the world and resolves the action. Never throws;
     /// a hint-less or invalid hint yields <see cref="InteractionAction.None"/>.

@@ -26,6 +26,7 @@ using WaywardBeyond.Client.UI;
 using WaywardBeyond.Client.UI.Layers;
 using WaywardBeyond.Data;
 using WaywardBeyond.Data.Components;
+using WaywardBeyond.Gameplay;
 using WaywardBeyond.Gameplay.Interactions;
 using WaywardBeyond.Voxels;
 
@@ -287,7 +288,7 @@ in IInteractionContent content,
         BrickInteraction hint = BuildInteractionHint(isPlace, placeable, store, coordinate, entity.Ptr, in targetTransform, clickedPoint);
 
         Vector3 origin = store.TryGet(playerEntity, out TransformComponent playerTransform) ? playerTransform.Position : Vector3.Zero;
-        var request = new InteractionRequest(origin, hint, kind, placeable, mode, InteractionResolver.DEFAULT_REACH);
+        var request = new InteractionRequest(origin, hint, kind, placeable, mode, CharacterDefaults.DEFAULT_REACH);
         InteractionResolution resolution = InteractionResolver.Resolve(in request, world, _brickRegistry);
         if (resolution.Action == InteractionAction.None)
         {

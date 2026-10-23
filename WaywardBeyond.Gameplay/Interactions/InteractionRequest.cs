@@ -5,10 +5,7 @@ using WaywardBeyond.Data.Components;
 
 namespace WaywardBeyond.Gameplay.Interactions;
 
-/// <summary>
-///     The shared input the interaction resolver decides over:
-///     origin, target hint, button edge, held placeable, game mode, and reach.
-/// </summary>
+/// <summary>The shared input the interaction resolver decides over.</summary>
 public readonly struct InteractionRequest(Vector3 origin, BrickInteraction? hint, InteractionKind kind, Brick? placeable, GameMode gameMode, float reach)
 {
     /// <summary>World-space interaction origin (the player's position); reach is measured from here.</summary>

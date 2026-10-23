@@ -7,9 +7,6 @@ namespace WaywardBeyond.Gameplay.Interactions;
 /// <summary>Shared slot-move resolution for client prediction and server authority. An invalid op is a no-op, never an error.</summary>
 public static class InventoryResolver
 {
-    /// <summary>The number of hotbar slots; an AutoStack move scans the region opposite the source.</summary>
-    public const int HOTBAR_SLOT_COUNT = 9;
-
     /// <summary>Applies a slot move op to an inventory. Returns true when the op changed the inventory.</summary>
     public static bool Apply(ref InventoryComponent inventory, in SlotMoveOp op)
     {
@@ -93,7 +90,7 @@ public static class InventoryResolver
             return false;
         }
 
-        int startSlot = fromSlot < HOTBAR_SLOT_COUNT ? HOTBAR_SLOT_COUNT : 0;
+        int startSlot = fromSlot < CharacterDefaults.HOTBAR_SLOT_COUNT ? CharacterDefaults.HOTBAR_SLOT_COUNT : 0;
         int firstEmptySlot = -1;
 
         for (var i = startSlot; i < inventory.Contents.Length; i++)
