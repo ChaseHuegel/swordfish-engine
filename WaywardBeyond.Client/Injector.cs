@@ -34,6 +34,7 @@ using WaywardBeyond.Client.Voxels.Processing;
 using WaywardBeyond.Config;
 using WaywardBeyond.Data.Characters;
 using WaywardBeyond.Data.Levels;
+using WaywardBeyond.Data.Localization;
 using WaywardBeyond.Gameplay.Interactions;
 
 namespace WaywardBeyond.Client;
@@ -257,6 +258,9 @@ public class Injector : IDryIocInjector
     
     private static void RegisterDatabases(IContainer container)
     {
+        //  The client reads localized tags for naming and the load screen, so it owns that registration.
+        container.RegisterTags();
+
         container.Register<ItemDatabase>(Reuse.Singleton);
         container.RegisterMapping<IAssetDatabase<Item>, ItemDatabase>();
         
