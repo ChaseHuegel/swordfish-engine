@@ -296,7 +296,7 @@ public sealed class ServerJoinSystem(
     /// carried, and the whole component lives in memory for the session and is freed with the player
     /// mirror. The server never persists character skill data.
     /// </summary>
-    private static void SeedSkillState(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
+    internal static void SeedSkillState(DataStore store, int entity, in CharacterState seed, ISkillDatabase skillDatabase)
     {
         var xpBySkillId = new Dictionary<string, long>();
         if (seed.Statistics != null)

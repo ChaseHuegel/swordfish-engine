@@ -105,3 +105,5 @@ increment; a max-level skill renders a full bar.
 - `Swordfish.Tests/ServerSkillSystemTests.cs` — the authoritative grant
   accumulates into `SkillStateComponent`, an unknown brick grants nothing, and
   a seeded total continues the curve.
+- `Swordfish.Tests/ServerJoinSkillSeedTests.cs` — the join seed carries known
+  skill statistics and drops every other statistic.
