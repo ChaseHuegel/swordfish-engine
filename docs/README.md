@@ -11,7 +11,7 @@ change touches a subject, run the docs pass (see `development.md`).
 
 | Subject | Doc |
 |---|---|
-| Workflows, toolchain, code style, commit rules, config schema, docs pass | [development](development.md) |
+| Principles, workflows, toolchain, code style, commit rules, config schema, docs pass | [development](development.md) |
 | As-built architecture, module map, persistence schema, CLI | [architecture](architecture.md) |
 | DI composition: who registers what, call sites, policies | [specs/composition](specs/composition.md) |
 | Networking overview: process boundary, world split, current state | [specs/networking-overview](specs/networking-overview.md) |
@@ -37,7 +37,7 @@ change touches a subject, run the docs pass (see `development.md`).
 | Server-authoritative skills: definitions, XP grant, skill notifications | [specs/skills](specs/skills.md) |
 | Dot-key permissions: file format, merge, resolution, zero-allocation policy | [specs/permissions](specs/permissions.md) |
 | Config schemas: `manifest.toml`, `modules.toml` | [specs/config-schemas](specs/config-schemas.md) |
-| Self-review and peer-review checklist | [specs/code-review](specs/code-review.md) |
+| Self-review and peer review: triage, hot paths, threading, networking, gate | [specs/code-review](specs/code-review.md) |
 | Naming conventions common type patterns | [specs/naming](specs/naming.md) |
 | Local issue index and agent workflow | [specs/issues](specs/issues.md) |
 

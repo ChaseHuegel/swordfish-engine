@@ -67,7 +67,7 @@ An agent works one issue at a time through this lifecycle:
 3. Form a development plan.
 4. Self-review the plan before implementation.
 5. Implement the change.
-6. Self-review the implemented change.
+6. Self-review the implemented change against [code-review](code-review.md).
 7. Mark the issue complete.
 8. Commit the change.
 

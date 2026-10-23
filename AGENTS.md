@@ -78,6 +78,7 @@ Route a goal to the right doc:
 | Change save/persistence | [docs/specs/persistence.md](docs/specs/persistence.md) |
 | Change an nsd message or generated model | [docs/specs/needlefish-codegen.md](docs/specs/needlefish-codegen.md) |
 | Change networking | the networking specs under `docs/specs/` (see index) |
+| Review a change before finishing | [docs/specs/code-review.md](docs/specs/code-review.md) |
 
 ## Essential conventions
 
@@ -97,6 +98,14 @@ Route a goal to the right doc:
   uses TOML.
 - **Engine vs game.** Everything except `WaywardBeyond.*` is engine. Engine
   changes commit separately, first, standalone-green, never mixed with game.
+- **Less is more.** Prefer deletion over addition. No thin wrappers, no
+  unearned abstractions.
+- **Expected failure returns `Result<T>`.** Do not throw, and do not add a
+  `bool TryGet(out T)` on a non-hot-path API.
+- **No `TODO`/`FIXME`/`HACK`.** Capture the work as an issue under
+  `docs/issues/`.
+- **Contract-only docs.** One-line summaries, `<inheritdoc/>` on
+  implementations, no `docs/` references in code.
 - See [docs/development.md](docs/development.md) for the full style guide.
 
 ## Quality gates
@@ -106,6 +115,9 @@ Before you finish a change, run:
 1. `dotnet build` — must compile clean.
 2. `dotnet test Swordfish.Tests` — engine tests.
 3. `dotnet test Reef.Tests` — Reef UI and render tests, cross-platform.
+4. `dotnet test Reef.Text.Tests` — Reef rich-text parser tests, cross-platform.
+5. Self-review against [docs/specs/code-review.md](docs/specs/code-review.md).
+   Fix blocking findings. Capture the rest as issues.
 
 Then run the mandatory **docs pass** (see the next section). Stale docs are a
 bug; do not finalize a change until the docs match the code.
