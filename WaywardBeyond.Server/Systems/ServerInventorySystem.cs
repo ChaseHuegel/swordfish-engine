@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using Microsoft.Extensions.Logging;
-using Swordfish.ECS;
+﻿using Swordfish.ECS;
 using Swordfish.Library.Util;
 using WaywardBeyond.Data.Components;
 using WaywardBeyond.Gameplay.Interactions;
@@ -13,70 +11,71 @@ namespace WaywardBeyond.Server.Systems;
 /// interaction processing, so a move and a place in the same tick resolve against the moved inventory:
 /// each staged op is validated and applied to the authoritative <see cref="InventoryComponent"/> via the
 /// shared resolver, and the component is marked dirty so its echo flows downstream and corrects any
-/// client prediction. Ops are sequence-deduped by the staged ring; the server tracks the last consumed
-/// sequence per entity.
+/// client prediction. Ops are sequence-deduped by the staged ring; the watermark lives on the session's
+/// <see cref="NetworkComponent"/>, so a reused mirror starts at zero.
 /// </summary>
-public sealed class ServerInventorySystem(ILogger<ServerInventorySystem> logger) : IServerWorldSystem
+public sealed class ServerInventorySystem : IServerWorldSystem
 {
-    private readonly Dictionary<int, uint> _lastConsumedSequences = [];
-
     public void Tick(float delta, DataStore store)
     {
         ConsumeOpsAction action = new() { Owner = this };
-        store.Query<NetworkComponent, InventoryComponent, ConsumeOpsAction>(delta, ref action);
+        store.QueryRef<NetworkComponent, InventoryComponent, ConsumeOpsAction>(delta, ref action);
     }
 
-    private void Consume(DataStore store, int entity, in NetworkComponent net)
-    {
+    private void Consume(
+        DataStore store,
+        int entity,
+        in NetworkComponent net,
+        in InventoryComponent inventory,
+        out uint consumedSequence
+    ) {
+        consumedSequence = net.LastConsumedInventorySequence;
+
         StageRing<InventoryOp>? staged = net.StagedInventoryOps;
         if (staged == null)
         {
             return;
         }
 
-        if (!_lastConsumedSequences.TryGetValue(entity, out uint lastSequence))
-        {
-            lastSequence = 0;
-        }
+        InventoryComponent updated = inventory;
+        var consumed = false;
 
-        bool consumed = false;
-        Result<InventoryOp> stagedOp = staged.Consume(lastSequence);
+        Result<InventoryOp> stagedOp = staged.Consume(consumedSequence);
         while (stagedOp.Success)
         {
             InventoryOp op = stagedOp.Value;
-            lastSequence = op.SequenceNumber;
+            consumedSequence = op.SequenceNumber;
             consumed = true;
 
-            if (!store.TryGet(entity, out InventoryComponent inventory))
-            {
-                logger.LogWarning("Dropping inventory op {sequence} for entity {entity} without an inventory.", op.SequenceNumber, entity);
-            }
-            else
-            {
-                InventoryComponent updated = inventory;
-                if (InventoryResolver.Apply(ref updated, op.SlotMove))
-                {
-                    store.AddOrUpdate(entity, updated);
-                }
-            }
-
-            stagedOp = staged.Consume(lastSequence);
+            InventoryResolver.Apply(ref updated, op.SlotMove);
+            stagedOp = staged.Consume(consumedSequence);
         }
 
-        if (consumed)
+        if (!consumed)
         {
-            _lastConsumedSequences[entity] = lastSequence;
-            staged.Clear();
+            return;
         }
+
+        store.AddOrUpdate(entity, updated);
+        staged.Clear();
     }
 
-    private struct ConsumeOpsAction : IForEach<NetworkComponent, InventoryComponent>
+    private struct ConsumeOpsAction : IForEachRef<NetworkComponent, InventoryComponent>
     {
         public ServerInventorySystem Owner;
 
-        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net, in InventoryComponent inventory)
+        public void Execute(float delta, DataStore store, int entity, ref Ref<NetworkComponent> net, ref Ref<InventoryComponent> inventory)
         {
-            Owner.Consume(store, entity, net);
+            ref readonly NetworkComponent current = ref net.Read;
+            ref readonly InventoryComponent inventoryValue = ref inventory.Read;
+
+            Owner.Consume(store, entity, in current, in inventoryValue, out uint consumedSequence);
+
+            //  Change-gated: a write of an unchanged value still marks the component dirty.
+            if (consumedSequence != current.LastConsumedInventorySequence)
+            {
+                net.Write.LastConsumedInventorySequence = consumedSequence;
+            }
         }
     }
 }

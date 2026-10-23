@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.Extensions.Logging;
 using Swordfish.ECS;
@@ -38,8 +37,6 @@ public sealed class ServerInteractionSystem(
     SimulationStep simulationStep
 ) : IServerWorldSystem
 {
-    private readonly Dictionary<int, uint> _lastConsumedSequences = [];
-
     public void Tick(float delta, DataStore store)
     {
         Tick(delta, store, simulationStep.CurrentSimTick);
@@ -49,39 +46,34 @@ public sealed class ServerInteractionSystem(
     public void Tick(float delta, DataStore store, uint simTick)
     {
         ConsumeAction action = new() { Owner = this, Store = store, SimTick = simTick };
-        store.Query<NetworkComponent, OwnedCharacterComponent, TransformComponent, ConsumeAction>(0f, ref action);
+        store.QueryRef<NetworkComponent, OwnedCharacterComponent, TransformComponent, ConsumeAction>(0f, ref action);
     }
 
-    private void Consume(DataStore store, int entity, uint simTick, in NetworkComponent net, in TransformComponent transform)
-    {
+    private void Consume(
+        DataStore store,
+        int entity,
+        uint simTick,
+        in NetworkComponent net,
+        in TransformComponent transform,
+        out uint consumedSequence
+    ) {
+        consumedSequence = net.LastConsumedInteractionSequence;
+
         if (net.StagedInteractions == null)
         {
             return;
         }
 
-        uint lastSequence = _lastConsumedSequences.GetValueOrDefault(entity);
         StageRing<InteractionEvent> buffer = net.StagedInteractions;
 
-        Result<InteractionEvent> staged = buffer.Consume(simTick, lastSequence);
+        Result<InteractionEvent> staged = buffer.Consume(simTick, consumedSequence);
         while (staged.Success)
         {
             InteractionEvent interaction = staged.Value;
-            lastSequence = interaction.SequenceNumber;
+            consumedSequence = interaction.SequenceNumber;
             ProcessInteraction(store, entity, in interaction, in transform);
-            staged = buffer.Consume(simTick, lastSequence);
+            staged = buffer.Consume(simTick, consumedSequence);
         }
-
-        _lastConsumedSequences[entity] = lastSequence;
-    }
-
-    /// <summary>
-    /// Clears the per-entity sequence watermark so a reused mirror index from a prior session does not
-    /// cause <see cref="StageRingExtensions.Consume(StageRing{InteractionEvent}, uint, uint)"/> to skip a fresh session's low sequence numbers.
-    /// Called by the server when a player mirror is freed or reallocated (leave, rejoin, disconnect).
-    /// </summary>
-    public void ResetPlayerSequence(int entity)
-    {
-        _lastConsumedSequences.Remove(entity);
     }
 
     private void ProcessInteraction(DataStore store, int player, in InteractionEvent interaction, in TransformComponent mirror)
@@ -258,20 +250,24 @@ public sealed class ServerInteractionSystem(
         store.AddOrUpdate(player, updated);
     }
 
-    private struct ConsumeAction : IForEach<NetworkComponent, OwnedCharacterComponent, TransformComponent>
+    private struct ConsumeAction : IForEachRef<NetworkComponent, OwnedCharacterComponent, TransformComponent>
     {
         public ServerInteractionSystem Owner;
         public DataStore Store;
         public uint SimTick;
 
-        public void Execute(float delta, DataStore store, int entity, in NetworkComponent net, in OwnedCharacterComponent owned, in TransformComponent transform)
+        public void Execute(float delta, DataStore store, int entity, ref Ref<NetworkComponent> net, ref Ref<OwnedCharacterComponent> owned, ref Ref<TransformComponent> transform)
         {
-            if (net.StagedInteractions == null)
-            {
-                return;
-            }
+            ref readonly NetworkComponent current = ref net.Read;
+            ref readonly TransformComponent transformValue = ref transform.Read;
 
-            Owner.Consume(Store, entity, SimTick, in net, in transform);
+            Owner.Consume(Store, entity, SimTick, in current, in transformValue, out uint consumedSequence);
+
+            //  Change-gated: a write of an unchanged value still marks the component dirty.
+            if (consumedSequence != current.LastConsumedInteractionSequence)
+            {
+                net.Write.LastConsumedInteractionSequence = consumedSequence;
+            }
         }
     }
 }

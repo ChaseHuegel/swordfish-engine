@@ -31,7 +31,6 @@ public sealed class ServerJoinSystem(
     SessionManager sessions,
     LevelSaveService saveService,
     NetworkReplicationSystem replication,
-    ServerInteractionSystem interaction,
     ILogger<ServerJoinSystem> logger,
     GameplayConfig gameplayConfig,
     ISkillDatabase skillDatabase,
@@ -80,7 +79,6 @@ public sealed class ServerJoinSystem(
 
                 //  Capture the uuid before Free (which clears it) so the despawn can replicate.
                 replication.RequestDespawn(store.GetUuid(entity).ToValue());
-                interaction.ResetPlayerSequence(entity);
                 store.Free(entity);
             }
 
@@ -110,7 +108,6 @@ public sealed class ServerJoinSystem(
 
             //  Capture the uuid before Free (which clears it) so the despawn can replicate.
             replication.RequestDespawn(store.GetUuid(entity).ToValue());
-            interaction.ResetPlayerSequence(entity);
             store.Free(entity);
             logger.LogInformation("Freed player mirror {entity} for client {client}.", entity, clientId);
         }
@@ -167,7 +164,6 @@ public sealed class ServerJoinSystem(
 
             //  Capture the uuid before Free (which clears it) so the old mirror despawns to peers.
             replication.RequestDespawn(store.GetUuid(existing).ToValue());
-            interaction.ResetPlayerSequence(existing);
             store.Free(existing);
             sessions.EndSession(clientId);
         }
@@ -223,7 +219,6 @@ public sealed class ServerJoinSystem(
 
         Uuid uuid = Uuid.FromValue(request.CharacterUuid);
         int entity = store.Alloc(uuid);
-        interaction.ResetPlayerSequence(entity);
 
         store.AddOrUpdate(entity, NetworkComponent.Create());
         store.AddOrUpdate(entity, new InputComponent());

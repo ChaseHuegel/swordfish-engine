@@ -16,6 +16,12 @@ public struct NetworkComponent : IDataComponent
     /// <summary>The newest input sim tick the client has sent.</summary>
     public uint LastAckedInput;
 
+    /// <summary>The newest interaction sequence consumed for this session.</summary>
+    public uint LastConsumedInteractionSequence;
+
+    /// <summary>The newest inventory op sequence consumed for this session.</summary>
+    public uint LastConsumedInventorySequence;
+
     /// <summary>Sim-tick-keyed inbound command staging, populated server-side.</summary>
     public StageRing<InputComponent>? StagedInputs;
 
@@ -25,7 +31,7 @@ public struct NetworkComponent : IDataComponent
     /// <summary>Sequence-keyed inbound inventory staging, populated server-side.</summary>
     public StageRing<InventoryOp>? StagedInventoryOps;
 
-    /// <summary>Creates the state for one connected client.</summary>
+    /// <summary>Creates the state for one connected client. The consumed sequence watermarks start at zero.</summary>
     public static NetworkComponent Create()
     {
         return new NetworkComponent

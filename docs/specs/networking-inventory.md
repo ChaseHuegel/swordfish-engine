@@ -33,10 +33,13 @@ message InventoryEvent
 `InteractionEvent`: the inbound ring lives on
 `NetworkComponent.StagedInventoryOps`, the server consumes it between the
 replication ApplyStage and interaction processing, and ops are
-sequence-deduplicated (a re-staged sequence overwrites its slot). Outbound, the
-client mirrors it with `PendingInventoryComponent.Outbound`, drained by
-`ClientReplicationSystem` and cleared only after the reliable RPC path accepts
-the containing snapshot (see [replication](networking-replication.md)).
+sequence-deduplicated (a re-staged sequence overwrites its slot). The last
+consumed sequence also lives on the `NetworkComponent`, so a reused player
+mirror starts at zero instead of inheriting a prior session's watermark.
+Outbound, the client mirrors it with `PendingInventoryComponent.Outbound`,
+drained by `ClientReplicationSystem` and cleared only after the reliable RPC
+path accepts the containing snapshot (see
+[replication](networking-replication.md)).
 
 ## The op: `SlotMoveOp`
 
