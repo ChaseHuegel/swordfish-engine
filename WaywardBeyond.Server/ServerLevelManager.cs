@@ -48,7 +48,7 @@ public sealed class ServerLevelManager(
         {
             _logger.LogInformation(
                 "Denied level creation for client {clientId} without {permission}.",
-                peer.GameId, GamePermissions.LevelCreate);
+                peer.GameId, GamePermissions.LEVEL_CREATE);
             return RpcResult<NewLevelResponse>.Failure(GameRpcErrors.PERMISSION_DENIED, "level creation is not permitted");
         }
 
@@ -81,6 +81,6 @@ public sealed class ServerLevelManager(
             return true;
         }
 
-        return _policy.HasPermission(peer.Claim.UserId, GamePermissions.LevelCreate);
+        return _policy.HasPermission(peer.Claim.UserId, GamePermissions.LEVEL_CREATE);
     }
 }

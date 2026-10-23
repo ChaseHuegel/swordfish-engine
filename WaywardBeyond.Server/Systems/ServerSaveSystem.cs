@@ -14,7 +14,7 @@ namespace WaywardBeyond.Server.Systems;
 /// <summary>
 /// Serves the in-world level save path. The server owns the autosave cadence: while a world has
 /// sessions it queues an authoritative flush every <c>GameplayConfig.AutosaveIntervalMs</c>. A client
-/// save call is accepted only with the <see cref="GamePermissions.LevelSave"/> permission; the local
+/// save call is accepted only with the <see cref="GamePermissions.LEVEL_SAVE"/> permission; the local
 /// host always qualifies. Every queued save broadcasts a start toast to the world, and each finished
 /// database write broadcasts the result.
 /// </summary>
@@ -91,11 +91,11 @@ public sealed class ServerSaveSystem(
             return;
         }
 
-        if (!permissions.HasPermission(peer.GameId, GamePermissions.LevelSave))
+        if (!permissions.HasPermission(peer.GameId, GamePermissions.LEVEL_SAVE))
         {
             _logger.LogInformation(
                 "Denied a level save for client {clientId}: the client lacks the \"{permission}\" permission.",
-                peer.GameId, GamePermissions.LevelSave);
+                peer.GameId, GamePermissions.LEVEL_SAVE);
 
             call.Completion.TrySetResult(RpcResult<SaveLevelResponse>.Failure(
                 GameRpcErrors.PERMISSION_DENIED, "level saving is not permitted"));

@@ -4,8 +4,8 @@ namespace WaywardBeyond.Server.Permissions;
 public static class GamePermissions
 {
     /// <summary>Trigger a manual level save.</summary>
-    public const string LevelSave = "waywardbeyond.level.save";
+    public const string LEVEL_SAVE = "waywardbeyond.level.save";
 
     /// <summary>Create a new saved level.</summary>
-    public const string LevelCreate = "waywardbeyond.level.create";
+    public const string LEVEL_CREATE = "waywardbeyond.level.create";
 }
