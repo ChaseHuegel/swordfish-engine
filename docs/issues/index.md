@@ -57,5 +57,7 @@ is not part of this workflow.
 - [ ] [Inspect effective permissions at runtime](/docs/issues/0065-runtime-permission-inspection.md) — no host command can print a user's set or explain a denial
 - [ ] [Make ClientHello a request/response call](/docs/issues/0066-client-hello-request-response.md) — a one-way hello silently leaves the peer on the default set and cannot carry session information
 - [ ] [Reload the permission policy without a restart](/docs/issues/0067-permission-policy-reload.md) — the policy is compile-once, and bound sessions cache their set at join
+- [ ] [Add a skill panel that consumes skill icons and categories](/docs/issues/0068-skill-panel.md) — `Skill.Icon` and `Skill.Category` have no reader, and icon paths are unvalidated
+- [ ] [Make one list decide each brick property](/docs/issues/0069-brick-tags-source-of-truth.md) — brick tags and the skill tag lists duplicate each other, disagree, and both drive gameplay
 
 ### Research
